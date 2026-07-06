@@ -169,11 +169,13 @@ El `.env` del disco local tuvo secretos de prod (MySQL prod, llave GCP, Redis Cl
 1. Identidad+catálogo (auth/RBAC, users, events, localities, seat_maps) →
 2. Precios+inventario (PricingEngine, holds, commit) + **pruebas de carga k6/Artillery** del on-sale →
 3. Órdenes+pagos (orders, PaymentProvider+simulador, pago mixto, ledger) + **reembolsos y contracargos** (webhook chargeback → invalida boleto → ledger → revocación) →
-4. Boletos+wallet (Ed25519+TOTP, QR/PDF, Google/Apple, emails) →
+4. Boletos+wallet: **BullMQ adelantado aquí (condición del arquitecto)** — toda tarea pesada (emisión de boletos, QR/PDF, correos) se **encola async** tras asentar el pago en el ledger, para no bloquear el event loop ni causar timeouts de la pasarela. Luego Ed25519+TOTP (QR rotativo, validación offline dinámica), QR/PDF, Google Wallet + Apple .pkpass (vía **WalletProvider** con **stub sandbox** para no bloquear los E2E por los certificados de terceros), emails, y **autorización de promotores** (panel + botón "activar pruebas", ver [[autorizacion-promotores]]) →
 5. Transferencias+validación (handshake, chain-of-custody, manifest offline, ingest) + **propagación de revocaciones** (contracargos/reembolsos) a validadores →
-6. Colas+observabilidad+endurecimiento (BullMQ/Rabbit, pino+OTel, Secret Manager, Cloud Run, cifrar totpSecret) + **privacidad/retención de datos** (anonimización/purga preservando el ledger).
+6. Observabilidad+endurecimiento (RabbitMQ ingest masivo, OTel completo, Secret Manager, Cloud Run) + **privacidad/retención de datos** (anonimización/purga preservando el ledger) + retiros de wallet.
 
 QA transversal en cada ola.
+
+**Estado (jul 2026): Olas 0/1/1.5/2/3/3.5 COMPLETAS — 150 tests verdes.** El arquitecto (Boletera) revisó y **autorizó la Ola 4** con estas condiciones/notas: (a) **BullMQ obligatorio en Ola 4** para emisión/QR/PDF/correos async; (b) el **frontend debe ser hiper-transparente** al recotizar por método (evitar que parezca cargo oculto); (c) **certificados Apple Developer (.pkpass) y aprobación de Google Wallet API** tienen tiempos burocráticos de terceros → diseñar `WalletProvider` con **stub/sandbox** para que los E2E de la Ola 4 no dependan de esos certificados (la gestión de certificados corre en paralelo). Aprobados sin cambios: ledger, recotización+congelado, IVA por evento, reparto de gastos.
 
 ## Consideraciones transversales de producción (no olvidar)
 - **Reembolsos/contracargos:** al recibir webhook de contracargo/reembolso → invalidar boleto al instante, asentar en el ledger inmutable y **propagar la revocación** a los validadores offline (delta de sincronización). Diseño en Ola 3, propagación en Ola 5.
