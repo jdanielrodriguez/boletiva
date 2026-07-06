@@ -12,6 +12,23 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   async onModuleInit(): Promise<void> {
     await this.$connect();
     this.logger.log('Conexión a PostgreSQL establecida');
+    await this.ensureConstraints();
+  }
+
+  /**
+   * Índices/constraints que Prisma no expresa en el schema (índices parciales).
+   * Idempotente: se aplica en cada arranque y sobrevive a `prisma db push`.
+   *
+   * `order_items_active_seat_uniq`: garantía a nivel de motor de que un asiento
+   * no puede estar en dos líneas ACTIVAS a la vez (belt-and-suspenders del
+   * anti-doble-venta, además del SELECT ... FOR UPDATE del commit).
+   */
+  private async ensureConstraints(): Promise<void> {
+    await this.$executeRawUnsafe(
+      `CREATE UNIQUE INDEX IF NOT EXISTS order_items_active_seat_uniq
+       ON order_items (seat_id)
+       WHERE seat_id IS NOT NULL AND active = true`,
+    );
   }
 
   async onModuleDestroy(): Promise<void> {

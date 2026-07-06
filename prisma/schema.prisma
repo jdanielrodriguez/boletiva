@@ -68,6 +68,15 @@ enum ChallengePurpose {
   twofa_email // segundo factor por correo
 }
 
+/// Estado de una orden de compra.
+enum OrderStatus {
+  pending // creada; asientos ya reservados (sold) a la espera de pago
+  paid // pagada y confirmada (fulfillment)
+  cancelled // cancelada por el usuario o el sistema
+  expired // venció la ventana de pago sin completarse
+  refunded // reembolsada tras el pago
+}
+
 // ---------------------------------------------------------------------------
 // Configuración del sistema (Ola 0)
 // ---------------------------------------------------------------------------
@@ -118,6 +127,7 @@ model User {
   challenges    AuthChallenge[]
   devices       Device[]
   oauthAccounts OAuthAccount[]
+  orders        Order[]
 
   @@index([status])
   @@map("users")
@@ -252,6 +262,7 @@ model Event {
   localities Locality[]
   media      EventMedia[]
   seatMaps   SeatMap[]
+  orders     Order[]
 
   @@index([promoterId])
   @@index([status])
@@ -290,8 +301,9 @@ model Locality {
   createdAt DateTime     @default(now()) @map("created_at")
   updatedAt DateTime     @updatedAt @map("updated_at")
 
-  event Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  seats Seat[]
+  event      Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  seats      Seat[]
+  orderItems OrderItem[]
 
   @@unique([eventId, slug])
   @@index([eventId])
@@ -330,10 +342,78 @@ model Seat {
   status     SeatStatus @default(available)
   createdAt  DateTime   @default(now()) @map("created_at")
 
-  locality Locality @relation(fields: [localityId], references: [id], onDelete: Cascade)
+  locality   Locality    @relation(fields: [localityId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
 
   @@unique([localityId, label])
   @@index([localityId])
   @@index([status])
   @@map("seats")
+}
+
+// ---------------------------------------------------------------------------
+// Órdenes (Ola 2 · commit anti-doble-venta / Ola 3 · pagos)
+// ---------------------------------------------------------------------------
+
+/// Orden de compra. Al crearse (commit), los asientos pasan a `sold` dentro de
+/// una transacción con SELECT ... FOR UPDATE (0 doble-venta). Los totales son un
+/// snapshot inmutable del PricingEngine (server-authoritative). Dinero en Decimal.
+model Order {
+  id       String      @id @default(uuid()) @db.Uuid
+  buyerId  String      @map("buyer_id") @db.Uuid
+  eventId  String      @map("event_id") @db.Uuid
+  status   OrderStatus @default(pending)
+  currency String      @default("GTQ")
+
+  // Snapshot de totales (suma de los ítems). Nunca `number` para dinero.
+  net         Decimal @db.Decimal(12, 2)
+  fixedFees   Decimal @default(0) @db.Decimal(12, 2)
+  platformFee Decimal @db.Decimal(12, 2)
+  taxableBase Decimal @db.Decimal(12, 2)
+  iva         Decimal @db.Decimal(12, 2)
+  gatewayFee  Decimal @db.Decimal(12, 2)
+  total       Decimal @db.Decimal(12, 2)
+
+  expiresAt   DateTime? @map("expires_at")
+  paidAt      DateTime? @map("paid_at")
+  cancelledAt DateTime? @map("cancelled_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  buyer User        @relation(fields: [buyerId], references: [id])
+  event Event       @relation(fields: [eventId], references: [id])
+  items OrderItem[]
+
+  @@index([buyerId])
+  @@index([eventId])
+  @@index([status])
+  @@map("orders")
+}
+
+/// Línea de una orden = un asiento (o cupo general). Guarda el PriceQuote
+/// completo del PricingEngine como snapshot inmutable (jsonb). `active` = false
+/// al cancelar/reembolsar: libera el asiento y el índice único parcial.
+model OrderItem {
+  id         String  @id @default(uuid()) @db.Uuid
+  orderId    String  @map("order_id") @db.Uuid
+  localityId String  @map("locality_id") @db.Uuid
+  seatId     String? @map("seat_id") @db.Uuid // null = admisión general (aforo)
+  label      String?
+
+  // Snapshot de precio por ítem.
+  net       Decimal @db.Decimal(12, 2)
+  total     Decimal @db.Decimal(12, 2)
+  quote     Json // PriceQuote íntegro (incluye hash anti-manipulación)
+  quoteHash String  @map("quote_hash")
+
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  locality Locality @relation(fields: [localityId], references: [id])
+  seat     Seat?    @relation(fields: [seatId], references: [id])
+
+  @@index([orderId])
+  @@index([seatId])
+  @@map("order_items")
 }

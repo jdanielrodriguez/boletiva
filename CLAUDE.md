@@ -37,9 +37,14 @@ Es un **port/rediseño** del proyecto de referencia `ticketera` (misma carpeta p
   - **events**: CRUD con **ownership de promotor**, publish/cancel, listado público de publicados, detalle por slug.
   - **venues**: localidades, **seat_maps versionados** (activo público), **seats** (bulk + generación por cantidad).
   - **media**: presign de subida a S3/GCS, registro, listado con URLs firmadas.
+- **Ola 2 (Precios + inventario) EN CURSO.** 92 tests verdes (suite serial, `maxWorkers:1`; los e2e comparten una BD real → paralelo = flaky). Tickets:
+  - **Ticket 1 · PricingEngine** (`modules/pricing/pricing.engine.ts`): gross-up 2 capas + IVA sobre base gravable, `decimal.js` Banker's rounding, snapshot con `hash` anti-manipulación. `PricingService` lee comisiones de `settings` (admin-configurable). 19 tests (129.68 exacto, neto preservado, negativos, hash).
+  - **Ticket 2 · Seat Hold Redis** (`modules/inventory`): reserva temporal atómica (Lua todos-o-nada), release solo del dueño, TTL 10 min auto-libera. `POST/DELETE /events/:id/holds`. 10 tests.
+  - **Ticket 3 · Commit anti-doble-venta** (`modules/orders`): `POST /events/:id/orders` materializa asientos reservados en una **orden** (`orders` + `order_items` con snapshot inmutable del quote). **0 doble-venta en 3 capas**: hold Redis (rechaza holds ajenos) → `SELECT … FOR UPDATE` (autoritativo, solo vende `available`) → **índice único parcial** `order_items_active_seat_uniq` (creado idempotente en `PrismaService.onModuleInit`, sobrevive a `db push`). Precio **server-authoritative** (cliente no envía montos). `lock_timeout` 5s evita cuelgues; feeParams se leen ANTES de la tx (evita deadlock de pool). `GET /orders`, `GET /orders/:id` (IDOR→404). 17 tests (concurrencia 30 commits→1 vendido, lock_timeout, IDOR, todos los errores).
+  - Pendiente Ola 2: `fee_schedules` versionado + `price_quote` persistido + panel admin + campos FEL; seeder estadio 10k; K6 (spike 10k VUs); OTel (traces hold→commit).
 - Endpoints salud: `GET /api/v1/health`(completo), `/health/live`, `/health/ready`, `/docs` (Swagger).
-- Estructura: `api/src/{config, common/{decorators,filters,utils}, infra/{prisma,redis,mail,storage,messaging}, health, modules/{auth,users,categories,events,venues,media}}`.
-- Modelo de datos (Prisma): settings, users, refresh_tokens, password_recoveries, auth_challenges, devices, oauth_accounts, categories, events, event_media, localities, seat_maps, seats. Pricing/órdenes/pagos/boletos/ledger llegan en olas 2+.
+- Estructura: `api/src/{config, common/{decorators,filters,utils}, infra/{prisma,redis,mail,storage,messaging}, health, modules/{auth,users,categories,events,venues,media,pricing,inventory,orders}}`.
+- Modelo de datos (Prisma): settings, users, refresh_tokens, password_recoveries, auth_challenges, devices, oauth_accounts, categories, events, event_media, localities, seat_maps, seats, **orders, order_items**. Pagos/boletos/ledger/transferencias llegan en olas 3+.
 - Credenciales seed: `admin@pasaeventos.com` / `promotor@pasaeventos.com` / `cliente@pasaeventos.com`, todas con password `Password123`.
 - Warning benigno conocido: NestJS/path-to-regexp emite "Unsupported route path /api/*" al arrancar; lo auto-convierte, no afecta.
 
