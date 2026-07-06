@@ -113,7 +113,7 @@ Config **12-factor**: todo por env URIs (`DATABASE_URL`, `REDIS_URL`, `AMQP_URL`
 
 ## Seguridad — pendiente importante
 
-`.env` y `gcp-service-account.json` tuvieron **secretos de producción reales** commiteados (MySQL prod, llave GCP, Redis Cloud, Gmail app password). Ya están en `.gitignore` pero **siguen en el historial de git**. Pendiente: sacarlos del tracking, migrar a **Secret Manager**, y el usuario debe **ROTAR** esas credenciales.
+El `.env` del disco local tuvo secretos de prod (MySQL prod, llave GCP, Redis Cloud, Gmail app password), pero **NUNCA se versionaron**: `.env` y `gcp-service-account.json` siempre estuvieron en `.gitignore`. Verificado sobre TODO el historial por nombre de archivo y por los valores reales de cada secreto → **0 coincidencias; el historial está limpio, no fue necesario reescribirlo**. El `.env` local ya está saneado (Postgres local, sin secretos). Esas credenciales ya fueron **eliminadas de sus servicios**; al ir a prod se emiten nuevas y van a **GCP Secret Manager** (ver `docs/DESPLIEGUE.md`, fuente `.env.prod`).
 
 ---
 

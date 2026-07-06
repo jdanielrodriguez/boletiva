@@ -227,7 +227,7 @@ interface PaymentProvider {
 
 ## 13. Seguridad
 
-- **Secretos** → capa de abstracción `SecretsProvider`: `.env` (local, en Docker), **GCP Secret Manager** en prod (nativo de Cloud Run, con IAM y rotación — más eficiente que operar Vault), y gancho opcional para **HashiCorp Vault** si a futuro hay multi-cloud/secretos dinámicos. **Sacar del historial** `.env` y `gcp-service-account.json` y **rotar** credenciales filtradas.
+- **Secretos** → capa de abstracción `SecretsProvider`: `.env` (local, en Docker), **GCP Secret Manager** en prod (nativo de Cloud Run, con IAM y rotación — más eficiente que operar Vault), y gancho opcional para **HashiCorp Vault** si a futuro hay multi-cloud/secretos dinámicos. Nota: `.env` y `gcp-service-account.json` **nunca estuvieron versionados** (siempre en `.gitignore`; verificado sobre todo el historial), así que no hubo que reescribir el historial. Las credenciales viejas del `.env` local ya fueron eliminadas de sus servicios; en prod se emiten nuevas vía Secret Manager (`.env.prod` como fuente — ver `docs/DESPLIEGUE.md`).
 - **Auth:** JWT access corto (~15 min) + refresh rotativo (httpOnly, detección de reuso). Audiencias separadas: buyer / promoter / gate-device (credencial de gate ligada al evento, expira tras el evento).
 - **RBAC** en guard + a nivel de datos (un promotor solo ve/gestiona sus eventos).
 - Rate-limit (Redis store, no memoria) + reCAPTCHA/Turnstile en auth/on-sale/pago. PCI minimizado (nunca tocamos PAN crudo).

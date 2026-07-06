@@ -113,7 +113,10 @@ Rotar = `gcloud secrets versions add <nombre> --data-file=-` con el nuevo valor 
 redeploy (o `--set-secrets` con `:latest`). Las llaves de firma de boletos
 (`TICKET_SIGNING_*`) y las de Pagalo se rotan en calendario.
 
-> **Nota histórica:** el repo tuvo credenciales de prod versionadas (MySQL,
-> Redis Cloud, Gmail, llave GCP). Fueron **eliminadas de sus servicios** y el
-> historial de git fue **reescrito** para purgarlas. Las nuevas credenciales se
-> emiten al aprovisionar prod y viven solo en Secret Manager.
+> **Nota histórica:** el `.env` del disco local tuvo credenciales de prod
+> (MySQL, Redis Cloud, Gmail, llave GCP), pero **nunca se versionaron** (`.env`
+> y `gcp-service-account.json` siempre estuvieron en `.gitignore`; verificado
+> sobre todo el historial por nombre y por valor → 0 coincidencias). No fue
+> necesario reescribir el historial. Esas credenciales ya fueron **eliminadas
+> de sus servicios**; las nuevas se emiten al aprovisionar prod y viven solo en
+> Secret Manager.
