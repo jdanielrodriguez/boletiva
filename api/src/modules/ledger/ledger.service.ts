@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import { LedgerAccountType } from '@prisma/client';
 import Decimal from 'decimal.js';
 import { PrismaService } from '../../infra/prisma/prisma.service';
@@ -34,6 +34,7 @@ const SYSTEM_TYPES = new Set<LedgerAccountType>([
   LedgerAccountType.tax_payable,
   LedgerAccountType.gateway_clearing,
   LedgerAccountType.gateway_fee,
+  LedgerAccountType.payment_holding,
 ]);
 
 @Injectable()
@@ -76,6 +77,11 @@ export class LedgerService {
         const amount = new Decimal(e.amount);
         resolved.push({ accountId: account.id, amount });
         const newBalance = new Decimal(account.balance.toString()).add(amount);
+        // Invariante: un wallet nunca queda negativo (guard race-safe dentro del
+        // advisory lock del chain). Bloquea sobre-gasto del saldo interno.
+        if (e.type === LedgerAccountType.user_wallet && newBalance.isNegative()) {
+          throw new ConflictException('Saldo interno insuficiente');
+        }
         await tx.ledgerAccount.update({
           where: { id: account.id },
           data: { balance: newBalance.toFixed(2) },

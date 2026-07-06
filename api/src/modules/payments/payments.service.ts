@@ -37,11 +37,15 @@ export class PaymentsService {
   }
 
   /**
-   * Inicia el pago de una orden (webhook-first): crea el intento en estado
-   * pending y delega en la pasarela. La orden NO se confirma aquí; se confirma
-   * al recibir el webhook. Reutiliza un intento pending existente (idempotencia).
+   * Inicia el pago de una orden (webhook-first). Si `useWallet`, aplica el saldo
+   * interno primero (pago mixto obligatorio cuando el total supera el saldo):
+   *  - wallet cubre todo → se confirma AL INSTANTE (no hay pasarela).
+   *  - mixto → se RESERVA la porción de wallet en payment_holding y la pasarela
+   *    cobra el resto; el fulfillment ocurre por webhook.
+   *  - sin wallet → 100% pasarela.
+   * Reutiliza un intento pending existente (idempotencia).
    */
-  async initiate(orderId: string, buyerId: string) {
+  async initiate(orderId: string, buyerId: string, useWallet = false) {
     const order = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!order || order.buyerId !== buyerId) {
       throw new NotFoundException('Orden no encontrada'); // no filtra existencia (IDOR)
@@ -50,35 +54,83 @@ export class PaymentsService {
       throw new ConflictException(`La orden no está pendiente de pago (${order.status})`);
     }
 
-    const existing = await this.prisma.payment.findFirst({
-      where: { orderId, status: 'pending' },
-    });
-    const payment =
-      existing ??
-      (await this.prisma.payment.create({
+    // Idempotencia: si ya hay un intento en curso, se devuelve tal cual.
+    const existing = await this.prisma.payment.findFirst({ where: { orderId, status: 'pending' } });
+    if (existing) return this.summarize(existing);
+
+    const total = new Decimal(order.total.toString());
+    const balance = useWallet ? await this.ledger.walletBalance(buyerId) : new Decimal(0);
+    const walletPortion = Decimal.min(balance, total);
+    const gatewayCharge = total.sub(walletPortion);
+
+    // Caso 1: el wallet cubre el total → confirmación inmediata (sin pasarela).
+    if (walletPortion.gt(0) && gatewayCharge.isZero()) {
+      const payment = await this.prisma.payment.create({
         data: {
           orderId,
           provider: this.provider.name,
-          providerRef: `${this.provider.name}_${randomToken(12)}`,
-          method: 'gateway',
-          amount: order.total,
+          providerRef: `wallet_${randomToken(12)}`,
+          method: 'wallet',
+          amount: '0.00',
+          walletAmount: total.toFixed(2),
           currency: order.currency,
         },
-      }));
+      });
+      await this.fulfill(payment.id); // debita wallet + distribuye + orden paid
+      const done = await this.prisma.payment.findUniqueOrThrow({ where: { id: payment.id } });
+      return this.summarize(done);
+    }
 
+    // Caso 2: mixto → reservar la porción de wallet (payment_holding) ahora.
+    if (walletPortion.gt(0)) {
+      await this.ledger.post({
+        kind: 'wallet_reserve',
+        refType: 'order',
+        refId: orderId,
+        memo: `Reserva de saldo para orden ${orderId}`,
+        entries: [
+          { type: 'user_wallet', ownerId: buyerId, amount: walletPortion.negated().toFixed(2) },
+          { type: 'payment_holding', amount: walletPortion.toFixed(2) },
+        ],
+      });
+    }
+
+    // Caso 2 y 3: la pasarela cobra `gatewayCharge` (todo el total si no hay wallet).
+    const payment = await this.prisma.payment.create({
+      data: {
+        orderId,
+        provider: this.provider.name,
+        providerRef: `${this.provider.name}_${randomToken(12)}`,
+        method: walletPortion.gt(0) ? 'mixed' : 'gateway',
+        amount: gatewayCharge.toFixed(2),
+        walletAmount: walletPortion.toFixed(2),
+        currency: order.currency,
+      },
+    });
     const res = await this.provider.createPayment({
       providerRef: payment.providerRef,
       orderId,
-      amount: order.total.toString(),
+      amount: gatewayCharge.toFixed(2),
       currency: order.currency,
     });
+    return { ...this.summarize(payment), paymentUrl: res.paymentUrl };
+  }
 
+  private summarize(p: {
+    id: string;
+    providerRef: string;
+    status: string;
+    method: string;
+    amount: Prisma.Decimal;
+    walletAmount: Prisma.Decimal;
+  }) {
     return {
-      paymentId: payment.id,
-      providerRef: payment.providerRef,
-      status: payment.status,
-      amount: payment.amount.toFixed(2),
-      paymentUrl: res.paymentUrl,
+      paymentId: p.id,
+      providerRef: p.providerRef,
+      status: p.status,
+      method: p.method,
+      amount: p.amount.toFixed(2),
+      walletAmount: p.walletAmount.toFixed(2),
     };
   }
 
@@ -174,18 +226,47 @@ export class PaymentsService {
       const net = new Decimal(order.net.toString());
       const platformFee = new Decimal(order.platformFee.toString());
       const iva = new Decimal(order.iva.toString());
-      const inflow = net.add(platformFee).add(iva); // lo que entra a la plataforma
+      const gatewayFee = new Decimal(order.gatewayFee.toString());
+      const total = new Decimal(order.total.toString());
+      const walletPortion = new Decimal(payment.walletAmount.toString());
+      const gatewayCharge = new Decimal(payment.amount.toString());
+      const promoterId = order.event.promoterId;
+
+      // Comisión de pasarela SOLO sobre la porción cobrada por gateway (proporcional).
+      // El ahorro por usar wallet acredita a la plataforma (misma cifra que cancela
+      // en la suma → partida doble exacta).
+      const gatewayFeeActual = gatewayFee.mul(total.isZero() ? 0 : gatewayCharge.div(total));
+      const gatewayFeeR = gatewayFeeActual.toDecimalPlaces(2, Decimal.ROUND_HALF_EVEN);
+      const savedFee = gatewayFee.sub(gatewayFeeR);
+      const gatewayInflow = gatewayCharge.sub(gatewayFeeR);
+
+      const entries: Array<{ type: string; ownerId?: string; amount: string }> = [
+        { type: 'promoter_payable', ownerId: promoterId, amount: net.toFixed(2) },
+        { type: 'platform_revenue', amount: platformFee.add(savedFee).toFixed(2) },
+        { type: 'tax_payable', amount: iva.toFixed(2) },
+      ];
+      if (walletPortion.gt(0)) {
+        // wallet-only: se debita el saldo directo (no hubo reserva). mixed: se
+        // libera la reserva que se movió a payment_holding al iniciar.
+        entries.push(
+          payment.method === 'wallet'
+            ? {
+                type: 'user_wallet',
+                ownerId: order.buyerId,
+                amount: walletPortion.negated().toFixed(2),
+              }
+            : { type: 'payment_holding', amount: walletPortion.negated().toFixed(2) },
+        );
+      }
+      if (gatewayInflow.gt(0)) {
+        entries.push({ type: 'gateway_clearing', amount: gatewayInflow.negated().toFixed(2) });
+      }
       await this.ledger.post({
         kind: 'order_payment',
         refType: 'order',
         refId: order.id,
-        memo: `Pago de orden ${order.id}`,
-        entries: [
-          { type: 'gateway_clearing', amount: inflow.negated().toFixed(2) },
-          { type: 'promoter_payable', ownerId: order.event.promoterId, amount: net.toFixed(2) },
-          { type: 'platform_revenue', amount: platformFee.toFixed(2) },
-          { type: 'tax_payable', amount: iva.toFixed(2) },
-        ],
+        memo: `Pago de orden ${order.id} (${payment.method})`,
+        entries: entries as never,
       });
     }
 
@@ -215,7 +296,22 @@ export class PaymentsService {
       this.logger.warn(`Webhook failed para orden ya pagada ${order.id}; se ignora`);
       return;
     }
-    if (payment.status === 'failed' && order.status === 'cancelled') return; // idempotente
+    if (payment.status !== 'pending') return; // ya procesado (idempotente)
+
+    // Pago mixto: devolver al wallet la reserva retenida en payment_holding.
+    const walletPortion = new Decimal(payment.walletAmount.toString());
+    if (payment.method === 'mixed' && walletPortion.gt(0)) {
+      await this.ledger.post({
+        kind: 'wallet_refund_reserve',
+        refType: 'order',
+        refId: order.id,
+        memo: `Devolución de reserva por pago fallido ${order.id}`,
+        entries: [
+          { type: 'payment_holding', amount: walletPortion.negated().toFixed(2) },
+          { type: 'user_wallet', ownerId: order.buyerId, amount: walletPortion.toFixed(2) },
+        ],
+      });
+    }
 
     const seatIds = order.items.map((i) => i.seatId).filter((x): x is string => !!x);
     await this.prisma.$transaction([

@@ -91,6 +91,7 @@ enum LedgerAccountType {
   tax_payable // IVA por pagar al fisco
   gateway_clearing // dinero en tránsito por la pasarela (liquidación)
   gateway_fee // costo de la comisión de pasarela
+  payment_holding // fondos de wallet reservados durante un pago mixto (en tránsito)
 }
 
 /// Estado de una orden de compra.

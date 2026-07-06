@@ -4,7 +4,7 @@ import { Public } from '../../common/decorators/public.decorator';
 import { RequireVerifiedEmail } from '../../common/decorators/verified-email.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { PaymentsService } from './payments.service';
-import { WebhookDto } from './dto/payments.dto';
+import { PayOrderDto, WebhookDto } from './dto/payments.dto';
 
 @ApiTags('payments')
 @Controller()
@@ -15,9 +15,13 @@ export class PaymentsController {
   @HttpCode(201)
   @ApiBearerAuth()
   @RequireVerifiedEmail()
-  @ApiOperation({ summary: 'Inicia el pago de una orden (webhook-first)' })
-  pay(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('userId') userId: string) {
-    return this.payments.initiate(id, userId);
+  @ApiOperation({ summary: 'Inicia el pago de una orden (webhook-first; wallet/mixto)' })
+  pay(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser('userId') userId: string,
+    @Body() dto: PayOrderDto,
+  ) {
+    return this.payments.initiate(id, userId, dto.useWallet ?? false);
   }
 
   @Post('payments/webhook')

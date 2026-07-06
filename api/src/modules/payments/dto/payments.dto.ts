@@ -1,5 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
+
+/** Cuerpo (opcional) para iniciar el pago de una orden. */
+export class PayOrderDto {
+  @ApiPropertyOptional({
+    description: 'Usar el saldo interno primero (pago mixto si no alcanza)',
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  useWallet?: boolean;
+}
 
 /** Payload de webhook de la pasarela. */
 export class WebhookDto {
