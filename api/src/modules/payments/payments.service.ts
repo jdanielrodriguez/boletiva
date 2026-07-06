@@ -190,6 +190,10 @@ export class PaymentsService {
       await this.fulfill(payment.id);
     } else if (payload.type === 'payment.failed') {
       await this.fail(payment.id, 'gateway_declined');
+    } else if (payload.type === 'payment.refunded') {
+      await this.reverse(payment.id, 'refund');
+    } else if (payload.type === 'payment.chargeback') {
+      await this.reverse(payment.id, 'chargeback');
     } else {
       this.logger.warn(`Tipo de webhook no manejado: ${payload.type}`);
     }
@@ -279,6 +283,69 @@ export class PaymentsService {
         where: { id: order.id },
         data: { status: 'paid', paidAt: new Date() },
       }),
+    ]);
+  }
+
+  /**
+   * Reembolso (voluntario) o contracargo (disputa) de una orden PAGADA:
+   *  - revierte la distribución contable (clawback a promotor/plataforma/IVA),
+   *  - **refund** → acredita el `inflow` al WALLET del comprador (saldo interno),
+   *  - **chargeback** → el `inflow` sale de vuelta por `gateway_clearing` (la tarjeta
+   *    ya recuperó el dinero vía disputa),
+   *  - invalida la orden (refunded) y LIBERA el asiento (available) para reventa.
+   * Idempotente (solo procesa órdenes en estado `paid`). La propagación de la
+   * revocación a validadores offline es de la Ola 5.
+   */
+  async reverse(paymentId: string, mode: 'refund' | 'chargeback'): Promise<void> {
+    const payment = await this.prisma.payment.findUniqueOrThrow({ where: { id: paymentId } });
+    const order = await this.prisma.order.findUniqueOrThrow({
+      where: { id: payment.orderId },
+      include: { items: true, event: { select: { promoterId: true } } },
+    });
+    if (order.status !== 'paid') {
+      this.logger.warn(`${mode} sobre orden no pagada ${order.id} (${order.status}); se ignora`);
+      return; // idempotente: tras el primer reverso la orden queda 'refunded'
+    }
+
+    const already = await this.prisma.ledgerTransaction.findFirst({
+      where: { kind: { in: ['refund', 'chargeback'] }, refType: 'order', refId: order.id },
+    });
+    if (!already) {
+      const net = new Decimal(order.net.toString());
+      const platformFee = new Decimal(order.platformFee.toString());
+      const iva = new Decimal(order.iva.toString());
+      const inflow = net.add(platformFee).add(iva);
+      const destination =
+        mode === 'chargeback'
+          ? { type: 'gateway_clearing', amount: inflow.toFixed(2) }
+          : { type: 'user_wallet', ownerId: order.buyerId, amount: inflow.toFixed(2) };
+      await this.ledger.post({
+        kind: mode,
+        refType: 'order',
+        refId: order.id,
+        memo: `${mode} de orden ${order.id}`,
+        entries: [
+          {
+            type: 'promoter_payable',
+            ownerId: order.event.promoterId,
+            amount: net.negated().toFixed(2),
+          },
+          { type: 'platform_revenue', amount: platformFee.negated().toFixed(2) },
+          { type: 'tax_payable', amount: iva.negated().toFixed(2) },
+          destination,
+        ] as never,
+      });
+    }
+
+    const seatIds = order.items.map((i) => i.seatId).filter((x): x is string => !!x);
+    await this.prisma.$transaction([
+      this.prisma.payment.update({ where: { id: paymentId }, data: { status: 'refunded' } }),
+      this.prisma.orderItem.updateMany({ where: { orderId: order.id }, data: { active: false } }),
+      this.prisma.seat.updateMany({
+        where: { id: { in: seatIds } },
+        data: { status: 'available' },
+      }),
+      this.prisma.order.update({ where: { id: order.id }, data: { status: 'refunded' } }),
     ]);
   }
 

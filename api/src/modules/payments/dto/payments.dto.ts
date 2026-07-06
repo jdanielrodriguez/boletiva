@@ -19,8 +19,10 @@ export class WebhookDto {
   @MaxLength(128)
   id!: string;
 
-  @ApiProperty({ enum: ['payment.succeeded', 'payment.failed'] })
-  @IsIn(['payment.succeeded', 'payment.failed'])
+  @ApiProperty({
+    enum: ['payment.succeeded', 'payment.failed', 'payment.refunded', 'payment.chargeback'],
+  })
+  @IsIn(['payment.succeeded', 'payment.failed', 'payment.refunded', 'payment.chargeback'])
   type!: string;
 
   @ApiProperty({ description: 'Referencia del pago en la pasarela' })
