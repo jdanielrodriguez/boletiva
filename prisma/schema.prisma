@@ -287,8 +287,18 @@ model Event {
   startsAt    DateTime    @map("starts_at")
   endsAt      DateTime    @map("ends_at")
   status      EventStatus @default(draft)
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  // Pagos dinámicos (Ola 3.5): pasarela elegida por el promotor (null = hereda la
+  // default de plataforma). `frozenGatewayId` congela la pasarela usada para el
+  // precio al recibir la primera compra (los precios ya no cambian). `ivaOnNet`:
+  // si el promotor ya pagó IVA del boleto → false (IVA solo sobre la comisión de
+  // plataforma). Referencias sin FK para permitir migrar al anular una pasarela.
+  gatewayId       String?  @map("gateway_id") @db.Uuid
+  frozenGatewayId String?  @map("frozen_gateway_id") @db.Uuid
+  ivaOnNet        Boolean  @default(true) @map("iva_on_net")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   promoter   User        @relation("EventPromoter", fields: [promoterId], references: [id])
   category   Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
@@ -435,6 +445,7 @@ model Order {
   // Versión de comisiones usada (reproduce la cotización de forma auditable).
   feeScheduleId      String? @map("fee_schedule_id") @db.Uuid
   feeScheduleVersion Int?    @map("fee_schedule_version")
+  feeGatewayId       String? @map("fee_gateway_id") @db.Uuid // pasarela usada en la cotización
 
   // Facturación electrónica (FEL, Guatemala). NIT 'CF' = consumidor final.
   // Los campos de autorización se llenan al certificar la factura (Ola 3+).

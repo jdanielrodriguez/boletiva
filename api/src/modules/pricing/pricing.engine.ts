@@ -10,9 +10,15 @@ export interface FeeParams {
   platformFeePct: number;
   /** Comisión de la pasarela sobre el TOTAL cobrado (0.05 = 5%). */
   gatewayFeePct: number;
-  /** IVA sobre la base gravable = neto + comisión plataforma (0.12 = 12% GT). */
+  /** IVA sobre la base gravable (0.12 = 12% GT). */
   ivaPct: number;
-  /** Cargos fijos opcionales (se suman a la base gravable). */
+  /**
+   * Si el IVA aplica al neto del promotor. true (default): base = neto + comisión
+   * plataforma. false (el promotor ya pagó IVA del boleto): base = solo comisión
+   * plataforma. La comisión de pasarela NUNCA lleva IVA (tributa en la pasarela).
+   */
+  ivaOnNet?: boolean;
+  /** Cargos fijos opcionales (lado plataforma; se suman a la base gravable). */
   fixedFees?: number;
 }
 
@@ -73,12 +79,14 @@ export class PricingEngine {
     const platformPct = pct(params.platformFeePct, 'platformFeePct');
     const gatewayPct = pct(params.gatewayFeePct, 'gatewayFeePct');
     const ivaPct = pct(params.ivaPct, 'ivaPct');
+    const ivaOnNet = params.ivaOnNet ?? true;
 
-    // Cálculo forward con precisión completa.
+    // Cálculo forward con precisión completa. Si ivaOnNet=false el IVA aplica solo
+    // a la comisión de plataforma (+fijos); el neto igual se cobra, pero sin IVA.
     const platformFeeRaw = N.mul(platformPct);
-    const taxableBaseRaw = N.add(platformFeeRaw).add(fixed);
-    const ivaRaw = taxableBaseRaw.mul(ivaPct);
-    const prePasarelaRaw = taxableBaseRaw.add(ivaRaw);
+    const ivaBaseRaw = (ivaOnNet ? N.add(platformFeeRaw) : platformFeeRaw).add(fixed);
+    const ivaRaw = ivaBaseRaw.mul(ivaPct);
+    const prePasarelaRaw = N.add(platformFeeRaw).add(fixed).add(ivaRaw);
     const totalRaw = prePasarelaRaw.div(new Decimal(1).sub(gatewayPct));
 
     // El total es lo cobrado (redondeado). Reconstruimos para que todo cuadre.
@@ -89,7 +97,8 @@ export class PricingEngine {
     const gatewayFee = round(total.mul(gatewayPct));
     // La comisión de plataforma absorbe el residuo de redondeo (margen del negocio).
     const platformFee = total.sub(gatewayFee).sub(iva).sub(netR).sub(fixedR);
-    const taxableBase = netR.add(platformFee).add(fixedR);
+    // Base gravable declarada = lo que efectivamente tributa IVA.
+    const taxableBase = (ivaOnNet ? netR.add(platformFee) : platformFee).add(fixedR);
 
     const result: PriceQuote = {
       currency: 'GTQ',
@@ -105,6 +114,7 @@ export class PricingEngine {
         platformFeePct: params.platformFeePct,
         gatewayFeePct: params.gatewayFeePct,
         ivaPct: params.ivaPct,
+        ivaOnNet,
         fixedFees: params.fixedFees ?? 0,
       },
       hash: '',

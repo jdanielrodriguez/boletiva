@@ -125,6 +125,32 @@ export class PaymentGatewaysService {
     });
   }
 
+  /**
+   * Elimina una pasarela y MIGRA a la default de plataforma los eventos que la
+   * referencian (elegida o congelada). No se puede eliminar la default (designa
+   * otra primero). Los pedidos ya cobrados conservan su snapshot; solo cambian
+   * las cotizaciones futuras de esos eventos.
+   */
+  async remove(id: string) {
+    const gw = await this.get(id);
+    if (gw.isPlatformDefault) {
+      throw new ConflictException('No se puede eliminar la pasarela default; designa otra primero');
+    }
+    const fallback = await this.platformDefault();
+    if (!fallback) {
+      throw new ConflictException('No hay pasarela default para migrar los eventos');
+    }
+    await this.prisma.$transaction([
+      this.prisma.event.updateMany({ where: { gatewayId: id }, data: { gatewayId: fallback.id } }),
+      this.prisma.event.updateMany({
+        where: { frozenGatewayId: id },
+        data: { frozenGatewayId: fallback.id },
+      }),
+      this.prisma.paymentGateway.delete({ where: { id } }),
+    ]);
+    return { deleted: id, migratedTo: fallback.id };
+  }
+
   private assertPct(v: number): void {
     if (!Number.isFinite(v) || v < 0 || v >= 1) {
       throw new BadRequestException('feePct debe estar en el rango [0, 1)');

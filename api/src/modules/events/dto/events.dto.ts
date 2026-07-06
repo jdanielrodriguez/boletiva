@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsDateString,
   IsLatitude,
   IsLongitude,
@@ -42,6 +43,14 @@ export class CreateEventDto {
 
   @IsDateString()
   endsAt!: string;
+
+  @IsOptional()
+  @IsUUID()
+  gatewayId?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  ivaOnNet?: boolean;
 }
 
 export class UpdateEventDto {
@@ -80,4 +89,12 @@ export class UpdateEventDto {
   @IsOptional()
   @IsDateString()
   endsAt?: string;
+
+  @IsOptional()
+  @IsUUID()
+  gatewayId?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  ivaOnNet?: boolean;
 }

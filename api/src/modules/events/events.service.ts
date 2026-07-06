@@ -1,10 +1,11 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Event, Prisma, Role } from '@prisma/client';
+import { Event, GatewayStatus, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { AuthUser } from '../../common/decorators/current-user.decorator';
 import { slugify, slugWithSuffix } from '../../common/utils/slug';
@@ -17,6 +18,15 @@ export class EventsService {
   private assertDates(startsAt?: string, endsAt?: string) {
     if (startsAt && endsAt && new Date(endsAt) <= new Date(startsAt)) {
       throw new BadRequestException('endsAt debe ser posterior a startsAt');
+    }
+  }
+
+  /** La pasarela elegida debe existir y estar activa. */
+  private async assertGatewayActive(gatewayId?: string): Promise<void> {
+    if (!gatewayId) return;
+    const gw = await this.prisma.paymentGateway.findUnique({ where: { id: gatewayId } });
+    if (!gw || gw.status !== GatewayStatus.active) {
+      throw new BadRequestException('La pasarela indicada no existe o no está activa');
     }
   }
 
@@ -88,6 +98,7 @@ export class EventsService {
 
   async create(dto: CreateEventDto, userId: string) {
     this.assertDates(dto.startsAt, dto.endsAt);
+    await this.assertGatewayActive(dto.gatewayId);
     return this.prisma.event.create({
       data: {
         promoterId: userId,
@@ -100,6 +111,8 @@ export class EventsService {
         lng: dto.lng,
         startsAt: new Date(dto.startsAt),
         endsAt: new Date(dto.endsAt),
+        gatewayId: dto.gatewayId,
+        ivaOnNet: dto.ivaOnNet,
         status: 'draft',
       },
     });
@@ -111,6 +124,15 @@ export class EventsService {
       dto.startsAt ?? event.startsAt.toISOString(),
       dto.endsAt ?? event.endsAt.toISOString(),
     );
+    // Con la pasarela ya congelada (evento con compras) no se puede cambiar la
+    // pasarela ni el IVA: alteraría un precio que ya no debe cambiar.
+    const changesPricing = dto.gatewayId !== undefined || dto.ivaOnNet !== undefined;
+    if (changesPricing && event.frozenGatewayId) {
+      throw new ConflictException(
+        'El evento ya tiene compras; su pasarela e IVA quedaron congelados',
+      );
+    }
+    await this.assertGatewayActive(dto.gatewayId);
     return this.prisma.event.update({
       where: { id },
       data: {
@@ -122,6 +144,8 @@ export class EventsService {
         lng: dto.lng,
         startsAt: dto.startsAt ? new Date(dto.startsAt) : undefined,
         endsAt: dto.endsAt ? new Date(dto.endsAt) : undefined,
+        gatewayId: dto.gatewayId,
+        ivaOnNet: dto.ivaOnNet,
       },
     });
   }

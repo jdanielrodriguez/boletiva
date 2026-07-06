@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -54,5 +64,13 @@ export class PaymentGatewaysController {
   @ApiOperation({ summary: 'Designa la pasarela default de plataforma (admin)' })
   makeDefault(@Param('id', ParseUUIDPipe) id: string) {
     return this.gateways.makeDefault(id);
+  }
+
+  @Delete(':id')
+  @Roles(Role.admin)
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Elimina una pasarela y migra sus eventos a la default (admin)' })
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.gateways.remove(id);
   }
 }

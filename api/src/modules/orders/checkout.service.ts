@@ -101,15 +101,20 @@ export class CheckoutService {
     // persona en Redis, no se puede comprar (aunque en BD siga `available`).
     await this.assertNoForeignHold(eventId, seatIds, buyerId);
 
-    // Comisiones vigentes (fee_schedule activo): se leen ANTES de la transacción
-    // (con el cliente base). Dentro de la tx solo se usa la conexión de la tx +
-    // cálculo puro, para no pedir una 2ª conexión del pool mientras se sostiene el
-    // lock de fila (evita un deadlock de pool bajo alta concurrencia).
-    const fees = await this.pricing.resolveFees();
+    // Contexto de comisiones DEL EVENTO (pasarela + IVA) — leído ANTES de la
+    // transacción (con el cliente base). Dentro de la tx solo se usa la conexión
+    // de la tx + cálculo puro, para no pedir una 2ª conexión del pool mientras se
+    // sostiene el lock de fila (evita un deadlock de pool bajo alta concurrencia).
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      select: { id: true, gatewayId: true, frozenGatewayId: true, ivaOnNet: true },
+    });
+    if (!event) throw new BadRequestException('El evento no existe');
+    const fees = await this.pricing.resolveFeesForEvent(event);
 
     try {
       const order = await this.prisma.$transaction(
-        async (tx) => this.commitTx(tx, eventId, seatIds, buyerId, fees, billing),
+        async (tx) => this.commitTx(tx, eventId, seatIds, buyerId, fees, event, billing),
         {
           // maxWait: espera por una conexión del pool bajo alta concurrencia.
           // timeout: duración máxima de la transacción una vez iniciada.
@@ -132,6 +137,7 @@ export class CheckoutService {
     seatIds: string[],
     buyerId: string,
     fees: ResolvedFees,
+    event: { id: string; frozenGatewayId: string | null },
     billing?: BillingInput,
   ) {
     // Fallar rápido si otro commit tiene el lock demasiado tiempo (no colgar).
@@ -219,6 +225,7 @@ export class CheckoutService {
         total: sum.total.toFixed(2),
         feeScheduleId: fees.scheduleId,
         feeScheduleVersion: fees.version,
+        feeGatewayId: fees.gatewayId,
         billingNit: nit && nit.length > 0 ? nit : 'CF',
         billingName: billing?.name?.trim() || null,
         billingAddress: billing?.address?.trim() || null,
@@ -233,6 +240,15 @@ export class CheckoutService {
       where: { id: { in: seatIds } },
       data: { status: 'sold' },
     });
+
+    // Congelar la pasarela del evento en la PRIMERA compra: a partir de aquí el
+    // precio del evento ya no cambia aunque cambie la pasarela default.
+    if (!event.frozenGatewayId && fees.gatewayId) {
+      await tx.event.update({
+        where: { id: eventId },
+        data: { frozenGatewayId: fees.gatewayId },
+      });
+    }
 
     return order;
   }

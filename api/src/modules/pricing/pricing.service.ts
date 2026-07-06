@@ -10,19 +10,21 @@ const KEYS = {
   iva: 'pricing.iva_pct',
 } as const;
 
-/** Valores por defecto si no hay fee_schedule ni settings. */
-const DEFAULTS: FeeParams = {
-  platformFeePct: 0.1,
-  gatewayFeePct: 0.05,
-  ivaPct: 0.12,
-  fixedFees: 0,
-};
+const DEFAULTS = { platformFeePct: 0.1, gatewayFeePct: 0.05, ivaPct: 0.12 };
+
+/** Datos de evento necesarios para resolver comisiones (pasarela + IVA). */
+export interface EventFeeContext {
+  gatewayId: string | null;
+  frozenGatewayId: string | null;
+  ivaOnNet: boolean;
+}
 
 export interface ResolvedFees {
   params: FeeParams;
-  /** Versión de comisiones usada (null si vino de settings/defaults). */
   scheduleId: string | null;
   version: number | null;
+  /** Pasarela usada para la comisión (null si no hay ninguna configurada). */
+  gatewayId: string | null;
 }
 
 export interface CreateFeeScheduleInput {
@@ -34,24 +36,82 @@ export interface CreateFeeScheduleInput {
 }
 
 /**
- * Fuente server-authoritative de las comisiones. Prioridad:
- *   1) fee_schedule ACTIVO (versionado e inmutable) — lo normal.
- *   2) tabla settings (compatibilidad) → 3) defaults.
- * Produce cotizaciones exactas con el PricingEngine puro. El cliente nunca envía
- * montos: se recalculan aquí.
+ * Fuente server-authoritative de las comisiones. Plataforma + IVA vienen del
+ * fee_schedule ACTIVO; la comisión de PASARELA viene del método (gateway) del
+ * evento (o de la default de plataforma). El IVA sobre el neto es configurable
+ * por evento. El cliente nunca envía montos: se recalculan aquí.
  */
 @Injectable()
 export class PricingService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Comisiones vigentes + versión, para estampar la orden de forma auditable. */
+  /** Comisiones globales (preview): plataforma + IVA del schedule, pasarela default. */
   async resolveFees(): Promise<ResolvedFees> {
+    const base = await this.platformFees();
+    const gw = await this.resolveGateway(null, null);
+    return {
+      params: { ...base.params, gatewayFeePct: gw.pct, ivaOnNet: true },
+      scheduleId: base.scheduleId,
+      version: base.version,
+      gatewayId: gw.id,
+    };
+  }
+
+  /** Comisiones para un evento: pasarela del evento (o default) + IVA del evento. */
+  async resolveFeesForEvent(event: EventFeeContext): Promise<ResolvedFees> {
+    const base = await this.platformFees();
+    const gw = await this.resolveGateway(event.gatewayId, event.frozenGatewayId);
+    return {
+      params: { ...base.params, gatewayFeePct: gw.pct, ivaOnNet: event.ivaOnNet },
+      scheduleId: base.scheduleId,
+      version: base.version,
+      gatewayId: gw.id,
+    };
+  }
+
+  async currentFeeParams(): Promise<FeeParams> {
+    return (await this.resolveFees()).params;
+  }
+
+  /** Cotización global (preview) para un neto con las comisiones vigentes. */
+  async quote(net: number | string): Promise<PriceQuote> {
+    return PricingEngine.quote(net, await this.currentFeeParams());
+  }
+
+  /** Cotización para un neto en el contexto de un evento (pasarela + IVA del evento). */
+  async quoteForEvent(net: number | string, event: EventFeeContext): Promise<PriceQuote> {
+    return PricingEngine.quote(net, (await this.resolveFeesForEvent(event)).params);
+  }
+
+  /**
+   * Pasarela efectiva: congelada (si el evento ya tuvo compra) → elegida por el
+   * promotor → default de plataforma. Si la referida no existe (anulada), cae a
+   * la default. Devuelve su comisión y su id.
+   */
+  private async resolveGateway(
+    gatewayId: string | null,
+    frozenGatewayId: string | null,
+  ): Promise<{ pct: number; id: string | null }> {
+    const id = frozenGatewayId ?? gatewayId;
+    let gw = id ? await this.prisma.paymentGateway.findUnique({ where: { id } }) : null;
+    if (!gw)
+      gw = await this.prisma.paymentGateway.findFirst({ where: { isPlatformDefault: true } });
+    if (!gw) return { pct: DEFAULTS.gatewayFeePct, id: null };
+    return { pct: gw.feePct.toNumber(), id: gw.id };
+  }
+
+  /** Plataforma + IVA (+ fijos) del fee_schedule activo (fallback settings/defaults). */
+  private async platformFees(): Promise<{
+    params: FeeParams;
+    scheduleId: string | null;
+    version: number | null;
+  }> {
     const active = await this.prisma.feeSchedule.findFirst({ where: { active: true } });
     if (active) {
       return {
         params: {
           platformFeePct: active.platformFeePct.toNumber(),
-          gatewayFeePct: active.gatewayFeePct.toNumber(),
+          gatewayFeePct: DEFAULTS.gatewayFeePct, // se sobrescribe con la pasarela
           ivaPct: active.ivaPct.toNumber(),
           fixedFees: active.fixedFees.toNumber(),
         },
@@ -60,16 +120,6 @@ export class PricingService {
       };
     }
     return { params: await this.fromSettings(), scheduleId: null, version: null };
-  }
-
-  /** Solo los parámetros vigentes (sin la versión). */
-  async currentFeeParams(): Promise<FeeParams> {
-    return (await this.resolveFees()).params;
-  }
-
-  /** Cotización para un neto de promotor con las comisiones vigentes. */
-  async quote(net: number | string): Promise<PriceQuote> {
-    return PricingEngine.quote(net, await this.currentFeeParams());
   }
 
   /** Listado de todas las versiones de comisiones (auditoría admin). */
@@ -85,12 +135,10 @@ export class PricingService {
   }
 
   /**
-   * Crea una versión nueva de comisiones y la activa (desactivando la anterior),
-   * dentro de una transacción. Valida los porcentajes con el PricingEngine (una
-   * cotización de prueba) para rechazar valores fuera de [0, 1) antes de persistir.
+   * Crea una versión nueva de comisiones y la activa (desactivando la anterior).
+   * Valida los porcentajes con el PricingEngine (una cotización de prueba).
    */
   async createSchedule(input: CreateFeeScheduleInput, createdById: string | null) {
-    // Validación server-authoritative: reutiliza las reglas del motor.
     PricingEngine.quote(100, {
       platformFeePct: input.platformFeePct,
       gatewayFeePct: input.gatewayFeePct,
@@ -118,7 +166,6 @@ export class PricingService {
       });
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
-        // Carrera al crear dos versiones activas a la vez → reintentar.
         throw new ConflictException('Conflicto al versionar comisiones, reintenta');
       }
       throw e;
