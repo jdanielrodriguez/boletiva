@@ -147,10 +147,16 @@ El `.env` del disco local tuvo secretos de prod (MySQL prod, llave GCP, Redis Cl
 
 0. Fundaciones (NestJS+Prisma+Postgres, docker, quitar secretos) →
 1. Identidad+catálogo (auth/RBAC, users, events, localities, seat_maps) →
-2. Precios+inventario (PricingEngine, holds, commit) →
-3. Órdenes+pagos (orders, PaymentProvider+simulador, pago mixto, ledger) →
+2. Precios+inventario (PricingEngine, holds, commit) + **pruebas de carga k6/Artillery** del on-sale →
+3. Órdenes+pagos (orders, PaymentProvider+simulador, pago mixto, ledger) + **reembolsos y contracargos** (webhook chargeback → invalida boleto → ledger → revocación) →
 4. Boletos+wallet (Ed25519+TOTP, QR/PDF, Google/Apple, emails) →
-5. Transferencias+validación (handshake, chain-of-custody, manifest offline, ingest) →
-6. Colas+observabilidad+endurecimiento (BullMQ/Rabbit, pino+OTel, Secret Manager, Cloud Run).
+5. Transferencias+validación (handshake, chain-of-custody, manifest offline, ingest) + **propagación de revocaciones** (contracargos/reembolsos) a validadores →
+6. Colas+observabilidad+endurecimiento (BullMQ/Rabbit, pino+OTel, Secret Manager, Cloud Run, cifrar totpSecret) + **privacidad/retención de datos** (anonimización/purga preservando el ledger).
 
 QA transversal en cada ola.
+
+## Consideraciones transversales de producción (no olvidar)
+- **Reembolsos/contracargos:** al recibir webhook de contracargo/reembolso → invalidar boleto al instante, asentar en el ledger inmutable y **propagar la revocación** a los validadores offline (delta de sincronización). Diseño en Ola 3, propagación en Ola 5.
+- **Pruebas de carga (on-sale):** stress test del flujo hold(Redis)+commit(Postgres FOR UPDATE) con **k6/Artillery/Gatling** en local/staging antes de prod; demostrar 0 doble-venta bajo miles de req/s. Empieza en Ola 2, se refuerza en Ola 6.
+- **Contrato API backend↔frontend:** generar tipos y servicios de Angular desde el **OpenAPI de NestJS** (`@nestjs/swagger` → `openapi-generator`/`orval`/`ng-openapi-gen`) para no escribir interfaces a mano. Definir el flujo antes de arrancar el frontend.
+- **Privacidad/retención (PII + financiero):** política de **anonimización/purga** de datos históricos de usuarios y carteras tras concluir eventos, **manteniendo intacta la trazabilidad del ledger** (seudonimización, no borrado del asiento contable). Diseño en Ola 6.
