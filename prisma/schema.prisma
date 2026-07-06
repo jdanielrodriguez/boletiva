@@ -99,6 +99,7 @@ enum LedgerAccountType {
   gateway_clearing // dinero en tránsito por la pasarela (liquidación)
   gateway_fee // costo de la comisión de pasarela
   payment_holding // fondos de wallet reservados durante un pago mixto (en tránsito)
+  platform_expense // gastos extra (fuera del precio del boleto) compartidos promotor↔plataforma
 }
 
 /// Estado de una orden de compra.
@@ -148,6 +149,11 @@ model User {
   twoFactorMethod   TwoFactorMethod @default(email) @map("two_factor_method")
   totpSecret        String?         @map("totp_secret")
   totpPendingSecret String?         @map("totp_pending_secret")
+
+  // % de gastos EXTRA que asume este promotor (null = usa el default global).
+  // Los gastos fuera del precio del boleto (p.ej. pasar boleto a wallet) se
+  // reparten promotor↔plataforma; la parte del promotor se descuenta de su neto.
+  costSharePct Decimal? @map("cost_share_pct") @db.Decimal(6, 5)
 
   lastLoginAt DateTime? @map("last_login_at")
   createdAt   DateTime  @default(now()) @map("created_at")

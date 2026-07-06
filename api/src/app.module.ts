@@ -28,6 +28,7 @@ import { LedgerModule } from './modules/ledger/ledger.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { WalletModule } from './modules/wallet/wallet.module';
 import { PaymentGatewaysModule } from './modules/payment-gateways/payment-gateways.module';
+import { CostShareModule } from './modules/cost-share/cost-share.module';
 
 @Module({
   imports: [
@@ -81,6 +82,7 @@ import { PaymentGatewaysModule } from './modules/payment-gateways/payment-gatewa
     PaymentsModule,
     WalletModule,
     PaymentGatewaysModule,
+    CostShareModule,
   ],
   providers: [
     // Orden importa: autentica (JWT) → autoriza por rol → exige correo verificado.

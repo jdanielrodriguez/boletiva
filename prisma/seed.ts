@@ -39,6 +39,12 @@ async function seedSettings(): Promise<void> {
       value: 1,
       description: 'Máximo de transferencias por boleto por defecto',
     },
+    {
+      key: 'costshare.default_pct',
+      value: 0.5,
+      description:
+        'Reparto por defecto de gastos EXTRA que asume el promotor (0.5 = 50%; 0 = plataforma cubre todo)',
+    },
   ];
   for (const s of defaults) {
     await prisma.setting.upsert({
