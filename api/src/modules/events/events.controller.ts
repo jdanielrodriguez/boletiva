@@ -14,6 +14,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { Public } from '../../common/decorators/public.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { RequireVerifiedEmail } from '../../common/decorators/verified-email.decorator';
 import { AuthUser, CurrentUser } from '../../common/decorators/current-user.decorator';
 import { EventsService } from './events.service';
 import { CreateEventDto, UpdateEventDto } from './dto/events.dto';
@@ -65,8 +66,9 @@ export class EventsController {
 
   @Post()
   @Roles(Role.promoter, Role.admin)
+  @RequireVerifiedEmail()
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Crea un evento (promotor)' })
+  @ApiOperation({ summary: 'Crea un evento (promotor, requiere correo verificado)' })
   create(@Body() dto: CreateEventDto, @CurrentUser('userId') userId: string) {
     return this.events.create(dto, userId);
   }

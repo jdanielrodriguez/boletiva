@@ -51,6 +51,9 @@ export const envValidationSchema = Joi.object({
   JWT_REFRESH_SECRET: Joi.string().default('dev-refresh-secret-change-me'),
   JWT_REFRESH_TTL: Joi.number().default(1209600),
 
+  // Google OAuth (opcional; si falta, el login con Google queda deshabilitado)
+  GOOGLE_CLIENT_ID: Joi.string().allow('').optional(),
+
   // Pagos (Ola 3)
   PAYMENT_PROVIDER: Joi.string().default('simulator'),
 

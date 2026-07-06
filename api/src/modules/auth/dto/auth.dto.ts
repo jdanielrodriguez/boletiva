@@ -66,3 +66,68 @@ export class ChangePasswordDto {
   @MaxLength(72)
   newPassword!: string;
 }
+
+export class VerifyEmailCodeDto {
+  @IsEmail()
+  email!: string;
+
+  @IsString()
+  @MinLength(6)
+  @MaxLength(6)
+  code!: string;
+}
+
+export class TokenDto {
+  @IsString()
+  @MinLength(1)
+  token!: string;
+}
+
+export class ResendVerificationDto {
+  @IsEmail()
+  email!: string;
+}
+
+export class PasswordlessRequestDto {
+  @IsEmail()
+  email!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  firstName?: string;
+}
+
+export class PasswordlessVerifyDto {
+  @IsEmail()
+  email!: string;
+
+  @IsString()
+  @MinLength(6)
+  @MaxLength(6)
+  code!: string;
+}
+
+export class TwoFactorVerifyDto {
+  @IsString()
+  @MinLength(1)
+  preauthToken!: string;
+
+  @IsString()
+  @MinLength(6)
+  @MaxLength(6)
+  code!: string;
+}
+
+export class EnableTotpDto {
+  @IsString()
+  @MinLength(6)
+  @MaxLength(6)
+  code!: string;
+}
+
+export class GoogleLoginDto {
+  @IsString()
+  @MinLength(1)
+  idToken!: string;
+}

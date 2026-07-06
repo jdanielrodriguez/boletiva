@@ -56,6 +56,18 @@ enum MediaKind {
   gallery
 }
 
+enum TwoFactorMethod {
+  email
+  totp
+}
+
+/// Propósito de un código/enlace enviado por correo.
+enum ChallengePurpose {
+  email_verify // verificar el correo
+  passwordless // inicio de sesión sin contraseña (magic link + código)
+  twofa_email // segundo factor por correo
+}
+
 // ---------------------------------------------------------------------------
 // Configuración del sistema (Ola 0)
 // ---------------------------------------------------------------------------
@@ -78,21 +90,34 @@ model Setting {
 model User {
   id           String     @id @default(uuid()) @db.Uuid
   email        String     @unique
-  passwordHash String     @map("password_hash")
+  // Opcional: usuarios solo-Google o passwordless pueden no tener contraseña.
+  passwordHash String?    @map("password_hash")
   firstName    String     @map("first_name")
   lastName     String?    @map("last_name")
   phone        String?
   avatarUrl    String?    @map("avatar_url")
   status       UserStatus @default(active)
   roles        Role[]     @default([buyer])
-  lastLoginAt  DateTime?  @map("last_login_at")
-  createdAt    DateTime   @default(now()) @map("created_at")
-  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  // Verificación de correo (null = no verificado).
+  emailVerifiedAt DateTime? @map("email_verified_at")
+
+  // 2FA: obligatorio una vez el email está verificado. email por defecto; totp opcional.
+  twoFactorMethod   TwoFactorMethod @default(email) @map("two_factor_method")
+  totpSecret        String?         @map("totp_secret")
+  totpPendingSecret String?         @map("totp_pending_secret")
+
+  lastLoginAt DateTime? @map("last_login_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
   events        Event[]            @relation("EventPromoter")
   refreshTokens RefreshToken[]
   recoveries    PasswordRecovery[]
   categories    Category[]
+  challenges    AuthChallenge[]
+  devices       Device[]
+  oauthAccounts OAuthAccount[]
 
   @@index([status])
   @@map("users")
@@ -130,6 +155,59 @@ model PasswordRecovery {
 
   @@index([userId])
   @@map("password_recoveries")
+}
+
+/// Códigos OTP (6 dígitos) + enlace mágico, unificados por propósito.
+/// Se guardan hasheados; nunca en claro.
+model AuthChallenge {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  purpose   ChallengePurpose
+  codeHash  String           @map("code_hash") // sha256 del código de 6 dígitos
+  tokenHash String?          @unique @map("token_hash") // sha256 del token del magic link
+  attempts  Int              @default(0)
+  expiresAt DateTime         @map("expires_at")
+  consumedAt DateTime?       @map("consumed_at")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+  @@map("auth_challenges")
+}
+
+/// Dispositivos conocidos por usuario. `trustedAt` != null => pasó 2FA y no se
+/// vuelve a exigir 2FA en ese dispositivo.
+model Device {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  deviceHash String    @map("device_hash") // sha256 del device id del cliente
+  userAgent  String?   @map("user_agent")
+  ip         String?
+  trustedAt  DateTime? @map("trusted_at")
+  lastSeenAt DateTime  @default(now()) @map("last_seen_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deviceHash])
+  @@index([userId])
+  @@map("devices")
+}
+
+/// Cuentas de proveedores OAuth (Google, etc.) vinculadas a un usuario.
+model OAuthAccount {
+  id                String   @id @default(uuid()) @db.Uuid
+  userId            String   @map("user_id") @db.Uuid
+  provider          String // 'google'
+  providerAccountId String   @map("provider_account_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("oauth_accounts")
 }
 
 // ---------------------------------------------------------------------------

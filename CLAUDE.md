@@ -24,7 +24,13 @@ Es un **port/rediseño** del proyecto de referencia `ticketera` (misma carpeta p
 - **Ola 0 (Fundaciones) COMPLETADA.** Backend `api/` = **NestJS + Prisma + PostgreSQL**. Infra: config/env, pino, filtro de errores, health, docker (postgres/redis/rabbit/mailhog/localstack/adminer).
 - **Ola 1 (Identidad + Catálogo) COMPLETADA y verificada.** 37 tests verdes (unit + e2e). Módulos:
   - **auth**: signup, login, refresh con **rotación + detección de reuso**, logout, forgot/reset password, change-password, `/auth/me`. JWT access + refresh (sha256 en BD).
-  - **RBAC**: `JwtAuthGuard` + `RolesGuard` globales; `@Public()`, `@Roles()`, `@CurrentUser()`. Roles: admin/promoter/promoter_staff/gate_operator/buyer.
+  - **RBAC**: `JwtAuthGuard` + `RolesGuard` + `VerifiedEmailGuard` globales; `@Public()`, `@Roles()`, `@CurrentUser()`, `@RequireVerifiedEmail()`. Roles: admin/promoter/promoter_staff/gate_operator/buyer.
+- **Ola 1.5 (Auth avanzado / login dinámico) COMPLETADA.** 46 tests verdes.
+  - **Métodos de acceso**: email+password, **passwordless** (magic link + código OTP), **Google** (estructura lista; se activa con `GOOGLE_CLIENT_ID`).
+  - **Verificación de correo** (código 6 dígitos + magic link). Sin verificar: entra y explora, pero **no** puede comprar/crear/transferir (`@RequireVerifiedEmail`). Google llega verificado.
+  - **2FA obligatorio** una vez verificado el correo: **email OTP** (default) o **TOTP** (app autenticadora, `otplib`+QR). Se exige en **dispositivos nuevos**; los **confiables** (ya pasaron 2FA) no lo repiten. Login de 2 pasos: `login` → `2fa_required`+preauthToken → `2fa/verify`.
+  - **Dispositivos**: se rastrean; correo de **aviso de nuevo dispositivo**; endpoints `GET/DELETE /auth/devices`.
+  - Modelo extra (Prisma): `auth_challenges` (OTP+token hasheados), `devices`, `oauth_accounts`; User con `emailVerifiedAt`, `twoFactorMethod`, `totpSecret`. Nota: `totpSecret` se guarda en claro (mejora: cifrar en reposo).
   - **users**: perfil propio (`PATCH /users/me`), gestión admin (list, roles, status).
   - **categories**: CRUD (lectura pública, escritura admin).
   - **events**: CRUD con **ownership de promotor**, publish/cancel, listado público de publicados, detalle por slug.
@@ -32,7 +38,7 @@ Es un **port/rediseño** del proyecto de referencia `ticketera` (misma carpeta p
   - **media**: presign de subida a S3/GCS, registro, listado con URLs firmadas.
 - Endpoints salud: `GET /api/v1/health`(completo), `/health/live`, `/health/ready`, `/docs` (Swagger).
 - Estructura: `api/src/{config, common/{decorators,filters,utils}, infra/{prisma,redis,mail,storage,messaging}, health, modules/{auth,users,categories,events,venues,media}}`.
-- Modelo de datos (Prisma): settings, users, refresh_tokens, password_recoveries, categories, events, event_media, localities, seat_maps, seats. Pricing/órdenes/pagos/boletos/ledger llegan en olas 2+.
+- Modelo de datos (Prisma): settings, users, refresh_tokens, password_recoveries, auth_challenges, devices, oauth_accounts, categories, events, event_media, localities, seat_maps, seats. Pricing/órdenes/pagos/boletos/ledger llegan en olas 2+.
 - Credenciales seed: `admin@pasaeventos.com` / `promotor@pasaeventos.com` / `cliente@pasaeventos.com`, todas con password `Password123`.
 - Warning benigno conocido: NestJS/path-to-regexp emite "Unsupported route path /api/*" al arrancar; lo auto-convierte, no afecta.
 

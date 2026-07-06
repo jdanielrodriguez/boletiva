@@ -14,6 +14,7 @@ import { RabbitModule } from './infra/messaging/rabbit.module';
 import { HealthModule } from './health/health.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
+import { VerifiedEmailGuard } from './modules/auth/guards/verified-email.guard';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { CategoriesModule } from './modules/categories/categories.module';
@@ -68,9 +69,10 @@ import { MediaModule } from './modules/media/media.module';
     MediaModule,
   ],
   providers: [
-    // Orden importa: primero autentica (JWT), luego autoriza (roles).
+    // Orden importa: autentica (JWT) → autoriza por rol → exige correo verificado.
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    { provide: APP_GUARD, useClass: VerifiedEmailGuard },
   ],
 })
 export class AppModule {}

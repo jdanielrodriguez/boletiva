@@ -60,8 +60,14 @@ async function seedUsers() {
   for (const u of users) {
     const user = await prisma.user.upsert({
       where: { email: u.email },
-      update: { roles: u.roles },
-      create: { email: u.email, firstName: u.firstName, passwordHash: password, roles: u.roles },
+      update: { roles: u.roles, emailVerifiedAt: new Date() },
+      create: {
+        email: u.email,
+        firstName: u.firstName,
+        passwordHash: password,
+        roles: u.roles,
+        emailVerifiedAt: new Date(), // usuarios semilla ya verificados
+      },
     });
     created[u.email] = user.id;
   }

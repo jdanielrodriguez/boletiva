@@ -26,6 +26,7 @@ export interface AppConfig {
   };
   mail: { host: string; port: number; user: string; pass: string; secure: boolean; from: string };
   jwt: { accessSecret: string; accessTtl: number; refreshSecret: string; refreshTtl: number };
+  oauth: { google: { clientId: string } };
   payment: { provider: string };
   cors: { origins: string[] };
 }
@@ -75,6 +76,7 @@ export const configuration = (): AppConfig => {
       refreshSecret: process.env.JWT_REFRESH_SECRET as string,
       refreshTtl: parseInt(process.env.JWT_REFRESH_TTL ?? '1209600', 10),
     },
+    oauth: { google: { clientId: process.env.GOOGLE_CLIENT_ID ?? '' } },
     payment: { provider: process.env.PAYMENT_PROVIDER ?? 'simulator' },
     cors: {
       origins: (process.env.CORS_ORIGINS ?? '')
