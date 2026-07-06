@@ -12,6 +12,7 @@
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
     "db:seed": "ts-node --project tsconfig.tools.json prisma/seed.ts",
+    "db:seed:stadium": "ts-node --project tsconfig.tools.json prisma/seed-stadium.ts",
     "smoke": "ts-node --project tsconfig.tools.json tools/smoke/smoke.ts"
   },
   "private": true,

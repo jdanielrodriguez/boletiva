@@ -5,6 +5,9 @@
 COMPOSE      = docker compose -f docker-compose.local.yml
 COMPOSE_TEST = docker compose -f docker-compose.local.yml -f docker-compose.test.yml
 API          = pasaeventos_api
+DB           = pasaeventos_db
+NETWORK      = pasaeventos_network
+K6_IMAGE     = grafana/k6:latest
 
 .PHONY: network-create
 network-create:
@@ -80,6 +83,27 @@ test-all:
 .PHONY: smoke
 smoke:
 	docker exec $(API) npm run smoke
+
+# --- Pruebas de carga (K6) del on-sale ---
+# make load                      # ciclo completo: seed 10k + spike + verificación
+# VUS=10000 DURATION=5s make load-test   # spike real (staging)
+.PHONY: load-seed
+load-seed:
+	docker exec $(API) npm run db:seed:stadium
+
+.PHONY: load-test
+load-test:
+	docker run --rm --network $(NETWORK) -v $(PWD)/load:/load \
+		-e VUS=$${VUS:-200} -e DURATION=$${DURATION:-20s} -e HOT=$${HOT:-500} \
+		$(K6_IMAGE) run /load/checkout-spike.js
+
+.PHONY: load-verify
+load-verify:
+	docker exec -i -e PGPASSWORD=pasaeventos $(DB) \
+		psql -U pasaeventos -d pasaeventos < load/verify.sql
+
+.PHONY: load
+load: load-seed load-test load-verify
 
 # --- Shells ---
 .PHONY: node-shell
