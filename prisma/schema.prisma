@@ -68,6 +68,16 @@ enum ChallengePurpose {
   twofa_email // segundo factor por correo
 }
 
+/// Tipo de cuenta contable del ledger (partida doble).
+enum LedgerAccountType {
+  user_wallet // saldo interno del usuario (pasivo de la plataforma con el usuario)
+  promoter_payable // lo que la plataforma debe al promotor (neto por liquidar)
+  platform_revenue // ingreso de la plataforma (comisiones)
+  tax_payable // IVA por pagar al fisco
+  gateway_clearing // dinero en tránsito por la pasarela (liquidación)
+  gateway_fee // costo de la comisión de pasarela
+}
+
 /// Estado de una orden de compra.
 enum OrderStatus {
   pending // creada; asientos ya reservados (sold) a la espera de pago
@@ -456,4 +466,64 @@ model OrderItem {
   @@index([orderId])
   @@index([seatId])
   @@map("order_items")
+}
+
+// ---------------------------------------------------------------------------
+// Ledger contable de partida doble con hash-chain (Ola 3)
+// ---------------------------------------------------------------------------
+
+/// Cuenta contable. El saldo (`balance`) se cachea y se actualiza dentro de la
+/// misma transacción que asienta los movimientos (derivable de sus entries).
+/// Cuentas de usuario/promotor: `ownerId` = user.id; cuentas de sistema: null.
+model LedgerAccount {
+  id        String            @id @default(uuid()) @db.Uuid
+  type      LedgerAccountType
+  ownerId   String?           @map("owner_id") @db.Uuid
+  currency  String            @default("GTQ")
+  balance   Decimal           @default(0) @db.Decimal(14, 2)
+  createdAt DateTime          @default(now()) @map("created_at")
+  updatedAt DateTime          @updatedAt @map("updated_at")
+
+  entries LedgerEntry[]
+
+  @@unique([type, ownerId, currency])
+  @@index([ownerId])
+  @@map("ledger_accounts")
+}
+
+/// Transacción contable: agrupa ≥2 asientos que SUMAN 0 (partida doble).
+/// Encadenada por hash (blockchain): hash = sha256(prevHash + contenido canónico).
+/// Append-only e inmutable; `seq` da el orden del chain.
+model LedgerTransaction {
+  id        String   @id @default(uuid()) @db.Uuid
+  seq       BigInt    @unique @default(autoincrement())
+  kind      String // 'order_payment' | 'wallet_topup' | 'payout' | 'refund' | 'chargeback'
+  refType   String?  @map("ref_type") // p.ej. 'order'
+  refId     String?  @map("ref_id") @db.Uuid
+  prevHash  String   @map("prev_hash") // hash de la transacción anterior ('' en génesis)
+  hash      String   @unique // sha256(prevHash + seq + kind + entries + createdAt)
+  memo      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  entries LedgerEntry[]
+
+  @@index([refType, refId])
+  @@map("ledger_transactions")
+}
+
+/// Asiento contable individual. `amount` firmado (Decimal): + acredita, - debita
+/// el saldo de la cuenta. La suma de los asientos de una transacción es 0.
+model LedgerEntry {
+  id            String   @id @default(uuid()) @db.Uuid
+  transactionId String   @map("transaction_id") @db.Uuid
+  accountId     String   @map("account_id") @db.Uuid
+  amount        Decimal  @db.Decimal(14, 2)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  transaction LedgerTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  account     LedgerAccount     @relation(fields: [accountId], references: [id])
+
+  @@index([transactionId])
+  @@index([accountId])
+  @@map("ledger_entries")
 }
