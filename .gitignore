@@ -45,4 +45,4 @@ Thumbs.db
 .env
 gcp-service-account.json
 
-google-cloud-sdk
+google-cloud-sdk*
