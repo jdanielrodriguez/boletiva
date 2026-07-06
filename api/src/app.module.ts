@@ -22,6 +22,7 @@ import { CategoriesModule } from './modules/categories/categories.module';
 import { EventsModule } from './modules/events/events.module';
 import { VenuesModule } from './modules/venues/venues.module';
 import { MediaModule } from './modules/media/media.module';
+import { InventoryModule } from './modules/inventory/inventory.module';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { MediaModule } from './modules/media/media.module';
     EventsModule,
     VenuesModule,
     MediaModule,
+    InventoryModule,
   ],
   providers: [
     // Orden importa: autentica (JWT) → autoriza por rol → exige correo verificado.
