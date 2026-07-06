@@ -11,13 +11,19 @@ export const envValidationSchema = Joi.object({
   TZ: Joi.string().default('America/Guatemala'),
 
   // Base de datos (Prisma / PostgreSQL)
-  DATABASE_URL: Joi.string().uri({ scheme: ['postgresql', 'postgres'] }).required(),
+  DATABASE_URL: Joi.string()
+    .uri({ scheme: ['postgresql', 'postgres'] })
+    .required(),
 
   // Redis
-  REDIS_URL: Joi.string().uri({ scheme: ['redis', 'rediss'] }).required(),
+  REDIS_URL: Joi.string()
+    .uri({ scheme: ['redis', 'rediss'] })
+    .required(),
 
   // RabbitMQ
-  AMQP_URL: Joi.string().uri({ scheme: ['amqp', 'amqps'] }).required(),
+  AMQP_URL: Joi.string()
+    .uri({ scheme: ['amqp', 'amqps'] })
+    .required(),
 
   // Almacenamiento
   STORAGE_PROVIDER: Joi.string().valid('s3', 'gcs').default('s3'),

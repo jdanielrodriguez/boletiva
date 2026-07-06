@@ -26,18 +26,18 @@ Es un **port/rediseño** del proyecto de referencia `ticketera` (misma carpeta p
 - Estructura NestJS: `api/src/{config, common/filters, infra/{prisma,redis,mail,storage,messaging}, health}`. El dominio (auth, events, etc.) llega en las olas 1+.
 - Warning benigno conocido: NestJS/path-to-regexp emite "Unsupported route path /api/*" al arrancar; lo auto-convierte, no afecta.
 
-### Mapa de puertos (local)
+### Mapa de puertos (local) — puertos host NO-default para evitar conflictos
 | Servicio | Host | Interno |
 |---|---|---|
 | API (NestJS) | 8080 | 8080 |
-| Adminer (DB UI) | 8081 | 8080 |
+| Adminer (DB UI) | 8082 | 8080 |
 | PostgreSQL 16 | 54320 | 5432 |
-| Redis 7 | **63790** | 6379 |
-| RabbitMQ / UI | 5672 / 15672 | idem |
-| MailHog / UI | 1025 / 8025 | idem |
-| LocalStack (S3) | 4566 | 4566 |
+| Redis 7 | 63790 | 6379 |
+| RabbitMQ AMQP / UI | 56720 / 15673 | 5672 / 15672 |
+| MailHog SMTP / UI | 10250 / 8026 | 1025 / 8025 |
+| LocalStack (S3) | 45660 | 4566 |
 
-Credenciales locales: DB/Rabbit user=pass=`pasaeventos`; bucket S3 `pasaeventos-local`. Adminer server: `pasaeventos_db`.
+Los puertos INTERNOS (contenedor↔contenedor) son los default; solo cambian los mapeos al host. Credenciales locales: DB/Rabbit user=pass=`pasaeventos`; bucket S3 `pasaeventos-local`. Adminer server: `pasaeventos_db`.
 
 ---
 

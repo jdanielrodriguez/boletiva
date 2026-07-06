@@ -61,7 +61,7 @@ services:
       ADMINER_DEFAULT_SERVER: pasaeventos_db
       ADMINER_DESIGN: dracula
     ports:
-      - '8081:8080'
+      - '8082:8080'
     depends_on:
       - pasaeventos_db
     networks:
@@ -94,8 +94,8 @@ services:
       RABBITMQ_DEFAULT_USER: pasaeventos
       RABBITMQ_DEFAULT_PASS: pasaeventos
     ports:
-      - '5672:5672'
-      - '15672:15672'
+      - '56720:5672'
+      - '15673:15672'
     healthcheck:
       test: ['CMD', 'rabbitmq-diagnostics', '-q', 'ping']
       interval: 10s
@@ -113,8 +113,8 @@ services:
     logging:
       driver: 'none'
     ports:
-      - '1025:1025'
-      - '8025:8025'
+      - '10250:1025'
+      - '8026:8025'
     networks:
       pasaeventos_network:
         ipv4_address: 172.16.0.8
@@ -128,7 +128,7 @@ services:
       DEBUG: '0'
       PERSISTENCE: '1'
     ports:
-      - '4566:4566'
+      - '45660:4566'
     volumes:
       - pasaeventos_localstack_data:/var/lib/localstack
       - ./docker/localstack/init:/etc/localstack/init/ready.d

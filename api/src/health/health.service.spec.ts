@@ -19,7 +19,13 @@ describe('HealthService', () => {
   it('reporta status "ok" cuando todas las dependencias responden', async () => {
     const report = await build().check();
     expect(report.status).toBe('ok');
-    expect(Object.keys(report.checks)).toEqual(['postgres', 'redis', 'mail', 'storage', 'rabbitmq']);
+    expect(Object.keys(report.checks)).toEqual([
+      'postgres',
+      'redis',
+      'mail',
+      'storage',
+      'rabbitmq',
+    ]);
     expect(report.checks.postgres.ok).toBe(true);
     expect(typeof report.checks.postgres.latencyMs).toBe('number');
     expect(report.uptimeSeconds).toBeGreaterThanOrEqual(0);

@@ -47,7 +47,7 @@ async function bootstrap(): Promise<void> {
   app.enableShutdownHooks();
 
   // Swagger (no en prod).
-  if (!isProd) {
+  if (!isProd && process.env.DISABLE_SWAGGER !== 'true') {
     const doc = new DocumentBuilder()
       .setTitle('Pasa Eventos API')
       .setDescription('API de la boletera Pasa Eventos')

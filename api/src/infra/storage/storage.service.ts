@@ -49,7 +49,9 @@ export class StorageService implements OnModuleInit {
         await this.s3.send(new CreateBucketCommand({ Bucket: this.bucket }));
         this.logger.log(`Bucket "${this.bucket}" creado`);
       } catch (err) {
-        this.logger.warn(`No se pudo asegurar el bucket "${this.bucket}": ${(err as Error).message}`);
+        this.logger.warn(
+          `No se pudo asegurar el bucket "${this.bucket}": ${(err as Error).message}`,
+        );
       }
     }
   }

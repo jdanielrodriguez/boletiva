@@ -43,17 +43,29 @@ async function main(): Promise<void> {
 
   // 2. Health completo
   const health = await axios.get(`${BASE}/api/v1/health`, { validateStatus: () => true });
-  check('GET /api/v1/health responde 200 (todo sano)', health.status === 200, `status=${health.data?.status}`);
+  check(
+    'GET /api/v1/health responde 200 (todo sano)',
+    health.status === 200,
+    `status=${health.data?.status}`,
+  );
   const checks = health.data?.checks ?? {};
   for (const dep of ['postgres', 'redis', 'rabbitmq', 'storage', 'mail']) {
-    check(`  dependencia ${dep} en verde`, checks[dep]?.ok === true, checks[dep]?.detail ?? `${checks[dep]?.latencyMs}ms`);
+    check(
+      `  dependencia ${dep} en verde`,
+      checks[dep]?.ok === true,
+      checks[dep]?.detail ?? `${checks[dep]?.latencyMs}ms`,
+    );
   }
 
   // 3. Contrato de error 404
-  const notFound = await axios.get(`${BASE}/api/v1/ruta-inexistente`, { validateStatus: () => true });
+  const notFound = await axios.get(`${BASE}/api/v1/ruta-inexistente`, {
+    validateStatus: () => true,
+  });
   check(
     'Ruta inexistente devuelve 404 con contrato de error',
-    notFound.status === 404 && typeof notFound.data?.message !== 'undefined' && !!notFound.data?.timestamp,
+    notFound.status === 404 &&
+      typeof notFound.data?.message !== 'undefined' &&
+      !!notFound.data?.timestamp,
   );
 
   // 4. Swagger UI en un navegador real

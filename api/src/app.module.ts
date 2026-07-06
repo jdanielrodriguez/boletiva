@@ -26,6 +26,9 @@ import { HealthModule } from './health/health.module';
       useFactory: (config: ConfigService) => {
         const isProd = config.get<boolean>('isProd');
         return {
+          // Formato de wildcard de Express 5 (path-to-regexp v8) para el
+          // middleware de logging: evita el warning "Unsupported route path".
+          forRoutes: ['{*path}'],
           pinoHttp: {
             level: isProd ? 'info' : 'debug',
             genReqId: (req: IncomingMessage, res: ServerResponse) => {
@@ -33,7 +36,9 @@ import { HealthModule } from './health/health.module';
               res.setHeader('X-Request-Id', existing);
               return existing;
             },
-            transport: isProd ? undefined : { target: 'pino-pretty', options: { singleLine: true } },
+            transport: isProd
+              ? undefined
+              : { target: 'pino-pretty', options: { singleLine: true } },
             redact: ['req.headers.authorization', 'req.headers.cookie'],
             customProps: () => ({ context: 'HTTP' }),
           },
