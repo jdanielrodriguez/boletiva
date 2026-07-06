@@ -1,39 +1,53 @@
-import Joi from 'joi';
+import * as Joi from 'joi';
 
-export const envSchema = Joi.object({
+/**
+ * Esquema de validación de variables de entorno.
+ * La app NO arranca si el entorno es inválido (fail-fast).
+ */
+export const envValidationSchema = Joi.object({
   NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development'),
   PORT: Joi.number().default(8080),
+  APP_NAME: Joi.string().default('PasaEventos'),
+  TZ: Joi.string().default('America/Guatemala'),
 
-  // MySQL
-  MYSQL_HOST: Joi.string().required(),
-  MYSQL_PORT: Joi.number().default(3306),
-  MYSQL_USER: Joi.string().required(),
-  MYSQL_PASSWORD: Joi.string().required(),
-  MYSQL_DATABASE: Joi.string().required(),
+  // Base de datos (Prisma / PostgreSQL)
+  DATABASE_URL: Joi.string().uri({ scheme: ['postgresql', 'postgres'] }).required(),
 
   // Redis
-  REDIS_HOST: Joi.string().required(),
-  REDIS_PORT: Joi.number().default(6379),
-  REDIS_PASSWORD: Joi.string().default(null),
+  REDIS_URL: Joi.string().uri({ scheme: ['redis', 'rediss'] }).required(),
 
-  // Filemanager/Minio/GCS
-  FILEMANAGER_PROVIDER: Joi.string().valid('minio', 's3').default('minio'),
-  MINIO_ENDPOINT: Joi.string().when('FILEMANAGER_PROVIDER', { is: 'minio', then: Joi.required() }),
-  MINIO_PORT: Joi.number().default(9000),
-  MINIO_ROOT_USER: Joi.string(),
-  MINIO_ROOT_PASSWORD: Joi.string(),
+  // RabbitMQ
+  AMQP_URL: Joi.string().uri({ scheme: ['amqp', 'amqps'] }).required(),
 
-  GCS_SERVICE_ACCOUNT_JSON: Joi.string().allow(''),
-  GCLOUD_PROJECT_ID: Joi.string().allow(''),
-  GCS_BUCKET: Joi.string().allow(''),
+  // Almacenamiento
+  STORAGE_PROVIDER: Joi.string().valid('s3', 'gcs').default('s3'),
+  S3_ENDPOINT: Joi.string().uri().when('STORAGE_PROVIDER', { is: 's3', then: Joi.required() }),
+  S3_REGION: Joi.string().default('us-east-1'),
+  S3_BUCKET: Joi.string().when('STORAGE_PROVIDER', { is: 's3', then: Joi.required() }),
+  S3_ACCESS_KEY_ID: Joi.string().when('STORAGE_PROVIDER', { is: 's3', then: Joi.required() }),
+  S3_SECRET_ACCESS_KEY: Joi.string().when('STORAGE_PROVIDER', { is: 's3', then: Joi.required() }),
+  S3_FORCE_PATH_STYLE: Joi.boolean().default(true),
+  GCLOUD_PROJECT_ID: Joi.string().allow('').optional(),
+  GCS_BUCKET: Joi.string().allow('').optional(),
+  GCS_SERVICE_ACCOUNT_JSON: Joi.string().allow('').optional(),
 
-  // Mail
+  // Correo
   MAIL_HOST: Joi.string().required(),
   MAIL_PORT: Joi.number().default(1025),
-  MAIL_USER: Joi.string().allow(''),
-  MAIL_PASS: Joi.string().allow(''),
+  MAIL_USER: Joi.string().allow('').optional(),
+  MAIL_PASS: Joi.string().allow('').optional(),
   MAIL_SECURE: Joi.boolean().default(false),
+  MAIL_FROM: Joi.string().default('no-reply@pasaeventos.com'),
+
+  // Auth (se usa desde la Ola 1)
+  JWT_ACCESS_SECRET: Joi.string().default('dev-access-secret-change-me'),
+  JWT_ACCESS_TTL: Joi.number().default(900),
+  JWT_REFRESH_SECRET: Joi.string().default('dev-refresh-secret-change-me'),
+  JWT_REFRESH_TTL: Joi.number().default(1209600),
+
+  // Pagos (Ola 3)
+  PAYMENT_PROVIDER: Joi.string().default('simulator'),
 
   // CORS
   CORS_ORIGINS: Joi.string().required(),
-}).unknown();
+}).unknown(true);

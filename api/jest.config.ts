@@ -7,24 +7,12 @@ export default {
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
   coverageDirectory: '../coverage/api',
-  setupFilesAfterEnv: ['<rootDir>/src/test/setup.ts'],
-  testMatch: [
-    '<rootDir>/src/test/unit/**/*.test.ts',
-    '<rootDir>/src/test/integration/**/*.test.ts'
-  ],
+  testMatch: ['<rootDir>/src/**/*.spec.ts'],
   collectCoverageFrom: [
     '<rootDir>/src/**/*.{js,ts}',
     '!<rootDir>/src/main.ts',
-    '!<rootDir>/src/app.ts',
-    '!<rootDir>/src/test/unit/types/express/**',
-    '!<rootDir>/src/types/express/**'
+    '!<rootDir>/src/**/*.module.ts',
+    '!<rootDir>/src/**/*.spec.ts',
   ],
-  coveragePathIgnorePatterns: [
-    "<rootDir>/../node_modules/",
-    "<rootDir>/src/migrations/",
-    "<rootDir>/src/test/unit/types/express/",
-    "<rootDir>/src/types/express/",
-    "<rootDir>/dist/migrations/"
-  ]
-
+  coveragePathIgnorePatterns: ['<rootDir>/../node_modules/', '<rootDir>/dist/'],
 };

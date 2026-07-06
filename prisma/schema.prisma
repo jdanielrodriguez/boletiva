@@ -1,0 +1,27 @@
+// Prisma schema — Pasa Eventos
+// Fuente de verdad: PostgreSQL. Ver docs/ARQUITECTURA.md.
+// En Ola 0 solo definimos la tabla `settings` (config del sistema, p. ej. el
+// % de comisión de plataforma por defecto que administra el admin) para validar
+// conectividad y migraciones. El modelo de dominio se agrega en las olas 1+.
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Configuración clave/valor del sistema (editable por el admin).
+/// Ej.: { key: "pricing.platform_fee_pct", value: 0.10 }
+model Setting {
+  key         String   @id
+  value       Json
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("settings")
+}

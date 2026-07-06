@@ -112,26 +112,31 @@ CREATE UNIQUE INDEX uniq_seat_sold ON order_items (seat_id) WHERE status = 'sold
 
 Función pura, versionada, con snapshot inmutable. **Nunca** se confía en un precio calculado en el cliente.
 
-**Gross-up de dos capas** (validado contigo):
+**Gross-up de dos capas + IVA sobre base gravable** (validado contigo):
 ```
-neto            = ganancia deseada del promotor (o precio de localidad)
-%plataforma     = comisión de plataforma sobre el NETO (config admin, default global)
-%pasarela       = comisión de la pasarela sobre el TOTAL cobrado
-fijos           = cargos fijos (opcional)
+N            = ganancia neta deseada del promotor (o precio de localidad)
+%plataforma  = comisión de plataforma sobre el NETO del promotor (config admin, default global)
+%pasarela    = comisión de la pasarela sobre el TOTAL cobrado
+IVA          = 12% (Guatemala)
+fijos        = cargos fijos (opcional, se suman a la base gravable)
 
-subtotal = neto * (1 + %plataforma) + fijos      # plataforma se aplica sobre el neto
-P (total) = subtotal / (1 - %pasarela)            # gross-up de la pasarela por división
+comision_plataforma = N * %plataforma
+base_gravable       = N + comision_plataforma + fijos      # neto + comisión plataforma
+iva                 = base_gravable * IVA                  # IVA NO aplica a la comisión de pasarela
+monto_pre_pasarela  = base_gravable + iva
+P (total)           = monto_pre_pasarela / (1 - %pasarela)  # gross-up de la pasarela por división
+comision_pasarela   = P - monto_pre_pasarela
 ```
-Ejemplo (neto 100, plataforma 10%, pasarela 5%): `subtotal=110`, `P=110/0.95=115.79`.
-Verificación: pasarela `5.79` → `110`; plataforma `10` → promotor recibe **100 exacto**. ✅
+Ejemplo (N=100, plataforma 10%, pasarela 5%): base_gravable=110, iva=13.20, monto_pre_pasarela=123.20, **P=129.68**.
+Verificación: pasarela 6.48 → 123.20; IVA 13.20 → 110; plataforma 10 → promotor recibe **100 exacto**. ✅
 
-**IVA (12% GT) incluido** en `P`: `base = P/1.12`, `iva = P - base`. Se muestra el **all-in arriba**; el **desglose** (neto, comisión plataforma, comisión pasarela, IVA) **solo al pagar**.
+**Regla clave del IVA (evitar doble cobro):** el IVA (12%) se calcula **solo sobre la base gravable = neto del promotor + comisión de plataforma**. **NO** se le aplica IVA a la comisión de la pasarela, porque esa ya tributa IVA en Pagalo. La plataforma es la responsable del IVA sobre lo que ella cobra (neto + su comisión).
+
+Se muestra el **all-in arriba** (`P`); el **desglose al pagar**: precio base (neto), comisión de servicio (plataforma), IVA 12%, comisión de procesamiento (pasarela), total.
 
 - Redondeo al centavo con política definida y **tests de borde exhaustivos** (comisiones compuestas, fijos, redondeo).
 - `fee_schedules` versionados; el `price_quote` guarda inputs + versión → auditable para liquidaciones y disputas.
 - Panel de configuración del **admin** para el % de plataforma por defecto (y a futuro por evento/promotor).
-
-> ⚠️ Punto a validar al implementar: la **base exacta del IVA** frente al gross-up (si el neto del promotor es antes/después de IVA). Documentaré el supuesto y lo marcaré para tu OK.
 
 ---
 
@@ -222,7 +227,7 @@ interface PaymentProvider {
 
 ## 13. Seguridad
 
-- **Secretos** → GCP Secret Manager (local `.env`). **Sacar del historial** `.env` y `gcp-service-account.json` y **rotar** credenciales filtradas.
+- **Secretos** → capa de abstracción `SecretsProvider`: `.env` (local, en Docker), **GCP Secret Manager** en prod (nativo de Cloud Run, con IAM y rotación — más eficiente que operar Vault), y gancho opcional para **HashiCorp Vault** si a futuro hay multi-cloud/secretos dinámicos. **Sacar del historial** `.env` y `gcp-service-account.json` y **rotar** credenciales filtradas.
 - **Auth:** JWT access corto (~15 min) + refresh rotativo (httpOnly, detección de reuso). Audiencias separadas: buyer / promoter / gate-device (credencial de gate ligada al evento, expira tras el evento).
 - **RBAC** en guard + a nivel de datos (un promotor solo ve/gestiona sus eventos).
 - Rate-limit (Redis store, no memoria) + reCAPTCHA/Turnstile en auth/on-sale/pago. PCI minimizado (nunca tocamos PAN crudo).

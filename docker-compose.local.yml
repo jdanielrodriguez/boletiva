@@ -1,26 +1,12 @@
 services:
-  pasaeventos_frontend:
-    build:
-      context: .
-      dockerfile: ./docker/node/Dockerfile.frontend
-    container_name: pasaeventos_frontend
-    working_dir: /app/frontend
-    volumes:
-      - ./frontend:/app/frontend
-      - /app/frontend/node_modules
-    depends_on:
-      - pasaeventos_api
-    ports:
-      - '4201:4200'
-    networks:
-      pasaeventos_network:
-        ipv4_address: 172.16.0.11
   pasaeventos_api:
     container_name: pasaeventos_api
     build:
       context: .
       dockerfile: ./docker/node/Dockerfile
-    restart: always
+    restart: unless-stopped
+    env_file:
+      - .env
     environment:
       - NODE_ENV=development
       - CHOKIDAR_USEPOLLING=true
@@ -30,41 +16,52 @@ services:
     volumes:
       - ./:/app
       - /app/node_modules
-      - ./frontend/dist/frontend:/app/dist/frontend
     depends_on:
-      - pasaeventos_db
-      - pasaeventos_redis
-      - pasaeventos_minio
+      pasaeventos_db:
+        condition: service_healthy
+      pasaeventos_redis:
+        condition: service_healthy
+      pasaeventos_rabbitmq:
+        condition: service_healthy
+      pasaeventos_localstack:
+        condition: service_started
+      pasaeventos_mailhog:
+        condition: service_started
     networks:
       pasaeventos_network:
         ipv4_address: 172.16.0.10
 
   pasaeventos_db:
-    image: mysql:8.0
+    image: postgres:16-alpine
     container_name: pasaeventos_db
-    command: --default-authentication-plugin=mysql_native_password
-    restart: always
+    restart: unless-stopped
     environment:
-      MYSQL_DATABASE: pasaeventos
-      MYSQL_ROOT_PASSWORD: 1234
-      MYSQL_USER: pasaeventos
-      MYSQL_PASSWORD: 1234
+      POSTGRES_USER: pasaeventos
+      POSTGRES_PASSWORD: pasaeventos
+      POSTGRES_DB: pasaeventos
+      TZ: America/Guatemala
     ports:
-      - '33060:3306'
+      - '54320:5432'
     volumes:
-      - pasaeventos_db_data:/var/lib/mysql
+      - pasaeventos_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U pasaeventos -d pasaeventos']
+      interval: 5s
+      timeout: 5s
+      retries: 20
     networks:
       pasaeventos_network:
         ipv4_address: 172.16.0.4
 
-  pasaeventos_phpmyadmin:
-    container_name: pasaeventos_phpmyadmin
-    image: phpmyadmin
-    restart: always
-    ports:
-      - 8081:80
+  pasaeventos_adminer:
+    image: adminer:latest
+    container_name: pasaeventos_adminer
+    restart: unless-stopped
     environment:
-      - PMA_ARBITRARY=1
+      ADMINER_DEFAULT_SERVER: pasaeventos_db
+      ADMINER_DESIGN: dracula
+    ports:
+      - '8081:8080'
     depends_on:
       - pasaeventos_db
     networks:
@@ -72,51 +69,79 @@ services:
         ipv4_address: 172.16.0.5
 
   pasaeventos_redis:
+    image: redis:7-alpine
     container_name: pasaeventos_redis
-    image: redis:latest
+    restart: unless-stopped
+    command: redis-server --appendonly yes
     ports:
-      - 6379:6379
+      - '63790:6379'
     volumes:
       - pasaeventos_redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 20
     networks:
       pasaeventos_network:
         ipv4_address: 172.16.0.6
 
+  pasaeventos_rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: pasaeventos_rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: pasaeventos
+      RABBITMQ_DEFAULT_PASS: pasaeventos
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', '-q', 'ping']
+      interval: 10s
+      timeout: 10s
+      retries: 15
+    networks:
+      pasaeventos_network:
+        ipv4_address: 172.16.0.7
+
   pasaeventos_mailhog:
-    platform: linux/x86_64
     image: mailhog/mailhog
+    platform: linux/amd64
     container_name: pasaeventos_mailhog
+    restart: unless-stopped
     logging:
       driver: 'none'
     ports:
-      - 30250:8025
+      - '1025:1025'
+      - '8025:8025'
     networks:
       pasaeventos_network:
         ipv4_address: 172.16.0.8
 
-  pasaeventos_minio:
-    image: minio/minio
-    container_name: pasaeventos_minio
-    command: server /data
-    ports:
-      - '9000:9000'
-      - '9001:9001'
+  pasaeventos_localstack:
+    image: localstack/localstack:3
+    container_name: pasaeventos_localstack
+    restart: unless-stopped
     environment:
-      MINIO_ROOT_USER: pasaeventos
-      MINIO_ROOT_PASSWORD: pasaeventos
+      SERVICES: s3
+      DEBUG: '0'
+      PERSISTENCE: '1'
+    ports:
+      - '4566:4566'
     volumes:
-      - pasaeventos_minio_data:/data
-      - ./docker/minio/init:/docker-entrypoint-init.d
+      - pasaeventos_localstack_data:/var/lib/localstack
+      - ./docker/localstack/init:/etc/localstack/init/ready.d
     networks:
       pasaeventos_network:
         ipv4_address: 172.16.0.9
 
 volumes:
-  pasaeventos_db_data:
+  pasaeventos_pg_data:
     external: true
   pasaeventos_redis_data:
     external: true
-  pasaeventos_minio_data:
+  pasaeventos_localstack_data:
     external: true
 
 networks:
