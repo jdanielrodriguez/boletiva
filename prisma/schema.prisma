@@ -68,6 +68,21 @@ enum ChallengePurpose {
   twofa_email // segundo factor por correo
 }
 
+/// Estado de un intento de pago.
+enum PaymentStatus {
+  pending // creado; esperando confirmación del webhook
+  succeeded // confirmado (fulfillment hecho)
+  failed // rechazado por la pasarela
+  refunded // reembolsado tras haber sido exitoso
+}
+
+/// Método de pago de un intento.
+enum PaymentMethod {
+  gateway // 100% pasarela
+  wallet // 100% saldo interno
+  mixed // saldo interno + pasarela (Ola 3 · pago mixto)
+}
+
 /// Tipo de cuenta contable del ledger (partida doble).
 enum LedgerAccountType {
   user_wallet // saldo interno del usuario (pasivo de la plataforma con el usuario)
@@ -433,6 +448,7 @@ model Order {
   event       Event        @relation(fields: [eventId], references: [id])
   feeSchedule FeeSchedule? @relation(fields: [feeScheduleId], references: [id])
   items       OrderItem[]
+  payments    Payment[]
 
   @@index([buyerId])
   @@index([eventId])
@@ -466,6 +482,51 @@ model OrderItem {
   @@index([orderId])
   @@index([seatId])
   @@map("order_items")
+}
+
+// ---------------------------------------------------------------------------
+// Pagos: puerto PaymentProvider + webhooks (Ola 3)
+// ---------------------------------------------------------------------------
+
+/// Intento de pago de una orden. El fulfillment se dispara por WEBHOOK de la
+/// pasarela (webhook-first): la orden queda pending hasta payment.succeeded.
+model Payment {
+  id           String        @id @default(uuid()) @db.Uuid
+  orderId      String        @map("order_id") @db.Uuid
+  provider     String // 'simulator' | 'pagalo' | ...
+  providerRef  String        @unique @map("provider_ref") // referencia en la pasarela
+  method       PaymentMethod @default(gateway)
+  status       PaymentStatus @default(pending)
+  // Monto cobrado por la pasarela y monto cubierto con saldo interno (pago mixto).
+  amount       Decimal       @db.Decimal(12, 2)
+  walletAmount Decimal       @default(0) @map("wallet_amount") @db.Decimal(12, 2)
+  currency     String        @default("GTQ")
+  failureReason String?      @map("failure_reason")
+  succeededAt  DateTime?     @map("succeeded_at")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([status])
+  @@map("payments")
+}
+
+/// Evento de webhook recibido (idempotencia + auditoría). El par (provider,
+/// eventId) es único: reintentos/replays no se reprocesan.
+model WebhookEvent {
+  id          String    @id @default(uuid()) @db.Uuid
+  provider    String
+  eventId     String    @map("event_id") // id del evento en la pasarela
+  type        String
+  providerRef String?   @map("provider_ref")
+  payload     Json
+  processedAt DateTime? @map("processed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@unique([provider, eventId])
+  @@map("webhook_events")
 }
 
 // ---------------------------------------------------------------------------

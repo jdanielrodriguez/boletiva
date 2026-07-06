@@ -25,6 +25,7 @@ import { MediaModule } from './modules/media/media.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { LedgerModule } from './modules/ledger/ledger.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 
 @Module({
   imports: [
@@ -75,6 +76,7 @@ import { LedgerModule } from './modules/ledger/ledger.module';
     InventoryModule,
     OrdersModule,
     LedgerModule,
+    PaymentsModule,
   ],
   providers: [
     // Orden importa: autentica (JWT) → autoriza por rol → exige correo verificado.

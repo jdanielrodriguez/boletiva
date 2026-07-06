@@ -28,7 +28,7 @@ export interface AppConfig {
   jwt: { accessSecret: string; accessTtl: number; refreshSecret: string; refreshTtl: number };
   security: { encryptionKey: string };
   oauth: { google: { clientId: string } };
-  payment: { provider: string };
+  payment: { provider: string; webhookSecret: string };
   cors: { origins: string[] };
 }
 
@@ -79,7 +79,10 @@ export const configuration = (): AppConfig => {
     },
     security: { encryptionKey: process.env.APP_ENCRYPTION_KEY as string },
     oauth: { google: { clientId: process.env.GOOGLE_CLIENT_ID ?? '' } },
-    payment: { provider: process.env.PAYMENT_PROVIDER ?? 'simulator' },
+    payment: {
+      provider: process.env.PAYMENT_PROVIDER ?? 'simulator',
+      webhookSecret: process.env.PAYMENT_WEBHOOK_SECRET ?? 'dev-webhook-secret-change-me',
+    },
     cors: {
       origins: (process.env.CORS_ORIGINS ?? '')
         .split(',')

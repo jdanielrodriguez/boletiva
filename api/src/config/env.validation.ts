@@ -63,6 +63,7 @@ export const envValidationSchema = Joi.object({
 
   // Pagos (Ola 3)
   PAYMENT_PROVIDER: Joi.string().default('simulator'),
+  PAYMENT_WEBHOOK_SECRET: Joi.string().default('dev-webhook-secret-change-me'),
 
   // Observabilidad (OpenTelemetry). Desactivado salvo OTEL_ENABLED=true o que se
   // defina un endpoint OTLP. Traza el camino de compra (hold→commit).
