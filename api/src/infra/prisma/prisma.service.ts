@@ -35,6 +35,12 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
        ON fee_schedules (active)
        WHERE active = true`,
     );
+    // Solo puede haber UNA pasarela default de plataforma.
+    await this.$executeRawUnsafe(
+      `CREATE UNIQUE INDEX IF NOT EXISTS payment_gateways_one_default
+       ON payment_gateways (is_platform_default)
+       WHERE is_platform_default = true`,
+    );
   }
 
   async onModuleDestroy(): Promise<void> {

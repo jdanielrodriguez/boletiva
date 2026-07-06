@@ -83,6 +83,13 @@ enum PaymentMethod {
   mixed // saldo interno + pasarela (Ola 3 · pago mixto)
 }
 
+/// Estado operativo de una pasarela de pago configurada.
+enum GatewayStatus {
+  active // disponible para cobrar
+  inactive // deshabilitada (no se puede usar; solo si no está en uso)
+  maintenance // en mantenimiento (compras cerradas temporalmente)
+}
+
 /// Tipo de cuenta contable del ledger (partida doble).
 enum LedgerAccountType {
   user_wallet // saldo interno del usuario (pasivo de la plataforma con el usuario)
@@ -483,6 +490,30 @@ model OrderItem {
   @@index([orderId])
   @@index([seatId])
   @@map("order_items")
+}
+
+// ---------------------------------------------------------------------------
+// Pasarelas de pago configurables (Ola 3.5 · pagos dinámicos)
+// ---------------------------------------------------------------------------
+
+/// Pasarela de pago configurable. Su comisión (`feePct`) entra al gross-up del
+/// precio (dinámico por método). `credentialsRef` es una REFERENCIA al secreto
+/// (nombre en Secret Manager/env), nunca el secreto en claro. Solo una puede ser
+/// la default de plataforma (índice parcial `payment_gateways_one_default`).
+model PaymentGateway {
+  id               String        @id @default(uuid()) @db.Uuid
+  name             String        @unique
+  provider         String // 'simulator' | 'pagalo' | 'stripe' | ...
+  feePct           Decimal       @map("fee_pct") @db.Decimal(6, 5)
+  credentialsRef   String?       @map("credentials_ref")
+  status           GatewayStatus @default(active)
+  isPlatformDefault Boolean      @default(false) @map("is_platform_default")
+  sandbox          Boolean       @default(false)
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@map("payment_gateways")
 }
 
 // ---------------------------------------------------------------------------

@@ -66,6 +66,22 @@ async function seedFeeSchedule(): Promise<void> {
   });
 }
 
+/** Pasarela sandbox (simulador) como default de plataforma para alpha/beta. */
+async function seedGateway(): Promise<void> {
+  const existing = await prisma.paymentGateway.findFirst();
+  if (existing) return;
+  await prisma.paymentGateway.create({
+    data: {
+      name: 'Sandbox',
+      provider: 'simulator',
+      feePct: '0.05000',
+      status: 'active',
+      isPlatformDefault: true,
+      sandbox: true,
+    },
+  });
+}
+
 async function seedUsers() {
   const password = await bcrypt.hash('Password123', 12);
   const users: Array<{ email: string; firstName: string; roles: Role[] }> = [
@@ -167,6 +183,7 @@ async function seedDemoEvent(promoterId: string, categoryId: string): Promise<vo
 async function main(): Promise<void> {
   await seedSettings();
   await seedFeeSchedule();
+  await seedGateway();
   const users = await seedUsers();
   const categories = await seedCategories(users['admin@pasaeventos.com']);
   await seedDemoEvent(users['promotor@pasaeventos.com'], categories['Concierto']);
