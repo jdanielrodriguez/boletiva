@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Inject,
   Injectable,
@@ -7,10 +8,13 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Prisma } from '@prisma/client';
+import { PaymentGateway, Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { LedgerService } from '../ledger/ledger.service';
+import { PricingService } from '../pricing/pricing.service';
+import { PricingEngine } from '../pricing/pricing.engine';
+import { PaymentGatewaysService } from '../payment-gateways/payment-gateways.service';
 import { hmacSha256, randomToken, safeEqual } from '../../common/utils/crypto';
 import { PAYMENT_PROVIDER, PaymentProvider } from './payment.provider';
 
@@ -28,6 +32,8 @@ export class PaymentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly ledger: LedgerService,
+    private readonly pricing: PricingService,
+    private readonly gateways: PaymentGatewaysService,
     private readonly config: ConfigService,
     @Inject(PAYMENT_PROVIDER) private readonly provider: PaymentProvider,
   ) {}
@@ -45,8 +51,13 @@ export class PaymentsService {
    *  - sin wallet → 100% pasarela.
    * Reutiliza un intento pending existente (idempotencia).
    */
-  async initiate(orderId: string, buyerId: string, useWallet = false) {
-    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+  async initiate(
+    orderId: string,
+    buyerId: string,
+    opts: { gatewayId?: string; useWallet?: boolean } = {},
+  ) {
+    const useWallet = opts.useWallet ?? false;
+    let order = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!order || order.buyerId !== buyerId) {
       throw new NotFoundException('Orden no encontrada'); // no filtra existencia (IDOR)
     }
@@ -58,10 +69,24 @@ export class PaymentsService {
     const existing = await this.prisma.payment.findFirst({ where: { orderId, status: 'pending' } });
     if (existing) return this.summarize(existing);
 
+    // Método: pasarela elegida (o la de la orden / default de plataforma) si está
+    // activa. Si se eligió otra, se RECOTIZA la orden con su comisión (y se congela).
+    const gateway = await this.resolveChosenGateway(opts.gatewayId, order.feeGatewayId);
+    if (gateway && gateway.id !== order.feeGatewayId) {
+      await this.requote(order.id, gateway);
+      order = await this.prisma.order.findUniqueOrThrow({ where: { id: orderId } });
+    }
+
     const total = new Decimal(order.total.toString());
     const balance = useWallet ? await this.ledger.walletBalance(buyerId) : new Decimal(0);
     const walletPortion = Decimal.min(balance, total);
     const gatewayCharge = total.sub(walletPortion);
+
+    // No se puede completar si hay que cobrar por pasarela y no hay una disponible
+    // (p.ej. saldo parcial sin tarjeta / sin método de pago configurado).
+    if (gatewayCharge.gt(0) && !gateway) {
+      throw new BadRequestException('No hay un método de pago disponible para completar la compra');
+    }
 
     // Caso 1: el wallet cubre el total → confirmación inmediata (sin pasarela).
     if (walletPortion.gt(0) && gatewayCharge.isZero()) {
@@ -132,6 +157,92 @@ export class PaymentsService {
       amount: p.amount.toFixed(2),
       walletAmount: p.walletAmount.toFixed(2),
     };
+  }
+
+  /**
+   * Pasarela a usar: la elegida (debe estar activa) o, sin elección, la de la
+   * orden si sigue activa, o la default de plataforma. null si no hay ninguna
+   * activa (→ no se puede cobrar por pasarela).
+   */
+  private async resolveChosenGateway(
+    gatewayId: string | undefined,
+    orderGatewayId: string | null,
+  ): Promise<PaymentGateway | null> {
+    if (gatewayId) {
+      const gw = await this.gateways.get(gatewayId);
+      if (gw.status !== 'active') {
+        throw new BadRequestException('La pasarela elegida no está disponible');
+      }
+      return gw;
+    }
+    if (orderGatewayId) {
+      const gw = await this.prisma.paymentGateway.findUnique({ where: { id: orderGatewayId } });
+      if (gw && gw.status === 'active') return gw;
+    }
+    const def = await this.gateways.platformDefault();
+    return def && def.status === 'active' ? def : null;
+  }
+
+  /**
+   * Recotiza una orden con otra pasarela (al elegir método de pago). Recalcula
+   * cada ítem con la comisión de la pasarela + el IVA del evento, resume los
+   * totales y estampa la pasarela usada. Todo en una transacción.
+   */
+  private async requote(orderId: string, gateway: PaymentGateway): Promise<void> {
+    const order = await this.prisma.order.findUniqueOrThrow({
+      where: { id: orderId },
+      include: { items: true, event: { select: { ivaOnNet: true } } },
+    });
+    const params = await this.pricing.paramsForRequote(
+      order.feeScheduleVersion,
+      gateway.feePct.toNumber(),
+      order.event.ivaOnNet,
+    );
+    const zero = new Decimal(0);
+    const sum = {
+      net: zero,
+      fixed: zero,
+      platform: zero,
+      taxable: zero,
+      iva: zero,
+      gateway: zero,
+      total: zero,
+    };
+    const itemUpdates = order.items.map((it) => {
+      const q = PricingEngine.quote(it.net.toString(), params);
+      sum.net = sum.net.add(q.net);
+      sum.fixed = sum.fixed.add(q.fixedFees);
+      sum.platform = sum.platform.add(q.platformFee);
+      sum.taxable = sum.taxable.add(q.taxableBase);
+      sum.iva = sum.iva.add(q.iva);
+      sum.gateway = sum.gateway.add(q.gatewayFee);
+      sum.total = sum.total.add(q.total);
+      return this.prisma.orderItem.update({
+        where: { id: it.id },
+        data: {
+          net: q.net,
+          total: q.total,
+          quote: q as unknown as Prisma.InputJsonValue,
+          quoteHash: q.hash,
+        },
+      });
+    });
+    await this.prisma.$transaction([
+      ...itemUpdates,
+      this.prisma.order.update({
+        where: { id: orderId },
+        data: {
+          net: sum.net.toFixed(2),
+          fixedFees: sum.fixed.toFixed(2),
+          platformFee: sum.platform.toFixed(2),
+          taxableBase: sum.taxable.toFixed(2),
+          iva: sum.iva.toFixed(2),
+          gatewayFee: sum.gateway.toFixed(2),
+          total: sum.total.toFixed(2),
+          feeGatewayId: gateway.id,
+        },
+      }),
+    ]);
   }
 
   /** Firma esperada de un webhook (HMAC sobre campos canónicos). */

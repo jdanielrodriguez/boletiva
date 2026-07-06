@@ -1,8 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsIn, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 
 /** Cuerpo (opcional) para iniciar el pago de una orden. */
 export class PayOrderDto {
+  @ApiPropertyOptional({
+    description:
+      'Método/pasarela elegida (recotiza el total con su comisión); omitir usa la del evento',
+  })
+  @IsOptional()
+  @IsUUID()
+  gatewayId?: string;
+
   @ApiPropertyOptional({
     description: 'Usar el saldo interno primero (pago mixto si no alcanza)',
     default: false,

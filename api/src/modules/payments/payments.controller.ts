@@ -21,7 +21,10 @@ export class PaymentsController {
     @CurrentUser('userId') userId: string,
     @Body() dto: PayOrderDto,
   ) {
-    return this.payments.initiate(id, userId, dto.useWallet ?? false);
+    return this.payments.initiate(id, userId, {
+      gatewayId: dto.gatewayId,
+      useWallet: dto.useWallet,
+    });
   }
 
   @Post('payments/webhook')

@@ -73,6 +73,29 @@ export class PricingService {
     return (await this.resolveFees()).params;
   }
 
+  /**
+   * Parámetros para RECOTIZAR una orden con otra pasarela al pagar: conserva la
+   * plataforma + IVA de la versión de comisiones de la orden (estables) y solo
+   * cambia la comisión de pasarela y el IVA del evento.
+   */
+  async paramsForRequote(
+    feeScheduleVersion: number | null,
+    gatewayFeePct: number,
+    ivaOnNet: boolean,
+  ): Promise<FeeParams> {
+    const sched =
+      (feeScheduleVersion !== null
+        ? await this.prisma.feeSchedule.findUnique({ where: { version: feeScheduleVersion } })
+        : null) ?? (await this.prisma.feeSchedule.findFirst({ where: { active: true } }));
+    return {
+      platformFeePct: sched ? sched.platformFeePct.toNumber() : DEFAULTS.platformFeePct,
+      gatewayFeePct,
+      ivaPct: sched ? sched.ivaPct.toNumber() : DEFAULTS.ivaPct,
+      ivaOnNet,
+      fixedFees: sched ? sched.fixedFees.toNumber() : 0,
+    };
+  }
+
   /** Cotización global (preview) para un neto con las comisiones vigentes. */
   async quote(net: number | string): Promise<PriceQuote> {
     return PricingEngine.quote(net, await this.currentFeeParams());
