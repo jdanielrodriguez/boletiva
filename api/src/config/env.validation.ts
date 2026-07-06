@@ -64,6 +64,12 @@ export const envValidationSchema = Joi.object({
   // Pagos (Ola 3)
   PAYMENT_PROVIDER: Joi.string().default('simulator'),
 
+  // Observabilidad (OpenTelemetry). Desactivado salvo OTEL_ENABLED=true o que se
+  // defina un endpoint OTLP. Traza el camino de compra (hold→commit).
+  OTEL_ENABLED: Joi.boolean().default(false),
+  OTEL_SERVICE_NAME: Joi.string().default('pasaeventos-api'),
+  OTEL_EXPORTER_OTLP_ENDPOINT: Joi.string().uri().allow('').optional(),
+
   // CORS
   CORS_ORIGINS: Joi.string().required(),
 }).unknown(true);

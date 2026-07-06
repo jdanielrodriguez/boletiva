@@ -1,6 +1,8 @@
 import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
+import { SpanStatusCode } from '@opentelemetry/api';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { RedisService } from '../../infra/redis/redis.service';
+import { checkoutTracer } from '../../infra/observability/tracing';
 
 export const DEFAULT_HOLD_TTL = 600; // 10 minutos
 
@@ -53,6 +55,29 @@ export class SeatHoldService {
    * cliente mueren, el asiento se libera solo sin intervención manual.
    */
   async hold(
+    eventId: string,
+    seatIds: string[],
+    holderId: string,
+    ttlSeconds = DEFAULT_HOLD_TTL,
+  ): Promise<HoldResult> {
+    return checkoutTracer().startActiveSpan('seat.hold', async (span) => {
+      span.setAttribute('event.id', eventId);
+      span.setAttribute('seat.count', new Set(seatIds).size);
+      try {
+        const result = await this.runHold(eventId, seatIds, holderId, ttlSeconds);
+        span.setStatus({ code: SpanStatusCode.OK });
+        return result;
+      } catch (e) {
+        span.recordException(e as Error);
+        span.setStatus({ code: SpanStatusCode.ERROR, message: (e as Error).message });
+        throw e;
+      } finally {
+        span.end();
+      }
+    });
+  }
+
+  private async runHold(
     eventId: string,
     seatIds: string[],
     holderId: string,

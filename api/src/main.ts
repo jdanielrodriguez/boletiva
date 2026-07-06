@@ -1,3 +1,6 @@
+// OTel primero: debe parchear los módulos antes de que Nest/Express/Prisma se
+// carguen. Import con efecto de lado (arranca el tracing si está habilitado).
+import './infra/observability/tracing';
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, VersioningType } from '@nestjs/common';

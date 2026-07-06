@@ -136,6 +136,22 @@ services:
       pasaeventos_network:
         ipv4_address: 172.16.0.9
 
+  # Observabilidad: Jaeger all-in-one (OTLP + UI). No arranca por defecto; solo
+  # con el profile: `docker compose -f docker-compose.local.yml --profile observability up -d`.
+  # Luego OTEL_ENABLED=true + OTEL_EXPORTER_OTLP_ENDPOINT=http://pasaeventos_jaeger:4318.
+  pasaeventos_jaeger:
+    image: jaegertracing/all-in-one:1.60
+    container_name: pasaeventos_jaeger
+    profiles: ['observability']
+    restart: unless-stopped
+    environment:
+      COLLECTOR_OTLP_ENABLED: 'true'
+    ports:
+      - '16687:16686' # UI (host no-default → 16687)
+    networks:
+      pasaeventos_network:
+        ipv4_address: 172.16.0.11
+
 volumes:
   pasaeventos_pg_data:
     external: true

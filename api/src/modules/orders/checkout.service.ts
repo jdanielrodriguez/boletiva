@@ -9,7 +9,9 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { SpanStatusCode } from '@opentelemetry/api';
 import Decimal from 'decimal.js';
+import { checkoutTracer } from '../../infra/observability/tracing';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { RedisService } from '../../infra/redis/redis.service';
 import { PricingService, ResolvedFees } from '../pricing/pricing.service';
@@ -59,7 +61,37 @@ export class CheckoutService {
    *
    * El precio es server-authoritative: se recalcula desde settings + desiredNet.
    */
+  /**
+   * Envuelve el commit en un span raíz `checkout.commit` (con atributos de
+   * negocio) para trazar el camino crítico. Los spans de Prisma/Redis/HTTP cuelgan
+   * de este cuando OTel está habilitado; es no-op si está desactivado.
+   */
   async commit(eventId: string, rawSeatIds: string[], buyerId: string, billing?: BillingInput) {
+    return checkoutTracer().startActiveSpan('checkout.commit', async (span) => {
+      span.setAttribute('event.id', eventId);
+      span.setAttribute('seat.count', new Set(rawSeatIds).size);
+      try {
+        const order = await this.runCommit(eventId, rawSeatIds, buyerId, billing);
+        span.setAttribute('order.id', order.id);
+        span.setAttribute('order.total', order.total.toString());
+        span.setStatus({ code: SpanStatusCode.OK });
+        return order;
+      } catch (e) {
+        span.recordException(e as Error);
+        span.setStatus({ code: SpanStatusCode.ERROR, message: (e as Error).message });
+        throw e;
+      } finally {
+        span.end();
+      }
+    });
+  }
+
+  private async runCommit(
+    eventId: string,
+    rawSeatIds: string[],
+    buyerId: string,
+    billing?: BillingInput,
+  ) {
     const seatIds = [...new Set(rawSeatIds)];
     if (seatIds.length === 0) {
       throw new BadRequestException('Debes indicar al menos un asiento');
