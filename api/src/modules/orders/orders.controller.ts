@@ -21,7 +21,11 @@ export class OrdersController {
     @Body() dto: CheckoutDto,
     @CurrentUser('userId') userId: string,
   ) {
-    return this.checkout.commit(eventId, dto.seatIds, userId);
+    return this.checkout.commit(eventId, dto.seatIds, userId, {
+      nit: dto.billingNit,
+      name: dto.billingName,
+      address: dto.billingAddress,
+    });
   }
 
   @Get('orders')

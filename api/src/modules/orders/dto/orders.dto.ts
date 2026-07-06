@@ -1,5 +1,13 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsUUID } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+} from 'class-validator';
 
 export class CheckoutDto {
   @ApiProperty({
@@ -12,4 +20,22 @@ export class CheckoutDto {
   @ArrayMaxSize(50)
   @IsUUID('4', { each: true })
   seatIds!: string[];
+
+  @ApiPropertyOptional({ description: 'NIT para facturación FEL; vacío = CF (consumidor final)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  billingNit?: string;
+
+  @ApiPropertyOptional({ description: 'Nombre de facturación FEL' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  billingName?: string;
+
+  @ApiPropertyOptional({ description: 'Dirección de facturación FEL' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(240)
+  billingAddress?: string;
 }

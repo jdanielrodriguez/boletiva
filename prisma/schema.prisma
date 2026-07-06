@@ -352,6 +352,31 @@ model Seat {
 }
 
 // ---------------------------------------------------------------------------
+// Precios: tabla de comisiones versionada (Ola 2)
+// ---------------------------------------------------------------------------
+
+/// Configuración de comisiones VERSIONADA e inmutable. El admin no edita en
+/// sitio: crea una versión nueva y la activa (solo una activa a la vez, vía
+/// índice único parcial `fee_schedules_one_active`). Cada orden guarda la
+/// versión usada para reproducir su cotización. Porcentajes en [0, 1).
+model FeeSchedule {
+  id             String   @id @default(uuid()) @db.Uuid
+  version        Int      @unique
+  label          String?
+  platformFeePct Decimal  @map("platform_fee_pct") @db.Decimal(6, 5)
+  gatewayFeePct  Decimal  @map("gateway_fee_pct") @db.Decimal(6, 5)
+  ivaPct         Decimal  @map("iva_pct") @db.Decimal(6, 5)
+  fixedFees      Decimal  @default(0) @map("fixed_fees") @db.Decimal(12, 2)
+  active         Boolean  @default(false)
+  createdById    String?  @map("created_by_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  orders Order[]
+
+  @@map("fee_schedules")
+}
+
+// ---------------------------------------------------------------------------
 // Órdenes (Ola 2 · commit anti-doble-venta / Ola 3 · pagos)
 // ---------------------------------------------------------------------------
 
@@ -374,15 +399,30 @@ model Order {
   gatewayFee  Decimal @db.Decimal(12, 2)
   total       Decimal @db.Decimal(12, 2)
 
+  // Versión de comisiones usada (reproduce la cotización de forma auditable).
+  feeScheduleId      String? @map("fee_schedule_id") @db.Uuid
+  feeScheduleVersion Int?    @map("fee_schedule_version")
+
+  // Facturación electrónica (FEL, Guatemala). NIT 'CF' = consumidor final.
+  // Los campos de autorización se llenan al certificar la factura (Ola 3+).
+  billingNit     String    @default("CF") @map("billing_nit")
+  billingName    String?   @map("billing_name")
+  billingAddress String?   @map("billing_address")
+  felUuid        String?   @map("fel_uuid")
+  felSerie       String?   @map("fel_serie")
+  felNumero      String?   @map("fel_numero")
+  felCertifiedAt DateTime? @map("fel_certified_at")
+
   expiresAt   DateTime? @map("expires_at")
   paidAt      DateTime? @map("paid_at")
   cancelledAt DateTime? @map("cancelled_at")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  buyer User        @relation(fields: [buyerId], references: [id])
-  event Event       @relation(fields: [eventId], references: [id])
-  items OrderItem[]
+  buyer       User         @relation(fields: [buyerId], references: [id])
+  event       Event        @relation(fields: [eventId], references: [id])
+  feeSchedule FeeSchedule? @relation(fields: [feeScheduleId], references: [id])
+  items       OrderItem[]
 
   @@index([buyerId])
   @@index([eventId])

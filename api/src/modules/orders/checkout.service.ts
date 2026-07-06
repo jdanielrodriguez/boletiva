@@ -12,8 +12,15 @@ import { Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { RedisService } from '../../infra/redis/redis.service';
-import { PricingService } from '../pricing/pricing.service';
-import { FeeParams, PriceQuote, PricingEngine } from '../pricing/pricing.engine';
+import { PricingService, ResolvedFees } from '../pricing/pricing.service';
+import { PriceQuote, PricingEngine } from '../pricing/pricing.engine';
+
+/** Datos de facturación FEL opcionales (sin NIT → consumidor final 'CF'). */
+export interface BillingInput {
+  nit?: string;
+  name?: string;
+  address?: string;
+}
 
 /** Tiempo máximo esperando el lock de un asiento antes de rendirse (ms). */
 const LOCK_TIMEOUT_MS = 5000;
@@ -52,7 +59,7 @@ export class CheckoutService {
    *
    * El precio es server-authoritative: se recalcula desde settings + desiredNet.
    */
-  async commit(eventId: string, rawSeatIds: string[], buyerId: string) {
+  async commit(eventId: string, rawSeatIds: string[], buyerId: string, billing?: BillingInput) {
     const seatIds = [...new Set(rawSeatIds)];
     if (seatIds.length === 0) {
       throw new BadRequestException('Debes indicar al menos un asiento');
@@ -62,15 +69,15 @@ export class CheckoutService {
     // persona en Redis, no se puede comprar (aunque en BD siga `available`).
     await this.assertNoForeignHold(eventId, seatIds, buyerId);
 
-    // Comisiones vigentes: se leen ANTES de la transacción (con el cliente base).
-    // Dentro de la tx solo se usa la conexión de la tx + cálculo puro, para no
-    // pedir una 2ª conexión del pool mientras se sostiene el lock de fila (evita
-    // un deadlock de pool bajo alta concurrencia).
-    const feeParams = await this.pricing.currentFeeParams();
+    // Comisiones vigentes (fee_schedule activo): se leen ANTES de la transacción
+    // (con el cliente base). Dentro de la tx solo se usa la conexión de la tx +
+    // cálculo puro, para no pedir una 2ª conexión del pool mientras se sostiene el
+    // lock de fila (evita un deadlock de pool bajo alta concurrencia).
+    const fees = await this.pricing.resolveFees();
 
     try {
       const order = await this.prisma.$transaction(
-        async (tx) => this.commitTx(tx, eventId, seatIds, buyerId, feeParams),
+        async (tx) => this.commitTx(tx, eventId, seatIds, buyerId, fees, billing),
         {
           // maxWait: espera por una conexión del pool bajo alta concurrencia.
           // timeout: duración máxima de la transacción una vez iniciada.
@@ -92,7 +99,8 @@ export class CheckoutService {
     eventId: string,
     seatIds: string[],
     buyerId: string,
-    feeParams: FeeParams,
+    fees: ResolvedFees,
+    billing?: BillingInput,
   ) {
     // Fallar rápido si otro commit tiene el lock demasiado tiempo (no colgar).
     await tx.$executeRawUnsafe(`SET LOCAL lock_timeout = '${LOCK_TIMEOUT_MS}ms'`);
@@ -128,7 +136,7 @@ export class CheckoutService {
           `La localidad "${loc.name}" no tiene precio configurado (desiredNet)`,
         );
       }
-      quoteByLocality.set(loc.id, PricingEngine.quote(loc.desiredNet.toString(), feeParams));
+      quoteByLocality.set(loc.id, PricingEngine.quote(loc.desiredNet.toString(), fees.params));
     }
 
     // Totales = suma exacta (Decimal) de los ítems.
@@ -162,6 +170,8 @@ export class CheckoutService {
       };
     });
 
+    // NIT en mayúsculas; sin NIT válido → 'CF' (consumidor final).
+    const nit = billing?.nit?.trim().toUpperCase();
     const order = await tx.order.create({
       data: {
         buyerId,
@@ -175,6 +185,11 @@ export class CheckoutService {
         iva: sum.iva.toFixed(2),
         gatewayFee: sum.gateway.toFixed(2),
         total: sum.total.toFixed(2),
+        feeScheduleId: fees.scheduleId,
+        feeScheduleVersion: fees.version,
+        billingNit: nit && nit.length > 0 ? nit : 'CF',
+        billingName: billing?.name?.trim() || null,
+        billingAddress: billing?.address?.trim() || null,
         expiresAt: new Date(Date.now() + PAYMENT_WINDOW_MS),
         items: { create: itemsData },
       },

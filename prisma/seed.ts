@@ -49,6 +49,23 @@ async function seedSettings(): Promise<void> {
   }
 }
 
+/** Tabla de comisiones v1 (activa), coherente con los settings de precios. */
+async function seedFeeSchedule(): Promise<void> {
+  const existing = await prisma.feeSchedule.findFirst();
+  if (existing) return; // ya versionado; no re-crear
+  await prisma.feeSchedule.create({
+    data: {
+      version: 1,
+      label: 'Comisiones base (seed)',
+      platformFeePct: '0.10000',
+      gatewayFeePct: '0.05000',
+      ivaPct: '0.12000',
+      fixedFees: '0.00',
+      active: true,
+    },
+  });
+}
+
 async function seedUsers() {
   const password = await bcrypt.hash('Password123', 12);
   const users: Array<{ email: string; firstName: string; roles: Role[] }> = [
@@ -149,6 +166,7 @@ async function seedDemoEvent(promoterId: string, categoryId: string): Promise<vo
 
 async function main(): Promise<void> {
   await seedSettings();
+  await seedFeeSchedule();
   const users = await seedUsers();
   const categories = await seedCategories(users['admin@pasaeventos.com']);
   await seedDemoEvent(users['promotor@pasaeventos.com'], categories['Concierto']);

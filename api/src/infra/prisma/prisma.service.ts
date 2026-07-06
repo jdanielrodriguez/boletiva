@@ -29,6 +29,12 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
        ON order_items (seat_id)
        WHERE seat_id IS NOT NULL AND active = true`,
     );
+    // Solo puede haber UNA tabla de comisiones activa a la vez.
+    await this.$executeRawUnsafe(
+      `CREATE UNIQUE INDEX IF NOT EXISTS fee_schedules_one_active
+       ON fee_schedules (active)
+       WHERE active = true`,
+    );
   }
 
   async onModuleDestroy(): Promise<void> {
