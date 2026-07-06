@@ -51,6 +51,13 @@ export const envValidationSchema = Joi.object({
   JWT_REFRESH_SECRET: Joi.string().default('dev-refresh-secret-change-me'),
   JWT_REFRESH_TTL: Joi.number().default(1209600),
 
+  // Llave de cifrado simétrico en reposo (AES-256-GCM), 32 bytes en hex (64 chars).
+  // En prod DEBE venir de Secret Manager y ser única/rotable.
+  APP_ENCRYPTION_KEY: Joi.string()
+    .hex()
+    .length(64)
+    .default('9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08'),
+
   // Google OAuth (opcional; si falta, el login con Google queda deshabilitado)
   GOOGLE_CLIENT_ID: Joi.string().allow('').optional(),
 

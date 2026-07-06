@@ -7,6 +7,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { configuration } from './config/configuration';
 import { envValidationSchema } from './config/env.validation';
 import { PrismaModule } from './infra/prisma/prisma.module';
+import { CryptoModule } from './infra/crypto/crypto.module';
 import { RedisModule } from './infra/redis/redis.module';
 import { MailModule } from './infra/mail/mail.module';
 import { StorageModule } from './infra/storage/storage.module';
@@ -56,6 +57,7 @@ import { MediaModule } from './modules/media/media.module';
       },
     }),
     PrismaModule,
+    CryptoModule,
     RedisModule,
     MailModule,
     StorageModule,

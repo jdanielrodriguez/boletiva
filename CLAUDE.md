@@ -30,7 +30,8 @@ Es un **port/rediseño** del proyecto de referencia `ticketera` (misma carpeta p
   - **Verificación de correo** (código 6 dígitos + magic link). Sin verificar: entra y explora, pero **no** puede comprar/crear/transferir (`@RequireVerifiedEmail`). Google llega verificado.
   - **2FA obligatorio** una vez verificado el correo: **email OTP** (default) o **TOTP** (app autenticadora, `otplib`+QR). Se exige en **dispositivos nuevos**; los **confiables** (ya pasaron 2FA) no lo repiten. Login de 2 pasos: `login` → `2fa_required`+preauthToken → `2fa/verify`.
   - **Dispositivos**: se rastrean; correo de **aviso de nuevo dispositivo**; endpoints `GET/DELETE /auth/devices`.
-  - Modelo extra (Prisma): `auth_challenges` (OTP+token hasheados), `devices`, `oauth_accounts`; User con `emailVerifiedAt`, `twoFactorMethod`, `totpSecret`. Nota: `totpSecret` se guarda en claro (mejora: cifrar en reposo).
+  - Modelo extra (Prisma): `auth_challenges` (OTP+token hasheados), `devices`, `oauth_accounts`; User con `emailVerifiedAt`, `twoFactorMethod`, `totpSecret`.
+- **Auditoría del arquitecto aplicada (jul 2026):** `totpSecret` **cifrado en reposo** con `EncryptionService` AES-256-GCM (`infra/crypto`, llave `APP_ENCRYPTION_KEY`); `decimal.js` instalado (regla: **nunca `number` para dinero**, Banker's rounding); **MongoDB descartado** (Postgres jsonb); OTel adelantado a Ola 2. Ver consideraciones transversales abajo (FEL, waiting room edge, contrato API, retención).
   - **users**: perfil propio (`PATCH /users/me`), gestión admin (list, roles, status).
   - **categories**: CRUD (lectura pública, escritura admin).
   - **events**: CRUD con **ownership de promotor**, publish/cancel, listado público de publicados, detalle por slug.
