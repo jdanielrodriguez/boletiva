@@ -7,7 +7,8 @@ export default {
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
   coverageDirectory: '../coverage/api',
-  testMatch: ['<rootDir>/src/**/*.spec.ts'],
+  testMatch: ['<rootDir>/src/**/*.spec.ts', '<rootDir>/src/**/*.e2e-spec.ts'],
+  testTimeout: 30000,
   collectCoverageFrom: [
     '<rootDir>/src/**/*.{js,ts}',
     '!<rootDir>/src/main.ts',

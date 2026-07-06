@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
 import type { IncomingMessage, ServerResponse } from 'http';
@@ -11,6 +12,14 @@ import { MailModule } from './infra/mail/mail.module';
 import { StorageModule } from './infra/storage/storage.module';
 import { RabbitModule } from './infra/messaging/rabbit.module';
 import { HealthModule } from './health/health.module';
+import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
+import { RolesGuard } from './modules/auth/guards/roles.guard';
+import { AuthModule } from './modules/auth/auth.module';
+import { UsersModule } from './modules/users/users.module';
+import { CategoriesModule } from './modules/categories/categories.module';
+import { EventsModule } from './modules/events/events.module';
+import { VenuesModule } from './modules/venues/venues.module';
+import { MediaModule } from './modules/media/media.module';
 
 @Module({
   imports: [
@@ -51,6 +60,17 @@ import { HealthModule } from './health/health.module';
     StorageModule,
     RabbitModule,
     HealthModule,
+    AuthModule,
+    UsersModule,
+    CategoriesModule,
+    EventsModule,
+    VenuesModule,
+    MediaModule,
+  ],
+  providers: [
+    // Orden importa: primero autentica (JWT), luego autoriza (roles).
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
   ],
 })
 export class AppModule {}

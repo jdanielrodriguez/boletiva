@@ -21,9 +21,19 @@ Es un **port/rediseño** del proyecto de referencia `ticketera` (misma carpeta p
 ## Estado actual (jul 2026)
 
 - Rama de trabajo: **`feature/backend-core-v1`** (partió de `develop`). **Todo el trabajo va aquí, commiteado pero SIN subir** hasta que el usuario valide.
-- **Ola 0 (Fundaciones) COMPLETADA y verificada.** El backend `api/` es ahora **NestJS + Prisma + PostgreSQL**. Arranca con todo el stack; tests unitarios verdes (9) y smoke E2E (HTTP + Puppeteer) en verde.
-- Endpoints: `GET /api/v1/health` (completo), `/api/v1/health/live` (liveness), `/api/v1/health/ready` (readiness), `/docs` (Swagger, no-prod).
-- Estructura NestJS: `api/src/{config, common/filters, infra/{prisma,redis,mail,storage,messaging}, health}`. El dominio (auth, events, etc.) llega en las olas 1+.
+- **Ola 0 (Fundaciones) COMPLETADA.** Backend `api/` = **NestJS + Prisma + PostgreSQL**. Infra: config/env, pino, filtro de errores, health, docker (postgres/redis/rabbit/mailhog/localstack/adminer).
+- **Ola 1 (Identidad + Catálogo) COMPLETADA y verificada.** 37 tests verdes (unit + e2e). Módulos:
+  - **auth**: signup, login, refresh con **rotación + detección de reuso**, logout, forgot/reset password, change-password, `/auth/me`. JWT access + refresh (sha256 en BD).
+  - **RBAC**: `JwtAuthGuard` + `RolesGuard` globales; `@Public()`, `@Roles()`, `@CurrentUser()`. Roles: admin/promoter/promoter_staff/gate_operator/buyer.
+  - **users**: perfil propio (`PATCH /users/me`), gestión admin (list, roles, status).
+  - **categories**: CRUD (lectura pública, escritura admin).
+  - **events**: CRUD con **ownership de promotor**, publish/cancel, listado público de publicados, detalle por slug.
+  - **venues**: localidades, **seat_maps versionados** (activo público), **seats** (bulk + generación por cantidad).
+  - **media**: presign de subida a S3/GCS, registro, listado con URLs firmadas.
+- Endpoints salud: `GET /api/v1/health`(completo), `/health/live`, `/health/ready`, `/docs` (Swagger).
+- Estructura: `api/src/{config, common/{decorators,filters,utils}, infra/{prisma,redis,mail,storage,messaging}, health, modules/{auth,users,categories,events,venues,media}}`.
+- Modelo de datos (Prisma): settings, users, refresh_tokens, password_recoveries, categories, events, event_media, localities, seat_maps, seats. Pricing/órdenes/pagos/boletos/ledger llegan en olas 2+.
+- Credenciales seed: `admin@pasaeventos.com` / `promotor@pasaeventos.com` / `cliente@pasaeventos.com`, todas con password `Password123`.
 - Warning benigno conocido: NestJS/path-to-regexp emite "Unsupported route path /api/*" al arrancar; lo auto-convierte, no afecta.
 
 ### Mapa de puertos (local) — puertos host NO-default para evitar conflictos

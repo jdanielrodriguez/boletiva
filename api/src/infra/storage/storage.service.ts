@@ -70,6 +70,15 @@ export class StorageService implements OnModuleInit {
     });
   }
 
+  /** URL firmada (V4) de SUBIDA (PUT directo del navegador a storage). */
+  async signedPutUrl(key: string, contentType?: string, expiresInSeconds = 300): Promise<string> {
+    return getSignedUrl(
+      this.s3,
+      new PutObjectCommand({ Bucket: this.bucket, Key: key, ContentType: contentType }),
+      { expiresIn: expiresInSeconds },
+    );
+  }
+
   /** Verificación de conectividad para el health-check. */
   async ping(): Promise<boolean> {
     await this.s3.send(new HeadBucketCommand({ Bucket: this.bucket }));
