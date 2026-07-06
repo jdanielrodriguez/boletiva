@@ -139,7 +139,7 @@ El `.env` del disco local tuvo secretos de prod (MySQL prod, llave GCP, Redis Cl
 - Responder **en español**. Comportarse como **ingeniero senior**: seguridad, logging, debug, multi-entorno, tests.
 - **Preguntar** dudas de negocio/componentes en vez de suponer.
 - Patrón: **controllers finos → services → repositories (Prisma)**. Lógica de dinero **server-authoritative**.
-- **Tests por endpoint** (unit + integration Testcontainers + e2e Supertest). Prueba de concurrencia que demuestre **0 doble-venta**.
+- **Tests EXHAUSTIVOS por endpoint (criterio de aceptación — el usuario confía ciegamente en ellos).** En cada ola cubrir: happy path por rol; validación de entrada; **todos los errores capturados** y su contrato (400/401/403/404/409/422, 500 sin stack en prod); **seguridad / intentos de hacking** (bypass de auth, token manipulado/expirado, escalada de privilegios RBAC, IDOR/ownership, reuso de refresh, rate-limit, inyección, replay de webhooks, manipulación de precios server-authoritative); **concurrencia** que demuestre **0 doble-venta** (K6/carga); bordes de dinero (Banker's rounding). Ninguna ola es "hecha" sin esto. Ver `pref-testing-exhaustivo` en memoria.
 - Commitear en `feature/backend-core-v1`, justificar, **no subir** hasta validación del usuario.
 - **Commits SIN línea `Co-Authored-By`** (el usuario lo pidió; los commits antiguos que ya la tienen se dejan).
 - Usar agentes para explorar/QA cuando ayude (el usuario lo pidió explícitamente).
