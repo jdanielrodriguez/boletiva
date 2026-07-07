@@ -32,6 +32,7 @@ export interface AppConfig {
   queue: { inline: boolean; prefix: string };
   tickets: { signingSeed: string; signingKeyId: string };
   wallet: { provider: string };
+  retention: { enabled: boolean; days: number };
   cors: { origins: string[] };
 }
 
@@ -105,6 +106,12 @@ export const configuration = (): AppConfig => {
     // Pases de wallet (Google/Apple). 'stub' = simulador sin certificados de
     // terceros (los E2E no dependen de Apple Developer / Google Wallet API).
     wallet: { provider: process.env.WALLET_PROVIDER ?? 'stub' },
+    // Retención/privacidad: job programado (desactivado por defecto y en test) que
+    // anonimiza PII de usuarios cuyos eventos concluyeron hace más de `days`.
+    retention: {
+      enabled: bool(process.env.RETENTION_ENABLED, false),
+      days: parseInt(process.env.RETENTION_DAYS ?? '365', 10),
+    },
     cors: {
       origins: (process.env.CORS_ORIGINS ?? '')
         .split(',')

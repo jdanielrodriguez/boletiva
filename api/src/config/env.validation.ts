@@ -82,6 +82,10 @@ export const envValidationSchema = Joi.object({
   // Pases de wallet (Ola 4). 'stub' no requiere certificados de terceros.
   WALLET_PROVIDER: Joi.string().valid('stub', 'google', 'apple').default('stub'),
 
+  // Retención/privacidad (Ola 6). Job de anonimización desactivado por defecto.
+  RETENTION_ENABLED: Joi.boolean().default(false),
+  RETENTION_DAYS: Joi.number().default(365),
+
   // Observabilidad (OpenTelemetry). Desactivado salvo OTEL_ENABLED=true o que se
   // defina un endpoint OTLP. Traza el camino de compra (hold→commit).
   OTEL_ENABLED: Joi.boolean().default(false),

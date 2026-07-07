@@ -208,6 +208,10 @@ model User {
   promoterDecidedAt DateTime?      @map("promoter_decided_at")
   promoterNote      String?        @map("promoter_note") // motivo de rechazo/suspensión
 
+  // Privacidad/retención (Ola 6): sello de anonimización (seudonimización de PII
+  // preservando el ledger). null = datos personales intactos.
+  anonymizedAt DateTime? @map("anonymized_at")
+
   lastLoginAt DateTime? @map("last_login_at")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")

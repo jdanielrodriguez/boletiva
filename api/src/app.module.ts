@@ -32,6 +32,7 @@ import { PaymentGatewaysModule } from './modules/payment-gateways/payment-gatewa
 import { CostShareModule } from './modules/cost-share/cost-share.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
 import { PromotersModule } from './modules/promoters/promoters.module';
+import { RetentionModule } from './modules/retention/retention.module';
 
 @Module({
   imports: [
@@ -89,6 +90,7 @@ import { PromotersModule } from './modules/promoters/promoters.module';
     CostShareModule,
     TicketsModule,
     PromotersModule,
+    RetentionModule,
   ],
   providers: [
     // Orden importa: autentica (JWT) → autoriza por rol → exige correo verificado.
