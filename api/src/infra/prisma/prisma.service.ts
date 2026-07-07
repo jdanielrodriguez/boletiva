@@ -41,6 +41,12 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
        ON payment_gateways (is_platform_default)
        WHERE is_platform_default = true`,
     );
+    // Solo puede haber UNA transferencia pendiente por boleto a la vez.
+    await this.$executeRawUnsafe(
+      `CREATE UNIQUE INDEX IF NOT EXISTS ticket_transfers_one_pending
+       ON ticket_transfers (ticket_id)
+       WHERE status = 'pending'`,
+    );
   }
 
   async onModuleDestroy(): Promise<void> {

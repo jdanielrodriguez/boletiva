@@ -110,6 +110,22 @@ enum TicketStatus {
   revoked // invalidado (reembolso/contracargo)
 }
 
+/// Tipo de movimiento en la cadena de custodia de un boleto (Ola 5).
+enum TicketEventType {
+  issued // emisión inicial
+  transferred // regalo interno a otro dueño (re-emisión)
+  checked_in // validado en puerta
+  revoked // invalidado (reembolso/contracargo)
+}
+
+/// Estado de una transferencia (regalo) de boleto (Ola 5).
+enum TransferStatus {
+  pending // iniciada por el remitente; espera que el destinatario canjee el código
+  claimed // canjeada (boleto re-emitido al destinatario)
+  cancelled // cancelada por el remitente
+  expired // venció sin canjearse
+}
+
 /// Estado de autorización de un usuario como promotor (Ola 4). Cualquier usuario
 /// puede solicitar; un admin autoriza antes de que pueda operar. El "modo pruebas"
 /// (setting `promoters.require_approval` = false) auto-aprueba al solicitar.
@@ -329,6 +345,10 @@ model Event {
   gatewayId       String?  @map("gateway_id") @db.Uuid
   frozenGatewayId String?  @map("frozen_gateway_id") @db.Uuid
   ivaOnNet        Boolean  @default(true) @map("iva_on_net")
+
+  // Máximo de transferencias (regalo) por boleto (Ola 5). null = usa el default
+  // global (setting `transfer.max_per_ticket_default`).
+  maxTransfers Int? @map("max_transfers")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -699,21 +719,87 @@ model Ticket {
   pdfKey       String?   @map("pdf_key")
   mediaReadyAt DateTime? @map("media_ready_at")
 
+  // Transferencias (regalo interno, Ola 5): nº de veces ya transferido.
+  transferCount Int @default(0) @map("transfer_count")
+
   usedAt    DateTime? @map("used_at")
   revokedAt DateTime? @map("revoked_at")
   issuedAt  DateTime  @default(now()) @map("issued_at")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 
-  order     Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
-  event     Event     @relation(fields: [eventId], references: [id])
-  owner     User      @relation("TicketOwner", fields: [ownerId], references: [id])
-  seat      Seat?     @relation(fields: [seatId], references: [id])
+  order     Order                @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderItem OrderItem            @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  event     Event                @relation(fields: [eventId], references: [id])
+  owner     User                 @relation("TicketOwner", fields: [ownerId], references: [id])
+  seat      Seat?                @relation(fields: [seatId], references: [id])
+  custody   TicketCustodyEvent[]
+  transfers TicketTransfer[]
 
   @@index([ownerId])
   @@index([eventId])
   @@index([orderId])
   @@index([status])
   @@map("tickets")
+}
+
+/// Cadena de custodia de un boleto (Ola 5): bitácora append-only encadenada por
+/// hash (blockchain) de cada movimiento (emisión→transferencia→check-in→revocación).
+/// Huella inborrable; `seq` da el orden dentro del boleto y `prevHash` enlaza.
+model TicketCustodyEvent {
+  id          String          @id @default(uuid()) @db.Uuid
+  ticketId    String          @map("ticket_id") @db.Uuid
+  seq         Int // orden dentro del boleto (1..n)
+  type        TicketEventType
+  fromOwnerId String?         @map("from_owner_id") @db.Uuid
+  toOwnerId   String?         @map("to_owner_id") @db.Uuid
+  actorId     String?         @map("actor_id") @db.Uuid // quién ejecutó el movimiento
+  prevHash    String          @map("prev_hash") // hash del evento anterior del boleto ('' en génesis)
+  hash        String          @unique // sha256(prevHash + ticketId + seq + type + from + to + createdAt)
+  meta        Json?
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@unique([ticketId, seq])
+  @@index([ticketId])
+  @@map("ticket_custody_events")
+}
+
+/// Transferencia (regalo interno) de un boleto (Ola 5). Handshake de doble
+/// confirmación: el remitente inicia y recibe un código (guardado hasheado); el
+/// destinatario verificado lo canjea. Solo puede haber UNA pendiente por boleto
+/// (índice parcial `ticket_transfers_one_pending`).
+model TicketTransfer {
+  id          String         @id @default(uuid()) @db.Uuid
+  ticketId    String         @map("ticket_id") @db.Uuid
+  senderId    String         @map("sender_id") @db.Uuid
+  recipientId String?        @map("recipient_id") @db.Uuid
+  codeHash    String         @map("code_hash") // sha256 del código común
+  status      TransferStatus @default(pending)
+  expiresAt   DateTime       @map("expires_at")
+  claimedAt   DateTime?      @map("claimed_at")
+  createdAt   DateTime       @default(now()) @map("created_at")
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@index([codeHash])
+  @@map("ticket_transfers")
+}
+
+/// Bitácora de sincronización para validadores offline (Ola 5, modelo SafeTix).
+/// Cada emisión/transferencia/check-in/revocación agrega una entrada; el
+/// dispositivo de puerta hace pull incremental (`seq` global monótono) y aplica
+/// el último estado por boleto. El secreto TOTP NO se guarda aquí (se sirve
+/// descifrado al armar el manifiesto, sobre TLS y solo a operadores de puerta).
+model TicketSyncEntry {
+  seq       BigInt          @id @default(autoincrement())
+  eventId   String          @map("event_id") @db.Uuid
+  ticketId  String          @map("ticket_id") @db.Uuid
+  reason    TicketEventType
+  createdAt DateTime        @default(now()) @map("created_at")
+
+  @@index([eventId, seq])
+  @@map("ticket_sync_entries")
 }

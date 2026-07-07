@@ -10,6 +10,7 @@ import { AuthUser } from '../../common/decorators/current-user.decorator';
 import { randomToken } from '../../common/utils/crypto';
 import { TicketSigningService } from './ticket-signing.service';
 import { TicketCryptoService, TicketIdentity } from './ticket-crypto.service';
+import { TicketCustodyService } from './ticket-custody.service';
 
 export type VerifyResult =
   | {
@@ -39,6 +40,7 @@ export class TicketsService implements OnModuleInit {
     private readonly encryption: EncryptionService,
     private readonly storage: StorageService,
     private readonly queue: QueueService,
+    private readonly custody: TicketCustodyService,
   ) {}
 
   onModuleInit(): void {
@@ -112,6 +114,13 @@ export class TicketsService implements OnModuleInit {
           },
         });
         createdIds.push(ticketId);
+        // Génesis de la cadena de custodia del boleto.
+        await this.custody.record({
+          ticketId,
+          type: 'issued',
+          toOwnerId: order.buyerId,
+          actorId: order.buyerId,
+        });
       } catch (e) {
         // Carrera: otro worker emitió el mismo ítem primero (orderItemId único).
         if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') continue;
@@ -204,7 +213,7 @@ export class TicketsService implements OnModuleInit {
    * estado. Si `checkIn`, marca el boleto como usado de forma atómica (una única
    * entrada por boleto, a prueba de doble check-in concurrente).
    */
-  async verify(payload: string, checkIn = true): Promise<VerifyResult> {
+  async verify(payload: string, checkIn = true, actorId?: string): Promise<VerifyResult> {
     const parsed = this.crypto.parseQr(payload);
     if (!parsed) return { valid: false, reason: 'malformed' };
 
@@ -252,6 +261,12 @@ export class TicketsService implements OnModuleInit {
         return { valid: false, reason: 'already_used', serial: ticket.serial };
       }
       checkedIn = true;
+      // Solo el que ganó el check-in registra el movimiento en la cadena.
+      await this.custody.record({
+        ticketId: ticket.id,
+        type: 'checked_in',
+        actorId: actorId ?? null,
+      });
     }
 
     return {
@@ -269,11 +284,30 @@ export class TicketsService implements OnModuleInit {
    * Idempotente. La propagación a validadores offline se hace en la Ola 5.
    */
   async revokeByOrder(orderId: string): Promise<{ revoked: number }> {
-    const res = await this.prisma.ticket.updateMany({
+    // Capturar los boletos afectados ANTES de actualizarlos (para su cadena).
+    const affected = await this.prisma.ticket.findMany({
       where: { orderId, status: { in: [TicketStatus.valid, TicketStatus.used] } },
+      select: { id: true, ownerId: true },
+    });
+    if (affected.length === 0) return { revoked: 0 };
+    await this.prisma.ticket.updateMany({
+      where: { id: { in: affected.map((t) => t.id) } },
       data: { status: TicketStatus.revoked, revokedAt: new Date() },
     });
-    return { revoked: res.count };
+    for (const t of affected) {
+      await this.custody.record({ ticketId: t.id, type: 'revoked', fromOwnerId: t.ownerId });
+    }
+    return { revoked: affected.length };
+  }
+
+  /** Cadena de custodia de un boleto (dueño/admin) + verificación de integridad. */
+  async custodyChain(id: string, user: AuthUser) {
+    await this.getOwnedTicket(id, user);
+    const [events, integrity] = await Promise.all([
+      this.custody.chain(id),
+      this.custody.verifyChain(id),
+    ]);
+    return { integrity, events };
   }
 
   private toSummary(t: {

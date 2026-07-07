@@ -26,8 +26,8 @@ export class TicketsController {
   @Roles(Role.gate_operator, Role.admin)
   @HttpCode(200)
   @ApiOperation({ summary: 'Valida un QR en puerta (operador) — check-in dinámico' })
-  verify(@Body() dto: VerifyTicketDto) {
-    return this.tickets.verify(dto.payload, dto.checkIn ?? true);
+  verify(@Body() dto: VerifyTicketDto, @CurrentUser('userId') userId: string) {
+    return this.tickets.verify(dto.payload, dto.checkIn ?? true, userId);
   }
 
   @Get(':id')
@@ -46,6 +46,12 @@ export class TicketsController {
   @ApiOperation({ summary: 'URLs firmadas del QR PNG y el PDF (dueño)' })
   media(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
     return this.tickets.mediaUrls(id, user);
+  }
+
+  @Get(':id/custody')
+  @ApiOperation({ summary: 'Cadena de custodia del boleto (dueño/admin) + integridad' })
+  custody(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
+    return this.tickets.custodyChain(id, user);
   }
 
   @Post(':id/wallet')

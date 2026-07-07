@@ -5,6 +5,7 @@ import { TicketsController } from './tickets.controller';
 import { TicketsService } from './tickets.service';
 import { TicketSigningService } from './ticket-signing.service';
 import { TicketCryptoService } from './ticket-crypto.service';
+import { TicketCustodyService } from './ticket-custody.service';
 import { TicketMediaService } from './ticket-media.service';
 import { TicketMailService } from './ticket-mail.service';
 import { WalletPassService } from './wallet/wallet-pass.service';
@@ -22,6 +23,7 @@ import { StubWalletProvider } from './wallet/stub-wallet.provider';
     TicketsService,
     TicketSigningService,
     TicketCryptoService,
+    TicketCustodyService,
     TicketMediaService,
     TicketMailService,
     WalletPassService,
