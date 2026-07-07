@@ -19,3 +19,10 @@ export class CreateWalletPassDto {
   @IsIn(['google', 'apple'])
   platform!: WalletPlatform;
 }
+
+export class ClaimTransferDto {
+  @ApiProperty({ description: 'Código de transferencia compartido por el remitente' })
+  @IsString()
+  @MaxLength(40)
+  code!: string;
+}

@@ -8,6 +8,8 @@ import { TicketCryptoService } from './ticket-crypto.service';
 import { TicketCustodyService } from './ticket-custody.service';
 import { TicketMediaService } from './ticket-media.service';
 import { TicketMailService } from './ticket-mail.service';
+import { TicketTransferService } from './ticket-transfer.service';
+import { TicketTransfersController } from './ticket-transfers.controller';
 import { WalletPassService } from './wallet/wallet-pass.service';
 import { WALLET_PROVIDER } from './wallet/wallet-provider';
 import { StubWalletProvider } from './wallet/stub-wallet.provider';
@@ -18,7 +20,7 @@ import { StubWalletProvider } from './wallet/stub-wallet.provider';
  * Exporta TicketsService para que Payments revoque boletos en reembolsos/contracargos.
  */
 @Module({
-  controllers: [TicketsController],
+  controllers: [TicketsController, TicketTransfersController],
   providers: [
     TicketsService,
     TicketSigningService,
@@ -26,6 +28,7 @@ import { StubWalletProvider } from './wallet/stub-wallet.provider';
     TicketCustodyService,
     TicketMediaService,
     TicketMailService,
+    TicketTransferService,
     WalletPassService,
     // Proveedor de wallet elegido por config (hoy solo 'stub'; Google/Apple detrás
     // del mismo puerto cuando haya certificados/credenciales).

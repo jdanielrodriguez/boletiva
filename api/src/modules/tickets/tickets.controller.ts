@@ -2,9 +2,11 @@ import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post } from '@ne
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { RequireVerifiedEmail } from '../../common/decorators/verified-email.decorator';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user.decorator';
 import { TicketsService } from './tickets.service';
 import { WalletPassService } from './wallet/wallet-pass.service';
+import { TicketTransferService } from './ticket-transfer.service';
 import { CreateWalletPassDto, VerifyTicketDto } from './dto/tickets.dto';
 
 @ApiTags('tickets')
@@ -14,6 +16,7 @@ export class TicketsController {
   constructor(
     private readonly tickets: TicketsService,
     private readonly walletPass: WalletPassService,
+    private readonly transfers: TicketTransferService,
   ) {}
 
   @Get()
@@ -52,6 +55,14 @@ export class TicketsController {
   @ApiOperation({ summary: 'Cadena de custodia del boleto (dueño/admin) + integridad' })
   custody(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
     return this.tickets.custodyChain(id, user);
+  }
+
+  @Post(':id/transfer')
+  @RequireVerifiedEmail()
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Inicia la transferencia (regalo) del boleto → devuelve el código (dueño)' })
+  transfer(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('userId') userId: string) {
+    return this.transfers.initiate(id, userId);
   }
 
   @Post(':id/wallet')
