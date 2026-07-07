@@ -51,6 +51,13 @@ export class CategoriesService {
 
   async remove(id: string) {
     await this.getById(id);
+    // Event.category es onDelete:SetNull, así que borrar NO dispararía una
+    // violación de FK; verificamos explícitamente para hacer valer la regla de
+    // negocio de no borrar una categoría en uso.
+    const inUse = await this.prisma.event.count({ where: { categoryId: id } });
+    if (inUse > 0) {
+      throw new ConflictException('La categoría tiene eventos asociados');
+    }
     try {
       await this.prisma.category.delete({ where: { id } });
     } catch (err) {

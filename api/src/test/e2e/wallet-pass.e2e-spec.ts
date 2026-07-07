@@ -53,7 +53,7 @@ describe('Pases de wallet (e2e)', () => {
       data: { eventId, name: 'WLoc', slug: 'wloc', kind: 'seated', desiredNet: 100 },
     });
     await prisma.seat.createMany({
-      data: Array.from({ length: 6 }, (_, i) => ({ localityId: loc.id, label: `W${i + 1}` })),
+      data: Array.from({ length: 12 }, (_, i) => ({ localityId: loc.id, label: `W${i + 1}` })),
     });
     const seats = await prisma.seat.findMany({ where: { localityId: loc.id } });
     seatIds = seats.sort((a, b) => Number(a.label.slice(1)) - Number(b.label.slice(1))).map((s) => s.id);
@@ -199,5 +199,60 @@ describe('Pases de wallet (e2e)', () => {
       2,
     );
     expect((await ledger.verifyChain()).ok).toBe(true);
+  });
+
+  it("Banker's rounding en el reparto: fee 0.15 al 50% → 0.08 / 0.07 (residuo a plataforma)", async () => {
+    // Estado determinista del reparto.
+    await prisma.setting.upsert({
+      where: { key: 'costshare.default_pct' },
+      update: { value: 0.5 },
+      create: { key: 'costshare.default_pct', value: 0.5, description: 'test' },
+    });
+    await prisma.user.update({ where: { id: promoterId }, data: { costSharePct: null } });
+    await prisma.setting.update({ where: { key: 'wallet.pass_fee' }, data: { value: 0.15 } });
+
+    const id = await buyAndGetTicket(6);
+    const res = await http()
+      .post(`/api/v1/tickets/${id}/wallet`)
+      .set(bearer(buyerToken))
+      .send({ platform: 'google' })
+      .expect(200);
+    // 0.15 * 0.5 = 0.075 → ROUND_HALF_EVEN a 2 dec = 0.08; plataforma absorbe el residuo = 0.07.
+    expect(res.body.feeApplied).toBe('0.15');
+    expect(res.body.costShare.promoterShare).toBe('0.08');
+    expect(res.body.costShare.platformShare).toBe('0.07');
+    expect((await ledger.verifyChain()).ok).toBe(true);
+  });
+
+  it('setting wallet.pass_fee inválido (no numérico / negativo) → no aplica cargo', async () => {
+    await prisma.setting.update({ where: { key: 'wallet.pass_fee' }, data: { value: 'abc' } });
+    const id1 = await buyAndGetTicket(7);
+    const r1 = await http()
+      .post(`/api/v1/tickets/${id1}/wallet`)
+      .set(bearer(buyerToken))
+      .send({ platform: 'google' })
+      .expect(200);
+    expect(r1.body.feeApplied).toBe('0.00');
+    expect(r1.body.costShare).toBeNull();
+
+    await prisma.setting.update({ where: { key: 'wallet.pass_fee' }, data: { value: -5 } });
+    const id2 = await buyAndGetTicket(8);
+    const r2 = await http()
+      .post(`/api/v1/tickets/${id2}/wallet`)
+      .set(bearer(buyerToken))
+      .send({ platform: 'google' })
+      .expect(200);
+    expect(r2.body.feeApplied).toBe('0.00');
+    expect(r2.body.costShare).toBeNull();
+  });
+
+  it('boleto transferido no puede pasar a wallet → 400', async () => {
+    const id = await buyAndGetTicket(9);
+    await prisma.ticket.update({ where: { id }, data: { status: 'transferred' } });
+    await http()
+      .post(`/api/v1/tickets/${id}/wallet`)
+      .set(bearer(buyerToken))
+      .send({ platform: 'apple' })
+      .expect(400);
   });
 });

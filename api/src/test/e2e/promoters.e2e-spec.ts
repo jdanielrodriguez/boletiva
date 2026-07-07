@@ -182,4 +182,86 @@ describe('Autorización de promotores (e2e)', () => {
       .send({ email, password: 'Password123', firstName: 'U' });
     await http().post('/api/v1/promoters/apply').set(bearer(res.body.tokens.accessToken)).expect(403);
   });
+
+  // ---- Cobertura adicional (análisis QA) ----
+
+  it('approve/reject/suspend sobre id inexistente → 404', async () => {
+    const ghost = '00000000-0000-0000-0000-000000000000';
+    await http().post(`/api/v1/promoters/${ghost}/approve`).set(bearer(adminToken)).expect(404);
+    await http().post(`/api/v1/promoters/${ghost}/reject`).set(bearer(adminToken)).send({}).expect(404);
+    await http().post(`/api/v1/promoters/${ghost}/suspend`).set(bearer(adminToken)).send({}).expect(404);
+  });
+
+  it('GET /promoters con status inválido → 400', async () => {
+    await http().get('/api/v1/promoters?status=inventado').set(bearer(adminToken)).expect(400);
+  });
+
+  it('apply es idempotente: doble apply sigue pending; estando approved no cambia', async () => {
+    const u = await newVerifiedUser('idem');
+    const token = await loginTrusted(u.email, 'promo-idem');
+    const a1 = await http().post('/api/v1/promoters/apply').set(bearer(token)).expect(200);
+    const a2 = await http().post('/api/v1/promoters/apply').set(bearer(token)).expect(200);
+    expect(a1.body.promoterStatus).toBe('pending');
+    expect(a2.body.promoterStatus).toBe('pending');
+    expect(a2.body.promoterAppliedAt).toBe(a1.body.promoterAppliedAt); // conserva la fecha
+
+    await http().post(`/api/v1/promoters/${u.id}/approve`).set(bearer(adminToken)).expect(200);
+    const a3 = await http().post('/api/v1/promoters/apply').set(bearer(token)).expect(200);
+    expect(a3.body.promoterStatus).toBe('approved'); // early-return, sin cambios
+  });
+
+  it('tras un rechazo, volver a solicitar regresa a pending (resetea el motivo)', async () => {
+    const u = await newVerifiedUser('reapply');
+    const token = await loginTrusted(u.email, 'promo-reapply');
+    await http().post('/api/v1/promoters/apply').set(bearer(token)).expect(200);
+    await http().post(`/api/v1/promoters/${u.id}/reject`).set(bearer(adminToken)).send({ note: 'x' }).expect(200);
+    const re = await http().post('/api/v1/promoters/apply').set(bearer(token)).expect(200);
+    expect(re.body).toMatchObject({ promoterStatus: 'pending', promoterNote: null });
+  });
+
+  it('un admin puede crear y publicar eventos sin ser promotor (bypass)', async () => {
+    const created = await http()
+      .post('/api/v1/events')
+      .set(bearer(adminToken))
+      .send(newEventBody())
+      .expect(201);
+    await prisma.locality.create({
+      data: { eventId: created.body.id, name: 'GA', slug: 'ga', kind: 'general', capacity: 10 },
+    });
+    await http().post(`/api/v1/events/${created.body.id}/publish`).set(bearer(adminToken)).expect(200);
+  });
+
+  it('require_approval por defecto es true cuando el setting no existe', async () => {
+    await prisma.setting.deleteMany({ where: { key: 'promoters.require_approval' } });
+    const u = await newVerifiedUser('nosetting');
+    const token = await loginTrusted(u.email, 'promo-nosetting');
+    const applied = await http().post('/api/v1/promoters/apply').set(bearer(token)).expect(200);
+    expect(applied.body.promoterStatus).toBe('pending'); // default seguro = exige aprobación
+    const me = await http().get('/api/v1/promoters/me').set(bearer(token)).expect(200);
+    expect(me.body.requireApproval).toBe(true);
+    await ensureRequireApproval(true); // restaurar
+  });
+
+  it('RBAC: reject/suspend también rechazan a no-admin (403); sin token → 401', async () => {
+    const u = await newVerifiedUser('rbac2');
+    const token = await loginTrusted(u.email, 'promo-rbac2');
+    await http().post(`/api/v1/promoters/${u.id}/reject`).set(bearer(token)).send({}).expect(403);
+    await http().post(`/api/v1/promoters/${u.id}/suspend`).set(bearer(token)).send({}).expect(403);
+    await http().post('/api/v1/promoters/apply').expect(401);
+    await http().get('/api/v1/promoters/me').expect(401);
+  });
+
+  it('validación: settings no booleano → 400; note >500 chars → 400', async () => {
+    const u = await newVerifiedUser('val');
+    await http()
+      .patch('/api/v1/promoters/settings')
+      .set(bearer(adminToken))
+      .send({ requireApproval: 'sí' })
+      .expect(400);
+    await http()
+      .post(`/api/v1/promoters/${u.id}/reject`)
+      .set(bearer(adminToken))
+      .send({ note: 'x'.repeat(501) })
+      .expect(400);
+  });
 });

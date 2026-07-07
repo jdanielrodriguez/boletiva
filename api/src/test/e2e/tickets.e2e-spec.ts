@@ -26,6 +26,7 @@ describe('Boletos: emisión + media + validación (e2e)', () => {
   let buyerToken: string;
   let buyerBToken: string;
   let operatorToken: string;
+  let adminToken: string;
   let eventId: string;
   let seatIds: string[];
   let evStamp: number;
@@ -53,7 +54,7 @@ describe('Boletos: emisión + media + validación (e2e)', () => {
       data: { eventId, name: 'TKT Loc', slug: 'tkt-loc', kind: 'seated', desiredNet: 100 },
     });
     await prisma.seat.createMany({
-      data: Array.from({ length: 10 }, (_, i) => ({ localityId: loc.id, label: `T${i + 1}` })),
+      data: Array.from({ length: 16 }, (_, i) => ({ localityId: loc.id, label: `T${i + 1}` })),
     });
     const seats = await prisma.seat.findMany({ where: { localityId: loc.id } });
     seatIds = seats
@@ -79,6 +80,7 @@ describe('Boletos: emisión + media + validación (e2e)', () => {
       data: { emailVerifiedAt: new Date(), roles: ['gate_operator'] },
     });
     operatorToken = await loginTrusted(emailOp, 'tkt-devOp');
+    adminToken = await loginTrusted(SEED.admin, 'tkt-devAdmin');
   });
 
   async function loginTrusted(rawEmail: string, deviceId: string): Promise<string> {
@@ -277,5 +279,141 @@ describe('Boletos: emisión + media + validación (e2e)', () => {
       .send({ payload: qr.body.payload, checkIn: false })
       .expect(200);
     expect(res.body).toMatchObject({ valid: false, reason: 'revoked' });
+  });
+
+  // ---- Cobertura adicional (análisis QA) ----
+
+  it('verify: QR con formato válido pero serial inexistente → not_found', async () => {
+    const res = await http()
+      .post('/api/v1/tickets/verify')
+      .set(bearer(operatorToken))
+      .send({ payload: 'PE1.PENOEXISTE.123456', checkIn: false })
+      .expect(200);
+    expect(res.body).toMatchObject({ valid: false, reason: 'not_found' });
+  });
+
+  it('verify: boleto transferido → transferred (no valida en puerta)', async () => {
+    const { orderId } = await buyAndPay(5);
+    const ticket = await prisma.ticket.findFirstOrThrow({ where: { orderId } });
+    const qr = await http().get(`/api/v1/tickets/${ticket.id}/qr`).set(bearer(buyerToken)).expect(200);
+    await prisma.ticket.update({ where: { id: ticket.id }, data: { status: 'transferred' } });
+    const res = await http()
+      .post('/api/v1/tickets/verify')
+      .set(bearer(operatorToken))
+      .send({ payload: qr.body.payload, checkIn: false })
+      .expect(200);
+    expect(res.body).toMatchObject({ valid: false, reason: 'transferred' });
+  });
+
+  it('verify checkIn:false sobre boleto válido → valid sin marcar usado', async () => {
+    const { orderId } = await buyAndPay(6);
+    const ticket = await prisma.ticket.findFirstOrThrow({ where: { orderId } });
+    const qr = await http().get(`/api/v1/tickets/${ticket.id}/qr`).set(bearer(buyerToken)).expect(200);
+    const res = await http()
+      .post('/api/v1/tickets/verify')
+      .set(bearer(operatorToken))
+      .send({ payload: qr.body.payload, checkIn: false })
+      .expect(200);
+    expect(res.body).toMatchObject({ valid: true, checkedIn: false });
+    const after = await prisma.ticket.findUniqueOrThrow({ where: { id: ticket.id } });
+    expect(after.status).toBe('valid'); // no se consumió
+  });
+
+  it('check-in CONCURRENTE del mismo QR: exactamente uno entra (anti doble-entrada)', async () => {
+    const { orderId } = await buyAndPay(7);
+    const ticket = await prisma.ticket.findFirstOrThrow({ where: { orderId } });
+    const qr = await http().get(`/api/v1/tickets/${ticket.id}/qr`).set(bearer(buyerToken)).expect(200);
+    const scan = () =>
+      http().post('/api/v1/tickets/verify').set(bearer(operatorToken)).send({ payload: qr.body.payload });
+    const [a, b] = await Promise.all([scan(), scan()]);
+    const results = [a.body, b.body];
+    expect(results.filter((r) => r.valid && r.checkedIn)).toHaveLength(1);
+    expect(results.filter((r) => !r.valid && r.reason === 'already_used')).toHaveLength(1);
+  });
+
+  it('emite N boletos para una orden de varios asientos (1 correo)', async () => {
+    const created = await http()
+      .post(`/api/v1/events/${eventId}/orders`)
+      .set(bearer(buyerToken))
+      .send({ seatIds: [seatIds[8], seatIds[9]] })
+      .expect(201);
+    const orderId = created.body.id;
+    const p = await http().post(`/api/v1/orders/${orderId}/pay`).set(bearer(buyerToken)).expect(201);
+    const evt = `evt_multi_${evStamp}`;
+    await http()
+      .post('/api/v1/payments/webhook')
+      .set('x-webhook-signature', sign(evt, 'payment.succeeded', p.body.providerRef))
+      .send({ id: evt, type: 'payment.succeeded', providerRef: p.body.providerRef })
+      .expect(200);
+    expect(await prisma.ticket.count({ where: { orderId } })).toBe(2);
+  });
+
+  it('issue no emite boletos si la orden no está pagada ni si no existe', async () => {
+    // Orden pendiente (checkout sin pagar).
+    const created = await http()
+      .post(`/api/v1/events/${eventId}/orders`)
+      .set(bearer(buyerToken))
+      .send({ seatIds: [seatIds[10]] })
+      .expect(201);
+    expect((await ticketsSvc.issue(created.body.id)).issued).toBe(0);
+    expect(await prisma.ticket.count({ where: { orderId: created.body.id } })).toBe(0);
+    // Orden inexistente.
+    expect((await ticketsSvc.issue('00000000-0000-0000-0000-000000000000')).issued).toBe(0);
+  });
+
+  it('revokeByOrder es idempotente y revoca también boletos usados', async () => {
+    const { orderId } = await buyAndPay(11);
+    const ticket = await prisma.ticket.findFirstOrThrow({ where: { orderId } });
+    const qr = await http().get(`/api/v1/tickets/${ticket.id}/qr`).set(bearer(buyerToken)).expect(200);
+    await http()
+      .post('/api/v1/tickets/verify')
+      .set(bearer(operatorToken))
+      .send({ payload: qr.body.payload })
+      .expect(200); // queda 'used'
+    expect((await ticketsSvc.revokeByOrder(orderId)).revoked).toBe(1); // used → revoked
+    expect((await ticketsSvc.revokeByOrder(orderId)).revoked).toBe(0); // idempotente
+    expect((await prisma.ticket.findUniqueOrThrow({ where: { id: ticket.id } })).status).toBe('revoked');
+  });
+
+  it('GET /tickets/:id/media → 409 mientras la media se genera', async () => {
+    const { orderId } = await buyAndPay(12);
+    const ticket = await prisma.ticket.findFirstOrThrow({ where: { orderId } });
+    await prisma.ticket.update({
+      where: { id: ticket.id },
+      data: { mediaReadyAt: null, pdfKey: null, qrKey: null },
+    });
+    await http().get(`/api/v1/tickets/${ticket.id}/media`).set(bearer(buyerToken)).expect(409);
+  });
+
+  it('IDOR: qr y media de un boleto ajeno → 404 (no filtra secreto ni URLs)', async () => {
+    const { orderId } = await buyAndPay(13);
+    const ticket = await prisma.ticket.findFirstOrThrow({ where: { orderId } });
+    await http().get(`/api/v1/tickets/${ticket.id}/qr`).set(bearer(buyerBToken)).expect(404);
+    await http().get(`/api/v1/tickets/${ticket.id}/media`).set(bearer(buyerBToken)).expect(404);
+  });
+
+  it('un admin puede ver el detalle de un boleto ajeno (escalada legítima)', async () => {
+    const ticket = await prisma.ticket.findFirstOrThrow({ where: { eventId } });
+    const res = await http().get(`/api/v1/tickets/${ticket.id}`).set(bearer(adminToken)).expect(200);
+    expect(res.body.id).toBe(ticket.id);
+  });
+
+  it('sin token → 401 en los endpoints de dueño y en wallet', async () => {
+    const ticket = await prisma.ticket.findFirstOrThrow({ where: { eventId } });
+    await http().get('/api/v1/tickets').expect(401);
+    await http().get(`/api/v1/tickets/${ticket.id}`).expect(401);
+    await http().get(`/api/v1/tickets/${ticket.id}/qr`).expect(401);
+    await http().get(`/api/v1/tickets/${ticket.id}/media`).expect(401);
+    await http().post(`/api/v1/tickets/${ticket.id}/wallet`).send({ platform: 'google' }).expect(401);
+  });
+
+  it('validación: :id no-UUID → 400; verify con payload inválido → 400', async () => {
+    await http().get('/api/v1/tickets/no-es-uuid').set(bearer(buyerToken)).expect(400);
+    await http().post('/api/v1/tickets/verify').set(bearer(operatorToken)).send({}).expect(400);
+    await http()
+      .post('/api/v1/tickets/verify')
+      .set(bearer(operatorToken))
+      .send({ payload: 'x', checkIn: 'no-bool' })
+      .expect(400);
   });
 });
