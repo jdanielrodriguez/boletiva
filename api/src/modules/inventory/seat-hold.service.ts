@@ -1,4 +1,9 @@
-import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { RedisService } from '../../infra/redis/redis.service';
@@ -19,6 +24,31 @@ for i, k in ipairs(KEYS) do
   redis.call('SET', k, ARGV[1], 'EX', ARGV[2])
 end
 return 0
+`;
+
+// Admisión general (GA): reserva ATÓMICA de N cupos de entre una lista de
+// candidatos disponibles. Recorre las llaves candidatas y toma (SET NX EX) las
+// primeras que estén libres hasta reunir `quantity`; si no alcanza, revierte
+// lo que tomó (todos-o-nada) y devuelve vacío. Al ser un solo script Lua, corre
+// sin intercalarse con otros clientes → dos compradores nunca toman el mismo
+// cupo (el SET NX de Redis es la autoridad de la reserva, igual que en seated).
+// KEYS = llaves candidatas; ARGV[1]=holderId; ARGV[2]=ttl(s); ARGV[3]=quantity.
+// Devuelve los índices (1-based) de las llaves elegidas, o {} si no alcanzó.
+const HOLD_N_SCRIPT = `
+local need = tonumber(ARGV[3])
+local chosen = {}
+for i, k in ipairs(KEYS) do
+  if #chosen >= need then break end
+  if redis.call('EXISTS', k) == 0 then
+    redis.call('SET', k, ARGV[1], 'EX', ARGV[2])
+    chosen[#chosen + 1] = i
+  end
+end
+if #chosen < need then
+  for _, idx in ipairs(chosen) do redis.call('DEL', KEYS[idx]) end
+  return {}
+end
+return chosen
 `;
 
 // Libera solo las llaves cuyo valor coincide con el holder (no pisa holds ajenos).
@@ -109,6 +139,100 @@ export class SeatHoldService {
 
     return {
       seatIds: unique,
+      holderId,
+      ttlSeconds,
+      expiresAt: new Date(Date.now() + ttlSeconds * 1000).toISOString(),
+    };
+  }
+
+  /**
+   * Hold de admisión general (GA) POR CANTIDAD. El comprador no elige asientos:
+   * el servidor asigna `quantity` cupos de la localidad general. Como el aforo
+   * está materializado en filas `seats`, reutilizamos toda la maquinaria probada
+   * (Redis NX + el commit con FOR UPDATE) SIN fila caliente:
+   *  1) toma una lista acotada de candidatos `available` de la localidad;
+   *  2) los reserva atómicamente en Redis (SET NX, todos-o-nada) → devuelve los
+   *     seatIds concretos; el cliente los usa en el commit existente {seatIds}.
+   * Los asientos siguen `available` en BD hasta la venta (el hold es Redis+TTL),
+   * exactamente como en seated → el commit no cambia y el TTL auto-libera.
+   */
+  async holdByQuantity(
+    eventId: string,
+    localityId: string,
+    quantity: number,
+    holderId: string,
+    ttlSeconds = DEFAULT_HOLD_TTL,
+  ): Promise<HoldResult> {
+    return checkoutTracer().startActiveSpan('seat.hold', async (span) => {
+      span.setAttribute('event.id', eventId);
+      span.setAttribute('locality.id', localityId);
+      span.setAttribute('seat.count', quantity);
+      span.setAttribute('hold.mode', 'ga');
+      try {
+        const result = await this.runHoldByQuantity(
+          eventId,
+          localityId,
+          quantity,
+          holderId,
+          ttlSeconds,
+        );
+        span.setStatus({ code: SpanStatusCode.OK });
+        return result;
+      } catch (e) {
+        span.recordException(e as Error);
+        span.setStatus({ code: SpanStatusCode.ERROR, message: (e as Error).message });
+        throw e;
+      } finally {
+        span.end();
+      }
+    });
+  }
+
+  private async runHoldByQuantity(
+    eventId: string,
+    localityId: string,
+    quantity: number,
+    holderId: string,
+    ttlSeconds: number,
+  ): Promise<HoldResult> {
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      throw new BadRequestException('La cantidad debe ser un entero positivo');
+    }
+
+    const locality = await this.prisma.locality.findFirst({
+      where: { id: localityId, eventId },
+      select: { id: true, kind: true },
+    });
+    if (!locality) throw new NotFoundException('La localidad no existe o no pertenece al evento');
+    if (locality.kind !== 'general') {
+      throw new BadRequestException('Esta localidad es numerada: reserva por asiento, no por cantidad');
+    }
+
+    // Candidatos disponibles (acotado). Sobre-tomamos para tolerar cupos que ya
+    // estén reservados en Redis por otros compradores (el NX los descarta).
+    const cap = Math.min(quantity * 4 + 20, 2000);
+    const candidates = await this.prisma.seat.findMany({
+      where: { localityId, status: 'available' },
+      select: { id: true },
+      orderBy: { label: 'asc' },
+      take: cap,
+    });
+    if (candidates.length < quantity) {
+      throw new ConflictException('No hay suficientes cupos disponibles');
+    }
+
+    const keys = candidates.map((c) => this.key(eventId, c.id));
+    const chosen = (await this.redis
+      .getClient()
+      .eval(HOLD_N_SCRIPT, keys.length, ...keys, holderId, String(ttlSeconds), String(quantity))) as number[];
+    if (!Array.isArray(chosen) || chosen.length < quantity) {
+      // Los candidatos libres se agotaron por reservas concurrentes: reintentar.
+      throw new ConflictException('No hay suficientes cupos disponibles, reintenta en un momento');
+    }
+
+    const seatIds = chosen.map((idx) => candidates[idx - 1].id);
+    return {
+      seatIds,
       holderId,
       ttlSeconds,
       expiresAt: new Date(Date.now() + ttlSeconds * 1000).toISOString(),

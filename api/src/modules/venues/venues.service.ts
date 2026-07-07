@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { AuthUser } from '../../common/decorators/current-user.decorator';
@@ -32,16 +32,24 @@ export class VenuesService {
     await this.events.getManaged(eventId, user);
     const base = slugify(dto.name);
     const exists = await this.prisma.locality.findFirst({ where: { eventId, slug: base } });
-    return this.prisma.locality.create({
+    const kind = dto.kind ?? 'general';
+    const capacity = dto.capacity ?? 0;
+    const locality = await this.prisma.locality.create({
       data: {
         eventId,
         name: dto.name,
         slug: exists ? slugWithSuffix(dto.name, Date.now().toString(36).slice(-4)) : base,
-        kind: dto.kind ?? 'general',
-        capacity: dto.capacity ?? 0,
+        kind,
+        // En GA el aforo se materializa en filas (reconcile); parte de 0 y se ajusta.
+        capacity: kind === 'general' ? 0 : capacity,
         desiredNet: dto.desiredNet,
       },
     });
+    if (kind === 'general' && capacity > 0) {
+      await this.reconcileGaSeats(locality.id, capacity);
+      return this.prisma.locality.findUniqueOrThrow({ where: { id: locality.id } });
+    }
+    return locality;
   }
 
   private async getLocalityManaged(localityId: string, user: AuthUser) {
@@ -52,16 +60,73 @@ export class VenuesService {
   }
 
   async updateLocality(localityId: string, dto: UpdateLocalityDto, user: AuthUser) {
-    await this.getLocalityManaged(localityId, user);
-    return this.prisma.locality.update({
+    const current = await this.getLocalityManaged(localityId, user);
+    const nextKind = dto.kind ?? current.kind;
+    const isGa = nextKind === 'general';
+    const updated = await this.prisma.locality.update({
       where: { id: localityId },
       data: {
         name: dto.name,
         kind: dto.kind,
-        capacity: dto.capacity,
+        // El aforo de GA lo gobierna reconcile (materializa filas); no se setea aquí.
+        capacity: isGa ? undefined : dto.capacity,
         desiredNet: dto.desiredNet,
       },
     });
+    if (isGa && dto.capacity !== undefined) {
+      await this.reconcileGaSeats(localityId, dto.capacity);
+      return this.prisma.locality.findUniqueOrThrow({ where: { id: localityId } });
+    }
+    return updated;
+  }
+
+  /**
+   * Materializa el aforo de una localidad GENERAL como filas `seats` reales
+   * (`GA-0000001`…), para reutilizar el anti-doble-venta probado (FOR UPDATE +
+   * índice parcial) sin fila caliente. Idempotente: ajusta la cantidad de filas
+   * al `target`. Al reducir, solo elimina filas `available` (nunca vendidas);
+   * si no hay suficientes libres → 409 (no bajar el aforo bajo lo ya vendido).
+   * `capacity` de la localidad queda == nº de filas materializadas (== target).
+   */
+  private async reconcileGaSeats(localityId: string, target: number) {
+    const current = await this.prisma.seat.count({ where: { localityId } });
+    if (target > current) {
+      const last = await this.prisma.seat.findFirst({
+        where: { localityId, label: { startsWith: 'GA-' } },
+        orderBy: { label: 'desc' },
+        select: { label: true },
+      });
+      let next = last ? parseInt(last.label.slice(3), 10) + 1 : 1;
+      const toAdd = target - current;
+      // Por lotes: aforos grandes (hasta 1M) no caben en un solo INSERT cómodo.
+      const CHUNK = 10_000;
+      for (let done = 0; done < toAdd; done += CHUNK) {
+        const size = Math.min(CHUNK, toAdd - done);
+        const data = Array.from({ length: size }, (_, i) => ({
+          localityId,
+          label: `GA-${String(next + i).padStart(7, '0')}`,
+          section: 'GA',
+        }));
+        await this.prisma.seat.createMany({ data, skipDuplicates: true });
+        next += size;
+      }
+    } else if (target < current) {
+      const surplus = current - target;
+      // Solo se pueden liberar cupos aún disponibles (no vendidos/reservados).
+      const removable = await this.prisma.seat.findMany({
+        where: { localityId, status: 'available' },
+        select: { id: true },
+        orderBy: { label: 'desc' }, // quita primero los de mayor número
+        take: surplus,
+      });
+      if (removable.length < surplus) {
+        throw new ConflictException(
+          'No puedes reducir el aforo por debajo de los boletos ya vendidos',
+        );
+      }
+      await this.prisma.seat.deleteMany({ where: { id: { in: removable.map((r) => r.id) } } });
+    }
+    await this.prisma.locality.update({ where: { id: localityId }, data: { capacity: target } });
   }
 
   async removeLocality(localityId: string, user: AuthUser) {
