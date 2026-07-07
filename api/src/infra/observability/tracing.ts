@@ -2,7 +2,8 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { PrismaInstrumentation } from '@prisma/instrumentation';
-import { trace } from '@opentelemetry/api';
+import { trace, SpanStatusCode } from '@opentelemetry/api';
+import type { Span, AttributeValue } from '@opentelemetry/api';
 
 /**
  * Inicialización de OpenTelemetry. Debe ejecutarse ANTES de cargar Nest/Express/
@@ -52,8 +53,34 @@ export function startTracing(): void {
   }
 }
 
-/** Tracer del dominio de compra (no-op si OTel está desactivado). */
+/** Tracer del dominio (no-op si OTel está desactivado). */
 export const checkoutTracer = () => trace.getTracer(TRACER_NAME);
+
+/**
+ * Envuelve una operación en un span manual con atributos de negocio, gestionando
+ * estado/errores/cierre. No-op efectivo si OTel está apagado. Úsalo para instrumentar
+ * flujos de dominio (emisión de boletos, ingest de validación, etc.).
+ */
+export async function withSpan<T>(
+  name: string,
+  attributes: Record<string, AttributeValue>,
+  fn: (span: Span) => Promise<T>,
+): Promise<T> {
+  return checkoutTracer().startActiveSpan(name, async (span) => {
+    for (const [k, v] of Object.entries(attributes)) span.setAttribute(k, v);
+    try {
+      const result = await fn(span);
+      span.setStatus({ code: SpanStatusCode.OK });
+      return result;
+    } catch (e) {
+      span.recordException(e as Error);
+      span.setStatus({ code: SpanStatusCode.ERROR, message: (e as Error).message });
+      throw e;
+    } finally {
+      span.end();
+    }
+  });
+}
 
 // Efecto de importación: arranca el tracing lo antes posible.
 startTracing();

@@ -120,3 +120,52 @@ redeploy (o `--set-secrets` con `:latest`). Las llaves de firma de boletos
 > necesario reescribir el historial. Esas credenciales ya fueron **eliminadas
 > de sus servicios**; las nuevas se emiten al aprovisionar prod y viven solo en
 > Secret Manager.
+
+---
+
+## 7. Endurecimiento y topología de servicios (Ola 6)
+
+La app es **12-factor**: mismo binario local↔prod, todo por variables de entorno.
+En Cloud Run conviene separar responsabilidades en **tres roles** del mismo
+contenedor (misma imagen, distinto escalado):
+
+| Rol | Qué corre | Escala |
+|---|---|---|
+| `api` | HTTP (Nest) | por request, concurrency 150–250 |
+| `worker` | consumidores **BullMQ** (emisión de boletos, QR/PDF, correos) | por profundidad de cola |
+| `ingest` | consumidor **RabbitMQ** de validación masiva (`validation.ingest`) | según afluencia de puertas |
+
+En un solo servicio también funciona (todo en el proceso `api`): los consumidores se
+levantan en el arranque. Para escalar se separan sin cambiar código.
+
+### Secret Manager
+Los secretos van a **GCP Secret Manager** y se inyectan a Cloud Run con
+`--set-secrets` (nunca en la imagen ni en el repo):
+
+```
+gcloud run deploy pasaeventos-api \
+  --set-secrets=DATABASE_URL=pe-database-url:latest,\
+JWT_ACCESS_SECRET=pe-jwt-access:latest,JWT_REFRESH_SECRET=pe-jwt-refresh:latest,\
+APP_ENCRYPTION_KEY=pe-encryption-key:latest,\
+TICKET_SIGNING_SEED=pe-ticket-seed:latest,PAYMENT_WEBHOOK_SECRET=pe-webhook:latest
+```
+
+Cloud Run materializa los secretos como variables de entorno, por lo que la carga
+12-factor por `process.env` **no requiere código de cliente de Secret Manager**
+(queda como opción futura si se prefiere pull en runtime).
+
+### Variables nuevas (Olas 4–6)
+- `TICKET_SIGNING_SEED` / `TICKET_SIGNING_KEY_ID` — firma Ed25519 de boletos; rotar por calendario (el `KEY_ID` permite convivencia de llaves durante la rotación).
+- `QUEUE_INLINE` / `RABBIT_INLINE` — dejar **sin definir** en prod (async real); solo `true` en test.
+- `WALLET_PROVIDER` — `stub` hasta tener certificados Apple/Google; luego `google`/`apple` detrás del mismo puerto.
+- `RETENTION_ENABLED` / `RETENTION_DAYS` — job de anonimización. En Cloud Run (instancias que escalan a cero) es preferible **Cloud Scheduler → `POST /admin/retention/run`** en vez del `setInterval` interno.
+
+### Wallet passes (Apple/Google)
+Los certificados Apple Developer (`.pkpass`) y la aprobación de la Google Wallet API
+tienen tiempos de terceros; su gestión corre **en paralelo**. El `WalletProvider` usa
+un **stub sandbox** entre tanto, así el backend no queda bloqueado.
+
+### OpenTelemetry
+`OTEL_ENABLED=true` + `OTEL_EXPORTER_OTLP_ENDPOINT` (colector/Cloud Trace). Spans
+manuales de negocio: `checkout.commit`, `seat.hold` y `validation.ingest`, más
+auto-instrumentación de HTTP/Nest/Prisma/Redis.

@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { TicketStatus } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { RabbitService } from '../../infra/messaging/rabbit.service';
+import { withSpan } from '../../infra/observability/tracing';
 import { TicketCustodyService } from './ticket-custody.service';
 import { TicketSyncService } from './ticket-sync.service';
 
@@ -61,17 +62,21 @@ export class ValidationIngestService implements OnModuleInit {
     return { mode: 'async' as const, accepted: stamped.length };
   }
 
-  /** Aplica un lote y agrega el resultado de la reconciliación. */
+  /** Aplica un lote y agrega el resultado de la reconciliación (con span de negocio). */
   async ingestBatch(items: CheckinItem[]) {
-    const summary = { total: items.length, checkedIn: 0, alreadyUsed: 0, notFound: 0, invalid: 0 };
-    for (const item of items) {
-      const outcome = await this.applyCheckin(item);
-      if (outcome === 'checked_in') summary.checkedIn++;
-      else if (outcome === 'already_used') summary.alreadyUsed++;
-      else if (outcome === 'not_found') summary.notFound++;
-      else summary.invalid++;
-    }
-    return summary;
+    return withSpan('validation.ingest', { 'ingest.count': items.length }, async (span) => {
+      const summary = { total: items.length, checkedIn: 0, alreadyUsed: 0, notFound: 0, invalid: 0 };
+      for (const item of items) {
+        const outcome = await this.applyCheckin(item);
+        if (outcome === 'checked_in') summary.checkedIn++;
+        else if (outcome === 'already_used') summary.alreadyUsed++;
+        else if (outcome === 'not_found') summary.notFound++;
+        else summary.invalid++;
+      }
+      span.setAttribute('ingest.checked_in', summary.checkedIn);
+      span.setAttribute('ingest.conflicts', summary.alreadyUsed + summary.invalid);
+      return summary;
+    });
   }
 
   /** Aplica un check-in idempotente y devuelve el desenlace. */
