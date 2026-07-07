@@ -1,0 +1,166 @@
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { PromoterStatus, Role, User } from '@prisma/client';
+import { PrismaService } from '../../infra/prisma/prisma.service';
+
+const REQUIRE_KEY = 'promoters.require_approval';
+
+/**
+ * Autorización de promotores (Ola 4). Cualquier usuario puede SOLICITAR ser
+ * promotor; un admin lo aprueba/rechaza/suspende antes de que pueda operar
+ * (crear/publicar eventos). El "modo pruebas" (setting `promoters.require_approval`
+ * = false) AUTO-APRUEBA al solicitar — útil para alpha/beta.
+ */
+@Injectable()
+export class PromotersService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  /** ¿Se exige autorización del admin? (true por defecto; false = modo pruebas). */
+  async requireApproval(): Promise<boolean> {
+    const s = await this.prisma.setting.findUnique({ where: { key: REQUIRE_KEY } });
+    if (s == null) return true;
+    return s.value === true;
+  }
+
+  /** Botón "Activar pruebas": setRequireApproval(false) desactiva la autorización. */
+  async setRequireApproval(value: boolean): Promise<{ requireApproval: boolean }> {
+    await this.prisma.setting.upsert({
+      where: { key: REQUIRE_KEY },
+      update: { value },
+      create: {
+        key: REQUIRE_KEY,
+        value,
+        description: 'Exigir autorización de admin para operar como promotor (false = modo pruebas)',
+      },
+    });
+    return { requireApproval: value };
+  }
+
+  /** Un usuario solicita ser promotor. Idempotente; auto-aprueba en modo pruebas. */
+  async apply(userId: string) {
+    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    if (user.promoterStatus === PromoterStatus.approved) return this.summarize(user);
+
+    if (!(await this.requireApproval())) {
+      const updated = await this.grant(user); // modo pruebas → aprobado al instante
+      return this.summarize(updated);
+    }
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        promoterStatus: PromoterStatus.pending,
+        promoterAppliedAt: user.promoterAppliedAt ?? new Date(),
+        promoterDecidedAt: null,
+        promoterNote: null,
+      },
+    });
+    return this.summarize(updated);
+  }
+
+  /** Estado de promotor del usuario autenticado (+ si el modo pruebas está activo). */
+  async myStatus(userId: string) {
+    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    return { ...this.summarize(user), requireApproval: await this.requireApproval() };
+  }
+
+  /** Lista de solicitudes (admin). Filtra por estado; excluye 'none' por defecto. */
+  async list(status?: PromoterStatus) {
+    return this.prisma.user.findMany({
+      where: status ? { promoterStatus: status } : { promoterStatus: { not: PromoterStatus.none } },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        roles: true,
+        promoterStatus: true,
+        promoterAppliedAt: true,
+        promoterDecidedAt: true,
+        promoterNote: true,
+      },
+      orderBy: { promoterAppliedAt: 'asc' },
+    });
+  }
+
+  async approve(id: string) {
+    const user = await this.getUser(id);
+    return this.summarize(await this.grant(user));
+  }
+
+  async reject(id: string, note?: string) {
+    const user = await this.getUser(id);
+    return this.summarize(await this.revoke(user, PromoterStatus.rejected, note));
+  }
+
+  async suspend(id: string, note?: string) {
+    const user = await this.getUser(id);
+    return this.summarize(await this.revoke(user, PromoterStatus.suspended, note));
+  }
+
+  /**
+   * Enforcement: solo un promotor APROBADO (o un admin) puede operar. Lo llaman
+   * los flujos de negocio del promotor (crear/publicar eventos).
+   */
+  async assertCanOperate(userId: string): Promise<void> {
+    const u = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { roles: true, promoterStatus: true },
+    });
+    if (!u) throw new ForbiddenException('Usuario no encontrado');
+    if (u.roles.includes(Role.admin)) return;
+    if (u.promoterStatus !== PromoterStatus.approved) {
+      throw new ForbiddenException(
+        'Tu cuenta de promotor no está autorizada por un administrador',
+      );
+    }
+  }
+
+  /** Aprueba: estado approved + asegura el rol promoter. */
+  private grant(user: User) {
+    const roles = user.roles.includes(Role.promoter) ? user.roles : [...user.roles, Role.promoter];
+    return this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        promoterStatus: PromoterStatus.approved,
+        promoterAppliedAt: user.promoterAppliedAt ?? new Date(),
+        promoterDecidedAt: new Date(),
+        promoterNote: null,
+        roles,
+      },
+    });
+  }
+
+  /** Rechaza/suspende: quita el rol promoter para que el RBAC lo bloquee. */
+  private revoke(user: User, status: PromoterStatus, note?: string) {
+    return this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        promoterStatus: status,
+        promoterDecidedAt: new Date(),
+        promoterNote: note ?? null,
+        roles: user.roles.filter((r) => r !== Role.promoter),
+      },
+    });
+  }
+
+  private async getUser(id: string): Promise<User> {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    return user;
+  }
+
+  private summarize(u: {
+    id: string;
+    promoterStatus: PromoterStatus;
+    promoterAppliedAt: Date | null;
+    promoterDecidedAt: Date | null;
+    promoterNote: string | null;
+  }) {
+    return {
+      id: u.id,
+      promoterStatus: u.promoterStatus,
+      promoterAppliedAt: u.promoterAppliedAt,
+      promoterDecidedAt: u.promoterDecidedAt,
+      promoterNote: u.promoterNote,
+    };
+  }
+}

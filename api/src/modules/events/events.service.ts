@@ -9,11 +9,15 @@ import { Event, GatewayStatus, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { AuthUser } from '../../common/decorators/current-user.decorator';
 import { slugify, slugWithSuffix } from '../../common/utils/slug';
+import { PromotersService } from '../promoters/promoters.service';
 import { CreateEventDto, UpdateEventDto } from './dto/events.dto';
 
 @Injectable()
 export class EventsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly promoters: PromotersService,
+  ) {}
 
   private assertDates(startsAt?: string, endsAt?: string) {
     if (startsAt && endsAt && new Date(endsAt) <= new Date(startsAt)) {
@@ -97,6 +101,8 @@ export class EventsService {
   }
 
   async create(dto: CreateEventDto, userId: string) {
+    // Solo un promotor autorizado por un admin (o un admin) puede crear eventos.
+    await this.promoters.assertCanOperate(userId);
     this.assertDates(dto.startsAt, dto.endsAt);
     await this.assertGatewayActive(dto.gatewayId);
     return this.prisma.event.create({
@@ -152,8 +158,12 @@ export class EventsService {
 
   async setStatus(id: string, status: 'published' | 'cancelled', user: AuthUser) {
     const event = await this.getManaged(id, user);
-    if (status === 'published' && event.localities.length === 0) {
-      throw new BadRequestException('El evento necesita al menos una localidad para publicarse');
+    if (status === 'published') {
+      // Publicar requiere estar autorizado como promotor (o ser admin).
+      await this.promoters.assertCanOperate(user.userId);
+      if (event.localities.length === 0) {
+        throw new BadRequestException('El evento necesita al menos una localidad para publicarse');
+      }
     }
     return this.prisma.event.update({ where: { id }, data: { status } });
   }

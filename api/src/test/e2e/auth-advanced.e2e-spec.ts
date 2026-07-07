@@ -169,10 +169,11 @@ describe('Auth avanzado (e2e)', () => {
       .send(payload)
       .expect(403);
 
-    // Verificar correo (el guard consulta la BD) y reintentar.
+    // Verificar correo (el guard consulta la BD) + autorizar como promotor
+    // (Ola 4: operar exige aprobación de admin) y reintentar.
     await prisma.user.update({
       where: { id: signup.body.user.id },
-      data: { emailVerifiedAt: new Date() },
+      data: { emailVerifiedAt: new Date(), promoterStatus: 'approved' },
     });
     await http()
       .post('/api/v1/events')

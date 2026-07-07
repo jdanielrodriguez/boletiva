@@ -102,6 +102,25 @@ enum LedgerAccountType {
   platform_expense // gastos extra (fuera del precio del boleto) compartidos promotor↔plataforma
 }
 
+/// Estado de un boleto emitido (Ola 4).
+enum TicketStatus {
+  valid // emitido y válido
+  used // ya validado en puerta (check-in)
+  transferred // transferido a otro dueño; re-emitido (Ola 5)
+  revoked // invalidado (reembolso/contracargo)
+}
+
+/// Estado de autorización de un usuario como promotor (Ola 4). Cualquier usuario
+/// puede solicitar; un admin autoriza antes de que pueda operar. El "modo pruebas"
+/// (setting `promoters.require_approval` = false) auto-aprueba al solicitar.
+enum PromoterStatus {
+  none // no ha solicitado ser promotor
+  pending // solicitó; espera autorización del admin
+  approved // autorizado; puede crear/publicar eventos y cobrar
+  rejected // solicitud rechazada
+  suspended // autorización revocada por el admin
+}
+
 /// Estado de una orden de compra.
 enum OrderStatus {
   pending // creada; asientos ya reservados (sold) a la espera de pago
@@ -155,6 +174,13 @@ model User {
   // reparten promotor↔plataforma; la parte del promotor se descuenta de su neto.
   costSharePct Decimal? @map("cost_share_pct") @db.Decimal(6, 5)
 
+  // Autorización como promotor (Ola 4). Un usuario puede solicitar ser promotor;
+  // un admin lo aprueba antes de que pueda operar (salvo en modo pruebas).
+  promoterStatus    PromoterStatus @default(none) @map("promoter_status")
+  promoterAppliedAt DateTime?      @map("promoter_applied_at")
+  promoterDecidedAt DateTime?      @map("promoter_decided_at")
+  promoterNote      String?        @map("promoter_note") // motivo de rechazo/suspensión
+
   lastLoginAt DateTime? @map("last_login_at")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
@@ -167,6 +193,7 @@ model User {
   devices       Device[]
   oauthAccounts OAuthAccount[]
   orders        Order[]
+  tickets       Ticket[]           @relation("TicketOwner")
 
   @@index([status])
   @@map("users")
@@ -312,6 +339,7 @@ model Event {
   media      EventMedia[]
   seatMaps   SeatMap[]
   orders     Order[]
+  tickets    Ticket[]
 
   @@index([promoterId])
   @@index([status])
@@ -393,6 +421,7 @@ model Seat {
 
   locality   Locality    @relation(fields: [localityId], references: [id], onDelete: Cascade)
   orderItems OrderItem[]
+  tickets    Ticket[]
 
   @@unique([localityId, label])
   @@index([localityId])
@@ -474,6 +503,7 @@ model Order {
   feeSchedule FeeSchedule? @relation(fields: [feeScheduleId], references: [id])
   items       OrderItem[]
   payments    Payment[]
+  tickets     Ticket[]
 
   @@index([buyerId])
   @@index([eventId])
@@ -503,6 +533,7 @@ model OrderItem {
   order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   locality Locality @relation(fields: [localityId], references: [id])
   seat     Seat?    @relation(fields: [seatId], references: [id])
+  ticket   Ticket?
 
   @@index([orderId])
   @@index([seatId])
@@ -636,4 +667,53 @@ model LedgerEntry {
   @@index([transactionId])
   @@index([accountId])
   @@map("ledger_entries")
+}
+
+// ---------------------------------------------------------------------------
+// Boletos: firma Ed25519 + QR rotativo (TOTP), emisión async (Ola 4)
+// ---------------------------------------------------------------------------
+
+/// Boleto emitido (uno por línea de orden). La emisión se ENCOLA (BullMQ) tras
+/// asentar el pago en el ledger, para no bloquear el event loop ni el webhook.
+/// La identidad inmutable va firmada con Ed25519 (anti-falsificación); un secreto
+/// TOTP por boleto (cifrado en reposo) produce un QR ROTATIVO (un screenshot no
+/// sirve). La validación offline dinámica + manifiesto se completa en la Ola 5.
+model Ticket {
+  id          String       @id @default(uuid()) @db.Uuid
+  orderItemId String       @unique @map("order_item_id") @db.Uuid
+  orderId     String       @map("order_id") @db.Uuid
+  eventId     String       @map("event_id") @db.Uuid
+  localityId  String       @map("locality_id") @db.Uuid
+  seatId      String?      @map("seat_id") @db.Uuid
+  ownerId     String       @map("owner_id") @db.Uuid // dueño actual (comprador)
+  serial      String       @unique // id público legible (base del QR)
+  status      TicketStatus @default(valid)
+
+  // Criptografía del boleto.
+  signature    String // firma Ed25519 (base64) sobre la identidad inmutable
+  signingKeyId String @map("signing_key_id") // id de la llave usada (rotación)
+  totpSecret   String @map("totp_secret") // secreto base32 CIFRADO (AES-256-GCM)
+
+  // Media generada de forma asíncrona (claves en el bucket).
+  qrKey        String?   @map("qr_key")
+  pdfKey       String?   @map("pdf_key")
+  mediaReadyAt DateTime? @map("media_ready_at")
+
+  usedAt    DateTime? @map("used_at")
+  revokedAt DateTime? @map("revoked_at")
+  issuedAt  DateTime  @default(now()) @map("issued_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  order     Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  event     Event     @relation(fields: [eventId], references: [id])
+  owner     User      @relation("TicketOwner", fields: [ownerId], references: [id])
+  seat      Seat?     @relation(fields: [seatId], references: [id])
+
+  @@index([ownerId])
+  @@index([eventId])
+  @@index([orderId])
+  @@index([status])
+  @@map("tickets")
 }

@@ -1,4 +1,4 @@
-import { PrismaClient, Role } from '@prisma/client';
+import { PrismaClient, PromoterStatus, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -45,6 +45,17 @@ async function seedSettings(): Promise<void> {
       description:
         'Reparto por defecto de gastos EXTRA que asume el promotor (0.5 = 50%; 0 = plataforma cubre todo)',
     },
+    {
+      key: 'promoters.require_approval',
+      value: true,
+      description:
+        'Exigir autorización de admin para operar como promotor (false = modo pruebas, auto-aprueba)',
+    },
+    {
+      key: 'wallet.pass_fee',
+      value: 0,
+      description: 'Cargo EXTRA por generar un pase de wallet (0 = sin cargo). Se reparte prom↔plat',
+    },
   ];
   for (const s of defaults) {
     await prisma.setting.upsert({
@@ -90,22 +101,37 @@ async function seedGateway(): Promise<void> {
 
 async function seedUsers() {
   const password = await bcrypt.hash('Password123', 12);
-  const users: Array<{ email: string; firstName: string; roles: Role[] }> = [
+  const users: Array<{
+    email: string;
+    firstName: string;
+    roles: Role[];
+    promoterStatus?: PromoterStatus;
+  }> = [
     { email: 'admin@pasaeventos.com', firstName: 'Admin', roles: [Role.admin] },
-    { email: 'promotor@pasaeventos.com', firstName: 'Promotor', roles: [Role.promoter] },
+    {
+      email: 'promotor@pasaeventos.com',
+      firstName: 'Promotor',
+      roles: [Role.promoter],
+      promoterStatus: PromoterStatus.approved, // ya autorizado (puede operar)
+    },
     { email: 'cliente@pasaeventos.com', firstName: 'Cliente', roles: [Role.buyer] },
   ];
   const created: Record<string, string> = {};
   for (const u of users) {
+    const promoter =
+      u.promoterStatus === PromoterStatus.approved
+        ? { promoterStatus: PromoterStatus.approved, promoterDecidedAt: new Date() }
+        : {};
     const user = await prisma.user.upsert({
       where: { email: u.email },
-      update: { roles: u.roles, emailVerifiedAt: new Date() },
+      update: { roles: u.roles, emailVerifiedAt: new Date(), ...promoter },
       create: {
         email: u.email,
         firstName: u.firstName,
         passwordHash: password,
         roles: u.roles,
         emailVerifiedAt: new Date(), // usuarios semilla ya verificados
+        ...promoter,
       },
     });
     created[u.email] = user.id;
