@@ -24,6 +24,8 @@ export const envValidationSchema = Joi.object({
   AMQP_URL: Joi.string()
     .uri({ scheme: ['amqp', 'amqps'] })
     .required(),
+  // Ingest de validación inline (default en test); async por RabbitMQ en dev/prod.
+  RABBIT_INLINE: Joi.boolean().optional(),
 
   // Almacenamiento
   STORAGE_PROVIDER: Joi.string().valid('s3', 'gcs').default('s3'),

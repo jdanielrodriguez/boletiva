@@ -800,6 +800,24 @@ model TicketTransfer {
   @@map("ticket_transfers")
 }
 
+/// Conflicto de validación detectado al ingerir check-ins masivos (Ola 6): un
+/// boleto que llegó a validarse en más de una puerta (doble entrada). Se registra
+/// para revisión del organizador; no bloquea el ingest (idempotente).
+model CheckinConflict {
+  id          String   @id @default(uuid()) @db.Uuid
+  ticketId    String   @map("ticket_id") @db.Uuid
+  eventId     String   @map("event_id") @db.Uuid
+  serial      String
+  gateId      String?  @map("gate_id") // puerta que reintentó validar
+  reason      String // 'already_used' | ...
+  attemptedAt DateTime @map("attempted_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([eventId])
+  @@index([ticketId])
+  @@map("checkin_conflicts")
+}
+
 /// Solicitud de retiro de saldo interno (Ola 6). Flujo solicitud→aprobación→pago.
 /// Al solicitar se RESERVA el saldo en el ledger (user_wallet→payout_pending +
 /// comisión a la plataforma); rechazar/cancelar lo reintegra; pagar lo liquida.

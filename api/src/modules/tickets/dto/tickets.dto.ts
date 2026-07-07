@@ -1,5 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsBoolean,
+  IsIn,
+  IsOptional,
+  IsString,
+  MaxLength,
+  ValidateNested,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 import { WalletPlatform } from '../wallet/wallet-provider';
 
 export class VerifyTicketDto {
@@ -25,4 +35,38 @@ export class ClaimTransferDto {
   @IsString()
   @MaxLength(40)
   code!: string;
+}
+
+export class CheckinItemDto {
+  @ApiProperty({ description: 'Serial del boleto validado en puerta' })
+  @IsString()
+  @MaxLength(40)
+  serial!: string;
+
+  @ApiPropertyOptional({ description: 'Momento del check-in offline (ISO)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  checkedInAt?: string;
+
+  @ApiPropertyOptional({ description: 'Identificador de la puerta' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(60)
+  gateId?: string;
+}
+
+export class BatchCheckinDto {
+  @ApiProperty({ type: [CheckinItemDto], description: 'Lote de check-ins offline' })
+  @IsArray()
+  @ArrayMaxSize(5000)
+  @ValidateNested({ each: true })
+  @Type(() => CheckinItemDto)
+  items!: CheckinItemDto[];
+
+  @ApiPropertyOptional({ description: 'Puerta por defecto para todo el lote' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(60)
+  gateId?: string;
 }

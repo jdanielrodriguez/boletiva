@@ -11,7 +11,7 @@ export interface AppConfig {
   appName: string;
   database: { url: string };
   redis: { url: string };
-  amqp: { url: string };
+  amqp: { url: string; inline: boolean };
   storage: {
     provider: 's3' | 'gcs';
     s3: {
@@ -49,7 +49,9 @@ export const configuration = (): AppConfig => {
     appName: process.env.APP_NAME ?? 'PasaEventos',
     database: { url: process.env.DATABASE_URL as string },
     redis: { url: process.env.REDIS_URL as string },
-    amqp: { url: process.env.AMQP_URL as string },
+    // inline: el ingest de validación se aplica síncrono (tests deterministas y sin
+    // consumidor AMQP colgando). En dev/prod se publica/consume por RabbitMQ.
+    amqp: { url: process.env.AMQP_URL as string, inline: bool(process.env.RABBIT_INLINE, env === 'test') },
     storage: {
       provider: (process.env.STORAGE_PROVIDER ?? 's3') as 's3' | 'gcs',
       s3: {
