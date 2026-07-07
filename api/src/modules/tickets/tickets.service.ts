@@ -11,6 +11,7 @@ import { randomToken } from '../../common/utils/crypto';
 import { TicketSigningService } from './ticket-signing.service';
 import { TicketCryptoService, TicketIdentity } from './ticket-crypto.service';
 import { TicketCustodyService } from './ticket-custody.service';
+import { TicketSyncService } from './ticket-sync.service';
 
 export type VerifyResult =
   | {
@@ -41,6 +42,7 @@ export class TicketsService implements OnModuleInit {
     private readonly storage: StorageService,
     private readonly queue: QueueService,
     private readonly custody: TicketCustodyService,
+    private readonly sync: TicketSyncService,
   ) {}
 
   onModuleInit(): void {
@@ -121,6 +123,7 @@ export class TicketsService implements OnModuleInit {
           toOwnerId: order.buyerId,
           actorId: order.buyerId,
         });
+        await this.sync.record(order.eventId, ticketId, 'issued');
       } catch (e) {
         // Carrera: otro worker emitió el mismo ítem primero (orderItemId único).
         if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') continue;
@@ -267,6 +270,7 @@ export class TicketsService implements OnModuleInit {
         type: 'checked_in',
         actorId: actorId ?? null,
       });
+      await this.sync.record(ticket.eventId, ticket.id, 'checked_in');
     }
 
     return {
@@ -287,7 +291,7 @@ export class TicketsService implements OnModuleInit {
     // Capturar los boletos afectados ANTES de actualizarlos (para su cadena).
     const affected = await this.prisma.ticket.findMany({
       where: { orderId, status: { in: [TicketStatus.valid, TicketStatus.used] } },
-      select: { id: true, ownerId: true },
+      select: { id: true, ownerId: true, eventId: true },
     });
     if (affected.length === 0) return { revoked: 0 };
     await this.prisma.ticket.updateMany({
@@ -296,6 +300,7 @@ export class TicketsService implements OnModuleInit {
     });
     for (const t of affected) {
       await this.custody.record({ ticketId: t.id, type: 'revoked', fromOwnerId: t.ownerId });
+      await this.sync.record(t.eventId, t.id, 'revoked'); // propaga la revocación a validadores
     }
     return { revoked: affected.length };
   }

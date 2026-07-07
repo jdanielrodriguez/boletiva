@@ -10,6 +10,8 @@ import { TicketMediaService } from './ticket-media.service';
 import { TicketMailService } from './ticket-mail.service';
 import { TicketTransferService } from './ticket-transfer.service';
 import { TicketTransfersController } from './ticket-transfers.controller';
+import { TicketSyncService } from './ticket-sync.service';
+import { TicketManifestController } from './ticket-manifest.controller';
 import { WalletPassService } from './wallet/wallet-pass.service';
 import { WALLET_PROVIDER } from './wallet/wallet-provider';
 import { StubWalletProvider } from './wallet/stub-wallet.provider';
@@ -20,12 +22,13 @@ import { StubWalletProvider } from './wallet/stub-wallet.provider';
  * Exporta TicketsService para que Payments revoque boletos en reembolsos/contracargos.
  */
 @Module({
-  controllers: [TicketsController, TicketTransfersController],
+  controllers: [TicketsController, TicketTransfersController, TicketManifestController],
   providers: [
     TicketsService,
     TicketSigningService,
     TicketCryptoService,
     TicketCustodyService,
+    TicketSyncService,
     TicketMediaService,
     TicketMailService,
     TicketTransferService,

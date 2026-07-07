@@ -14,6 +14,7 @@ import { sha256 } from '../../common/utils/crypto';
 import { TicketSigningService } from './ticket-signing.service';
 import { TicketCryptoService, TicketIdentity } from './ticket-crypto.service';
 import { TicketCustodyService } from './ticket-custody.service';
+import { TicketSyncService } from './ticket-sync.service';
 
 const MAX_KEY = 'transfer.max_per_ticket_default';
 const TTL_HOURS = 48;
@@ -36,6 +37,7 @@ export class TicketTransferService {
     private readonly signing: TicketSigningService,
     private readonly crypto: TicketCryptoService,
     private readonly custody: TicketCustodyService,
+    private readonly sync: TicketSyncService,
     private readonly queue: QueueService,
   ) {}
 
@@ -164,6 +166,8 @@ export class TicketTransferService {
       toOwnerId: recipientId,
       actorId: recipientId,
     });
+    // Propaga el nuevo secreto/dueño a los validadores offline (SafeTix).
+    await this.sync.record(ticket.eventId, ticket.id, 'transferred');
     await this.queue.enqueue(QUEUES.MEDIA, 'generate', { ticketId: ticket.id });
 
     return {
