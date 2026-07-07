@@ -18,6 +18,7 @@ describe('Boletos: cadena de custodia (e2e)', () => {
   let buyerToken: string;
   let buyerBToken: string;
   let operatorToken: string;
+  let adminToken: string;
   let eventId: string;
   let seatIds: string[];
   let stamp: number;
@@ -64,6 +65,7 @@ describe('Boletos: cadena de custodia (e2e)', () => {
       data: { emailVerifiedAt: new Date(), roles: ['gate_operator'] },
     });
     operatorToken = await loginTrusted(emailOp, 'cust-Op');
+    adminToken = await loginTrusted(SEED.admin, 'cust-Admin');
   });
 
   async function loginTrusted(rawEmail: string, deviceId: string): Promise<string> {
@@ -164,5 +166,25 @@ describe('Boletos: cadena de custodia (e2e)', () => {
     const res = await http().get(`/api/v1/tickets/${ticket.id}/custody`).set(bearer(buyerToken)).expect(200);
     expect(res.body.integrity.ok).toBe(false);
     expect(res.body.integrity.brokenAt).toBe(1);
+  });
+
+  // ---- Cobertura adicional (auditoría QA) ----
+
+  it('un admin puede ver la cadena de un boleto ajeno (escalada legítima)', async () => {
+    const orderId = await buyAndPay(4);
+    const ticket = await prisma.ticket.findFirstOrThrow({ where: { orderId } });
+    const res = await http().get(`/api/v1/tickets/${ticket.id}/custody`).set(bearer(adminToken)).expect(200);
+    expect(res.body.events.length).toBeGreaterThanOrEqual(1);
+    expect(res.body.integrity.ok).toBe(true);
+  });
+
+  it('sin token → 401; UUID inválido → 400; boleto inexistente → 404', async () => {
+    const ticket = await prisma.ticket.findFirstOrThrow({ where: { eventId } });
+    await http().get(`/api/v1/tickets/${ticket.id}/custody`).expect(401);
+    await http().get('/api/v1/tickets/no-uuid/custody').set(bearer(buyerToken)).expect(400);
+    await http()
+      .get('/api/v1/tickets/00000000-0000-0000-0000-000000000000/custody')
+      .set(bearer(buyerToken))
+      .expect(404);
   });
 });

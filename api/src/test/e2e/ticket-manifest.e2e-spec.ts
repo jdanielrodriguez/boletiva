@@ -213,4 +213,29 @@ describe('Boletos: manifiesto offline + propagación (e2e)', () => {
     await manifest(0, buyerToken2).expect(403);
     await http().get(`/api/v1/events/${eventId}/manifest`).expect(401);
   });
+
+  // ---- Cobertura adicional (auditoría QA) ----
+
+  it('?since > maxSeq → delta vacío (count 0, maxSeq === since)', async () => {
+    const full = await manifest(0).expect(200);
+    const beyond = full.body.maxSeq + 1000;
+    const empty = await manifest(beyond).expect(200);
+    expect(empty.body.count).toBe(0);
+    expect(empty.body.tickets).toHaveLength(0);
+    expect(empty.body.maxSeq).toBe(beyond); // el cursor no retrocede
+  });
+
+  it('?since negativo o no-numérico se normaliza a 0 (manifiesto completo)', async () => {
+    const neg = await manifest(-5).expect(200);
+    expect(neg.body.count).toBeGreaterThanOrEqual(1);
+    const nan = await http()
+      .get(`/api/v1/events/${eventId}/manifest?since=abc`)
+      .set(bearer(operatorToken))
+      .expect(200);
+    expect(nan.body.count).toBeGreaterThanOrEqual(1); // parseInt('abc')→NaN→0
+  });
+
+  it('eventId con UUID inválido → 400', async () => {
+    await http().get('/api/v1/events/no-uuid/manifest').set(bearer(operatorToken)).expect(400);
+  });
 });

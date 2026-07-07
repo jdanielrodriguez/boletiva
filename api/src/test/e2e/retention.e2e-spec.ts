@@ -170,4 +170,55 @@ describe('Privacidad / retención (e2e)', () => {
     expect(eligible).toContain(concluded);
     expect(eligible).not.toContain(future);
   });
+
+  // ---- Cobertura adicional (auditoría QA) ----
+
+  it('preserva los boletos del usuario anonimizado (no solo el ledger)', async () => {
+    const uid = await mkUser('tickets');
+    const eventId = await mkEvent(new Date('2028-06-01T23:00:00-06:00'));
+    const loc = await prisma.locality.create({
+      data: { eventId, name: 'R', slug: `r-${stamp}`, kind: 'seated', desiredNet: 100 },
+    });
+    const order = await mkOrder(uid, eventId);
+    const item = await prisma.orderItem.create({
+      data: {
+        orderId: order.id,
+        localityId: loc.id,
+        net: '0.00',
+        total: '0.00',
+        quote: {},
+        quoteHash: 'h',
+      },
+    });
+    const ticket = await prisma.ticket.create({
+      data: {
+        orderItemId: item.id,
+        orderId: order.id,
+        eventId,
+        localityId: loc.id,
+        ownerId: uid,
+        serial: `PERET${stamp}`,
+        signature: 'sig',
+        signingKeyId: 'dev-ed25519-1',
+        totpSecret: 'enc',
+      },
+    });
+
+    await http().post(`/api/v1/admin/users/${uid}/anonymize`).set(bearer(adminToken)).expect(200);
+
+    const after = await prisma.ticket.findUniqueOrThrow({ where: { id: ticket.id } });
+    expect(after.ownerId).toBe(uid); // el boleto sobrevive intacto
+    expect(after.status).toBe('valid');
+  });
+
+  it('validación del run: days fuera de rango → 400 (no ejecuta nada)', async () => {
+    await http().post('/api/v1/admin/retention/run').set(bearer(adminToken)).send({ days: 40000 }).expect(400);
+    await http().post('/api/v1/admin/retention/run').set(bearer(adminToken)).send({ days: -5 }).expect(400);
+  });
+
+  it('401 sin token; id no-UUID → 400', async () => {
+    await http().post('/api/v1/admin/users/00000000-0000-0000-0000-000000000000/anonymize').expect(401);
+    await http().post('/api/v1/admin/retention/run').send({ days: 365 }).expect(401);
+    await http().post('/api/v1/admin/users/no-uuid/anonymize').set(bearer(adminToken)).expect(400);
+  });
 });

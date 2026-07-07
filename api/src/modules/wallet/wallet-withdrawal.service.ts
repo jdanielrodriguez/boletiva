@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { Role, WithdrawalStatus } from '@prisma/client';
 import Decimal from 'decimal.js';
 import { PrismaService } from '../../infra/prisma/prisma.service';
@@ -49,25 +50,30 @@ export class WalletWithdrawalService {
     const fee = amount.mul(feePct).toDecimalPlaces(2, Decimal.ROUND_HALF_EVEN);
     const net = amount.sub(fee);
 
+    // Se RESERVA en el ledger ANTES de materializar la solicitud: el advisory lock
+    // + el guard anti-negativo del ledger serializan las reservas y rechazan una
+    // sobre-reserva concurrente (409), sin dejar una solicitud huérfana sin respaldo.
+    const id = randomUUID();
+    await this.ledger.post({
+      kind: 'withdrawal_request',
+      refType: 'withdrawal',
+      refId: id,
+      memo: `Reserva de retiro ${id}`,
+      entries: [
+        { type: 'user_wallet', ownerId: userId, amount: amount.negated().toFixed(2) },
+        { type: 'payout_pending', amount: net.toFixed(2) },
+        { type: 'platform_revenue', amount: fee.toFixed(2) },
+      ],
+    });
     const withdrawal = await this.prisma.walletWithdrawal.create({
       data: {
+        id,
         userId,
         amount: amount.toFixed(2),
         feePct: feePct.toFixed(5),
         fee: fee.toFixed(2),
         net: net.toFixed(2),
       },
-    });
-    await this.ledger.post({
-      kind: 'withdrawal_request',
-      refType: 'withdrawal',
-      refId: withdrawal.id,
-      memo: `Reserva de retiro ${withdrawal.id}`,
-      entries: [
-        { type: 'user_wallet', ownerId: userId, amount: amount.negated().toFixed(2) },
-        { type: 'payout_pending', amount: net.toFixed(2) },
-        { type: 'platform_revenue', amount: fee.toFixed(2) },
-      ],
     });
     return this.summarize(withdrawal);
   }

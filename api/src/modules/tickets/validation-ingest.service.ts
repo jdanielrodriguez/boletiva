@@ -83,7 +83,12 @@ export class ValidationIngestService implements OnModuleInit {
   async applyCheckin(item: CheckinItem): Promise<CheckinOutcome> {
     const ticket = await this.prisma.ticket.findUnique({ where: { serial: item.serial } });
     if (!ticket) return 'not_found';
-    const at = item.checkedInAt ? new Date(item.checkedInAt) : new Date();
+    // Fecha del check-in offline; si viene inválida, se usa "ahora" (no persistir Invalid Date).
+    let at = new Date();
+    if (item.checkedInAt) {
+      const parsed = new Date(item.checkedInAt);
+      if (!Number.isNaN(parsed.getTime())) at = parsed;
+    }
 
     if (ticket.status === TicketStatus.revoked || ticket.status === TicketStatus.transferred) {
       await this.recordConflict(ticket, item, `invalid_state:${ticket.status}`, at);

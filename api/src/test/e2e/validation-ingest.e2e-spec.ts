@@ -18,6 +18,7 @@ describe('Ingest de validación offline (e2e)', () => {
   let prisma: PrismaService;
   let buyerToken: string;
   let operatorToken: string;
+  let adminToken: string;
   let eventId: string;
   let seatIds: string[];
   let stamp: number;
@@ -42,7 +43,7 @@ describe('Ingest de validación offline (e2e)', () => {
       data: { eventId, name: 'I', slug: 'i', kind: 'seated', desiredNet: 100 },
     });
     await prisma.seat.createMany({
-      data: Array.from({ length: 6 }, (_, i) => ({ localityId: loc.id, label: `I${i + 1}` })),
+      data: Array.from({ length: 10 }, (_, i) => ({ localityId: loc.id, label: `I${i + 1}` })),
     });
     const seats = await prisma.seat.findMany({ where: { localityId: loc.id } });
     seatIds = seats.sort((a, b) => Number(a.label.slice(1)) - Number(b.label.slice(1))).map((s) => s.id);
@@ -57,6 +58,7 @@ describe('Ingest de validación offline (e2e)', () => {
       data: { emailVerifiedAt: new Date(), roles: ['gate_operator'] },
     });
     operatorToken = await loginTrusted(emailOp, 'ing-Op');
+    adminToken = await loginTrusted(SEED.admin, 'ing-Admin');
   });
 
   async function loginTrusted(rawEmail: string, deviceId: string): Promise<string> {
@@ -161,5 +163,57 @@ describe('Ingest de validación offline (e2e)', () => {
     await batch([{ serial: 'x' }], buyerToken).expect(403);
     await http().get(`/api/v1/events/${eventId}/checkins/conflicts`).set(bearer(buyerToken)).expect(403);
     await http().post('/api/v1/checkins/batch').send({ items: [] }).expect(401);
+  });
+
+  // ---- Cobertura adicional (auditoría QA) ----
+
+  it('lote vacío (con auth) → resumen en cero; el admin también puede ingerir', async () => {
+    const res = await batch([]).expect(200);
+    expect(res.body).toMatchObject({ mode: 'inline', total: 0, checkedIn: 0 });
+    // Un admin (no solo gate_operator) puede ingerir.
+    const s6 = await issue(6);
+    const asAdmin = await http()
+      .post('/api/v1/checkins/batch')
+      .set(bearer(adminToken))
+      .send({ items: [{ serial: s6 }] })
+      .expect(200);
+    expect(asAdmin.body.checkedIn).toBe(1);
+  });
+
+  it('boleto transferido → invalid_state:transferred + conflicto', async () => {
+    const s7 = await issue(7);
+    await prisma.ticket.update({ where: { serial: s7 }, data: { status: 'transferred' } });
+    const res = await batch([{ serial: s7, gateId: 'gate-t' }]).expect(200);
+    expect(res.body).toMatchObject({ total: 1, invalid: 1 });
+    const conflict = await prisma.checkinConflict.findFirstOrThrow({ where: { serial: s7 } });
+    expect(conflict.reason).toBe('invalid_state:transferred');
+    expect(conflict.gateId).toBe('gate-t'); // guarda la puerta correcta
+  });
+
+  it('gateId por-item sobrescribe el default del lote (y se persiste en el conflicto)', async () => {
+    const used = (await prisma.ticket.findFirstOrThrow({ where: { eventId, status: 'used' } })).serial;
+    // default del lote 'lote-def', pero el ítem trae 'item-especifico'.
+    await batch([{ serial: used, gateId: 'item-especifico' }], operatorToken, 'lote-def').expect(200);
+    const conflict = await prisma.checkinConflict.findFirstOrThrow({
+      where: { serial: used, gateId: 'item-especifico' },
+    });
+    expect(conflict.gateId).toBe('item-especifico');
+  });
+
+  it('checkedInAt inválido no persiste Invalid Date (usa "ahora")', async () => {
+    const s = await issue(8); // asiento fresco
+    const res = await batch([{ serial: s, checkedInAt: 'no-es-fecha' }]).expect(200);
+    expect(res.body.checkedIn).toBe(1);
+    const t = await prisma.ticket.findUniqueOrThrow({ where: { serial: s } });
+    expect(t.usedAt).not.toBeNull();
+    const usedAt = t.usedAt as Date;
+    expect(Number.isNaN(usedAt.getTime())).toBe(false); // fecha válida, no "Invalid Date"
+  });
+
+  it('validación: item sin serial → 400; lote >5000 → 400; conflicts sin token → 401', async () => {
+    await batch([{ checkedInAt: '2028-01-01' } as unknown]).expect(400); // falta serial
+    const tooMany = Array.from({ length: 5001 }, (_, i) => ({ serial: `S${i}` }));
+    await batch(tooMany).expect(400); // ArrayMaxSize 5000
+    await http().get(`/api/v1/events/${eventId}/checkins/conflicts`).expect(401);
   });
 });

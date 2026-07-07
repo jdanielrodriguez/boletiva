@@ -20,6 +20,7 @@ describe('Boletos: transferencia (e2e)', () => {
   let bToken: string;
   let bId: string;
   let cToken: string;
+  let cId: string;
   let operatorToken: string;
   let eventId: string;
   let seatIds: string[];
@@ -45,7 +46,7 @@ describe('Boletos: transferencia (e2e)', () => {
       data: { eventId, name: 'X', slug: 'x', kind: 'seated', desiredNet: 100 },
     });
     await prisma.seat.createMany({
-      data: Array.from({ length: 8 }, (_, i) => ({ localityId: loc.id, label: `X${i + 1}` })),
+      data: Array.from({ length: 16 }, (_, i) => ({ localityId: loc.id, label: `X${i + 1}` })),
     });
     const seats = await prisma.seat.findMany({ where: { localityId: loc.id } });
     seatIds = seats.sort((a, b) => Number(a.label.slice(1)) - Number(b.label.slice(1))).map((s) => s.id);
@@ -53,7 +54,7 @@ describe('Boletos: transferencia (e2e)', () => {
     aToken = await loginTrusted(SEED.buyer, 'xfer-A');
     bId = (await mkUser('xferb')).id;
     bToken = await loginTrusted(`xferb_${stamp}@test.com`, 'xfer-B');
-    await mkUser('xferc');
+    cId = (await mkUser('xferc')).id;
     cToken = await loginTrusted(`xferc_${stamp}@test.com`, 'xfer-C');
     const op = await mkUser('xferop', { roles: ['gate_operator'] });
     void op;
@@ -229,5 +230,103 @@ describe('Boletos: transferencia (e2e)', () => {
     const ticketId = await buyTicket(5);
     await prisma.ticket.update({ where: { id: ticketId }, data: { status: 'revoked' } });
     await http().post(`/api/v1/tickets/${ticketId}/transfer`).set(bearer(aToken)).expect(400);
+  });
+
+  // ---- Cobertura adicional (auditoría QA) ----
+
+  it('GET /tickets/transfers/outgoing lista solo mis pendientes y se vacía al canjear', async () => {
+    const ticketId = await buyTicket(6);
+    const init = await http().post(`/api/v1/tickets/${ticketId}/transfer`).set(bearer(aToken)).expect(200);
+    const mine = await http().get('/api/v1/tickets/transfers/outgoing').set(bearer(aToken)).expect(200);
+    expect(mine.body.some((t: { id: string }) => t.id === init.body.transferId)).toBe(true);
+    // El destinatario no ve las transferencias del remitente.
+    const other = await http().get('/api/v1/tickets/transfers/outgoing').set(bearer(bToken)).expect(200);
+    expect(other.body.some((t: { id: string }) => t.id === init.body.transferId)).toBe(false);
+    // Al canjear, deja de estar pendiente.
+    await http().post('/api/v1/tickets/transfers/claim').set(bearer(bToken)).send({ code: init.body.code }).expect(200);
+    const after = await http().get('/api/v1/tickets/transfers/outgoing').set(bearer(aToken)).expect(200);
+    expect(after.body.some((t: { id: string }) => t.id === init.body.transferId)).toBe(false);
+  });
+
+  it('canjear un código ya canjeado → 404 (no reutilizable)', async () => {
+    const ticketId = await buyTicket(7);
+    const init = await http().post(`/api/v1/tickets/${ticketId}/transfer`).set(bearer(aToken)).expect(200);
+    await http().post('/api/v1/tickets/transfers/claim').set(bearer(bToken)).send({ code: init.body.code }).expect(200);
+    await http().post('/api/v1/tickets/transfers/claim').set(bearer(cToken)).send({ code: init.body.code }).expect(404);
+  });
+
+  it('si el boleto alcanzó el límite entre iniciar y canjear → 400', async () => {
+    const ticketId = await buyTicket(8);
+    const init = await http().post(`/api/v1/tickets/${ticketId}/transfer`).set(bearer(aToken)).expect(200);
+    await prisma.ticket.update({ where: { id: ticketId }, data: { transferCount: 1 } }); // ya en el límite (default 1)
+    await http().post('/api/v1/tickets/transfers/claim').set(bearer(bToken)).send({ code: init.body.code }).expect(400);
+  });
+
+  it('si el boleto cambió de dueño tras iniciar → 409 al canjear', async () => {
+    const ticketId = await buyTicket(9);
+    const init = await http().post(`/api/v1/tickets/${ticketId}/transfer`).set(bearer(aToken)).expect(200);
+    await prisma.ticket.update({ where: { id: ticketId }, data: { ownerId: cId } }); // dueño distinto al remitente
+    await http().post('/api/v1/tickets/transfers/claim').set(bearer(bToken)).send({ code: init.body.code }).expect(409);
+  });
+
+  it('cancelar una transferencia ya canjeada → 400', async () => {
+    const ticketId = await buyTicket(10);
+    const init = await http().post(`/api/v1/tickets/${ticketId}/transfer`).set(bearer(aToken)).expect(200);
+    await http().post('/api/v1/tickets/transfers/claim').set(bearer(bToken)).send({ code: init.body.code }).expect(200);
+    await http().delete(`/api/v1/tickets/transfers/${init.body.transferId}`).set(bearer(aToken)).expect(400);
+  });
+
+  it('el nuevo dueño recibe media regenerada tras el canje', async () => {
+    const ticketId = await buyTicket(11);
+    const init = await http().post(`/api/v1/tickets/${ticketId}/transfer`).set(bearer(aToken)).expect(200);
+    await http().post('/api/v1/tickets/transfers/claim').set(bearer(bToken)).send({ code: init.body.code }).expect(200);
+    // La media se regeneró para B (inline): sus URLs firmadas responden.
+    const media = await http().get(`/api/v1/tickets/${ticketId}/media`).set(bearer(bToken)).expect(200);
+    expect(media.body.pdfUrl).toContain('/ticket.pdf');
+  });
+
+  it('canje CONCURRENTE del mismo código: exactamente uno gana', async () => {
+    const ticketId = await buyTicket(12);
+    const init = await http().post(`/api/v1/tickets/${ticketId}/transfer`).set(bearer(aToken)).expect(200);
+    const claim = (tok: string) =>
+      http().post('/api/v1/tickets/transfers/claim').set(bearer(tok)).send({ code: init.body.code });
+    const [r1, r2] = await Promise.all([claim(bToken), claim(cToken)]);
+    expect([r1.status, r2.status].filter((s) => s === 200)).toHaveLength(1);
+    const t = await prisma.ticket.findUniqueOrThrow({ where: { id: ticketId } });
+    expect(t.transferCount).toBe(1); // un solo incremento
+  });
+
+  it('validación y auth: code faltante → 400; UUID inválido → 400; sin token → 401', async () => {
+    await http().post('/api/v1/tickets/transfers/claim').set(bearer(bToken)).send({}).expect(400);
+    await http().post('/api/v1/tickets/no-uuid/transfer').set(bearer(aToken)).expect(400);
+    await http().delete('/api/v1/tickets/transfers/no-uuid').set(bearer(aToken)).expect(400);
+    const ticketId = await buyTicket(13);
+    await http().post(`/api/v1/tickets/${ticketId}/transfer`).expect(401);
+    await http().post('/api/v1/tickets/transfers/claim').send({ code: 'X' }).expect(401);
+    await http().get('/api/v1/tickets/transfers/outgoing').expect(401);
+  });
+
+  it('cadena de custodia con dos transferencias encadenadas + check-in (integridad)', async () => {
+    await prisma.event.update({ where: { id: eventId }, data: { maxTransfers: 2 } });
+    const ticketId = await buyTicket(14);
+    // A → B
+    const t1 = await http().post(`/api/v1/tickets/${ticketId}/transfer`).set(bearer(aToken)).expect(200);
+    await http().post('/api/v1/tickets/transfers/claim').set(bearer(bToken)).send({ code: t1.body.code }).expect(200);
+    // B → C
+    const t2 = await http().post(`/api/v1/tickets/${ticketId}/transfer`).set(bearer(bToken)).expect(200);
+    await http().post('/api/v1/tickets/transfers/claim').set(bearer(cToken)).send({ code: t2.body.code }).expect(200);
+    // Check-in por el operador (C es el dueño).
+    const qr = await http().get(`/api/v1/tickets/${ticketId}/qr`).set(bearer(cToken)).expect(200);
+    await http().post('/api/v1/tickets/verify').set(bearer(operatorToken)).send({ payload: qr.body.payload }).expect(200);
+
+    const custody = await http().get(`/api/v1/tickets/${ticketId}/custody`).set(bearer(cToken)).expect(200);
+    expect(custody.body.events.map((e: { type: string }) => e.type)).toEqual([
+      'issued',
+      'transferred',
+      'transferred',
+      'checked_in',
+    ]);
+    expect(custody.body.integrity.ok).toBe(true);
+    await prisma.event.update({ where: { id: eventId }, data: { maxTransfers: null } });
   });
 });
