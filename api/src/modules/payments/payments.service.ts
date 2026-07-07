@@ -16,6 +16,9 @@ import { PricingService } from '../pricing/pricing.service';
 import { PricingEngine } from '../pricing/pricing.engine';
 import { PaymentGatewaysService } from '../payment-gateways/payment-gateways.service';
 import { hmacSha256, randomToken, safeEqual } from '../../common/utils/crypto';
+import { QueueService } from '../../infra/queue/queue.service';
+import { QUEUES } from '../../infra/queue/queue.constants';
+import { TicketsService } from '../tickets/tickets.service';
 import { PAYMENT_PROVIDER, PaymentProvider } from './payment.provider';
 
 export interface WebhookPayload {
@@ -35,6 +38,8 @@ export class PaymentsService {
     private readonly pricing: PricingService,
     private readonly gateways: PaymentGatewaysService,
     private readonly config: ConfigService,
+    private readonly queue: QueueService,
+    private readonly tickets: TicketsService,
     @Inject(PAYMENT_PROVIDER) private readonly provider: PaymentProvider,
   ) {}
 
@@ -395,6 +400,11 @@ export class PaymentsService {
         data: { status: 'paid', paidAt: new Date() },
       }),
     ]);
+
+    // Trabajo pesado FUERA del camino crítico: la emisión de boletos (y, en
+    // cascada, QR/PDF y correos) se encola tras asentar el pago (condición del
+    // arquitecto). enqueue no lanza: un fallo aquí no revierte el pago.
+    await this.queue.enqueue(QUEUES.TICKETS, 'issue', { orderId: order.id });
   }
 
   /**
@@ -458,6 +468,10 @@ export class PaymentsService {
       }),
       this.prisma.order.update({ where: { id: order.id }, data: { status: 'refunded' } }),
     ]);
+
+    // Invalidar los boletos al instante (reembolso/contracargo). La propagación a
+    // validadores offline es de la Ola 5.
+    await this.tickets.revokeByOrder(order.id);
   }
 
   /**
