@@ -36,6 +36,8 @@ const SYSTEM_TYPES = new Set<LedgerAccountType>([
   LedgerAccountType.gateway_fee,
   LedgerAccountType.payment_holding,
   LedgerAccountType.platform_expense,
+  LedgerAccountType.payout_pending,
+  LedgerAccountType.payout_settled,
 ]);
 
 @Injectable()
