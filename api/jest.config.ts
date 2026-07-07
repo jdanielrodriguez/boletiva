@@ -6,6 +6,8 @@ export default {
     '^.+\\.[tj]s$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.spec.json' }],
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
+  // Fuerza QUEUE_INLINE en tests (jobs síncronos, sin workers dejando handles abiertos).
+  setupFiles: ['<rootDir>/src/test/jest.env.ts'],
   coverageDirectory: '../coverage/api',
   testMatch: ['<rootDir>/src/**/*.spec.ts', '<rootDir>/src/**/*.e2e-spec.ts'],
   testTimeout: 30000,

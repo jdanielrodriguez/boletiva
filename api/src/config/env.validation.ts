@@ -65,6 +65,21 @@ export const envValidationSchema = Joi.object({
   PAYMENT_PROVIDER: Joi.string().default('simulator'),
   PAYMENT_WEBHOOK_SECRET: Joi.string().default('dev-webhook-secret-change-me'),
 
+  // Colas (BullMQ, Ola 4). QUEUE_INLINE=true ejecuta los jobs síncronos (default
+  // en test). Sin definir → async en dev/prod, inline en test.
+  QUEUE_INLINE: Joi.boolean().optional(),
+  QUEUE_PREFIX: Joi.string().default('pe'),
+
+  // Firma de boletos (Ed25519, Ola 4). Seed de 32 bytes en hex (64 chars).
+  TICKET_SIGNING_SEED: Joi.string()
+    .hex()
+    .length(64)
+    .default('00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff'),
+  TICKET_SIGNING_KEY_ID: Joi.string().default('dev-ed25519-1'),
+
+  // Pases de wallet (Ola 4). 'stub' no requiere certificados de terceros.
+  WALLET_PROVIDER: Joi.string().valid('stub', 'google', 'apple').default('stub'),
+
   // Observabilidad (OpenTelemetry). Desactivado salvo OTEL_ENABLED=true o que se
   // defina un endpoint OTLP. Traza el camino de compra (hold→commit).
   OTEL_ENABLED: Joi.boolean().default(false),

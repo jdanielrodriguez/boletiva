@@ -9,6 +9,7 @@ import { envValidationSchema } from './config/env.validation';
 import { PrismaModule } from './infra/prisma/prisma.module';
 import { CryptoModule } from './infra/crypto/crypto.module';
 import { RedisModule } from './infra/redis/redis.module';
+import { QueueModule } from './infra/queue/queue.module';
 import { MailModule } from './infra/mail/mail.module';
 import { StorageModule } from './infra/storage/storage.module';
 import { RabbitModule } from './infra/messaging/rabbit.module';
@@ -29,6 +30,8 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { WalletModule } from './modules/wallet/wallet.module';
 import { PaymentGatewaysModule } from './modules/payment-gateways/payment-gateways.module';
 import { CostShareModule } from './modules/cost-share/cost-share.module';
+import { TicketsModule } from './modules/tickets/tickets.module';
+import { PromotersModule } from './modules/promoters/promoters.module';
 
 @Module({
   imports: [
@@ -66,6 +69,7 @@ import { CostShareModule } from './modules/cost-share/cost-share.module';
     PrismaModule,
     CryptoModule,
     RedisModule,
+    QueueModule,
     MailModule,
     StorageModule,
     RabbitModule,
@@ -83,6 +87,8 @@ import { CostShareModule } from './modules/cost-share/cost-share.module';
     WalletModule,
     PaymentGatewaysModule,
     CostShareModule,
+    TicketsModule,
+    PromotersModule,
   ],
   providers: [
     // Orden importa: autentica (JWT) → autoriza por rol → exige correo verificado.

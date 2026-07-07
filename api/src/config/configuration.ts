@@ -29,6 +29,9 @@ export interface AppConfig {
   security: { encryptionKey: string };
   oauth: { google: { clientId: string } };
   payment: { provider: string; webhookSecret: string };
+  queue: { inline: boolean; prefix: string };
+  tickets: { signingSeed: string; signingKeyId: string };
+  wallet: { provider: string };
   cors: { origins: string[] };
 }
 
@@ -83,6 +86,23 @@ export const configuration = (): AppConfig => {
       provider: process.env.PAYMENT_PROVIDER ?? 'simulator',
       webhookSecret: process.env.PAYMENT_WEBHOOK_SECRET ?? 'dev-webhook-secret-change-me',
     },
+    // Colas (BullMQ). En modo inline los jobs corren síncronos (tests deterministas
+    // y sin workers colgando handles); en async se empujan a BullMQ sobre Redis.
+    queue: {
+      inline: bool(process.env.QUEUE_INLINE, env === 'test'),
+      prefix: process.env.QUEUE_PREFIX ?? 'pe',
+    },
+    // Firma de boletos (Ed25519). El seed (32 bytes hex) construye el par de llaves
+    // de forma determinista; en prod DEBE venir de Secret Manager y ser rotable.
+    tickets: {
+      signingSeed:
+        process.env.TICKET_SIGNING_SEED ??
+        '00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff',
+      signingKeyId: process.env.TICKET_SIGNING_KEY_ID ?? 'dev-ed25519-1',
+    },
+    // Pases de wallet (Google/Apple). 'stub' = simulador sin certificados de
+    // terceros (los E2E no dependen de Apple Developer / Google Wallet API).
+    wallet: { provider: process.env.WALLET_PROVIDER ?? 'stub' },
     cors: {
       origins: (process.env.CORS_ORIGINS ?? '')
         .split(',')
