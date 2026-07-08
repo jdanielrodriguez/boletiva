@@ -9,7 +9,13 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RequireVerifiedEmail } from '../../common/decorators/verified-email.decorator';
@@ -17,7 +23,14 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { PageQueryDto } from '../../common/dto/page-query.dto';
 import { WalletService } from './wallet.service';
 import { WalletWithdrawalService } from './wallet-withdrawal.service';
-import { RequestWithdrawalDto, WithdrawalDecisionDto, WithdrawalsQueryDto } from './dto/wallet.dto';
+import {
+  RequestWithdrawalDto,
+  WalletBalanceResponseDto,
+  WithdrawalActionResponseDto,
+  WithdrawalDecisionDto,
+  WithdrawalPageResponseDto,
+  WithdrawalsQueryDto,
+} from './dto/wallet.dto';
 
 @ApiTags('wallet')
 @ApiBearerAuth()
@@ -30,6 +43,7 @@ export class WalletController {
 
   @Get()
   @ApiOperation({ summary: 'Saldo interno del usuario' })
+  @ApiOkResponse({ type: WalletBalanceResponseDto })
   me(@CurrentUser('userId') userId: string) {
     return this.wallet.summary(userId);
   }
@@ -38,12 +52,14 @@ export class WalletController {
   @RequireVerifiedEmail()
   @HttpCode(201)
   @ApiOperation({ summary: 'Solicita un retiro de saldo (reserva en el ledger)' })
+  @ApiCreatedResponse({ type: WithdrawalActionResponseDto })
   request(@Body() dto: RequestWithdrawalDto, @CurrentUser('userId') userId: string) {
     return this.withdrawals.request(userId, dto.amount);
   }
 
   @Get('withdrawals')
   @ApiOperation({ summary: 'Mis retiros (keyset: ?cursor&limit)' })
+  @ApiOkResponse({ type: WithdrawalPageResponseDto })
   mine(@CurrentUser('userId') userId: string, @Query() page: PageQueryDto) {
     return this.withdrawals.listMine(userId, page);
   }
@@ -51,6 +67,7 @@ export class WalletController {
   @Get('withdrawals/all')
   @Roles(Role.admin)
   @ApiOperation({ summary: 'Todos los retiros (admin), ?status y keyset ?cursor&limit' })
+  @ApiOkResponse({ type: WithdrawalPageResponseDto })
   all(@Query() q: WithdrawalsQueryDto) {
     return this.withdrawals.listAll(q.status, q);
   }
@@ -59,6 +76,7 @@ export class WalletController {
   @Roles(Role.admin)
   @HttpCode(200)
   @ApiOperation({ summary: 'Aprueba un retiro (admin)' })
+  @ApiOkResponse({ type: WithdrawalActionResponseDto })
   approve(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('userId') adminId: string) {
     return this.withdrawals.approve(id, adminId);
   }
@@ -67,6 +85,7 @@ export class WalletController {
   @Roles(Role.admin)
   @HttpCode(200)
   @ApiOperation({ summary: 'Marca un retiro como pagado (admin)' })
+  @ApiOkResponse({ type: WithdrawalActionResponseDto })
   pay(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: WithdrawalDecisionDto,
@@ -79,6 +98,7 @@ export class WalletController {
   @Roles(Role.admin)
   @HttpCode(200)
   @ApiOperation({ summary: 'Rechaza un retiro y reintegra el saldo (admin)' })
+  @ApiOkResponse({ type: WithdrawalActionResponseDto })
   reject(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: WithdrawalDecisionDto,
@@ -90,6 +110,7 @@ export class WalletController {
   @Delete('withdrawals/:id')
   @HttpCode(200)
   @ApiOperation({ summary: 'Cancela un retiro propio pendiente (reintegra el saldo)' })
+  @ApiOkResponse({ type: WithdrawalActionResponseDto })
   cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('userId') userId: string) {
     return this.withdrawals.cancel(id, userId);
   }

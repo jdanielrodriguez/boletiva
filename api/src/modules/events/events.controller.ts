@@ -10,7 +10,14 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiNoContentResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { Public } from '../../common/decorators/public.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -18,6 +25,13 @@ import { RequireVerifiedEmail } from '../../common/decorators/verified-email.dec
 import { AuthUser, CurrentUser } from '../../common/decorators/current-user.decorator';
 import { EventsService } from './events.service';
 import { CreateEventDto, UpdateEventDto } from './dto/events.dto';
+import {
+  EventResponseDto,
+  ManagedEventDetailDto,
+  MyEventListItemDto,
+  PublicEventDetailDto,
+  PublicEventListDto,
+} from './dto/events.response';
 
 @ApiTags('events')
 @Controller('events')
@@ -27,6 +41,7 @@ export class EventsController {
   @Public()
   @Get()
   @ApiOperation({ summary: 'Lista eventos publicados' })
+  @ApiOkResponse({ type: PublicEventListDto })
   listPublic(
     @Query('skip') skip?: string,
     @Query('take') take?: string,
@@ -45,6 +60,7 @@ export class EventsController {
   @Roles(Role.promoter, Role.admin)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Eventos del promotor autenticado' })
+  @ApiOkResponse({ type: MyEventListItemDto, isArray: true })
   listMine(@CurrentUser('userId') userId: string) {
     return this.events.listMine(userId);
   }
@@ -53,6 +69,7 @@ export class EventsController {
   @Roles(Role.promoter, Role.admin)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Detalle gestionable del evento (owner/admin)' })
+  @ApiOkResponse({ type: ManagedEventDetailDto })
   getManaged(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
     return this.events.getManaged(id, user);
   }
@@ -60,6 +77,7 @@ export class EventsController {
   @Public()
   @Get(':slug')
   @ApiOperation({ summary: 'Evento publicado por slug (con localidades y media)' })
+  @ApiOkResponse({ type: PublicEventDetailDto })
   getPublic(@Param('slug') slug: string) {
     return this.events.getPublicBySlug(slug);
   }
@@ -69,6 +87,7 @@ export class EventsController {
   @RequireVerifiedEmail()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Crea un evento (promotor, requiere correo verificado)' })
+  @ApiCreatedResponse({ type: EventResponseDto })
   create(@Body() dto: CreateEventDto, @CurrentUser('userId') userId: string) {
     return this.events.create(dto, userId);
   }
@@ -77,6 +96,7 @@ export class EventsController {
   @Roles(Role.promoter, Role.admin)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Actualiza un evento (owner/admin)' })
+  @ApiOkResponse({ type: EventResponseDto })
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateEventDto,
@@ -90,6 +110,7 @@ export class EventsController {
   @HttpCode(200)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Publica un evento' })
+  @ApiOkResponse({ type: EventResponseDto })
   publish(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
     return this.events.setStatus(id, 'published', user);
   }
@@ -99,6 +120,7 @@ export class EventsController {
   @HttpCode(200)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Cancela un evento' })
+  @ApiOkResponse({ type: EventResponseDto })
   cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
     return this.events.setStatus(id, 'cancelled', user);
   }
@@ -108,6 +130,7 @@ export class EventsController {
   @HttpCode(204)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Elimina un evento (solo no publicado)' })
+  @ApiNoContentResponse({ description: 'Evento eliminado' })
   remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
     return this.events.remove(id, user);
   }

@@ -8,11 +8,18 @@ import {
   ParseUUIDPipe,
   Post,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { RequireVerifiedEmail } from '../../common/decorators/verified-email.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { SeatHoldService } from './seat-hold.service';
 import { CreateHoldDto, HoldSeatsDto } from './dto/inventory.dto';
+import { HoldResponseDto, ReleaseHoldResponseDto } from './dto/inventory.response';
 
 @ApiTags('inventory')
 @ApiBearerAuth()
@@ -26,6 +33,7 @@ export class InventoryController {
   @ApiOperation({
     summary: 'Reserva temporal (hold) de 10 min. Numerada: {seatIds}. General: {localityId, quantity}',
   })
+  @ApiCreatedResponse({ type: HoldResponseDto })
   hold(
     @Param('eventId', ParseUUIDPipe) eventId: string,
     @Body() dto: CreateHoldDto,
@@ -48,6 +56,7 @@ export class InventoryController {
   @Delete()
   @HttpCode(200)
   @ApiOperation({ summary: 'Libera los holds propios de esos asientos' })
+  @ApiOkResponse({ type: ReleaseHoldResponseDto })
   release(
     @Param('eventId', ParseUUIDPipe) eventId: string,
     @Body() dto: HoldSeatsDto,

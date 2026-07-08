@@ -1,9 +1,10 @@
 import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { ValidationIngestService } from './validation-ingest.service';
 import { BatchCheckinDto } from './dto/tickets.dto';
+import { BatchCheckinResultDto, CheckinConflictDto } from './dto/tickets.response';
 
 @ApiTags('validation-ingest')
 @ApiBearerAuth()
@@ -15,6 +16,7 @@ export class ValidationIngestController {
   @Roles(Role.gate_operator, Role.admin)
   @HttpCode(200)
   @ApiOperation({ summary: 'Ingesta un lote de check-ins offline (bus RabbitMQ)' })
+  @ApiOkResponse({ type: BatchCheckinResultDto })
   batch(@Body() dto: BatchCheckinDto) {
     return this.ingest.submit(dto.items, dto.gateId);
   }
@@ -22,6 +24,7 @@ export class ValidationIngestController {
   @Get('events/:eventId/checkins/conflicts')
   @Roles(Role.gate_operator, Role.admin)
   @ApiOperation({ summary: 'Conflictos de validación del evento (dobles check-in)' })
+  @ApiOkResponse({ type: CheckinConflictDto, isArray: true })
   conflicts(@Param('eventId', ParseUUIDPipe) eventId: string) {
     return this.ingest.listConflicts(eventId);
   }

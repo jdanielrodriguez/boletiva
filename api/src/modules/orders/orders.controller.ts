@@ -1,11 +1,21 @@
 import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { RequireVerifiedEmail } from '../../common/decorators/verified-email.decorator';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user.decorator';
 import { PageQueryDto } from '../../common/dto/page-query.dto';
 import { CheckoutService } from './checkout.service';
 import { OrdersService } from './orders.service';
-import { CheckoutDto } from './dto/orders.dto';
+import {
+  CheckoutDto,
+  OrderPageResponseDto,
+  OrderResponseDto,
+} from './dto/orders.dto';
 
 @ApiTags('orders')
 @ApiBearerAuth()
@@ -17,6 +27,7 @@ export class OrdersController {
   @HttpCode(201)
   @RequireVerifiedEmail()
   @ApiOperation({ summary: 'Compra (commit): convierte los asientos reservados en una orden' })
+  @ApiCreatedResponse({ type: OrderResponseDto })
   create(
     @Param('eventId', ParseUUIDPipe) eventId: string,
     @Body() dto: CheckoutDto,
@@ -31,12 +42,14 @@ export class OrdersController {
 
   @Get('orders')
   @ApiOperation({ summary: 'Lista mis órdenes (keyset: ?cursor&limit)' })
+  @ApiOkResponse({ type: OrderPageResponseDto })
   listMine(@CurrentUser('userId') userId: string, @Query() page: PageQueryDto) {
     return this.orders.listMine(userId, page);
   }
 
   @Get('orders/:id')
   @ApiOperation({ summary: 'Detalle de una orden propia (o cualquiera si admin)' })
+  @ApiOkResponse({ type: OrderResponseDto })
   findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
     return this.orders.findOne(id, user);
   }

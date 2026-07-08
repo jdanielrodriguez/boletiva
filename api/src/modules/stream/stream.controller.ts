@@ -1,9 +1,26 @@
 import { Controller, MessageEvent, NotFoundException, Param, ParseUUIDPipe, Sse } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiOperation, ApiProduces, ApiProperty, ApiTags } from '@nestjs/swagger';
+import { OrderStatus } from '@prisma/client';
 import { Observable } from 'rxjs';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { StreamService } from './stream.service';
+
+/**
+ * Snapshot inicial que abre el stream SSE (evento `snapshot`). Los eventos en
+ * vivo posteriores (`order`/`seat`/`wallet`) llevan payloads propios de cada
+ * emisor y no se modelan aquí (flujo text/event-stream).
+ */
+export class OrderStreamSnapshotDto {
+  @ApiProperty({ format: 'uuid', description: 'Identificador de la orden' })
+  id!: string;
+
+  @ApiProperty({ enum: OrderStatus, description: 'Estado actual de la orden' })
+  status!: OrderStatus;
+
+  @ApiProperty({ type: String, example: '129.68', description: 'Total de la orden (GTQ)' })
+  total!: string;
+}
 
 @ApiTags('stream')
 @Controller()
@@ -17,6 +34,13 @@ export class StreamController {
    */
   @Sse('orders/:id/stream')
   @ApiOperation({ summary: 'Stream SSE del checkout (order/seat/wallet). Auth: ?access_token=' })
+  @ApiProduces('text/event-stream')
+  @ApiOkResponse({
+    description:
+      'Flujo Server-Sent Events. Abre con un evento `snapshot` (OrderStreamSnapshotDto) ' +
+      'y luego empuja eventos en vivo `order`/`seat`/`wallet` sin polling.',
+    type: OrderStreamSnapshotDto,
+  })
   async orderStream(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser('userId') userId: string,

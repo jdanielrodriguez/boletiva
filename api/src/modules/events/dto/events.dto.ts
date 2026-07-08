@@ -1,4 +1,4 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsBoolean,
   IsDateString,
@@ -17,43 +17,59 @@ const ABSORB_DESC =
   'false/omitir = lo absorbe la PLATAFORMA. El comprador paga igual en ambos casos.';
 
 export class CreateEventDto {
+  @ApiProperty({ description: 'Nombre del evento (3–150 caracteres)', example: 'Concierto de Apertura' })
   @IsString()
   @MinLength(3)
   @MaxLength(150)
   name!: string;
 
+  @ApiPropertyOptional({ description: 'Descripción larga (máx 5000)', example: 'Una noche inolvidable' })
   @IsOptional()
   @IsString()
   @MaxLength(5000)
   description?: string;
 
+  @ApiPropertyOptional({ format: 'uuid', description: 'Categoría del evento' })
   @IsOptional()
   @IsUUID()
   categoryId?: string;
 
+  @ApiPropertyOptional({ description: 'Dirección/lugar (máx 300)', example: 'Estadio Nacional, Ciudad de Guatemala' })
   @IsOptional()
   @IsString()
   @MaxLength(300)
   address?: string;
 
+  @ApiPropertyOptional({ description: 'Latitud', example: 14.6349 })
   @IsOptional()
   @IsLatitude()
   lat?: number;
 
+  @ApiPropertyOptional({ description: 'Longitud', example: -90.5069 })
   @IsOptional()
   @IsLongitude()
   lng?: number;
 
+  @ApiProperty({ format: 'date-time', description: 'Inicio del evento (ISO 8601)', example: '2026-08-15T02:00:00.000Z' })
   @IsDateString()
   startsAt!: string;
 
+  @ApiProperty({ format: 'date-time', description: 'Fin del evento (ISO 8601, posterior a startsAt)', example: '2026-08-15T05:00:00.000Z' })
   @IsDateString()
   endsAt!: string;
 
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Pasarela elegida por el promotor (omitir = hereda la default de plataforma)',
+  })
   @IsOptional()
   @IsUUID()
   gatewayId?: string;
 
+  @ApiPropertyOptional({
+    default: true,
+    description: 'Si el IVA se aplica sobre el neto del promotor (false = solo sobre comisión de plataforma)',
+  })
   @IsOptional()
   @IsBoolean()
   ivaOnNet?: boolean;
@@ -65,46 +81,62 @@ export class CreateEventDto {
 }
 
 export class UpdateEventDto {
+  @ApiPropertyOptional({ description: 'Nombre del evento (3–150 caracteres)', example: 'Concierto de Apertura' })
   @IsOptional()
   @IsString()
   @MinLength(3)
   @MaxLength(150)
   name?: string;
 
+  @ApiPropertyOptional({ description: 'Descripción larga (máx 5000)', example: 'Una noche inolvidable' })
   @IsOptional()
   @IsString()
   @MaxLength(5000)
   description?: string;
 
+  @ApiPropertyOptional({ format: 'uuid', description: 'Categoría del evento' })
   @IsOptional()
   @IsUUID()
   categoryId?: string;
 
+  @ApiPropertyOptional({ description: 'Dirección/lugar (máx 300)', example: 'Estadio Nacional, Ciudad de Guatemala' })
   @IsOptional()
   @IsString()
   @MaxLength(300)
   address?: string;
 
+  @ApiPropertyOptional({ description: 'Latitud', example: 14.6349 })
   @IsOptional()
   @IsLatitude()
   lat?: number;
 
+  @ApiPropertyOptional({ description: 'Longitud', example: -90.5069 })
   @IsOptional()
   @IsLongitude()
   lng?: number;
 
+  @ApiPropertyOptional({ format: 'date-time', description: 'Inicio del evento (ISO 8601)', example: '2026-08-15T02:00:00.000Z' })
   @IsOptional()
   @IsDateString()
   startsAt?: string;
 
+  @ApiPropertyOptional({ format: 'date-time', description: 'Fin del evento (ISO 8601, posterior a startsAt)', example: '2026-08-15T05:00:00.000Z' })
   @IsOptional()
   @IsDateString()
   endsAt?: string;
 
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Pasarela elegida por el promotor (bloqueada si el evento ya tiene compras)',
+  })
   @IsOptional()
   @IsUUID()
   gatewayId?: string;
 
+  @ApiPropertyOptional({
+    default: true,
+    description: 'Si el IVA se aplica sobre el neto del promotor (bloqueado si el evento ya tiene compras)',
+  })
   @IsOptional()
   @IsBoolean()
   ivaOnNet?: boolean;

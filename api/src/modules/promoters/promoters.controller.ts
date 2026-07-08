@@ -10,13 +10,25 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { PromoterStatus, Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RequireVerifiedEmail } from '../../common/decorators/verified-email.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { PromotersService } from './promoters.service';
-import { PromoterDecisionDto, SetRequireApprovalDto } from './dto/promoters.dto';
+import {
+  MyPromoterStatusResponseDto,
+  PromoterDecisionDto,
+  PromoterListItemDto,
+  PromoterStatusResponseDto,
+  RequireApprovalResponseDto,
+  SetRequireApprovalDto,
+} from './dto/promoters.dto';
 
 @ApiTags('promoters')
 @ApiBearerAuth()
@@ -28,12 +40,14 @@ export class PromotersController {
   @RequireVerifiedEmail()
   @HttpCode(200)
   @ApiOperation({ summary: 'Solicita darse de alta como promotor (auto-aprueba en modo pruebas)' })
+  @ApiOkResponse({ type: PromoterStatusResponseDto })
   apply(@CurrentUser('userId') userId: string) {
     return this.promoters.apply(userId);
   }
 
   @Get('me')
   @ApiOperation({ summary: 'Mi estado de promotor' })
+  @ApiOkResponse({ type: MyPromoterStatusResponseDto })
   me(@CurrentUser('userId') userId: string) {
     return this.promoters.myStatus(userId);
   }
@@ -41,6 +55,7 @@ export class PromotersController {
   @Get('settings')
   @Roles(Role.admin)
   @ApiOperation({ summary: 'Config de autorización de promotores (admin)' })
+  @ApiOkResponse({ type: RequireApprovalResponseDto })
   async settings() {
     return { requireApproval: await this.promoters.requireApproval() };
   }
@@ -48,6 +63,7 @@ export class PromotersController {
   @Patch('settings')
   @Roles(Role.admin)
   @ApiOperation({ summary: 'Activa/desactiva la exigencia de autorización — "Activar pruebas" (admin)' })
+  @ApiOkResponse({ type: RequireApprovalResponseDto })
   setSettings(@Body() dto: SetRequireApprovalDto) {
     return this.promoters.setRequireApproval(dto.requireApproval);
   }
@@ -55,6 +71,7 @@ export class PromotersController {
   @Get()
   @Roles(Role.admin)
   @ApiOperation({ summary: 'Lista de solicitudes de promotor (admin), filtrable por estado' })
+  @ApiOkResponse({ type: PromoterListItemDto, isArray: true })
   list(@Query('status') status?: string) {
     if (status && !(status in PromoterStatus)) {
       throw new BadRequestException('Estado de promotor inválido');
@@ -66,6 +83,7 @@ export class PromotersController {
   @Roles(Role.admin)
   @HttpCode(200)
   @ApiOperation({ summary: 'Aprueba un promotor (admin)' })
+  @ApiOkResponse({ type: PromoterStatusResponseDto })
   approve(@Param('id', ParseUUIDPipe) id: string) {
     return this.promoters.approve(id);
   }
@@ -74,6 +92,7 @@ export class PromotersController {
   @Roles(Role.admin)
   @HttpCode(200)
   @ApiOperation({ summary: 'Rechaza una solicitud de promotor (admin)' })
+  @ApiOkResponse({ type: PromoterStatusResponseDto })
   reject(@Param('id', ParseUUIDPipe) id: string, @Body() dto: PromoterDecisionDto) {
     return this.promoters.reject(id, dto.note);
   }
@@ -82,6 +101,7 @@ export class PromotersController {
   @Roles(Role.admin)
   @HttpCode(200)
   @ApiOperation({ summary: 'Suspende a un promotor (admin)' })
+  @ApiOkResponse({ type: PromoterStatusResponseDto })
   suspend(@Param('id', ParseUUIDPipe) id: string, @Body() dto: PromoterDecisionDto) {
     return this.promoters.suspend(id, dto.note);
   }
