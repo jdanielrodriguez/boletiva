@@ -151,6 +151,11 @@ export class PaymentsService {
       currency: order.currency,
       installments,
     });
+    // Simulador (dev/staging): auto-confirma tras un jitter, reproduciendo el
+    // webhook del gateway real. No-op si está desactivado (default y en test).
+    this.provider.scheduleAutoConfirm?.(payment.providerRef, (p, sig) =>
+      this.handleWebhook(p, sig),
+    );
     return { ...this.summarize(payment), installments, paymentUrl: res.paymentUrl };
   }
 

@@ -28,7 +28,15 @@ export interface AppConfig {
   jwt: { accessSecret: string; accessTtl: number; refreshSecret: string; refreshTtl: number };
   security: { encryptionKey: string };
   oauth: { google: { clientId: string } };
-  payment: { provider: string; webhookSecret: string };
+  payment: {
+    provider: string;
+    webhookSecret: string;
+    // Simulador: auto-confirma el pago tras un jitter aleatorio (dev/staging), para
+    // ejercitar el estado `pending` en el frontend. OFF en test (webhooks manuales).
+    simulatorAutoConfirm: boolean;
+    simulatorJitterMinMs: number;
+    simulatorJitterMaxMs: number;
+  };
   queue: { inline: boolean; prefix: string };
   tickets: { signingSeed: string; signingKeyId: string };
   wallet: { provider: string };
@@ -88,6 +96,11 @@ export const configuration = (): AppConfig => {
     payment: {
       provider: process.env.PAYMENT_PROVIDER ?? 'simulator',
       webhookSecret: process.env.PAYMENT_WEBHOOK_SECRET ?? 'dev-webhook-secret-change-me',
+      // Auto-confirm OFF por defecto y SIEMPRE en test (los e2e disparan el webhook
+      // manualmente y de forma determinista).
+      simulatorAutoConfirm: env !== 'test' && bool(process.env.PAYMENT_SIMULATOR_AUTO_CONFIRM),
+      simulatorJitterMinMs: parseInt(process.env.PAYMENT_SIMULATOR_JITTER_MIN_MS ?? '1000', 10),
+      simulatorJitterMaxMs: parseInt(process.env.PAYMENT_SIMULATOR_JITTER_MAX_MS ?? '5000', 10),
     },
     // Colas (BullMQ). En modo inline los jobs corren síncronos (tests deterministas
     // y sin workers colgando handles); en async se empujan a BullMQ sobre Redis.

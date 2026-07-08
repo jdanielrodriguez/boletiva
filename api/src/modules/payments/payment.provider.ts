@@ -18,6 +18,12 @@ export interface CreatePaymentResult {
   installments?: number;
 }
 
+/** Entrega un webhook firmado al handler (in-process). Usado por el auto-confirm. */
+export type WebhookDelivery = (
+  payload: { id: string; type: string; providerRef: string },
+  signature: string,
+) => Promise<unknown>;
+
 /**
  * Puerto de pasarela de pago. Implementaciones: simulador (Ola 3), luego Pagalo,
  * Stripe/GPay/PayPal. El fulfillment SIEMPRE ocurre por webhook (webhook-first),
@@ -26,4 +32,9 @@ export interface CreatePaymentResult {
 export interface PaymentProvider {
   readonly name: string;
   createPayment(input: CreatePaymentInput): Promise<CreatePaymentResult>;
+  /**
+   * Opcional: programa una confirmación automática (simulador en dev/staging).
+   * Las pasarelas reales no lo implementan (el webhook llega del gateway externo).
+   */
+  scheduleAutoConfirm?(providerRef: string, deliver: WebhookDelivery): void;
 }
