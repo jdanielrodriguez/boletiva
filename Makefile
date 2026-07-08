@@ -107,6 +107,13 @@ front-lint:
 gen-api:
 	docker exec $(FRONT) npm run gen:api
 
+# E2E de cara al usuario (Puppeteer) contra el stack real: catálogo, detalle/SEO,
+# 404, login con 2FA (OTP de MailHog) y compra completa hasta el pago por SSE.
+# Requiere PAYMENT_SIMULATOR_AUTO_CONFIRM=true en .env (dev).
+.PHONY: e2e
+e2e:
+	docker exec $(API) node /app/tools/e2e/e2e.mjs
+
 # --- Pruebas de carga (K6) del on-sale ---
 # make load                      # ciclo completo: seed 10k + spike + verificación
 # VUS=10000 DURATION=5s make load-test   # spike real (staging)

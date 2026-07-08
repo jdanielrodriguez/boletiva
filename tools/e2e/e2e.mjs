@@ -1,0 +1,178 @@
+/**
+ * E2E de Pasa Eventos con Puppeteer contra el stack REAL (frontend SSR + API +
+ * MailHog). Valida cada funcionalidad del frontend de cara al usuario:
+ * catálogo, hero, filtros, detalle+SEO, 404, login con 2FA (OTP leído de
+ * MailHog) y la compra completa (selección → reserva → checkout → pago por SSE).
+ *
+ * Correr dentro del contenedor de la API (tiene puppeteer-core + chromium):
+ *   make e2e
+ * Requiere PAYMENT_SIMULATOR_AUTO_CONFIRM=true para que el pago se confirme solo.
+ */
+import puppeteer from 'puppeteer-core';
+
+const FE = process.env.E2E_FRONTEND_URL || 'http://pasaeventos_frontend:4200';
+const MAIL = process.env.E2E_MAILHOG_URL || 'http://pasaeventos_mailhog:8025';
+const BUYER = { email: 'cliente@pasaeventos.com', password: 'Password123' };
+const EVENT_SLUG = 'evento-demo-pasaeventos';
+
+let pass = 0;
+let fail = 0;
+const failures = [];
+
+async function step(name, fn) {
+  try {
+    await fn();
+    pass++;
+    console.log(`  ✓ ${name}`);
+  } catch (err) {
+    fail++;
+    failures.push(`${name}: ${err.message}`);
+    console.log(`  ✗ ${name} — ${err.message}`);
+  }
+}
+
+function assert(cond, msg) {
+  if (!cond) throw new Error(msg);
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function waitSel(page, sel, timeout = 15000) {
+  await page.waitForSelector(sel, { timeout });
+}
+
+async function text(page, sel) {
+  return page.$eval(sel, (el) => el.textContent?.trim() ?? '').catch(() => '');
+}
+
+async function clearMail() {
+  await fetch(`${MAIL}/api/v1/messages`, { method: 'DELETE' }).catch(() => {});
+}
+
+/** Lee el OTP de 6 dígitos del último correo en MailHog (poll hasta ~10s). */
+async function otpFromMail() {
+  for (let i = 0; i < 20; i++) {
+    const res = await fetch(`${MAIL}/api/v2/messages`).catch(() => null);
+    if (res && res.ok) {
+      const data = await res.json();
+      const items = data.items || [];
+      for (const m of items) {
+        const body = (m.Content && m.Content.Body) || '';
+        const decoded = body.replace(/=\r?\n/g, '').replace(/=3D/g, '=');
+        const match = decoded.match(/\b(\d{6})\b/);
+        if (match) return match[1];
+      }
+    }
+    await sleep(500);
+  }
+  throw new Error('no llegó el OTP a MailHog');
+}
+
+async function main() {
+  const browser = await puppeteer.launch({
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser',
+    headless: 'new',
+    args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage'],
+  });
+  const page = await browser.newPage();
+  await page.setViewport({ width: 1280, height: 900 });
+
+  console.log('\n▶ Catálogo');
+  await step('el catálogo carga con hero y tarjetas', async () => {
+    await page.goto(`${FE}/`, { waitUntil: 'networkidle0' });
+    await waitSel(page, '.event-card');
+    assert((await page.$('.hero')) !== null, 'no hay hero slider');
+    const cards = await page.$$('.event-card');
+    assert(cards.length > 0, 'no hay tarjetas de evento');
+    assert((await text(page, '[data-testid="catalog-count"]')).length > 0, 'sin conteo');
+  });
+
+  await step('el filtro por categoría cambia el query param', async () => {
+    const btns = await page.$$('.catalog-categories button');
+    assert(btns.length > 1, 'no hay categorías');
+    await btns[1].click();
+    await page.waitForFunction(() => location.search.includes('category='), { timeout: 8000 });
+  });
+
+  await step('la búsqueda cambia el query param', async () => {
+    await page.goto(`${FE}/`, { waitUntil: 'networkidle0' });
+    await waitSel(page, '.catalog-search input');
+    await page.type('.catalog-search input', 'demo');
+    await page.click('.catalog-search button');
+    await page.waitForFunction(() => location.search.includes('search='), { timeout: 8000 });
+  });
+
+  console.log('\n▶ Detalle y SEO');
+  await step('el detalle carga por slug con JSON-LD Event', async () => {
+    await page.goto(`${FE}/eventos/${EVENT_SLUG}`, { waitUntil: 'networkidle0' });
+    await waitSel(page, 'h1');
+    const h1 = await text(page, 'h1');
+    assert(h1.toLowerCase().includes('evento'), `h1 inesperado: ${h1}`);
+    const ld = await page.$('#pe-jsonld');
+    assert(ld !== null, 'falta JSON-LD');
+    const type = await page.$eval('#pe-jsonld', (el) => JSON.parse(el.textContent)['@type']);
+    assert(type === 'Event', `@type=${type}`);
+    assert((await page.$('a.buy')) !== null, 'falta botón Comprar');
+  });
+
+  await step('slug inexistente devuelve 404 y muestra no-encontrado', async () => {
+    const resp = await page.goto(`${FE}/eventos/no-existe-xyz-000`, { waitUntil: 'networkidle0' });
+    assert(resp.status() === 404, `status=${resp.status()}`);
+    await waitSel(page, '[data-testid="event-notfound"]', 8000);
+  });
+
+  console.log('\n▶ Login con 2FA (OTP por MailHog)');
+  await step('login con contraseña + 2FA inicia sesión', async () => {
+    await clearMail();
+    await page.goto(`${FE}/login`, { waitUntil: 'networkidle0' });
+    await waitSel(page, '#email');
+    await page.type('#email', BUYER.email);
+    await page.type('#password', BUYER.password);
+    await page.click('button[type="submit"]');
+    // Puede pedir 2FA (dispositivo nuevo).
+    await waitSel(page, '#code, [data-testid="session-greeting"]', 15000);
+    if (await page.$('#code')) {
+      const otp = await otpFromMail();
+      await page.type('#code', otp);
+      await page.click('button[type="submit"]');
+    }
+    await waitSel(page, '[data-testid="session-greeting"]', 15000);
+  });
+
+  console.log('\n▶ Compra completa (selección → reserva → checkout → pago SSE)');
+  await step('selecciona General por cantidad y reserva', async () => {
+    await page.goto(`${FE}/eventos/${EVENT_SLUG}/comprar`, { waitUntil: 'networkidle0' });
+    await waitSel(page, '[data-testid="loc-quantity"]');
+    const select = await page.$('.loc-quantity select');
+    assert(select !== null, 'no hay selector de cantidad para General');
+    await select.select('2');
+    await page.click('[data-testid="reserve-btn"]');
+    await waitSel(page, '[data-testid="countdown"]', 15000);
+  });
+
+  await step('continúa al checkout y muestra el desglose', async () => {
+    await page.click('[data-testid="pay-btn"]');
+    await page.waitForFunction(() => location.pathname.startsWith('/checkout/'), { timeout: 15000 });
+    await waitSel(page, '[data-testid="breakdown"]');
+    assert((await text(page, '[data-testid="service-fee"]')).includes('Q'), 'sin cuota de servicio');
+    assert((await text(page, '[data-testid="total"]')).includes('Q'), 'sin total');
+  });
+
+  await step('paga y el estado pasa a pagado por SSE', async () => {
+    await page.click('[data-testid="pay-confirm"]');
+    await waitSel(page, '[data-testid="status-paid"]', 20000);
+  });
+
+  await browser.close();
+
+  console.log(`\n=== E2E: ${pass} pasaron, ${fail} fallaron ===`);
+  if (fail > 0) {
+    console.log(failures.map((f) => ` - ${f}`).join('\n'));
+    process.exit(1);
+  }
+}
+
+main().catch((err) => {
+  console.error('E2E abortado:', err);
+  process.exit(1);
+});

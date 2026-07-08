@@ -3,13 +3,11 @@
     <h1>Iniciar sesión</h1>
     <p class="auth-sub">Entra para comprar y gestionar tus boletos.</p>
 
-    @if (needs2fa()) {
-      <p data-testid="twofa-notice">Se requiere verificación en dos pasos. (Continúa en F3.)</p>
-    } @else {
-      @if (error()) {
-        <p class="form-error" data-testid="login-error">{{ error() }}</p>
-      }
+    @if (error()) {
+      <p class="form-error" data-testid="login-error">{{ error() }}</p>
+    }
 
+    @if (!needs2fa()) {
       <form (ngSubmit)="submit()">
         <div class="field">
           <label for="email">Correo</label>
@@ -45,6 +43,34 @@
       </form>
 
       <p class="auth-alt">¿Aún no tienes cuenta? <a routerLink="/registro">Regístrate</a></p>
+    } @else {
+      <form (ngSubmit)="verify()">
+        <p class="auth-sub" data-testid="twofa-notice">
+          @if (method() === 'email') {
+            Te enviamos un código de 6 dígitos a tu correo. Ingrésalo para continuar.
+          } @else {
+            Ingresa el código de tu app de autenticación.
+          }
+        </p>
+        <div class="field">
+          <label for="code">Código</label>
+          <input
+            id="code"
+            type="text"
+            name="code"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            maxlength="6"
+            placeholder="000000"
+            [ngModel]="code()"
+            (ngModelChange)="code.set($event)"
+            required
+          />
+        </div>
+        <button type="submit" class="primary btn-block" [disabled]="submitting()">
+          {{ submitting() ? 'Verificando…' : 'Verificar' }}
+        </button>
+      </form>
     }
   </section>
 </div>

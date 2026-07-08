@@ -8,9 +8,10 @@ export const routes: Routes = [
     title: 'Eventos — Pasa Eventos',
   },
   {
+    // Selección ABIERTA (e-commerce): cualquiera busca/elige sin sesión. El login
+    // se exige al RESERVAR (paso hacia el pago) — ver PurchasePage.reserve().
     path: 'eventos/:slug/comprar',
     loadComponent: () => import('./features/purchase/purchase.page').then((m) => m.PurchasePage),
-    canActivate: [authGuard, verifiedEmailGuard],
     title: 'Comprar — Pasa Eventos',
   },
   {

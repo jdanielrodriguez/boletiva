@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { EventsApi } from '../../core/api/events.api';
+import { SessionStore } from '../../core/auth/session.store';
 import { InventoryApi } from '../../core/api/inventory.api';
 import { OrdersApi } from '../../core/api/orders.api';
 import type { EventAvailabilityDto, PublicEventDetailDto } from '../../core/api/types';
@@ -45,6 +46,10 @@ describe('PurchasePage (camino por cantidad)', () => {
         { provide: EventsApi, useValue: events },
         { provide: InventoryApi, useValue: inventory },
         { provide: OrdersApi, useValue: orders },
+        {
+          provide: SessionStore,
+          useValue: { ensureLoaded: () => of({ id: 'u1' }), isEmailVerified: () => true },
+        },
         { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ slug: 'fiesta' })) } },
       ],
     });

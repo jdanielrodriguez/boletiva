@@ -4,6 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { switchMap, tap } from 'rxjs';
 import { EventsApi } from '../../core/api/events.api';
+import { SessionStore } from '../../core/auth/session.store';
 import type { LocalityAvailabilityDto } from '../../core/api/types';
 import { SeatMapComponent } from './seat-map.component';
 import { PurchaseService } from './purchase.service';
@@ -28,6 +29,7 @@ export class PurchasePage implements OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly eventsApi = inject(EventsApi);
+  private readonly session = inject(SessionStore);
   protected readonly store = inject(PurchaseService);
 
   protected readonly phase = signal<Phase>('select');
@@ -90,6 +92,24 @@ export class PurchasePage implements OnDestroy {
     if (this.store.totalCount() === 0) return;
     this.working.set(true);
     this.error.set(null);
+    // El login se exige AQUÍ (al reservar = paso hacia el pago), no al buscar.
+    // Resuelve la sesión (por si aún no hidrató) y decide.
+    this.session.ensureLoaded().subscribe((user) => {
+      if (!user) {
+        this.working.set(false);
+        void this.router.navigate(['/login'], { queryParams: { returnUrl: this.router.url } });
+        return;
+      }
+      if (!this.session.isEmailVerified()) {
+        this.working.set(false);
+        void this.router.navigate(['/verificar-correo']);
+        return;
+      }
+      this.doHold();
+    });
+  }
+
+  private doHold(): void {
     this.store.hold().subscribe({
       next: () => {
         this.working.set(false);
