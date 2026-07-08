@@ -62,6 +62,9 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "allowedHosts": ["pasaeventos_frontend", "localhost"]
+          },
           "configurations": {
             "production": {
               "buildTarget": "frontend:build:production"

@@ -241,18 +241,30 @@ async function seedDemoEvent(promoterId: string, categoryId: string): Promise<vo
     },
   });
 
-  // Asientos numerados para la localidad con mapa (VIP).
+  // Asientos numerados CON coordenadas para la localidad con mapa (VIP): rejilla
+  // 5×4 que el mapa Konva del frontend puede renderizar (x/y en el lienzo).
   await prisma.seat.createMany({
     data: Array.from({ length: 20 }, (_, i) => ({
       localityId: vip.id,
       label: `V${i + 1}`,
       section: 'VIP',
+      row: String.fromCharCode(65 + Math.floor(i / 5)), // A..D
+      x: 120 + (i % 5) * 90,
+      y: 120 + Math.floor(i / 5) * 90,
     })),
     skipDuplicates: true,
   });
   await prisma.locality.update({ where: { id: vip.id }, data: { capacity: 20 } });
 
-  void general;
+  // Materializa el aforo GENERAL como filas `seats` (GA-*): la admisión general
+  // se vende por cantidad asignando cupos concretos (anti-doble-venta).
+  await prisma.seat.createMany({
+    data: Array.from({ length: 100 }, (_, i) => ({
+      localityId: general.id,
+      label: `GA-${i + 1}`,
+    })),
+    skipDuplicates: true,
+  });
 }
 
 async function main(): Promise<void> {

@@ -65,7 +65,7 @@
         <p class="awaiting" data-testid="awaiting">Procesando el pago… esperando confirmación.</p>
       }
 
-      <button type="button" data-testid="pay-confirm" [disabled]="paying()" (click)="pay()">
+      <button type="button" class="primary" data-testid="pay-confirm" [disabled]="paying()" (click)="pay()">
         {{ paying() ? 'Procesando…' : 'Pagar Q' + (breakdown()?.total ?? '') }}
       </button>
     }

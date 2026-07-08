@@ -1,5 +1,20 @@
 <header class="site-header">
-  <a class="brand" routerLink="/">Pasa Eventos</a>
+  <a class="brand" routerLink="/" aria-label="Pasa Eventos - inicio">
+    <svg class="brand-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="peGrad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#7b5cff" />
+          <stop offset="1" stop-color="#e14eca" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M6 7h20a2 2 0 0 1 2 2v4a3 3 0 0 0 0 6v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-4a3 3 0 0 0 0-6V9a2 2 0 0 1 2-2Z"
+        fill="url(#peGrad)"
+      />
+      <path d="M13 12.5 20 16l-7 3.5v-7Z" fill="#0b0c11" />
+    </svg>
+    <span><span class="brand-em">pasa</span><span class="brand-rest">eventos</span></span>
+  </a>
 
   <nav class="site-nav">
     <a routerLink="/">Eventos</a>
@@ -10,7 +25,7 @@
       <span class="greeting" data-testid="session-greeting">Hola, {{ session.user()?.firstName }}</span>
       <button type="button" (click)="logout()">Salir</button>
     } @else {
-      <a routerLink="/login" data-testid="login-link">Iniciar sesión</a>
+      <a class="btn primary" routerLink="/login" data-testid="login-link">Iniciar sesión</a>
     }
   </div>
 </header>

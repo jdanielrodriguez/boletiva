@@ -57,6 +57,7 @@
         <p class="total">Total: Q{{ store.totalDisplay() }}</p>
         <button
           type="button"
+          class="primary"
           data-testid="reserve-btn"
           [disabled]="store.totalCount() === 0 || working()"
           (click)="reserve()"
@@ -73,7 +74,7 @@
         </p>
         <p>{{ store.heldSeatIds().length }} boleto(s) reservados · Total Q{{ store.totalDisplay() }}</p>
         <div class="actions">
-          <button type="button" data-testid="pay-btn" [disabled]="working()" (click)="pay()">
+          <button type="button" class="primary" data-testid="pay-btn" [disabled]="working()" (click)="pay()">
             {{ working() ? 'Creando orden…' : 'Continuar al pago' }}
           </button>
           <button type="button" class="ghost" [disabled]="working()" (click)="cancel()">
