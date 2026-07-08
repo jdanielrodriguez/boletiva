@@ -7,3 +7,9 @@ import { InjectionToken } from '@angular/core';
  * la resolución es por DI y no por chequeos de plataforma dispersos en el código.
  */
 export const API_BASE_URL = new InjectionToken<string>('API_BASE_URL');
+
+/**
+ * Origen público del sitio (sin path), p.ej. https://pasaeventos.com. Se usa para
+ * construir URLs canónicas y og:url absolutas en SEO. En local: http://localhost:4200.
+ */
+export const SITE_URL = new InjectionToken<string>('SITE_URL');

@@ -6,4 +6,6 @@
 export const environment = {
   /** URL base del API para peticiones desde el navegador. */
   apiBaseUrlBrowser: 'http://localhost:8080/api/v1',
+  /** Origen público del sitio (para URLs canónicas / og:url). */
+  siteUrl: 'http://localhost:4200',
 } as const;

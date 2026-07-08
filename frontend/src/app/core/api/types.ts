@@ -24,3 +24,8 @@ export type ProvidersResponseDto = Schemas['ProvidersResponseDto'];
 export type PublicEventListDto = Schemas['PublicEventListDto'];
 export type PublicEventListItemDto = Schemas['PublicEventListItemDto'];
 export type PublicEventDetailDto = Schemas['PublicEventDetailDto'];
+export type EventLocalityDto = Schemas['EventLocalityDto'];
+export type EventCategoryDto = Schemas['EventCategoryDto'];
+
+// --- Categorías ---
+export type CategoryResponseDto = Schemas['CategoryResponseDto'];

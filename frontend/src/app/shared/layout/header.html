@@ -1,0 +1,16 @@
+<header class="site-header">
+  <a class="brand" routerLink="/">Pasa Eventos</a>
+
+  <nav class="site-nav">
+    <a routerLink="/">Eventos</a>
+  </nav>
+
+  <div class="session-area" data-testid="session-area">
+    @if (session.isAuthenticated()) {
+      <span class="greeting" data-testid="session-greeting">Hola, {{ session.user()?.firstName }}</span>
+      <button type="button" (click)="logout()">Salir</button>
+    } @else {
+      <a routerLink="/login" data-testid="login-link">Iniciar sesión</a>
+    }
+  </div>
+</header>

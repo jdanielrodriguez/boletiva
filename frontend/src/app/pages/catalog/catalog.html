@@ -1,0 +1,61 @@
+<section class="catalog">
+  <h1>Eventos</h1>
+
+  <form class="catalog-search" (ngSubmit)="submitSearch(searchBox.value)">
+    <input
+      #searchBox
+      type="search"
+      name="search"
+      placeholder="Buscar eventos…"
+      [value]="search()"
+      aria-label="Buscar eventos"
+    />
+    <button type="submit">Buscar</button>
+  </form>
+
+  <div class="catalog-categories" role="group" aria-label="Filtrar por categoría">
+    <button type="button" [class.active]="activeCategory() === ''" (click)="selectCategory('')">
+      Todas
+    </button>
+    @for (cat of categories(); track cat.id) {
+      <button
+        type="button"
+        [class.active]="activeCategory() === cat.slug"
+        (click)="selectCategory(cat.slug)"
+      >
+        {{ cat.name }}
+      </button>
+    }
+  </div>
+
+  @if (!loaded()) {
+    <p data-testid="catalog-error">No se pudo cargar el catálogo. Intenta de nuevo.</p>
+  } @else if (events().length === 0) {
+    <p data-testid="catalog-empty">No hay eventos que coincidan con tu búsqueda.</p>
+  } @else {
+    <p class="catalog-count" data-testid="catalog-count">{{ total() }} evento(s)</p>
+    <ul class="catalog-grid">
+      @for (ev of events(); track ev.id) {
+        <li class="event-card">
+          <a [routerLink]="['/eventos', ev.slug]">
+            <div class="event-thumb" aria-hidden="true">{{ ev.name.charAt(0) }}</div>
+            <h2>{{ ev.name }}</h2>
+            @if (ev.category) {
+              <span class="event-cat">{{ ev.category.name }}</span>
+            }
+            <time [attr.datetime]="ev.startsAt">{{ ev.startsAt | date: 'medium' }}</time>
+            @if (ev.address) {
+              <span class="event-place">{{ ev.address }}</span>
+            }
+          </a>
+        </li>
+      }
+    </ul>
+
+    <nav class="catalog-pager" aria-label="Paginación">
+      <button type="button" [disabled]="!hasPrev()" (click)="goToPage(page() - 1)">Anterior</button>
+      <span>Página {{ page() }}</span>
+      <button type="button" [disabled]="!hasNext()" (click)="goToPage(page() + 1)">Siguiente</button>
+    </nav>
+  }
+</section>

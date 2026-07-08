@@ -1,1 +1,164 @@
-/* You can add global styles to this file, and also import other style files */
+/* Estilos globales base (F1). Diseño fino/tokens en fases posteriores. */
+:root {
+  --pe-bg: #0e0f13;
+  --pe-surface: #1a1c22;
+  --pe-text: #f4f4f6;
+  --pe-muted: #a2a6b0;
+  --pe-accent: #6c5ce7;
+  --pe-border: #2a2d36;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--pe-bg);
+  color: var(--pe-text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.5;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid var(--pe-border);
+  background: var(--pe-surface);
+  color: var(--pe-text);
+  border-radius: 8px;
+  padding: 0.5rem 0.9rem;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button.active {
+  background: var(--pe-accent);
+  border-color: var(--pe-accent);
+}
+
+.site-header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--pe-border);
+}
+
+.site-header .brand {
+  font-weight: 700;
+  font-size: 1.15rem;
+}
+
+.site-header .session-area {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.site-main {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.catalog-search {
+  display: flex;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.catalog-search input {
+  flex: 1;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--pe-border);
+  background: var(--pe-surface);
+  color: var(--pe-text);
+}
+
+.catalog-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.catalog-grid {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.event-card a {
+  display: block;
+  background: var(--pe-surface);
+  border: 1px solid var(--pe-border);
+  border-radius: 12px;
+  padding: 1rem;
+  height: 100%;
+}
+
+.event-card .event-thumb {
+  display: grid;
+  place-items: center;
+  height: 120px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--pe-accent), #00b894);
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.event-card h2 {
+  font-size: 1.05rem;
+  margin: 0 0 0.35rem;
+}
+
+.event-card .event-cat,
+.event-card .event-place,
+.event-card time {
+  display: block;
+  color: var(--pe-muted);
+  font-size: 0.85rem;
+}
+
+.catalog-pager {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  justify-content: center;
+  margin: 1.5rem 0;
+}
+
+.event-detail .back {
+  color: var(--pe-muted);
+}
+
+.event-detail .event-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  color: var(--pe-muted);
+  margin: 0.5rem 0 1rem;
+}
+
+.event-cancelled {
+  color: #ff7675;
+  font-weight: 600;
+}

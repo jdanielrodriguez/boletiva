@@ -8,11 +8,18 @@ import type { PublicEventDetailDto, PublicEventListDto } from './types';
 export class EventsApi {
   private readonly api = inject(ApiClient);
 
-  /** Lista de eventos publicados (paginación por skip/take). */
-  listPublic(params?: { skip?: number; take?: number }): Observable<PublicEventListDto> {
+  /** Lista de eventos publicados (paginación por skip/take, filtro por categoría/búsqueda). */
+  listPublic(params?: {
+    skip?: number;
+    take?: number;
+    category?: string;
+    search?: string;
+  }): Observable<PublicEventListDto> {
     return this.api.get<PublicEventListDto>('/events', {
       skip: params?.skip,
       take: params?.take,
+      category: params?.category,
+      search: params?.search,
     });
   }
 

@@ -8,7 +8,7 @@ import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 
 import { routes } from './app.routes';
-import { API_BASE_URL } from './core/config/api.tokens';
+import { API_BASE_URL, SITE_URL } from './core/config/api.tokens';
 import { environment } from './core/config/environment';
 import { authInterceptor } from './core/http/auth.interceptor';
 
@@ -22,5 +22,6 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
     // Valor de navegador; el servidor lo sobreescribe en app.config.server.ts.
     { provide: API_BASE_URL, useValue: environment.apiBaseUrlBrowser },
+    { provide: SITE_URL, useValue: environment.siteUrl },
   ],
 };

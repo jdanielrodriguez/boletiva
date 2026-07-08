@@ -1,0 +1,47 @@
+@if (event(); as ev) {
+  <article class="event-detail">
+    <a class="back" routerLink="/">← Eventos</a>
+    <h1>{{ ev.name }}</h1>
+
+    <div class="event-meta">
+      @if (ev.category) {
+        <span class="event-cat">{{ ev.category.name }}</span>
+      }
+      <time [attr.datetime]="ev.startsAt">{{ ev.startsAt | date: 'full' }}</time>
+      @if (ev.address) {
+        <span class="event-place">{{ ev.address }}</span>
+      }
+    </div>
+
+    @if (ev.description) {
+      <p class="event-description">{{ ev.description }}</p>
+    }
+
+    @if (ev.status === 'cancelled') {
+      <p class="event-cancelled" data-testid="event-cancelled">Este evento fue cancelado.</p>
+    }
+
+    <section class="event-localities">
+      <h2>Localidades</h2>
+      @if (ev.localities.length > 0) {
+        <ul>
+          @for (loc of ev.localities; track loc.id) {
+            <li>{{ loc.name }}</li>
+          }
+        </ul>
+      } @else {
+        <p>Aún no hay localidades publicadas.</p>
+      }
+    </section>
+
+    <button type="button" class="buy" disabled>Comprar (próximamente)</button>
+  </article>
+} @else if (loading()) {
+  <p data-testid="event-loading">Cargando evento…</p>
+} @else {
+  <section class="event-notfound" data-testid="event-notfound">
+    <h1>Evento no encontrado</h1>
+    <p>El evento que buscas no existe o ya no está disponible.</p>
+    <a routerLink="/">Ver todos los eventos</a>
+  </section>
+}
