@@ -53,6 +53,36 @@ services:
       pasaeventos_network:
         ipv4_address: 172.16.0.4
 
+  # Frontend Angular 20 SSR (PWA). Parte del monorepo: `make start` levanta
+  # backend + frontend con un solo comando. En SSR (Node dentro del contenedor)
+  # el API se resuelve por la red Docker (pasaeventos_api); en el navegador,
+  # por localhost:8080 (host). Ver core/config del frontend (isPlatformServer).
+  pasaeventos_frontend:
+    container_name: pasaeventos_frontend
+    build:
+      context: .
+      dockerfile: ./docker/angular/Dockerfile
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+      # SSR → API por la red interna; navegador → API por el host.
+      - API_URL_SERVER=http://pasaeventos_api:8080/api/v1
+      - API_URL_BROWSER=http://localhost:8080/api/v1
+    ports:
+      - '4200:4200'
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      # Spec OpenAPI del backend (solo lectura) para regenerar el SDK tipado.
+      - ./docs:/docs:ro
+    depends_on:
+      pasaeventos_api:
+        condition: service_started
+    networks:
+      pasaeventos_network:
+        ipv4_address: 172.16.0.12
+
   pasaeventos_adminer:
     image: adminer:latest
     container_name: pasaeventos_adminer

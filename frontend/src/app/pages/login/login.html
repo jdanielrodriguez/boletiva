@@ -1,0 +1,40 @@
+<section class="login">
+  <h1>Iniciar sesión</h1>
+
+  @if (needs2fa()) {
+    <p data-testid="twofa-notice">Se requiere verificación en dos pasos. (Continúa en F3.)</p>
+  } @else {
+    <form (ngSubmit)="submit()">
+      <label>
+        Correo
+        <input
+          type="email"
+          name="email"
+          autocomplete="email"
+          [ngModel]="email()"
+          (ngModelChange)="email.set($event)"
+          required
+        />
+      </label>
+      <label>
+        Contraseña
+        <input
+          type="password"
+          name="password"
+          autocomplete="current-password"
+          [ngModel]="password()"
+          (ngModelChange)="password.set($event)"
+          required
+        />
+      </label>
+
+      @if (error()) {
+        <p class="error" data-testid="login-error">{{ error() }}</p>
+      }
+
+      <button type="submit" [disabled]="submitting()">
+        {{ submitting() ? 'Entrando…' : 'Entrar' }}
+      </button>
+    </form>
+  }
+</section>

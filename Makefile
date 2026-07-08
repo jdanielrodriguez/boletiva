@@ -5,6 +5,7 @@
 COMPOSE      = docker compose -f docker-compose.local.yml
 COMPOSE_TEST = docker compose -f docker-compose.local.yml -f docker-compose.test.yml
 API          = pasaeventos_api
+FRONT        = pasaeventos_frontend
 DB           = pasaeventos_db
 NETWORK      = pasaeventos_network
 K6_IMAGE     = grafana/k6:latest
@@ -83,6 +84,28 @@ test-all:
 .PHONY: smoke
 smoke:
 	docker exec $(API) npm run smoke
+
+# --- Frontend Angular (dentro del contenedor pasaeventos_frontend) ---
+.PHONY: front-logs
+front-logs:
+	$(COMPOSE) logs -f --tail=120 $(FRONT)
+
+.PHONY: front-shell
+front-shell:
+	docker exec -it $(FRONT) /bin/bash
+
+.PHONY: front-test
+front-test:
+	docker exec $(FRONT) npm test -- --watch=false
+
+.PHONY: front-lint
+front-lint:
+	docker exec $(FRONT) npm run lint
+
+# Regenera el SDK tipado del backend a partir de docs/openapi.json.
+.PHONY: gen-api
+gen-api:
+	docker exec $(FRONT) npm run gen:api
 
 # --- Pruebas de carga (K6) del on-sale ---
 # make load                      # ciclo completo: seed 10k + spike + verificación

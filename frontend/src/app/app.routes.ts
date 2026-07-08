@@ -1,3 +1,25 @@
 import { Routes } from '@angular/router';
 
-export const routes: Routes = [];
+export const routes: Routes = [
+  {
+    path: '',
+    loadComponent: () => import('./pages/home/home').then((m) => m.Home),
+    title: 'Pasa Eventos',
+  },
+  {
+    path: 'login',
+    loadComponent: () => import('./pages/login/login').then((m) => m.Login),
+    title: 'Iniciar sesión — Pasa Eventos',
+  },
+  {
+    path: 'verificar-correo',
+    loadComponent: () => import('./pages/verify-email/verify-email').then((m) => m.VerifyEmail),
+    title: 'Verifica tu correo — Pasa Eventos',
+  },
+  {
+    path: '403',
+    loadComponent: () => import('./pages/forbidden/forbidden').then((m) => m.Forbidden),
+    title: 'Sin permiso — Pasa Eventos',
+  },
+  { path: '**', redirectTo: '' },
+];

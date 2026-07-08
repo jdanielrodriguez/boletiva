@@ -7,8 +7,8 @@ tmp
 .git
 .github
 .nx
+**/.angular
 google-cloud-sdk
-frontend
 .env
 .env.*
 !.env.example
