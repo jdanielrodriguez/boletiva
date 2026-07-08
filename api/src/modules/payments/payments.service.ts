@@ -19,6 +19,7 @@ import { hmacSha256, randomToken, safeEqual } from '../../common/utils/crypto';
 import { QueueService } from '../../infra/queue/queue.service';
 import { QUEUES } from '../../infra/queue/queue.constants';
 import { TicketsService } from '../tickets/tickets.service';
+import { StreamService } from '../stream/stream.service';
 import { PAYMENT_PROVIDER, PaymentProvider } from './payment.provider';
 
 export interface WebhookPayload {
@@ -40,8 +41,19 @@ export class PaymentsService {
     private readonly config: ConfigService,
     private readonly queue: QueueService,
     private readonly tickets: TicketsService,
+    private readonly stream: StreamService,
     @Inject(PAYMENT_PROVIDER) private readonly provider: PaymentProvider,
   ) {}
+
+  /** Notifica el saldo de wallet del usuario por SSE (best-effort, nunca lanza). */
+  private async pushWallet(userId: string): Promise<void> {
+    try {
+      const balance = await this.ledger.walletBalance(userId);
+      this.stream.emitWallet(userId, { balance: balance.toFixed(2) });
+    } catch {
+      /* best-effort: un fallo del push no debe afectar el flujo de pago */
+    }
+  }
 
   private get webhookSecret(): string {
     return this.config.get<string>('payment.webhookSecret') as string;
@@ -533,6 +545,10 @@ export class PaymentsService {
     // cascada, QR/PDF y correos) se encola tras asentar el pago (condición del
     // arquitecto). enqueue no lanza: un fallo aquí no revierte el pago.
     await this.queue.enqueue(QUEUES.TICKETS, 'issue', { orderId: order.id });
+
+    // Push SSE: la orden quedó pagada (el frontend deja el estado `pending`).
+    this.stream.emitOrder(order.id, { status: 'paid', total: order.total.toFixed(2) });
+    if (new Decimal(payment.walletAmount.toString()).gt(0)) await this.pushWallet(order.buyerId);
   }
 
   /**
@@ -600,6 +616,11 @@ export class PaymentsService {
     // Invalidar los boletos al instante (reembolso/contracargo). La propagación a
     // validadores offline es de la Ola 5.
     await this.tickets.revokeByOrder(order.id);
+
+    // Push SSE: orden revertida + asientos liberados (mapa) + wallet (el refund lo acredita).
+    this.stream.emitOrder(order.id, { status: 'refunded' });
+    if (seatIds.length) this.stream.emitSeat(order.eventId, { released: seatIds });
+    if (mode === 'refund') await this.pushWallet(order.buyerId);
   }
 
   /**
@@ -649,5 +670,11 @@ export class PaymentsService {
         data: { status: 'cancelled', cancelledAt: new Date() },
       }),
     ]);
+
+    // Push SSE: pago fallido → orden cancelada + asientos liberados (mapa) + wallet
+    // (si había reserva mixta, se devolvió al saldo).
+    this.stream.emitOrder(order.id, { status: 'cancelled' });
+    if (seatIds.length) this.stream.emitSeat(order.eventId, { released: seatIds });
+    if (payment.method === 'mixed' && walletPortion.gt(0)) await this.pushWallet(order.buyerId);
   }
 }

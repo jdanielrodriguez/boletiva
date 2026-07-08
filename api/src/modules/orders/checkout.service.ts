@@ -16,6 +16,7 @@ import { PrismaService } from '../../infra/prisma/prisma.service';
 import { RedisService } from '../../infra/redis/redis.service';
 import { PricingService, ResolvedFees } from '../pricing/pricing.service';
 import { PriceQuote, PricingEngine } from '../pricing/pricing.engine';
+import { StreamService } from '../stream/stream.service';
 
 /** Datos de facturación FEL opcionales (sin NIT → consumidor final 'CF'). */
 export interface BillingInput {
@@ -44,6 +45,7 @@ export class CheckoutService {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly pricing: PricingService,
+    private readonly stream: StreamService,
   ) {}
 
   private holdKey(eventId: string, seatId: string): string {
@@ -75,6 +77,8 @@ export class CheckoutService {
         span.setAttribute('order.id', order.id);
         span.setAttribute('order.total', order.total.toString());
         span.setStatus({ code: SpanStatusCode.OK });
+        // Push SSE: asientos vendidos → delta de mapa para quien mira el evento.
+        this.stream.emitSeat(eventId, { sold: [...new Set(rawSeatIds)] });
         return order;
       } catch (e) {
         span.recordException(e as Error);
