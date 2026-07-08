@@ -56,7 +56,18 @@ describe('Boletos: manifiesto offline + propagación (e2e)', () => {
     aToken = await loginTrusted(SEED.buyer, 'man-A');
     bToken = await loginTrusted(`man_b_${stamp}@test.com`, 'man-B', true);
     buyerToken2 = await loginTrusted(`man_c_${stamp}@test.com`, 'man-C', true);
-    operatorToken = await loginTrusted(`man_op_${stamp}@test.com`, 'man-Op', true, ['gate_operator']);
+    // Operador de puerta: se asigna al evento y se emite un TOKEN DE PUERTA corto
+    // (SafeTix). El manifiesto ahora exige ese token acotado al evento + asignación.
+    const opAccess = await loginTrusted(`man_op_${stamp}@test.com`, 'man-Op', true, ['gate_operator']);
+    const opUser = await prisma.user.findUniqueOrThrow({
+      where: { email: `man_op_${stamp}@test.com` },
+    });
+    await prisma.gateAssignment.create({ data: { eventId, operatorId: opUser.id } });
+    const gt = await request(app.getHttpServer())
+      .post(`/api/v1/events/${eventId}/gate-token`)
+      .set({ Authorization: `Bearer ${opAccess}` })
+      .expect(201);
+    operatorToken = gt.body.token; // token de puerta (roles gate_operator + claim gateEventId)
   });
 
   async function loginTrusted(rawEmail: string, deviceId: string, create = false, roles?: string[]) {

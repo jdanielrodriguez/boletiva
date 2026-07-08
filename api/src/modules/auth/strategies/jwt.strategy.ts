@@ -8,6 +8,8 @@ export interface JwtPayload {
   sub: string;
   email: string;
   roles: AuthUser['roles'];
+  /** Solo en tokens de puerta SafeTix: evento al que está acotado el token. */
+  gateEventId?: string;
 }
 
 @Injectable()
@@ -28,6 +30,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   // Lo retornado se adjunta a request.user.
   validate(payload: JwtPayload): AuthUser {
-    return { userId: payload.sub, email: payload.email, roles: payload.roles };
+    return {
+      userId: payload.sub,
+      email: payload.email,
+      roles: payload.roles,
+      gateEventId: payload.gateEventId,
+    };
   }
 }

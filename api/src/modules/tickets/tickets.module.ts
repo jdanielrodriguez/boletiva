@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
 import { StorageService } from '../../infra/storage/storage.service';
 import { TicketsController } from './tickets.controller';
 import { TicketsService } from './tickets.service';
@@ -12,6 +13,8 @@ import { TicketTransferService } from './ticket-transfer.service';
 import { TicketTransfersController } from './ticket-transfers.controller';
 import { TicketSyncService } from './ticket-sync.service';
 import { TicketManifestController } from './ticket-manifest.controller';
+import { GateAccessService } from './gate-access.service';
+import { GateAccessController } from './gate-access.controller';
 import { ValidationIngestService } from './validation-ingest.service';
 import { ValidationIngestController } from './validation-ingest.controller';
 import { WalletPassService } from './wallet/wallet-pass.service';
@@ -24,11 +27,13 @@ import { StubWalletProvider } from './wallet/stub-wallet.provider';
  * Exporta TicketsService para que Payments revoque boletos en reembolsos/contracargos.
  */
 @Module({
+  imports: [JwtModule.register({})],
   controllers: [
     TicketsController,
     TicketTransfersController,
     TicketManifestController,
     ValidationIngestController,
+    GateAccessController,
   ],
   providers: [
     TicketsService,
@@ -36,6 +41,7 @@ import { StubWalletProvider } from './wallet/stub-wallet.provider';
     TicketCryptoService,
     TicketCustodyService,
     TicketSyncService,
+    GateAccessService,
     TicketMediaService,
     TicketMailService,
     TicketTransferService,

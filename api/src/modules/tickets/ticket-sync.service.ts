@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { TicketEventType } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { EncryptionService } from '../../infra/crypto/encryption.service';
@@ -24,6 +25,7 @@ export class TicketSyncService {
     private readonly prisma: PrismaService,
     private readonly encryption: EncryptionService,
     private readonly signing: TicketSigningService,
+    private readonly config: ConfigService,
   ) {}
 
   /** Registra un movimiento en la bitácora de sincronización. */
@@ -68,10 +70,18 @@ export class TicketSyncService {
       }))
       .sort((a, b) => a.ticketId.localeCompare(b.ticketId)); // orden estable para firmar
 
-    // Firma sobre un digest canónico (id|status|serial por boleto).
+    // Expiración firmada (SafeTix): el device rechaza offline un manifiesto vencido
+    // (lleva secretos TOTP en claro) → un manifiesto robado deja de servir tras el
+    // TTL; el device re-hace pull cuando hay red. Va DENTRO del contenido firmado.
+    const generatedAt = new Date();
+    const ttlSeconds = this.config.getOrThrow<number>('safetix.manifestTtl');
+    const expiresAt = new Date(generatedAt.getTime() + ttlSeconds * 1000);
+
+    // Firma sobre un digest canónico (id|status|serial por boleto + expiración).
     const canonical = JSON.stringify({
       eventId,
       maxSeq,
+      expiresAt: expiresAt.toISOString(),
       tickets: items.map((t) => ({ id: t.ticketId, st: t.status, s: t.serial })),
     });
     const contentHash = sha256(canonical);
@@ -86,7 +96,8 @@ export class TicketSyncService {
       tickets: items,
       contentHash,
       signature,
-      generatedAt: new Date().toISOString(),
+      generatedAt: generatedAt.toISOString(),
+      expiresAt: expiresAt.toISOString(),
     };
   }
 }

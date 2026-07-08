@@ -39,6 +39,9 @@ export interface AppConfig {
   };
   queue: { inline: boolean; prefix: string };
   tickets: { signingSeed: string; signingKeyId: string };
+  // SafeTix (Ola 6.5): TTL del token de puerta (corto/fresco) y del manifiesto
+  // firmado (caduca offline; lleva secretos TOTP en claro), en segundos.
+  safetix: { gateTokenTtl: number; manifestTtl: number };
   wallet: { provider: string };
   retention: { enabled: boolean; days: number };
   cors: { origins: string[] };
@@ -115,6 +118,10 @@ export const configuration = (): AppConfig => {
         process.env.TICKET_SIGNING_SEED ??
         '00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff',
       signingKeyId: process.env.TICKET_SIGNING_KEY_ID ?? 'dev-ed25519-1',
+    },
+    safetix: {
+      gateTokenTtl: parseInt(process.env.SAFETIX_GATE_TOKEN_TTL ?? '1800', 10), // 30 min
+      manifestTtl: parseInt(process.env.SAFETIX_MANIFEST_TTL ?? '21600', 10), // 6 h
     },
     // Pases de wallet (Google/Apple). 'stub' = simulador sin certificados de
     // terceros (los E2E no dependen de Apple Developer / Google Wallet API).

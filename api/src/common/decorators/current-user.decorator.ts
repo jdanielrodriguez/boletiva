@@ -5,6 +5,8 @@ export interface AuthUser {
   userId: string;
   email: string;
   roles: Role[];
+  /** Solo en tokens de PUERTA (SafeTix): evento al que está acotado el token. */
+  gateEventId?: string;
 }
 
 /** Inyecta el usuario autenticado (payload del JWT) en el handler. */
