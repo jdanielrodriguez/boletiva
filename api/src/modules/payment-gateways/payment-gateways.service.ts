@@ -11,6 +11,8 @@ export interface CreateGatewayInput {
   name: string;
   provider: string;
   feePct: number;
+  installmentRates?: Record<string, number>;
+  installmentFixedFee?: number;
   credentialsRef?: string;
   sandbox?: boolean;
 }
@@ -18,6 +20,8 @@ export interface CreateGatewayInput {
 export interface UpdateGatewayInput {
   name?: string;
   feePct?: number;
+  installmentRates?: Record<string, number>;
+  installmentFixedFee?: number;
   credentialsRef?: string;
   sandbox?: boolean;
 }
@@ -56,12 +60,18 @@ export class PaymentGatewaysService {
 
   async create(input: CreateGatewayInput) {
     this.assertPct(input.feePct);
+    if (input.installmentRates !== undefined) this.assertInstallmentRates(input.installmentRates);
     try {
       return await this.prisma.paymentGateway.create({
         data: {
           name: input.name,
           provider: input.provider,
           feePct: new Prisma.Decimal(input.feePct),
+          installmentRates: (input.installmentRates ?? undefined) as Prisma.InputJsonValue | undefined,
+          installmentFixedFee:
+            input.installmentFixedFee !== undefined
+              ? new Prisma.Decimal(input.installmentFixedFee)
+              : undefined,
           credentialsRef: input.credentialsRef,
           sandbox: input.sandbox ?? false,
         },
@@ -76,6 +86,7 @@ export class PaymentGatewaysService {
 
   async update(id: string, input: UpdateGatewayInput) {
     if (input.feePct !== undefined) this.assertPct(input.feePct);
+    if (input.installmentRates !== undefined) this.assertInstallmentRates(input.installmentRates);
     await this.get(id);
     try {
       return await this.prisma.paymentGateway.update({
@@ -83,6 +94,14 @@ export class PaymentGatewaysService {
         data: {
           name: input.name,
           feePct: input.feePct !== undefined ? new Prisma.Decimal(input.feePct) : undefined,
+          installmentRates:
+            input.installmentRates !== undefined
+              ? (input.installmentRates as Prisma.InputJsonValue)
+              : undefined,
+          installmentFixedFee:
+            input.installmentFixedFee !== undefined
+              ? new Prisma.Decimal(input.installmentFixedFee)
+              : undefined,
           credentialsRef: input.credentialsRef,
           sandbox: input.sandbox,
         },
@@ -154,6 +173,22 @@ export class PaymentGatewaysService {
   private assertPct(v: number): void {
     if (!Number.isFinite(v) || v < 0 || v >= 1) {
       throw new BadRequestException('feePct debe estar en el rango [0, 1)');
+    }
+  }
+
+  /**
+   * Valida el mapa de comisiones por cuotas: claves = enteros >= 2, valores =
+   * tasas en [0, 1). {} es válido (sin cuotas).
+   */
+  private assertInstallmentRates(rates: Record<string, number>): void {
+    for (const [k, v] of Object.entries(rates)) {
+      const count = Number(k);
+      if (!Number.isInteger(count) || count < 2) {
+        throw new BadRequestException(`Cuota inválida "${k}": debe ser un entero >= 2`);
+      }
+      if (typeof v !== 'number' || !Number.isFinite(v) || v < 0 || v >= 1) {
+        throw new BadRequestException(`Tasa inválida para ${k} cuotas: debe estar en [0, 1)`);
+      }
     }
   }
 }

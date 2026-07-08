@@ -1,4 +1,9 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { FeeParams, PriceQuote, PricingEngine } from './pricing.engine';
@@ -94,6 +99,24 @@ export class PricingService {
       ivaOnNet,
       fixedFees: sched ? sched.fixedFees.toNumber() : 0,
     };
+  }
+
+  /**
+   * Tasa efectiva de pasarela para `count` cuotas de una pasarela (gn). count <= 1
+   * → `feePct` (pago único). Un plazo no soportado por la pasarela → 400. Las
+   * tasas viven en `installmentRates` (JSON `{ "3": 0.08, ... }`).
+   */
+  installmentRate(
+    gateway: { feePct: Prisma.Decimal; installmentRates: Prisma.JsonValue | null },
+    count: number,
+  ): number {
+    if (!count || count <= 1) return gateway.feePct.toNumber();
+    const rates = (gateway.installmentRates as Record<string, number> | null) ?? null;
+    const rate = rates ? rates[String(count)] : undefined;
+    if (rate === undefined || rate === null) {
+      throw new BadRequestException(`La pasarela no admite pago en ${count} cuotas`);
+    }
+    return Number(rate);
   }
 
   /** Cotización global (preview) para un neto con las comisiones vigentes. */

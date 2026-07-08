@@ -6,12 +6,16 @@ export interface CreatePaymentInput {
   orderId: string;
   amount: string; // monto a cobrar por la pasarela (GTQ, 2 decimales)
   currency: string;
+  /** Número de cuotas (1 = pago único). Recurrente/Visacuotas: 3/6/12/18. */
+  installments?: number;
 }
 
 export interface CreatePaymentResult {
   providerRef: string;
   /** URL/ábrete-sésamo para completar el pago (en el simulador, ficticia). */
   paymentUrl: string;
+  /** Cuotas confirmadas por la pasarela (eco de la selección). */
+  installments?: number;
 }
 
 /**

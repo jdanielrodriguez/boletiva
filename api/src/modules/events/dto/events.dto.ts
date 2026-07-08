@@ -1,3 +1,4 @@
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsBoolean,
   IsDateString,
@@ -9,6 +10,11 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+
+/** Descripción compartida del flag de absorción de cuotas (transparencia frontend). */
+const ABSORB_DESC =
+  'Si el PROMOTOR absorbe el costo de las cuotas (se descuenta de su neto). ' +
+  'false/omitir = lo absorbe la PLATAFORMA. El comprador paga igual en ambos casos.';
 
 export class CreateEventDto {
   @IsString()
@@ -51,6 +57,11 @@ export class CreateEventDto {
   @IsOptional()
   @IsBoolean()
   ivaOnNet?: boolean;
+
+  @ApiPropertyOptional({ description: ABSORB_DESC, default: false })
+  @IsOptional()
+  @IsBoolean()
+  absorbInstallmentCost?: boolean;
 }
 
 export class UpdateEventDto {
@@ -97,4 +108,9 @@ export class UpdateEventDto {
   @IsOptional()
   @IsBoolean()
   ivaOnNet?: boolean;
+
+  @ApiPropertyOptional({ description: ABSORB_DESC, default: false })
+  @IsOptional()
+  @IsBoolean()
+  absorbInstallmentCost?: boolean;
 }

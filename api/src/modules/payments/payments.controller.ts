@@ -24,6 +24,7 @@ export class PaymentsController {
     return this.payments.initiate(id, userId, {
       gatewayId: dto.gatewayId,
       useWallet: dto.useWallet,
+      installments: dto.installments,
     });
   }
 

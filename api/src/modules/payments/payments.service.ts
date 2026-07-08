@@ -13,7 +13,7 @@ import Decimal from 'decimal.js';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { LedgerService } from '../ledger/ledger.service';
 import { PricingService } from '../pricing/pricing.service';
-import { PricingEngine } from '../pricing/pricing.engine';
+import { InstallmentPlan, PricingEngine } from '../pricing/pricing.engine';
 import { PaymentGatewaysService } from '../payment-gateways/payment-gateways.service';
 import { hmacSha256, randomToken, safeEqual } from '../../common/utils/crypto';
 import { QueueService } from '../../infra/queue/queue.service';
@@ -59,9 +59,10 @@ export class PaymentsService {
   async initiate(
     orderId: string,
     buyerId: string,
-    opts: { gatewayId?: string; useWallet?: boolean } = {},
+    opts: { gatewayId?: string; useWallet?: boolean; installments?: number } = {},
   ) {
     const useWallet = opts.useWallet ?? false;
+    const installments = opts.installments ?? 1;
     let order = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!order || order.buyerId !== buyerId) {
       throw new NotFoundException('Orden no encontrada'); // no filtra existencia (IDOR)
@@ -75,10 +76,16 @@ export class PaymentsService {
     if (existing) return this.summarize(existing);
 
     // Método: pasarela elegida (o la de la orden / default de plataforma) si está
-    // activa. Si se eligió otra, se RECOTIZA la orden con su comisión (y se congela).
+    // activa. Se RECOTIZA la orden cuando se cambia de pasarela O se elige pago en
+    // cuotas (el catálogo/commit siempre cotiza en 1 pago). El comprador paga lo
+    // mismo en cuotas; el costo extra lo absorbe la plataforma/promotor.
     const gateway = await this.resolveChosenGateway(opts.gatewayId, order.feeGatewayId);
-    if (gateway && gateway.id !== order.feeGatewayId) {
-      await this.requote(order.id, gateway);
+    if (installments > 1 && !gateway) {
+      throw new BadRequestException('No hay una pasarela activa para pagar en cuotas');
+    }
+    const needsRequote = (gateway && gateway.id !== order.feeGatewayId) || installments > 1;
+    if (needsRequote && gateway) {
+      await this.requote(order.id, gateway, installments);
       order = await this.prisma.order.findUniqueOrThrow({ where: { id: orderId } });
     }
 
@@ -142,8 +149,9 @@ export class PaymentsService {
       orderId,
       amount: gatewayCharge.toFixed(2),
       currency: order.currency,
+      installments,
     });
-    return { ...this.summarize(payment), paymentUrl: res.paymentUrl };
+    return { ...this.summarize(payment), installments, paymentUrl: res.paymentUrl };
   }
 
   private summarize(p: {
@@ -193,16 +201,34 @@ export class PaymentsService {
    * cada ítem con la comisión de la pasarela + el IVA del evento, resume los
    * totales y estampa la pasarela usada. Todo en una transacción.
    */
-  private async requote(orderId: string, gateway: PaymentGateway): Promise<void> {
+  private async requote(
+    orderId: string,
+    gateway: PaymentGateway,
+    installments = 1,
+  ): Promise<void> {
     const order = await this.prisma.order.findUniqueOrThrow({
       where: { id: orderId },
-      include: { items: true, event: { select: { ivaOnNet: true } } },
+      include: {
+        items: true,
+        event: { select: { ivaOnNet: true, absorbInstallmentCost: true } },
+      },
     });
     const params = await this.pricing.paramsForRequote(
       order.feeScheduleVersion,
       gateway.feePct.toNumber(),
       order.event.ivaOnNet,
     );
+    // Plan de cuotas (solo si >1): tasa y fijo de la pasarela; lo absorbe la
+    // plataforma salvo que el evento marque que lo absorbe el promotor.
+    const plan: InstallmentPlan | undefined =
+      installments > 1
+        ? {
+            count: installments,
+            ratePct: this.pricing.installmentRate(gateway, installments),
+            fixedFee: gateway.installmentFixedFee ? gateway.installmentFixedFee.toNumber() : 0,
+            absorbedByPromoter: order.event.absorbInstallmentCost,
+          }
+        : undefined;
     const zero = new Decimal(0);
     const sum = {
       net: zero,
@@ -214,7 +240,7 @@ export class PaymentsService {
       total: zero,
     };
     const itemUpdates = order.items.map((it) => {
-      const q = PricingEngine.quote(it.net.toString(), params);
+      const q = PricingEngine.quote(it.net.toString(), params, plan);
       sum.net = sum.net.add(q.net);
       sum.fixed = sum.fixed.add(q.fixedFees);
       sum.platform = sum.platform.add(q.platformFee);

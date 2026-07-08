@@ -362,6 +362,11 @@ model Event {
   frozenGatewayId String?  @map("frozen_gateway_id") @db.Uuid
   ivaOnNet        Boolean  @default(true) @map("iva_on_net")
 
+  // Cuotas (Ola 6.5): si el promotor ABSORBE el recargo por pago en cuotas
+  // (descontándolo de su neto en el ledger) en lugar de pasárselo al comprador.
+  // false (default) = el recargo lo paga el comprador (gross-up mayor).
+  absorbInstallmentCost Boolean @default(false) @map("absorb_installment_cost")
+
   // Máximo de transferencias (regalo) por boleto (Ola 5). null = usa el default
   // global (setting `transfer.max_per_ticket_default`).
   maxTransfers Int? @map("max_transfers")
@@ -587,8 +592,17 @@ model OrderItem {
 model PaymentGateway {
   id               String        @id @default(uuid()) @db.Uuid
   name             String        @unique
-  provider         String // 'simulator' | 'pagalo' | 'stripe' | ...
+  provider         String // 'simulator' | 'recurrente' | 'pagalo' | 'stripe' | ...
   feePct           Decimal       @map("fee_pct") @db.Decimal(6, 5)
+  /// Comisión efectiva de pasarela POR CANTIDAD DE CUOTAS (Visacuotas/Mastercuotas).
+  /// Mapa { "3": 0.08, "6": 0.09, "12": 0.10, "18": 0.14 } = tasa de la pasarela
+  /// para N cuotas. null / ausente / clave "1" → pago único usa `feePct`. El costo
+  /// extra lo absorbe la plataforma (o el promotor si el evento lo marca); el
+  /// comprador paga siempre el precio de 1 pago (recargo directo prohibido en GT).
+  installmentRates Json?         @map("installment_rates")
+  /// Cargo FIJO por transacción en cuotas (GTQ, p.ej. Q2 de Recurrente). Se suma
+  /// al costo que absorbe la plataforma/promotor. null/0 = sin fijo.
+  installmentFixedFee Decimal?   @map("installment_fixed_fee") @db.Decimal(12, 2)
   credentialsRef   String?       @map("credentials_ref")
   status           GatewayStatus @default(active)
   isPlatformDefault Boolean      @default(false) @map("is_platform_default")

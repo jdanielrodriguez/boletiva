@@ -119,6 +119,7 @@ export class EventsService {
         endsAt: new Date(dto.endsAt),
         gatewayId: dto.gatewayId,
         ivaOnNet: dto.ivaOnNet,
+        absorbInstallmentCost: dto.absorbInstallmentCost,
         status: 'draft',
       },
     });
@@ -152,6 +153,9 @@ export class EventsService {
         endsAt: dto.endsAt ? new Date(dto.endsAt) : undefined,
         gatewayId: dto.gatewayId,
         ivaOnNet: dto.ivaOnNet,
+        // El flag de absorción de cuotas NO congela el precio base (el costo de
+        // cuotas se resuelve al pagar): se puede ajustar aunque haya compras.
+        absorbInstallmentCost: dto.absorbInstallmentCost,
       },
     });
   }

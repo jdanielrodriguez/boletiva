@@ -92,6 +92,86 @@ describe('PricingEngine', () => {
     });
   });
 
+  describe('pago en cuotas (Ola 6.5): comprador paga igual, la plataforma/promotor absorbe', () => {
+    it('sin plan o count<=1 → resultado idéntico y SIN campos de cuotas (retrocompat)', () => {
+      const base = PricingEngine.quote(100, DEFAULT);
+      const one = PricingEngine.quote(100, DEFAULT, { count: 1, ratePct: 0.08 });
+      expect(one.total).toBe('129.68');
+      expect(one.installments).toBeUndefined();
+      expect(one.installmentAbsorbedBy).toBeUndefined();
+      expect(one.hash).toBe(base.hash); // hash retrocompatible
+    });
+
+    it('plataforma absorbe (3 cuotas 8% + Q2): total/net/IVA intactos; gateway sube, platform baja', () => {
+      const q = PricingEngine.quote(100, DEFAULT, { count: 3, ratePct: 0.08, fixedFee: 2 });
+      expect(q.total).toBe('129.68'); // el comprador paga IGUAL que en 1 pago
+      expect(q.net).toBe('100.00'); //   promotor intacto
+      expect(q.iva).toBe('13.20'); //    IVA intacto (no subdeclara impuestos)
+      expect(q.gatewayFee).toBe('12.37'); // 129.68*0.08 + 2
+      expect(q.platformFee).toBe('4.11'); //  10 − (12.37 − 6.48)
+      expect(q.installments).toBe(3);
+      expect(q.installmentFeePct).toBe(0.08);
+      expect(q.installmentFixedFee).toBe('2.00');
+      expect(q.installmentSurcharge).toBe('5.89');
+      expect(q.installmentAbsorbedBy).toBe('platform');
+      expect(q.basePrice).toBe('129.68');
+      // Invariante de partida doble.
+      const sum = new Decimal(q.net).plus(q.platformFee).plus(q.iva).plus(q.gatewayFee).plus(q.fixedFees);
+      expect(sum.toFixed(2)).toBe(q.total);
+      expect(PricingEngine.verify(q)).toBe(true);
+    });
+
+    it('promotor absorbe: baja el NETO del promotor, plataforma intacta', () => {
+      const q = PricingEngine.quote(100, DEFAULT, {
+        count: 3,
+        ratePct: 0.08,
+        fixedFee: 2,
+        absorbedByPromoter: true,
+      });
+      expect(q.total).toBe('129.68');
+      expect(q.net).toBe('94.11'); //     100 − 5.89
+      expect(q.platformFee).toBe('10.00'); // plataforma intacta
+      expect(q.iva).toBe('13.20');
+      expect(q.gatewayFee).toBe('12.37');
+      expect(q.installmentAbsorbedBy).toBe('promoter');
+      const sum = new Decimal(q.net).plus(q.platformFee).plus(q.iva).plus(q.gatewayFee).plus(q.fixedFees);
+      expect(sum.toFixed(2)).toBe(q.total);
+    });
+
+    it('sin cargo fijo (3 cuotas 8%): gateway=10.37, platform=6.11', () => {
+      const q = PricingEngine.quote(100, DEFAULT, { count: 3, ratePct: 0.08 });
+      expect(q.gatewayFee).toBe('10.37'); // 129.68*0.08
+      expect(q.platformFee).toBe('6.11'); //  10 − (10.37 − 6.48)
+      expect(q.installmentFixedFee).toBe('0.00');
+    });
+
+    it('18 cuotas (14%): la plataforma puede quedar con margen negativo (sin buffer)', () => {
+      const q = PricingEngine.quote(100, DEFAULT, { count: 18, ratePct: 0.14, fixedFee: 2 });
+      expect(q.gatewayFee).toBe('20.16'); // 129.68*0.14 + 2
+      expect(q.platformFee).toBe('-3.68'); // 10 − 13.68 (plataforma pierde)
+      expect(q.total).toBe('129.68');
+      expect(q.net).toBe('100.00');
+    });
+
+    it('promotor no puede absorber si el costo supera su neto → 400', () => {
+      // net pequeño + fijo grande: el costo (≈2.12 con Q2) excede el neto (1).
+      expect(() =>
+        PricingEngine.quote(1, DEFAULT, {
+          count: 18,
+          ratePct: 0.14,
+          fixedFee: 2,
+          absorbedByPromoter: true,
+        }),
+      ).toThrow(BadRequestException);
+    });
+
+    it('el hash cubre los campos de cuotas (detecta manipulación del desglose)', () => {
+      const q = PricingEngine.quote(100, DEFAULT, { count: 3, ratePct: 0.08, fixedFee: 2 });
+      const tampered = { ...q, installmentSurcharge: '0.00' };
+      expect(PricingEngine.verify(tampered)).toBe(false);
+    });
+  });
+
   describe('hash anti-manipulación', () => {
     it('verify() es true para un quote íntegro', () => {
       const q = PricingEngine.quote(100, DEFAULT);

@@ -83,20 +83,63 @@ async function seedFeeSchedule(): Promise<void> {
   });
 }
 
-/** Pasarela sandbox (simulador) como default de plataforma para alpha/beta. */
+/**
+ * Pasarelas de pago (alpha/beta corren sobre el simulador webhook-first).
+ * Recurrente = default de plataforma con pago en CUOTAS (Visacuotas/Mastercuotas:
+ * 3→8% · 6→9% · 12→10% · 18→14%, +Q2 fijo — tarifario real). Pagalo = alternativa
+ * sin cuotas. Sandbox se conserva (compatibilidad). El 1 pago de Recurrente es 5%
+ * (idéntico al anterior → los precios base no cambian). El `provider` real se
+ * enchufa detrás del mismo puerto cuando lleguen credenciales. Idempotente.
+ */
 async function seedGateway(): Promise<void> {
-  const existing = await prisma.paymentGateway.findFirst();
-  if (existing) return;
-  await prisma.paymentGateway.create({
-    data: {
-      name: 'Sandbox',
+  const gateways: Array<{
+    name: string;
+    provider: string;
+    feePct: string;
+    installmentRates?: Record<string, number>;
+    installmentFixedFee?: string;
+    sandbox: boolean;
+  }> = [
+    {
+      name: 'Recurrente',
       provider: 'simulator',
       feePct: '0.05000',
-      status: 'active',
-      isPlatformDefault: true,
+      installmentRates: { '3': 0.08, '6': 0.09, '12': 0.1, '18': 0.14 },
+      installmentFixedFee: '2.00',
       sandbox: true,
     },
-  });
+    { name: 'Pagalo', provider: 'simulator', feePct: '0.05000', sandbox: true },
+    { name: 'Sandbox', provider: 'simulator', feePct: '0.05000', sandbox: true },
+  ];
+  for (const g of gateways) {
+    await prisma.paymentGateway.upsert({
+      where: { name: g.name },
+      update: {
+        installmentRates: g.installmentRates,
+        installmentFixedFee: g.installmentFixedFee,
+      },
+      create: {
+        name: g.name,
+        provider: g.provider,
+        feePct: g.feePct,
+        installmentRates: g.installmentRates,
+        installmentFixedFee: g.installmentFixedFee,
+        sandbox: g.sandbox,
+        status: 'active',
+      },
+    });
+  }
+  // Garantizar una sola default = Recurrente (sin violar el índice parcial).
+  await prisma.$transaction([
+    prisma.paymentGateway.updateMany({
+      where: { isPlatformDefault: true, name: { not: 'Recurrente' } },
+      data: { isPlatformDefault: false },
+    }),
+    prisma.paymentGateway.updateMany({
+      where: { name: 'Recurrente' },
+      data: { isPlatformDefault: true, status: 'active' },
+    }),
+  ]);
 }
 
 async function seedUsers() {
