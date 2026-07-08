@@ -29,3 +29,18 @@ export type EventCategoryDto = Schemas['EventCategoryDto'];
 
 // --- Categorías ---
 export type CategoryResponseDto = Schemas['CategoryResponseDto'];
+
+// --- Compra (F2): disponibilidad, holds, órdenes, pago ---
+export type EventAvailabilityDto = Schemas['EventAvailabilityDto'];
+export type LocalityAvailabilityDto = Schemas['LocalityAvailabilityDto'];
+export type SeatAvailabilityDto = Schemas['SeatAvailabilityDto'];
+export type SeatMapDto = Schemas['SeatMapDto'];
+export type BuyerPriceDto = Schemas['BuyerPriceDto'];
+export type CreateHoldDto = Schemas['CreateHoldDto'];
+export type HoldResponseDto = Schemas['HoldResponseDto'];
+export type CheckoutDto = Schemas['CheckoutDto'];
+export type OrderResponseDto = Schemas['OrderResponseDto'];
+export type PayOrderDto = Schemas['PayOrderDto'];
+export type PayOrderResponseDto = Schemas['PayOrderResponseDto'];
+export type PaymentOptionsResponseDto = Schemas['PaymentOptionsResponseDto'];
+export type GatewayPaymentOptionResponseDto = Schemas['GatewayPaymentOptionResponseDto'];

@@ -372,6 +372,10 @@ model Event {
   // global (setting `transfer.max_per_ticket_default`).
   maxTransfers Int? @map("max_transfers")
 
+  // Destacado editable (slider "hero" del inicio). null = no promocionado; un
+  // entero define el ORDEN de prioridad (menor = primero). Lo edita admin/promotor.
+  promotedPriority Int? @map("promoted_priority")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

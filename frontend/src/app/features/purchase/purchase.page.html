@@ -1,0 +1,86 @@
+<section class="purchase">
+  <h1>Comprar — {{ eventName() }}</h1>
+
+  @if (!loaded()) {
+    <p data-testid="purchase-loading">Cargando disponibilidad…</p>
+  } @else {
+    @if (error()) {
+      <p class="error" data-testid="purchase-error">{{ error() }}</p>
+    }
+
+    @if (phase() === 'expired') {
+      <p class="warn" data-testid="purchase-expired">
+        Tu reserva expiró. Vuelve a seleccionar tus boletos.
+      </p>
+    }
+
+    @if (phase() === 'select' || phase() === 'expired') {
+      <!-- Localidades con mapa de asientos (Konva) -->
+      @for (loc of seatLocalities(); track loc.id) {
+        <section class="loc-seated">
+          <h2>{{ loc.name }} @if (loc.price) { — Q{{ loc.price.total }} }</h2>
+          <app-seat-map
+            [seats]="seatsForLocality(loc.id)"
+            [selected]="store.selectedSet()"
+            (seatToggle)="store.toggleSeat($event)"
+          />
+        </section>
+      }
+
+      <!-- Localidades sin mapa (default): selección por cantidad -->
+      @for (loc of store.quantityLocalities(); track loc.id) {
+        <div class="loc-quantity" data-testid="loc-quantity">
+          <div class="loc-info">
+            <strong>{{ loc.name }}</strong>
+            @if (loc.price) {
+              <span class="loc-price">Q{{ loc.price.total }}</span>
+            }
+            <span class="loc-avail">{{ loc.available }} disponibles</span>
+          </div>
+          @if (store.maxFor(loc) > 0) {
+            <select
+              [attr.aria-label]="'Cantidad para ' + loc.name"
+              (change)="onQuantity(loc, $any($event.target).value)"
+            >
+              @for (n of range(loc); track n) {
+                <option [value]="n">{{ n }}</option>
+              }
+            </select>
+          } @else {
+            <span class="sold-out">Agotado</span>
+          }
+        </div>
+      }
+
+      <aside class="cart-summary">
+        <p>{{ store.totalCount() }} boleto(s)</p>
+        <p class="total">Total: Q{{ store.totalDisplay() }}</p>
+        <button
+          type="button"
+          data-testid="reserve-btn"
+          [disabled]="store.totalCount() === 0 || working()"
+          (click)="reserve()"
+        >
+          {{ working() ? 'Reservando…' : 'Reservar ' + store.totalCount() + ' boleto(s)' }}
+        </button>
+      </aside>
+    }
+
+    @if (phase() === 'reserved') {
+      <section class="reserved">
+        <p class="countdown" data-testid="countdown">
+          Reserva activa — expira en {{ mm() }}:{{ ss() | number: '2.0-0' }}
+        </p>
+        <p>{{ store.heldSeatIds().length }} boleto(s) reservados · Total Q{{ store.totalDisplay() }}</p>
+        <div class="actions">
+          <button type="button" data-testid="pay-btn" [disabled]="working()" (click)="pay()">
+            {{ working() ? 'Creando orden…' : 'Continuar al pago' }}
+          </button>
+          <button type="button" class="ghost" [disabled]="working()" (click)="cancel()">
+            Cancelar
+          </button>
+        </div>
+      </section>
+    }
+  }
+</section>

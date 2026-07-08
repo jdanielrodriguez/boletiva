@@ -11,6 +11,8 @@ import { StorageService } from '../../infra/storage/storage.service';
 import { AuthUser } from '../../common/decorators/current-user.decorator';
 import { slugify, slugWithSuffix } from '../../common/utils/slug';
 import { PromotersService } from '../promoters/promoters.service';
+import { PricingService } from '../pricing/pricing.service';
+import { PriceQuote } from '../pricing/pricing.engine';
 import { CreateEventDto, UpdateEventDto } from './dto/events.dto';
 
 /** URLs firmadas de media públicas: expiran holgadamente para sobrevivir al
@@ -23,6 +25,7 @@ export class EventsService {
     private readonly prisma: PrismaService,
     private readonly promoters: PromotersService,
     private readonly storage: StorageService,
+    private readonly pricing: PricingService,
   ) {}
 
   /** Añade una URL firmada a cada media (para catálogo/SEO/og:image). */
@@ -102,6 +105,67 @@ export class EventsService {
     return this.signMedia(event);
   }
 
+  /**
+   * Disponibilidad pública para la pantalla de compra (F2): mapa activo +
+   * localidades con el PRECIO all-in del comprador (boleto + serviceFee + IVA,
+   * server-authoritative) + asientos con coordenadas (solo localidades con
+   * geometría; las GA se compran por cantidad → solo `available`).
+   */
+  async getAvailability(eventId: string) {
+    const event = await this.prisma.event.findFirst({
+      where: { id: eventId, status: 'published' },
+      include: { localities: { orderBy: { name: 'asc' } } },
+    });
+    if (!event) throw new NotFoundException('Evento no encontrado');
+
+    const seatMap = await this.prisma.seatMap.findFirst({ where: { eventId, active: true } });
+
+    // Cupos disponibles por localidad (una sola consulta agrupada).
+    const counts = await this.prisma.seat.groupBy({
+      by: ['localityId'],
+      where: { locality: { eventId }, status: 'available' },
+      _count: { _all: true },
+    });
+    const availByLoc = new Map(counts.map((c) => [c.localityId, c._count._all]));
+
+    const localities = await Promise.all(
+      event.localities.map(async (loc) => ({
+        id: loc.id,
+        name: loc.name,
+        slug: loc.slug,
+        kind: loc.kind,
+        capacity: loc.capacity,
+        available: availByLoc.get(loc.id) ?? 0,
+        price: loc.desiredNet
+          ? this.toPublicPrice(await this.pricing.quoteForEvent(loc.desiredNet.toString(), event))
+          : null,
+      })),
+    );
+
+    // Asientos individuales SOLO para localidades con coordenadas (seated).
+    const seats = await this.prisma.seat.findMany({
+      where: { locality: { eventId }, x: { not: null } },
+      select: {
+        id: true,
+        localityId: true,
+        label: true,
+        section: true,
+        row: true,
+        x: true,
+        y: true,
+        status: true,
+      },
+      orderBy: { label: 'asc' },
+    });
+
+    return { seatMap, localities, seats };
+  }
+
+  /** Desglose que ve el comprador (plataforma+pasarela fusionadas en serviceFee). */
+  private toPublicPrice(q: PriceQuote) {
+    return { currency: q.currency, net: q.net, serviceFee: q.serviceFee, iva: q.iva, total: q.total };
+  }
+
   listMine(userId: string) {
     return this.prisma.event.findMany({
       where: { promoterId: userId },
@@ -140,9 +204,21 @@ export class EventsService {
         gatewayId: dto.gatewayId,
         ivaOnNet: dto.ivaOnNet,
         absorbInstallmentCost: dto.absorbInstallmentCost,
+        promotedPriority: dto.promotedPriority,
         status: 'draft',
       },
     });
+  }
+
+  /** Eventos destacados (slider del inicio), ordenados por prioridad ascendente. */
+  async listPromoted(take = 10) {
+    const events = await this.prisma.event.findMany({
+      where: { status: 'published', promotedPriority: { not: null } },
+      orderBy: { promotedPriority: 'asc' },
+      take: Math.min(take, 20),
+      include: { category: true, media: { orderBy: { position: 'asc' } } },
+    });
+    return Promise.all(events.map((e) => this.signMedia(e)));
   }
 
   async update(id: string, dto: UpdateEventDto, user: AuthUser) {
@@ -176,6 +252,7 @@ export class EventsService {
         // El flag de absorción de cuotas NO congela el precio base (el costo de
         // cuotas se resuelve al pagar): se puede ajustar aunque haya compras.
         absorbInstallmentCost: dto.absorbInstallmentCost,
+        promotedPriority: dto.promotedPriority,
       },
     });
   }

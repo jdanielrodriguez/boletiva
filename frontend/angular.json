@@ -33,7 +33,8 @@
             "outputMode": "server",
             "ssr": {
               "entry": "src/server.ts"
-            }
+            },
+            "externalDependencies": ["canvas"]
           },
           "configurations": {
             "production": {

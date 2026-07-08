@@ -173,3 +173,203 @@ button.active {
   color: #ff7675;
   font-weight: 600;
 }
+
+/* --- Compra / checkout (F2) --- */
+.buy {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.7rem 1.4rem;
+  background: var(--pe-accent);
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.seat-map-host {
+  border: 1px solid var(--pe-border);
+  border-radius: 8px;
+  overflow: auto;
+  max-width: 100%;
+}
+
+.loc-quantity {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--pe-border);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.loc-quantity select {
+  padding: 0.4rem 0.6rem;
+  background: var(--pe-bg);
+  color: var(--pe-text);
+  border: 1px solid var(--pe-border);
+  border-radius: 6px;
+}
+
+.loc-price {
+  color: var(--pe-accent);
+  margin: 0 0.75rem;
+}
+
+.loc-avail {
+  color: var(--pe-muted);
+  font-size: 0.85rem;
+}
+
+.cart-summary,
+.reserved {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--pe-border);
+  border-radius: 10px;
+}
+
+.cart-summary .total,
+.breakdown .total {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.countdown {
+  color: #ffd166;
+  font-weight: 600;
+}
+
+.gateways {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.breakdown {
+  max-width: 380px;
+  margin: 1rem 0;
+}
+
+.breakdown .row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--pe-border);
+}
+
+.breakdown .note {
+  color: var(--pe-muted);
+  font-size: 0.8rem;
+}
+
+.paid h2 {
+  color: #2ecc71;
+}
+
+/* --- Hero slider (eventos promocionados) --- */
+.hero {
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+
+.hero-viewport {
+  overflow: hidden;
+  border-radius: 14px;
+}
+
+.hero-track {
+  display: flex;
+  transition: transform 0.5s ease;
+}
+
+.hero-slide {
+  position: relative;
+  flex: 0 0 100%;
+  height: 58vh;
+  min-height: 320px;
+  display: block;
+}
+
+.hero-slide img,
+.hero-fallback {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.hero-fallback {
+  display: grid;
+  place-items: center;
+  font-size: 6rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--pe-accent), #00b894);
+}
+
+.hero-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 2rem 1.5rem 1.25rem;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.75), transparent);
+}
+
+.hero-caption h2 {
+  margin: 0.25rem 0 0;
+  font-size: 1.8rem;
+}
+
+.hero-cat {
+  color: var(--pe-accent);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+}
+
+.hero-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  font-size: 1.6rem;
+  line-height: 1;
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  color: #fff;
+}
+
+.hero-arrow.prev {
+  left: 12px;
+}
+
+.hero-arrow.next {
+  right: 12px;
+}
+
+.hero-dots {
+  position: absolute;
+  bottom: 12px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.hero-dot {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.hero-dot.active {
+  background: #fff;
+}

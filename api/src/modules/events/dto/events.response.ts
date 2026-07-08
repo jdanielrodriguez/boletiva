@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { EventStatus, LocalityKind, MediaKind } from '@prisma/client';
+import { EventStatus, LocalityKind, MediaKind, SeatStatus } from '@prisma/client';
 
 /**
  * DTOs de respuesta del módulo de eventos. SOLO documentación (OpenAPI/SDK):
@@ -176,6 +176,13 @@ export class EventResponseDto {
   })
   maxTransfers!: number | null;
 
+  @ApiPropertyOptional({
+    nullable: true,
+    example: 1,
+    description: 'Prioridad en el slider de destacados (menor = primero; null = no promocionado)',
+  })
+  promotedPriority!: number | null;
+
   @ApiProperty({ format: 'date-time', example: '2026-07-01T18:30:00.000Z' })
   createdAt!: string;
 
@@ -244,4 +251,128 @@ export class MyEventListItemDto extends EventResponseDto {
 
   @ApiProperty({ type: () => EventCountDto })
   _count!: EventCountDto;
+}
+
+// --- Disponibilidad pública para la compra (F2) ---
+
+/** Precio all-in que ve el COMPRADOR (plataforma+pasarela fusionadas en serviceFee). */
+export class BuyerPriceDto {
+  @ApiProperty({ example: 'GTQ' })
+  currency!: string;
+
+  @ApiProperty({ type: String, example: '100.00', description: 'Neto del promotor' })
+  net!: string;
+
+  @ApiProperty({
+    type: String,
+    example: '16.48',
+    description: 'Cuota por servicio (plataforma + pasarela fusionadas)',
+  })
+  serviceFee!: string;
+
+  @ApiProperty({ type: String, example: '13.20', description: 'IVA (12% de la base gravable)' })
+  iva!: string;
+
+  @ApiProperty({ type: String, example: '129.68', description: 'Precio final all-in' })
+  total!: string;
+}
+
+/** Localidad con disponibilidad y precio de comprador. */
+export class LocalityAvailabilityDto {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty({ example: 'General' })
+  name!: string;
+
+  @ApiProperty({ example: 'general' })
+  slug!: string;
+
+  @ApiProperty({ enum: LocalityKind, example: LocalityKind.general })
+  kind!: LocalityKind;
+
+  @ApiProperty({ example: 500, description: 'Aforo total' })
+  capacity!: number;
+
+  @ApiProperty({ example: 342, description: 'Cupos disponibles' })
+  available!: number;
+
+  @ApiPropertyOptional({
+    type: () => BuyerPriceDto,
+    nullable: true,
+    description: 'Precio del comprador (null si la localidad no tiene neto definido)',
+  })
+  price!: BuyerPriceDto | null;
+}
+
+/** Asiento con coordenadas para el mapa (solo localidades con geometría). */
+export class SeatAvailabilityDto {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty({ format: 'uuid' })
+  localityId!: string;
+
+  @ApiProperty({ example: 'A-12' })
+  label!: string;
+
+  @ApiPropertyOptional({ nullable: true, example: 'Platea' })
+  section!: string | null;
+
+  @ApiPropertyOptional({ nullable: true, example: 'A' })
+  row!: string | null;
+
+  @ApiPropertyOptional({ nullable: true, example: 120.5, description: 'Coordenada X en el mapa' })
+  x!: number | null;
+
+  @ApiPropertyOptional({ nullable: true, example: 88.0, description: 'Coordenada Y en el mapa' })
+  y!: number | null;
+
+  @ApiProperty({ enum: SeatStatus, example: SeatStatus.available })
+  status!: SeatStatus;
+}
+
+/** Mapa de asientos activo (geometría del lienzo). */
+export class SeatMapDto {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty({ format: 'uuid' })
+  eventId!: string;
+
+  @ApiProperty({ example: 1 })
+  version!: number;
+
+  @ApiPropertyOptional({ nullable: true, example: 'Planta baja' })
+  name!: string | null;
+
+  @ApiProperty({ example: 1000 })
+  width!: number;
+
+  @ApiProperty({ example: 800 })
+  height!: number;
+
+  @ApiPropertyOptional({ nullable: true, description: 'Fondo del lienzo (imagen/color), JSON libre' })
+  background!: Record<string, unknown> | null;
+
+  @ApiProperty({ description: 'Layout libre (secciones/etiquetas), JSON', example: {} })
+  layout!: Record<string, unknown>;
+
+  @ApiProperty({ example: true })
+  active!: boolean;
+
+  @ApiProperty({ format: 'date-time' })
+  createdAt!: string;
+}
+
+/** Disponibilidad pública del evento: mapa + localidades (con precio) + asientos. */
+export class EventAvailabilityDto {
+  @ApiPropertyOptional({ type: () => SeatMapDto, nullable: true })
+  seatMap!: SeatMapDto | null;
+
+  @ApiProperty({ type: () => LocalityAvailabilityDto, isArray: true })
+  localities!: LocalityAvailabilityDto[];
+
+  @ApiProperty({ type: () => SeatAvailabilityDto, isArray: true })
+  seats!: SeatAvailabilityDto[];
 }

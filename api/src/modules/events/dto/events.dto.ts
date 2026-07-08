@@ -2,14 +2,21 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsBoolean,
   IsDateString,
+  IsInt,
   IsLatitude,
   IsLongitude,
   IsOptional,
   IsString,
   IsUUID,
   MaxLength,
+  Min,
   MinLength,
 } from 'class-validator';
+
+/** Descripción compartida del destacado editable (slider del inicio). */
+const PROMOTED_DESC =
+  'Prioridad en el slider de destacados del inicio (menor = primero). ' +
+  'null/omitir = no promocionado. Lo edita admin/promotor.';
 
 /** Descripción compartida del flag de absorción de cuotas (transparencia frontend). */
 const ABSORB_DESC =
@@ -78,6 +85,12 @@ export class CreateEventDto {
   @IsOptional()
   @IsBoolean()
   absorbInstallmentCost?: boolean;
+
+  @ApiPropertyOptional({ description: PROMOTED_DESC, example: 1, minimum: 0 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  promotedPriority?: number;
 }
 
 export class UpdateEventDto {
@@ -145,4 +158,10 @@ export class UpdateEventDto {
   @IsOptional()
   @IsBoolean()
   absorbInstallmentCost?: boolean;
+
+  @ApiPropertyOptional({ description: PROMOTED_DESC, example: 1, minimum: 0, nullable: true })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  promotedPriority?: number;
 }

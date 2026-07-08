@@ -1,0 +1,75 @@
+<section class="checkout">
+  <h1>Pago</h1>
+
+  @if (order(); as ord) {
+    @if (status() === 'paid') {
+      <div class="paid" data-testid="status-paid">
+        <h2>¡Pago confirmado! 🎉</h2>
+        <p>Tus boletos se están emitiendo. Los verás en tu cuenta en segundos.</p>
+      </div>
+    } @else if (status() === 'cancelled' || status() === 'expired') {
+      <div class="failed" data-testid="status-failed">
+        <h2>El pago no se completó</h2>
+        <p>La orden fue {{ status() === 'expired' ? 'expirada' : 'cancelada' }}.</p>
+      </div>
+    } @else {
+      <!-- Método de pago -->
+      <section class="methods">
+        <h2>Método de pago</h2>
+        <div class="gateways" role="group" aria-label="Pasarela">
+          @for (gw of gateways(); track gw.gatewayId) {
+            <button
+              type="button"
+              [class.active]="gw.gatewayId === selectedGateway()?.gatewayId"
+              (click)="selectGateway(gw.gatewayId)"
+            >
+              {{ gw.name }}
+            </button>
+          }
+        </div>
+
+        @if (selectedGateway(); as gw) {
+          @if (gw.installmentOptions.length > 1) {
+            <label class="installments">
+              Plazo
+              <select (change)="selectInstallments($any($event.target).value)">
+                @for (opt of gw.installmentOptions; track opt.installments) {
+                  <option [value]="opt.installments" [selected]="opt.installments === installments()">
+                    {{ opt.installments === 1 ? '1 pago' : opt.installments + ' cuotas' }} — Q{{ opt.total }}
+                  </option>
+                }
+              </select>
+            </label>
+          }
+        }
+      </section>
+
+      <!-- Desglose transparente para el comprador -->
+      @if (breakdown(); as b) {
+        <section class="breakdown" data-testid="breakdown">
+          <div class="row"><span>Precio de boleto</span><span>Q{{ b.boleto }}</span></div>
+          <div class="row">
+            <span>Cuota por servicio</span><span data-testid="service-fee">Q{{ b.serviceFee }}</span>
+          </div>
+          <div class="row"><span>IVA</span><span>Q{{ b.iva }}</span></div>
+          <div class="row total"><span>Total</span><span data-testid="total">Q{{ b.total }}</span></div>
+          <p class="note">La cuota por servicio varía según el método de pago elegido.</p>
+        </section>
+      }
+
+      @if (error()) {
+        <p class="error" data-testid="checkout-error">{{ error() }}</p>
+      }
+
+      @if (status() === 'pending' && paying()) {
+        <p class="awaiting" data-testid="awaiting">Procesando el pago… esperando confirmación.</p>
+      }
+
+      <button type="button" data-testid="pay-confirm" [disabled]="paying()" (click)="pay()">
+        {{ paying() ? 'Procesando…' : 'Pagar Q' + (breakdown()?.total ?? '') }}
+      </button>
+    }
+  } @else {
+    <p data-testid="checkout-loading">Cargando orden…</p>
+  }
+</section>

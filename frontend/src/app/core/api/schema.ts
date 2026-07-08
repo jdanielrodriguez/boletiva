@@ -619,6 +619,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/promoted": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Eventos destacados para el slider del inicio (ordenados por prioridad) */
+        get: operations["EventsController_listPromoted_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{eventId}/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Disponibilidad para comprar: mapa + localidades (con precio) + asientos */
+        get: operations["EventsController_getAvailability_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{slug}": {
         parameters: {
             query?: never;
@@ -802,6 +836,58 @@ export interface paths {
         put?: never;
         /** Suspende a un promotor (admin) */
         post: operations["PromotersController_suspend_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/schedules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lista todas las versiones de comisiones (admin) */
+        get: operations["PricingController_listSchedules_v1"];
+        put?: never;
+        /** Crea y activa una nueva versión de comisiones (admin) */
+        post: operations["PricingController_create_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/schedules/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tabla de comisiones vigente */
+        get: operations["PricingController_active_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/quote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Cotización de un neto con las comisiones vigentes (preview) */
+        get: operations["PricingController_quote_v1"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1045,58 +1131,6 @@ export interface paths {
         };
         /** Detalle de una orden propia (o cualquiera si admin) */
         get: operations["OrdersController_findOne_v1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/pricing/schedules": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Lista todas las versiones de comisiones (admin) */
-        get: operations["PricingController_listSchedules_v1"];
-        put?: never;
-        /** Crea y activa una nueva versión de comisiones (admin) */
-        post: operations["PricingController_create_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/pricing/schedules/active": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Tabla de comisiones vigente */
-        get: operations["PricingController_active_v1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/pricing/quote": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Cotización de un neto con las comisiones vigentes (preview) */
-        get: operations["PricingController_quote_v1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2426,6 +2460,11 @@ export interface components {
              */
             maxTransfers?: number | null;
             /**
+             * @description Prioridad en el slider de destacados (menor = primero; null = no promocionado)
+             * @example 1
+             */
+            promotedPriority?: number | null;
+            /**
              * Format: date-time
              * @example 2026-07-01T18:30:00.000Z
              */
@@ -2540,6 +2579,11 @@ export interface components {
              * @example 1
              */
             maxTransfers?: number | null;
+            /**
+             * @description Prioridad en el slider de destacados (menor = primero; null = no promocionado)
+             * @example 1
+             */
+            promotedPriority?: number | null;
             /**
              * Format: date-time
              * @example 2026-07-01T18:30:00.000Z
@@ -2672,6 +2716,11 @@ export interface components {
              */
             maxTransfers?: number | null;
             /**
+             * @description Prioridad en el slider de destacados (menor = primero; null = no promocionado)
+             * @example 1
+             */
+            promotedPriority?: number | null;
+            /**
              * Format: date-time
              * @example 2026-07-01T18:30:00.000Z
              */
@@ -2684,6 +2733,112 @@ export interface components {
             category?: components["schemas"]["EventCategoryDto"] | null;
             media: components["schemas"]["EventMediaItemDto"][];
             localities: components["schemas"]["EventLocalityDto"][];
+        };
+        SeatMapDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            eventId: string;
+            /** @example 1 */
+            version: number;
+            /** @example Planta baja */
+            name?: string | null;
+            /** @example 1000 */
+            width: number;
+            /** @example 800 */
+            height: number;
+            /** @description Fondo del lienzo (imagen/color), JSON libre */
+            background?: Record<string, never> | null;
+            /**
+             * @description Layout libre (secciones/etiquetas), JSON
+             * @example {}
+             */
+            layout: Record<string, never>;
+            /** @example true */
+            active: boolean;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        BuyerPriceDto: {
+            /** @example GTQ */
+            currency: string;
+            /**
+             * @description Neto del promotor
+             * @example 100.00
+             */
+            net: string;
+            /**
+             * @description Cuota por servicio (plataforma + pasarela fusionadas)
+             * @example 16.48
+             */
+            serviceFee: string;
+            /**
+             * @description IVA (12% de la base gravable)
+             * @example 13.20
+             */
+            iva: string;
+            /**
+             * @description Precio final all-in
+             * @example 129.68
+             */
+            total: string;
+        };
+        LocalityAvailabilityDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example General */
+            name: string;
+            /** @example general */
+            slug: string;
+            /**
+             * @example general
+             * @enum {string}
+             */
+            kind: "seated" | "general";
+            /**
+             * @description Aforo total
+             * @example 500
+             */
+            capacity: number;
+            /**
+             * @description Cupos disponibles
+             * @example 342
+             */
+            available: number;
+            /** @description Precio del comprador (null si la localidad no tiene neto definido) */
+            price?: components["schemas"]["BuyerPriceDto"] | null;
+        };
+        SeatAvailabilityDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            localityId: string;
+            /** @example A-12 */
+            label: string;
+            /** @example Platea */
+            section?: string | null;
+            /** @example A */
+            row?: string | null;
+            /**
+             * @description Coordenada X en el mapa
+             * @example 120.5
+             */
+            x?: number | null;
+            /**
+             * @description Coordenada Y en el mapa
+             * @example 88
+             */
+            y?: number | null;
+            /**
+             * @example available
+             * @enum {string}
+             */
+            status: "available" | "held" | "sold" | "blocked";
+        };
+        EventAvailabilityDto: {
+            seatMap?: components["schemas"]["SeatMapDto"] | null;
+            localities: components["schemas"]["LocalityAvailabilityDto"][];
+            seats: components["schemas"]["SeatAvailabilityDto"][];
         };
         PublicEventDetailDto: {
             /**
@@ -2763,6 +2918,11 @@ export interface components {
              */
             maxTransfers?: number | null;
             /**
+             * @description Prioridad en el slider de destacados (menor = primero; null = no promocionado)
+             * @example 1
+             */
+            promotedPriority?: number | null;
+            /**
              * Format: date-time
              * @example 2026-07-01T18:30:00.000Z
              */
@@ -2834,6 +2994,11 @@ export interface components {
              * @default false
              */
             absorbInstallmentCost: boolean;
+            /**
+             * @description Prioridad en el slider de destacados del inicio (menor = primero). null/omitir = no promocionado. Lo edita admin/promotor.
+             * @example 1
+             */
+            promotedPriority?: number;
         };
         EventResponseDto: {
             /**
@@ -2913,6 +3078,11 @@ export interface components {
              */
             maxTransfers?: number | null;
             /**
+             * @description Prioridad en el slider de destacados (menor = primero; null = no promocionado)
+             * @example 1
+             */
+            promotedPriority?: number | null;
+            /**
              * Format: date-time
              * @example 2026-07-01T18:30:00.000Z
              */
@@ -2981,6 +3151,11 @@ export interface components {
              * @default false
              */
             absorbInstallmentCost: boolean;
+            /**
+             * @description Prioridad en el slider de destacados del inicio (menor = primero). null/omitir = no promocionado. Lo edita admin/promotor.
+             * @example 1
+             */
+            promotedPriority?: number | null;
         };
         PromoterStatusResponseDto: {
             /** Format: uuid */
@@ -3047,6 +3222,188 @@ export interface components {
         PromoterDecisionDto: {
             /** @description Motivo de rechazo/suspensión */
             note?: string;
+        };
+        FeeScheduleResponseDto: {
+            /** Format: uuid */
+            id: string;
+            /**
+             * @description Número de versión (único, incremental)
+             * @example 1
+             */
+            version: number;
+            /** @example v1 inicial */
+            label: string | null;
+            /**
+             * @description Comisión de plataforma (0.10 = 10%)
+             * @example 0.10000
+             */
+            platformFeePct: string;
+            /**
+             * @description Comisión de pasarela default (0.05 = 5%)
+             * @example 0.05000
+             */
+            gatewayFeePct: string;
+            /**
+             * @description IVA (0.12 = 12% GT)
+             * @example 0.12000
+             */
+            ivaPct: string;
+            /**
+             * @description Cargos fijos
+             * @example 0.00
+             */
+            fixedFees: string;
+            /**
+             * @description Si es la versión activa
+             * @example true
+             */
+            active: boolean;
+            /** Format: uuid */
+            createdById: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        CreateFeeScheduleDto: {
+            /**
+             * @description Comisión de plataforma sobre el neto (0.10 = 10%)
+             * @example 0.1
+             */
+            platformFeePct: number;
+            /**
+             * @description Comisión de la pasarela sobre el total (0.05 = 5%)
+             * @example 0.05
+             */
+            gatewayFeePct: number;
+            /**
+             * @description IVA sobre la base gravable (0.12 = 12% GT)
+             * @example 0.12
+             */
+            ivaPct: number;
+            /**
+             * @description Cargos fijos que se suman a la base gravable
+             * @example 0
+             */
+            fixedFees?: number;
+            /** @description Etiqueta descriptiva de la versión */
+            label?: string;
+        };
+        FeeParamsResponseDto: {
+            /**
+             * @description Comisión de plataforma sobre el neto (0.10 = 10%)
+             * @example 0.1
+             */
+            platformFeePct: number;
+            /**
+             * @description Comisión de la pasarela sobre el total (0.05 = 5%)
+             * @example 0.05
+             */
+            gatewayFeePct: number;
+            /**
+             * @description IVA sobre la base gravable (0.12 = 12% GT)
+             * @example 0.12
+             */
+            ivaPct: number;
+            /**
+             * @description true (default): IVA sobre neto + comisión plataforma; false: solo comisión
+             * @example true
+             */
+            ivaOnNet?: boolean;
+            /**
+             * @description Cargos fijos que se suman a la base gravable
+             * @example 0
+             */
+            fixedFees?: number;
+        };
+        PriceQuoteResponseDto: {
+            /**
+             * @example GTQ
+             * @enum {string}
+             */
+            currency: "GTQ";
+            /**
+             * @description Neto que recibe el promotor
+             * @example 100.00
+             */
+            net: string;
+            /** @example 0.00 */
+            fixedFees: string;
+            /**
+             * @description Comisión de plataforma (absorbe el residuo de redondeo)
+             * @example 10.00
+             */
+            platformFee: string;
+            /**
+             * @description Base gravable = net + platformFee + fixedFees
+             * @example 110.00
+             */
+            taxableBase: string;
+            /**
+             * @description IVA declarado sobre la base gravable
+             * @example 13.20
+             */
+            iva: string;
+            /**
+             * @description Comisión real que la plataforma paga a la pasarela
+             * @example 6.48
+             */
+            gatewayFee: string;
+            /**
+             * @description Cuota por servicio (comprador) = plataforma + pasarela (+ fijos) = total − net − iva
+             * @example 16.48
+             */
+            serviceFee: string;
+            /**
+             * @description Precio final all-in del comprador
+             * @example 129.68
+             */
+            total: string;
+            /**
+             * @description Total en centavos
+             * @example 12968
+             */
+            totalCents: number;
+            params: components["schemas"]["FeeParamsResponseDto"];
+            /**
+             * @description Número de cuotas seleccionadas (>= 2)
+             * @example 3
+             */
+            installments?: number;
+            /**
+             * @description Comisión de pasarela aplicada por las cuotas (gn)
+             * @example 0.08
+             */
+            installmentFeePct?: number;
+            /**
+             * @description Cargo fijo de la pasarela por transacción en cuotas
+             * @example 2.00
+             */
+            installmentFixedFee?: string;
+            /**
+             * @description Precio de referencia en 1 pago (el comprador paga igual)
+             * @example 129.68
+             */
+            basePrice?: string;
+            /**
+             * @description Costo de financiamiento absorbido (no lo paga el comprador)
+             * @example 4.90
+             */
+            installmentSurcharge?: string;
+            /**
+             * @description Quién absorbe el costo de las cuotas (nunca el comprador)
+             * @example platform
+             * @enum {string}
+             */
+            installmentAbsorbedBy?: "platform" | "promoter";
+            /** @description SHA-256 de params + resultado (anti-manipulación) */
+            hash: string;
+        };
+        QuoteResponseDto: {
+            /**
+             * @description Versión de comisiones usada
+             * @example 1
+             */
+            feeScheduleVersion: number | null;
+            quote: components["schemas"]["PriceQuoteResponseDto"];
         };
         CreateLocalityDto: Record<string, never>;
         UpdateLocalityDto: Record<string, never>;
@@ -3220,116 +3577,6 @@ export interface components {
             /** @description Dirección de facturación FEL */
             billingAddress?: string;
         };
-        FeeParamsResponseDto: {
-            /**
-             * @description Comisión de plataforma sobre el neto (0.10 = 10%)
-             * @example 0.1
-             */
-            platformFeePct: number;
-            /**
-             * @description Comisión de la pasarela sobre el total (0.05 = 5%)
-             * @example 0.05
-             */
-            gatewayFeePct: number;
-            /**
-             * @description IVA sobre la base gravable (0.12 = 12% GT)
-             * @example 0.12
-             */
-            ivaPct: number;
-            /**
-             * @description true (default): IVA sobre neto + comisión plataforma; false: solo comisión
-             * @example true
-             */
-            ivaOnNet?: boolean;
-            /**
-             * @description Cargos fijos que se suman a la base gravable
-             * @example 0
-             */
-            fixedFees?: number;
-        };
-        PriceQuoteResponseDto: {
-            /**
-             * @example GTQ
-             * @enum {string}
-             */
-            currency: "GTQ";
-            /**
-             * @description Neto que recibe el promotor
-             * @example 100.00
-             */
-            net: string;
-            /** @example 0.00 */
-            fixedFees: string;
-            /**
-             * @description Comisión de plataforma (absorbe el residuo de redondeo)
-             * @example 10.00
-             */
-            platformFee: string;
-            /**
-             * @description Base gravable = net + platformFee + fixedFees
-             * @example 110.00
-             */
-            taxableBase: string;
-            /**
-             * @description IVA declarado sobre la base gravable
-             * @example 13.20
-             */
-            iva: string;
-            /**
-             * @description Comisión real que la plataforma paga a la pasarela
-             * @example 6.48
-             */
-            gatewayFee: string;
-            /**
-             * @description Cuota por servicio (comprador) = plataforma + pasarela (+ fijos) = total − net − iva
-             * @example 16.48
-             */
-            serviceFee: string;
-            /**
-             * @description Precio final all-in del comprador
-             * @example 129.68
-             */
-            total: string;
-            /**
-             * @description Total en centavos
-             * @example 12968
-             */
-            totalCents: number;
-            params: components["schemas"]["FeeParamsResponseDto"];
-            /**
-             * @description Número de cuotas seleccionadas (>= 2)
-             * @example 3
-             */
-            installments?: number;
-            /**
-             * @description Comisión de pasarela aplicada por las cuotas (gn)
-             * @example 0.08
-             */
-            installmentFeePct?: number;
-            /**
-             * @description Cargo fijo de la pasarela por transacción en cuotas
-             * @example 2.00
-             */
-            installmentFixedFee?: string;
-            /**
-             * @description Precio de referencia en 1 pago (el comprador paga igual)
-             * @example 129.68
-             */
-            basePrice?: string;
-            /**
-             * @description Costo de financiamiento absorbido (no lo paga el comprador)
-             * @example 4.90
-             */
-            installmentSurcharge?: string;
-            /**
-             * @description Quién absorbe el costo de las cuotas (nunca el comprador)
-             * @example platform
-             * @enum {string}
-             */
-            installmentAbsorbedBy?: "platform" | "promoter";
-            /** @description SHA-256 de params + resultado (anti-manipulación) */
-            hash: string;
-        };
         OrderItemResponseDto: {
             /** Format: uuid */
             id: string;
@@ -3445,78 +3692,6 @@ export interface components {
              * @example null
              */
             nextCursor: string | null;
-        };
-        FeeScheduleResponseDto: {
-            /** Format: uuid */
-            id: string;
-            /**
-             * @description Número de versión (único, incremental)
-             * @example 1
-             */
-            version: number;
-            /** @example v1 inicial */
-            label: string | null;
-            /**
-             * @description Comisión de plataforma (0.10 = 10%)
-             * @example 0.10000
-             */
-            platformFeePct: string;
-            /**
-             * @description Comisión de pasarela default (0.05 = 5%)
-             * @example 0.05000
-             */
-            gatewayFeePct: string;
-            /**
-             * @description IVA (0.12 = 12% GT)
-             * @example 0.12000
-             */
-            ivaPct: string;
-            /**
-             * @description Cargos fijos
-             * @example 0.00
-             */
-            fixedFees: string;
-            /**
-             * @description Si es la versión activa
-             * @example true
-             */
-            active: boolean;
-            /** Format: uuid */
-            createdById: string | null;
-            /** Format: date-time */
-            createdAt: string;
-        };
-        CreateFeeScheduleDto: {
-            /**
-             * @description Comisión de plataforma sobre el neto (0.10 = 10%)
-             * @example 0.1
-             */
-            platformFeePct: number;
-            /**
-             * @description Comisión de la pasarela sobre el total (0.05 = 5%)
-             * @example 0.05
-             */
-            gatewayFeePct: number;
-            /**
-             * @description IVA sobre la base gravable (0.12 = 12% GT)
-             * @example 0.12
-             */
-            ivaPct: number;
-            /**
-             * @description Cargos fijos que se suman a la base gravable
-             * @example 0
-             */
-            fixedFees?: number;
-            /** @description Etiqueta descriptiva de la versión */
-            label?: string;
-        };
-        QuoteResponseDto: {
-            /**
-             * @description Versión de comisiones usada
-             * @example 1
-             */
-            feeScheduleVersion: number | null;
-            quote: components["schemas"]["PriceQuoteResponseDto"];
         };
         InstallmentOptionResponseDto: {
             /**
@@ -5356,6 +5531,46 @@ export interface operations {
             };
         };
     };
+    EventsController_listPromoted_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicEventListItemDto"][];
+                };
+            };
+        };
+    };
+    EventsController_getAvailability_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventAvailabilityDto"];
+                };
+            };
+        };
+    };
     EventsController_getPublic_v1: {
         parameters: {
             query?: never;
@@ -5632,6 +5847,89 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PromoterStatusResponseDto"];
+                };
+            };
+        };
+    };
+    PricingController_listSchedules_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeScheduleResponseDto"][];
+                };
+            };
+        };
+    };
+    PricingController_create_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateFeeScheduleDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeScheduleResponseDto"];
+                };
+            };
+        };
+    };
+    PricingController_active_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeScheduleResponseDto"];
+                };
+            };
+        };
+    };
+    PricingController_quote_v1: {
+        parameters: {
+            query: {
+                /** @description Neto deseado por el promotor */
+                net: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuoteResponseDto"];
                 };
             };
         };
@@ -6095,89 +6393,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrderResponseDto"];
-                };
-            };
-        };
-    };
-    PricingController_listSchedules_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeeScheduleResponseDto"][];
-                };
-            };
-        };
-    };
-    PricingController_create_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateFeeScheduleDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeeScheduleResponseDto"];
-                };
-            };
-        };
-    };
-    PricingController_active_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeeScheduleResponseDto"];
-                };
-            };
-        };
-    };
-    PricingController_quote_v1: {
-        parameters: {
-            query: {
-                /** @description Neto deseado por el promotor */
-                net: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["QuoteResponseDto"];
                 };
             };
         };

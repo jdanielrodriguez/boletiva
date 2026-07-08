@@ -37,7 +37,9 @@
       }
     </section>
 
-    <button type="button" class="buy" disabled>Comprar (próximamente)</button>
+    @if (ev.status === 'published') {
+      <a class="buy" [routerLink]="['/eventos', ev.slug, 'comprar']">Comprar boletos</a>
+    }
   </article>
 } @else if (loading()) {
   <p data-testid="event-loading">Cargando evento…</p>

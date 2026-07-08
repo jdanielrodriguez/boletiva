@@ -7,6 +7,7 @@ import { CategoriesApi } from '../../core/api/categories.api';
 import { EventsApi } from '../../core/api/events.api';
 import type { PublicEventListDto } from '../../core/api/types';
 import { SeoService } from '../../core/seo/seo.service';
+import { HeroSlider, SlideItem } from '../../shared/hero-slider/hero-slider.component';
 
 const PAGE_SIZE = 12;
 
@@ -18,7 +19,7 @@ const PAGE_SIZE = 12;
  */
 @Component({
   selector: 'app-catalog',
-  imports: [RouterLink, DatePipe],
+  imports: [RouterLink, DatePipe, HeroSlider],
   templateUrl: './catalog.html',
 })
 export class Catalog {
@@ -35,6 +36,21 @@ export class Catalog {
     { initialValue: [] },
   );
 
+  private readonly promoted = toSignal(
+    this.eventsApi.promoted().pipe(catchError(() => of([]))),
+    { initialValue: [] },
+  );
+
+  /** Slides del hero: eventos destacados mapeados (imagen firmada + categoría). */
+  protected readonly slides = computed<SlideItem[]>(() =>
+    this.promoted().map((e) => ({
+      slug: e.slug,
+      name: e.name,
+      imageUrl: e.media[0]?.url ?? null,
+      categoryName: e.category?.name ?? null,
+    })),
+  );
+
   private readonly params = toSignal(this.route.queryParamMap, {
     initialValue: this.route.snapshot.queryParamMap,
   });
@@ -42,6 +58,9 @@ export class Catalog {
   protected readonly activeCategory = computed(() => this.params().get('category') ?? '');
   protected readonly search = computed(() => this.params().get('search') ?? '');
   protected readonly page = computed(() => Math.max(1, Number(this.params().get('page')) || 1));
+
+  /** El hero solo se muestra en el inicio (sin filtros de categoría/búsqueda). */
+  protected readonly showHero = computed(() => !this.activeCategory() && !this.search());
 
   private readonly result = toSignal(
     this.route.queryParamMap.pipe(

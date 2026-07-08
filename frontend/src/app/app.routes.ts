@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { authGuard, verifiedEmailGuard } from './core/auth/guards';
 
 export const routes: Routes = [
   {
@@ -7,8 +8,20 @@ export const routes: Routes = [
     title: 'Eventos — Pasa Eventos',
   },
   {
+    path: 'eventos/:slug/comprar',
+    loadComponent: () => import('./features/purchase/purchase.page').then((m) => m.PurchasePage),
+    canActivate: [authGuard, verifiedEmailGuard],
+    title: 'Comprar — Pasa Eventos',
+  },
+  {
     path: 'eventos/:slug',
     loadComponent: () => import('./pages/event-detail/event-detail').then((m) => m.EventDetail),
+  },
+  {
+    path: 'checkout/:orderId',
+    loadComponent: () => import('./features/checkout/checkout.page').then((m) => m.CheckoutPage),
+    canActivate: [authGuard, verifiedEmailGuard],
+    title: 'Pago — Pasa Eventos',
   },
   {
     path: 'login',

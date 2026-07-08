@@ -36,6 +36,11 @@ export class ApiClient {
     return this.http.delete<T>(this.url(path));
   }
 
+  /** Petición genérica (p.ej. DELETE con cuerpo, que delete() no admite). */
+  request<T>(method: string, path: string, body?: unknown): Observable<T> {
+    return this.http.request<T>(method, this.url(path), { body });
+  }
+
   /** URL absoluta para casos especiales (p.ej. EventSource/SSE con access_token). */
   url(path: string): string {
     const clean = path.startsWith('/') ? path.slice(1) : path;

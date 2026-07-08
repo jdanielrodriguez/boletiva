@@ -1,4 +1,8 @@
 <section class="catalog">
+  @if (showHero() && slides().length > 0) {
+    <app-hero-slider [slides]="slides()" />
+  }
+
   <h1>Eventos</h1>
 
   <form class="catalog-search" (ngSubmit)="submitSearch(searchBox.value)">

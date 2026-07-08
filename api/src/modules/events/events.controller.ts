@@ -26,11 +26,13 @@ import { AuthUser, CurrentUser } from '../../common/decorators/current-user.deco
 import { EventsService } from './events.service';
 import { CreateEventDto, UpdateEventDto } from './dto/events.dto';
 import {
+  EventAvailabilityDto,
   EventResponseDto,
   ManagedEventDetailDto,
   MyEventListItemDto,
   PublicEventDetailDto,
   PublicEventListDto,
+  PublicEventListItemDto,
 } from './dto/events.response';
 
 @ApiTags('events')
@@ -72,6 +74,24 @@ export class EventsController {
   @ApiOkResponse({ type: ManagedEventDetailDto })
   getManaged(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
     return this.events.getManaged(id, user);
+  }
+
+  @Public()
+  @Get('promoted')
+  @ApiOperation({ summary: 'Eventos destacados para el slider del inicio (ordenados por prioridad)' })
+  @ApiOkResponse({ type: PublicEventListItemDto, isArray: true })
+  listPromoted() {
+    return this.events.listPromoted();
+  }
+
+  @Public()
+  @Get(':eventId/availability')
+  @ApiOperation({
+    summary: 'Disponibilidad para comprar: mapa + localidades (con precio) + asientos',
+  })
+  @ApiOkResponse({ type: EventAvailabilityDto })
+  getAvailability(@Param('eventId', ParseUUIDPipe) eventId: string) {
+    return this.events.getAvailability(eventId);
   }
 
   @Public()

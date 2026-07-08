@@ -1,0 +1,41 @@
+@if (count() > 0) {
+  <section class="hero" aria-roledescription="carrusel" aria-label="Eventos destacados">
+    <div class="hero-viewport">
+      <div class="hero-track" [style.transform]="'translateX(' + offset() + '%)'">
+        @for (slide of slides(); track slide.slug) {
+          <a class="hero-slide" [routerLink]="['/eventos', slide.slug]">
+            @if (slide.imageUrl) {
+              <img [src]="slide.imageUrl" [alt]="slide.name" />
+            } @else {
+              <div class="hero-fallback" aria-hidden="true">{{ slide.name.charAt(0) }}</div>
+            }
+            <div class="hero-caption">
+              @if (slide.categoryName) {
+                <span class="hero-cat">{{ slide.categoryName }}</span>
+              }
+              <h2>{{ slide.name }}</h2>
+            </div>
+          </a>
+        }
+      </div>
+    </div>
+
+    @if (count() > 1) {
+      <button class="hero-arrow prev" type="button" aria-label="Anterior" (click)="onArrow(-1)">‹</button>
+      <button class="hero-arrow next" type="button" aria-label="Siguiente" (click)="onArrow(1)">›</button>
+
+      <div class="hero-dots" role="tablist">
+        @for (slide of slides(); track slide.slug; let i = $index) {
+          <button
+            type="button"
+            class="hero-dot"
+            [class.active]="i === index()"
+            [attr.aria-label]="'Ir al evento ' + (i + 1)"
+            [attr.aria-selected]="i === index()"
+            (click)="goTo(i)"
+          ></button>
+        }
+      </div>
+    }
+  </section>
+}

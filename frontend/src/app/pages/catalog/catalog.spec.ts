@@ -23,7 +23,7 @@ function setup(listPublic: () => Observable<unknown>): ComponentFixture<Catalog>
     providers: [
       provideZonelessChangeDetection(),
       provideRouter([]),
-      { provide: EventsApi, useValue: { listPublic } },
+      { provide: EventsApi, useValue: { listPublic, promoted: () => of([]) } },
       { provide: CategoriesApi, useValue: { list: () => of(CATS) } },
       { provide: SITE_URL, useValue: 'http://localhost:4200' },
       {
