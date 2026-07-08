@@ -172,6 +172,8 @@ describe('Pagos en cuotas (e2e)', () => {
     expect(money(q.installmentSurcharge)).toBe('5.89');
     expect(q.installmentAbsorbedBy).toBe('platform');
     expect(money(q.basePrice)).toBe('129.68');
+    // Vista comprador: cuota de servicio fusionada (plataforma+pasarela) estable e igual a 1 pago.
+    expect(money(q.serviceFee)).toBe('16.48');
   });
 
   it('promotor absorbe (flag del evento, 3 cuotas): baja el NETO del promotor, platform intacto', async () => {

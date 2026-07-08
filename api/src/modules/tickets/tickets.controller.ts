@@ -1,9 +1,10 @@
-import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RequireVerifiedEmail } from '../../common/decorators/verified-email.decorator';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user.decorator';
+import { PageQueryDto } from '../../common/dto/page-query.dto';
 import { TicketsService } from './tickets.service';
 import { WalletPassService } from './wallet/wallet-pass.service';
 import { TicketTransferService } from './ticket-transfer.service';
@@ -20,9 +21,9 @@ export class TicketsController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Mis boletos' })
-  listMine(@CurrentUser() user: AuthUser) {
-    return this.tickets.listMine(user.userId);
+  @ApiOperation({ summary: 'Mis boletos (keyset: ?cursor&limit)' })
+  listMine(@CurrentUser() user: AuthUser, @Query() page: PageQueryDto) {
+    return this.tickets.listMine(user.userId, page);
   }
 
   @Post('verify')

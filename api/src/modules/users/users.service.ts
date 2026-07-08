@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { KeysetQuery, keysetResult, keysetTake } from '../../common/utils/pagination';
 import { UpdateProfileDto, UpdateUserRolesDto, UpdateUserStatusDto } from './dto/users.dto';
 
 // Nunca exponer passwordHash.
@@ -25,8 +26,8 @@ export class UsersService {
     return this.prisma.user.update({ where: { id: userId }, data: dto, select: publicSelect });
   }
 
-  async list(params: { skip?: number; take?: number; search?: string }) {
-    const { skip = 0, take = 20, search } = params;
+  async list(params: KeysetQuery & { search?: string }) {
+    const { search } = params;
     const where: Prisma.UserWhereInput = search
       ? {
           OR: [
@@ -36,17 +37,13 @@ export class UsersService {
           ],
         }
       : {};
-    const [items, total] = await this.prisma.$transaction([
-      this.prisma.user.findMany({
-        where,
-        select: publicSelect,
-        skip,
-        take: Math.min(take, 100),
-        orderBy: { createdAt: 'desc' },
-      }),
-      this.prisma.user.count({ where }),
-    ]);
-    return { items, total, skip, take };
+    const rows = await this.prisma.user.findMany({
+      where,
+      select: publicSelect,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      ...keysetTake(params),
+    });
+    return keysetResult(rows, params);
   }
 
   async get(id: string) {

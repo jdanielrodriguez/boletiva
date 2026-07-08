@@ -20,6 +20,11 @@ describe('PricingEngine', () => {
     it('el promotor recibe EXACTAMENTE su neto (100.00)', () => {
       expect(q.net).toBe('100.00');
     });
+    it('vista comprador: cuota de servicio fusiona plataforma + pasarela (16.48)', () => {
+      expect(q.serviceFee).toBe('16.48'); // 10.00 (plataforma) + 6.48 (pasarela)
+      // El comprador ve: precio de boleto + cuota por servicio + IVA = total.
+      expect(new Decimal(q.net).plus(q.serviceFee).plus(q.iva).toFixed(2)).toBe(q.total);
+    });
     it('la inversión cuadra: neto + plataforma + IVA + pasarela = total', () => {
       const sum = new Decimal(q.net)
         .plus(q.platformFee)
@@ -115,6 +120,10 @@ describe('PricingEngine', () => {
       expect(q.installmentSurcharge).toBe('5.89');
       expect(q.installmentAbsorbedBy).toBe('platform');
       expect(q.basePrice).toBe('129.68');
+      // Vista comprador ESTABLE: la cuota de servicio fusionada NO cambia con cuotas
+      // (paga igual); el corrimiento plataforma↔pasarela es interno.
+      expect(q.serviceFee).toBe('16.48'); // 4.11 (plataforma) + 12.37 (pasarela)
+      expect(new Decimal(q.net).plus(q.serviceFee).plus(q.iva).toFixed(2)).toBe(q.total);
       // Invariante de partida doble.
       const sum = new Decimal(q.net).plus(q.platformFee).plus(q.iva).plus(q.gatewayFee).plus(q.fixedFees);
       expect(sum.toFixed(2)).toBe(q.total);

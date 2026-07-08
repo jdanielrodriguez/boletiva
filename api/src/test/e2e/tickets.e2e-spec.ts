@@ -171,15 +171,15 @@ describe('Boletos: emisión + media + validación (e2e)', () => {
 
   it('GET /tickets lista los míos; el detalle ajeno da 404 (IDOR)', async () => {
     const mine = await http().get('/api/v1/tickets').set(bearer(buyerToken)).expect(200);
-    expect(mine.body.length).toBeGreaterThanOrEqual(1);
-    const id = mine.body[0].id;
+    expect(mine.body.items.length).toBeGreaterThanOrEqual(1);
+    const id = mine.body.items[0].id;
     await http().get(`/api/v1/tickets/${id}`).set(bearer(buyerToken)).expect(200);
     await http().get(`/api/v1/tickets/${id}`).set(bearer(buyerBToken)).expect(404);
   });
 
   it('GET /tickets/:id/qr entrega un valor rotativo bien formado', async () => {
     const mine = await http().get('/api/v1/tickets').set(bearer(buyerToken)).expect(200);
-    const id = mine.body[0].id;
+    const id = mine.body.items[0].id;
     const qr = await http().get(`/api/v1/tickets/${id}/qr`).set(bearer(buyerToken)).expect(200);
     expect(qr.body.payload).toMatch(/^PE1\.PE[0-9A-F]+\.\d{6}$/);
     expect(qr.body.refreshInSeconds).toBe(30);
@@ -187,7 +187,7 @@ describe('Boletos: emisión + media + validación (e2e)', () => {
 
   it('GET /tickets/:id/media entrega URLs firmadas de QR y PDF', async () => {
     const mine = await http().get('/api/v1/tickets').set(bearer(buyerToken)).expect(200);
-    const id = mine.body[0].id;
+    const id = mine.body.items[0].id;
     const media = await http().get(`/api/v1/tickets/${id}/media`).set(bearer(buyerToken)).expect(200);
     expect(media.body.pdfUrl).toContain('/ticket.pdf');
     expect(media.body.qrUrl).toContain('/qr.png');

@@ -197,7 +197,8 @@ describe('Retiros de wallet (e2e)', () => {
     await http().get('/api/v1/wallet/withdrawals/all').set(bearer(buyerToken)).expect(403);
 
     const all = await http().get('/api/v1/wallet/withdrawals/all?status=pending').set(bearer(adminToken)).expect(200);
-    expect(Array.isArray(all.body)).toBe(true);
+    expect(Array.isArray(all.body.items)).toBe(true);
+    expect(all.body).toHaveProperty('nextCursor');
     await http().get('/api/v1/wallet/withdrawals/all?status=xxx').set(bearer(adminToken)).expect(400);
     // Limpieza: cancela el pendiente que quedó.
     await http().delete(`/api/v1/wallet/withdrawals/${req.body.id}`).set(bearer(buyerToken)).expect(200);
@@ -205,7 +206,7 @@ describe('Retiros de wallet (e2e)', () => {
 
   it('mis retiros lista solo los míos', async () => {
     const mine = await http().get('/api/v1/wallet/withdrawals').set(bearer(buyerToken)).expect(200);
-    expect(mine.body.every((w: { userId: string }) => w.userId === buyerId)).toBe(true);
+    expect(mine.body.items.every((w: { userId: string }) => w.userId === buyerId)).toBe(true);
   });
 
   // ---- Cobertura adicional (auditoría QA) ----
@@ -314,6 +315,6 @@ describe('Retiros de wallet (e2e)', () => {
     await http().post('/api/v1/wallet/withdrawals').set(bearer(buyerToken)).send({ amount: 0.5 }).expect(400);
 
     const all = await http().get('/api/v1/wallet/withdrawals/all').set(bearer(adminToken)).expect(200);
-    expect(Array.isArray(all.body)).toBe(true); // sin filtro de estado
+    expect(Array.isArray(all.body.items)).toBe(true); // sin filtro de estado
   });
 });

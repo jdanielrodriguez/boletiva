@@ -2,18 +2,21 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { AuthUser } from '../../common/decorators/current-user.decorator';
+import { KeysetQuery, keysetResult, keysetTake } from '../../common/utils/pagination';
 
 @Injectable()
 export class OrdersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Órdenes propias del usuario (más recientes primero). */
-  listMine(buyerId: string) {
-    return this.prisma.order.findMany({
+  /** Órdenes propias del usuario (más recientes primero), paginadas por keyset. */
+  async listMine(buyerId: string, page: KeysetQuery = {}) {
+    const rows = await this.prisma.order.findMany({
       where: { buyerId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       include: { items: true },
+      ...keysetTake(page),
     });
+    return keysetResult(rows, page);
   }
 
   /**

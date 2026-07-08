@@ -252,9 +252,10 @@ describe('Checkout / commit de compra (e2e)', () => {
       where: { email: { contains: 'adv_cob_' } },
     });
     const res = await http().get('/api/v1/orders').set(bearer(tokenB)).expect(200);
-    expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body.length).toBeGreaterThan(0);
-    for (const o of res.body) expect(o.buyerId).toBe(buyerB.id);
+    expect(Array.isArray(res.body.items)).toBe(true);
+    expect(res.body.items.length).toBeGreaterThan(0);
+    for (const o of res.body.items) expect(o.buyerId).toBe(buyerB.id);
+    expect(res.body).toHaveProperty('nextCursor');
   });
 
   it('índice único parcial: dos ítems ACTIVOS para el mismo asiento → viola constraint (belt-and-suspenders)', async () => {

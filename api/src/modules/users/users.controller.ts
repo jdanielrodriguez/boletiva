@@ -4,7 +4,12 @@ import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UsersService } from './users.service';
-import { UpdateProfileDto, UpdateUserRolesDto, UpdateUserStatusDto } from './dto/users.dto';
+import {
+  UpdateProfileDto,
+  UpdateUserRolesDto,
+  UpdateUserStatusDto,
+  UserListQueryDto,
+} from './dto/users.dto';
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -20,17 +25,9 @@ export class UsersController {
 
   @Get()
   @Roles(Role.admin)
-  @ApiOperation({ summary: 'Lista usuarios (admin)' })
-  list(
-    @Query('skip') skip?: string,
-    @Query('take') take?: string,
-    @Query('search') search?: string,
-  ) {
-    return this.users.list({
-      skip: skip ? parseInt(skip, 10) : undefined,
-      take: take ? parseInt(take, 10) : undefined,
-      search,
-    });
+  @ApiOperation({ summary: 'Lista usuarios (admin; keyset ?cursor&limit + ?search)' })
+  list(@Query() q: UserListQueryDto) {
+    return this.users.list(q);
   }
 
   @Get(':id')

@@ -1,3 +1,4 @@
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Role, UserStatus } from '@prisma/client';
 import {
   ArrayNotEmpty,
@@ -8,6 +9,16 @@ import {
   IsUrl,
   MaxLength,
 } from 'class-validator';
+import { PageQueryDto } from '../../../common/dto/page-query.dto';
+
+/** Query admin de usuarios: paginación keyset + búsqueda. */
+export class UserListQueryDto extends PageQueryDto {
+  @ApiPropertyOptional({ description: 'Busca por email/nombre/apellido' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  search?: string;
+}
 
 export class UpdateProfileDto {
   @IsOptional()

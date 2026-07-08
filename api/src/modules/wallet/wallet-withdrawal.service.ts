@@ -9,6 +9,7 @@ import { Role, WithdrawalStatus } from '@prisma/client';
 import Decimal from 'decimal.js';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { LedgerService } from '../ledger/ledger.service';
+import { KeysetQuery, keysetResult, keysetTake } from '../../common/utils/pagination';
 
 Decimal.set({ rounding: Decimal.ROUND_HALF_EVEN });
 
@@ -171,18 +172,22 @@ export class WalletWithdrawalService {
     return this.summarize(updated);
   }
 
-  listMine(userId: string) {
-    return this.prisma.walletWithdrawal.findMany({
+  async listMine(userId: string, page: KeysetQuery = {}) {
+    const rows = await this.prisma.walletWithdrawal.findMany({
       where: { userId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      ...keysetTake(page),
     });
+    return keysetResult(rows, page);
   }
 
-  listAll(status?: WithdrawalStatus) {
-    return this.prisma.walletWithdrawal.findMany({
+  async listAll(status?: WithdrawalStatus, page: KeysetQuery = {}) {
+    const rows = await this.prisma.walletWithdrawal.findMany({
       where: status ? { status } : {},
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      ...keysetTake(page),
     });
+    return keysetResult(rows, page);
   }
 
   private async getOr404(id: string) {

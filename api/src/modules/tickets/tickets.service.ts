@@ -8,6 +8,7 @@ import { QueueService } from '../../infra/queue/queue.service';
 import { QUEUES } from '../../infra/queue/queue.constants';
 import { AuthUser } from '../../common/decorators/current-user.decorator';
 import { randomToken } from '../../common/utils/crypto';
+import { KeysetQuery, keysetResult, keysetTake } from '../../common/utils/pagination';
 import { TicketSigningService } from './ticket-signing.service';
 import { TicketCryptoService, TicketIdentity } from './ticket-crypto.service';
 import { TicketCustodyService } from './ticket-custody.service';
@@ -151,14 +152,16 @@ export class TicketsService implements OnModuleInit {
     return `PE${randomToken(9).toUpperCase()}`;
   }
 
-  /** Boletos del usuario autenticado. */
-  async listMine(userId: string) {
-    const tickets = await this.prisma.ticket.findMany({
+  /** Boletos del usuario autenticado (keyset por `(issuedAt, id)` desc). */
+  async listMine(userId: string, page: KeysetQuery = {}) {
+    const rows = await this.prisma.ticket.findMany({
       where: { ownerId: userId },
-      orderBy: { issuedAt: 'desc' },
+      orderBy: [{ issuedAt: 'desc' }, { id: 'desc' }],
       include: { event: { select: { name: true, slug: true, startsAt: true } } },
+      ...keysetTake(page),
     });
-    return tickets.map((t) => this.toSummary(t));
+    const res = keysetResult(rows, page);
+    return { items: res.items.map((t) => this.toSummary(t)), nextCursor: res.nextCursor };
   }
 
   /** Detalle de un boleto (dueño o admin; si no, 404 para no filtrar existencia). */

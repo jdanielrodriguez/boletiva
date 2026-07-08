@@ -43,6 +43,13 @@ export interface PriceQuote {
    * cifra de "cuánto paga de pasarela" para la contabilidad de la plataforma.
    */
   gatewayFee: string;
+  /**
+   * "Cuota por servicio" que ve el COMPRADOR = plataforma + pasarela (+ fijos),
+   * FUSIONADAS en un solo número (= total − net − iva). Varía por método de pago
+   * (cada pasarela cuesta distinto). La separación plataforma/pasarela es INTERNA
+   * (solo promotor/admin la ven vía `platformFee`/`gatewayFee`).
+   */
+  serviceFee: string;
   /** Precio final all-in que paga el comprador. */
   total: string;
   totalCents: number;
@@ -147,6 +154,8 @@ export class PricingEngine {
       net: netR.toFixed(TWO),
       platformFee: platformFee.toFixed(TWO),
       gatewayFee: gatewayFee.toFixed(TWO),
+      // Cuota de servicio del comprador (fusionada) = total − net − iva.
+      serviceFee: total.sub(netR).sub(new Decimal(base.iva)).toFixed(TWO),
       // total, iva, taxableBase (venta declarada) y params NO cambian: el comprador
       // paga igual y el IVA/FEL reflejan la venta real de 1 pago.
       hash: '',
@@ -220,6 +229,8 @@ export class PricingEngine {
       taxableBase: taxableBase.toFixed(TWO),
       iva: iva.toFixed(TWO),
       gatewayFee: gatewayFee.toFixed(TWO),
+      // Cuota de servicio fusionada (comprador) = plataforma + pasarela + fijos.
+      serviceFee: total.sub(netR).sub(iva).toFixed(TWO),
       total: total.toFixed(TWO),
       totalCents: total.mul(100).toNumber(),
       params: {

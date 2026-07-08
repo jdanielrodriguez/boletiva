@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -11,13 +10,14 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Role, WithdrawalStatus } from '@prisma/client';
+import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RequireVerifiedEmail } from '../../common/decorators/verified-email.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { PageQueryDto } from '../../common/dto/page-query.dto';
 import { WalletService } from './wallet.service';
 import { WalletWithdrawalService } from './wallet-withdrawal.service';
-import { RequestWithdrawalDto, WithdrawalDecisionDto } from './dto/wallet.dto';
+import { RequestWithdrawalDto, WithdrawalDecisionDto, WithdrawalsQueryDto } from './dto/wallet.dto';
 
 @ApiTags('wallet')
 @ApiBearerAuth()
@@ -43,19 +43,16 @@ export class WalletController {
   }
 
   @Get('withdrawals')
-  @ApiOperation({ summary: 'Mis retiros' })
-  mine(@CurrentUser('userId') userId: string) {
-    return this.withdrawals.listMine(userId);
+  @ApiOperation({ summary: 'Mis retiros (keyset: ?cursor&limit)' })
+  mine(@CurrentUser('userId') userId: string, @Query() page: PageQueryDto) {
+    return this.withdrawals.listMine(userId, page);
   }
 
   @Get('withdrawals/all')
   @Roles(Role.admin)
-  @ApiOperation({ summary: 'Todos los retiros (admin), filtrable por estado' })
-  all(@Query('status') status?: string) {
-    if (status && !(status in WithdrawalStatus)) {
-      throw new BadRequestException('Estado de retiro inválido');
-    }
-    return this.withdrawals.listAll(status as WithdrawalStatus | undefined);
+  @ApiOperation({ summary: 'Todos los retiros (admin), ?status y keyset ?cursor&limit' })
+  all(@Query() q: WithdrawalsQueryDto) {
+    return this.withdrawals.listAll(q.status, q);
   }
 
   @Post('withdrawals/:id/approve')

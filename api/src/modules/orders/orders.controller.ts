@@ -1,7 +1,8 @@
-import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RequireVerifiedEmail } from '../../common/decorators/verified-email.decorator';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user.decorator';
+import { PageQueryDto } from '../../common/dto/page-query.dto';
 import { CheckoutService } from './checkout.service';
 import { OrdersService } from './orders.service';
 import { CheckoutDto } from './dto/orders.dto';
@@ -29,9 +30,9 @@ export class OrdersController {
   }
 
   @Get('orders')
-  @ApiOperation({ summary: 'Lista mis órdenes' })
-  listMine(@CurrentUser('userId') userId: string) {
-    return this.orders.listMine(userId);
+  @ApiOperation({ summary: 'Lista mis órdenes (keyset: ?cursor&limit)' })
+  listMine(@CurrentUser('userId') userId: string, @Query() page: PageQueryDto) {
+    return this.orders.listMine(userId, page);
   }
 
   @Get('orders/:id')

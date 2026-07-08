@@ -1,5 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNumber, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import { WithdrawalStatus } from '@prisma/client';
+import { IsEnum, IsNumber, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import { PageQueryDto } from '../../../common/dto/page-query.dto';
+
+/** Query admin de retiros: paginación keyset + filtro por estado. */
+export class WithdrawalsQueryDto extends PageQueryDto {
+  @ApiPropertyOptional({ enum: WithdrawalStatus })
+  @IsOptional()
+  @IsEnum(WithdrawalStatus)
+  status?: WithdrawalStatus;
+}
 
 export class RequestWithdrawalDto {
   @ApiProperty({ description: 'Monto bruto a retirar del saldo (GTQ)', example: 100 })
