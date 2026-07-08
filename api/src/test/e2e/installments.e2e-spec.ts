@@ -23,6 +23,7 @@ describe('Pagos en cuotas (e2e)', () => {
   let prisma: PrismaService;
   let ledger: LedgerService;
   let token: string;
+  let buyerBToken: string;
   let promoterId: string;
   let platEventId: string; // evento con plataforma absorbe (default)
   let promEventId: string; // evento con promotor absorbe
@@ -48,6 +49,13 @@ describe('Pagos en cuotas (e2e)', () => {
     const promoter = await prisma.user.findUniqueOrThrow({ where: { email: SEED.promoter } });
     promoterId = promoter.id;
     token = await loginTrusted(SEED.buyer, 'inst-buyer');
+
+    const emailB = `inst_b_${stamp}@test.com`;
+    const sB = await request(app.getHttpServer())
+      .post('/api/v1/auth/signup')
+      .send({ email: emailB, password: 'Password123', firstName: 'B' });
+    await prisma.user.update({ where: { id: sB.body.user.id }, data: { emailVerifiedAt: new Date() } });
+    buyerBToken = await loginTrusted(emailB, 'inst-buyerB');
 
     // Pasarela con cuotas (Recurrente): 3→8% · 6→9% · 12→10% · 18→14% + Q2 fijo.
     const recu = await prisma.paymentGateway.create({
@@ -94,7 +102,7 @@ describe('Pagos en cuotas (e2e)', () => {
       data: { eventId, name: 'I', slug: `i-${eventId.slice(0, 6)}`, kind: 'seated', desiredNet: 100 },
     });
     await prisma.seat.createMany({
-      data: Array.from({ length: 6 }, (_, i) => ({ localityId: loc.id, label: `S${i + 1}` })),
+      data: Array.from({ length: 10 }, (_, i) => ({ localityId: loc.id, label: `S${i + 1}` })),
     });
     const seats = await prisma.seat.findMany({ where: { localityId: loc.id } });
     return seats.sort((a, b) => Number(a.label.slice(1)) - Number(b.label.slice(1))).map((s) => s.id);
@@ -124,11 +132,12 @@ describe('Pagos en cuotas (e2e)', () => {
     await prisma.order.deleteMany({ where: { eventId: { in: ids } } });
     await prisma.event.deleteMany({ where: { id: { in: ids } } });
     await prisma.paymentGateway.deleteMany({ where: { name: { startsWith: 'INST_' } } });
+    await prisma.user.deleteMany({ where: { email: { contains: `inst_b_${stamp}` } } });
     await app.close();
   });
 
   const http = () => request(app.getHttpServer());
-  const bearer = () => ({ Authorization: `Bearer ${token}` });
+  const bearer = (t: string = token) => ({ Authorization: `Bearer ${t}` });
   const order = async (eventId: string, seatId: string) =>
     (await http().post(`/api/v1/events/${eventId}/orders`).set(bearer()).send({ seatIds: [seatId] }).expect(201))
       .body;
@@ -241,5 +250,48 @@ describe('Pagos en cuotas (e2e)', () => {
     const o = await order(promEventId, promSeats[1]);
     await pay(o.id, { installments: 0 }).expect(400);
     await pay(o.id, { installments: 49 }).expect(400);
+  });
+
+  // ---- payment-options: filtro dinámico de plazos por margen (regla del arquitecto) ----
+
+  const optionsFor = async (orderId: string) =>
+    (await http().get(`/api/v1/orders/${orderId}/payment-options`).set(bearer()).expect(200)).body;
+
+  it('plataforma absorbe: oculta 18 cuotas (margen negativo), ofrece 1/3/6/12', async () => {
+    const o = await order(platEventId, platSeats[6]);
+    const opts = await optionsFor(o.id);
+    expect(opts.absorbedByPromoter).toBe(false);
+    const recu = opts.gateways.find((g: { gatewayId: string }) => g.gatewayId === recurrenteId);
+    expect(recu).toBeDefined();
+    const counts = recu.installmentOptions.map((x: { installments: number }) => x.installments).sort((a: number, b: number) => a - b);
+    expect(counts).toEqual([1, 3, 6, 12]); // 18 oculto (10 − 13.68 < 0)
+    // El comprador paga lo mismo en todos los plazos ofrecidos.
+    for (const opt of recu.installmentOptions) {
+      expect(money(opt.total)).toBe('129.68');
+      expect(money(opt.serviceFee)).toBe('16.48');
+    }
+  });
+
+  it('promotor absorbe: libera TODO el abanico (incluye 18 cuotas)', async () => {
+    const o = await order(promEventId, promSeats[2]);
+    const opts = await optionsFor(o.id);
+    expect(opts.absorbedByPromoter).toBe(true);
+    const recu = opts.gateways.find((g: { gatewayId: string }) => g.gatewayId === recurrenteId);
+    const counts = recu.installmentOptions.map((x: { installments: number }) => x.installments).sort((a: number, b: number) => a - b);
+    expect(counts).toEqual([1, 3, 6, 12, 18]); // el promotor asume el margen negativo
+  });
+
+  it('una pasarela sin tarifario de cuotas solo ofrece 1 pago', async () => {
+    const o = await order(platEventId, platSeats[7]);
+    const opts = await optionsFor(o.id);
+    const noc = opts.gateways.find((g: { gatewayId: string }) => g.gatewayId === noCuotasGwId);
+    expect(noc.installmentOptions).toHaveLength(1);
+    expect(noc.installmentOptions[0].installments).toBe(1);
+  });
+
+  it('payment-options IDOR: orden ajena → 404; sin token → 401', async () => {
+    const o = await order(platEventId, platSeats[8]);
+    await http().get(`/api/v1/orders/${o.id}/payment-options`).set(bearer(buyerBToken)).expect(404);
+    await http().get(`/api/v1/orders/${o.id}/payment-options`).expect(401);
   });
 });

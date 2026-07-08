@@ -1,4 +1,4 @@
-import { Body, Controller, Headers, HttpCode, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpCode, Param, ParseUUIDPipe, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Public } from '../../common/decorators/public.decorator';
 import { RequireVerifiedEmail } from '../../common/decorators/verified-email.decorator';
@@ -10,6 +10,15 @@ import { PayOrderDto, WebhookDto } from './dto/payments.dto';
 @Controller()
 export class PaymentsController {
   constructor(private readonly payments: PaymentsService) {}
+
+  @Get('orders/:id/payment-options')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Opciones de pago del checkout: pasarelas + plazos de cuotas disponibles',
+  })
+  paymentOptions(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('userId') userId: string) {
+    return this.payments.paymentOptions(id, userId);
+  }
 
   @Post('orders/:id/pay')
   @HttpCode(201)

@@ -13,7 +13,7 @@ import Decimal from 'decimal.js';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { LedgerService } from '../ledger/ledger.service';
 import { PricingService } from '../pricing/pricing.service';
-import { InstallmentPlan, PricingEngine } from '../pricing/pricing.engine';
+import { FeeParams, InstallmentPlan, PricingEngine } from '../pricing/pricing.engine';
 import { PaymentGatewaysService } from '../payment-gateways/payment-gateways.service';
 import { hmacSha256, randomToken, safeEqual } from '../../common/utils/crypto';
 import { QueueService } from '../../infra/queue/queue.service';
@@ -152,6 +152,103 @@ export class PaymentsService {
       installments,
     });
     return { ...this.summarize(payment), installments, paymentUrl: res.paymentUrl };
+  }
+
+  /**
+   * Opciones de pago para el checkout de una orden PENDIENTE: por cada pasarela
+   * activa, el total que pagaría el comprador (igual en todos los plazos, porque
+   * el recargo lo absorbe la plataforma/promotor) y los plazos de cuotas
+   * DISPONIBLES. Regla del arquitecto: si absorbe la PLATAFORMA (default), se
+   * OCULTAN los plazos cuyo costo la dejaría con margen negativo
+   * (platformFee < 0); si absorbe el PROMOTOR, se liberan todos (él asume el
+   * costo contra su neto). Protege las finanzas por código, sin intervención.
+   */
+  async paymentOptions(orderId: string, buyerId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: true,
+        event: { select: { ivaOnNet: true, absorbInstallmentCost: true } },
+      },
+    });
+    if (!order || order.buyerId !== buyerId) {
+      throw new NotFoundException('Orden no encontrada'); // IDOR → 404
+    }
+    const absorbedByPromoter = order.event.absorbInstallmentCost;
+    const gateways = await this.gateways.listActive();
+
+    // La tabla de comisiones (plataforma+IVA+fijos) es la misma para todas las
+    // pasarelas: se lee UNA vez; por pasarela solo cambia gatewayFeePct.
+    const platformBase = await this.pricing.paramsForRequote(
+      order.feeScheduleVersion,
+      0,
+      order.event.ivaOnNet,
+    );
+
+    const result = gateways.map((gw) => {
+      const params: FeeParams = { ...platformBase, gatewayFeePct: gw.feePct.toNumber() };
+      const base = this.quoteOrderTotals(order.items, params);
+      const options = [{ installments: 1, total: base.total, serviceFee: base.serviceFee }];
+
+      const rates = (gw.installmentRates as Record<string, number> | null) ?? {};
+      const fixedFee = gw.installmentFixedFee ? gw.installmentFixedFee.toNumber() : 0;
+      const counts = Object.keys(rates)
+        .map(Number)
+        .filter((n) => Number.isInteger(n) && n >= 2)
+        .sort((a, b) => a - b);
+
+      for (const count of counts) {
+        let q: { total: string; platformFee: string; serviceFee: string };
+        try {
+          q = this.quoteOrderTotals(order.items, params, {
+            count,
+            ratePct: rates[String(count)],
+            fixedFee,
+            absorbedByPromoter,
+          });
+        } catch {
+          continue; // el promotor no puede absorber (neto insuficiente) → no se ofrece
+        }
+        // Filtro de margen: la plataforma no vende a pérdida (a menos que el promotor absorba).
+        if (!absorbedByPromoter && new Decimal(q.platformFee).lt(0)) continue;
+        options.push({ installments: count, total: q.total, serviceFee: q.serviceFee });
+      }
+
+      return {
+        gatewayId: gw.id,
+        name: gw.name,
+        provider: gw.provider,
+        isPlatformDefault: gw.isPlatformDefault,
+        total: base.total,
+        serviceFee: base.serviceFee,
+        installmentOptions: options,
+      };
+    });
+
+    return {
+      orderId: order.id,
+      currency: order.currency,
+      absorbedByPromoter,
+      gateways: result,
+    };
+  }
+
+  /** Cotiza la orden completa (suma de ítems) para una pasarela/plan, sin persistir. */
+  private quoteOrderTotals(
+    items: Array<{ net: Prisma.Decimal }>,
+    params: FeeParams,
+    plan?: InstallmentPlan,
+  ): { total: string; platformFee: string; serviceFee: string } {
+    let total = new Decimal(0);
+    let platform = new Decimal(0);
+    let service = new Decimal(0);
+    for (const it of items) {
+      const q = PricingEngine.quote(it.net.toString(), params, plan);
+      total = total.add(q.total);
+      platform = platform.add(q.platformFee);
+      service = service.add(q.serviceFee);
+    }
+    return { total: total.toFixed(2), platformFee: platform.toFixed(2), serviceFee: service.toFixed(2) };
   }
 
   private summarize(p: {
