@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
+import { Component, RESPONSE_INIT, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, of, startWith, switchMap, tap } from 'rxjs';
@@ -21,6 +21,9 @@ export class EventDetail {
   private readonly route = inject(ActivatedRoute);
   private readonly eventsApi = inject(EventsApi);
   private readonly seo = inject(SeoService);
+  // En SSR es un objeto mutable; en el navegador es null. Permite devolver un
+  // 404 HTTP real cuando el slug no existe (crawl budget / SEO).
+  private readonly responseInit = inject(RESPONSE_INIT, { optional: true });
 
   // undefined = cargando · null = no encontrado · objeto = cargado
   private readonly data = toSignal(
@@ -43,6 +46,16 @@ export class EventDetail {
   protected readonly event = computed(() => this.data() ?? null);
   protected readonly loading = computed(() => this.data() === undefined);
   protected readonly notFound = computed(() => this.data() === null);
+  protected readonly coverImage = computed(() => {
+    const ev = this.event();
+    return ev ? this.mediaUrl(ev) : undefined;
+  });
+
+  /** URL de la imagen de portada (cover, o la primera disponible). */
+  private mediaUrl(ev: PublicEventDetailDto): string | undefined {
+    const cover = ev.media.find((m) => m.kind === 'cover') ?? ev.media[0];
+    return cover?.url;
+  }
 
   private applySeo(ev: PublicEventDetailDto): void {
     const description =
@@ -52,11 +65,14 @@ export class EventDetail {
       description,
       path: `/eventos/${ev.slug}`,
       type: 'event',
+      image: this.mediaUrl(ev),
       jsonLd: this.buildJsonLd(ev),
     });
   }
 
   private applyNotFound(slug: string): void {
+    // Fuerza un 404 HTTP real en SSR (no 200). En el navegador responseInit es null.
+    if (this.responseInit) this.responseInit.status = 404;
     this.seo.apply({
       title: 'Evento no encontrado — Pasa Eventos',
       description: 'El evento que buscas no existe o ya no está disponible.',

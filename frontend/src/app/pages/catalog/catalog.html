@@ -38,7 +38,11 @@
       @for (ev of events(); track ev.id) {
         <li class="event-card">
           <a [routerLink]="['/eventos', ev.slug]">
-            <div class="event-thumb" aria-hidden="true">{{ ev.name.charAt(0) }}</div>
+            @if (ev.media[0]?.url; as img) {
+              <img class="event-thumb" [src]="img" [alt]="ev.name" loading="lazy" />
+            } @else {
+              <div class="event-thumb" aria-hidden="true">{{ ev.name.charAt(0) }}</div>
+            }
             <h2>{{ ev.name }}</h2>
             @if (ev.category) {
               <span class="event-cat">{{ ev.category.name }}</span>

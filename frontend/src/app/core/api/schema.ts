@@ -2338,6 +2338,11 @@ export interface components {
              */
             position: number;
             /**
+             * @description URL firmada para mostrar el archivo (presente en listados/detalle públicos; ausente en el detalle gestionable)
+             * @example https://cdn.pasaeventos.com/events/3f2504e0/9f8b1c2d-poster.jpg?X-Amz-Signature=...
+             */
+            url?: string;
+            /**
              * Format: date-time
              * @example 2026-07-01T18:30:00.000Z
              */

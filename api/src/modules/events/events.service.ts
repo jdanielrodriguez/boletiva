@@ -7,17 +7,36 @@ import {
 } from '@nestjs/common';
 import { Event, GatewayStatus, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { StorageService } from '../../infra/storage/storage.service';
 import { AuthUser } from '../../common/decorators/current-user.decorator';
 import { slugify, slugWithSuffix } from '../../common/utils/slug';
 import { PromotersService } from '../promoters/promoters.service';
 import { CreateEventDto, UpdateEventDto } from './dto/events.dto';
+
+/** URLs firmadas de media públicas: expiran holgadamente para sobrevivir al
+ * cache del edge de la página (HTML cacheado no debe apuntar a URLs vencidas). */
+const PUBLIC_MEDIA_URL_TTL = 3600;
 
 @Injectable()
 export class EventsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly promoters: PromotersService,
+    private readonly storage: StorageService,
   ) {}
+
+  /** Añade una URL firmada a cada media (para catálogo/SEO/og:image). */
+  private async signMedia<T extends { media: { key: string }[] }>(
+    entity: T,
+  ): Promise<T & { media: (T['media'][number] & { url: string })[] }> {
+    const media = await Promise.all(
+      entity.media.map(async (m) => ({
+        ...m,
+        url: await this.storage.signedGetUrl(m.key, PUBLIC_MEDIA_URL_TTL),
+      })),
+    );
+    return { ...entity, media };
+  }
 
   private assertDates(startsAt?: string, endsAt?: string) {
     if (startsAt && endsAt && new Date(endsAt) <= new Date(startsAt)) {
@@ -66,7 +85,8 @@ export class EventsService {
       }),
       this.prisma.event.count({ where }),
     ]);
-    return { items, total, skip, take };
+    const signed = await Promise.all(items.map((ev) => this.signMedia(ev)));
+    return { items: signed, total, skip, take };
   }
 
   async getPublicBySlug(slug: string) {
@@ -79,7 +99,7 @@ export class EventsService {
       },
     });
     if (!event) throw new NotFoundException('Evento no encontrado');
-    return event;
+    return this.signMedia(event);
   }
 
   listMine(userId: string) {

@@ -14,6 +14,7 @@ const EVENT = {
   startsAt: '2028-08-15T02:00:00.000Z',
   address: 'Estadio',
   category: { id: 'c1', name: 'Conciertos', slug: 'conciertos' },
+  media: [],
 };
 const CATS = [{ id: 'c1', name: 'Conciertos', slug: 'conciertos' }];
 

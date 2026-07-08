@@ -1,6 +1,9 @@
 @if (event(); as ev) {
   <article class="event-detail">
     <a class="back" routerLink="/">← Eventos</a>
+    @if (coverImage(); as img) {
+      <img class="event-cover" [src]="img" [alt]="ev.name" />
+    }
     <h1>{{ ev.name }}</h1>
 
     <div class="event-meta">

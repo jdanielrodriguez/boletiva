@@ -19,7 +19,7 @@ const EVENT = {
   endsAt: '2028-08-15T05:00:00.000Z',
   status: 'published',
   category: { id: 'c1', name: 'Conciertos', slug: 'conciertos' },
-  media: [],
+  media: [{ id: 'm1', kind: 'cover', key: 'k', position: 0, url: 'https://img.test/cover.jpg' }],
   localities: [{ id: 'l1', name: 'General' }],
 };
 
@@ -61,6 +61,10 @@ describe('EventDetail', () => {
     expect(parsed.name).toBe('Concierto X');
     expect(parsed.startDate).toBe(EVENT.startsAt);
     expect(parsed.location['@type']).toBe('Place');
+
+    const ogImage = TestBed.inject(DOCUMENT).querySelector("meta[property='og:image']");
+    expect(ogImage?.getAttribute('content')).toBe('https://img.test/cover.jpg');
+    expect(el.querySelector('img.event-cover')?.getAttribute('src')).toBe('https://img.test/cover.jpg');
   });
 
   it('muestra 404 y marca noindex si el slug no existe', () => {
