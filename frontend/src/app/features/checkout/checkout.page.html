@@ -86,11 +86,11 @@
             @if (selectedGateway(); as gw) {
               @if (gw.installmentOptions.length > 1) {
                 <label class="installments">
-                  Plazo
+                  Número de cuotas
                   <select (change)="selectInstallments($any($event.target).value)">
                     @for (opt of gw.installmentOptions; track opt.installments) {
                       <option [value]="opt.installments" [selected]="opt.installments === installments()">
-                        {{ opt.installments === 1 ? '1 pago' : opt.installments + ' cuotas' }} — Q{{ opt.total }}
+                        {{ opt.installments === 1 ? '1 pago (sin cuotas)' : opt.installments + ' cuotas' }} — Q{{ opt.total }}
                       </option>
                     }
                   </select>
