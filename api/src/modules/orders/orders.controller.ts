@@ -9,10 +9,14 @@ import {
 import { RequireVerifiedEmail } from '../../common/decorators/verified-email.decorator';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user.decorator';
 import { PageQueryDto } from '../../common/dto/page-query.dto';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { Role } from '@prisma/client';
 import { CheckoutService } from './checkout.service';
 import { OrdersService } from './orders.service';
+import { SettlementService } from './settlement.service';
 import {
   CheckoutDto,
+  EventSettlementDto,
   OrderLedgerChainDto,
   OrderPageResponseDto,
   OrderResponseDto,
@@ -22,7 +26,22 @@ import {
 @ApiBearerAuth()
 @Controller()
 export class OrdersController {
-  constructor(private readonly checkout: CheckoutService, private readonly orders: OrdersService) {}
+  constructor(
+    private readonly checkout: CheckoutService,
+    private readonly orders: OrdersService,
+    private readonly settlement: SettlementService,
+  ) {}
+
+  @Get('events/:eventId/settlement')
+  @Roles(Role.promoter, Role.admin)
+  @ApiOperation({ summary: 'Liquidación del evento: cuentas por pasarela/plataforma/promotor (owner/admin)' })
+  @ApiOkResponse({ type: EventSettlementDto })
+  eventSettlement(
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.settlement.forEvent(eventId, user);
+  }
 
   @Post('events/:eventId/orders')
   @HttpCode(201)

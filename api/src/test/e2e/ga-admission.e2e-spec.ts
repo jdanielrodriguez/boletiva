@@ -46,7 +46,9 @@ describe('Admisión general (GA) por filas (e2e)', () => {
         slug: `ga-${stamp}`,
         startsAt: new Date('2028-05-01T20:00:00-06:00'),
         endsAt: new Date('2028-05-01T23:00:00-06:00'),
-        status: 'published',
+        // El inventario (localidades/aforo) se configura en BORRADOR; publicarlo lo
+        // congela. Este fixture prueba la maquinaria GA (aforo/hold/commit) en draft.
+        status: 'draft',
       },
     });
     eventId = event.id;

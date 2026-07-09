@@ -237,6 +237,49 @@ export class OrderLedgerChainDto {
   chainValid!: boolean;
 }
 
+/** Liquidación (cuentas) agregada de un evento sobre sus órdenes pagadas. */
+export class EventSettlementDto {
+  @ApiProperty({ format: 'uuid' })
+  eventId!: string;
+
+  @ApiProperty({ example: 'Concierto de Apertura' })
+  eventName!: string;
+
+  @ApiProperty({ example: 'GTQ' })
+  currency!: string;
+
+  @ApiProperty({ example: 128, description: 'Cantidad de órdenes pagadas' })
+  paidOrders!: number;
+
+  @ApiProperty({ example: 342, description: 'Boletos vendidos (ítems activos de órdenes pagadas)' })
+  ticketsSold!: number;
+
+  @ApiProperty({ type: String, example: '44300.16', description: 'Total cobrado (suma de totales)' })
+  gross!: string;
+
+  @ApiProperty({ type: String, example: '34200.00', description: 'Neto a liquidar al promotor' })
+  net!: string;
+
+  @ApiProperty({ type: String, example: '3420.00', description: 'Comisión de plataforma' })
+  platformFee!: string;
+
+  @ApiProperty({ type: String, example: '2214.72', description: 'Comisión de la pasarela' })
+  gatewayFee!: string;
+
+  @ApiProperty({ type: String, example: '256.00', description: 'Cargos fijos (p.ej. Q2/transacción)' })
+  fixedFees!: string;
+
+  @ApiProperty({
+    type: String,
+    example: '5890.72',
+    description: 'Cuota por servicio (plataforma + pasarela + fijos, sin IVA)',
+  })
+  serviceFee!: string;
+
+  @ApiProperty({ type: String, example: '4104.00', description: 'IVA recaudado' })
+  iva!: string;
+}
+
 /** Página keyset de órdenes: `{ items, nextCursor }`. */
 export class OrderPageResponseDto {
   @ApiProperty({ type: OrderResponseDto, isArray: true })

@@ -4,7 +4,14 @@ import { PrismaService } from '../../infra/prisma/prisma.service';
 import { StorageService } from '../../infra/storage/storage.service';
 import { randomToken } from '../../common/utils/crypto';
 import { AuthUser } from '../../common/decorators/current-user.decorator';
-import { BANNER_PROVIDER, BannerProvider } from './banner.provider';
+import { BANNER_PROVIDER, BannerProvider, BannerTemplate } from './banner.provider';
+
+/** Opciones de generación (prompt/plantilla/imágenes de ejemplo). */
+export interface BannerOptions {
+  prompt?: string;
+  template?: BannerTemplate;
+  sampleImages?: string[];
+}
 
 /** URL firmada del banner (holgada para sobrevivir al cache del edge). */
 const BANNER_URL_TTL = 3600;
@@ -23,7 +30,7 @@ export class BannerService {
     @Inject(BANNER_PROVIDER) private readonly provider: BannerProvider,
   ) {}
 
-  async generateForEvent(eventId: string, user: AuthUser) {
+  async generateForEvent(eventId: string, user: AuthUser, options?: BannerOptions) {
     const event = await this.prisma.event.findUnique({
       where: { id: eventId },
       include: { category: true },
@@ -38,6 +45,9 @@ export class BannerService {
       eventName: event.name,
       categoryName: event.category?.name ?? null,
       description: event.description,
+      prompt: options?.prompt ?? null,
+      template: options?.template ?? null,
+      sampleImages: options?.sampleImages ?? null,
     });
     const key = `events/${eventId}/banner-${randomToken(8)}.${image.ext}`;
     await this.storage.putObject(key, image.body, image.contentType);

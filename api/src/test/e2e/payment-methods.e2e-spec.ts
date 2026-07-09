@@ -16,12 +16,10 @@ describe('Métodos de pago tokenizados (e2e)', () => {
   let buyerToken: string;
   let buyerId: string;
   let otherToken: string;
-  let stamp: number;
 
   beforeAll(async () => {
     app = await createTestApp();
     prisma = app.get(PrismaService);
-    stamp = Date.now();
     buyerId = (await prisma.user.findUniqueOrThrow({ where: { email: SEED.buyer } })).id;
     await prisma.savedCard.deleteMany({ where: { userId: buyerId } });
     buyerToken = await loginTrusted(SEED.buyer, 'pm-buyer');

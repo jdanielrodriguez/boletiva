@@ -24,4 +24,23 @@ describe('StubBannerProvider', () => {
     const img = await provider.generate({ eventName: '' });
     expect(img.body.toString('utf8')).toContain('Evento');
   });
+
+  it('aplica la paleta de la plantilla elegida (forest)', async () => {
+    const img = await provider.generate({ eventName: 'Feria', template: 'forest' });
+    const svg = img.body.toString('utf8');
+    expect(svg).toContain('#064e3b'); // primera parada de la paleta forest
+    expect(svg).not.toContain('#7c3aed'); // no la de aurora
+  });
+
+  it('refleja el prompt como tagline (escapado y recortado)', async () => {
+    const img = await provider.generate({ eventName: 'Show', prompt: 'Neón & <b>fuego</b>' });
+    const svg = img.body.toString('utf8');
+    expect(svg).toContain('Neón &amp;');
+    expect(svg).not.toContain('<b>fuego</b>');
+  });
+
+  it('sin prompt cae al tagline de marca', async () => {
+    const img = await provider.generate({ eventName: 'Show' });
+    expect(img.body.toString('utf8')).toContain('pasa eventos');
+  });
 });

@@ -1174,6 +1174,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{eventId}/settlement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Liquidación del evento: cuentas por pasarela/plataforma/promotor (owner/admin) */
+        get: operations["OrdersController_eventSettlement_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{eventId}/orders": {
         parameters: {
             query?: never;
@@ -3964,6 +3981,59 @@ export interface components {
              */
             released: number;
         };
+        EventSettlementDto: {
+            /** Format: uuid */
+            eventId: string;
+            /** @example Concierto de Apertura */
+            eventName: string;
+            /** @example GTQ */
+            currency: string;
+            /**
+             * @description Cantidad de órdenes pagadas
+             * @example 128
+             */
+            paidOrders: number;
+            /**
+             * @description Boletos vendidos (ítems activos de órdenes pagadas)
+             * @example 342
+             */
+            ticketsSold: number;
+            /**
+             * @description Total cobrado (suma de totales)
+             * @example 44300.16
+             */
+            gross: string;
+            /**
+             * @description Neto a liquidar al promotor
+             * @example 34200.00
+             */
+            net: string;
+            /**
+             * @description Comisión de plataforma
+             * @example 3420.00
+             */
+            platformFee: string;
+            /**
+             * @description Comisión de la pasarela
+             * @example 2214.72
+             */
+            gatewayFee: string;
+            /**
+             * @description Cargos fijos (p.ej. Q2/transacción)
+             * @example 256.00
+             */
+            fixedFees: string;
+            /**
+             * @description Cuota por servicio (plataforma + pasarela + fijos, sin IVA)
+             * @example 5890.72
+             */
+            serviceFee: string;
+            /**
+             * @description IVA recaudado
+             * @example 4104.00
+             */
+            iva: string;
+        };
         CheckoutDto: {
             /** @description IDs de los asientos a comprar (previamente reservados) */
             seatIds: string[];
@@ -5291,6 +5361,20 @@ export interface components {
              * @example 129.68
              */
             total: string;
+        };
+        GenerateBannerDto: {
+            /**
+             * @description Instrucción libre para el generador (tagline/estilo). Máx 500.
+             * @example Ambiente neón, tipografía audaz, público saltando
+             */
+            prompt?: string;
+            /**
+             * @description Plantilla visual (paleta/estilo)
+             * @enum {string}
+             */
+            template?: "aurora" | "midnight" | "sunset" | "forest" | "mono";
+            /** @description Imágenes de ejemplo (URLs/claves) que guían al proveedor real. Máx 5. */
+            sampleImages?: string[];
         };
         BannerResponseDto: {
             /**
@@ -7089,6 +7173,27 @@ export interface operations {
             };
         };
     };
+    OrdersController_eventSettlement_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventSettlementDto"];
+                };
+            };
+        };
+    };
     OrdersController_create_v1: {
         parameters: {
             query?: never;
@@ -8320,7 +8425,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerateBannerDto"];
+            };
+        };
         responses: {
             200: {
                 headers: {

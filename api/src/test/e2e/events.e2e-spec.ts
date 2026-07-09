@@ -199,4 +199,79 @@ describe('Eventos: gestión (e2e)', () => {
       .set(bearer(promoterToken))
       .expect(404);
   });
+
+  it('localidades bloqueadas en evento publicado: add/patch/delete → 409', async () => {
+    const ev = await createEvent(promoterToken);
+    const loc = await http()
+      .post(`/api/v1/events/${ev.id}/localities`)
+      .set(bearer(promoterToken))
+      .send({ name: 'GA', kind: 'general', capacity: 10, desiredNet: 100 })
+      .expect(201);
+    await http().post(`/api/v1/events/${ev.id}/publish`).set(bearer(promoterToken)).expect(200);
+    // Ya publicado: crear/editar/borrar localidades queda bloqueado.
+    await http()
+      .post(`/api/v1/events/${ev.id}/localities`)
+      .set(bearer(promoterToken))
+      .send({ name: 'Otra', kind: 'general', capacity: 5 })
+      .expect(409);
+    await http()
+      .patch(`/api/v1/localities/${loc.body.id}`)
+      .set(bearer(promoterToken))
+      .send({ name: 'Nuevo nombre' })
+      .expect(409);
+    await http().delete(`/api/v1/localities/${loc.body.id}`).set(bearer(promoterToken)).expect(409);
+  });
+
+  describe('GET /events/:id/settlement (liquidación)', () => {
+    it('owner ve las cuentas de sus órdenes pagadas; ajeno 403; sin token 401', async () => {
+      const ev = await createEvent(promoterToken);
+      const loc = await prisma.locality.create({
+        data: { eventId: ev.id, name: 'GA', slug: `ga-set-${stamp}`, kind: 'general', capacity: 10, desiredNet: 100 },
+      });
+      const seat = await prisma.seat.create({
+        data: { localityId: loc.id, label: 'GA-0000001', section: 'GA', status: 'sold' },
+      });
+      // Orden PAGADA con snapshot de precios (129.68 = neto 100).
+      await prisma.order.create({
+        data: {
+          buyerId: promoterId,
+          eventId: ev.id,
+          status: 'paid',
+          net: '100.00',
+          fixedFees: '0.00',
+          platformFee: '10.00',
+          taxableBase: '110.00',
+          iva: '13.20',
+          gatewayFee: '6.48',
+          total: '129.68',
+          items: {
+            create: [
+              { localityId: loc.id, seatId: seat.id, label: 'GA-0000001', net: '100.00', total: '129.68', quote: {}, quoteHash: 'h', active: true },
+            ],
+          },
+        },
+      });
+      const res = await http().get(`/api/v1/events/${ev.id}/settlement`).set(bearer(promoterToken)).expect(200);
+      expect(res.body.paidOrders).toBe(1);
+      expect(res.body.ticketsSold).toBe(1);
+      expect(res.body.net).toBe('100.00');
+      expect(res.body.gatewayFee).toBe('6.48');
+      expect(res.body.serviceFee).toBe('16.48'); // 10 + 6.48 + 0
+      expect(res.body.gross).toBe('129.68');
+      // Ajeno → 403; sin token → 401.
+      await http().get(`/api/v1/events/${ev.id}/settlement`).set(bearer(promoterBToken)).expect(403);
+      await http().get(`/api/v1/events/${ev.id}/settlement`).expect(401);
+    });
+
+    it('admin ve la liquidación de cualquier evento; evento inexistente → 404', async () => {
+      const ev = await createEvent(promoterToken);
+      const res = await http().get(`/api/v1/events/${ev.id}/settlement`).set(bearer(adminToken)).expect(200);
+      expect(res.body.paidOrders).toBe(0);
+      expect(res.body.net).toBe('0.00');
+      await http()
+        .get('/api/v1/events/00000000-0000-0000-0000-000000000000/settlement')
+        .set(bearer(adminToken))
+        .expect(404);
+    });
+  });
 });
