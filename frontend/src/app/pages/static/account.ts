@@ -227,10 +227,17 @@ export class Account {
    * — ese era el bug: la URL cambiaba pero la vista no se re-desplegaba.
    */
   protected select(s: Section): void {
-    this.section.set(s);
+    this.section.set(s); // respuesta inmediata del menú lateral (y para tests)
     this.orderFilter.set(null);
     if ((s === 'facturacion' || s === 'wallet') && this.orders().length === 0) this.loadOrders();
     if (s === 'metodos' && this.cards().length === 0) this.loadCards();
+    // Sincroniza el ESTADO DEL ROUTER (no solo la URL): así el dropdown del header
+    // nunca queda en navegación nula tras usar el menú lateral (bug del "menú que
+    // deja de responder"). replaceState del Location no basta: no actualiza el
+    // estado interno del router y la navegación siguiente al mismo query se ignora.
+    void this.router
+      .navigate(['/cuenta'], { queryParams: { s: s === 'perfil' ? null : s } })
+      .catch(() => undefined);
   }
 
   // --- Métodos de pago ---

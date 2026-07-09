@@ -214,6 +214,25 @@ async function main() {
     assert((await text(page, '[data-testid="wallet-balance"]')).includes('Q'), 'sin saldo');
   });
 
+  await step('menú NO se desincroniza: header→wallet, lateral→perfil, header→wallet re-despliega', async () => {
+    // Repro del bug reportado: entrar por el dropdown a Wallet, cambiar por el menú
+    // lateral a Perfil, y volver por el dropdown a Wallet → debe mostrar Wallet.
+    const ddWallet = async () => {
+      await page.click('[data-testid="user-menu-trigger"]');
+      await waitSel(page, '[data-testid="dd-wallet"]', 5000);
+      await page.click('[data-testid="dd-wallet"]');
+    };
+    await ddWallet();
+    await waitSel(page, '[data-testid="wallet-balance"]', 8000);
+    // Menú lateral → Perfil (primer botón del .account-menu).
+    await page.$$eval('.account-menu button', (b) => b[0].click());
+    await waitSel(page, '[data-testid="save-profile"]', 8000);
+    // Header → Wallet otra vez: antes se quedaba en Perfil (navegación nula).
+    await ddWallet();
+    await waitSel(page, '[data-testid="wallet-balance"]', 8000);
+    assert((await page.$('[data-testid="save-profile"]')) === null, 'la vista quedó atascada en Perfil (desync)');
+  });
+
   await step('los boletos activos aparecen tras la compra (emisión async)', async () => {
     let ok = false;
     for (let i = 0; i < 25 && !ok; i++) {
