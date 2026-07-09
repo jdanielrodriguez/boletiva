@@ -19,12 +19,15 @@ export class StorageService implements OnModuleInit {
   private readonly logger = new Logger(StorageService.name);
   private s3!: S3Client;
   private bucket!: string;
+  private endpoint = '';
+  private publicEndpoint?: string;
 
   constructor(private readonly config: ConfigService) {}
 
   async onModuleInit(): Promise<void> {
     const s3cfg = this.config.getOrThrow<{
       endpoint: string;
+      publicEndpoint?: string;
       region: string;
       bucket: string;
       accessKeyId: string;
@@ -32,6 +35,8 @@ export class StorageService implements OnModuleInit {
       forcePathStyle: boolean;
     }>('storage.s3');
     this.bucket = s3cfg.bucket;
+    this.endpoint = s3cfg.endpoint;
+    this.publicEndpoint = s3cfg.publicEndpoint;
     this.s3 = new S3Client({
       endpoint: s3cfg.endpoint,
       region: s3cfg.region,
@@ -65,9 +70,25 @@ export class StorageService implements OnModuleInit {
 
   /** URL firmada (V4) de descarga, con expiración corta. */
   async signedGetUrl(key: string, expiresInSeconds = 300): Promise<string> {
-    return getSignedUrl(this.s3, new GetObjectCommand({ Bucket: this.bucket, Key: key }), {
-      expiresIn: expiresInSeconds,
-    });
+    const url = await getSignedUrl(
+      this.s3,
+      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+      { expiresIn: expiresInSeconds },
+    );
+    return this.toPublicUrl(url);
+  }
+
+  /**
+   * Reescribe el host interno del endpoint por el público (dev/LocalStack) para que
+   * el navegador pueda descargar. LocalStack no valida la firma SigV4, así que
+   * cambiar el host tras firmar es seguro en dev. Sin `publicEndpoint` (prod GCS)
+   * devuelve la URL intacta.
+   */
+  private toPublicUrl(url: string): string {
+    if (!this.publicEndpoint || !this.endpoint) return url;
+    return url.startsWith(this.endpoint)
+      ? this.publicEndpoint.replace(/\/$/, '') + url.slice(this.endpoint.replace(/\/$/, '').length)
+      : url;
   }
 
   /** URL firmada (V4) de SUBIDA (PUT directo del navegador a storage). */

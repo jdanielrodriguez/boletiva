@@ -437,6 +437,7 @@ model Locality {
   event      Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
   seats      Seat[]
   orderItems OrderItem[]
+  tickets    Ticket[]
 
   @@unique([eventId, slug])
   @@index([eventId])
@@ -786,6 +787,7 @@ model Ticket {
   event     Event                @relation(fields: [eventId], references: [id])
   owner     User                 @relation("TicketOwner", fields: [ownerId], references: [id])
   seat      Seat?                @relation(fields: [seatId], references: [id])
+  locality  Locality             @relation(fields: [localityId], references: [id])
   custody   TicketCustodyEvent[]
   transfers TicketTransfer[]
 

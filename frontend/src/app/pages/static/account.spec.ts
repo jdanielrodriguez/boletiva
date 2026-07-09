@@ -1,6 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute, convertToParamMap } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { OrdersApi } from '../../core/api/orders.api';
 import { TicketsApi } from '../../core/api/tickets.api';
@@ -15,8 +15,9 @@ import { Account } from './account';
 
 const TICKETS = {
   items: [
-    { id: 't1', serial: 'PE-1', status: 'valid', eventId: 'e1', event: { name: 'Fiesta' } },
-    { id: 't2', serial: 'PE-2', status: 'used', eventId: 'e1', event: { name: 'Concierto' } },
+    { id: 't1', serial: 'PE-1', status: 'valid', eventId: 'e1', orderId: 'o1', localityName: 'VIP', seatLabel: 'A1', mediaReady: true, event: { name: 'Fiesta' } },
+    { id: 't3', serial: 'PE-3', status: 'valid', eventId: 'e1', orderId: 'o2', localityName: 'General', mediaReady: true, event: { name: 'Fiesta' } },
+    { id: 't2', serial: 'PE-2', status: 'used', eventId: 'e2', orderId: 'o3', localityName: 'General', event: { name: 'Concierto' } },
   ],
 } as unknown as TicketPageResponseDto;
 
@@ -41,6 +42,7 @@ describe('Account (mi cuenta)', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
+        provideRouter([]),
         ToastService,
         {
           provide: WalletApi,
@@ -185,6 +187,25 @@ describe('Account (mi cuenta)', () => {
     expect(list?.textContent).not.toContain('Concierto'); // usado → va a pasados
   });
 
+  it('boletos activos se agrupan por evento y por compra (cards)', async () => {
+    await setup();
+    go('menu-activos');
+    const cont = el.querySelector('[data-testid="tickets-activos"]');
+    expect(cont?.querySelectorAll('.event-card').length).toBe(1); // un solo evento (e1)
+    expect(cont?.querySelectorAll('.order-block').length).toBe(2); // dos compras (o1, o2)
+    expect(cont?.textContent).toContain('VIP');
+    expect(cont?.textContent).toContain('Asiento A1');
+  });
+
+  it('ver compra navega a facturación filtrando la orden', async () => {
+    await setup();
+    const nav = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    go('menu-activos');
+    go('ver-compra');
+    expect(nav).toHaveBeenCalledWith(['/cuenta'], { queryParams: { s: 'facturacion', order: 'o1' } });
+    expect(fixture.componentInstance['orderFilter']()).toBe('o1');
+  });
+
   it('transferir un boleto muestra el código a compartir', async () => {
     const transfer = jasmine.createSpy('transfer').and.returnValue(of({ code: 'K7MNPQ23' }));
     await setup({ tickets: { list: () => of(TICKETS), media: () => of({}), transfer } });
@@ -194,20 +215,38 @@ describe('Account (mi cuenta)', () => {
     expect(el.querySelector('[data-testid="transfer-code"]')?.textContent).toContain('K7MNPQ23');
   });
 
-  it('ver media carga QR/PDF del boleto', async () => {
+  it('el QR se muestra por defecto (auto-carga la media al abrir activos)', async () => {
     const media = jasmine.createSpy('media').and.returnValue(of({ qrUrl: 'http://x/qr.png', pdfUrl: 'http://x/p.pdf' }));
     await setup({ tickets: { list: () => of(TICKETS), media, transfer: () => of({}) } });
     go('menu-activos');
-    go('ticket-media');
+    await fixture.whenStable();
+    fixture.detectChanges();
     expect(media).toHaveBeenCalledWith('t1');
     expect(el.querySelector('.ticket-media img')?.getAttribute('src')).toContain('qr.png');
+  });
+
+  it('el botón alterna la visibilidad del QR (Ocultar/Ver)', async () => {
+    const media = jasmine.createSpy('media').and.returnValue(of({ qrUrl: 'http://x/qr.png', pdfUrl: 'http://x/p.pdf' }));
+    await setup({ tickets: { list: () => of(TICKETS), media, transfer: () => of({}) } });
+    go('menu-activos');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const firstCard = el.querySelector('.ticket-card') as HTMLElement;
+    const btn = firstCard.querySelector('[data-testid="ticket-media"]') as HTMLButtonElement;
+    expect(btn.textContent).toContain('Ocultar QR'); // visible por defecto
+    expect(firstCard.querySelector('.ticket-media img')).not.toBeNull();
+    btn.click();
+    fixture.detectChanges();
+    expect(btn.textContent).toContain('Ver QR'); // ocultado
+    expect(firstCard.querySelector('.ticket-media img')).toBeNull();
   });
 
   it('media no lista muestra toast warning', async () => {
     const media = jasmine.createSpy('media').and.returnValue(throwError(() => new Error('nope')));
     await setup({ tickets: { list: () => of(TICKETS), media, transfer: () => of({}) } });
     go('menu-activos');
-    go('ticket-media');
+    await fixture.whenStable();
+    fixture.detectChanges();
     expect(lastToast()?.kind).toBe('warning');
   });
 

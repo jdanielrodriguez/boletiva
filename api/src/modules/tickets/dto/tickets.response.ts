@@ -39,6 +39,18 @@ export class TicketResponseDto {
   })
   seatId!: string | null;
 
+  @ApiProperty({ format: 'uuid', description: 'Orden que originó el boleto (enlace a facturación)' })
+  orderId!: string;
+
+  @ApiProperty({ format: 'uuid', description: 'Localidad del boleto' })
+  localityId!: string;
+
+  @ApiPropertyOptional({ type: String, nullable: true, description: 'Nombre de la localidad' })
+  localityName?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true, description: 'Etiqueta del asiento (null en general)' })
+  seatLabel?: string | null;
+
   @ApiProperty({ format: 'uuid', description: 'Evento del boleto' })
   eventId!: string;
 

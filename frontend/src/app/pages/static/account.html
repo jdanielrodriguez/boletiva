@@ -132,32 +132,64 @@
         @case ('activos') {
           <h2>Boletos activos</h2>
           @if (activos().length > 0) {
-            <ul class="ticket-list" data-testid="tickets-activos">
-              @for (t of activos(); track t.id) {
-                <li class="ticket-item">
-                  <div class="ticket-head">
-                    <span>{{ t.event?.name ?? t.eventId }}</span>
-                    <span class="muted">{{ t.serial }}</span>
-                  </div>
-                  <div class="ticket-actions">
-                    <button type="button" (click)="loadMedia(t.id)" data-testid="ticket-media">Ver QR / PDF</button>
-                    <button type="button" (click)="startTransfer(t.id)" data-testid="ticket-transfer">Transferir</button>
-                  </div>
-                  @if (media()[t.id]; as m) {
-                    <div class="ticket-media">
-                      <img [src]="m.qrUrl" alt="QR del boleto" width="140" height="140" />
-                      <a [href]="m.pdfUrl" target="_blank" rel="noopener">Descargar PDF</a>
+            <div class="ticket-groups" data-testid="tickets-activos">
+              @for (eg of activosGrouped(); track eg.eventId) {
+                <article class="event-card">
+                  <header class="event-card-head">
+                    <div>
+                      <h3>{{ eg.eventName }}</h3>
+                      @if (eg.startsAt) {
+                        <span class="muted">{{ eg.startsAt | date: 'EEEE d MMM y, HH:mm' }}</span>
+                      }
+                    </div>
+                  </header>
+                  @for (og of eg.orders; track og.orderId) {
+                    <div class="order-block">
+                      <div class="order-block-head">
+                        <h4 class="order-title">Compra <span class="muted">· {{ og.tickets.length }} boleto(s)</span></h4>
+                        <button type="button" class="link-btn" (click)="verCompra(og.orderId)" data-testid="ver-compra">
+                          Ver compra
+                        </button>
+                      </div>
+                      <div class="ticket-cards">
+                        @for (t of og.tickets; track t.id) {
+                          <div class="ticket-card">
+                            <div class="ticket-card-info">
+                              <span class="ticket-serial">{{ t.serial }}</span>
+                              <span class="ticket-seat">
+                                {{ t.localityName ?? 'General' }}@if (t.seatLabel) { · Asiento {{ t.seatLabel }}}
+                              </span>
+                            </div>
+                            @if (qrVisible(t.id)) {
+                              @if (media()[t.id]; as m) {
+                                <div class="ticket-media">
+                                  <img [src]="m.qrUrl" alt="QR del boleto" width="150" height="150" />
+                                  <a [href]="m.pdfUrl" target="_blank" rel="noopener">Descargar PDF</a>
+                                </div>
+                              } @else {
+                                <p class="muted qr-pending" data-testid="qr-pending">Preparando el QR…</p>
+                              }
+                            }
+                            <div class="ticket-actions">
+                              <button type="button" (click)="toggleQr(t.id)" data-testid="ticket-media">
+                                {{ qrVisible(t.id) ? 'Ocultar QR' : 'Ver QR' }}
+                              </button>
+                              <button type="button" (click)="startTransfer(t.id)" data-testid="ticket-transfer">Transferir</button>
+                            </div>
+                            @if (transferCode()[t.id]; as code) {
+                              <p class="transfer-code" data-testid="transfer-code">
+                                Comparte este código con quien recibirá el boleto (se muestra una sola vez):
+                                <strong>{{ code }}</strong>
+                              </p>
+                            }
+                          </div>
+                        }
+                      </div>
                     </div>
                   }
-                  @if (transferCode()[t.id]; as code) {
-                    <p class="transfer-code" data-testid="transfer-code">
-                      Comparte este código con quien recibirá el boleto (se muestra una sola vez):
-                      <strong>{{ code }}</strong>
-                    </p>
-                  }
-                </li>
+                </article>
               }
-            </ul>
+            </div>
           } @else {
             <p class="muted">No tienes boletos activos.</p>
           }
@@ -166,11 +198,33 @@
         @case ('pasados') {
           <h2>Boletos pasados</h2>
           @if (pasados().length > 0) {
-            <ul class="ticket-list">
-              @for (t of pasados(); track t.id) {
-                <li><span>{{ t.event?.name ?? t.eventId }}</span><span class="muted">{{ t.serial }}</span></li>
+            <div class="ticket-groups">
+              @for (eg of pasadosGrouped(); track eg.eventId) {
+                <article class="event-card is-past">
+                  <header class="event-card-head">
+                    <div>
+                      <h3>{{ eg.eventName }}</h3>
+                      @if (eg.startsAt) {
+                        <span class="muted">{{ eg.startsAt | date: 'd MMM y' }}</span>
+                      }
+                    </div>
+                  </header>
+                  @for (og of eg.orders; track og.orderId) {
+                    <div class="order-block">
+                      <div class="order-block-head">
+                        <h4 class="order-title">Compra <span class="muted">· {{ og.tickets.length }} boleto(s)</span></h4>
+                        <button type="button" class="link-btn" (click)="verCompra(og.orderId)">Ver compra</button>
+                      </div>
+                      <ul class="ticket-list">
+                        @for (t of og.tickets; track t.id) {
+                          <li><span>{{ t.serial }}</span><span class="muted">{{ t.localityName ?? 'General' }}@if (t.seatLabel) { · Asiento {{ t.seatLabel }}}</span></li>
+                        }
+                      </ul>
+                    </div>
+                  }
+                </article>
               }
-            </ul>
+            </div>
           } @else {
             <p class="muted">Aún no tienes boletos usados.</p>
           }

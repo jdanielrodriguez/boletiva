@@ -1,7 +1,7 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { catchError, of } from 'rxjs';
 import { OrdersApi } from '../../core/api/orders.api';
@@ -21,6 +21,42 @@ import { SessionStore } from '../../core/auth/session.store';
 import { ToastService } from '../../core/ui/toast.service';
 
 type Section = 'perfil' | 'metodos' | 'facturacion' | 'wallet' | 'activos' | 'pasados';
+
+/** Grupo de boletos de una misma compra (orden). */
+interface OrderGroup {
+  orderId: string;
+  tickets: TicketResponseDto[];
+}
+/** Grupo de boletos por evento (con sus compras). */
+interface EventGroup {
+  eventId: string;
+  eventName: string;
+  startsAt?: string;
+  orders: OrderGroup[];
+}
+
+/**
+ * Agrupa boletos por EVENTO y, dentro de cada evento, por COMPRA (orderId): así se
+ * revisa cada compra por separado. La localidad/asiento va como detalle del boleto.
+ */
+function groupByEventOrder(tickets: TicketResponseDto[]): EventGroup[] {
+  const byEvent = new Map<string, EventGroup>();
+  for (const t of tickets) {
+    const eventName = t.event?.name ?? t.eventId;
+    let eg = byEvent.get(t.eventId);
+    if (!eg) {
+      eg = { eventId: t.eventId, eventName, startsAt: t.event?.startsAt, orders: [] };
+      byEvent.set(t.eventId, eg);
+    }
+    let og = eg.orders.find((o) => o.orderId === t.orderId);
+    if (!og) {
+      og = { orderId: t.orderId, tickets: [] };
+      eg.orders.push(og);
+    }
+    og.tickets.push(t);
+  }
+  return [...byEvent.values()];
+}
 
 /**
  * Mi cuenta (F3 + backlog perfiles v2): menú lateral con Perfil (datos + cambio
@@ -43,6 +79,7 @@ export class Account {
   private readonly usersApi = inject(UsersApi);
   private readonly auth = inject(AuthService);
   private readonly toasts = inject(ToastService);
+  private readonly router = inject(Router);
 
   private readonly route = inject(ActivatedRoute);
   protected readonly section = signal<Section>('perfil');
@@ -77,6 +114,8 @@ export class Account {
 
   // --- Facturación (órdenes) ---
   protected readonly orders = signal<OrderResponseDto[]>([]);
+  /** Filtro por orden concreta (deep-link desde un boleto/compra). null = todas. */
+  protected readonly orderFilter = signal<string | null>(null);
 
   // --- Boletos ---
   private readonly ticketsData = toSignal(
@@ -89,8 +128,15 @@ export class Account {
   protected readonly pasados = computed(() =>
     (this.ticketsData().items ?? []).filter((t: TicketResponseDto) => t.status === 'used'),
   );
+  /** Boletos activos y pasados agrupados por evento → compra (para las cards). */
+  protected readonly activosGrouped = computed(() => groupByEventOrder(this.activos()));
+  protected readonly pasadosGrouped = computed(() => groupByEventOrder(this.pasados()));
   /** Media (QR/PDF) por boleto, cargada bajo demanda. */
   protected readonly media = signal<Record<string, TicketMediaResponseDto>>({});
+  /** QR oculto por boleto (por defecto el QR se muestra; el botón alterna). */
+  protected readonly qrHidden = signal<Record<string, boolean>>({});
+  /** Boletos cuya media ya se pidió (evita recargas al reejecutarse el efecto). */
+  private readonly mediaRequested = new Set<string>();
   /** Código de transferencia por boleto (se muestra una sola vez). */
   protected readonly transferCode = signal<Record<string, string>>({});
 
@@ -99,8 +145,21 @@ export class Account {
     // (lo usan los accesos rápidos del menú y la página de reclamar transferencia).
     const s = this.route.snapshot.queryParamMap.get('s') as Section | null;
     if (s && Account.SECTIONS.includes(s)) this.section.set(s);
+    this.orderFilter.set(this.route.snapshot.queryParamMap.get('order'));
     if (this.section() === 'facturacion') this.loadOrders();
     this.loadWallet();
+
+    // El QR se muestra por defecto: al abrir "activos", precargamos la media de los
+    // boletos cuya media ya esté lista (una sola vez por boleto).
+    effect(() => {
+      if (this.section() !== 'activos') return;
+      for (const t of this.activos()) {
+        if (t.mediaReady && !this.mediaRequested.has(t.id)) {
+          this.mediaRequested.add(t.id);
+          this.loadMedia(t.id);
+        }
+      }
+    });
   }
 
   protected select(s: Section): void {
@@ -214,6 +273,13 @@ export class Account {
     });
   }
 
+  /** Abre la facturación filtrando por la orden del boleto/compra. */
+  protected verCompra(orderId: string): void {
+    void this.router.navigate(['/cuenta'], { queryParams: { s: 'facturacion', order: orderId } });
+    this.select('facturacion');
+    this.orderFilter.set(orderId);
+  }
+
   // --- Boletos: media + transferencia ---
   protected loadMedia(ticketId: string): void {
     this.ticketsApi.media(ticketId).subscribe({
@@ -221,6 +287,21 @@ export class Account {
       error: () =>
         this.toasts.warning('La media del boleto aún no está lista. Intenta en unos segundos.'),
     });
+  }
+
+  /** Alterna la visibilidad del QR; si va a mostrarse y no está cargado, lo pide. */
+  protected toggleQr(ticketId: string): void {
+    const hidden = !this.qrHidden()[ticketId];
+    this.qrHidden.update((cur) => ({ ...cur, [ticketId]: hidden }));
+    if (!hidden && !this.media()[ticketId]) {
+      this.mediaRequested.add(ticketId);
+      this.loadMedia(ticketId);
+    }
+  }
+
+  /** true si el QR debe verse (por defecto sí, salvo que se haya ocultado). */
+  protected qrVisible(ticketId: string): boolean {
+    return !this.qrHidden()[ticketId];
   }
 
   protected startTransfer(ticketId: string): void {

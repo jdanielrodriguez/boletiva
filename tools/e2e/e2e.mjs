@@ -230,6 +230,25 @@ async function main() {
     assert(ok, 'los boletos activos (con transferir) no aparecieron tras la compra');
   });
 
+  await step('el QR se muestra por defecto y su URL usa el host público (fix del QR)', async () => {
+    // El QR arranca visible (auto-carga la media, que se genera async tras emitir).
+    // Chromium corre DENTRO del contenedor api, donde el host público de storage no
+    // resuelve; por eso no descargamos la imagen sino que verificamos que la URL
+    // firmada apunta al endpoint PÚBLICO (no al host interno de docker). El navegador
+    // real del usuario (en el host) sí resuelve ese endpoint (verificado aparte).
+    let src = null;
+    for (let i = 0; i < 20 && !src; i++) {
+      await page.goto(`${FE}/cuenta?s=activos`, { waitUntil: 'networkidle0' });
+      await waitSel(page, '.account-menu', 20000);
+      const img = await page.$('.ticket-media img');
+      if (img) src = await page.evaluate((el) => el.getAttribute('src'), img);
+      if (!src) await sleep(1500);
+    }
+    assert(src, 'el QR no apareció (media aún no generada)');
+    assert(!src.includes('pasaeventos_localstack'), `la URL del QR usa el host interno de docker: ${src}`);
+    assert(/localhost:45660|https?:\/\//.test(src), `la URL del QR no parece pública: ${src}`);
+  });
+
   // --- F4: panel del promotor + invitación de promotores ---
   async function doLogin(pg, email, password) {
     await clearMail();

@@ -4167,6 +4167,20 @@ export interface components {
             seatId?: string | null;
             /**
              * Format: uuid
+             * @description Orden que originó el boleto (enlace a facturación)
+             */
+            orderId: string;
+            /**
+             * Format: uuid
+             * @description Localidad del boleto
+             */
+            localityId: string;
+            /** @description Nombre de la localidad */
+            localityName?: string | null;
+            /** @description Etiqueta del asiento (null en general) */
+            seatLabel?: string | null;
+            /**
+             * Format: uuid
              * @description Evento del boleto
              */
             eventId: string;

@@ -16,6 +16,7 @@ export interface AppConfig {
     provider: 's3' | 'gcs';
     s3: {
       endpoint: string;
+      publicEndpoint?: string;
       region: string;
       bucket: string;
       accessKeyId: string;
@@ -68,6 +69,11 @@ export const configuration = (): AppConfig => {
       provider: (process.env.STORAGE_PROVIDER ?? 's3') as 's3' | 'gcs',
       s3: {
         endpoint: process.env.S3_ENDPOINT as string,
+        // Endpoint accesible por el NAVEGADOR (dev: LocalStack está detrás de un
+        // host interno de docker no alcanzable desde el browser). Si se define, las
+        // URLs firmadas de descarga reescriben el host interno por este. En prod
+        // (GCS con endpoint público) se deja vacío y la URL firmada se usa tal cual.
+        publicEndpoint: process.env.S3_PUBLIC_ENDPOINT || undefined,
         region: process.env.S3_REGION ?? 'us-east-1',
         bucket: process.env.S3_BUCKET as string,
         accessKeyId: process.env.S3_ACCESS_KEY_ID as string,

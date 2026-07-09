@@ -157,7 +157,11 @@ export class TicketsService implements OnModuleInit {
     const rows = await this.prisma.ticket.findMany({
       where: { ownerId: userId },
       orderBy: [{ issuedAt: 'desc' }, { id: 'desc' }],
-      include: { event: { select: { name: true, slug: true, startsAt: true } } },
+      include: {
+        event: { select: { name: true, slug: true, startsAt: true } },
+        locality: { select: { name: true } },
+        seat: { select: { label: true } },
+      },
       ...keysetTake(page),
     });
     const res = keysetResult(rows, page);
@@ -168,7 +172,11 @@ export class TicketsService implements OnModuleInit {
   async getOne(id: string, user: AuthUser) {
     const ticket = await this.prisma.ticket.findUnique({
       where: { id },
-      include: { event: { select: { name: true, slug: true, startsAt: true } } },
+      include: {
+        event: { select: { name: true, slug: true, startsAt: true } },
+        locality: { select: { name: true } },
+        seat: { select: { label: true } },
+      },
     });
     if (!ticket || (ticket.ownerId !== user.userId && !user.roles.includes(Role.admin))) {
       throw new NotFoundException('Boleto no encontrado');
@@ -323,17 +331,25 @@ export class TicketsService implements OnModuleInit {
     serial: string;
     status: TicketStatus;
     seatId: string | null;
+    orderId: string;
+    localityId: string;
     qrKey: string | null;
     pdfKey: string | null;
     mediaReadyAt: Date | null;
     eventId: string;
     event?: { name: string; slug: string; startsAt: Date };
+    locality?: { name: string } | null;
+    seat?: { label: string } | null;
   }) {
     return {
       id: t.id,
       serial: t.serial,
       status: t.status,
       seatId: t.seatId,
+      orderId: t.orderId,
+      localityId: t.localityId,
+      localityName: t.locality?.name ?? null,
+      seatLabel: t.seat?.label ?? null,
       eventId: t.eventId,
       event: t.event,
       mediaReady: t.mediaReadyAt != null,

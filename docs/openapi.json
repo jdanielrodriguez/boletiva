@@ -8595,6 +8595,26 @@
             "nullable": true,
             "description": "Asiento asignado (null en admisión general no materializada por asiento)"
           },
+          "orderId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Orden que originó el boleto (enlace a facturación)"
+          },
+          "localityId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Localidad del boleto"
+          },
+          "localityName": {
+            "type": "string",
+            "nullable": true,
+            "description": "Nombre de la localidad"
+          },
+          "seatLabel": {
+            "type": "string",
+            "nullable": true,
+            "description": "Etiqueta del asiento (null en general)"
+          },
           "eventId": {
             "type": "string",
             "format": "uuid",
@@ -8618,6 +8638,8 @@
           "id",
           "serial",
           "status",
+          "orderId",
+          "localityId",
           "eventId",
           "mediaReady"
         ]
