@@ -80,7 +80,12 @@ describe('Account (mi cuenta)', () => {
         },
         {
           provide: ActivatedRoute,
-          useValue: { snapshot: { queryParamMap: convertToParamMap(o.section ? { s: o.section } : {}) } },
+          useValue: {
+            // El componente se suscribe a queryParamMap (deep-link reactivo). El
+            // snapshot se mantiene por compatibilidad.
+            queryParamMap: of(convertToParamMap(o.section ? { s: o.section } : {})),
+            snapshot: { queryParamMap: convertToParamMap(o.section ? { s: o.section } : {}) },
+          },
         },
       ],
     });

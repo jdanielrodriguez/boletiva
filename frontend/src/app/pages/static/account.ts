@@ -2,7 +2,7 @@ import { DatePipe, DecimalPipe, UpperCasePipe } from '@angular/common';
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { catchError, of } from 'rxjs';
 import { OrdersApi } from '../../core/api/orders.api';
 import { PaymentMethodsApi } from '../../core/api/payment-methods.api';
@@ -192,14 +192,20 @@ export class Account {
   protected readonly transferCode = signal<Record<string, string>>({});
 
   constructor() {
-    // Deep-link: /cuenta?s=wallet|metodos|activos|... abre esa sección directo
-    // (lo usan los accesos rápidos del menú y la página de reclamar transferencia).
-    const s = this.route.snapshot.queryParamMap.get('s') as Section | null;
-    if (s && Account.SECTIONS.includes(s)) this.section.set(s);
-    this.orderFilter.set(this.route.snapshot.queryParamMap.get('order'));
-    if (this.section() === 'facturacion' || this.section() === 'wallet') this.loadOrders();
-    if (this.section() === 'metodos') this.loadCards();
     this.loadWallet();
+
+    // Deep-link REACTIVO a `?s=` y `?order=`: nos suscribimos a queryParamMap (no
+    // snapshot). Así, al navegar dentro de /cuenta cambiando el query param (accesos
+    // rápidos del header, misma instancia del componente), la URL cambia Y la vista
+    // se re-despliega. Antes se leía una sola vez en el constructor → la URL cambiaba
+    // pero la sección no. Fix del bug del menú.
+    this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((pm) => {
+      const s = pm.get('s') as Section | null;
+      this.section.set(s && Account.SECTIONS.includes(s) ? s : 'perfil');
+      this.orderFilter.set(pm.get('order'));
+      if (this.section() === 'facturacion' || this.section() === 'wallet') this.loadOrders();
+      if (this.section() === 'metodos') this.loadCards();
+    });
 
     // El QR se muestra por defecto: al abrir "activos", precargamos la media de los
     // boletos cuya media ya esté lista (una sola vez por boleto).
@@ -214,8 +220,15 @@ export class Account {
     });
   }
 
+  /**
+   * Cambia de sección (menú lateral): fija la señal → respuesta inmediata. La
+   * navegación EXTERNA por query param (accesos rápidos del header sobre la MISMA
+   * instancia de /cuenta) la maneja la suscripción a queryParamMap del constructor
+   * — ese era el bug: la URL cambiaba pero la vista no se re-desplegaba.
+   */
   protected select(s: Section): void {
     this.section.set(s);
+    this.orderFilter.set(null);
     if ((s === 'facturacion' || s === 'wallet') && this.orders().length === 0) this.loadOrders();
     if (s === 'metodos' && this.cards().length === 0) this.loadCards();
   }
