@@ -1,4 +1,5 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { forkJoin, startWith, switchMap } from 'rxjs';
@@ -20,6 +21,7 @@ type OrderStatus = 'pending' | 'paid' | 'cancelled' | 'expired' | 'refunded';
  */
 @Component({
   selector: 'app-checkout',
+  imports: [FormsModule],
   templateUrl: './checkout.page.html',
 })
 export class CheckoutPage {
@@ -35,6 +37,20 @@ export class CheckoutPage {
 
   protected readonly gatewayId = signal<string | null>(null);
   protected readonly installments = signal(1);
+
+  // --- Método de pago (CÓMO paga el comprador). Visual por ahora: el cobro real
+  // lo hace la pasarela; los datos de tarjeta no se procesan aún (integración
+  // real con Recurrente/Pagalo pendiente). "Agregar método" es un placeholder. ---
+  protected readonly method = signal<'card'>('card');
+  protected readonly cardNumber = signal('');
+  protected readonly cardExp = signal('');
+  protected readonly cardCvv = signal('');
+  protected readonly cardName = signal('');
+  protected readonly addMethodNote = signal(false);
+
+  protected addMethod(): void {
+    this.addMethodNote.set(true);
+  }
 
   private readonly data = toSignal(
     this.route.paramMap.pipe(

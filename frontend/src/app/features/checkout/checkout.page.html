@@ -13,61 +13,106 @@
         <p>La orden fue {{ status() === 'expired' ? 'expirada' : 'cancelada' }}.</p>
       </div>
     } @else {
-      <!-- Método de pago -->
-      <section class="methods">
-        <h2>Método de pago</h2>
-        <div class="gateways" role="group" aria-label="Pasarela">
-          @for (gw of gateways(); track gw.gatewayId) {
-            <button
-              type="button"
-              [class.active]="gw.gatewayId === selectedGateway()?.gatewayId"
-              (click)="selectGateway(gw.gatewayId)"
-            >
-              {{ gw.name }}
+      <div class="checkout-grid">
+        <div class="checkout-main">
+          <!-- MÉTODO DE PAGO: cómo paga el comprador -->
+          <section class="pay-section">
+            <h2>Método de pago</h2>
+            <div class="method-card selected">
+              <span class="method-icon">💳</span>
+              <div>
+                <strong>Tarjeta de crédito o débito</strong>
+                <span class="method-sub">Visa, Mastercard, American Express</span>
+              </div>
+              <span class="method-check">✓</span>
+            </div>
+
+            <div class="card-form">
+              <div class="field">
+                <label for="cc-number">Número de tarjeta</label>
+                <input id="cc-number" type="text" inputmode="numeric" autocomplete="cc-number"
+                  placeholder="1234 5678 9012 3456" maxlength="19"
+                  [ngModel]="cardNumber()" (ngModelChange)="cardNumber.set($event)" />
+              </div>
+              <div class="card-row">
+                <div class="field">
+                  <label for="cc-exp">Vencimiento</label>
+                  <input id="cc-exp" type="text" autocomplete="cc-exp" placeholder="MM/AA" maxlength="5"
+                    [ngModel]="cardExp()" (ngModelChange)="cardExp.set($event)" />
+                </div>
+                <div class="field">
+                  <label for="cc-cvv">CVV</label>
+                  <input id="cc-cvv" type="text" inputmode="numeric" autocomplete="cc-csc" placeholder="123" maxlength="4"
+                    [ngModel]="cardCvv()" (ngModelChange)="cardCvv.set($event)" />
+                </div>
+              </div>
+              <div class="field">
+                <label for="cc-name">Nombre en la tarjeta</label>
+                <input id="cc-name" type="text" autocomplete="cc-name" placeholder="Como aparece en la tarjeta"
+                  [ngModel]="cardName()" (ngModelChange)="cardName.set($event)" />
+              </div>
+            </div>
+
+            <button type="button" class="add-method" data-testid="add-method" (click)="addMethod()">
+              + Agregar método de pago
             </button>
-          }
+            @if (addMethodNote()) {
+              <p class="hint" data-testid="add-method-note">Próximamente: guarda tus tarjetas para pagar más rápido.</p>
+            }
+
+            <!-- PASARELA: dónde se procesa el pago -->
+            <h3 class="gateway-title">Procesado por</h3>
+            <div class="gateways" role="group" aria-label="Pasarela">
+              @for (gw of gateways(); track gw.gatewayId) {
+                <button type="button" [class.active]="gw.gatewayId === selectedGateway()?.gatewayId"
+                  (click)="selectGateway(gw.gatewayId)">
+                  {{ gw.name }}
+                </button>
+              }
+            </div>
+            @if (selectedGateway(); as gw) {
+              @if (gw.installmentOptions.length > 1) {
+                <label class="installments">
+                  Plazo
+                  <select (change)="selectInstallments($any($event.target).value)">
+                    @for (opt of gw.installmentOptions; track opt.installments) {
+                      <option [value]="opt.installments" [selected]="opt.installments === installments()">
+                        {{ opt.installments === 1 ? '1 pago' : opt.installments + ' cuotas' }} — Q{{ opt.total }}
+                      </option>
+                    }
+                  </select>
+                </label>
+              }
+            }
+          </section>
         </div>
 
-        @if (selectedGateway(); as gw) {
-          @if (gw.installmentOptions.length > 1) {
-            <label class="installments">
-              Plazo
-              <select (change)="selectInstallments($any($event.target).value)">
-                @for (opt of gw.installmentOptions; track opt.installments) {
-                  <option [value]="opt.installments" [selected]="opt.installments === installments()">
-                    {{ opt.installments === 1 ? '1 pago' : opt.installments + ' cuotas' }} — Q{{ opt.total }}
-                  </option>
-                }
-              </select>
-            </label>
+        <!-- RESUMEN con desglose transparente -->
+        <aside class="checkout-summary">
+          <h2>Resumen</h2>
+          @if (breakdown(); as b) {
+            <div class="breakdown" data-testid="breakdown">
+              <div class="row"><span>Precio de boleto</span><span>Q{{ b.boleto }}</span></div>
+              <div class="row"><span>Cuota por servicio</span><span data-testid="service-fee">Q{{ b.serviceFee }}</span></div>
+              <div class="row"><span>IVA</span><span>Q{{ b.iva }}</span></div>
+              <div class="row total"><span>Total</span><span data-testid="total">Q{{ b.total }}</span></div>
+            </div>
+            <p class="note">La cuota por servicio varía según el método de pago.</p>
           }
-        }
-      </section>
 
-      <!-- Desglose transparente para el comprador -->
-      @if (breakdown(); as b) {
-        <section class="breakdown" data-testid="breakdown">
-          <div class="row"><span>Precio de boleto</span><span>Q{{ b.boleto }}</span></div>
-          <div class="row">
-            <span>Cuota por servicio</span><span data-testid="service-fee">Q{{ b.serviceFee }}</span>
-          </div>
-          <div class="row"><span>IVA</span><span>Q{{ b.iva }}</span></div>
-          <div class="row total"><span>Total</span><span data-testid="total">Q{{ b.total }}</span></div>
-          <p class="note">La cuota por servicio varía según el método de pago elegido.</p>
-        </section>
-      }
+          @if (error()) {
+            <p class="error" data-testid="checkout-error">{{ error() }}</p>
+          }
+          @if (status() === 'pending' && paying()) {
+            <p class="awaiting" data-testid="awaiting">Procesando el pago… esperando confirmación.</p>
+          }
 
-      @if (error()) {
-        <p class="error" data-testid="checkout-error">{{ error() }}</p>
-      }
-
-      @if (status() === 'pending' && paying()) {
-        <p class="awaiting" data-testid="awaiting">Procesando el pago… esperando confirmación.</p>
-      }
-
-      <button type="button" class="primary" data-testid="pay-confirm" [disabled]="paying()" (click)="pay()">
-        {{ paying() ? 'Procesando…' : 'Pagar Q' + (breakdown()?.total ?? '') }}
-      </button>
+          <button type="button" class="primary btn-block" data-testid="pay-confirm" [disabled]="paying()" (click)="pay()">
+            {{ paying() ? 'Procesando…' : 'Pagar Q' + (breakdown()?.total ?? '') }}
+          </button>
+          <p class="secure-note">🔒 Pago seguro. No almacenamos los datos de tu tarjeta.</p>
+        </aside>
+      </div>
     }
   } @else {
     <p data-testid="checkout-loading">Cargando orden…</p>

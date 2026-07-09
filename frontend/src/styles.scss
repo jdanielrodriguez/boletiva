@@ -574,6 +574,111 @@ select:focus {
   color: var(--pe-danger);
 }
 
+/* --- Checkout rediseñado (método vs pasarela, estilo confiable) --- */
+.checkout-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 820px) {
+  .checkout-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pay-section {
+  background: var(--pe-surface);
+  border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius);
+  padding: 1.5rem;
+}
+
+.pay-section h2 {
+  margin: 0 0 1rem;
+  font-size: 1.2rem;
+}
+
+.method-card {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.9rem 1rem;
+  border: 2px solid var(--pe-primary);
+  border-radius: var(--pe-radius-sm);
+  background: var(--pe-grad-soft);
+  margin-bottom: 1.1rem;
+}
+
+.method-icon {
+  font-size: 1.6rem;
+}
+
+.method-card .method-sub {
+  display: block;
+  color: var(--pe-muted);
+  font-size: 0.82rem;
+}
+
+.method-card .method-check {
+  margin-left: auto;
+  color: var(--pe-primary);
+  font-weight: 800;
+}
+
+.card-form .card-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.add-method {
+  margin-top: 0.5rem;
+  background: transparent;
+  border: 1px dashed var(--pe-border);
+  color: var(--pe-muted);
+  width: 100%;
+}
+
+.gateway-title {
+  margin: 1.5rem 0 0.6rem;
+  font-size: 1rem;
+  color: var(--pe-muted);
+}
+
+.checkout-summary {
+  background: var(--pe-surface);
+  border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius);
+  padding: 1.5rem;
+  position: sticky;
+  top: 90px;
+}
+
+.checkout-summary h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.2rem;
+}
+
+.checkout-summary .breakdown {
+  border: none;
+  padding: 0;
+  margin: 0 0 0.5rem;
+}
+
+.secure-note {
+  color: var(--pe-muted);
+  font-size: 0.8rem;
+  text-align: center;
+  margin: 0.75rem 0 0;
+}
+
+.hint {
+  color: var(--pe-muted);
+  font-size: 0.82rem;
+}
+
 /* --- Hero slider (destacados) --- */
 .hero {
   position: relative;
