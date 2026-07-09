@@ -5,7 +5,7 @@
     <nav class="account-menu" aria-label="Secciones de la cuenta">
       <button type="button" [class.active]="section() === 'perfil'" (click)="select('perfil')">Perfil</button>
       <button type="button" [class.active]="section() === 'metodos'" (click)="select('metodos')" data-testid="menu-metodos">Métodos de pago</button>
-      <button type="button" [class.active]="section() === 'facturacion'" (click)="select('facturacion')">Facturación</button>
+      <button type="button" [class.active]="section() === 'facturacion'" (click)="select('facturacion')" data-testid="menu-facturacion">Facturación</button>
       <button type="button" [class.active]="section() === 'wallet'" (click)="select('wallet')" data-testid="menu-wallet">Wallet</button>
       <button type="button" [class.active]="section() === 'activos'" (click)="select('activos')" data-testid="menu-activos">Boletos activos</button>
       <button type="button" [class.active]="section() === 'pasados'" (click)="select('pasados')">Boletos pasados</button>
@@ -15,9 +15,26 @@
       @switch (section()) {
         @case ('perfil') {
           <h2>Perfil</h2>
-          <p><strong>{{ session.user()?.firstName }} {{ session.user()?.lastName }}</strong></p>
           <p class="muted">{{ session.user()?.email }}</p>
+          <form class="profile-form" (ngSubmit)="saveProfile()">
+            <label for="pf-first">Nombre</label>
+            <input id="pf-first" type="text" [ngModel]="firstName()" (ngModelChange)="firstName.set($event)" name="firstName" maxlength="100" />
+            <label for="pf-last">Apellido</label>
+            <input id="pf-last" type="text" [ngModel]="lastName()" (ngModelChange)="lastName.set($event)" name="lastName" maxlength="100" />
+            <label for="pf-phone">Teléfono</label>
+            <input id="pf-phone" type="tel" [ngModel]="phone()" (ngModelChange)="phone.set($event)" name="phone" maxlength="30" />
+            <button type="submit" class="primary" [disabled]="savingProfile()" data-testid="save-profile">
+              {{ savingProfile() ? 'Guardando…' : 'Guardar cambios' }}
+            </button>
+            @if (profileSaved()) {
+              <p class="ok" data-testid="profile-saved">Perfil actualizado.</p>
+            }
+            @if (profileError(); as e) {
+              <p class="error" data-testid="profile-error">{{ e }}</p>
+            }
+          </form>
         }
+
         @case ('metodos') {
           <h2>Métodos de pago</h2>
           <p class="muted">Aún no tienes métodos de pago guardados.</p>
@@ -28,10 +45,27 @@
             <p class="muted" data-testid="add-method-note">Próximamente podrás guardar tarjetas de forma segura (tokenizadas).</p>
           }
         }
+
         @case ('facturacion') {
           <h2>Facturación</h2>
-          <p class="muted">Aquí verás el historial de tus facturas (FEL). Próximamente.</p>
+          @if (orders().length > 0) {
+            <ul class="order-list" data-testid="orders-list">
+              @for (o of orders(); track o.id) {
+                <li>
+                  <span>{{ o.createdAt | date: 'dd/MM/yyyy' }}</span>
+                  <span class="muted">{{ o.status }}</span>
+                  <span>Q{{ o.total }}</span>
+                  @if (o.felUuid) {
+                    <span class="muted">FEL {{ o.felSerie }}-{{ o.felNumero }}</span>
+                  }
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="muted" data-testid="orders-empty">Aún no tienes compras.</p>
+          }
         }
+
         @case ('wallet') {
           <h2>Wallet</h2>
           @if (wallet(); as w) {
@@ -39,19 +73,72 @@
           } @else {
             <p class="muted">No se pudo cargar tu saldo.</p>
           }
+
+          <form class="withdraw-form" (ngSubmit)="requestWithdrawal()">
+            <label for="wd-amount">Retirar saldo (Q)</label>
+            <input id="wd-amount" type="number" min="1" step="0.01" [ngModel]="withdrawAmount()" (ngModelChange)="withdrawAmount.set($event)" name="amount" data-testid="withdraw-amount" />
+            <button type="submit" class="primary" [disabled]="withdrawing()" data-testid="request-withdrawal">
+              {{ withdrawing() ? 'Solicitando…' : 'Solicitar retiro' }}
+            </button>
+            @if (withdrawError(); as e) {
+              <p class="error" data-testid="withdraw-error">{{ e }}</p>
+            }
+          </form>
+
+          @if (withdrawals().length > 0) {
+            <h3>Mis retiros</h3>
+            <ul class="withdrawal-list" data-testid="withdrawals-list">
+              @for (w of withdrawals(); track w.id) {
+                <li>
+                  <span>Q{{ w.amount }}</span>
+                  <span class="muted">neto Q{{ w.net }}</span>
+                  <span class="muted">{{ w.status }}</span>
+                  @if (w.status === 'pending') {
+                    <button type="button" (click)="cancelWithdrawal(w.id)" data-testid="cancel-withdrawal">Cancelar</button>
+                  }
+                </li>
+              }
+            </ul>
+          }
         }
+
         @case ('activos') {
           <h2>Boletos activos</h2>
+          @if (ticketError(); as e) {
+            <p class="error" data-testid="ticket-error">{{ e }}</p>
+          }
           @if (activos().length > 0) {
             <ul class="ticket-list" data-testid="tickets-activos">
               @for (t of activos(); track t.id) {
-                <li><span>{{ t.event?.name ?? t.eventId }}</span><span class="muted">{{ t.serial }}</span></li>
+                <li class="ticket-item">
+                  <div class="ticket-head">
+                    <span>{{ t.event?.name ?? t.eventId }}</span>
+                    <span class="muted">{{ t.serial }}</span>
+                  </div>
+                  <div class="ticket-actions">
+                    <button type="button" (click)="loadMedia(t.id)" data-testid="ticket-media">Ver QR / PDF</button>
+                    <button type="button" (click)="startTransfer(t.id)" data-testid="ticket-transfer">Transferir</button>
+                  </div>
+                  @if (media()[t.id]; as m) {
+                    <div class="ticket-media">
+                      <img [src]="m.qrUrl" alt="QR del boleto" width="140" height="140" />
+                      <a [href]="m.pdfUrl" target="_blank" rel="noopener">Descargar PDF</a>
+                    </div>
+                  }
+                  @if (transferCode()[t.id]; as code) {
+                    <p class="transfer-code" data-testid="transfer-code">
+                      Comparte este código con quien recibirá el boleto (se muestra una sola vez):
+                      <strong>{{ code }}</strong>
+                    </p>
+                  }
+                </li>
               }
             </ul>
           } @else {
             <p class="muted">No tienes boletos activos.</p>
           }
         }
+
         @case ('pasados') {
           <h2>Boletos pasados</h2>
           @if (pasados().length > 0) {

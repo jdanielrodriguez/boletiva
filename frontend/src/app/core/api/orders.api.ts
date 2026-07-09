@@ -3,6 +3,7 @@ import { Observable } from 'rxjs';
 import { ApiClient } from '../http/api-client.service';
 import type {
   CheckoutDto,
+  OrderPageResponseDto,
   OrderResponseDto,
   PayOrderDto,
   PayOrderResponseDto,
@@ -17,6 +18,11 @@ export class OrdersApi {
   /** Commit: convierte los asientos reservados en una orden. */
   create(eventId: string, body: CheckoutDto): Observable<OrderResponseDto> {
     return this.api.post<OrderResponseDto>(`/events/${eventId}/orders`, body);
+  }
+
+  /** Historial de órdenes del comprador (keyset). */
+  list(cursor?: string): Observable<OrderPageResponseDto> {
+    return this.api.get<OrderPageResponseDto>('/orders', { cursor, limit: 50 });
   }
 
   get(orderId: string): Observable<OrderResponseDto> {

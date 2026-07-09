@@ -57,6 +57,12 @@ export const routes: Routes = [
     title: 'Crear cuenta — Pasa Eventos',
   },
   {
+    path: 'transferencias/reclamar',
+    loadComponent: () => import('./pages/transfer-claim/transfer-claim').then((m) => m.TransferClaim),
+    canActivate: [authGuard, verifiedEmailGuard],
+    title: 'Reclamar boleto — Pasa Eventos',
+  },
+  {
     path: 'cuenta',
     loadComponent: () => import('./pages/static/account').then((m) => m.Account),
     canActivate: [authGuard],

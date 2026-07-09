@@ -55,3 +55,23 @@ export type CheckoutReservationDto = Schemas['CheckoutReservationDto'];
 export type WalletBalanceResponseDto = Schemas['WalletBalanceResponseDto'];
 export type TicketResponseDto = Schemas['TicketResponseDto'];
 export type TicketPageResponseDto = Schemas['TicketPageResponseDto'];
+export type TicketMediaResponseDto = Schemas['TicketMediaResponseDto'];
+
+// --- Perfil ---
+export type UpdateProfileDto = Schemas['UpdateProfileDto'];
+
+// --- Retiros de wallet ---
+export type RequestWithdrawalDto = Schemas['RequestWithdrawalDto'];
+export type WithdrawalResponseDto = Schemas['WithdrawalResponseDto'];
+export type WithdrawalPageResponseDto = Schemas['WithdrawalPageResponseDto'];
+export type WithdrawalActionResponseDto = Schemas['WithdrawalActionResponseDto'];
+
+// --- Órdenes (historial/facturación) ---
+export type OrderPageResponseDto = Schemas['OrderPageResponseDto'];
+
+// --- Transferencias de boletos ---
+export type ClaimTransferDto = Schemas['ClaimTransferDto'];
+export type TransferInitiatedDto = Schemas['TransferInitiatedDto'];
+export type TransferClaimedDto = Schemas['TransferClaimedDto'];
+export type TransferCancelledDto = Schemas['TransferCancelledDto'];
+export type OutgoingTransferDto = Schemas['OutgoingTransferDto'];

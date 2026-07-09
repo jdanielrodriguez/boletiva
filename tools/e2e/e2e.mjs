@@ -192,6 +192,44 @@ async function main() {
     await waitSel(page, '[data-testid="status-paid"]', 20000);
   });
 
+  console.log('\n▶ Cuenta (F3): perfil, wallet, boletos');
+  await step('el guard de invitado saca de /login estando logueado', async () => {
+    await page.goto(`${FE}/login`, { waitUntil: 'networkidle0' });
+    // guestGuard redirige al inicio: no debe quedar en /login ni mostrar el form.
+    await page.waitForFunction(() => !location.pathname.startsWith('/login'), { timeout: 8000 });
+  });
+
+  await step('la cuenta muestra el perfil (correo) y permite guardar', async () => {
+    await page.goto(`${FE}/cuenta`, { waitUntil: 'networkidle0' });
+    // Navegación en frío: la sesión se re-hidrata por refresh y el router re-evalúa
+    // el guard → esperar primero el menú de la cuenta, luego el botón de guardar.
+    await waitSel(page, '.account-menu', 25000);
+    await waitSel(page, '[data-testid="save-profile"]', 10000);
+    assert((await page.content()).includes(BUYER.email), 'no se ve el correo del usuario');
+  });
+
+  await step('la sección wallet carga el saldo', async () => {
+    await page.click('[data-testid="menu-wallet"]');
+    await waitSel(page, '[data-testid="wallet-balance"]', 8000);
+    assert((await text(page, '[data-testid="wallet-balance"]')).includes('Q'), 'sin saldo');
+  });
+
+  await step('los boletos activos aparecen tras la compra (emisión async)', async () => {
+    let ok = false;
+    for (let i = 0; i < 25 && !ok; i++) {
+      await page.goto(`${FE}/cuenta`, { waitUntil: 'networkidle0' });
+      await waitSel(page, '.account-menu', 20000);
+      await page.click('[data-testid="menu-activos"]');
+      // Espera a que aparezca el botón de transferir (hay boleto) o el mensaje vacío.
+      await page
+        .waitForSelector('[data-testid="ticket-transfer"], .ticket-list, .account-content .muted', { timeout: 4000 })
+        .catch(() => {});
+      ok = (await page.$('[data-testid="ticket-transfer"]')) !== null;
+      if (!ok) await sleep(1500);
+    }
+    assert(ok, 'los boletos activos (con transferir) no aparecieron tras la compra');
+  });
+
   await browser.close();
 
   console.log(`\n=== E2E: ${pass} pasaron, ${fail} fallaron ===`);

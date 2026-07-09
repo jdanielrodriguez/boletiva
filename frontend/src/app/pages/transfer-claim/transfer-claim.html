@@ -1,0 +1,30 @@
+<section class="transfer-claim">
+  <h1>Reclamar boleto</h1>
+
+  @if (claimedSerial(); as serial) {
+    <div class="claim-ok" data-testid="claim-ok">
+      <p>¡Listo! Recibiste el boleto <strong>{{ serial }}</strong>. Ya está en tus boletos activos.</p>
+      <button type="button" class="primary" (click)="goToTickets()">Ver mis boletos</button>
+    </div>
+  } @else {
+    <p class="muted">Ingresa el código que te compartieron para recibir tu boleto.</p>
+    <form (ngSubmit)="claim()">
+      <label for="tc-code">Código de transferencia</label>
+      <input
+        id="tc-code"
+        type="text"
+        [ngModel]="code()"
+        (ngModelChange)="code.set($event)"
+        name="code"
+        autocomplete="off"
+        data-testid="claim-code"
+      />
+      <button type="submit" class="primary" [disabled]="working()" data-testid="claim-submit">
+        {{ working() ? 'Canjeando…' : 'Reclamar boleto' }}
+      </button>
+      @if (error(); as e) {
+        <p class="error" data-testid="claim-error">{{ e }}</p>
+      }
+    </form>
+  }
+</section>
