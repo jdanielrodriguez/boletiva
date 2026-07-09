@@ -55,7 +55,7 @@ describe('Account (mi cuenta)', () => {
           } as unknown as WalletApi,
         },
         { provide: TicketsApi, useValue: { list: () => of(TICKETS), media: () => of({}), transfer: () => of({}), ...o.tickets } as unknown as TicketsApi },
-        { provide: OrdersApi, useValue: { list: () => of({ items: [], nextCursor: null }), ...o.orders } as unknown as OrdersApi },
+        { provide: OrdersApi, useValue: { list: () => of({ items: [], nextCursor: null }), ledgerChain: () => of({ orderId: 'o1', transactions: [], chainValid: true }), ...o.orders } as unknown as OrdersApi },
         { provide: TransfersApi, useValue: { claim: () => of({}), outgoing: () => of([]), cancel: () => of({}), ...o.transfers } as unknown as TransfersApi },
         { provide: UsersApi, useValue: { updateMe: () => of({ firstName: 'Ana' }), ...o.users } as unknown as UsersApi },
         { provide: AuthService, useValue: { changePassword: () => of({ message: 'ok' }), ...o.auth } as unknown as AuthService },
@@ -274,5 +274,73 @@ describe('Account (mi cuenta)', () => {
     await setup();
     go('menu-facturacion');
     expect(el.querySelector('[data-testid="orders-empty"]')).not.toBeNull();
+  });
+
+  const ORDERS = [
+    { id: 'o1', eventId: 'e1', event: { name: 'Fiesta' }, status: 'paid', total: '129.68', createdAt: '2026-07-01T10:00:00Z', billingNit: 'CF', items: [{ id: 'i1', label: 'A1', total: '129.68', locality: { name: 'VIP' } }] },
+    { id: 'o2', eventId: 'e2', event: { name: 'Concierto' }, status: 'cancelled', total: '50.00', createdAt: '2026-07-02T10:00:00Z', billingNit: 'CF', items: [{ id: 'i2', label: null, total: '50.00', locality: { name: 'General' } }] },
+  ];
+
+  it('facturación lista compras con evento, localidad y total', async () => {
+    await setup({ orders: { list: () => of({ items: ORDERS, nextCursor: null }) } });
+    go('menu-facturacion');
+    const list = el.querySelector('[data-testid="orders-list"]');
+    expect(list?.textContent).toContain('Fiesta');
+    expect(list?.textContent).toContain('VIP');
+    expect(list?.textContent).toContain('129.68');
+  });
+
+  it('facturación filtra por estado', async () => {
+    await setup({ orders: { list: () => of({ items: ORDERS, nextCursor: null }) } });
+    go('menu-facturacion');
+    fixture.componentInstance['filterStatus'].set('cancelled');
+    fixture.detectChanges();
+    const list = el.querySelector('[data-testid="orders-list"]');
+    expect(list?.textContent).toContain('Concierto');
+    expect(list?.textContent).not.toContain('Fiesta');
+  });
+
+  it('facturación: filtro sin coincidencias muestra vacío', async () => {
+    await setup({ orders: { list: () => of({ items: ORDERS, nextCursor: null }) } });
+    go('menu-facturacion');
+    fixture.componentInstance['filterEvent'].set('inexistente');
+    fixture.detectChanges();
+    expect(el.querySelector('[data-testid="orders-filtered-empty"]')).not.toBeNull();
+  });
+
+  it('deep-link con ?order filtra una sola compra y permite limpiar', async () => {
+    await setup({ section: 'facturacion', orders: { list: () => of({ items: ORDERS, nextCursor: null }) } });
+    // Forzamos el filtro por orden (deep-link) manualmente.
+    fixture.componentInstance['orderFilter'].set('o2');
+    fixture.detectChanges();
+    const list = el.querySelector('[data-testid="orders-list"]');
+    expect(list?.textContent).toContain('Concierto');
+    expect(list?.textContent).not.toContain('Fiesta');
+    go('clear-order-filter');
+    expect(fixture.componentInstance['orderFilter']()).toBeNull();
+  });
+
+  it('facturación muestra la cadena blockchain al pedirla', async () => {
+    const chain = { orderId: 'o1', chainValid: true, transactions: [{ seq: '1', kind: 'order_payment', createdAt: '2026-07-01', hash: 'abcdef0123456789', prevHash: '', verified: true }] };
+    const ledgerChain = jasmine.createSpy('lc').and.returnValue(of(chain));
+    await setup({ orders: { list: () => of({ items: ORDERS, nextCursor: null }), ledgerChain } });
+    go('menu-facturacion');
+    go('toggle-chain');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(ledgerChain).toHaveBeenCalledWith('o1');
+    const chainEl = el.querySelector('[data-testid="ledger-chain"]');
+    expect(chainEl?.textContent).toContain('íntegra');
+    expect(chainEl?.textContent).toContain('order_payment');
+  });
+
+  it('facturación: error al cargar la cadena muestra toast', async () => {
+    const ledgerChain = jasmine.createSpy('lc').and.returnValue(throwError(() => new Error('x')));
+    await setup({ orders: { list: () => of({ items: ORDERS, nextCursor: null }), ledgerChain } });
+    go('menu-facturacion');
+    go('toggle-chain');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(lastToast()?.kind).toBe('error');
   });
 });

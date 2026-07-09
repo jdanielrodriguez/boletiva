@@ -73,21 +73,101 @@
 
         @case ('facturacion') {
           <h2>Facturación</h2>
-          @if (orders().length > 0) {
-            <ul class="order-list" data-testid="orders-list">
-              @for (o of orders(); track o.id) {
-                <li>
-                  <span>{{ o.createdAt | date: 'dd/MM/yyyy' }}</span>
-                  <span class="muted">{{ o.status }}</span>
-                  <span>Q{{ o.total }}</span>
-                  @if (o.felUuid) {
-                    <span class="muted">FEL {{ o.felSerie }}-{{ o.felNumero }}</span>
+
+          @if (orderFilter(); as of) {
+            <p class="filter-pill" data-testid="order-filter-pill">
+              Mostrando una compra específica.
+              <button type="button" class="link-btn" (click)="clearOrderFilter()" data-testid="clear-order-filter">Ver todas</button>
+            </p>
+          } @else if (orders().length > 0) {
+            <div class="filters" data-testid="billing-filters">
+              <div class="field">
+                <label for="f-status">Estado</label>
+                <select id="f-status" [ngModel]="filterStatus()" (ngModelChange)="filterStatus.set($event)" name="fstatus" data-testid="filter-status">
+                  <option value="">Todos</option>
+                  @for (s of orderStatuses(); track s) {
+                    <option [value]="s">{{ s }}</option>
                   }
-                </li>
-              }
-            </ul>
-          } @else {
+                </select>
+              </div>
+              <div class="field">
+                <label for="f-event">Evento</label>
+                <input id="f-event" type="text" [ngModel]="filterEvent()" (ngModelChange)="filterEvent.set($event)" name="fevent" placeholder="Buscar evento" data-testid="filter-event" />
+              </div>
+              <div class="field">
+                <label for="f-date">Fecha</label>
+                <input id="f-date" type="date" [ngModel]="filterDate()" (ngModelChange)="filterDate.set($event)" name="fdate" data-testid="filter-date" />
+              </div>
+            </div>
+          }
+
+          @if (orders().length === 0) {
             <p class="muted" data-testid="orders-empty">Aún no tienes compras.</p>
+          } @else if (filteredOrders().length === 0) {
+            <p class="muted" data-testid="orders-filtered-empty">No hay compras que coincidan con los filtros.</p>
+          } @else {
+            <div class="invoice-list" data-testid="orders-list">
+              @for (o of filteredOrders(); track o.id) {
+                <article class="invoice-card">
+                  <header class="invoice-head">
+                    <div>
+                      <h3>{{ o.event?.name ?? o.eventId }}</h3>
+                      <span class="muted">{{ o.createdAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+                    </div>
+                    <div class="invoice-head-right">
+                      <span class="badge badge-{{ o.status }}">{{ o.status }}</span>
+                      <span class="invoice-total">Q{{ o.total }}</span>
+                    </div>
+                  </header>
+
+                  <ul class="invoice-items">
+                    @for (it of o.items ?? []; track it.id) {
+                      <li>
+                        <span>{{ it.locality?.name ?? 'General' }}@if (it.label) { · {{ it.label }}}</span>
+                        <span class="muted">Q{{ it.total }}</span>
+                      </li>
+                    }
+                  </ul>
+
+                  <div class="invoice-meta">
+                    <span class="muted">{{ (o.items ?? []).length }} boleto(s)</span>
+                    @if (o.felUuid) {
+                      <span class="muted">FEL {{ o.felSerie }}-{{ o.felNumero }}</span>
+                    } @else {
+                      <span class="muted">NIT {{ o.billingNit }}</span>
+                    }
+                    <button type="button" class="link-btn" (click)="loadChain(o.id)" data-testid="toggle-chain">
+                      {{ chains()[o.id] ? 'Ocultar' : 'Ver' }} cadena de la transacción
+                    </button>
+                  </div>
+
+                  @if (loadingChain() === o.id) {
+                    <p class="muted">Cargando cadena…</p>
+                  }
+                  @if (chains()[o.id]; as chain) {
+                    <div class="chain" data-testid="ledger-chain">
+                      <p class="chain-status" [class.ok]="chain.chainValid" [class.bad]="!chain.chainValid">
+                        {{ chain.chainValid ? '✓ Cadena íntegra y verificada' : '✗ Cadena alterada' }}
+                      </p>
+                      <ol class="chain-list">
+                        @for (tx of chain.transactions; track tx.seq) {
+                          <li class="chain-node" [class.verified]="tx.verified">
+                            <span class="chain-seq">#{{ tx.seq }}</span>
+                            <span class="chain-kind">{{ tx.kind }}</span>
+                            <span class="chain-hash" [title]="tx.hash">{{ tx.hash.slice(0, 12) }}…</span>
+                            <span class="chain-check">{{ tx.verified ? '✓' : '✗' }}</span>
+                          </li>
+                        }
+                      </ol>
+                      <p class="muted chain-note">
+                        Cada transacción se enlaza con la anterior por su hash (libro contable inmutable):
+                        cualquier alteración rompe la cadena.
+                      </p>
+                    </div>
+                  }
+                </article>
+              }
+            </div>
           }
         }
 

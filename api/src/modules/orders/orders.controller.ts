@@ -13,6 +13,7 @@ import { CheckoutService } from './checkout.service';
 import { OrdersService } from './orders.service';
 import {
   CheckoutDto,
+  OrderLedgerChainDto,
   OrderPageResponseDto,
   OrderResponseDto,
 } from './dto/orders.dto';
@@ -52,5 +53,12 @@ export class OrdersController {
   @ApiOkResponse({ type: OrderResponseDto })
   findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
     return this.orders.findOne(id, user);
+  }
+
+  @Get('orders/:id/ledger')
+  @ApiOperation({ summary: 'Cadena contable (hash-chain) de la orden — vista blockchain del comprador' })
+  @ApiOkResponse({ type: OrderLedgerChainDto })
+  ledgerChain(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
+    return this.orders.ledgerChain(id, user);
   }
 }

@@ -45,6 +45,24 @@ export class CheckoutDto {
 // Respuestas (solo documentación OpenAPI). Dinero como string (Decimal).
 // ---------------------------------------------------------------------------
 
+/** Localidad anidada de una línea de orden (nombre para facturación). */
+export class OrderItemLocalityDto {
+  @ApiProperty({ example: 'VIP' })
+  name!: string;
+}
+
+/** Evento anidado en la orden (nombre/slug/fecha para facturación). */
+export class OrderEventSummaryDto {
+  @ApiProperty({ example: 'Concierto de Apertura' })
+  name!: string;
+
+  @ApiProperty({ example: 'concierto-de-apertura' })
+  slug!: string;
+
+  @ApiProperty({ type: String, format: 'date-time' })
+  startsAt!: string;
+}
+
 /** Línea de orden con snapshot inmutable de precio (PriceQuote + hash). */
 export class OrderItemResponseDto {
   @ApiProperty({ format: 'uuid' })
@@ -66,6 +84,12 @@ export class OrderItemResponseDto {
 
   @ApiProperty({ type: String, nullable: true, description: 'Etiqueta del asiento' })
   label!: string | null;
+
+  @ApiPropertyOptional({
+    description: 'Localidad del ítem (incluida en el detalle de facturación)',
+    type: () => OrderItemLocalityDto,
+  })
+  locality?: OrderItemLocalityDto;
 
   @ApiProperty({ type: String, description: 'Neto del ítem', example: '100.00' })
   net!: string;
@@ -173,8 +197,44 @@ export class OrderResponseDto {
   @ApiProperty({ format: 'date-time' })
   updatedAt!: string;
 
+  @ApiPropertyOptional({ type: () => OrderEventSummaryDto, description: 'Evento (incluido en el detalle)' })
+  event?: OrderEventSummaryDto;
+
   @ApiProperty({ type: OrderItemResponseDto, isArray: true })
   items!: OrderItemResponseDto[];
+}
+
+/** Una transacción de la cadena contable de la orden (vista "blockchain"). */
+export class OrderLedgerTxDto {
+  @ApiProperty({ description: 'Número de secuencia global (orden en la cadena)', example: '42' })
+  seq!: string;
+
+  @ApiProperty({ description: 'Tipo de asiento', example: 'order_payment' })
+  kind!: string;
+
+  @ApiProperty({ format: 'date-time' })
+  createdAt!: string;
+
+  @ApiProperty({ description: 'Hash SHA-256 de la transacción' })
+  hash!: string;
+
+  @ApiProperty({ description: 'Hash de la transacción anterior (encadenado)' })
+  prevHash!: string;
+
+  @ApiProperty({ description: 'true si el hash recomputado coincide (no manipulada)', example: true })
+  verified!: boolean;
+}
+
+/** Cadena contable de una orden + verificación global (transparencia al comprador). */
+export class OrderLedgerChainDto {
+  @ApiProperty({ format: 'uuid' })
+  orderId!: string;
+
+  @ApiProperty({ type: OrderLedgerTxDto, isArray: true, description: 'Transacciones encadenadas de la orden' })
+  transactions!: OrderLedgerTxDto[];
+
+  @ApiProperty({ description: 'true si toda la cadena del ledger verifica íntegra', example: true })
+  chainValid!: boolean;
 }
 
 /** Página keyset de órdenes: `{ items, nextCursor }`. */

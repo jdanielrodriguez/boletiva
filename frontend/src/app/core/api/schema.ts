@@ -1208,6 +1208,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/{id}/ledger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Cadena contable (hash-chain) de la orden — vista blockchain del comprador */
+        get: operations["OrdersController_ledgerChain_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{eventId}/reservations": {
         parameters: {
             query?: never;
@@ -3782,6 +3799,18 @@ export interface components {
             /** @description Dirección de facturación FEL */
             billingAddress?: string;
         };
+        OrderEventSummaryDto: {
+            /** @example Concierto de Apertura */
+            name: string;
+            /** @example concierto-de-apertura */
+            slug: string;
+            /** Format: date-time */
+            startsAt: string;
+        };
+        OrderItemLocalityDto: {
+            /** @example VIP */
+            name: string;
+        };
         OrderItemResponseDto: {
             /** Format: uuid */
             id: string;
@@ -3796,6 +3825,8 @@ export interface components {
             seatId: string | null;
             /** @description Etiqueta del asiento */
             label: string | null;
+            /** @description Localidad del ítem (incluida en el detalle de facturación) */
+            locality?: components["schemas"]["OrderItemLocalityDto"];
             /**
              * @description Neto del ítem
              * @example 100.00
@@ -3888,6 +3919,8 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+            /** @description Evento (incluido en el detalle) */
+            event?: components["schemas"]["OrderEventSummaryDto"];
             items: components["schemas"]["OrderItemResponseDto"][];
         };
         OrderPageResponseDto: {
@@ -3897,6 +3930,40 @@ export interface components {
              * @example null
              */
             nextCursor: string | null;
+        };
+        OrderLedgerTxDto: {
+            /**
+             * @description Número de secuencia global (orden en la cadena)
+             * @example 42
+             */
+            seq: string;
+            /**
+             * @description Tipo de asiento
+             * @example order_payment
+             */
+            kind: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** @description Hash SHA-256 de la transacción */
+            hash: string;
+            /** @description Hash de la transacción anterior (encadenado) */
+            prevHash: string;
+            /**
+             * @description true si el hash recomputado coincide (no manipulada)
+             * @example true
+             */
+            verified: boolean;
+        };
+        OrderLedgerChainDto: {
+            /** Format: uuid */
+            orderId: string;
+            /** @description Transacciones encadenadas de la orden */
+            transactions: components["schemas"]["OrderLedgerTxDto"][];
+            /**
+             * @description true si toda la cadena del ledger verifica íntegra
+             * @example true
+             */
+            chainValid: boolean;
         };
         ReservationQuantityDto: {
             /**
@@ -6863,6 +6930,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrderResponseDto"];
+                };
+            };
+        };
+    };
+    OrdersController_ledgerChain_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderLedgerChainDto"];
                 };
             };
         };

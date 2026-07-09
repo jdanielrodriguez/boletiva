@@ -11,8 +11,9 @@ import { AuthUser } from '../../common/decorators/current-user.decorator';
 describe('OrdersService (IDOR + keyset, unit)', () => {
   const build = () => {
     const prisma = { order: { findMany: jest.fn(), findUnique: jest.fn() } };
-    const service = new OrdersService(prisma as never);
-    return { prisma, service };
+    const ledger = { orderChain: jest.fn() };
+    const service = new OrdersService(prisma as never, ledger as never);
+    return { prisma, ledger, service };
   };
 
   const buyer: AuthUser = { userId: 'u1', email: 'u1@x.com', roles: [Role.buyer] };
@@ -63,6 +64,24 @@ describe('OrdersService (IDOR + keyset, unit)', () => {
       const { prisma, service } = build();
       prisma.order.findUnique.mockResolvedValue(null);
       await expect(service.findOne('nope', admin)).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  describe('ledgerChain', () => {
+    it('el dueño obtiene la cadena contable de su orden', async () => {
+      const { prisma, ledger, service } = build();
+      prisma.order.findUnique.mockResolvedValue({ id: 'o1', buyerId: 'u1', items: [] });
+      const chain = { orderId: 'o1', transactions: [], chainValid: true };
+      ledger.orderChain.mockResolvedValue(chain);
+      await expect(service.ledgerChain('o1', buyer)).resolves.toEqual(chain);
+      expect(ledger.orderChain).toHaveBeenCalledWith('o1');
+    });
+
+    it('un tercero recibe 404 y NO se consulta el ledger (IDOR)', async () => {
+      const { prisma, ledger, service } = build();
+      prisma.order.findUnique.mockResolvedValue({ id: 'o1', buyerId: 'otro', items: [] });
+      await expect(service.ledgerChain('o1', buyer)).rejects.toBeInstanceOf(NotFoundException);
+      expect(ledger.orderChain).not.toHaveBeenCalled();
     });
   });
 });

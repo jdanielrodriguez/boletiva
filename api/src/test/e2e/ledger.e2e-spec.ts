@@ -70,6 +70,39 @@ describe('Ledger doble-entrada + hash-chain (e2e)', () => {
     expect(check.checked).toBe(2);
   });
 
+  const ORDER_ID = '33333333-3333-4333-8333-333333333333';
+
+  it('orderChain: devuelve la cadena de una orden y la marca verificada', async () => {
+    const chain = await ledger.orderChain(ORDER_ID);
+    expect(chain.orderId).toBe(ORDER_ID);
+    expect(chain.transactions).toHaveLength(1);
+    expect(chain.transactions[0].kind).toBe('order_payment');
+    expect(chain.transactions[0].verified).toBe(true); // hash recomputado coincide
+    expect(chain.transactions[0].seq).toMatch(/^\d+$/);
+    expect(chain.chainValid).toBe(true);
+  });
+
+  it('orderChain: una orden sin movimientos devuelve cadena vacía', async () => {
+    const chain = await ledger.orderChain('99999999-9999-4999-8999-999999999999');
+    expect(chain.transactions).toEqual([]);
+  });
+
+  it('orderChain: marca verified=false si el hash de la transacción fue alterado', async () => {
+    const tx = await prisma.ledgerTransaction.findFirstOrThrow({
+      where: { refType: 'order', refId: ORDER_ID },
+    });
+    const original = tx.hash;
+    await prisma.ledgerTransaction.update({ where: { id: tx.id }, data: { hash: '0'.repeat(64) } });
+    try {
+      const chain = await ledger.orderChain(ORDER_ID);
+      expect(chain.transactions[0].verified).toBe(false); // hash recomputado NO coincide
+      expect(chain.chainValid).toBe(false); // la cadena global también rompe
+    } finally {
+      await prisma.ledgerTransaction.update({ where: { id: tx.id }, data: { hash: original } });
+    }
+    expect((await ledger.verifyChain()).ok).toBe(true); // restaurado
+  });
+
   it('rechaza una transacción que no suma 0 → 400', async () => {
     await expect(
       ledger.post({

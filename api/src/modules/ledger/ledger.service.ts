@@ -156,6 +156,54 @@ export class LedgerService {
   }
 
   /**
+   * Cadena contable (hash-chain) de una orden, para mostrarla al COMPRADOR como
+   * prueba de transparencia ("blockchain"). Expone solo el sobre de cada
+   * transacción (seq, tipo, fecha, hash, prevHash) + si su hash recomputado cuadra
+   * (`verified`), sin filtrar los montos de cuentas de sistema. `chainValid` = todas
+   * las transacciones de la orden verifican (barato: NO escanea el ledger completo,
+   * a diferencia de verifyChain, para no penalizar una vista de comprador).
+   */
+  async orderChain(orderId: string): Promise<{
+    orderId: string;
+    transactions: Array<{
+      seq: string;
+      kind: string;
+      createdAt: string;
+      hash: string;
+      prevHash: string;
+      verified: boolean;
+    }>;
+    chainValid: boolean;
+  }> {
+    const txs = await this.prisma.ledgerTransaction.findMany({
+      where: { refType: 'order', refId: orderId },
+      orderBy: { seq: 'asc' },
+      include: { entries: true },
+    });
+    const transactions = txs.map((t) => {
+      // refType/refId son exactamente los del filtro (no-null): usamos los literales
+      // para reproducir el hash sin ramas nullish muertas.
+      const expected = this.computeHash(
+        t.prevHash,
+        t.seq,
+        { kind: t.kind, refType: 'order', refId: orderId, entries: [] },
+        t.entries.map((e) => ({ accountId: e.accountId, amount: new Decimal(e.amount.toString()) })),
+        t.createdAt,
+      );
+      return {
+        seq: t.seq.toString(),
+        kind: t.kind,
+        createdAt: t.createdAt.toISOString(),
+        hash: t.hash,
+        prevHash: t.prevHash,
+        verified: expected === t.hash,
+      };
+    });
+    const chainValid = transactions.every((t) => t.verified);
+    return { orderId, transactions, chainValid };
+  }
+
+  /**
    * Verifica la integridad del ledger: encadenado de hashes correcto, cada
    * transacción cuadra en 0, y el saldo cacheado de cada cuenta coincide con la
    * suma de sus asientos. Detecta manipulación.

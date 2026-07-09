@@ -2859,6 +2859,42 @@
         ]
       }
     },
+    "/api/v1/orders/{id}/ledger": {
+      "get": {
+        "operationId": "OrdersController_ledgerChain_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderLedgerChainDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cadena contable (hash-chain) de la orden — vista blockchain del comprador",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
     "/api/v1/events/{eventId}/reservations": {
       "post": {
         "operationId": "ReservationsController_create_v1",
@@ -7832,6 +7868,40 @@
           "seatIds"
         ]
       },
+      "OrderEventSummaryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Concierto de Apertura"
+          },
+          "slug": {
+            "type": "string",
+            "example": "concierto-de-apertura"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "name",
+          "slug",
+          "startsAt"
+        ]
+      },
+      "OrderItemLocalityDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "VIP"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
       "OrderItemResponseDto": {
         "type": "object",
         "properties": {
@@ -7857,6 +7927,14 @@
             "type": "string",
             "nullable": true,
             "description": "Etiqueta del asiento"
+          },
+          "locality": {
+            "description": "Localidad del ítem (incluida en el detalle de facturación)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrderItemLocalityDto"
+              }
+            ]
           },
           "net": {
             "type": "string",
@@ -8036,6 +8114,14 @@
             "type": "string",
             "format": "date-time"
           },
+          "event": {
+            "description": "Evento (incluido en el detalle)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrderEventSummaryDto"
+              }
+            ]
+          },
           "items": {
             "type": "array",
             "items": {
@@ -8093,6 +8179,72 @@
         "required": [
           "items",
           "nextCursor"
+        ]
+      },
+      "OrderLedgerTxDto": {
+        "type": "object",
+        "properties": {
+          "seq": {
+            "type": "string",
+            "description": "Número de secuencia global (orden en la cadena)",
+            "example": "42"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Tipo de asiento",
+            "example": "order_payment"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "hash": {
+            "type": "string",
+            "description": "Hash SHA-256 de la transacción"
+          },
+          "prevHash": {
+            "type": "string",
+            "description": "Hash de la transacción anterior (encadenado)"
+          },
+          "verified": {
+            "type": "boolean",
+            "description": "true si el hash recomputado coincide (no manipulada)",
+            "example": true
+          }
+        },
+        "required": [
+          "seq",
+          "kind",
+          "createdAt",
+          "hash",
+          "prevHash",
+          "verified"
+        ]
+      },
+      "OrderLedgerChainDto": {
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "transactions": {
+            "description": "Transacciones encadenadas de la orden",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderLedgerTxDto"
+            }
+          },
+          "chainValid": {
+            "type": "boolean",
+            "description": "true si toda la cadena del ledger verifica íntegra",
+            "example": true
+          }
+        },
+        "required": [
+          "orderId",
+          "transactions",
+          "chainValid"
         ]
       },
       "ReservationQuantityDto": {

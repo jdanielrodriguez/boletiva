@@ -10,6 +10,7 @@ import { TransfersApi } from '../../core/api/transfers.api';
 import { UsersApi } from '../../core/api/users.api';
 import { WalletApi } from '../../core/api/wallet.api';
 import type {
+  OrderLedgerChainDto,
   OrderResponseDto,
   TicketMediaResponseDto,
   TicketPageResponseDto,
@@ -129,6 +130,29 @@ export class Account {
   protected readonly orders = signal<OrderResponseDto[]>([]);
   /** Filtro por orden concreta (deep-link desde un boleto/compra). null = todas. */
   protected readonly orderFilter = signal<string | null>(null);
+  /** Filtros de facturación. */
+  protected readonly filterStatus = signal<string>('');
+  protected readonly filterEvent = signal<string>('');
+  protected readonly filterDate = signal<string>('');
+  /** Órdenes tras aplicar los filtros (estado/evento/fecha) y el deep-link. */
+  protected readonly filteredOrders = computed(() => {
+    const of = this.orderFilter();
+    const status = this.filterStatus();
+    const eventQ = this.filterEvent().trim().toLowerCase();
+    const date = this.filterDate();
+    return this.orders().filter((o) => {
+      if (of) return o.id === of;
+      if (status && o.status !== status) return false;
+      if (eventQ && !(o.event?.name ?? o.eventId).toLowerCase().includes(eventQ)) return false;
+      if (date && !(o.createdAt ?? '').startsWith(date)) return false;
+      return true;
+    });
+  });
+  /** Estados distintos presentes (para el selector de filtro). */
+  protected readonly orderStatuses = computed(() => [...new Set(this.orders().map((o) => o.status))]);
+  /** Cadena contable (blockchain) por orden, cargada bajo demanda. */
+  protected readonly chains = signal<Record<string, OrderLedgerChainDto>>({});
+  protected readonly loadingChain = signal<string | null>(null);
 
   // --- Boletos ---
   private readonly ticketsData = toSignal(
@@ -283,6 +307,35 @@ export class Account {
     this.ordersApi.list().subscribe({
       next: (p) => this.orders.set(p.items ?? []),
       error: () => this.orders.set([]),
+    });
+  }
+
+  /** Limpia el filtro por orden concreta (vuelve a ver todas las compras). */
+  protected clearOrderFilter(): void {
+    this.orderFilter.set(null);
+  }
+
+  /** Carga (bajo demanda) la cadena contable de una orden para la vista blockchain. */
+  protected loadChain(orderId: string): void {
+    if (this.chains()[orderId]) {
+      // Ya cargada: alterna ocultándola.
+      this.chains.update((c) => {
+        const next = { ...c };
+        delete next[orderId];
+        return next;
+      });
+      return;
+    }
+    this.loadingChain.set(orderId);
+    this.ordersApi.ledgerChain(orderId).subscribe({
+      next: (chain) => {
+        this.chains.update((c) => ({ ...c, [orderId]: chain }));
+        this.loadingChain.set(null);
+      },
+      error: () => {
+        this.loadingChain.set(null);
+        this.toasts.error('No se pudo cargar la cadena de la transacción.');
+      },
     });
   }
 

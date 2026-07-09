@@ -249,6 +249,16 @@ async function main() {
     assert(/localhost:45660|https?:\/\//.test(src), `la URL del QR no parece pública: ${src}`);
   });
 
+  await step('la facturación muestra la compra y su cadena blockchain verificable', async () => {
+    await page.goto(`${FE}/cuenta?s=facturacion`, { waitUntil: 'networkidle0' });
+    await waitSel(page, '.account-menu', 20000);
+    await waitSel(page, '[data-testid="orders-list"]', 10000);
+    await page.click('[data-testid="toggle-chain"]');
+    await waitSel(page, '[data-testid="ledger-chain"]', 8000);
+    const chain = await text(page, '[data-testid="ledger-chain"]');
+    assert(chain.includes('íntegra'), 'la cadena de la transacción no se verificó como íntegra');
+  });
+
   // --- F4: panel del promotor + invitación de promotores ---
   async function doLogin(pg, email, password) {
     await clearMail();

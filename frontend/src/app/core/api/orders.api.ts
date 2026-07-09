@@ -3,6 +3,7 @@ import { Observable } from 'rxjs';
 import { ApiClient } from '../http/api-client.service';
 import type {
   CheckoutDto,
+  OrderLedgerChainDto,
   OrderPageResponseDto,
   OrderResponseDto,
   PayOrderDto,
@@ -27,6 +28,11 @@ export class OrdersApi {
 
   get(orderId: string): Observable<OrderResponseDto> {
     return this.api.get<OrderResponseDto>(`/orders/${orderId}`);
+  }
+
+  /** Cadena contable (hash-chain) de la orden — vista blockchain de transparencia. */
+  ledgerChain(orderId: string): Observable<OrderLedgerChainDto> {
+    return this.api.get<OrderLedgerChainDto>(`/orders/${orderId}/ledger`);
   }
 
   /** Opciones de pago por pasarela (total del comprador + plazos disponibles). */
