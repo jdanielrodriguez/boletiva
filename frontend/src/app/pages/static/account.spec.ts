@@ -347,6 +347,74 @@ describe('Account (mi cuenta)', () => {
     expect(el.querySelector('[data-testid="orders-empty"]')).not.toBeNull();
   });
 
+  it('cancelar retiro llama al API y notifica', async () => {
+    const cancelWithdrawal = jasmine.createSpy('c').and.returnValue(of({}));
+    await setup({ wallet: { cancelWithdrawal } });
+    fixture.componentInstance['cancelWithdrawal']('w1');
+    expect(cancelWithdrawal).toHaveBeenCalledWith('w1');
+    expect(lastToast()?.kind).toBe('info');
+  });
+
+  it('cancelar retiro con error muestra toast de error', async () => {
+    const cancelWithdrawal = jasmine.createSpy('c').and.returnValue(throwError(() => new Error('x')));
+    await setup({ wallet: { cancelWithdrawal } });
+    fixture.componentInstance['cancelWithdrawal']('w1');
+    expect(lastToast()?.kind).toBe('error');
+  });
+
+  it('cambiar contraseña sin completar campos → warning', async () => {
+    await setup();
+    fixture.componentInstance['changePassword']();
+    expect(lastToast()?.kind).toBe('warning');
+  });
+
+  it('cambiar contraseña nueva demasiado corta → warning', async () => {
+    await setup();
+    fixture.componentInstance['currentPassword'].set('actual');
+    fixture.componentInstance['newPassword'].set('short');
+    fixture.componentInstance['confirmPassword'].set('short');
+    go('change-password');
+    expect(lastToast()?.kind).toBe('warning');
+  });
+
+  it('métodos: hacer predeterminada y errores muestran toasts', async () => {
+    const setDefault = jasmine.createSpy('sd').and.returnValue(of({}));
+    const list = () => of([
+      { id: 'c1', brand: 'visa', last4: '4242', isDefault: true, createdAt: '2026-07-01' },
+      { id: 'c2', brand: 'amex', last4: '0005', isDefault: false, createdAt: '2026-07-02' },
+    ]);
+    await setup({ cardsApi: { list, setDefault } });
+    go('menu-metodos');
+    go('set-default-card');
+    expect(setDefault).toHaveBeenCalledWith('c2');
+    expect(lastToast()?.kind).toBe('info');
+  });
+
+  it('métodos: error al guardar tarjeta muestra toast', async () => {
+    const add = jasmine.createSpy('add').and.returnValue(throwError(() => new Error('x')));
+    await setup({ cardsApi: { add } });
+    go('menu-metodos');
+    go('add-method');
+    fixture.componentInstance['cardNumber'].set('4242424242424242');
+    fixture.componentInstance['cardCvc'].set('123');
+    go('save-card');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(lastToast()?.kind).toBe('error');
+  });
+
+  it('facturación: ocultar la cadena tras verla', async () => {
+    const chain = { orderId: 'o1', chainValid: true, transactions: [] };
+    const ledgerChain = jasmine.createSpy('lc').and.returnValue(of(chain));
+    await setup({ orders: { list: () => of({ items: ORDERS, nextCursor: null }), ledgerChain } });
+    go('menu-facturacion');
+    fixture.componentInstance['loadChain']('o1'); // carga
+    fixture.detectChanges();
+    expect(fixture.componentInstance['chains']()['o1']).toBeDefined();
+    fixture.componentInstance['loadChain']('o1'); // alterna → oculta
+    expect(fixture.componentInstance['chains']()['o1']).toBeUndefined();
+  });
+
   const ORDERS = [
     { id: 'o1', eventId: 'e1', event: { name: 'Fiesta' }, status: 'paid', total: '129.68', createdAt: '2026-07-01T10:00:00Z', billingNit: 'CF', items: [{ id: 'i1', label: 'A1', total: '129.68', locality: { name: 'VIP' } }] },
     { id: 'o2', eventId: 'e2', event: { name: 'Concierto' }, status: 'cancelled', total: '50.00', createdAt: '2026-07-02T10:00:00Z', billingNit: 'CF', items: [{ id: 'i2', label: null, total: '50.00', locality: { name: 'General' } }] },

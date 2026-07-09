@@ -115,4 +115,39 @@ describe('PromoterPanel (F4)', () => {
     const url = el.querySelector('[data-testid="inv-created"] input') as HTMLInputElement;
     expect(url.value).toContain('registro?token=t');
   });
+
+  it('cancelar un evento llama cancel', async () => {
+    const cancel = jasmine.createSpy('cancel').and.returnValue(of(EVENTS[0]));
+    await setup({ events: { mine: () => of([{ ...EVENTS[0], status: 'published' }]), cancel } });
+    fixture.componentInstance['cancelEvent']('e1');
+    expect(cancel).toHaveBeenCalledWith('e1');
+  });
+
+  it('toggle de localidades carga y las expone', async () => {
+    const localities = jasmine.createSpy('l').and.returnValue(of([{ id: 'l1', name: 'VIP', kind: 'seated' }]));
+    await setup({ events: { mine: () => of(EVENTS), localities } });
+    fixture.componentInstance['toggleLocalities']('e1');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(localities).toHaveBeenCalledWith('e1');
+    expect(fixture.componentInstance['localitiesFor']('e1').length).toBe(1);
+  });
+
+  it('agregar localidad llama addLocality', async () => {
+    const addLocality = jasmine.createSpy('a').and.returnValue(of({ id: 'l2', name: 'General', kind: 'general' }));
+    await setup({ events: { mine: () => of(EVENTS), localities: () => of([]), addLocality } });
+    fixture.componentInstance['toggleLocalities']('e1');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    fixture.componentInstance['locForm']['name'].set('General');
+    fixture.componentInstance['addLocality']('e1');
+    expect(addLocality).toHaveBeenCalled();
+  });
+
+  it('revocar una invitación llama revoke', async () => {
+    const revoke = jasmine.createSpy('r').and.returnValue(of({ id: 'i1', status: 'revoked' }));
+    await setup({ invitations: { list: () => of([{ id: 'i1', email: 'a@b.com', status: 'pending' }]), revoke } });
+    fixture.componentInstance['revoke']('i1');
+    expect(revoke).toHaveBeenCalledWith('i1');
+  });
 });

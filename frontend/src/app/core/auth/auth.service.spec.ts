@@ -35,7 +35,15 @@ describe('AuthService', () => {
 
   beforeEach(() => {
     localStorage.clear();
-    api = jasmine.createSpyObj<AuthApi>('AuthApi', ['login', 'verify2fa', 'signup', 'logout']);
+    api = jasmine.createSpyObj<AuthApi>('AuthApi', [
+      'login',
+      'verify2fa',
+      'signup',
+      'logout',
+      'changePassword',
+      'forgotPassword',
+      'resetPassword',
+    ]);
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
@@ -94,5 +102,27 @@ describe('AuthService', () => {
         done();
       },
     });
+  });
+
+  it('logout sin refresh token no llama al backend', (done) => {
+    session.setUser(USER as never);
+    auth.logout().subscribe({
+      complete: () => {
+        expect(api.logout).not.toHaveBeenCalled();
+        done();
+      },
+    });
+  });
+
+  it('changePassword / forgotPassword / resetPassword delegan en el SDK', () => {
+    api.changePassword.and.returnValue(of({ message: 'ok' }) as never);
+    api.forgotPassword.and.returnValue(of({ message: 'ok' }) as never);
+    api.resetPassword.and.returnValue(of({ message: 'ok' }) as never);
+    auth.changePassword({ currentPassword: 'a', newPassword: 'bbbbbbbb' }).subscribe();
+    auth.forgotPassword({ email: 'a@x.com' }).subscribe();
+    auth.resetPassword({ token: 't', password: 'bbbbbbbb' }).subscribe();
+    expect(api.changePassword).toHaveBeenCalled();
+    expect(api.forgotPassword).toHaveBeenCalled();
+    expect(api.resetPassword).toHaveBeenCalled();
   });
 });

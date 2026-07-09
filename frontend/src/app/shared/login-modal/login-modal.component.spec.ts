@@ -1,0 +1,78 @@
+import { provideZonelessChangeDetection } from '@angular/core';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { of, throwError } from 'rxjs';
+import { AuthService } from '../../core/auth/auth.service';
+import { LoginModal } from './login-modal.component';
+
+describe('LoginModal', () => {
+  let fixture: ComponentFixture<LoginModal>;
+  let comp: LoginModal;
+
+  async function setup(auth: Record<string, unknown> = {}) {
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        {
+          provide: AuthService,
+          useValue: { login: () => of({ status: 'ok' }), verify2fa: () => of({}), ...auth } as unknown as AuthService,
+        },
+      ],
+    });
+    fixture = TestBed.createComponent(LoginModal);
+    comp = fixture.componentInstance;
+    fixture.detectChanges();
+    await fixture.whenStable();
+  }
+
+  it('login ok emite loggedIn', async () => {
+    await setup({ login: () => of({ status: 'ok' } as never) });
+    const spy = jasmine.createSpy();
+    comp.loggedIn.subscribe(spy);
+    comp['submit']();
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('login con 2fa_required activa el segundo paso', async () => {
+    await setup({ login: () => of({ status: '2fa_required', method: 'email', preauthToken: 'p' } as never) });
+    comp['submit']();
+    expect(comp['needs2fa']()).toBe(true);
+    expect(comp['method']()).toBe('email');
+  });
+
+  it('login con error muestra credenciales inválidas', async () => {
+    await setup({ login: () => throwError(() => new Error('x')) });
+    comp['submit']();
+    expect(comp['error']()).toContain('inválidas');
+  });
+
+  it('verify sin preauthToken no hace nada', async () => {
+    const verify2fa = jasmine.createSpy('v').and.returnValue(of({}));
+    await setup({ verify2fa });
+    comp['verify']();
+    expect(verify2fa).not.toHaveBeenCalled();
+  });
+
+  it('verify ok emite loggedIn; error muestra mensaje', async () => {
+    await setup({ login: () => of({ status: '2fa_required', preauthToken: 'p' } as never), verify2fa: () => of({}) });
+    comp['submit']();
+    const spy = jasmine.createSpy();
+    comp.loggedIn.subscribe(spy);
+    comp['verify']();
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('verify con error muestra código inválido', async () => {
+    await setup({ login: () => of({ status: '2fa_required', preauthToken: 'p' } as never), verify2fa: () => throwError(() => new Error('x')) });
+    comp['submit']();
+    comp['verify']();
+    expect(comp['error']()).toContain('inválido');
+  });
+
+  it('close emite dismiss', async () => {
+    await setup();
+    const spy = jasmine.createSpy();
+    comp.dismiss.subscribe(spy);
+    comp['close']();
+    expect(spy).toHaveBeenCalled();
+  });
+});

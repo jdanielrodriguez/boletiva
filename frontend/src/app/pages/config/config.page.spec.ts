@@ -117,4 +117,50 @@ describe('ConfigPage (F7)', () => {
     await setup(true, { listAllEvents: () => throwError(() => new Error('x')) });
     expect(lastToast()?.kind).toBe('error');
   });
+
+  it('admin: rechazar y suspender promotor llaman al API', async () => {
+    const rejectPromoter = jasmine.createSpy('r').and.returnValue(of({}));
+    const suspendPromoter = jasmine.createSpy('s').and.returnValue(of({}));
+    await setup(true, { rejectPromoter, suspendPromoter });
+    fixture.componentInstance['reject']('u1');
+    fixture.componentInstance['suspend']('u1');
+    expect(rejectPromoter).toHaveBeenCalledWith('u1');
+    expect(suspendPromoter).toHaveBeenCalledWith('u1');
+  });
+
+  it('admin: reparto de promotor válido llama al API; inválido → warning', async () => {
+    const setPromoterPct = jasmine.createSpy('sp').and.returnValue(of({}));
+    await setup(true, { setPromoterPct });
+    fixture.componentInstance['setPromoterPct']('u1', '0.3');
+    expect(setPromoterPct).toHaveBeenCalledWith('u1', 0.3);
+    fixture.componentInstance['setPromoterPct']('u1', '5');
+    expect(lastToast()?.kind).toBe('warning');
+  });
+
+  it('admin: guardar reparto por defecto válido persiste', async () => {
+    const setDefaultPct = jasmine.createSpy('sd').and.returnValue(of({}));
+    await setup(true, { setDefaultPct });
+    fixture.componentInstance['saveDefaultPct']('0.4');
+    expect(setDefaultPct).toHaveBeenCalledWith(0.4);
+    expect(lastToast()?.kind).toBe('success');
+  });
+
+  it('admin: cambiar filtro de promotores recarga la lista', async () => {
+    const listPromoters = jasmine.createSpy('lp').and.returnValue(of(PROMOTERS));
+    await setup(true, { listPromoters });
+    fixture.componentInstance['promoterFilter'].set('approved');
+    fixture.componentInstance['loadPromoters']();
+    expect(listPromoters).toHaveBeenCalledWith('approved');
+  });
+
+  it('admin: errores de acciones de promotor muestran toast', async () => {
+    await setup(true, {
+      approvePromoter: () => throwError(() => new Error('x')),
+      listPromoters: () => throwError(() => new Error('x')),
+    });
+    fixture.componentInstance['approve']('u1');
+    expect(lastToast()?.kind).toBe('error');
+    fixture.componentInstance['loadPromoters']();
+    expect(lastToast()?.kind).toBe('error');
+  });
 });
