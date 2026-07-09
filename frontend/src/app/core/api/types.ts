@@ -19,6 +19,10 @@ export type AuthSessionResponseDto = Schemas['AuthSessionResponseDto'];
 export type SignupResponseDto = Schemas['SignupResponseDto'];
 export type PublicUserResponseDto = Schemas['PublicUserResponseDto'];
 export type ProvidersResponseDto = Schemas['ProvidersResponseDto'];
+export type ChangePasswordDto = Schemas['ChangePasswordDto'];
+export type ForgotPasswordDto = Schemas['ForgotPasswordDto'];
+export type ResetPasswordDto = Schemas['ResetPasswordDto'];
+export type MessageResponseDto = Schemas['MessageResponseDto'];
 
 // --- Events (catálogo público) ---
 export type PublicEventListDto = Schemas['PublicEventListDto'];

@@ -15,35 +15,60 @@
       @switch (section()) {
         @case ('perfil') {
           <h2>Perfil</h2>
-          <p class="muted">{{ session.user()?.email }}</p>
-          <form class="profile-form" (ngSubmit)="saveProfile()">
-            <label for="pf-first">Nombre</label>
-            <input id="pf-first" type="text" [ngModel]="firstName()" (ngModelChange)="firstName.set($event)" name="firstName" maxlength="100" />
-            <label for="pf-last">Apellido</label>
-            <input id="pf-last" type="text" [ngModel]="lastName()" (ngModelChange)="lastName.set($event)" name="lastName" maxlength="100" />
-            <label for="pf-phone">Teléfono</label>
-            <input id="pf-phone" type="tel" [ngModel]="phone()" (ngModelChange)="phone.set($event)" name="phone" maxlength="30" />
-            <button type="submit" class="primary" [disabled]="savingProfile()" data-testid="save-profile">
-              {{ savingProfile() ? 'Guardando…' : 'Guardar cambios' }}
-            </button>
-            @if (profileSaved()) {
-              <p class="ok" data-testid="profile-saved">Perfil actualizado.</p>
-            }
-            @if (profileError(); as e) {
-              <p class="error" data-testid="profile-error">{{ e }}</p>
-            }
-          </form>
+          <p class="muted account-email">{{ session.user()?.email }}</p>
+
+          <div class="card-block">
+            <h3>Tus datos</h3>
+            <form class="stacked-form" (ngSubmit)="saveProfile()">
+              <div class="form-row">
+                <div class="field">
+                  <label for="pf-first">Nombre</label>
+                  <input id="pf-first" type="text" [ngModel]="firstName()" (ngModelChange)="firstName.set($event)" name="firstName" maxlength="100" autocomplete="given-name" />
+                </div>
+                <div class="field">
+                  <label for="pf-last">Apellido</label>
+                  <input id="pf-last" type="text" [ngModel]="lastName()" (ngModelChange)="lastName.set($event)" name="lastName" maxlength="100" autocomplete="family-name" />
+                </div>
+              </div>
+              <div class="field">
+                <label for="pf-phone">Teléfono</label>
+                <input id="pf-phone" type="tel" [ngModel]="phone()" (ngModelChange)="phone.set($event)" name="phone" maxlength="30" autocomplete="tel" />
+              </div>
+              <button type="submit" class="primary" [disabled]="savingProfile()" data-testid="save-profile">
+                {{ savingProfile() ? 'Guardando…' : 'Guardar cambios' }}
+              </button>
+            </form>
+          </div>
+
+          <div class="card-block">
+            <h3>Cambiar contraseña</h3>
+            <p class="muted">Necesitas tu contraseña actual para confirmar el cambio.</p>
+            <form class="stacked-form" (ngSubmit)="changePassword()">
+              <div class="field">
+                <label for="pw-current">Contraseña actual</label>
+                <input id="pw-current" type="password" [ngModel]="currentPassword()" (ngModelChange)="currentPassword.set($event)" name="currentPassword" autocomplete="current-password" data-testid="pw-current" />
+              </div>
+              <div class="form-row">
+                <div class="field">
+                  <label for="pw-new">Nueva contraseña</label>
+                  <input id="pw-new" type="password" [ngModel]="newPassword()" (ngModelChange)="newPassword.set($event)" name="newPassword" autocomplete="new-password" minlength="8" data-testid="pw-new" />
+                </div>
+                <div class="field">
+                  <label for="pw-confirm">Confirmar nueva</label>
+                  <input id="pw-confirm" type="password" [ngModel]="confirmPassword()" (ngModelChange)="confirmPassword.set($event)" name="confirmPassword" autocomplete="new-password" minlength="8" data-testid="pw-confirm" />
+                </div>
+              </div>
+              <button type="submit" class="primary" [disabled]="changingPassword()" data-testid="change-password">
+                {{ changingPassword() ? 'Cambiando…' : 'Cambiar contraseña' }}
+              </button>
+            </form>
+          </div>
         }
 
         @case ('metodos') {
           <h2>Métodos de pago</h2>
           <p class="muted">Aún no tienes métodos de pago guardados.</p>
-          <button type="button" class="primary" data-testid="add-method" (click)="addMethod()">
-            + Agregar método de pago
-          </button>
-          @if (addMethodNote()) {
-            <p class="muted" data-testid="add-method-note">Próximamente podrás guardar tarjetas de forma segura (tokenizadas).</p>
-          }
+          <p class="muted">Próximamente podrás guardar tarjetas de forma segura (tokenizadas por la pasarela).</p>
         }
 
         @case ('facturacion') {
@@ -85,9 +110,6 @@
             <button type="submit" class="primary" [disabled]="withdrawing()" data-testid="request-withdrawal">
               {{ withdrawing() ? 'Solicitando…' : 'Solicitar retiro' }}
             </button>
-            @if (withdrawError(); as e) {
-              <p class="error" data-testid="withdraw-error">{{ e }}</p>
-            }
           </form>
 
           @if (withdrawals().length > 0) {
@@ -109,9 +131,6 @@
 
         @case ('activos') {
           <h2>Boletos activos</h2>
-          @if (ticketError(); as e) {
-            <p class="error" data-testid="ticket-error">{{ e }}</p>
-          }
           @if (activos().length > 0) {
             <ul class="ticket-list" data-testid="tickets-activos">
               @for (t of activos(); track t.id) {

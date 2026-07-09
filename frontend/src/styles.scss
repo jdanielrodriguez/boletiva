@@ -492,6 +492,47 @@ app-root {
   border-bottom: 1px solid var(--pe-border);
 }
 
+/* Bloques de formulario dentro de la cuenta */
+.account-email {
+  margin-top: -0.35rem;
+  margin-bottom: 1.25rem;
+}
+
+.card-block {
+  border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius);
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.card-block h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+}
+
+.stacked-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.stacked-form .field {
+  margin-bottom: 0;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem;
+}
+
+@media (max-width: 560px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* --- Auth / formularios centrados --- */
 .auth-wrap {
   min-height: calc(100vh - 200px);

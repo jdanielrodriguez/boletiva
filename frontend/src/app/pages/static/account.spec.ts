@@ -8,7 +8,9 @@ import { TransfersApi } from '../../core/api/transfers.api';
 import { UsersApi } from '../../core/api/users.api';
 import { WalletApi } from '../../core/api/wallet.api';
 import type { TicketPageResponseDto, WalletBalanceResponseDto } from '../../core/api/types';
+import { AuthService } from '../../core/auth/auth.service';
 import { SessionStore } from '../../core/auth/session.store';
+import { ToastService } from '../../core/ui/toast.service';
 import { Account } from './account';
 
 const TICKETS = {
@@ -24,6 +26,7 @@ interface Overrides {
   orders?: Record<string, unknown>;
   transfers?: Record<string, unknown>;
   users?: Record<string, unknown>;
+  auth?: Record<string, unknown>;
   section?: string;
 }
 
@@ -31,12 +34,14 @@ describe('Account (mi cuenta)', () => {
   let fixture: ComponentFixture<Account>;
   let el: HTMLElement;
   let setUser: jasmine.Spy;
+  let toasts: ToastService;
 
   async function setup(o: Overrides = {}) {
     setUser = jasmine.createSpy('setUser');
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
+        ToastService,
         {
           provide: WalletApi,
           useValue: {
@@ -51,6 +56,7 @@ describe('Account (mi cuenta)', () => {
         { provide: OrdersApi, useValue: { list: () => of({ items: [], nextCursor: null }), ...o.orders } as unknown as OrdersApi },
         { provide: TransfersApi, useValue: { claim: () => of({}), outgoing: () => of([]), cancel: () => of({}), ...o.transfers } as unknown as TransfersApi },
         { provide: UsersApi, useValue: { updateMe: () => of({ firstName: 'Ana' }), ...o.users } as unknown as UsersApi },
+        { provide: AuthService, useValue: { changePassword: () => of({ message: 'ok' }), ...o.auth } as unknown as AuthService },
         {
           provide: SessionStore,
           useValue: {
@@ -65,6 +71,7 @@ describe('Account (mi cuenta)', () => {
       ],
     });
     fixture = TestBed.createComponent(Account);
+    toasts = TestBed.inject(ToastService);
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
@@ -76,12 +83,14 @@ describe('Account (mi cuenta)', () => {
     fixture.detectChanges();
   };
 
+  const lastToast = () => toasts.toasts().at(-1);
+
   it('perfil muestra el correo del usuario', async () => {
     await setup();
     expect(el.textContent).toContain('ana@correo.com');
   });
 
-  it('guardar perfil llama updateMe y refresca la sesión', async () => {
+  it('guardar perfil llama updateMe, refresca la sesión y notifica con toast', async () => {
     const updateMe = jasmine.createSpy('updateMe').and.returnValue(of({ firstName: 'Nuevo' }));
     await setup({ users: { updateMe } });
     go('save-profile');
@@ -89,7 +98,46 @@ describe('Account (mi cuenta)', () => {
     fixture.detectChanges();
     expect(updateMe).toHaveBeenCalled();
     expect(setUser).toHaveBeenCalled();
-    expect(el.querySelector('[data-testid="profile-saved"]')).not.toBeNull();
+    expect(lastToast()?.kind).toBe('success');
+  });
+
+  it('guardar perfil con error muestra toast de error', async () => {
+    const updateMe = jasmine.createSpy('updateMe').and.returnValue(throwError(() => new Error('x')));
+    await setup({ users: { updateMe } });
+    go('save-profile');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(lastToast()?.kind).toBe('error');
+  });
+
+  it('cambiar contraseña valida que coincida la confirmación (toast warning)', async () => {
+    await setup();
+    fixture.componentInstance['currentPassword'].set('Password123');
+    fixture.componentInstance['newPassword'].set('NuevaClave456');
+    fixture.componentInstance['confirmPassword'].set('otra');
+    go('change-password');
+    expect(lastToast()?.kind).toBe('warning');
+  });
+
+  it('cambiar contraseña llama al API y notifica éxito', async () => {
+    const changePassword = jasmine.createSpy('cp').and.returnValue(of({ message: 'ok' }));
+    await setup({ auth: { changePassword } });
+    fixture.componentInstance['currentPassword'].set('Password123');
+    fixture.componentInstance['newPassword'].set('NuevaClave456');
+    fixture.componentInstance['confirmPassword'].set('NuevaClave456');
+    go('change-password');
+    expect(changePassword).toHaveBeenCalledWith({ currentPassword: 'Password123', newPassword: 'NuevaClave456' });
+    expect(lastToast()?.kind).toBe('success');
+  });
+
+  it('cambiar contraseña con error del backend muestra toast de error', async () => {
+    const changePassword = jasmine.createSpy('cp').and.returnValue(throwError(() => new Error('bad')));
+    await setup({ auth: { changePassword } });
+    fixture.componentInstance['currentPassword'].set('malActual');
+    fixture.componentInstance['newPassword'].set('NuevaClave456');
+    fixture.componentInstance['confirmPassword'].set('NuevaClave456');
+    go('change-password');
+    expect(lastToast()?.kind).toBe('error');
   });
 
   it('wallet muestra el saldo', async () => {
@@ -112,20 +160,21 @@ describe('Account (mi cuenta)', () => {
     expect(note.toLowerCase()).toContain('tarjeta');
   });
 
-  it('solicitar retiro sin monto muestra error', async () => {
+  it('solicitar retiro sin monto muestra toast warning', async () => {
     await setup();
     go('menu-wallet');
     go('request-withdrawal');
-    expect(el.querySelector('[data-testid="withdraw-error"]')).not.toBeNull();
+    expect(lastToast()?.kind).toBe('warning');
   });
 
-  it('solicitar retiro con monto llama al API', async () => {
+  it('solicitar retiro con monto llama al API y notifica', async () => {
     const requestWithdrawal = jasmine.createSpy('req').and.returnValue(of({}));
     await setup({ wallet: { requestWithdrawal } });
     go('menu-wallet');
     fixture.componentInstance['withdrawAmount'].set(100);
     go('request-withdrawal');
     expect(requestWithdrawal).toHaveBeenCalledWith({ amount: 100 });
+    expect(lastToast()?.kind).toBe('success');
   });
 
   it('boletos activos lista solo los válidos (no usados)', async () => {
@@ -154,24 +203,17 @@ describe('Account (mi cuenta)', () => {
     expect(el.querySelector('.ticket-media img')?.getAttribute('src')).toContain('qr.png');
   });
 
-  it('media no lista muestra error amistoso', async () => {
+  it('media no lista muestra toast warning', async () => {
     const media = jasmine.createSpy('media').and.returnValue(throwError(() => new Error('nope')));
     await setup({ tickets: { list: () => of(TICKETS), media, transfer: () => of({}) } });
     go('menu-activos');
     go('ticket-media');
-    expect(el.querySelector('[data-testid="ticket-error"]')).not.toBeNull();
+    expect(lastToast()?.kind).toBe('warning');
   });
 
   it('facturación vacía muestra estado vacío', async () => {
     await setup();
     go('menu-facturacion');
     expect(el.querySelector('[data-testid="orders-empty"]')).not.toBeNull();
-  });
-
-  it('agregar método muestra la nota', async () => {
-    await setup();
-    go('menu-metodos');
-    go('add-method');
-    expect(el.querySelector('[data-testid="add-method-note"]')).not.toBeNull();
   });
 });

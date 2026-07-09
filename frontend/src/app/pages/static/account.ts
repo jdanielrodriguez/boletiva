@@ -16,15 +16,18 @@ import type {
   TicketResponseDto,
   WithdrawalResponseDto,
 } from '../../core/api/types';
+import { AuthService } from '../../core/auth/auth.service';
 import { SessionStore } from '../../core/auth/session.store';
+import { ToastService } from '../../core/ui/toast.service';
 
 type Section = 'perfil' | 'metodos' | 'facturacion' | 'wallet' | 'activos' | 'pasados';
 
 /**
- * Mi cuenta / Configuración (F3): menú lateral con Perfil (editable), Métodos de
- * pago (placeholder tokenización), Facturación (historial de órdenes), Wallet
- * (saldo + retiros) y Boletos activos/pasados (activo=`valid`, pasado=`used`) con
- * media (QR/PDF) y transferencia. Ruta protegida (authGuard).
+ * Mi cuenta (F3 + backlog perfiles v2): menú lateral con Perfil (datos + cambio
+ * de contraseña), Métodos de pago (tokenización PCI), Facturación (historial +
+ * vista blockchain), Wallet (saldo + retiros, SIN recarga) y Boletos
+ * activos/pasados en cards (QR/PDF + transferencia). Las notificaciones salen por
+ * TOASTS (no notas grises). Ruta protegida (authGuard).
  */
 @Component({
   selector: 'app-account',
@@ -38,10 +41,11 @@ export class Account {
   private readonly ordersApi = inject(OrdersApi);
   private readonly transfersApi = inject(TransfersApi);
   private readonly usersApi = inject(UsersApi);
+  private readonly auth = inject(AuthService);
+  private readonly toasts = inject(ToastService);
 
   private readonly route = inject(ActivatedRoute);
   protected readonly section = signal<Section>('perfil');
-  protected readonly addMethodNote = signal(false);
 
   /** Secciones válidas para el deep-link `?s=` (accesos rápidos del dropdown). */
   private static readonly SECTIONS: Section[] = [
@@ -58,15 +62,18 @@ export class Account {
   protected readonly lastName = signal(this.session.user()?.lastName ?? '');
   protected readonly phone = signal((this.session.user() as { phone?: string })?.phone ?? '');
   protected readonly savingProfile = signal(false);
-  protected readonly profileSaved = signal(false);
-  protected readonly profileError = signal<string | null>(null);
+
+  // --- Cambio de contraseña (autenticado) ---
+  protected readonly currentPassword = signal('');
+  protected readonly newPassword = signal('');
+  protected readonly confirmPassword = signal('');
+  protected readonly changingPassword = signal(false);
 
   // --- Wallet + retiros ---
   protected readonly wallet = signal<{ balance: string; currency: string } | null>(null);
   protected readonly withdrawals = signal<WithdrawalResponseDto[]>([]);
   protected readonly withdrawAmount = signal<number | null>(null);
   protected readonly withdrawing = signal(false);
-  protected readonly withdrawError = signal<string | null>(null);
 
   // --- Facturación (órdenes) ---
   protected readonly orders = signal<OrderResponseDto[]>([]);
@@ -86,7 +93,6 @@ export class Account {
   protected readonly media = signal<Record<string, TicketMediaResponseDto>>({});
   /** Código de transferencia por boleto (se muestra una sola vez). */
   protected readonly transferCode = signal<Record<string, string>>({});
-  protected readonly ticketError = signal<string | null>(null);
 
   constructor() {
     // Deep-link: /cuenta?s=wallet|metodos|activos|... abre esa sección directo
@@ -102,15 +108,9 @@ export class Account {
     if (s === 'facturacion' && this.orders().length === 0) this.loadOrders();
   }
 
-  protected addMethod(): void {
-    this.addMethodNote.set(true);
-  }
-
   // --- Perfil ---
   protected saveProfile(): void {
     this.savingProfile.set(true);
-    this.profileSaved.set(false);
-    this.profileError.set(null);
     this.usersApi
       .updateMe({
         firstName: this.firstName() || undefined,
@@ -121,13 +121,46 @@ export class Account {
         next: (user) => {
           this.session.setUser(user);
           this.savingProfile.set(false);
-          this.profileSaved.set(true);
+          this.toasts.success('Perfil actualizado.');
         },
         error: () => {
           this.savingProfile.set(false);
-          this.profileError.set('No se pudo guardar el perfil. Revisa los datos e intenta de nuevo.');
+          this.toasts.error('No se pudo guardar el perfil. Revisa los datos e intenta de nuevo.');
         },
       });
+  }
+
+  // --- Cambio de contraseña ---
+  protected changePassword(): void {
+    const current = this.currentPassword();
+    const next = this.newPassword();
+    const confirm = this.confirmPassword();
+    if (!current || !next) {
+      this.toasts.warning('Completa la contraseña actual y la nueva.');
+      return;
+    }
+    if (next.length < 8) {
+      this.toasts.warning('La nueva contraseña debe tener al menos 8 caracteres.');
+      return;
+    }
+    if (next !== confirm) {
+      this.toasts.warning('La confirmación no coincide con la nueva contraseña.');
+      return;
+    }
+    this.changingPassword.set(true);
+    this.auth.changePassword({ currentPassword: current, newPassword: next }).subscribe({
+      next: () => {
+        this.changingPassword.set(false);
+        this.currentPassword.set('');
+        this.newPassword.set('');
+        this.confirmPassword.set('');
+        this.toasts.success('Contraseña actualizada.');
+      },
+      error: () => {
+        this.changingPassword.set(false);
+        this.toasts.error('No se pudo cambiar la contraseña. ¿La actual es correcta?');
+      },
+    });
   }
 
   // --- Wallet ---
@@ -145,26 +178,32 @@ export class Account {
   protected requestWithdrawal(): void {
     const amount = this.withdrawAmount();
     if (!amount || amount <= 0) {
-      this.withdrawError.set('Ingresa un monto válido.');
+      this.toasts.warning('Ingresa un monto válido para retirar.');
       return;
     }
     this.withdrawing.set(true);
-    this.withdrawError.set(null);
     this.walletApi.requestWithdrawal({ amount }).subscribe({
       next: () => {
         this.withdrawing.set(false);
         this.withdrawAmount.set(null);
         this.loadWallet();
+        this.toasts.success('Retiro solicitado. Queda pendiente de aprobación.');
       },
       error: () => {
         this.withdrawing.set(false);
-        this.withdrawError.set('No se pudo solicitar el retiro (¿saldo insuficiente?).');
+        this.toasts.error('No se pudo solicitar el retiro (¿saldo insuficiente?).');
       },
     });
   }
 
   protected cancelWithdrawal(id: string): void {
-    this.walletApi.cancelWithdrawal(id).subscribe({ next: () => this.loadWallet() });
+    this.walletApi.cancelWithdrawal(id).subscribe({
+      next: () => {
+        this.loadWallet();
+        this.toasts.info('Retiro cancelado. El saldo fue reintegrado.');
+      },
+      error: () => this.toasts.error('No se pudo cancelar el retiro.'),
+    });
   }
 
   // --- Facturación ---
@@ -177,19 +216,21 @@ export class Account {
 
   // --- Boletos: media + transferencia ---
   protected loadMedia(ticketId: string): void {
-    this.ticketError.set(null);
     this.ticketsApi.media(ticketId).subscribe({
       next: (m) => this.media.update((cur) => ({ ...cur, [ticketId]: m })),
-      error: () => this.ticketError.set('La media del boleto aún no está lista. Intenta en unos segundos.'),
+      error: () =>
+        this.toasts.warning('La media del boleto aún no está lista. Intenta en unos segundos.'),
     });
   }
 
   protected startTransfer(ticketId: string): void {
-    this.ticketError.set(null);
     this.ticketsApi.transfer(ticketId).subscribe({
-      next: (t) => this.transferCode.update((cur) => ({ ...cur, [ticketId]: t.code })),
+      next: (t) => {
+        this.transferCode.update((cur) => ({ ...cur, [ticketId]: t.code }));
+        this.toasts.success('Transferencia iniciada. Comparte el código con quien recibirá el boleto.');
+      },
       error: () =>
-        this.ticketError.set('No se pudo iniciar la transferencia (¿ya hay una pendiente o alcanzaste el límite?).'),
+        this.toasts.error('No se pudo iniciar la transferencia (¿ya hay una pendiente o alcanzaste el límite?).'),
     });
   }
 }

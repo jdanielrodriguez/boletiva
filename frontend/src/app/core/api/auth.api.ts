@@ -3,10 +3,14 @@ import { Observable } from 'rxjs';
 import { ApiClient } from '../http/api-client.service';
 import type {
   AuthSessionResponseDto,
+  ChangePasswordDto,
+  ForgotPasswordDto,
   LoginDto,
   LoginResponseDto,
+  MessageResponseDto,
   ProvidersResponseDto,
   PublicUserResponseDto,
+  ResetPasswordDto,
   SignupDto,
   SignupResponseDto,
   TokenPairResponseDto,
@@ -48,5 +52,20 @@ export class AuthApi {
 
   logout(refreshToken: string): Observable<void> {
     return this.api.post<void>('/auth/logout', { refreshToken });
+  }
+
+  /** Cambia la contraseña del usuario autenticado (requiere la contraseña actual). */
+  changePassword(dto: ChangePasswordDto): Observable<MessageResponseDto> {
+    return this.api.post<MessageResponseDto>('/auth/change-password', dto);
+  }
+
+  /** Solicita el enlace de recuperación al correo (respuesta neutra: no revela existencia). */
+  forgotPassword(dto: ForgotPasswordDto): Observable<MessageResponseDto> {
+    return this.api.post<MessageResponseDto>('/auth/forgot-password', dto);
+  }
+
+  /** Restablece la contraseña con el token del correo. */
+  resetPassword(dto: ResetPasswordDto): Observable<MessageResponseDto> {
+    return this.api.post<MessageResponseDto>('/auth/reset-password', dto);
   }
 }

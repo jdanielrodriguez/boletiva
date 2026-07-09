@@ -3,8 +3,12 @@ import { EMPTY, Observable, catchError, tap } from 'rxjs';
 import { AuthApi } from '../api/auth.api';
 import type {
   AuthSessionResponseDto,
+  ChangePasswordDto,
+  ForgotPasswordDto,
   LoginDto,
   LoginResponseDto,
+  MessageResponseDto,
+  ResetPasswordDto,
   SignupDto,
   SignupResponseDto,
   TwoFactorVerifyDto,
@@ -54,6 +58,21 @@ export class AuthService {
     if (!refreshToken) return EMPTY;
     // El estado local ya está limpio; ignoramos errores de red del logout remoto.
     return this.authApi.logout(refreshToken).pipe(catchError(() => EMPTY));
+  }
+
+  /** Cambia la contraseña estando autenticado (transporta al SDK). */
+  changePassword(dto: ChangePasswordDto): Observable<MessageResponseDto> {
+    return this.authApi.changePassword(dto);
+  }
+
+  /** Solicita el enlace de recuperación (flujo no autenticado). */
+  forgotPassword(dto: ForgotPasswordDto): Observable<MessageResponseDto> {
+    return this.authApi.forgotPassword(dto);
+  }
+
+  /** Restablece la contraseña con el token del correo (flujo no autenticado). */
+  resetPassword(dto: ResetPasswordDto): Observable<MessageResponseDto> {
+    return this.authApi.resetPassword(dto);
   }
 
   private applyLogin(res: LoginResponseDto | AuthSessionResponseDto): void {
