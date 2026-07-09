@@ -42,6 +42,9 @@
         </button>
       </form>
 
+      <p class="auth-alt">
+        <a routerLink="/recuperar" data-testid="forgot-link">¿Olvidaste tu contraseña?</a>
+      </p>
       <p class="auth-alt">¿Aún no tienes cuenta? <a routerLink="/registro">Regístrate</a></p>
     } @else {
       <form (ngSubmit)="verify()">

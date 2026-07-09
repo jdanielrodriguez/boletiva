@@ -1,0 +1,48 @@
+<div class="auth-wrap">
+  <section class="auth-card">
+    <h1>Restablecer contraseña</h1>
+    <p class="auth-sub">Elige una nueva contraseña para tu cuenta.</p>
+
+    @if (!token()) {
+      <p class="form-error" data-testid="reset-no-token">
+        Enlace inválido o incompleto. Solicita un nuevo enlace desde
+        <a routerLink="/recuperar">recuperar contraseña</a>.
+      </p>
+    } @else {
+      <form (ngSubmit)="submit()">
+        <div class="field">
+          <label for="password">Nueva contraseña</label>
+          <input
+            id="password"
+            type="password"
+            name="password"
+            autocomplete="new-password"
+            minlength="8"
+            placeholder="••••••••"
+            [ngModel]="password()"
+            (ngModelChange)="password.set($event)"
+            required
+          />
+        </div>
+        <div class="field">
+          <label for="confirm">Confirmar contraseña</label>
+          <input
+            id="confirm"
+            type="password"
+            name="confirm"
+            autocomplete="new-password"
+            minlength="8"
+            placeholder="••••••••"
+            [ngModel]="confirm()"
+            (ngModelChange)="confirm.set($event)"
+            required
+          />
+        </div>
+        <button type="submit" class="primary btn-block" [disabled]="submitting()" data-testid="reset-submit">
+          {{ submitting() ? 'Guardando…' : 'Restablecer contraseña' }}
+        </button>
+      </form>
+      <p class="auth-alt"><a routerLink="/login">Volver a iniciar sesión</a></p>
+    }
+  </section>
+</div>

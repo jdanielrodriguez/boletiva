@@ -41,6 +41,25 @@ export const routes: Routes = [
     title: 'Verifica tu correo — Pasa Eventos',
   },
   {
+    path: 'recuperar',
+    loadComponent: () => import('./pages/password/recover').then((m) => m.PasswordRecover),
+    canActivate: [guestGuard],
+    title: 'Recuperar contraseña — Pasa Eventos',
+  },
+  {
+    // El enlace del correo apunta a /reset-password?token=; /restablecer es alias en español.
+    path: 'reset-password',
+    loadComponent: () => import('./pages/password/reset').then((m) => m.PasswordReset),
+    canActivate: [guestGuard],
+    title: 'Restablecer contraseña — Pasa Eventos',
+  },
+  {
+    path: 'restablecer',
+    loadComponent: () => import('./pages/password/reset').then((m) => m.PasswordReset),
+    canActivate: [guestGuard],
+    title: 'Restablecer contraseña — Pasa Eventos',
+  },
+  {
     path: '403',
     loadComponent: () => import('./pages/forbidden/forbidden').then((m) => m.Forbidden),
     title: 'Sin permiso — Pasa Eventos',
