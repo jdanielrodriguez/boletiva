@@ -217,6 +217,18 @@ export class EventsService {
     });
   }
 
+  /** Todos los eventos (admin), con su promotor, ordenados por fecha de inicio. */
+  listAll() {
+    return this.prisma.event.findMany({
+      orderBy: { startsAt: 'desc' },
+      include: {
+        category: true,
+        promoter: { select: { id: true, firstName: true, lastName: true, email: true } },
+        _count: { select: { localities: true } },
+      },
+    });
+  }
+
   async getManaged(id: string, user: AuthUser) {
     const event = await this.prisma.event.findUnique({
       where: { id },

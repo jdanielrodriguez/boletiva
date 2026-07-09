@@ -253,6 +253,27 @@ export class MyEventListItemDto extends EventResponseDto {
   _count!: EventCountDto;
 }
 
+/** Promotor resumido en el listado admin de eventos. */
+export class AdminEventPromoterDto {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty({ example: 'Ana' })
+  firstName!: string;
+
+  @ApiProperty({ type: String, nullable: true, example: 'Pérez' })
+  lastName!: string | null;
+
+  @ApiProperty({ example: 'promotor@pasaeventos.com' })
+  email!: string;
+}
+
+/** Ítem del listado admin: evento + categoría + _count + promotor. */
+export class AdminEventListItemDto extends MyEventListItemDto {
+  @ApiProperty({ type: () => AdminEventPromoterDto })
+  promoter!: AdminEventPromoterDto;
+}
+
 // --- Disponibilidad pública para la compra (F2) ---
 
 /** Precio all-in que ve el COMPRADOR (plataforma+pasarela fusionadas en serviceFee). */

@@ -1244,6 +1244,36 @@
         ]
       }
     },
+    "/api/v1/events/all": {
+      "get": {
+        "operationId": "EventsController_listAll_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminEventListItemDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Todos los eventos con su promotor (admin)",
+        "tags": [
+          "events"
+        ]
+      }
+    },
     "/api/v1/events/{id}/manage": {
       "get": {
         "operationId": "EventsController_getManaged_v1",
@@ -6207,6 +6237,179 @@
           "createdAt",
           "updatedAt",
           "_count"
+        ]
+      },
+      "AdminEventPromoterDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "firstName": {
+            "type": "string",
+            "example": "Ana"
+          },
+          "lastName": {
+            "type": "string",
+            "nullable": true,
+            "example": "Pérez"
+          },
+          "email": {
+            "type": "string",
+            "example": "promotor@pasaeventos.com"
+          }
+        },
+        "required": [
+          "id",
+          "firstName",
+          "lastName",
+          "email"
+        ]
+      },
+      "AdminEventListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "3f2504e0-4f89-41d3-9a0c-0305e82c3301"
+          },
+          "promoterId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Promotor dueño del evento"
+          },
+          "categoryId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Categoría del evento"
+          },
+          "name": {
+            "type": "string",
+            "example": "Concierto de Apertura"
+          },
+          "slug": {
+            "type": "string",
+            "example": "concierto-de-apertura",
+            "description": "Slug único"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "example": "Una noche inolvidable"
+          },
+          "address": {
+            "type": "string",
+            "nullable": true,
+            "example": "Estadio Nacional, Ciudad de Guatemala"
+          },
+          "lat": {
+            "type": "number",
+            "nullable": true,
+            "example": 14.6349,
+            "description": "Latitud"
+          },
+          "lng": {
+            "type": "number",
+            "nullable": true,
+            "example": -90.5069,
+            "description": "Longitud"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-08-15T02:00:00.000Z"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-08-15T05:00:00.000Z"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "published",
+              "cancelled",
+              "finished"
+            ],
+            "example": "draft"
+          },
+          "gatewayId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Pasarela elegida por el promotor (null = hereda la default de plataforma)"
+          },
+          "frozenGatewayId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Pasarela congelada al recibir la primera compra (el precio ya no cambia)"
+          },
+          "ivaOnNet": {
+            "type": "boolean",
+            "example": true,
+            "description": "Si el IVA se aplica sobre el neto del promotor (false = solo sobre comisión de plataforma)"
+          },
+          "absorbInstallmentCost": {
+            "type": "boolean",
+            "example": false,
+            "description": "Si el PROMOTOR absorbe el costo de las cuotas (se descuenta de su neto)"
+          },
+          "maxTransfers": {
+            "type": "number",
+            "nullable": true,
+            "example": 1,
+            "description": "Máximo de transferencias por boleto (null = usa el default global)"
+          },
+          "promotedPriority": {
+            "type": "number",
+            "nullable": true,
+            "example": 1,
+            "description": "Prioridad en el slider de destacados (menor = primero; null = no promocionado)"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-07-01T18:30:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-07-01T18:30:00.000Z"
+          },
+          "category": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EventCategoryDto"
+              }
+            ]
+          },
+          "_count": {
+            "$ref": "#/components/schemas/EventCountDto"
+          },
+          "promoter": {
+            "$ref": "#/components/schemas/AdminEventPromoterDto"
+          }
+        },
+        "required": [
+          "id",
+          "promoterId",
+          "name",
+          "slug",
+          "startsAt",
+          "endsAt",
+          "status",
+          "ivaOnNet",
+          "absorbInstallmentCost",
+          "createdAt",
+          "updatedAt",
+          "_count",
+          "promoter"
         ]
       },
       "EventLocalityDto": {

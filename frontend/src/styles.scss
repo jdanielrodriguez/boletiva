@@ -479,6 +479,100 @@ app-root {
   color: var(--pe-teal);
 }
 
+/* Dropdown: accesos rápidos del cliente */
+.dd-quick {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--pe-border);
+  border-bottom: 1px solid var(--pe-border);
+  margin: 0.25rem 0;
+  padding: 0.25rem 0;
+}
+
+/* Configuración (F7) */
+.config-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.config-tabs button {
+  background: transparent;
+  border: 1px solid var(--pe-border);
+}
+
+.config-tabs button.active {
+  background: var(--pe-grad);
+  border-color: transparent;
+  color: #fff;
+}
+
+.events-by-date {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.date-head {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+  text-transform: capitalize;
+}
+
+.admin-event-list,
+.promoter-list,
+.gateway-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.admin-event-list li,
+.gateway-list li {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--pe-border);
+}
+
+.ev-name {
+  font-weight: 600;
+  flex: 1;
+}
+
+.promoter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--pe-border);
+}
+
+.promoter-id {
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+}
+
+.promoter-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.field.inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0;
+}
+
+.field.inline input {
+  width: 90px;
+}
+
 /* Métodos de pago (tarjetas) */
 .card-methods {
   list-style: none;

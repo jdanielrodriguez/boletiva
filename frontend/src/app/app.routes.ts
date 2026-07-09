@@ -94,6 +94,12 @@ export const routes: Routes = [
     title: 'Mi cuenta — Pasa Eventos',
   },
   {
+    path: 'configuracion',
+    loadComponent: () => import('./pages/config/config.page').then((m) => m.ConfigPage),
+    canActivate: [roleGuard('promoter', 'admin')],
+    title: 'Configuración — Pasa Eventos',
+  },
+  {
     path: 'cuenta/configuracion',
     loadComponent: () => import('./pages/static/account').then((m) => m.Account),
     canActivate: [authGuard],

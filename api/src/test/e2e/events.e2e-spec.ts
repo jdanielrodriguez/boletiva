@@ -20,6 +20,7 @@ describe('Eventos: gestión (e2e)', () => {
   let pendingPromoterToken: string; // rol promoter pero NO aprobado
   let pendingPromoterId: string;
   let buyerToken: string;
+  let adminToken: string;
   let stamp: number;
   let inactiveGatewayId: string;
 
@@ -39,6 +40,7 @@ describe('Eventos: gestión (e2e)', () => {
     promoterId = promoter.id;
     promoterToken = await loginTrusted(SEED.promoter, 'ev-prom');
     buyerToken = await loginTrusted(SEED.buyer, 'ev-buyer');
+    adminToken = await loginTrusted(SEED.admin, 'ev-admin');
 
     promoterBId = (await mkUser('evpromb', { roles: ['promoter'], promoterStatus: 'approved' })).id;
     promoterBToken = await loginTrusted(`evpromb_${stamp}@test.com`, 'ev-promb');
@@ -174,6 +176,18 @@ describe('Eventos: gestión (e2e)', () => {
     expect(mine.body.every((e: { promoterId: string }) => e.promoterId === promoterBId)).toBe(true);
     await http().get('/api/v1/events/mine').set(bearer(buyerToken)).expect(403);
     await http().get('/api/v1/events/mine').expect(401);
+  });
+
+  it('GET /events/all: admin ve todos con su promotor; promotor/buyer → 403; sin token → 401', async () => {
+    await createEvent(promoterToken);
+    const all = await http().get('/api/v1/events/all').set(bearer(adminToken)).expect(200);
+    expect(Array.isArray(all.body)).toBe(true);
+    expect(all.body.length).toBeGreaterThan(0);
+    expect(all.body[0].promoter).toBeDefined(); // incluye el promotor
+    expect(all.body[0].promoter.email).toBeDefined();
+    await http().get('/api/v1/events/all').set(bearer(promoterToken)).expect(403);
+    await http().get('/api/v1/events/all').set(bearer(buyerToken)).expect(403);
+    await http().get('/api/v1/events/all').expect(401);
   });
 
   it('GET /events/:id/manage: dueño 200; ajeno 403; inexistente 404', async () => {

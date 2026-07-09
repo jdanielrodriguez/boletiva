@@ -602,6 +602,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Todos los eventos con su promotor (admin) */
+        get: operations["EventsController_listAll_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{id}/manage": {
         parameters: {
             query?: never;
@@ -2802,6 +2819,112 @@ export interface components {
             updatedAt: string;
             category?: components["schemas"]["EventCategoryDto"] | null;
             _count: components["schemas"]["EventCountDto"];
+        };
+        AdminEventPromoterDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example Ana */
+            firstName: string;
+            /** @example Pérez */
+            lastName: string | null;
+            /** @example promotor@pasaeventos.com */
+            email: string;
+        };
+        AdminEventListItemDto: {
+            /**
+             * Format: uuid
+             * @example 3f2504e0-4f89-41d3-9a0c-0305e82c3301
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description Promotor dueño del evento
+             */
+            promoterId: string;
+            /**
+             * Format: uuid
+             * @description Categoría del evento
+             */
+            categoryId?: string | null;
+            /** @example Concierto de Apertura */
+            name: string;
+            /**
+             * @description Slug único
+             * @example concierto-de-apertura
+             */
+            slug: string;
+            /** @example Una noche inolvidable */
+            description?: string | null;
+            /** @example Estadio Nacional, Ciudad de Guatemala */
+            address?: string | null;
+            /**
+             * @description Latitud
+             * @example 14.6349
+             */
+            lat?: number | null;
+            /**
+             * @description Longitud
+             * @example -90.5069
+             */
+            lng?: number | null;
+            /**
+             * Format: date-time
+             * @example 2026-08-15T02:00:00.000Z
+             */
+            startsAt: string;
+            /**
+             * Format: date-time
+             * @example 2026-08-15T05:00:00.000Z
+             */
+            endsAt: string;
+            /**
+             * @example draft
+             * @enum {string}
+             */
+            status: "draft" | "published" | "cancelled" | "finished";
+            /**
+             * Format: uuid
+             * @description Pasarela elegida por el promotor (null = hereda la default de plataforma)
+             */
+            gatewayId?: string | null;
+            /**
+             * Format: uuid
+             * @description Pasarela congelada al recibir la primera compra (el precio ya no cambia)
+             */
+            frozenGatewayId?: string | null;
+            /**
+             * @description Si el IVA se aplica sobre el neto del promotor (false = solo sobre comisión de plataforma)
+             * @example true
+             */
+            ivaOnNet: boolean;
+            /**
+             * @description Si el PROMOTOR absorbe el costo de las cuotas (se descuenta de su neto)
+             * @example false
+             */
+            absorbInstallmentCost: boolean;
+            /**
+             * @description Máximo de transferencias por boleto (null = usa el default global)
+             * @example 1
+             */
+            maxTransfers?: number | null;
+            /**
+             * @description Prioridad en el slider de destacados (menor = primero; null = no promocionado)
+             * @example 1
+             */
+            promotedPriority?: number | null;
+            /**
+             * Format: date-time
+             * @example 2026-07-01T18:30:00.000Z
+             */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @example 2026-07-01T18:30:00.000Z
+             */
+            updatedAt: string;
+            category?: components["schemas"]["EventCategoryDto"] | null;
+            _count: components["schemas"]["EventCountDto"];
+            promoter: components["schemas"]["AdminEventPromoterDto"];
         };
         EventLocalityDto: {
             /**
@@ -6021,6 +6144,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MyEventListItemDto"][];
+                };
+            };
+        };
+    };
+    EventsController_listAll_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminEventListItemDto"][];
                 };
             };
         };

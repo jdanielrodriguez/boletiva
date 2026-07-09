@@ -29,11 +29,17 @@
         </button>
         @if (menuOpen()) {
           <div class="user-dropdown" data-testid="user-dropdown">
-            <a routerLink="/cuenta" (click)="closeMenu()">Perfil</a>
+            <a routerLink="/cuenta" (click)="closeMenu()" data-testid="dd-perfil">Perfil</a>
+
+            <div class="dd-quick" aria-label="Accesos rápidos">
+              <a [routerLink]="['/cuenta']" [queryParams]="{ s: 'metodos' }" (click)="closeMenu()" data-testid="dd-metodos">Método de pago</a>
+              <a [routerLink]="['/cuenta']" [queryParams]="{ s: 'activos' }" (click)="closeMenu()" data-testid="dd-boletos">Boletos</a>
+              <a [routerLink]="['/cuenta']" [queryParams]="{ s: 'wallet' }" (click)="closeMenu()" data-testid="dd-wallet">Wallet</a>
+            </div>
+
             @if (session.hasAnyRole(['promoter', 'admin'])) {
-              <a routerLink="/promotor" (click)="closeMenu()" data-testid="promoter-link">Panel del promotor</a>
+              <a routerLink="/configuracion" (click)="closeMenu()" data-testid="config-link">Configuración</a>
             }
-            <a routerLink="/cuenta/configuracion" (click)="closeMenu()">Configuraciones</a>
             <button type="button" data-testid="logout-btn" (click)="logout()">Salir de sesión</button>
           </div>
         }

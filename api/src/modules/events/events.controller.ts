@@ -29,6 +29,7 @@ import {
   EventAvailabilityDto,
   EventResponseDto,
   ManagedEventDetailDto,
+  AdminEventListItemDto,
   MyEventListItemDto,
   PublicEventDetailDto,
   PublicEventListDto,
@@ -65,6 +66,15 @@ export class EventsController {
   @ApiOkResponse({ type: MyEventListItemDto, isArray: true })
   listMine(@CurrentUser('userId') userId: string) {
     return this.events.listMine(userId);
+  }
+
+  @Get('all')
+  @Roles(Role.admin)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Todos los eventos con su promotor (admin)' })
+  @ApiOkResponse({ type: AdminEventListItemDto, isArray: true })
+  listAll() {
+    return this.events.listAll();
   }
 
   @Get(':id/manage')
