@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, guestGuard, verifiedEmailGuard } from './core/auth/guards';
+import { authGuard, guestGuard, roleGuard, verifiedEmailGuard } from './core/auth/guards';
 
 export const routes: Routes = [
   {
@@ -61,6 +61,12 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/transfer-claim/transfer-claim').then((m) => m.TransferClaim),
     canActivate: [authGuard, verifiedEmailGuard],
     title: 'Reclamar boleto — Pasa Eventos',
+  },
+  {
+    path: 'promotor',
+    loadComponent: () => import('./pages/promoter/promoter-panel').then((m) => m.PromoterPanel),
+    canActivate: [roleGuard('promoter', 'admin')],
+    title: 'Panel del promotor — Pasa Eventos',
   },
   {
     path: 'cuenta',

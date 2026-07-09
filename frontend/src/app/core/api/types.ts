@@ -69,6 +69,37 @@ export type WithdrawalActionResponseDto = Schemas['WithdrawalActionResponseDto']
 // --- Órdenes (historial/facturación) ---
 export type OrderPageResponseDto = Schemas['OrderPageResponseDto'];
 
+// --- Promotores: invitaciones por token (F4) ---
+export type CreateInvitationsDto = Schemas['CreateInvitationsDto'];
+export type CreateInvitationsResponseDto = Schemas['CreateInvitationsResponseDto'];
+export type CreatedInvitationDto = Schemas['CreatedInvitationDto'];
+export type InvitationListItemDto = Schemas['InvitationListItemDto'];
+export type InvitationPeekDto = Schemas['InvitationPeekDto'];
+
+// --- Banner con IA (F4) ---
+export type BannerResponseDto = Schemas['BannerResponseDto'];
+
+// --- Gestión de eventos (panel promotor, F4) ---
+export type CreateEventDto = Schemas['CreateEventDto'];
+export type UpdateEventDto = Schemas['UpdateEventDto'];
+export type ManagedEventDetailDto = Schemas['ManagedEventDetailDto'];
+
+// Localidades: el OpenAPI no expone un schema nombrado para el request/response de
+// localidades del panel, así que se tipan localmente (vista + cuerpo de creación).
+export interface LocalityView {
+  id: string;
+  name: string;
+  kind: 'seated' | 'general';
+  capacity?: number | null;
+  desiredNet?: string | number | null;
+}
+export interface CreateLocalityInput {
+  name: string;
+  kind?: 'seated' | 'general';
+  capacity?: number;
+  desiredNet?: number;
+}
+
 // --- Transferencias de boletos ---
 export type ClaimTransferDto = Schemas['ClaimTransferDto'];
 export type TransferInitiatedDto = Schemas['TransferInitiatedDto'];
