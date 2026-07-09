@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, verifiedEmailGuard } from './core/auth/guards';
+import { authGuard, guestGuard, verifiedEmailGuard } from './core/auth/guards';
 
 export const routes: Routes = [
   {
@@ -32,6 +32,7 @@ export const routes: Routes = [
   {
     path: 'login',
     loadComponent: () => import('./pages/login/login').then((m) => m.Login),
+    canActivate: [guestGuard],
     title: 'Iniciar sesión — Pasa Eventos',
   },
   {
@@ -52,6 +53,7 @@ export const routes: Routes = [
   {
     path: 'registro',
     loadComponent: () => import('./pages/static/register').then((m) => m.Register),
+    canActivate: [guestGuard],
     title: 'Crear cuenta — Pasa Eventos',
   },
   {

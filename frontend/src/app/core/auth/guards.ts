@@ -35,6 +35,23 @@ export function roleGuard(...roles: string[]): CanActivateFn {
 }
 
 /**
+ * Solo para invitados (no logueados): /login y /registro. Con sesión activa
+ * redirige al returnUrl (si es seguro) o al inicio — no tiene sentido re-loguearse.
+ */
+export const guestGuard: CanActivateFn = (route) => {
+  const session = inject(SessionStore);
+  const router = inject(Router);
+  return session.ensureLoaded().pipe(
+    map((user) => {
+      if (!user) return true;
+      const ret = route.queryParamMap.get('returnUrl');
+      const safe = ret && ret.startsWith('/') && !ret.startsWith('//');
+      return router.createUrlTree([safe ? ret : '/']);
+    }),
+  );
+};
+
+/**
  * Exige el correo verificado (necesario para comprar/crear/transferir, igual que
  * @RequireVerifiedEmail en el backend). Con sesión sin verificar → /verificar-correo.
  */

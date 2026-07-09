@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { ActivatedRouteSnapshot, CanActivateFn, RouterStateSnapshot, UrlTree, provideRouter } from '@angular/router';
 import { Observable, firstValueFrom, of } from 'rxjs';
 import { SessionStore } from './session.store';
-import { authGuard, roleGuard, verifiedEmailGuard } from './guards';
+import { authGuard, guestGuard, roleGuard, verifiedEmailGuard } from './guards';
 
 interface FakeSession {
   ensureLoaded: () => Observable<unknown>;
@@ -73,6 +73,51 @@ describe('guards', () => {
         isEmailVerified: () => false,
       });
       expect((res as UrlTree).toString()).toContain('/login');
+    });
+  });
+
+  describe('guestGuard', () => {
+    function runGuest(session: FakeSession, returnUrl?: string) {
+      TestBed.configureTestingModule({
+        providers: [provideZonelessChangeDetection(), provideRouter([]), { provide: SessionStore, useValue: session }],
+      });
+      const injector = TestBed.inject(Injector);
+      const route = {
+        queryParamMap: { get: (k: string) => (k === 'returnUrl' ? returnUrl ?? null : null) },
+      } as unknown as ActivatedRouteSnapshot;
+      const state = { url: '/login' } as RouterStateSnapshot;
+      return runInInjectionContext(injector, () =>
+        firstValueFrom(guestGuard(route, state) as Observable<boolean | UrlTree>),
+      );
+    }
+    const withSession: FakeSession = {
+      ensureLoaded: () => of({ id: 'u1' }),
+      hasAnyRole: () => true,
+      isEmailVerified: () => true,
+    };
+    const noSession: FakeSession = {
+      ensureLoaded: () => of(null),
+      hasAnyRole: () => false,
+      isEmailVerified: () => false,
+    };
+
+    it('permite a un invitado (sin sesión) ver /login', async () => {
+      expect(await runGuest(noSession)).toBe(true);
+    });
+
+    it('con sesión redirige al inicio', async () => {
+      const res = await runGuest(withSession);
+      expect((res as UrlTree).toString()).toBe('/');
+    });
+
+    it('con sesión y returnUrl seguro redirige a ese destino', async () => {
+      const res = await runGuest(withSession, '/cuenta');
+      expect((res as UrlTree).toString()).toBe('/cuenta');
+    });
+
+    it('con sesión ignora un returnUrl inseguro (open-redirect)', async () => {
+      const res = await runGuest(withSession, '//evil.com');
+      expect((res as UrlTree).toString()).toBe('/');
     });
   });
 

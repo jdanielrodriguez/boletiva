@@ -60,10 +60,60 @@
       }
     </ul>
 
-    <nav class="catalog-pager" aria-label="Paginación">
-      <button type="button" [disabled]="!hasPrev()" (click)="goToPage(page() - 1)">Anterior</button>
-      <span>Página {{ page() }}</span>
-      <button type="button" [disabled]="!hasNext()" (click)="goToPage(page() + 1)">Siguiente</button>
-    </nav>
+    @if (totalPages() > 1) {
+      <nav class="catalog-pager" aria-label="Paginación">
+        <button
+          type="button"
+          class="pager-arrow"
+          [disabled]="!hasPrev()"
+          (click)="goToPage(1)"
+          aria-label="Primera página"
+          title="Primera página"
+        >«</button>
+        <button
+          type="button"
+          class="pager-arrow"
+          [disabled]="!hasPrev()"
+          (click)="goToPage(page() - 1)"
+          aria-label="Página anterior"
+          title="Anterior"
+        >‹</button>
+
+        <ul class="pager-pages">
+          @for (item of pageItems(); track $index) {
+            @if (item === 'gap') {
+              <li class="pager-gap" aria-hidden="true">…</li>
+            } @else {
+              <li>
+                <button
+                  type="button"
+                  class="pager-page"
+                  [class.is-current]="item.page === page()"
+                  [attr.aria-current]="item.page === page() ? 'page' : null"
+                  (click)="goToPage(item.page)"
+                >{{ item.page }}</button>
+              </li>
+            }
+          }
+        </ul>
+
+        <button
+          type="button"
+          class="pager-arrow"
+          [disabled]="!hasNext()"
+          (click)="goToPage(page() + 1)"
+          aria-label="Página siguiente"
+          title="Siguiente"
+        >›</button>
+        <button
+          type="button"
+          class="pager-arrow"
+          [disabled]="!hasNext()"
+          (click)="goToPage(totalPages())"
+          aria-label="Última página"
+          title="Última página"
+        >»</button>
+      </nav>
+    }
   }
 </section>

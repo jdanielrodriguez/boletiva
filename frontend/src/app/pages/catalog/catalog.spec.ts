@@ -18,7 +18,10 @@ const EVENT = {
 };
 const CATS = [{ id: 'c1', name: 'Conciertos', slug: 'conciertos' }];
 
-function setup(listPublic: () => Observable<unknown>): ComponentFixture<Catalog> {
+function setup(
+  listPublic: () => Observable<unknown>,
+  params: Record<string, string> = {},
+): ComponentFixture<Catalog> {
   TestBed.configureTestingModule({
     providers: [
       provideZonelessChangeDetection(),
@@ -29,8 +32,8 @@ function setup(listPublic: () => Observable<unknown>): ComponentFixture<Catalog>
       {
         provide: ActivatedRoute,
         useValue: {
-          queryParamMap: of(convertToParamMap({})),
-          snapshot: { queryParamMap: convertToParamMap({}) },
+          queryParamMap: of(convertToParamMap(params)),
+          snapshot: { queryParamMap: convertToParamMap(params) },
         },
       },
     ],
@@ -58,6 +61,43 @@ describe('Catalog', () => {
     const fixture = setup(() => throwError(() => new Error('boom')));
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('[data-testid="catalog-error"]')).not.toBeNull();
+  });
+
+  it('no muestra el paginador con una sola página', () => {
+    const fixture = setup(() => of({ items: [EVENT], total: 1, skip: 0, take: 12 }));
+    expect((fixture.nativeElement as HTMLElement).querySelector('.catalog-pager')).toBeNull();
+  });
+
+  it('en la página 1 (10 páginas): resalta la 1 y deshabilita primero/anterior', () => {
+    const fixture = setup(() => of({ items: [EVENT], total: 120, skip: 0, take: 12 }));
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.catalog-pager')).not.toBeNull();
+    expect(el.querySelector('.pager-page.is-current')?.textContent?.trim()).toBe('1');
+    const arrows = el.querySelectorAll<HTMLButtonElement>('.pager-arrow');
+    expect(arrows[0].disabled).toBe(true); // primera
+    expect(arrows[1].disabled).toBe(true); // anterior
+    expect(arrows[2].disabled).toBe(false); // siguiente
+    expect(arrows[3].disabled).toBe(false); // última
+  });
+
+  it('en una página intermedia muestra huecos (…) y la primera/última', () => {
+    const fixture = setup(() => of({ items: [EVENT], total: 120, skip: 48, take: 12 }), { page: '5' });
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.pager-page.is-current')?.textContent?.trim()).toBe('5');
+    expect(el.querySelectorAll('.pager-gap').length).toBe(2);
+    const pages = [...el.querySelectorAll('.pager-page')].map((b) => b.textContent?.trim());
+    expect(pages).toContain('1');
+    expect(pages).toContain('10');
+  });
+
+  it('la flecha "última" navega a la última página', () => {
+    const fixture = setup(() => of({ items: [EVENT], total: 120, skip: 0, take: 12 }));
+    const router = TestBed.inject(Router);
+    const navSpy = spyOn(router, 'navigate').and.resolveTo(true);
+    const arrows = (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('.pager-arrow');
+    arrows[3].click(); // última
+    const args = navSpy.calls.mostRecent().args[1] as { queryParams: Record<string, unknown> };
+    expect(args.queryParams['page']).toBe(10);
   });
 
   it('al elegir una categoría navega con el query param', () => {
