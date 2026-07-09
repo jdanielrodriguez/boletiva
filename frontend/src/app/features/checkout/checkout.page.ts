@@ -116,6 +116,11 @@ export class CheckoutPage {
       });
   }
 
+  /** Monto de CADA cuota = total / número de cuotas (solo display). */
+  protected perInstallment(total: string, installments: number): string {
+    return (parseFloat(total) / installments).toFixed(2);
+  }
+
   protected selectGateway(id: string): void {
     this.gatewayId.set(id);
     this.installments.set(1);
