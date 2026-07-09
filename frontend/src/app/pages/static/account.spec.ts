@@ -1,5 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { OrdersApi } from '../../core/api/orders.api';
 import { TicketsApi } from '../../core/api/tickets.api';
@@ -23,6 +24,7 @@ interface Overrides {
   orders?: Record<string, unknown>;
   transfers?: Record<string, unknown>;
   users?: Record<string, unknown>;
+  section?: string;
 }
 
 describe('Account (mi cuenta)', () => {
@@ -55,6 +57,10 @@ describe('Account (mi cuenta)', () => {
             user: () => ({ firstName: 'Ana', lastName: 'P', email: 'ana@correo.com' }),
             setUser,
           },
+        },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { queryParamMap: convertToParamMap(o.section ? { s: o.section } : {}) } },
         },
       ],
     });
@@ -90,6 +96,11 @@ describe('Account (mi cuenta)', () => {
     await setup();
     go('menu-wallet');
     expect(el.querySelector('[data-testid="wallet-balance"]')?.textContent).toContain('50.00');
+  });
+
+  it('deep-link ?s=wallet abre directo la sección wallet', async () => {
+    await setup({ section: 'wallet' });
+    expect(el.querySelector('[data-testid="wallet-balance"]')).not.toBeNull();
   });
 
   it('wallet explicita el origen del saldo (reembolsos/reventas, no recarga con tarjeta)', async () => {

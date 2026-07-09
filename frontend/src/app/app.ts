@@ -3,11 +3,12 @@ import { isPlatformBrowser } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import { Header } from './shared/layout/header';
 import { Footer } from './shared/layout/footer';
+import { ToastContainer } from './shared/ui/toast-container';
 import { SessionStore } from './core/auth/session.store';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, Header, Footer],
+  imports: [RouterOutlet, Header, Footer, ToastContainer],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })

@@ -1,6 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { catchError, of } from 'rxjs';
 import { OrdersApi } from '../../core/api/orders.api';
@@ -38,8 +39,19 @@ export class Account {
   private readonly transfersApi = inject(TransfersApi);
   private readonly usersApi = inject(UsersApi);
 
+  private readonly route = inject(ActivatedRoute);
   protected readonly section = signal<Section>('perfil');
   protected readonly addMethodNote = signal(false);
+
+  /** Secciones válidas para el deep-link `?s=` (accesos rápidos del dropdown). */
+  private static readonly SECTIONS: Section[] = [
+    'perfil',
+    'metodos',
+    'facturacion',
+    'wallet',
+    'activos',
+    'pasados',
+  ];
 
   // --- Perfil editable ---
   protected readonly firstName = signal(this.session.user()?.firstName ?? '');
@@ -77,6 +89,11 @@ export class Account {
   protected readonly ticketError = signal<string | null>(null);
 
   constructor() {
+    // Deep-link: /cuenta?s=wallet|metodos|activos|... abre esa sección directo
+    // (lo usan los accesos rápidos del menú y la página de reclamar transferencia).
+    const s = this.route.snapshot.queryParamMap.get('s') as Section | null;
+    if (s && Account.SECTIONS.includes(s)) this.section.set(s);
+    if (this.section() === 'facturacion') this.loadOrders();
     this.loadWallet();
   }
 
