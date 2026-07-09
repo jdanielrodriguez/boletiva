@@ -95,6 +95,11 @@ describe('PricingEngine', () => {
         BadRequestException,
       );
     });
+    it('rechaza el cargo fijo de pasarela negativo', () => {
+      expect(() => PricingEngine.quote(100, { ...DEFAULT, transactionFixedFee: -1 })).toThrow(
+        BadRequestException,
+      );
+    });
   });
 
   describe('pago en cuotas (Ola 6.5): comprador paga igual, la plataforma/promotor absorbe', () => {
