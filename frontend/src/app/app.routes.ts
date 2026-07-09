@@ -88,6 +88,12 @@ export const routes: Routes = [
     title: 'Panel del promotor — Pasa Eventos',
   },
   {
+    path: 'promotor/eventos/:id/editar',
+    loadComponent: () => import('./pages/promoter/event-edit.page').then((m) => m.EventEditPage),
+    canActivate: [roleGuard('promoter', 'admin')],
+    title: 'Editar evento — Pasa Eventos',
+  },
+  {
     path: 'cuenta',
     loadComponent: () => import('./pages/static/account').then((m) => m.Account),
     canActivate: [authGuard],
@@ -96,7 +102,7 @@ export const routes: Routes = [
   {
     path: 'configuracion',
     loadComponent: () => import('./pages/config/config.page').then((m) => m.ConfigPage),
-    canActivate: [roleGuard('promoter', 'admin')],
+    canActivate: [roleGuard('admin')],
     title: 'Configuración — Pasa Eventos',
   },
   {

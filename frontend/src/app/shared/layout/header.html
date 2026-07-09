@@ -38,7 +38,10 @@
             </div>
 
             @if (session.hasAnyRole(['promoter', 'admin'])) {
-              <a routerLink="/configuracion" (click)="closeMenu()" data-testid="config-link">Configuración</a>
+              <a routerLink="/promotor" (click)="closeMenu()" data-testid="promoter-link">Panel del promotor</a>
+            }
+            @if (session.hasAnyRole(['admin'])) {
+              <a routerLink="/configuracion" (click)="closeMenu()" data-testid="config-link">Configuración (admin)</a>
             }
             <button type="button" data-testid="logout-btn" (click)="logout()">Salir de sesión</button>
           </div>

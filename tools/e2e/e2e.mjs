@@ -307,35 +307,88 @@ async function main() {
     await pg.waitForSelector('[data-testid="session-greeting"]', { timeout: 15000 });
   }
 
-  console.log('\n▶ Panel del promotor (F4)');
+  // Fija el valor de un <input> reactivo (datetime-local) y dispara el evento
+  // input para que ngModel lo capture (page.type no sirve en datetime-local).
+  async function setReactiveValue(pg, sel, val) {
+    await pg.$eval(
+      sel,
+      (el, v) => {
+        el.value = v;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      },
+      val,
+    );
+  }
+
+  console.log('\n▶ Panel del promotor (F4/v3)');
   const promoCtx = await browser.createBrowserContext();
   const promo = await promoCtx.newPage();
-  let inviteLink = '';
-  await step('el promotor entra al panel y ve sus eventos', async () => {
+  await step('el promotor entra al panel (grid) y crea un evento en borrador', async () => {
     await doLogin(promo, 'promotor@pasaeventos.com', 'Password123');
     await promo.goto(`${FE}/promotor`, { waitUntil: 'networkidle0' });
-    await promo.waitForSelector('[data-testid="tab-eventos"]', { timeout: 15000 });
-    await promo.waitForSelector('[data-testid="events-list"], [data-testid="events-empty"]', { timeout: 10000 });
+    await promo.waitForSelector('[data-testid="toggle-create"]', { timeout: 15000 });
+    await promo.click('[data-testid="toggle-create"]');
+    await promo.waitForSelector('[data-testid="ev-name"]', { timeout: 8000 });
+    await promo.type('[data-testid="ev-name"]', `E2E Evento ${Date.now()}`);
+    await setReactiveValue(promo, '[data-testid="ev-start"]', '2028-08-15T20:00');
+    await setReactiveValue(promo, '[data-testid="ev-end"]', '2028-08-15T23:00');
+    await promo.click('[data-testid="ev-create"]');
+    await promo.waitForSelector('[data-testid="ev-card"]', { timeout: 12000 });
   });
 
-  await step('genera el banner IA de un evento (aparece la imagen)', async () => {
-    const btn = await promo.$('[data-testid="ev-banner"]');
-    assert(btn !== null, 'no hay botón de banner (¿sin eventos?)');
-    await btn.click();
-    await promo.waitForSelector('.pe-banner', { timeout: 15000 });
-    const src = await promo.$eval('.pe-banner', (i) => i.getAttribute('src'));
+  await step('abre la edición del evento y genera el banner IA (vista aparte)', async () => {
+    // Recarga el panel (grid estable) y navega por SPA al hacer click en "Editar".
+    await promo.goto(`${FE}/promotor`, { waitUntil: 'networkidle0' });
+    await promo.waitForSelector('[data-testid="ev-edit"]', { timeout: 12000 });
+    await sleep(400);
+    await promo.click('[data-testid="ev-edit"]');
+    await promo.waitForSelector('[data-testid="tab-banner"]', { timeout: 12000 });
+    await promo.click('[data-testid="tab-banner"]');
+    await promo.waitForSelector('[data-testid="bn-generate"]', { timeout: 8000 });
+    await promo.click('[data-testid="bn-generate"]');
+    await promo.waitForSelector('[data-testid="bn-preview"]', { timeout: 15000 });
+    const src = await promo.$eval('[data-testid="bn-preview"]', (i) => i.getAttribute('src'));
     assert(src && src.includes('http'), 'el banner no tiene URL');
   });
 
-  await step('invita a un promotor por correo y obtiene el enlace con token', async () => {
-    await promo.click('[data-testid="tab-invitaciones"]');
-    await promo.waitForSelector('[data-testid="inv-emails"]', { timeout: 8000 });
+  await step('el promotor NO ve el enlace de invitaciones (exclusivo admin)', async () => {
+    await promo.goto(`${FE}/promotor`, { waitUntil: 'networkidle0' });
+    // Espera la hidratación de la sesión (el saludo solo aparece autenticado en cliente).
+    await promo.waitForSelector('[data-testid="session-greeting"]', { timeout: 20000 });
+    await promo.click('[data-testid="user-menu-trigger"]');
+    await promo.waitForSelector('[data-testid="user-dropdown"]', { timeout: 8000 });
+    const cfg = await promo.$('[data-testid="config-link"]');
+    assert(cfg === null, 'el promotor no debería ver Configuración (admin)');
+    const panel = await promo.$('[data-testid="promoter-link"]');
+    assert(panel !== null, 'el promotor debería ver el enlace del panel del promotor');
+  });
+  await promoCtx.close();
+
+  console.log('\n▶ Consola de administración (v3)');
+  const adminCtx = await browser.createBrowserContext();
+  const adminPg = await adminCtx.newPage();
+  let inviteLink = '';
+  await step('el admin invita a un promotor por correo y obtiene el enlace con token', async () => {
+    await doLogin(adminPg, 'admin@pasaeventos.com', 'Password123');
+    await adminPg.goto(`${FE}/configuracion`, { waitUntil: 'networkidle0' });
+    await adminPg.waitForSelector('[data-testid="tab-invitaciones"]', { timeout: 15000 });
+    await adminPg.click('[data-testid="tab-invitaciones"]');
+    await adminPg.waitForSelector('[data-testid="inv-emails"]', { timeout: 8000 });
     const invitee = `e2e_inv_${Date.now()}@test.com`;
-    await promo.type('[data-testid="inv-emails"]', invitee);
-    await promo.click('[data-testid="inv-submit"]');
-    await promo.waitForSelector('[data-testid="inv-created"] input', { timeout: 10000 });
-    inviteLink = await promo.$eval('[data-testid="inv-created"] input', (i) => i.value);
+    await adminPg.type('[data-testid="inv-emails"]', invitee);
+    await adminPg.click('[data-testid="inv-submit"]');
+    await adminPg.waitForSelector('[data-testid="inv-created"] input', { timeout: 10000 });
+    inviteLink = await adminPg.$eval('[data-testid="inv-created"] input', (i) => i.value);
     assert(inviteLink.includes('/registro?token='), `enlace inesperado: ${inviteLink}`);
+  });
+
+  await step('el admin ve las cuentas de un evento (liquidación)', async () => {
+    await adminPg.click('[data-testid="tab-eventos"]');
+    await adminPg.waitForSelector('[data-testid="ev-accounts"]', { timeout: 10000 });
+    await adminPg.click('[data-testid="ev-accounts"]');
+    await adminPg.waitForSelector('[data-testid="settlement"]', { timeout: 10000 });
+    const txt = await text(adminPg, '[data-testid="settlement"]');
+    assert(txt.includes('Neto') || txt.includes('cuentas'), 'no se muestran las cuentas del evento');
   });
 
   await step('abrir el enlace de invitación precarga el correo en el registro', async () => {
@@ -352,7 +405,7 @@ async function main() {
     await guestCtx.close();
   });
 
-  await promoCtx.close();
+  await adminCtx.close();
   await browser.close();
 
   console.log(`\n=== E2E: ${pass} pasaron, ${fail} fallaron ===`);

@@ -1,130 +1,232 @@
 <section class="config-page">
-  <h1>Configuración</h1>
+  <h1>Configuración (admin)</h1>
 
-  @if (!isAdmin()) {
-    <!-- Promotor: gestiona SUS eventos (reutiliza el panel del promotor). -->
-    <p class="muted">Gestiona tus eventos, localidades y banners.</p>
-    <app-promoter-panel />
-  } @else {
-    <!-- Admin: eventos globales + promotores + sistema. -->
-    <nav class="config-tabs" aria-label="Secciones de configuración">
-      <button type="button" [class.active]="tab() === 'eventos'" (click)="selectTab('eventos')" data-testid="tab-eventos">Eventos</button>
-      <button type="button" [class.active]="tab() === 'promotores'" (click)="selectTab('promotores')" data-testid="tab-promotores">Promotores</button>
-      <button type="button" [class.active]="tab() === 'sistema'" (click)="selectTab('sistema')" data-testid="tab-sistema">Sistema</button>
-    </nav>
+  <nav class="config-tabs" aria-label="Secciones de configuración">
+    <button type="button" [class.active]="tab() === 'eventos'" (click)="selectTab('eventos')" data-testid="tab-eventos">Eventos</button>
+    <button type="button" [class.active]="tab() === 'promotores'" (click)="selectTab('promotores')" data-testid="tab-promotores">Promotores</button>
+    <button type="button" [class.active]="tab() === 'sistema'" (click)="selectTab('sistema')" data-testid="tab-sistema">Sistema</button>
+    <button type="button" [class.active]="tab() === 'invitaciones'" (click)="selectTab('invitaciones')" data-testid="tab-invitaciones">Invitaciones</button>
+  </nav>
 
-    @switch (tab()) {
-      @case ('eventos') {
-        <h2>Todos los eventos</h2>
-        @if (eventsByDate().length > 0) {
-          <div class="events-by-date" data-testid="admin-events">
-            @for (g of eventsByDate(); track g.date) {
-              <div class="date-group">
-                <h3 class="date-head">{{ g.date === 'Sin fecha' ? g.date : (g.date | date: 'EEEE d MMMM y') }}</h3>
-                <ul class="admin-event-list">
-                  @for (e of g.events; track e.id) {
-                    <li>
-                      <span class="ev-name">{{ e.name }}</span>
-                      <span class="badge badge-{{ e.status }}">{{ e.status }}</span>
-                      <span class="muted">{{ e.promoter.firstName }} {{ e.promoter.lastName }}</span>
-                      <span class="muted">{{ e._count.localities }} localidad(es)</span>
-                    </li>
+  @switch (tab()) {
+    @case ('eventos') {
+      <h2>Todos los eventos</h2>
+      @if (events().length > 0) {
+        <div class="admin-events-grid" data-testid="admin-events">
+          @for (e of pageEvents(); track e.id) {
+            <article class="ev-card" data-testid="ev-card">
+              <div class="ev-card-top">
+                <span class="badge badge-{{ e.status }}">{{ e.status }}</span>
+                <span class="muted small">{{ e._count.localities }} localidad(es)</span>
+              </div>
+              <a class="ev-card-name" [routerLink]="['/promotor/eventos', e.id, 'editar']">{{ e.name }}</a>
+              <time class="muted small">{{ e.startsAt | date: 'EEE d MMM y' }}</time>
+              <span class="muted small">{{ e.promoter.firstName }} {{ e.promoter.lastName }}</span>
+              <div class="ev-card-actions">
+                <button type="button" class="btn small" (click)="toggleEvent(e.id)" data-testid="ev-accounts">
+                  {{ selectedEvent() === e.id ? 'Ocultar cuentas' : 'Ver cuentas' }}
+                </button>
+                <a class="btn small" [routerLink]="['/promotor/eventos', e.id, 'editar']">Ver evento</a>
+              </div>
+              @if (selectedEvent() === e.id) {
+                <app-event-settlement [eventId]="e.id" [showSplit]="true" />
+              }
+            </article>
+          }
+        </div>
+        @if (eventsTotalPages() > 1) {
+          <div class="catalog-pager">
+            <button type="button" class="pager-arrow" [disabled]="eventsPage() <= 1" (click)="goToEventsPage(eventsPage() - 1)">‹</button>
+            <span class="pager-page is-current">{{ eventsPage() }} / {{ eventsTotalPages() }}</span>
+            <button type="button" class="pager-arrow" [disabled]="eventsPage() >= eventsTotalPages()" (click)="goToEventsPage(eventsPage() + 1)">›</button>
+          </div>
+        }
+      } @else {
+        <p class="muted">No hay eventos.</p>
+      }
+    }
+
+    @case ('promotores') {
+      <h2>Promotores</h2>
+      <div class="filters-row">
+        <label class="field"><span>Buscar</span>
+          <input type="text" placeholder="Nombre o correo" [ngModel]="promoterSearch()" (ngModelChange)="promoterSearch.set($event)" name="psearch" data-testid="promoter-search" />
+        </label>
+        <label class="field"><span>Estado</span>
+          <select [ngModel]="promoterStatus()" (ngModelChange)="promoterStatus.set($event); loadPromoters()" name="pstatus" data-testid="promoter-status-filter">
+            <option value="">Todos</option>
+            <option value="pending">Pendientes</option>
+            <option value="approved">Aprobados</option>
+            <option value="rejected">Rechazados</option>
+            <option value="suspended">Suspendidos</option>
+          </select>
+        </label>
+      </div>
+
+      @if (filteredPromoters().length > 0) {
+        <div data-testid="promoters-list">
+          @for (p of filteredPromoters(); track p.id) {
+            <article class="promoter-card">
+              <div class="promoter-card-head">
+                <div class="promoter-card-name">
+                  <strong>{{ p.firstName }} {{ p.lastName }}</strong>
+                  <span class="muted small">{{ p.email }}</span>
+                </div>
+                <span class="badge badge-{{ p.promoterStatus }}">{{ p.promoterStatus }}</span>
+              </div>
+              <div class="promoter-card-body">
+                <label class="field"><span>Nota (opcional)</span>
+                  <input type="text" placeholder="Motivo / observación" [ngModel]="notes()[p.id]" (ngModelChange)="setNote(p.id, $event)" [name]="'note-' + p.id" />
+                </label>
+                <label class="field inline"><span>Reparto (cost-share)</span>
+                  <input type="number" min="0" max="1" step="0.05" #pct placeholder="0.5" />
+                  <button type="button" class="btn small" (click)="setPromoterPct(p, pct.value)" data-testid="promoter-pct-save">Guardar</button>
+                </label>
+              </div>
+              <div class="ev-card-actions">
+                @if (p.promoterStatus !== 'approved') {
+                  <button type="button" class="btn small primary" (click)="approve(p)" data-testid="promoter-approve">Aprobar</button>
+                }
+                @if (p.promoterStatus === 'pending') {
+                  <button type="button" class="btn small danger" (click)="reject(p)" data-testid="promoter-reject">Rechazar</button>
+                }
+                @if (p.promoterStatus === 'approved') {
+                  <button type="button" class="btn small danger" (click)="suspend(p)" data-testid="promoter-suspend">Suspender</button>
+                }
+              </div>
+            </article>
+          }
+        </div>
+      } @else {
+        <p class="muted">No hay promotores con ese filtro.</p>
+      }
+    }
+
+    @case ('sistema') {
+      <h2>Configuración del sistema</h2>
+
+      <div class="card-block">
+        <h3>Autorización de promotores</h3>
+        @if (requireApproval() === null) {
+          <p class="muted">Cargando…</p>
+        } @else {
+          <p class="muted">{{ requireApproval() ? 'Se exige aprobación del admin para operar como promotor.' : 'Modo pruebas: los promotores se auto-aprueban.' }}</p>
+          <button type="button" class="btn primary" (click)="toggleRequireApproval()" data-testid="toggle-require-approval">
+            {{ requireApproval() ? 'Activar modo pruebas (auto-aprobar)' : 'Exigir aprobación' }}
+          </button>
+        }
+      </div>
+
+      <div class="card-block">
+        <h3>Reparto de gastos por defecto</h3>
+        <p class="muted">Fracción de los gastos EXTRA (p.ej. pasar a wallet) que asume el promotor (0–1).</p>
+        <div class="field inline">
+          <input type="number" min="0" max="1" step="0.05" [ngModel]="defaultPct()" (ngModelChange)="defaultPct.set($event)" name="defpct" #dp data-testid="default-pct" />
+          <button type="button" class="btn primary" (click)="saveDefaultPct(dp.value)" data-testid="save-default-pct">Guardar</button>
+        </div>
+      </div>
+
+      <div class="card-block">
+        <h3>Pasarelas de pago</h3>
+        @if (gateways().length > 0) {
+          <div data-testid="gateways-list">
+            @for (g of gateways(); track g.id) {
+              <div class="gateway-edit">
+                <div class="gateway-edit-head">
+                  <strong>{{ g.name }}</strong>
+                  <span class="badge badge-{{ g.status }}">{{ g.status }}</span>
+                  @if (g.isPlatformDefault) { <span class="badge badge-approved">default</span> }
+                  <span class="muted small">{{ g.provider }} · {{ g.feePct }} + Q{{ g.transactionFixedFee }}</span>
+                  <span class="gateway-edit-actions" style="margin-left:auto; display:flex; gap:0.4rem;">
+                    @if (!g.isPlatformDefault) {
+                      <button type="button" class="btn small" (click)="makeDefault(g)" data-testid="gw-make-default">Definir default</button>
+                    }
+                    <button type="button" class="btn small" (click)="editGateway(g)" data-testid="gw-edit">Editar</button>
+                  </span>
+                </div>
+
+                @if (gatewayDraft(); as d) {
+                  @if (d.id === g.id) {
+                    <div class="gateway-edit-grid" data-testid="gw-form">
+                      <label class="field"><span>Nombre</span>
+                        <input type="text" [ngModel]="d.name" (ngModelChange)="patchDraft('name', $event)" [name]="'gn-' + g.id" />
+                      </label>
+                      <label class="field"><span>Comisión % (0.05)</span>
+                        <input type="number" step="0.001" min="0" max="0.99" [ngModel]="d.feePct" (ngModelChange)="patchDraft('feePct', +$event)" [name]="'gf-' + g.id" data-testid="gw-feepct" />
+                      </label>
+                      <label class="field"><span>Fijo por transacción (Q)</span>
+                        <input type="number" step="0.01" min="0" [ngModel]="d.transactionFixedFee" (ngModelChange)="patchDraft('transactionFixedFee', +$event)" [name]="'gt-' + g.id" />
+                      </label>
+                      <label class="field"><span>Cost-share mínimo (0–1)</span>
+                        <input type="number" step="0.05" min="0" max="1" [ngModel]="d.minCostSharePct" (ngModelChange)="patchDraft('minCostSharePct', +$event)" [name]="'gm-' + g.id" />
+                      </label>
+                      <label class="field"><span>Fijo en cuotas (Q)</span>
+                        <input type="number" step="0.01" min="0" [ngModel]="d.installmentFixedFee" (ngModelChange)="patchDraft('installmentFixedFee', +$event)" [name]="'gif-' + g.id" />
+                      </label>
+                      <label class="field full"><span>Tasas de cuotas (JSON)</span>
+                        <input type="text" placeholder='{"3":0.08,"6":0.09}' [ngModel]="d.installmentRatesJson" (ngModelChange)="patchDraft('installmentRatesJson', $event)" [name]="'gir-' + g.id" />
+                      </label>
+                    </div>
+                    <div class="ev-card-actions">
+                      <button type="button" class="btn small primary" (click)="saveGateway()" data-testid="gw-save">Guardar</button>
+                      <button type="button" class="btn small" (click)="cancelGatewayEdit()">Cancelar</button>
+                      @if (!g.isPlatformDefault) {
+                        @if (g.status !== 'active') {
+                          <button type="button" class="btn small" (click)="setGatewayStatus(g, 'active')">Activar</button>
+                        }
+                        @if (g.status === 'active') {
+                          <button type="button" class="btn small" (click)="setGatewayStatus(g, 'maintenance')">Mantenimiento</button>
+                          <button type="button" class="btn small danger" (click)="setGatewayStatus(g, 'inactive')">Desactivar</button>
+                        }
+                      }
+                    </div>
                   }
-                </ul>
+                }
               </div>
             }
           </div>
         } @else {
-          <p class="muted">No hay eventos.</p>
+          <p class="muted">No hay pasarelas configuradas.</p>
         }
-      }
+      </div>
+    }
 
-      @case ('promotores') {
-        <h2>Promotores</h2>
-        <div class="filters">
-          <div class="field">
-            <label for="p-status">Estado</label>
-            <select id="p-status" [ngModel]="promoterFilter()" (ngModelChange)="promoterFilter.set($event); loadPromoters()" name="pstatus" data-testid="promoter-status-filter">
-              <option value="">Todos</option>
-              <option value="pending">Pendientes</option>
-              <option value="approved">Aprobados</option>
-              <option value="rejected">Rechazados</option>
-              <option value="suspended">Suspendidos</option>
-            </select>
-          </div>
-        </div>
+    @case ('invitaciones') {
+      <h2>Invitar promotores</h2>
+      <p class="muted">Ingresa uno o varios correos (coma, espacio o salto de línea). Cada invitado recibe un enlace para registrarse ya aprobado como promotor.</p>
+      <form (ngSubmit)="invite()">
+        <textarea [ngModel]="emailsText()" (ngModelChange)="emailsText.set($event)" name="emails" rows="3" placeholder="correo1@dominio.com, correo2@dominio.com" data-testid="inv-emails"></textarea>
+        <button type="submit" class="btn primary" [disabled]="inviting()" data-testid="inv-submit">
+          {{ inviting() ? 'Enviando…' : 'Invitar' }}
+        </button>
+      </form>
 
-        @if (promoters().length > 0) {
-          <ul class="promoter-list" data-testid="promoters-list">
-            @for (p of promoters(); track p.id) {
-              <li class="promoter-row">
-                <div class="promoter-id">
-                  <span>{{ p.firstName }} {{ p.lastName }}</span>
-                  <span class="muted">{{ p.email }}</span>
-                </div>
-                <span class="badge badge-{{ p.promoterStatus }}">{{ p.promoterStatus }}</span>
-                <div class="promoter-actions">
-                  <button type="button" (click)="approve(p.id)" data-testid="promoter-approve">Aprobar</button>
-                  <button type="button" (click)="reject(p.id)">Rechazar</button>
-                  <button type="button" (click)="suspend(p.id)">Suspender</button>
-                </div>
-                <div class="field inline">
-                  <label [for]="'pct-' + p.id">Reparto</label>
-                  <input [id]="'pct-' + p.id" type="number" min="0" max="1" step="0.05" #pct placeholder="0.5" />
-                  <button type="button" (click)="setPromoterPct(p.id, pct.value)" data-testid="promoter-pct-save">Guardar</button>
-                </div>
-              </li>
+      @if (created().length > 0) {
+        <div class="card-block" data-testid="inv-created">
+          <h3>Enlaces generados (cópialos y compártelos)</h3>
+          <ul class="inv-list">
+            @for (c of created(); track c.id) {
+              <li><span>{{ c.email }}</span><input type="text" readonly [value]="c.url" /></li>
             }
           </ul>
-        } @else {
-          <p class="muted">No hay promotores con ese filtro.</p>
-        }
+        </div>
       }
 
-      @case ('sistema') {
-        <h2>Configuración del sistema</h2>
-
-        <div class="card-block">
-          <h3>Autorización de promotores</h3>
-          @if (requireApproval() === null) {
-            <p class="muted">Cargando…</p>
-          } @else {
-            <p class="muted">
-              {{ requireApproval() ? 'Se exige aprobación del admin para operar como promotor.' : 'Modo pruebas: los promotores se auto-aprueban.' }}
-            </p>
-            <button type="button" class="primary" (click)="toggleRequireApproval()" data-testid="toggle-require-approval">
-              {{ requireApproval() ? 'Activar modo pruebas (auto-aprobar)' : 'Exigir aprobación' }}
-            </button>
-          }
-        </div>
-
-        <div class="card-block">
-          <h3>Reparto de gastos por defecto</h3>
-          <p class="muted">Fracción de los gastos EXTRA (p.ej. pasar a wallet) que asume el promotor (0–1).</p>
-          <div class="field inline">
-            <input type="number" min="0" max="1" step="0.05" [ngModel]="defaultPct()" (ngModelChange)="defaultPct.set($event)" name="defpct" #dp data-testid="default-pct" />
-            <button type="button" class="primary" (click)="saveDefaultPct(dp.value)" data-testid="save-default-pct">Guardar</button>
-          </div>
-        </div>
-
-        <div class="card-block">
-          <h3>Pasarelas de pago</h3>
-          @if (gateways().length > 0) {
-            <ul class="gateway-list" data-testid="gateways-list">
-              @for (g of gateways(); track g.id) {
-                <li>
-                  <span>{{ g.name }}</span>
-                  <span class="badge badge-{{ g.status }}">{{ g.status }}</span>
-                  @if (g.isPlatformDefault) {
-                    <span class="badge badge-approved">default</span>
-                  }
-                </li>
+      <h3>Invitaciones</h3>
+      @if (invitations().length > 0) {
+        <ul class="inv-list" data-testid="inv-list">
+          @for (i of invitations(); track i.id) {
+            <li>
+              <span>{{ i.email }}</span>
+              <span class="badge badge-{{ i.status }}">{{ i.status }}</span>
+              @if (i.status === 'pending') {
+                <button type="button" class="btn small danger" (click)="revoke(i)" data-testid="inv-revoke">Revocar</button>
               }
-            </ul>
-          } @else {
-            <p class="muted">No hay pasarelas configuradas.</p>
+            </li>
           }
-        </div>
+        </ul>
+      } @else {
+        <p class="muted">Aún no has enviado invitaciones.</p>
       }
     }
   }

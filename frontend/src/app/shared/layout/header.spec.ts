@@ -44,20 +44,31 @@ describe('Header', () => {
     expect(comp['menuOpen']()).toBe(false);
   });
 
-  it('cliente ve accesos rápidos y NO ve Configuración', async () => {
+  it('cliente ve accesos rápidos y NO ve panel/configuración', async () => {
     await setup({ roles: [] });
     comp.toggleMenu();
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('[data-testid="dd-metodos"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="promoter-link"]')).toBeNull();
     expect(el.querySelector('[data-testid="config-link"]')).toBeNull();
   });
 
-  it('promotor/admin ve el enlace de Configuración', async () => {
+  it('promotor ve el panel del promotor pero NO Configuración (admin)', async () => {
     await setup({ roles: ['promoter'] });
     comp.toggleMenu();
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="promoter-link"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="config-link"]')).toBeNull();
+  });
+
+  it('admin ve el panel del promotor y Configuración', async () => {
+    await setup({ roles: ['admin'] });
+    comp.toggleMenu();
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="promoter-link"]')).not.toBeNull();
     expect(el.querySelector('[data-testid="config-link"]')).not.toBeNull();
   });
 

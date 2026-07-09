@@ -2020,3 +2020,165 @@ app-root {
 .toast-info { border-left-color: #3b82f6; }
 .toast-warning { border-left-color: var(--pe-warn, #f59e0b); }
 .toast-error { border-left-color: var(--pe-danger, #ef4444); }
+
+/* ===================================================================== */
+/* Panel promotor / edición de evento / config admin (v3)               */
+/* ===================================================================== */
+
+.small { font-size: 0.82rem; }
+
+.btn.small { padding: 0.35rem 0.7rem; font-size: 0.85rem; border-radius: 8px; }
+.btn.danger,
+button.danger { border-color: rgba(255, 107, 129, 0.4); color: var(--pe-danger); }
+.btn.danger:hover:not(:disabled),
+button.danger:hover:not(:disabled) { background: rgba(255, 107, 129, 0.12); border-color: var(--pe-danger); }
+
+.panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.panel-header h1 { margin: 0 0 0.2rem; }
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem 1rem;
+  margin-bottom: 1rem;
+}
+.form-grid .field.full { grid-column: 1 / -1; }
+@media (max-width: 620px) { .form-grid { grid-template-columns: 1fr; } }
+
+.field { display: flex; flex-direction: column; gap: 0.3rem; }
+.field > span { font-size: 0.85rem; color: var(--pe-muted); }
+
+.check-row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  margin: 0.6rem 0;
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+.check-row input { margin-top: 0.2rem; }
+
+/* Grid de eventos (cards) */
+.events-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.ev-card {
+  background: var(--pe-surface);
+  border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.ev-card-top { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.ev-card-name {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--pe-text);
+  text-decoration: none;
+}
+.ev-card-name:hover { color: var(--pe-primary); }
+.ev-card-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.4rem; }
+
+/* Edición de evento */
+.event-edit { max-width: 960px; margin: 0 auto; }
+.event-edit .panel-header h1 { display: inline-block; margin-right: 0.6rem; }
+.banner-preview {
+  display: block;
+  width: 100%;
+  max-width: 520px;
+  margin-top: 1rem;
+  border-radius: var(--pe-radius);
+  border: 1px solid var(--pe-border);
+}
+
+/* Localidades (gestión) */
+.loc-manage-list { list-style: none; padding: 0; margin: 0 0 1rem; display: flex; flex-direction: column; gap: 0.6rem; }
+.loc-manage-item {
+  background: var(--pe-surface-2);
+  border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius-sm);
+  padding: 0.7rem 0.9rem;
+}
+.loc-manage-head { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.loc-manage-head .loc-name { font-weight: 600; }
+.loc-manage-actions { margin-left: auto; display: flex; gap: 0.4rem; }
+
+/* Editor de asientos */
+.seat-editor { margin-top: 0.8rem; }
+.seat-editor-form { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: flex-end; }
+.seat-editor-form .field.inline { flex-direction: column; }
+.seat-editor-canvas {
+  margin-top: 0.7rem;
+  overflow: auto;
+  max-width: 100%;
+  border: 1px dashed var(--pe-border);
+  border-radius: var(--pe-radius-sm);
+  padding: 0.5rem;
+  text-align: center;
+}
+.seat-editor-canvas > div { display: inline-block; }
+
+/* Liquidación / cuentas */
+.settlement-summary { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; }
+.settlement-metric {
+  background: var(--pe-surface-2);
+  border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius-sm);
+  padding: 0.7rem 1rem;
+  flex: 1 1 140px;
+}
+.settlement-metric .sm-label { display: block; font-size: 0.78rem; color: var(--pe-muted); }
+.settlement-metric .sm-value { font-size: 1.25rem; font-weight: 700; }
+.settlement-lines { list-style: none; padding: 0; margin: 0; }
+.settlement-line {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--pe-border);
+}
+.settlement-line.highlight { font-size: 1.05rem; }
+.settlement-line.highlight strong { color: var(--pe-teal); }
+
+/* Admin: eventos en grid + gestión de promotores/pasarelas */
+.admin-events-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.promoter-card {
+  background: var(--pe-surface);
+  border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.8rem;
+}
+.promoter-card-head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; flex-wrap: wrap; }
+.promoter-card-name { display: flex; flex-direction: column; }
+.promoter-card-body { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: flex-end; }
+.filters-row { display: flex; flex-wrap: wrap; gap: 0.8rem; align-items: flex-end; margin-bottom: 1rem; }
+
+.gateway-edit {
+  background: var(--pe-surface-2);
+  border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius-sm);
+  padding: 0.9rem;
+  margin-bottom: 0.8rem;
+}
+.gateway-edit-head { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.6rem; }
+.gateway-edit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.6rem; }

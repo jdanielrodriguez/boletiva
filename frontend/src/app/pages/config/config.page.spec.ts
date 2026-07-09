@@ -1,31 +1,36 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { AdminApi } from '../../core/api/admin.api';
-import { CategoriesApi } from '../../core/api/categories.api';
 import { InvitationsApi } from '../../core/api/invitations.api';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
-import { SessionStore } from '../../core/auth/session.store';
 import { ToastService } from '../../core/ui/toast.service';
 import { ConfigPage } from './config.page';
 
 const EVENTS = [
   { id: 'e1', name: 'Fiesta', status: 'published', startsAt: '2026-08-01T20:00:00Z', promoter: { firstName: 'Ana', lastName: 'P' }, _count: { localities: 2 } },
-  { id: 'e2', name: 'Feria', status: 'draft', startsAt: '2026-08-01T18:00:00Z', promoter: { firstName: 'Leo', lastName: 'G' }, _count: { localities: 1 } },
+  { id: 'e2', name: 'Feria', status: 'draft', startsAt: '2026-08-02T18:00:00Z', promoter: { firstName: 'Leo', lastName: 'G' }, _count: { localities: 1 } },
 ];
 const PROMOTERS = [
   { id: 'u1', email: 'p@x.com', firstName: 'Pia', lastName: 'R', roles: ['buyer'], promoterStatus: 'pending' },
+  { id: 'u2', email: 'aprobado@x.com', firstName: 'Leo', lastName: 'G', roles: ['promoter'], promoterStatus: 'approved' },
+];
+const GATEWAYS = [
+  { id: 'g1', name: 'Sandbox', provider: 'simulator', status: 'active', isPlatformDefault: true, feePct: '0.05', transactionFixedFee: '0.00', minCostSharePct: '0.00', installmentFixedFee: null, installmentRates: null },
+  { id: 'g2', name: 'Recurrente', provider: 'recurrente', status: 'active', isPlatformDefault: false, feePct: '0.045', transactionFixedFee: '1.20', minCostSharePct: '0.00', installmentFixedFee: '2.00', installmentRates: { '3': 0.08 } },
 ];
 
-describe('ConfigPage (F7)', () => {
+describe('ConfigPage (v3, admin console)', () => {
   let fixture: ComponentFixture<ConfigPage>;
   let el: HTMLElement;
   let toasts: ToastService;
 
-  async function setup(isAdmin: boolean, admin: Record<string, unknown> = {}) {
+  async function setup(admin: Record<string, unknown> = {}, inv: Record<string, unknown> = {}) {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
+        provideRouter([]),
         ToastService,
         {
           provide: AdminApi,
@@ -40,15 +45,23 @@ describe('ConfigPage (F7)', () => {
             getDefaultPct: () => of({ defaultPct: 0.5 }),
             setDefaultPct: () => of({}),
             setPromoterPct: () => of({}),
-            listGateways: () => of([{ id: 'g1', name: 'Sandbox', status: 'active', isPlatformDefault: true }]),
+            listGateways: () => of(GATEWAYS),
+            updateGateway: () => of(GATEWAYS[1]),
+            setGatewayStatus: () => of(GATEWAYS[1]),
+            makeGatewayDefault: () => of(GATEWAYS[1]),
             ...admin,
           } as unknown as AdminApi,
         },
-        { provide: SessionStore, useValue: { hasAnyRole: (r: string[]) => (isAdmin ? r.includes('admin') : r.includes('promoter')) } },
-        // Deps de PromoterPanel (rama promotor):
-        { provide: PromoterEventsApi, useValue: { mine: () => of([]) } },
-        { provide: CategoriesApi, useValue: { list: () => of([]) } },
-        { provide: InvitationsApi, useValue: { list: () => of([]) } },
+        {
+          provide: InvitationsApi,
+          useValue: {
+            list: () => of([{ id: 'i1', email: 'a@b.com', status: 'pending' }]),
+            create: () => of({ invitations: [{ id: 'i1', email: 'a@b.com', url: 'http://x/registro?token=t' }] }),
+            revoke: () => of({ id: 'i1', status: 'revoked' }),
+            ...inv,
+          } as unknown as InvitationsApi,
+        },
+        { provide: PromoterEventsApi, useValue: { settlement: () => of({ net: '0.00' }) } },
       ],
     });
     fixture = TestBed.createComponent(ConfigPage);
@@ -64,103 +77,133 @@ describe('ConfigPage (F7)', () => {
     (el.querySelector(`[data-testid="${testid}"]`) as HTMLButtonElement).click();
     fixture.detectChanges();
   };
-
-  it('promotor: reutiliza el panel del promotor (no muestra tabs de admin)', async () => {
-    await setup(false);
-    expect(el.querySelector('app-promoter-panel')).not.toBeNull();
-    // tab-sistema es exclusivo del panel admin de ConfigPage (no del panel promotor).
-    expect(el.querySelector('[data-testid="tab-sistema"]')).toBeNull();
-  });
-
-  it('admin: muestra los eventos agrupados por fecha', async () => {
-    await setup(true);
-    const events = el.querySelector('[data-testid="admin-events"]');
-    expect(events?.textContent).toContain('Fiesta');
-    expect(events?.textContent).toContain('Feria');
-    // e1 y e2 comparten fecha → un solo grupo.
-    expect(events?.querySelectorAll('.date-group').length).toBe(1);
-  });
-
-  it('admin: pestaña promotores lista y aprueba', async () => {
-    const approvePromoter = jasmine.createSpy('ap').and.returnValue(of({}));
-    await setup(true, { approvePromoter });
-    click('tab-promotores');
+  const selectTab = async (t: string) => {
+    click(t);
     await fixture.whenStable();
     fixture.detectChanges();
+  };
+
+  it('muestra los eventos en un grid con su promotor', async () => {
+    await setup();
+    const events = el.querySelector('[data-testid="admin-events"]');
+    expect(events?.textContent).toContain('Fiesta');
+    expect(events?.textContent).toContain('Ana');
+    expect(events?.querySelectorAll('[data-testid="ev-card"]').length).toBe(2);
+  });
+
+  it('error al cargar eventos muestra toast', async () => {
+    await setup({ listAllEvents: () => throwError(() => new Error('x')) });
+    expect(lastToast()?.kind).toBe('error');
+  });
+
+  it('promotores: lista, busca y aprueba (acción contextual)', async () => {
+    const approvePromoter = jasmine.createSpy('ap').and.returnValue(of({}));
+    await setup({ approvePromoter });
+    await selectTab('tab-promotores');
     expect(el.querySelector('[data-testid="promoters-list"]')?.textContent).toContain('p@x.com');
     click('promoter-approve');
     expect(approvePromoter).toHaveBeenCalledWith('u1');
     expect(lastToast()?.kind).toBe('success');
   });
 
-  it('admin: pestaña sistema carga y alterna require-approval', async () => {
-    const setRequireApproval = jasmine.createSpy('sra').and.returnValue(of({ requireApproval: false }));
-    await setup(true, { setRequireApproval });
-    click('tab-sistema');
-    await fixture.whenStable();
+  it('promotores: el aprobado no muestra botón Aprobar', async () => {
+    await setup({ listPromoters: () => of([PROMOTERS[1]]) });
+    await selectTab('tab-promotores');
+    expect(el.querySelector('[data-testid="promoter-approve"]')).toBeNull();
+    expect(el.querySelector('[data-testid="promoter-suspend"]')).not.toBeNull();
+  });
+
+  it('promotores: búsqueda filtra por nombre/correo', async () => {
+    await setup();
+    await selectTab('tab-promotores');
+    fixture.componentInstance['promoterSearch'].set('aprobado');
     fixture.detectChanges();
-    expect(el.querySelector('[data-testid="gateways-list"]')?.textContent).toContain('Sandbox');
+    expect(fixture.componentInstance['filteredPromoters']().length).toBe(1);
+  });
+
+  it('promotores: rechazar/suspender llaman al API con nota', async () => {
+    const rejectPromoter = jasmine.createSpy('r').and.returnValue(of({}));
+    const suspendPromoter = jasmine.createSpy('s').and.returnValue(of({}));
+    await setup({ rejectPromoter, suspendPromoter });
+    fixture.componentInstance['setNote']('u1', 'motivo');
+    fixture.componentInstance['reject'](PROMOTERS[0] as never);
+    fixture.componentInstance['suspend'](PROMOTERS[1] as never);
+    expect(rejectPromoter).toHaveBeenCalledWith('u1', 'motivo');
+    expect(suspendPromoter).toHaveBeenCalledWith('u2', undefined);
+  });
+
+  it('promotores: cost-share válido llama API; inválido → warning', async () => {
+    const setPromoterPct = jasmine.createSpy('sp').and.returnValue(of({}));
+    await setup({ setPromoterPct });
+    fixture.componentInstance['setPromoterPct'](PROMOTERS[0] as never, '0.3');
+    expect(setPromoterPct).toHaveBeenCalledWith('u1', 0.3);
+    fixture.componentInstance['setPromoterPct'](PROMOTERS[0] as never, '5');
+    expect(lastToast()?.kind).toBe('warning');
+  });
+
+  it('sistema: carga pasarelas y alterna require-approval', async () => {
+    const setRequireApproval = jasmine.createSpy('sra').and.returnValue(of({ requireApproval: false }));
+    await setup({ setRequireApproval });
+    await selectTab('tab-sistema');
+    expect(el.querySelector('[data-testid="gateways-list"]')?.textContent).toContain('Recurrente');
     click('toggle-require-approval');
     expect(setRequireApproval).toHaveBeenCalledWith(false);
   });
 
-  it('admin: guardar reparto por defecto inválido muestra warning', async () => {
-    await setup(true);
-    click('tab-sistema');
-    await fixture.whenStable();
-    fixture.detectChanges();
+  it('sistema: guardar reparto por defecto (válido persiste; inválido → warning)', async () => {
+    const setDefaultPct = jasmine.createSpy('sd').and.returnValue(of({}));
+    await setup({ setDefaultPct });
+    await selectTab('tab-sistema');
+    fixture.componentInstance['saveDefaultPct']('0.4');
+    expect(setDefaultPct).toHaveBeenCalledWith(0.4);
     fixture.componentInstance['saveDefaultPct']('2');
     expect(lastToast()?.kind).toBe('warning');
   });
 
-  it('admin: error al cargar eventos muestra toast', async () => {
-    await setup(true, { listAllEvents: () => throwError(() => new Error('x')) });
-    expect(lastToast()?.kind).toBe('error');
+  it('sistema: definir default llama makeGatewayDefault', async () => {
+    const makeGatewayDefault = jasmine.createSpy('md').and.returnValue(of(GATEWAYS[1]));
+    await setup({ makeGatewayDefault });
+    await selectTab('tab-sistema');
+    click('gw-make-default'); // el primero visible es el de g2 (no-default)
+    expect(makeGatewayDefault).toHaveBeenCalledWith('g2');
   });
 
-  it('admin: rechazar y suspender promotor llaman al API', async () => {
-    const rejectPromoter = jasmine.createSpy('r').and.returnValue(of({}));
-    const suspendPromoter = jasmine.createSpy('s').and.returnValue(of({}));
-    await setup(true, { rejectPromoter, suspendPromoter });
-    fixture.componentInstance['reject']('u1');
-    fixture.componentInstance['suspend']('u1');
-    expect(rejectPromoter).toHaveBeenCalledWith('u1');
-    expect(suspendPromoter).toHaveBeenCalledWith('u1');
-  });
-
-  it('admin: reparto de promotor válido llama al API; inválido → warning', async () => {
-    const setPromoterPct = jasmine.createSpy('sp').and.returnValue(of({}));
-    await setup(true, { setPromoterPct });
-    fixture.componentInstance['setPromoterPct']('u1', '0.3');
-    expect(setPromoterPct).toHaveBeenCalledWith('u1', 0.3);
-    fixture.componentInstance['setPromoterPct']('u1', '5');
-    expect(lastToast()?.kind).toBe('warning');
-  });
-
-  it('admin: guardar reparto por defecto válido persiste', async () => {
-    const setDefaultPct = jasmine.createSpy('sd').and.returnValue(of({}));
-    await setup(true, { setDefaultPct });
-    fixture.componentInstance['saveDefaultPct']('0.4');
-    expect(setDefaultPct).toHaveBeenCalledWith(0.4);
+  it('sistema: editar y guardar pasarela llama updateGateway', async () => {
+    const updateGateway = jasmine.createSpy('ug').and.returnValue(of(GATEWAYS[1]));
+    await setup({ updateGateway });
+    await selectTab('tab-sistema');
+    fixture.componentInstance['editGateway'](GATEWAYS[1] as never);
+    fixture.detectChanges();
+    fixture.componentInstance['patchDraft']('feePct', 0.06);
+    fixture.componentInstance['saveGateway']();
+    expect(updateGateway).toHaveBeenCalled();
     expect(lastToast()?.kind).toBe('success');
   });
 
-  it('admin: cambiar filtro de promotores recarga la lista', async () => {
-    const listPromoters = jasmine.createSpy('lp').and.returnValue(of(PROMOTERS));
-    await setup(true, { listPromoters });
-    fixture.componentInstance['promoterFilter'].set('approved');
-    fixture.componentInstance['loadPromoters']();
-    expect(listPromoters).toHaveBeenCalledWith('approved');
+  it('sistema: JSON de cuotas inválido → warning y NO guarda', async () => {
+    const updateGateway = jasmine.createSpy('ug').and.returnValue(of(GATEWAYS[1]));
+    await setup({ updateGateway });
+    fixture.componentInstance['editGateway'](GATEWAYS[1] as never);
+    fixture.componentInstance['patchDraft']('installmentRatesJson', 'no-json');
+    fixture.componentInstance['saveGateway']();
+    expect(updateGateway).not.toHaveBeenCalled();
+    expect(lastToast()?.kind).toBe('warning');
   });
 
-  it('admin: errores de acciones de promotor muestran toast', async () => {
-    await setup(true, {
-      approvePromoter: () => throwError(() => new Error('x')),
-      listPromoters: () => throwError(() => new Error('x')),
-    });
-    fixture.componentInstance['approve']('u1');
-    expect(lastToast()?.kind).toBe('error');
-    fixture.componentInstance['loadPromoters']();
-    expect(lastToast()?.kind).toBe('error');
+  it('invitaciones: parsea correos y llama create', async () => {
+    const create = jasmine.createSpy('c').and.returnValue(of({ invitations: [{ id: 'i1', email: 'a@b.com', url: 'http://x/registro?token=t' }] }));
+    await setup({}, { create });
+    await selectTab('tab-invitaciones');
+    fixture.componentInstance['emailsText'].set('a@b.com, c@d.com');
+    click('inv-submit');
+    expect(create).toHaveBeenCalledWith(['a@b.com', 'c@d.com']);
+    expect((el.querySelector('[data-testid="inv-created"] input') as HTMLInputElement).value).toContain('registro?token=t');
+  });
+
+  it('invitaciones: revocar llama al API', async () => {
+    const revoke = jasmine.createSpy('r').and.returnValue(of({ id: 'i1', status: 'revoked' }));
+    await setup({}, { revoke });
+    fixture.componentInstance['revoke']({ id: 'i1', email: 'a@b.com', status: 'pending' } as never);
+    expect(revoke).toHaveBeenCalledWith('i1');
   });
 });

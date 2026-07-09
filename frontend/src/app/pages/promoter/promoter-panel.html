@@ -1,132 +1,86 @@
 <section class="promoter-panel">
-  <h1>Panel del promotor</h1>
+  <div class="panel-header">
+    <div>
+      <h1>Mis eventos</h1>
+      <p class="muted">Crea, configura y publica tus eventos.</p>
+    </div>
+    <button type="button" class="btn primary" (click)="toggleCreate()" data-testid="toggle-create">
+      {{ showCreate() ? 'Cerrar' : '+ Nuevo evento' }}
+    </button>
+  </div>
 
-  <nav class="panel-tabs" aria-label="Secciones del panel">
-    <button type="button" [class.active]="section() === 'eventos'" (click)="select('eventos')" data-testid="tab-eventos">Mis eventos</button>
-    <button type="button" [class.active]="section() === 'invitaciones'" (click)="select('invitaciones')" data-testid="tab-invitaciones">Invitar promotores</button>
-  </nav>
-
-  @if (error(); as e) {
-    <p class="error" data-testid="panel-error">{{ e }}</p>
-  }
-
-  @switch (section()) {
-    @case ('eventos') {
-      <div class="panel-create">
-        <h2>Crear evento</h2>
-        <form (ngSubmit)="createEvent()">
-          <label for="ev-name">Nombre</label>
-          <input id="ev-name" type="text" [ngModel]="form.name()" (ngModelChange)="form.name.set($event)" name="name" data-testid="ev-name" />
-          <label for="ev-cat">Categoría</label>
-          <select id="ev-cat" [ngModel]="form.categoryId()" (ngModelChange)="form.categoryId.set($event)" name="categoryId">
-            <option value="">— Sin categoría —</option>
-            @for (c of categories(); track c.id) {
-              <option [value]="c.id">{{ c.name }}</option>
-            }
-          </select>
-          <label for="ev-start">Inicio</label>
-          <input id="ev-start" type="datetime-local" [ngModel]="form.startsAt()" (ngModelChange)="form.startsAt.set($event)" name="startsAt" data-testid="ev-start" />
-          <label for="ev-end">Fin</label>
-          <input id="ev-end" type="datetime-local" [ngModel]="form.endsAt()" (ngModelChange)="form.endsAt.set($event)" name="endsAt" data-testid="ev-end" />
-          <label for="ev-desc">Descripción</label>
-          <textarea id="ev-desc" [ngModel]="form.description()" (ngModelChange)="form.description.set($event)" name="description"></textarea>
-          <button type="submit" class="primary" [disabled]="creating()" data-testid="ev-create">
-            {{ creating() ? 'Creando…' : 'Crear evento' }}
-          </button>
-        </form>
-      </div>
-
-      <h2>Mis eventos</h2>
-      @if (events().length > 0) {
-        <ul class="panel-events" data-testid="events-list">
-          @for (ev of events(); track ev.id) {
-            <li class="panel-event">
-              <div class="pe-head">
-                <span class="pe-name">{{ ev.name }}</span>
-                <span class="muted">{{ ev.status }}</span>
-                <span class="muted">{{ ev.startsAt | date: 'dd/MM/yyyy HH:mm' }}</span>
-              </div>
-              <div class="pe-actions">
-                @if (ev.status === 'draft') {
-                  <button type="button" (click)="publish(ev.id)" data-testid="ev-publish">Publicar</button>
-                }
-                @if (ev.status !== 'cancelled') {
-                  <button type="button" (click)="cancelEvent(ev.id)">Cancelar</button>
-                }
-                <button type="button" (click)="generateBanner(ev.id)" data-testid="ev-banner">Generar banner IA</button>
-                <button type="button" (click)="toggleLocalities(ev.id)" data-testid="ev-localities">Localidades</button>
-              </div>
-              @if (banners()[ev.id]; as b) {
-                <img class="pe-banner" [src]="b" alt="Banner generado" width="320" />
+  @if (showCreate()) {
+    <div class="card-block panel-create" data-testid="create-form">
+      <h2>Crear evento</h2>
+      <form (ngSubmit)="createEvent()">
+        <div class="form-grid">
+          <label class="field">
+            <span>Nombre</span>
+            <input type="text" [ngModel]="form.name()" (ngModelChange)="form.name.set($event)" name="name" data-testid="ev-name" />
+          </label>
+          <label class="field">
+            <span>Categoría</span>
+            <select [ngModel]="form.categoryId()" (ngModelChange)="form.categoryId.set($event)" name="categoryId">
+              <option value="">— Sin categoría —</option>
+              @for (c of categories(); track c.id) {
+                <option [value]="c.id">{{ c.name }}</option>
               }
-              @if (expanded() === ev.id) {
-                <div class="pe-localities">
-                  <ul>
-                    @for (l of localitiesFor(ev.id); track l.id) {
-                      <li>{{ l.name }} <span class="muted">({{ l.kind }})</span></li>
-                    } @empty {
-                      <li class="muted">Aún no hay localidades.</li>
-                    }
-                  </ul>
-                  <div class="loc-form">
-                    <input type="text" placeholder="Nombre" [ngModel]="locForm.name()" (ngModelChange)="locForm.name.set($event)" name="locName" data-testid="loc-name" />
-                    <select [ngModel]="locForm.kind()" (ngModelChange)="locForm.kind.set($event)" name="locKind">
-                      <option value="general">General</option>
-                      <option value="seated">Con asiento</option>
-                    </select>
-                    @if (locForm.kind() === 'general') {
-                      <input type="number" placeholder="Aforo" min="1" [ngModel]="locForm.capacity()" (ngModelChange)="locForm.capacity.set($event)" name="locCap" />
-                    }
-                    <input type="number" placeholder="Neto (Q)" min="0" step="0.01" [ngModel]="locForm.desiredNet()" (ngModelChange)="locForm.desiredNet.set($event)" name="locNet" />
-                    <button type="button" (click)="addLocality(ev.id)" data-testid="loc-add">Agregar localidad</button>
-                  </div>
-                </div>
-              }
-            </li>
-          }
-        </ul>
-      } @else {
-        <p class="muted" data-testid="events-empty">Aún no tienes eventos. Crea el primero arriba.</p>
-      }
-    }
-
-    @case ('invitaciones') {
-      <h2>Invitar promotores</h2>
-      <p class="muted">Ingresa uno o varios correos (separados por coma, espacio o salto de línea). Cada invitado recibe un enlace para registrarse ya aprobado como promotor.</p>
-      <form (ngSubmit)="invite()">
-        <textarea [ngModel]="emailsText()" (ngModelChange)="emailsText.set($event)" name="emails" rows="3" placeholder="correo1@dominio.com, correo2@dominio.com" data-testid="inv-emails"></textarea>
-        <button type="submit" class="primary" [disabled]="inviting()" data-testid="inv-submit">
-          {{ inviting() ? 'Enviando…' : 'Invitar' }}
+            </select>
+          </label>
+          <label class="field">
+            <span>Inicio</span>
+            <input type="datetime-local" [ngModel]="form.startsAt()" (ngModelChange)="form.startsAt.set($event)" name="startsAt" data-testid="ev-start" />
+          </label>
+          <label class="field">
+            <span>Fin</span>
+            <input type="datetime-local" [ngModel]="form.endsAt()" (ngModelChange)="form.endsAt.set($event)" name="endsAt" data-testid="ev-end" />
+          </label>
+          <label class="field full">
+            <span>Descripción</span>
+            <textarea [ngModel]="form.description()" (ngModelChange)="form.description.set($event)" name="description" rows="2"></textarea>
+          </label>
+        </div>
+        <button type="submit" class="btn primary" [disabled]="creating()" data-testid="ev-create">
+          {{ creating() ? 'Creando…' : 'Crear en borrador' }}
         </button>
       </form>
+    </div>
+  }
 
-      @if (created().length > 0) {
-        <div class="inv-created" data-testid="inv-created">
-          <h3>Enlaces generados (cópialos y compártelos)</h3>
-          <ul>
-            @for (c of created(); track c.id) {
-              <li><span>{{ c.email }}</span><input type="text" readonly [value]="c.url" /></li>
+  @if (loading()) {
+    <p class="muted">Cargando eventos…</p>
+  } @else if (events().length === 0) {
+    <p class="muted" data-testid="events-empty">Aún no tienes eventos. Crea el primero con "+ Nuevo evento".</p>
+  } @else {
+    <div class="events-grid" data-testid="events-grid">
+      @for (ev of pageEvents(); track ev.id) {
+        <article class="ev-card" data-testid="ev-card">
+          <div class="ev-card-top">
+            <span class="badge badge-{{ ev.status }}">{{ ev.status }}</span>
+            <span class="muted small">{{ ev._count.localities }} localidad(es)</span>
+          </div>
+          <a class="ev-card-name" [routerLink]="['/promotor/eventos', ev.id, 'editar']" data-testid="ev-name-link">{{ ev.name }}</a>
+          <time class="muted small">{{ ev.startsAt | date: 'EEE d MMM y, HH:mm' }}</time>
+          <div class="ev-card-actions">
+            <a class="btn small" [routerLink]="['/promotor/eventos', ev.id, 'editar']" data-testid="ev-edit">Editar</a>
+            @if (ev.status === 'draft') {
+              <button type="button" class="btn small primary" (click)="publish(ev)" data-testid="ev-publish">Publicar</button>
+              <button type="button" class="btn small danger" (click)="remove(ev)" data-testid="ev-delete">Eliminar</button>
             }
-          </ul>
-        </div>
+            @if (ev.status === 'published') {
+              <button type="button" class="btn small danger" (click)="cancelEvent(ev)" data-testid="ev-cancel">Cancelar</button>
+            }
+          </div>
+        </article>
       }
+    </div>
 
-      <h3>Invitaciones</h3>
-      @if (invitations().length > 0) {
-        <ul class="inv-list" data-testid="inv-list">
-          @for (i of invitations(); track i.id) {
-            <li>
-              <span>{{ i.email }}</span>
-              <span class="muted">{{ i.status }}</span>
-              @if (i.status === 'pending') {
-                <button type="button" (click)="revoke(i.id)" data-testid="inv-revoke">Revocar</button>
-              }
-            </li>
-          }
-        </ul>
-      } @else {
-        <p class="muted">Aún no has enviado invitaciones.</p>
-      }
+    @if (totalPages() > 1) {
+      <div class="catalog-pager" data-testid="panel-pager">
+        <button type="button" class="pager-arrow" [disabled]="!hasPrev()" (click)="goToPage(page() - 1)">‹</button>
+        <span class="pager-page is-current">{{ page() }} / {{ totalPages() }}</span>
+        <button type="button" class="pager-arrow" [disabled]="!hasNext()" (click)="goToPage(page() + 1)">›</button>
+      </div>
     }
   }
 </section>

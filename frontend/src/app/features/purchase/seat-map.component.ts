@@ -26,6 +26,12 @@ const PAD = 40;
 @Component({
   selector: 'app-seat-map',
   template: '<div #host class="seat-map-host"></div>',
+  styles: [
+    // El lienzo se centra horizontalmente en su contenedor (antes quedaba pegado a
+    // la izquierda). El div contenedor es inline-block dentro de un host centrado.
+    ':host { display: block; text-align: center; }',
+    '.seat-map-host { display: inline-block; margin: 0 auto; }',
+  ],
 })
 export class SeatMapComponent {
   readonly seats = input<SeatAvailabilityDto[]>([]);
@@ -37,6 +43,8 @@ export class SeatMapComponent {
   private konva: typeof Konva | null = null;
   private stage: Konva.Stage | null = null;
   private layer: Konva.Layer | null = null;
+  private offsetX = 0;
+  private offsetY = 0;
 
   constructor() {
     afterNextRender(async () => {
@@ -52,7 +60,9 @@ export class SeatMapComponent {
 
   private build(): void {
     if (!this.konva) return;
-    const { width, height } = this.extents();
+    const { width, height, offsetX, offsetY } = this.extents();
+    this.offsetX = offsetX;
+    this.offsetY = offsetY;
     this.stage = new this.konva.Stage({ container: this.host().nativeElement, width, height });
     this.layer = new this.konva.Layer();
     this.stage.add(this.layer);
@@ -61,19 +71,35 @@ export class SeatMapComponent {
 
   private rebuild(): void {
     if (!this.konva || !this.stage) return;
-    const { width, height } = this.extents();
+    const { width, height, offsetX, offsetY } = this.extents();
+    this.offsetX = offsetX;
+    this.offsetY = offsetY;
     this.stage.size({ width, height });
     this.layer?.destroyChildren();
     this.drawSeats();
   }
 
-  /** Ajusta el lienzo al contenido (evita canvas enorme con espacio vacío). */
-  private extents(): { width: number; height: number } {
+  /**
+   * Ajusta el lienzo al contenido y calcula el OFFSET que normaliza el origen:
+   * traslada los asientos para que el bloque quede pegado a (PAD, PAD) sin margen
+   * muerto a la izquierda/arriba (antes el mapa "se iba" a la izquierda cuando las
+   * coordenadas no arrancaban en 0).
+   */
+  private extents(): { width: number; height: number; offsetX: number; offsetY: number } {
     const pts = this.seats().filter((s) => s.x != null && s.y != null);
-    if (pts.length === 0) return { width: 320, height: 160 };
-    const maxX = Math.max(...pts.map((s) => s.x as number));
-    const maxY = Math.max(...pts.map((s) => s.y as number));
-    return { width: maxX + PAD, height: maxY + PAD };
+    if (pts.length === 0) return { width: 320, height: 160, offsetX: 0, offsetY: 0 };
+    const xs = pts.map((s) => s.x as number);
+    const ys = pts.map((s) => s.y as number);
+    const minX = Math.min(...xs);
+    const minY = Math.min(...ys);
+    const maxX = Math.max(...xs);
+    const maxY = Math.max(...ys);
+    return {
+      width: maxX - minX + PAD * 2,
+      height: maxY - minY + PAD * 2,
+      offsetX: PAD - minX,
+      offsetY: PAD - minY,
+    };
   }
 
   private drawSeats(): void {
@@ -87,7 +113,7 @@ export class SeatMapComponent {
       const chosen = sel.has(seat.id);
       const color = taken ? COLORS.taken : chosen ? COLORS.selected : COLORS.available;
 
-      const g = new K.Group({ x: seat.x, y: seat.y });
+      const g = new K.Group({ x: (seat.x as number) + this.offsetX, y: (seat.y as number) + this.offsetY });
       // Respaldo + asiento (sillita).
       g.add(new K.Rect({ x: -11, y: -16, width: 22, height: 6, cornerRadius: 3, fill: color }));
       g.add(new K.Rect({ x: -13, y: -8, width: 26, height: 16, cornerRadius: 5, fill: color }));

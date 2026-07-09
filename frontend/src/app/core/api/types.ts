@@ -89,11 +89,25 @@ export type InvitationPeekDto = Schemas['InvitationPeekDto'];
 
 // --- Banner con IA (F4) ---
 export type BannerResponseDto = Schemas['BannerResponseDto'];
+export type GenerateBannerDto = Schemas['GenerateBannerDto'];
+
+// --- Liquidación (cuentas) por evento ---
+export type EventSettlementDto = Schemas['EventSettlementDto'];
+
+// --- Pasarelas de pago (admin) ---
+export type GatewayResponseDto = Schemas['GatewayResponseDto'];
+export type CreateGatewayDto = Schemas['CreateGatewayDto'];
+export type UpdateGatewayDto = Schemas['UpdateGatewayDto'];
+export type UpdateGatewayStatusDto = Schemas['UpdateGatewayStatusDto'];
+
+// --- Promotores (admin) ---
+export type PromoterListItemDto = Schemas['PromoterListItemDto'];
 
 // --- Gestión de eventos (panel promotor, F4) ---
 export type CreateEventDto = Schemas['CreateEventDto'];
 export type UpdateEventDto = Schemas['UpdateEventDto'];
 export type ManagedEventDetailDto = Schemas['ManagedEventDetailDto'];
+export type MyEventListItemDto = Schemas['MyEventListItemDto'];
 
 // Localidades: el OpenAPI no expone un schema nombrado para el request/response de
 // localidades del panel, así que se tipan localmente (vista + cuerpo de creación).

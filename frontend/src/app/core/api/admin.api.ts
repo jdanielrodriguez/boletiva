@@ -1,11 +1,22 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiClient } from '../http/api-client.service';
-import type { Schemas } from './types';
+import type { CreateGatewayDto, Schemas, UpdateGatewayDto } from './types';
 
 export type PromoterListItemDto = Schemas['PromoterListItemDto'];
 export type AdminEventListItemDto = Schemas['AdminEventListItemDto'];
 export type GatewayResponseDto = Schemas['GatewayResponseDto'];
+
+/**
+ * El OpenAPI tipa `installmentRates` como objeto libre (Record<string, never>);
+ * en realidad es un mapa cuotas→tasa numérica. Se corrige localmente para el SDK.
+ */
+export type GatewayCreate = Omit<CreateGatewayDto, 'installmentRates'> & {
+  installmentRates?: Record<string, number>;
+};
+export type GatewayUpdate = Omit<UpdateGatewayDto, 'installmentRates'> & {
+  installmentRates?: Record<string, number>;
+};
 
 /**
  * SDK de administración (panel /configuracion, solo admin): gestión de promotores,
@@ -50,6 +61,18 @@ export class AdminApi {
   // --- Pasarelas ---
   listGateways(): Observable<GatewayResponseDto[]> {
     return this.api.get<GatewayResponseDto[]>('/payment-gateways');
+  }
+  createGateway(dto: GatewayCreate): Observable<GatewayResponseDto> {
+    return this.api.post<GatewayResponseDto>('/payment-gateways', dto);
+  }
+  updateGateway(id: string, dto: GatewayUpdate): Observable<GatewayResponseDto> {
+    return this.api.patch<GatewayResponseDto>(`/payment-gateways/${id}`, dto);
+  }
+  setGatewayStatus(id: string, status: string): Observable<GatewayResponseDto> {
+    return this.api.patch<GatewayResponseDto>(`/payment-gateways/${id}/status`, { status });
+  }
+  makeGatewayDefault(id: string): Observable<GatewayResponseDto> {
+    return this.api.post<GatewayResponseDto>(`/payment-gateways/${id}/make-default`);
   }
 
   // --- Eventos (todos) ---

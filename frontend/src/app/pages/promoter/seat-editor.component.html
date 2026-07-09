@@ -1,0 +1,30 @@
+<div class="seat-editor" data-testid="seat-editor">
+  @if (readonly()) {
+    <p class="muted small">El evento está publicado: el mapa de asientos está bloqueado.</p>
+  } @else {
+    <div class="seat-editor-form">
+      <label class="field inline">
+        <span>Filas</span>
+        <input type="number" min="1" max="60" [ngModel]="rows()" (ngModelChange)="rows.set($event)" name="rows" data-testid="se-rows" />
+      </label>
+      <label class="field inline">
+        <span>Asientos por fila</span>
+        <input type="number" min="1" max="80" [ngModel]="cols()" (ngModelChange)="cols.set($event)" name="cols" data-testid="se-cols" />
+      </label>
+      <label class="field inline">
+        <span>Sección</span>
+        <input type="text" placeholder="Platea" [ngModel]="section()" (ngModelChange)="section.set($event)" name="section" />
+      </label>
+      <button type="button" class="btn small primary" [disabled]="saving()" (click)="generate()" data-testid="se-generate">
+        {{ saving() ? 'Guardando…' : 'Generar cuadrícula' }}
+      </button>
+      @if (seatCount() > 0) {
+        <button type="button" class="btn small danger" [disabled]="saving()" (click)="clearAll()" data-testid="se-clear">Vaciar</button>
+      }
+    </div>
+    <p class="muted small">Genera filas/asientos posicionados. "Generar" agrega a lo existente; "Vaciar" borra todo.</p>
+  }
+
+  <p class="muted small" data-testid="se-count">{{ seatCount() }} asiento(s) en el mapa.</p>
+  <div #host class="seat-editor-canvas"></div>
+</div>

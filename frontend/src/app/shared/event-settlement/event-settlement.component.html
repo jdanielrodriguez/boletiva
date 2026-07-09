@@ -1,0 +1,60 @@
+<div class="settlement" data-testid="settlement">
+  @if (loading()) {
+    <p class="muted">Cargando cuentas…</p>
+  } @else if (error()) {
+    <p class="error">No se pudieron cargar las cuentas del evento.</p>
+  }
+  @if (data(); as s) {
+    <div class="settlement-summary">
+      <div class="settlement-metric">
+        <span class="sm-label">Órdenes pagadas</span>
+        <span class="sm-value">{{ s.paidOrders }}</span>
+      </div>
+      <div class="settlement-metric">
+        <span class="sm-label">Boletos vendidos</span>
+        <span class="sm-value">{{ s.ticketsSold }}</span>
+      </div>
+      <div class="settlement-metric">
+        <span class="sm-label">Total cobrado</span>
+        <span class="sm-value">{{ currency() }} {{ s.gross }}</span>
+      </div>
+    </div>
+
+    <ul class="settlement-lines">
+      <li class="settlement-line highlight">
+        <span>Neto del promotor</span>
+        <strong data-testid="settlement-net">{{ currency() }} {{ s.net }}</strong>
+      </li>
+      @if (showSplit()) {
+        <li class="settlement-line">
+          <span>Comisión de plataforma</span>
+          <span>{{ currency() }} {{ s.platformFee }}</span>
+        </li>
+        <li class="settlement-line">
+          <span>Comisión de pasarela</span>
+          <span>{{ currency() }} {{ s.gatewayFee }}</span>
+        </li>
+        <li class="settlement-line">
+          <span>Cargos fijos</span>
+          <span>{{ currency() }} {{ s.fixedFees }}</span>
+        </li>
+      } @else {
+        <li class="settlement-line">
+          <span>Cuota por servicio (descontada)</span>
+          <span>{{ currency() }} {{ s.serviceFee }}</span>
+        </li>
+      }
+      <li class="settlement-line">
+        <span>IVA recaudado</span>
+        <span>{{ currency() }} {{ s.iva }}</span>
+      </li>
+    </ul>
+
+    @if (!showSplit()) {
+      <p class="muted small">
+        Recibes el <strong>neto</strong>; la cuota por servicio (plataforma + pasarela) y el IVA los
+        cobra la plataforma y el fisco. El total cobrado al público es la suma de todo.
+      </p>
+    }
+  }
+</div>
