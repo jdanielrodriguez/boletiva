@@ -9,14 +9,7 @@
       <p class="warn" data-testid="reservation-expired">Esta reserva expiró.</p>
     }
 
-    <ul class="reservation-items">
-      @for (it of r.items; track it.seatId) {
-        <li>
-          <span>{{ it.localityName }} · {{ it.label }}</span>
-          <span>Q{{ it.price.total }}</span>
-        </li>
-      }
-    </ul>
+    <app-reservation-items [items]="r.items" />
     <p class="total">Total: Q{{ r.total }}</p>
 
     @if (error()) {

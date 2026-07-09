@@ -3787,8 +3787,21 @@ export interface components {
         ReservationItemDto: {
             /** Format: uuid */
             seatId: string;
-            /** @example GA-12 */
+            /**
+             * @description Asiento/etiqueta del cupo
+             * @example 12
+             */
             label: string;
+            /**
+             * @description Mesa o zona (si aplica)
+             * @example Mesa 3
+             */
+            section?: string | null;
+            /**
+             * @description Fila (si aplica)
+             * @example A
+             */
+            row?: string | null;
             /** Format: uuid */
             localityId: string;
             /** @example General */

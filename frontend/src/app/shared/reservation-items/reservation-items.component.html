@@ -1,0 +1,19 @@
+<div class="res-items" data-testid="reservation-items">
+  @for (g of groups(); track g.localityName) {
+    <div class="res-group">
+      <div class="res-group-head">
+        <strong>{{ g.localityName }}</strong>
+        <span class="res-group-count">{{ g.items.length }} boleto(s)</span>
+      </div>
+      <ul>
+        @for (it of g.items; track it.seatId) {
+          <li>
+            <span class="res-seat">{{ seatDesc(it) }}</span>
+            <span class="res-price">Q{{ it.price.total }}</span>
+          </li>
+        }
+      </ul>
+      <div class="res-subtotal">Subtotal {{ g.localityName }}: Q{{ g.subtotal }}</div>
+    </div>
+  }
+</div>

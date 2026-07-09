@@ -50,3 +50,8 @@ export type CreateReservationDto = Schemas['CreateReservationDto'];
 export type ReservationResponseDto = Schemas['ReservationResponseDto'];
 export type ReservationItemDto = Schemas['ReservationItemDto'];
 export type CheckoutReservationDto = Schemas['CheckoutReservationDto'];
+
+// --- Cuenta (wallet + boletos) ---
+export type WalletBalanceResponseDto = Schemas['WalletBalanceResponseDto'];
+export type TicketResponseDto = Schemas['TicketResponseDto'];
+export type TicketPageResponseDto = Schemas['TicketPageResponseDto'];

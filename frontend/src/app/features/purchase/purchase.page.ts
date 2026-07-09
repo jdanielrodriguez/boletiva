@@ -9,6 +9,7 @@ import { SITE_URL } from '../../core/config/api.tokens';
 import type { LocalityAvailabilityDto } from '../../core/api/types';
 import { LoginModal } from '../../shared/login-modal/login-modal.component';
 import { ShareBox } from '../../shared/share-box/share-box.component';
+import { ReservationItems } from '../../shared/reservation-items/reservation-items.component';
 import { SeatMapComponent } from './seat-map.component';
 import { PurchaseService } from './purchase.service';
 
@@ -22,7 +23,7 @@ type Phase = 'select' | 'reserved' | 'expired';
  */
 @Component({
   selector: 'app-purchase',
-  imports: [SeatMapComponent, DecimalPipe, ShareBox, LoginModal],
+  imports: [SeatMapComponent, DecimalPipe, ShareBox, LoginModal, ReservationItems],
   templateUrl: './purchase.page.html',
   providers: [PurchaseService],
 })

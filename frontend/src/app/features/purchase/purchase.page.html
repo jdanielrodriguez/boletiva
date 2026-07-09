@@ -11,14 +11,7 @@
 
       @if (store.reservation(); as r) {
         <h2>Tus boletos</h2>
-        <ul class="reserved-items" data-testid="reserved-items">
-          @for (it of r.items; track it.seatId) {
-            <li>
-              <span>{{ it.localityName }} · {{ it.label }}</span>
-              <span>Q{{ it.price.total }}</span>
-            </li>
-          }
-        </ul>
+        <app-reservation-items [items]="r.items" />
         <p class="total">{{ r.items.length }} boleto(s) · Total Q{{ r.total }}</p>
       }
 

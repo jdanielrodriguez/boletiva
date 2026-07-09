@@ -231,16 +231,24 @@ app-root {
   margin-top: auto;
   border-top: 1px solid var(--pe-border);
   padding: 1.5rem;
-  text-align: center;
   background: var(--pe-bg-elev);
+}
+
+.footer-inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
 }
 
 .footer-menu {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 1.25rem;
-  margin-bottom: 0.6rem;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
 }
 
 .footer-menu a {
@@ -319,6 +327,169 @@ app-root {
 .static-page {
   max-width: 720px;
   margin: 0 auto;
+}
+
+.muted {
+  color: var(--pe-muted);
+}
+
+/* Ficha técnica de boletos (agrupada por localidad) */
+.res-items {
+  margin: 0.75rem 0;
+}
+
+.res-group {
+  background: var(--pe-bg-elev);
+  border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius-sm);
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.6rem;
+}
+
+.res-group-head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+
+.res-group-count {
+  color: var(--pe-muted);
+  font-size: 0.85rem;
+}
+
+.res-group ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.res-group li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.3rem 0;
+}
+
+.res-subtotal {
+  margin-top: 0.4rem;
+  text-align: right;
+  color: var(--pe-muted);
+  font-size: 0.85rem;
+}
+
+/* Selector de pasarela (radio cards) */
+.gateway-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.gateway-option {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  text-align: left;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius-sm);
+  background: var(--pe-surface);
+}
+
+.gateway-option.selected {
+  border-color: var(--pe-primary);
+  background: var(--pe-grad-soft);
+}
+
+.gateway-option .radio-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--pe-border);
+  flex: 0 0 auto;
+}
+
+.gateway-option.selected .radio-dot {
+  border-color: var(--pe-primary);
+  background: radial-gradient(circle at center, var(--pe-primary) 0 5px, transparent 6px);
+}
+
+.gateway-name {
+  font-weight: 600;
+}
+
+.gateway-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pe-muted);
+  border: 1px solid var(--pe-border);
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+}
+
+.gateway-badge.default {
+  color: #fff;
+  background: var(--pe-grad);
+  border-color: transparent;
+}
+
+/* Mi cuenta */
+.account-grid {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 720px) {
+  .account-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.account-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.account-menu button {
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+}
+
+.account-menu button.active {
+  background: var(--pe-grad);
+  border-color: transparent;
+  color: #fff;
+}
+
+.account-content {
+  background: var(--pe-surface);
+  border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius);
+  padding: 1.5rem;
+  min-height: 240px;
+}
+
+.wallet-balance {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--pe-teal);
+}
+
+.ticket-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.ticket-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--pe-border);
 }
 
 /* --- Auth / formularios centrados --- */

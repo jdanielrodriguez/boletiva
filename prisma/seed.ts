@@ -241,17 +241,20 @@ async function seedDemoEvent(promoterId: string, categoryId: string): Promise<vo
     },
   });
 
-  // Asientos numerados CON coordenadas para la localidad con mapa (VIP): rejilla
-  // 5×4 que el mapa Konva del frontend puede renderizar (x/y en el lienzo).
+  // Asientos numerados de la localidad con mapa (VIP), en una FILA CURVADA tipo
+  // teatro (arco), para demostrar que el lienzo soporta geometrías arbitrarias
+  // (curvas, escenarios, etc.). Cada asiento lleva fila + número.
   await prisma.seat.createMany({
-    data: Array.from({ length: 20 }, (_, i) => ({
-      localityId: vip.id,
-      label: `V${i + 1}`,
-      section: 'VIP',
-      row: String.fromCharCode(65 + Math.floor(i / 5)), // A..D
-      x: 120 + (i % 5) * 90,
-      y: 120 + Math.floor(i / 5) * 90,
-    })),
+    data: Array.from({ length: 20 }, (_, i) => {
+      const t = ((-45 + (i * 90) / 19) * Math.PI) / 180;
+      return {
+        localityId: vip.id,
+        label: String(i + 1),
+        row: 'A',
+        x: Math.round(320 + 300 * Math.sin(t)),
+        y: Math.round(60 + 300 * (1 - Math.cos(t))),
+      };
+    }),
     skipDuplicates: true,
   });
   await prisma.locality.update({ where: { id: vip.id }, data: { capacity: 20 } });

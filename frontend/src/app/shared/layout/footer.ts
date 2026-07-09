@@ -8,12 +8,14 @@ import { RouterLink } from '@angular/router';
   imports: [RouterLink],
   template: `
     <footer class="site-footer">
-      <nav class="footer-menu" aria-label="Enlaces del pie">
-        <a routerLink="/terminos">Términos y condiciones</a>
-        <a routerLink="/login">Iniciar sesión</a>
-        <a routerLink="/registro">Crear cuenta</a>
-      </nav>
-      <p class="footer-copy">© 2026 Pasa Eventos · Todos los derechos reservados</p>
+      <div class="footer-inner">
+        <p class="footer-copy">© 2026 Pasa Eventos · Todos los derechos reservados</p>
+        <nav class="footer-menu" aria-label="Enlaces del pie">
+          <a routerLink="/terminos">Términos y condiciones</a>
+          <a routerLink="/login">Iniciar sesión</a>
+          <a routerLink="/registro">Crear cuenta</a>
+        </nav>
+      </div>
     </footer>
   `,
 })

@@ -106,8 +106,14 @@ export class ReservationItemDto {
   @ApiProperty({ format: 'uuid' })
   seatId!: string;
 
-  @ApiProperty({ example: 'GA-12' })
+  @ApiProperty({ example: '12', description: 'Asiento/etiqueta del cupo' })
   label!: string;
+
+  @ApiPropertyOptional({ nullable: true, example: 'Mesa 3', description: 'Mesa o zona (si aplica)' })
+  section!: string | null;
+
+  @ApiPropertyOptional({ nullable: true, example: 'A', description: 'Fila (si aplica)' })
+  row!: string | null;
 
   @ApiProperty({ format: 'uuid' })
   localityId!: string;

@@ -1,0 +1,47 @@
+import { provideZonelessChangeDetection } from '@angular/core';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import type { ReservationItemDto } from '../../core/api/types';
+import { ReservationItems } from './reservation-items.component';
+
+const ITEMS = [
+  { seatId: 'v1', label: '5', section: null, row: 'A', localityId: 'vip', localityName: 'VIP', price: { currency: 'GTQ', net: '100.00', serviceFee: '16.48', iva: '13.20', total: '129.68' } },
+  { seatId: 'v2', label: '3', section: 'Mesa 2', row: null, localityId: 'vip', localityName: 'VIP', price: { currency: 'GTQ', net: '100.00', serviceFee: '16.48', iva: '13.20', total: '129.68' } },
+  { seatId: 'g1', label: 'GA-1', section: null, row: null, localityId: 'ga', localityName: 'General', price: { currency: 'GTQ', net: '75.00', serviceFee: '12.36', iva: '9.90', total: '97.26' } },
+] as unknown as ReservationItemDto[];
+
+describe('ReservationItems (ficha técnica)', () => {
+  let fixture: ComponentFixture<ReservationItems>;
+  let el: HTMLElement;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({ providers: [provideZonelessChangeDetection()] });
+    fixture = TestBed.createComponent(ReservationItems);
+    fixture.componentRef.setInput('items', ITEMS);
+    fixture.detectChanges();
+    el = fixture.nativeElement as HTMLElement;
+  });
+
+  it('agrupa por localidad (VIP y General)', () => {
+    const groups = el.querySelectorAll('.res-group');
+    expect(groups.length).toBe(2);
+    expect(el.textContent).toContain('VIP');
+    expect(el.textContent).toContain('General');
+  });
+
+  it('describe asiento numerado con fila y mesa', () => {
+    const text = el.querySelector('.res-group')?.textContent ?? '';
+    expect(text).toContain('Fila A · Asiento 5');
+    expect(text).toContain('Mesa 2 · Asiento 3');
+  });
+
+  it('el cupo GA muestra su código sin fila/asiento', () => {
+    expect(el.textContent).toContain('GA-1');
+    expect(el.textContent).not.toContain('Asiento GA-1');
+  });
+
+  it('calcula subtotal por localidad', () => {
+    const subtotals = [...el.querySelectorAll('.res-subtotal')].map((n) => n.textContent);
+    expect(subtotals.some((s) => s?.includes('259.36'))).toBe(true); // 2 × 129.68 VIP
+    expect(subtotals.some((s) => s?.includes('97.26'))).toBe(true); // 1 × General
+  });
+});

@@ -62,11 +62,24 @@
 
             <!-- PASARELA: dónde se procesa el pago -->
             <h3 class="gateway-title">Procesado por</h3>
-            <div class="gateways" role="group" aria-label="Pasarela">
+            <div class="gateway-options" role="radiogroup" aria-label="Pasarela">
               @for (gw of gateways(); track gw.gatewayId) {
-                <button type="button" [class.active]="gw.gatewayId === selectedGateway()?.gatewayId"
-                  (click)="selectGateway(gw.gatewayId)">
-                  {{ gw.name }}
+                <button
+                  type="button"
+                  class="gateway-option"
+                  role="radio"
+                  [attr.aria-checked]="gw.gatewayId === selectedGateway()?.gatewayId"
+                  [class.selected]="gw.gatewayId === selectedGateway()?.gatewayId"
+                  (click)="selectGateway(gw.gatewayId)"
+                >
+                  <span class="radio-dot" aria-hidden="true"></span>
+                  <span class="gateway-name">{{ gw.name }}</span>
+                  @if (gw.installmentOptions.length > 1) {
+                    <span class="gateway-badge">Cuotas</span>
+                  }
+                  @if (gw.isPlatformDefault) {
+                    <span class="gateway-badge default">Recomendada</span>
+                  }
                 </button>
               }
             </div>
@@ -110,7 +123,10 @@
           <button type="button" class="primary btn-block" data-testid="pay-confirm" [disabled]="paying()" (click)="pay()">
             {{ paying() ? 'Procesando…' : 'Pagar Q' + (breakdown()?.total ?? '') }}
           </button>
-          <p class="secure-note">🔒 Pago seguro. No almacenamos los datos de tu tarjeta.</p>
+          <p class="secure-note">
+            🔒 Pago seguro. Guardamos un <strong>token cifrado</strong> (con la marca y el
+            vencimiento), nunca el número completo de tu tarjeta.
+          </p>
         </aside>
       </div>
     }

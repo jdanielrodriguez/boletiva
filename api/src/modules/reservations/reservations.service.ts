@@ -131,7 +131,13 @@ export class ReservationsService {
 
     const seats = await this.prisma.seat.findMany({
       where: { id: { in: seatIds } },
-      select: { id: true, label: true, locality: { select: { id: true, name: true, desiredNet: true } } },
+      select: {
+        id: true,
+        label: true,
+        section: true,
+        row: true,
+        locality: { select: { id: true, name: true, desiredNet: true } },
+      },
     });
 
     // Validez: todos los cupos siguen tomados en Redis por ESTA reserva.
@@ -158,6 +164,8 @@ export class ReservationsService {
       items.push({
         seatId: s.id,
         label: s.label,
+        section: s.section,
+        row: s.row,
         localityId: s.locality.id,
         localityName: s.locality.name,
         price,

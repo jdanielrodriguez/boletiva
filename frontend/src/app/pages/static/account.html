@@ -1,0 +1,70 @@
+<section class="account">
+  <h1>Mi cuenta</h1>
+
+  <div class="account-grid">
+    <nav class="account-menu" aria-label="Secciones de la cuenta">
+      <button type="button" [class.active]="section() === 'perfil'" (click)="select('perfil')">Perfil</button>
+      <button type="button" [class.active]="section() === 'metodos'" (click)="select('metodos')" data-testid="menu-metodos">Métodos de pago</button>
+      <button type="button" [class.active]="section() === 'facturacion'" (click)="select('facturacion')">Facturación</button>
+      <button type="button" [class.active]="section() === 'wallet'" (click)="select('wallet')" data-testid="menu-wallet">Wallet</button>
+      <button type="button" [class.active]="section() === 'activos'" (click)="select('activos')" data-testid="menu-activos">Boletos activos</button>
+      <button type="button" [class.active]="section() === 'pasados'" (click)="select('pasados')">Boletos pasados</button>
+    </nav>
+
+    <div class="account-content">
+      @switch (section()) {
+        @case ('perfil') {
+          <h2>Perfil</h2>
+          <p><strong>{{ session.user()?.firstName }} {{ session.user()?.lastName }}</strong></p>
+          <p class="muted">{{ session.user()?.email }}</p>
+        }
+        @case ('metodos') {
+          <h2>Métodos de pago</h2>
+          <p class="muted">Aún no tienes métodos de pago guardados.</p>
+          <button type="button" class="primary" data-testid="add-method" (click)="addMethod()">
+            + Agregar método de pago
+          </button>
+          @if (addMethodNote()) {
+            <p class="muted" data-testid="add-method-note">Próximamente podrás guardar tarjetas de forma segura (tokenizadas).</p>
+          }
+        }
+        @case ('facturacion') {
+          <h2>Facturación</h2>
+          <p class="muted">Aquí verás el historial de tus facturas (FEL). Próximamente.</p>
+        }
+        @case ('wallet') {
+          <h2>Wallet</h2>
+          @if (wallet(); as w) {
+            <p class="wallet-balance" data-testid="wallet-balance">Saldo: Q{{ w.balance }}</p>
+          } @else {
+            <p class="muted">No se pudo cargar tu saldo.</p>
+          }
+        }
+        @case ('activos') {
+          <h2>Boletos activos</h2>
+          @if (activos().length > 0) {
+            <ul class="ticket-list" data-testid="tickets-activos">
+              @for (t of activos(); track t.id) {
+                <li><span>{{ t.event?.name ?? t.eventId }}</span><span class="muted">{{ t.serial }}</span></li>
+              }
+            </ul>
+          } @else {
+            <p class="muted">No tienes boletos activos.</p>
+          }
+        }
+        @case ('pasados') {
+          <h2>Boletos pasados</h2>
+          @if (pasados().length > 0) {
+            <ul class="ticket-list">
+              @for (t of pasados(); track t.id) {
+                <li><span>{{ t.event?.name ?? t.eventId }}</span><span class="muted">{{ t.serial }}</span></li>
+              }
+            </ul>
+          } @else {
+            <p class="muted">Aún no tienes boletos usados.</p>
+          }
+        }
+      }
+    </div>
+  </div>
+</section>

@@ -7,6 +7,7 @@ import { ReservationsApi } from '../../core/api/reservations.api';
 import { SessionStore } from '../../core/auth/session.store';
 import type { ReservationResponseDto } from '../../core/api/types';
 import { LoginModal } from '../../shared/login-modal/login-modal.component';
+import { ReservationItems } from '../../shared/reservation-items/reservation-items.component';
 
 /**
  * Vista de una reserva compartida (`/reserva/:token`) — lo que abre la persona
@@ -15,7 +16,7 @@ import { LoginModal } from '../../shared/login-modal/login-modal.component';
  */
 @Component({
   selector: 'app-reservation',
-  imports: [DatePipe, DecimalPipe, RouterLink, LoginModal],
+  imports: [DatePipe, DecimalPipe, RouterLink, LoginModal, ReservationItems],
   templateUrl: './reservation.page.html',
 })
 export class ReservationPage implements OnDestroy {

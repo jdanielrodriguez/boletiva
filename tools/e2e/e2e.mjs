@@ -142,7 +142,10 @@ async function main() {
   await step('abrir el link muestra la reserva y pide login al pagar', async () => {
     await page.goto(shareLink, { waitUntil: 'networkidle0' });
     await waitSel(page, '[data-testid="pay-btn"]');
-    assert((await page.$('.reservation-items')) !== null, 'no se ven los ítems de la reserva');
+    assert(
+      (await page.$('[data-testid="reservation-items"]')) !== null,
+      'no se ven los ítems de la reserva',
+    );
     await page.click('[data-testid="pay-btn"]');
     await waitSel(page, '[data-testid="login-modal"]', 8000);
   });

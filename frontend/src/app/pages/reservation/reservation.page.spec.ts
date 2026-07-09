@@ -49,7 +49,7 @@ describe('ReservationPage', () => {
 
   it('muestra la reserva (ítems + total) desde el token', async () => {
     await setup(() => of(RES as unknown as ReservationResponseDto));
-    expect(el.querySelector('.reservation-items li')?.textContent).toContain('General');
+    expect(el.querySelector('[data-testid="reservation-items"]')?.textContent).toContain('General');
     expect(el.textContent).toContain('129.68');
     expect(el.querySelector('[data-testid="pay-btn"]')).not.toBeNull();
   });
