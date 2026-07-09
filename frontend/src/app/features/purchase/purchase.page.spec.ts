@@ -3,53 +3,55 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { EventsApi } from '../../core/api/events.api';
+import { ReservationsApi } from '../../core/api/reservations.api';
+import { AuthService } from '../../core/auth/auth.service';
 import { SessionStore } from '../../core/auth/session.store';
-import { InventoryApi } from '../../core/api/inventory.api';
-import { OrdersApi } from '../../core/api/orders.api';
-import type { EventAvailabilityDto, PublicEventDetailDto } from '../../core/api/types';
+import { SITE_URL } from '../../core/config/api.tokens';
+import type { EventAvailabilityDto, PublicEventDetailDto, ReservationResponseDto } from '../../core/api/types';
 import { PurchasePage } from './purchase.page';
 
 const EVENT = { id: 'ev1', name: 'Fiesta', slug: 'fiesta', media: [], localities: [] };
 const AVAIL = {
   seatMap: null,
   localities: [
-    {
-      id: 'ga',
-      name: 'General',
-      slug: 'general',
-      kind: 'general',
-      capacity: 100,
-      available: 80,
-      price: { currency: 'GTQ', net: '75.00', serviceFee: '12.36', iva: '9.90', total: '97.26' },
-    },
+    { id: 'ga', name: 'General', slug: 'general', kind: 'general', capacity: 100, available: 80, price: { currency: 'GTQ', net: '75.00', serviceFee: '12.36', iva: '9.90', total: '97.26' } },
   ],
   seats: [],
 };
+const RESERVATION = {
+  token: 'tok-abc',
+  valid: true,
+  expiresAt: new Date(Date.now() + 1_800_000).toISOString(),
+  items: [{ seatId: 'g1', label: 'GA-1', localityId: 'ga', localityName: 'General', price: { currency: 'GTQ', net: '75.00', serviceFee: '12.36', iva: '9.90', total: '97.26' } }],
+  total: '194.52',
+  eventId: 'ev1',
+  eventName: 'Fiesta',
+  eventSlug: 'fiesta',
+  startsAt: '2028-01-01T00:00:00.000Z',
+  currency: 'GTQ',
+};
 
-describe('PurchasePage (camino por cantidad)', () => {
+describe('PurchasePage', () => {
   let fixture: ComponentFixture<PurchasePage>;
   let el: HTMLElement;
-  let inventory: jasmine.SpyObj<InventoryApi>;
+  let reservations: jasmine.SpyObj<ReservationsApi>;
 
   async function setup() {
     const events = jasmine.createSpyObj<EventsApi>('EventsApi', ['getBySlug', 'availability']);
     events.getBySlug.and.returnValue(of(EVENT as unknown as PublicEventDetailDto));
     events.availability.and.returnValue(of(AVAIL as unknown as EventAvailabilityDto));
-    inventory = jasmine.createSpyObj<InventoryApi>('InventoryApi', ['hold', 'release']);
-    inventory.release.and.returnValue(of({ released: 0 }));
-    const orders = jasmine.createSpyObj<OrdersApi>('OrdersApi', ['create']);
+    reservations = jasmine.createSpyObj<ReservationsApi>('ReservationsApi', ['create', 'getByToken', 'checkout']);
+    reservations.create.and.returnValue(of(RESERVATION as unknown as ReservationResponseDto));
 
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
         provideRouter([]),
         { provide: EventsApi, useValue: events },
-        { provide: InventoryApi, useValue: inventory },
-        { provide: OrdersApi, useValue: orders },
-        {
-          provide: SessionStore,
-          useValue: { ensureLoaded: () => of({ id: 'u1' }), isEmailVerified: () => true },
-        },
+        { provide: ReservationsApi, useValue: reservations },
+        { provide: SITE_URL, useValue: 'http://localhost:4200' },
+        { provide: SessionStore, useValue: { ensureLoaded: () => of(null), isEmailVerified: () => false } },
+        { provide: AuthService, useValue: {} },
         { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ slug: 'fiesta' })) } },
       ],
     });
@@ -62,32 +64,35 @@ describe('PurchasePage (camino por cantidad)', () => {
 
   afterEach(() => fixture?.destroy());
 
-  it('muestra selector por cantidad para localidad sin mapa', async () => {
+  it('muestra el cuadro de total y el botón Reservar arriba', async () => {
     await setup();
+    expect(el.querySelector('.cart-top [data-testid="reserve-btn"]')).not.toBeNull();
     expect(el.querySelector('[data-testid="loc-quantity"]')).not.toBeNull();
-    expect(el.querySelector('[data-testid="reserve-btn"]')).not.toBeNull();
   });
 
-  it('reservar hace hold y pasa a estado reservado con countdown', async () => {
+  it('reservar SIN login crea reserva anónima y muestra compartir + countdown', async () => {
     await setup();
-    inventory.hold.and.returnValue(
-      of({
-        seatIds: ['g1', 'g2'],
-        holderId: 'u',
-        ttlSeconds: 600,
-        expiresAt: new Date(Date.now() + 600_000).toISOString(),
-      }),
-    );
-
-    const select = el.querySelector('.loc-quantity select') as HTMLSelectElement;
-    select.value = '2';
-    select.dispatchEvent(new Event('change'));
+    (el.querySelector('.loc-quantity select') as HTMLSelectElement).value = '2';
+    el.querySelector('.loc-quantity select')!.dispatchEvent(new Event('change'));
     fixture.detectChanges();
-
     (el.querySelector('[data-testid="reserve-btn"]') as HTMLButtonElement).click();
     fixture.detectChanges();
 
-    expect(inventory.hold).toHaveBeenCalledWith('ev1', { localityId: 'ga', quantity: 2 });
+    expect(reservations.create).toHaveBeenCalledWith('ev1', { localityId: 'ga', quantity: 2 });
+    expect(el.querySelector('[data-testid="reserved"]')).not.toBeNull();
     expect(el.querySelector('[data-testid="countdown"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="share-box"]')).not.toBeNull();
+  });
+
+  it('continuar al pago sin sesión abre el modal de login', async () => {
+    await setup();
+    (el.querySelector('.loc-quantity select') as HTMLSelectElement).value = '1';
+    el.querySelector('.loc-quantity select')!.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    (el.querySelector('[data-testid="reserve-btn"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    (el.querySelector('[data-testid="pay-btn"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(el.querySelector('[data-testid="login-modal"]')).not.toBeNull();
   });
 });

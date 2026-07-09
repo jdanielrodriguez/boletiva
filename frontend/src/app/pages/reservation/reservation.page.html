@@ -1,0 +1,44 @@
+<section class="reservation">
+  @if (reservation(); as r) {
+    <h1>Reserva de boletos</h1>
+    <p class="reservation-event">{{ r.eventName }} · {{ r.startsAt | date: 'medium' }}</p>
+
+    @if (r.valid) {
+      <p class="countdown" data-testid="countdown">Expira en {{ mm() }}:{{ ss() | number: '2.0-0' }}</p>
+    } @else {
+      <p class="warn" data-testid="reservation-expired">Esta reserva expiró.</p>
+    }
+
+    <ul class="reservation-items">
+      @for (it of r.items; track it.seatId) {
+        <li>
+          <span>{{ it.localityName }} · {{ it.label }}</span>
+          <span>Q{{ it.price.total }}</span>
+        </li>
+      }
+    </ul>
+    <p class="total">Total: Q{{ r.total }}</p>
+
+    @if (error()) {
+      <p class="error" data-testid="reservation-error">{{ error() }}</p>
+    }
+
+    @if (r.valid) {
+      <button type="button" class="primary" data-testid="pay-btn" [disabled]="working()" (click)="continueToPay()">
+        {{ working() ? 'Procesando…' : 'Continuar al pago' }}
+      </button>
+    }
+  } @else if (loading()) {
+    <p data-testid="reservation-loading">Cargando reserva…</p>
+  } @else {
+    <div class="reservation-invalid" data-testid="reservation-invalid">
+      <h1>Reserva no disponible</h1>
+      <p>El link es inválido o la reserva ya expiró.</p>
+      <a routerLink="/">Ver eventos</a>
+    </div>
+  }
+
+  @if (showLogin()) {
+    <app-login-modal (loggedIn)="onLoggedIn()" (dismiss)="showLogin.set(false)" />
+  }
+</section>

@@ -693,9 +693,220 @@ select:focus {
   background: #fff;
 }
 
+/* --- Modal (login amigable) --- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.modal-card {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  background: var(--pe-surface);
+  border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius);
+  box-shadow: var(--pe-shadow);
+  padding: 2rem;
+}
+
+.modal-card h2 {
+  margin: 0 0 0.35rem;
+}
+
+.modal-close {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--pe-muted);
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+/* --- Compartir --- */
+.share-box {
+  margin: 1rem 0;
+}
+
+.share-label {
+  display: block;
+  color: var(--pe-muted);
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.share-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.share-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border: 1px solid var(--pe-border);
+  background: var(--pe-surface-2);
+  color: var(--pe-text);
+  cursor: pointer;
+}
+
+.share-btn.wa {
+  background: #25d366;
+  color: #06331b;
+  border-color: transparent;
+}
+.share-btn.fb {
+  background: #1877f2;
+  color: #fff;
+  border-color: transparent;
+}
+.share-btn.x {
+  background: #000;
+  color: #fff;
+  border-color: #333;
+}
+
+/* --- Carrito arriba (compra) --- */
+.cart-top {
+  position: sticky;
+  top: 72px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 0 1.25rem;
+}
+
+.cart-top .cart-count {
+  color: var(--pe-muted);
+  margin: 0;
+}
+
+.cart-top .total {
+  margin: 0.15rem 0 0;
+}
+
+.reserved .actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+/* --- Filas de localidad (detalle) --- */
+.locality-rows {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.locality-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: var(--pe-surface);
+  border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius);
+}
+
+.locality-thumb {
+  flex: 0 0 auto;
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: var(--pe-grad);
+  font-weight: 800;
+  color: #fff;
+}
+
+.locality-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.locality-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.locality-sub {
+  color: var(--pe-muted);
+  font-size: 0.85rem;
+}
+
+.locality-price {
+  margin-left: auto;
+  text-align: right;
+}
+
+.locality-price .price-amount {
+  display: block;
+  font-weight: 800;
+  color: var(--pe-teal);
+  font-size: 1.1rem;
+}
+
+.locality-price .price-label {
+  color: var(--pe-muted);
+  font-size: 0.75rem;
+}
+
+/* --- Reserva compartida --- */
+.reservation {
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.reservation-event {
+  color: var(--pe-muted);
+}
+
+.reservation-items {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+}
+
+.reservation-items li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--pe-border);
+}
+
+.reservation .total {
+  font-size: 1.25rem;
+  font-weight: 800;
+  margin: 0.5rem 0 1.25rem;
+}
+
 /* --- Estados simples --- */
 .forbidden,
-.verify-email {
+.verify-email,
+.reservation-invalid {
   text-align: center;
   padding: 3rem 1rem;
 }

@@ -25,6 +25,7 @@ import { VenuesModule } from './modules/venues/venues.module';
 import { MediaModule } from './modules/media/media.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { OrdersModule } from './modules/orders/orders.module';
+import { ReservationsModule } from './modules/reservations/reservations.module';
 import { LedgerModule } from './modules/ledger/ledger.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { WalletModule } from './modules/wallet/wallet.module';
@@ -84,6 +85,7 @@ import { StreamModule } from './modules/stream/stream.module';
     MediaModule,
     InventoryModule,
     OrdersModule,
+    ReservationsModule,
     LedgerModule,
     PaymentsModule,
     WalletModule,

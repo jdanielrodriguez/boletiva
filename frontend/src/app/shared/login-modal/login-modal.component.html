@@ -1,0 +1,50 @@
+<div class="modal-backdrop" (click)="close()">
+  <section class="modal-card" (click)="$event.stopPropagation()" data-testid="login-modal">
+    <button type="button" class="modal-close" aria-label="Cerrar" (click)="close()">×</button>
+    <h2>Inicia sesión para pagar</h2>
+    <p class="auth-sub">Tu reserva sigue guardada. Solo necesitas identificarte para completar el pago.</p>
+
+    @if (error()) {
+      <p class="form-error" data-testid="modal-error">{{ error() }}</p>
+    }
+
+    @if (!needs2fa()) {
+      <form (ngSubmit)="submit()">
+        <div class="field">
+          <label for="m-email">Correo</label>
+          <input id="m-email" type="email" name="email" autocomplete="email"
+            placeholder="tucorreo@ejemplo.com"
+            [ngModel]="email()" (ngModelChange)="email.set($event)" required />
+        </div>
+        <div class="field">
+          <label for="m-password">Contraseña</label>
+          <input id="m-password" type="password" name="password" autocomplete="current-password"
+            placeholder="••••••••"
+            [ngModel]="password()" (ngModelChange)="password.set($event)" required />
+        </div>
+        <button type="submit" class="primary btn-block" [disabled]="submitting()">
+          {{ submitting() ? 'Entrando…' : 'Entrar' }}
+        </button>
+      </form>
+    } @else {
+      <form (ngSubmit)="verify()">
+        <p class="auth-sub" data-testid="modal-2fa">
+          @if (method() === 'email') {
+            Te enviamos un código de 6 dígitos a tu correo.
+          } @else {
+            Ingresa el código de tu app de autenticación.
+          }
+        </p>
+        <div class="field">
+          <label for="m-code">Código</label>
+          <input id="m-code" type="text" name="code" inputmode="numeric" maxlength="6"
+            placeholder="000000"
+            [ngModel]="code()" (ngModelChange)="code.set($event)" required />
+        </div>
+        <button type="submit" class="primary btn-block" [disabled]="submitting()">
+          {{ submitting() ? 'Verificando…' : 'Verificar' }}
+        </button>
+      </form>
+    }
+  </section>
+</div>

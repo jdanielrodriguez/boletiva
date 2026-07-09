@@ -5,23 +5,24 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { switchMap, tap } from 'rxjs';
 import { EventsApi } from '../../core/api/events.api';
 import { SessionStore } from '../../core/auth/session.store';
+import { SITE_URL } from '../../core/config/api.tokens';
 import type { LocalityAvailabilityDto } from '../../core/api/types';
+import { LoginModal } from '../../shared/login-modal/login-modal.component';
+import { ShareBox } from '../../shared/share-box/share-box.component';
 import { SeatMapComponent } from './seat-map.component';
 import { PurchaseService } from './purchase.service';
 
 type Phase = 'select' | 'reserved' | 'expired';
 
 /**
- * Pantalla de compra (F2). Carga la disponibilidad del evento y ofrece:
- * - Localidades CON asientos → mapa Konva.
- * - Localidades SIN mapa (default) → selector por cantidad (tope = boletos
- *   permitidos por localidad = min(disponibles, 50)).
- * Reserva (hold) con countdown local del TTL de Redis; luego crea la orden y
- * pasa al checkout. Libera el hold al salir o al expirar.
+ * Compra (F2). Selección ABIERTA (sin login): el cuadro de total + "Reservar"
+ * van ARRIBA, siempre visibles junto al mapa/selectores. Al reservar se crea una
+ * reserva ANÓNIMA compartible (link + redes). El login se pide en MODAL solo al
+ * "Continuar al pago", sin salir de la página ni perder la reserva.
  */
 @Component({
   selector: 'app-purchase',
-  imports: [SeatMapComponent, DecimalPipe],
+  imports: [SeatMapComponent, DecimalPipe, ShareBox, LoginModal],
   templateUrl: './purchase.page.html',
   providers: [PurchaseService],
 })
@@ -30,19 +31,19 @@ export class PurchasePage implements OnDestroy {
   private readonly router = inject(Router);
   private readonly eventsApi = inject(EventsApi);
   private readonly session = inject(SessionStore);
+  private readonly siteUrl = inject(SITE_URL);
   protected readonly store = inject(PurchaseService);
 
   protected readonly phase = signal<Phase>('select');
   protected readonly secondsLeft = signal(0);
   protected readonly working = signal(false);
   protected readonly error = signal<string | null>(null);
-
-  private ticker: ReturnType<typeof setInterval> | null = null;
-
+  protected readonly showLogin = signal(false);
   protected readonly eventName = signal('');
   protected readonly loaded = signal(false);
 
-  // Carga: slug → detalle (id + nombre) → disponibilidad.
+  private ticker: ReturnType<typeof setInterval> | null = null;
+
   private readonly data = toSignal(
     this.route.paramMap.pipe(
       switchMap((pm) => this.eventsApi.getBySlug(pm.get('slug') ?? '')),
@@ -66,6 +67,9 @@ export class PurchasePage implements OnDestroy {
     return av.localities.filter((l) => withSeats.has(l.id));
   });
 
+  protected readonly shareUrl = computed(
+    () => `${this.siteUrl}/reserva/${this.store.reservation()?.token ?? ''}`,
+  );
   protected readonly mm = computed(() => Math.floor(this.secondsLeft() / 60));
   protected readonly ss = computed(() => this.secondsLeft() % 60);
 
@@ -88,33 +92,16 @@ export class PurchasePage implements OnDestroy {
     return Array.from({ length: this.store.maxFor(loc) + 1 }, (_, i) => i);
   }
 
+  /** Reservar NO exige login: crea la reserva anónima compartible. */
   protected reserve(): void {
     if (this.store.totalCount() === 0) return;
     this.working.set(true);
     this.error.set(null);
-    // El login se exige AQUÍ (al reservar = paso hacia el pago), no al buscar.
-    // Resuelve la sesión (por si aún no hidrató) y decide.
-    this.session.ensureLoaded().subscribe((user) => {
-      if (!user) {
-        this.working.set(false);
-        void this.router.navigate(['/login'], { queryParams: { returnUrl: this.router.url } });
-        return;
-      }
-      if (!this.session.isEmailVerified()) {
-        this.working.set(false);
-        void this.router.navigate(['/verificar-correo']);
-        return;
-      }
-      this.doHold();
-    });
-  }
-
-  private doHold(): void {
-    this.store.hold().subscribe({
-      next: () => {
+    this.store.reserve().subscribe({
+      next: (res) => {
         this.working.set(false);
         this.phase.set('reserved');
-        this.tick();
+        this.secondsLeft.set(this.remaining(res.expiresAt ?? null));
       },
       error: () => {
         this.working.set(false);
@@ -123,35 +110,51 @@ export class PurchasePage implements OnDestroy {
     });
   }
 
-  protected pay(): void {
+  /** Continuar al pago: el login se pide AQUÍ (modal), no antes. */
+  protected continueToPay(): void {
+    this.session.ensureLoaded().subscribe((user) => {
+      if (!user || !this.session.isEmailVerified()) {
+        this.showLogin.set(true);
+        return;
+      }
+      this.doCheckout();
+    });
+  }
+
+  protected onLoggedIn(): void {
+    this.showLogin.set(false);
+    this.doCheckout();
+  }
+
+  private doCheckout(): void {
     this.working.set(true);
-    this.store.createOrder().subscribe({
+    this.store.checkout().subscribe({
       next: (order) => void this.router.navigate(['/checkout', order.id]),
       error: () => {
         this.working.set(false);
-        this.error.set('No se pudo crear la orden. Intenta de nuevo.');
+        this.error.set('No se pudo continuar al pago. Intenta de nuevo.');
       },
     });
   }
 
-  protected cancel(): void {
-    this.store.release();
+  protected backToSelect(): void {
     this.phase.set('select');
+    this.store.reservation.set(null);
+  }
+
+  private remaining(expiresAt: string | null): number {
+    if (!expiresAt) return 0;
+    return Math.max(0, Math.round((new Date(expiresAt).getTime() - Date.now()) / 1000));
   }
 
   private tick(): void {
-    const exp = this.store.expiresAt();
-    if (exp === null || this.phase() !== 'reserved') return;
-    const left = Math.max(0, Math.round((exp - Date.now()) / 1000));
+    if (this.phase() !== 'reserved') return;
+    const left = this.remaining(this.store.reservation()?.expiresAt ?? null);
     this.secondsLeft.set(left);
-    if (left === 0) {
-      this.store.release();
-      this.phase.set('expired');
-    }
+    if (left === 0) this.phase.set('expired');
   }
 
   ngOnDestroy(): void {
     if (this.ticker) clearInterval(this.ticker);
-    if (this.phase() === 'reserved') this.store.release();
   }
 }

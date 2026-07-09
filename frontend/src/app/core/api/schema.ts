@@ -1139,6 +1139,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{eventId}/reservations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Crea una reserva ANÓNIMA y compartible (sin login) */
+        post: operations["ReservationsController_create_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reservations/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ver una reserva por su token (desde el link compartido) */
+        get: operations["ReservationsController_getByToken_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reservations/{token}/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Paga una reserva: crea la orden a nombre del usuario logueado */
+        post: operations["ReservationsController_checkout_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders/{id}/payment-options": {
         parameters: {
             query?: never;
@@ -3692,6 +3743,75 @@ export interface components {
              * @example null
              */
             nextCursor: string | null;
+        };
+        CreateReservationDto: {
+            /** @description Modo numerado: asientos a reservar (1–50). Excluyente con localityId+quantity */
+            seatIds?: string[];
+            /**
+             * Format: uuid
+             * @description Modo general: localidad de la que se toman los cupos
+             */
+            localityId?: string;
+            /**
+             * @description Modo general: cantidad de cupos
+             * @example 2
+             */
+            quantity?: number;
+        };
+        ReservationPriceDto: {
+            /** @example GTQ */
+            currency: string;
+            /** @example 100.00 */
+            net: string;
+            /** @example 16.48 */
+            serviceFee: string;
+            /** @example 13.20 */
+            iva: string;
+            /** @example 129.68 */
+            total: string;
+        };
+        ReservationItemDto: {
+            /** Format: uuid */
+            seatId: string;
+            /** @example GA-12 */
+            label: string;
+            /** Format: uuid */
+            localityId: string;
+            /** @example General */
+            localityName: string;
+            price: components["schemas"]["ReservationPriceDto"];
+        };
+        ReservationResponseDto: {
+            /** @description Token firmado de la reserva (para compartir/pagar) */
+            token: string;
+            /** Format: uuid */
+            eventId: string;
+            /** @example Concierto de Apertura */
+            eventName: string;
+            /** @example concierto-de-apertura */
+            eventSlug: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** @description true si la reserva sigue viva (holds vigentes) */
+            valid: boolean;
+            /**
+             * Format: date-time
+             * @description Cuándo expira la reserva
+             */
+            expiresAt?: string | null;
+            /** @example GTQ */
+            currency: string;
+            /** @example 259.36 */
+            total: string;
+            items: components["schemas"]["ReservationItemDto"][];
+        };
+        CheckoutReservationDto: {
+            /** @description NIT para facturación FEL; vacío = CF (consumidor final) */
+            billingNit?: string;
+            /** @description Nombre de facturación FEL */
+            billingName?: string;
+            /** @description Dirección de facturación FEL */
+            billingAddress?: string;
         };
         InstallmentOptionResponseDto: {
             /**
@@ -6388,6 +6508,77 @@ export interface operations {
         requestBody?: never;
         responses: {
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderResponseDto"];
+                };
+            };
+        };
+    };
+    ReservationsController_create_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateReservationDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReservationResponseDto"];
+                };
+            };
+        };
+    };
+    ReservationsController_getByToken_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReservationResponseDto"];
+                };
+            };
+        };
+    };
+    ReservationsController_checkout_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckoutReservationDto"];
+            };
+        };
+        responses: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };

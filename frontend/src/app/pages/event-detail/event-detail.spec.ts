@@ -28,7 +28,28 @@ function setup(slug: string, getBySlug: () => Observable<unknown>): ComponentFix
     providers: [
       provideZonelessChangeDetection(),
       provideRouter([]),
-      { provide: EventsApi, useValue: { getBySlug } },
+      {
+        provide: EventsApi,
+        useValue: {
+          getBySlug,
+          availability: () =>
+            of({
+              seatMap: null,
+              localities: [
+                {
+                  id: 'ga',
+                  name: 'General',
+                  slug: 'general',
+                  kind: 'general',
+                  capacity: 100,
+                  available: 50,
+                  price: { currency: 'GTQ', net: '100.00', serviceFee: '16.48', iva: '13.20', total: '129.68' },
+                },
+              ],
+              seats: [],
+            }),
+        },
+      },
       { provide: SITE_URL, useValue: 'http://localhost:4200' },
       {
         provide: ActivatedRoute,
@@ -52,7 +73,7 @@ describe('EventDetail', () => {
     const fixture = setup('concierto-x', () => of(EVENT));
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('h1')?.textContent).toContain('Concierto X');
-    expect(el.querySelector('.event-localities li')?.textContent).toContain('General');
+    expect(el.querySelector('[data-testid="locality-row"]')?.textContent).toContain('General');
 
     const ld = TestBed.inject(DOCUMENT).querySelector('#pe-jsonld');
     expect(ld).not.toBeNull();

@@ -44,3 +44,9 @@ export type PayOrderDto = Schemas['PayOrderDto'];
 export type PayOrderResponseDto = Schemas['PayOrderResponseDto'];
 export type PaymentOptionsResponseDto = Schemas['PaymentOptionsResponseDto'];
 export type GatewayPaymentOptionResponseDto = Schemas['GatewayPaymentOptionResponseDto'];
+
+// --- Reservas compartibles ---
+export type CreateReservationDto = Schemas['CreateReservationDto'];
+export type ReservationResponseDto = Schemas['ReservationResponseDto'];
+export type ReservationItemDto = Schemas['ReservationItemDto'];
+export type CheckoutReservationDto = Schemas['CheckoutReservationDto'];

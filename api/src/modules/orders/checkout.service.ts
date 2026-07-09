@@ -68,12 +68,18 @@ export class CheckoutService {
    * negocio) para trazar el camino crítico. Los spans de Prisma/Redis/HTTP cuelgan
    * de este cuando OTel está habilitado; es no-op si está desactivado.
    */
-  async commit(eventId: string, rawSeatIds: string[], buyerId: string, billing?: BillingInput) {
+  async commit(
+    eventId: string,
+    rawSeatIds: string[],
+    buyerId: string,
+    billing?: BillingInput,
+    holderId?: string,
+  ) {
     return checkoutTracer().startActiveSpan('checkout.commit', async (span) => {
       span.setAttribute('event.id', eventId);
       span.setAttribute('seat.count', new Set(rawSeatIds).size);
       try {
-        const order = await this.runCommit(eventId, rawSeatIds, buyerId, billing);
+        const order = await this.runCommit(eventId, rawSeatIds, buyerId, billing, holderId);
         span.setAttribute('order.id', order.id);
         span.setAttribute('order.total', order.total.toString());
         span.setStatus({ code: SpanStatusCode.OK });
@@ -95,7 +101,11 @@ export class CheckoutService {
     rawSeatIds: string[],
     buyerId: string,
     billing?: BillingInput,
+    holderId?: string,
   ) {
+    // El dueño del hold puede ser el comprador (compra directa) o un token de
+    // reserva compartida (otra persona paga lo que alguien reservó).
+    const holder = holderId ?? buyerId;
     const seatIds = [...new Set(rawSeatIds)];
     if (seatIds.length === 0) {
       throw new BadRequestException('Debes indicar al menos un asiento');
@@ -103,7 +113,7 @@ export class CheckoutService {
 
     // Capa 1: respetar holds ajenos. Si el asiento está reservado por otra
     // persona en Redis, no se puede comprar (aunque en BD siga `available`).
-    await this.assertNoForeignHold(eventId, seatIds, buyerId);
+    await this.assertNoForeignHold(eventId, seatIds, holder);
 
     // Contexto de comisiones DEL EVENTO (pasarela + IVA) — leído ANTES de la
     // transacción (con el cliente base). Dentro de la tx solo se usa la conexión
@@ -128,7 +138,7 @@ export class CheckoutService {
         },
       );
       // Liberar los holds propios ya consumidos (best-effort, fuera de la tx).
-      await this.releaseOwnHolds(eventId, seatIds, buyerId);
+      await this.releaseOwnHolds(eventId, seatIds, holder);
       return order;
     } catch (e) {
       throw this.translate(e);

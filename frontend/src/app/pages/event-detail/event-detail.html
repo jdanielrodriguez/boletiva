@@ -26,10 +26,33 @@
 
     <section class="event-localities">
       <h2>Localidades</h2>
-      @if (ev.localities.length > 0) {
-        <ul>
-          @for (loc of ev.localities; track loc.id) {
-            <li>{{ loc.name }}</li>
+      @if (localities().length > 0) {
+        <ul class="locality-rows">
+          @for (loc of localities(); track loc.id) {
+            <li class="locality-row" data-testid="locality-row">
+              <div class="locality-thumb" aria-hidden="true">
+                @if (coverImage(); as img) {
+                  <img [src]="img" [alt]="loc.name" />
+                } @else {
+                  <span>{{ loc.name.charAt(0) }}</span>
+                }
+              </div>
+              <div class="locality-info">
+                <strong>{{ loc.name }}</strong>
+                <span class="locality-sub">
+                  {{ loc.kind === 'general' ? 'Admisión general' : 'Asiento numerado' }}
+                  · {{ loc.available }} disponibles
+                </span>
+              </div>
+              <div class="locality-price">
+                @if (loc.price) {
+                  <span class="price-amount">Q{{ loc.price.total }}</span>
+                  <span class="price-label">por boleto</span>
+                } @else {
+                  <span class="price-label">Precio por definir</span>
+                }
+              </div>
+            </li>
           }
         </ul>
       } @else {

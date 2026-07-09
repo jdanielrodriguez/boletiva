@@ -19,6 +19,11 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/event-detail/event-detail').then((m) => m.EventDetail),
   },
   {
+    path: 'reserva/:token',
+    loadComponent: () => import('./pages/reservation/reservation.page').then((m) => m.ReservationPage),
+    title: 'Reserva — Pasa Eventos',
+  },
+  {
     path: 'checkout/:orderId',
     loadComponent: () => import('./features/checkout/checkout.page').then((m) => m.CheckoutPage),
     canActivate: [authGuard, verifiedEmailGuard],

@@ -121,6 +121,28 @@ async function main() {
     await waitSel(page, '[data-testid="event-notfound"]', 8000);
   });
 
+  console.log('\n▶ Reserva anónima compartible');
+  let shareLink = '';
+  await step('reserva SIN login y genera link para compartir', async () => {
+    await page.goto(`${FE}/eventos/${EVENT_SLUG}/comprar`, { waitUntil: 'networkidle0' });
+    await waitSel(page, '[data-testid="loc-quantity"]');
+    await (await page.$('.loc-quantity select')).select('1');
+    await page.click('[data-testid="reserve-btn"]');
+    await waitSel(page, '[data-testid="share-box"]', 15000);
+    const wa = await page.$eval('.share-btn.wa', (a) => a.href);
+    const m = decodeURIComponent(wa).match(/\/reserva\/[^\s]+/);
+    assert(m, 'no se encontró el link de reserva');
+    shareLink = `${FE}${m[0]}`;
+  });
+
+  await step('abrir el link muestra la reserva y pide login al pagar', async () => {
+    await page.goto(shareLink, { waitUntil: 'networkidle0' });
+    await waitSel(page, '[data-testid="pay-btn"]');
+    assert((await page.$('.reservation-items')) !== null, 'no se ven los ítems de la reserva');
+    await page.click('[data-testid="pay-btn"]');
+    await waitSel(page, '[data-testid="login-modal"]', 8000);
+  });
+
   console.log('\n▶ Login con 2FA (OTP por MailHog)');
   await step('login con contraseña + 2FA inicia sesión', async () => {
     await clearMail();

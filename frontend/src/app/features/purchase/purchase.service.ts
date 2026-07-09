@@ -1,52 +1,45 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable, forkJoin, map, of, tap } from 'rxjs';
-import { InventoryApi } from '../../core/api/inventory.api';
-import { OrdersApi } from '../../core/api/orders.api';
+import { Observable, tap } from 'rxjs';
+import { ReservationsApi } from '../../core/api/reservations.api';
 import type {
-  CreateHoldDto,
+  CreateReservationDto,
   EventAvailabilityDto,
-  HoldResponseDto,
   LocalityAvailabilityDto,
   OrderResponseDto,
+  ReservationResponseDto,
 } from '../../core/api/types';
 
-/** Tope anti-abuso por carrito (alineado con el backend: Max(50) en el hold). */
+/** Tope anti-abuso por carrito (alineado con el backend). */
 export const MAX_PER_CART = 50;
 
-/** Convierte un precio string ("129.68") a centavos enteros (evita float). */
 function toCents(price: string): number {
   return Math.round(parseFloat(price) * 100);
 }
-
 function fromCents(cents: number): string {
   return (cents / 100).toFixed(2);
 }
 
 /**
- * Estado de la compra de UN evento (selección → hold → orden). Se provee a nivel
- * de la ruta de compra (no root) para que se reinicie en cada visita.
- * - Localidades CON asientos (coordenadas) → selección por asiento.
- * - Localidades SIN mapa (default) → selección por CANTIDAD, tope
- *   min(disponibles, 50) = máximo de boletos permitidos por localidad.
+ * Estado de la compra de UN evento: selección → reserva ANÓNIMA (token
+ * compartible) → checkout. La reserva no exige login; el login se pide al pagar.
+ * Se provee a nivel de ruta para reiniciarse por visita.
  */
 @Injectable()
 export class PurchaseService {
-  private readonly inventory = inject(InventoryApi);
-  private readonly orders = inject(OrdersApi);
+  private readonly reservations = inject(ReservationsApi);
 
   readonly eventId = signal('');
   readonly availability = signal<EventAvailabilityDto | null>(null);
 
-  /** Asientos numerados seleccionados (seatId). */
   private readonly seatSel = signal<ReadonlySet<string>>(new Set());
-  /** Cantidad por localidad general (localityId → n). */
   private readonly qtySel = signal<ReadonlyMap<string, number>>(new Map());
 
   readonly selectedSeatIds = computed(() => [...this.seatSel()]);
   readonly selectedSet = computed<ReadonlySet<string>>(() => this.seatSel());
-  readonly quantities = computed(() => this.qtySel());
 
-  /** Localidades que se muestran como selector por cantidad (sin asientos con coords). */
+  /** La reserva creada (con token para compartir). */
+  readonly reservation = signal<ReservationResponseDto | null>(null);
+
   readonly quantityLocalities = computed<LocalityAvailabilityDto[]>(() => {
     const av = this.availability();
     if (!av) return [];
@@ -54,7 +47,6 @@ export class PurchaseService {
     return av.localities.filter((l) => !withSeats.has(l.id));
   });
 
-  /** Máximo de boletos seleccionables en una localidad (tope de boletos permitidos). */
   maxFor(loc: LocalityAvailabilityDto): number {
     return Math.min(loc.available, MAX_PER_CART);
   }
@@ -77,14 +69,10 @@ export class PurchaseService {
 
   readonly totalDisplay = computed(() => fromCents(this.totalCents()));
 
-  // --- Hold + countdown ---
-  readonly heldSeatIds = signal<string[]>([]);
-  readonly expiresAt = signal<number | null>(null);
-
   toggleSeat(seatId: string): void {
     const next = new Set(this.seatSel());
     if (next.has(seatId)) next.delete(seatId);
-    else if (next.size + this.totalCount() - this.seatSel().size < MAX_PER_CART) next.add(seatId);
+    else if (next.size < MAX_PER_CART) next.add(seatId);
     this.seatSel.set(next);
   }
 
@@ -96,45 +84,25 @@ export class PurchaseService {
   }
 
   /**
-   * Reserva todo lo seleccionado. Un hold por localidad GA (por cantidad) + un
-   * hold con todos los asientos numerados; agrega los seatIds concretos y
-   * arranca el countdown con el expiresAt más próximo.
+   * Crea la reserva anónima (sin login). Por simplicidad, una reserva por
+   * modo: asientos numerados seleccionados, o una localidad general por cantidad.
    */
-  hold(): Observable<string[]> {
-    const eventId = this.eventId();
-    const calls: Observable<HoldResponseDto>[] = [];
-    if (this.seatSel().size > 0) {
-      calls.push(this.inventory.hold(eventId, { seatIds: [...this.seatSel()] } as CreateHoldDto));
-    }
-    for (const [localityId, quantity] of this.qtySel()) {
-      calls.push(this.inventory.hold(eventId, { localityId, quantity } as CreateHoldDto));
-    }
-    if (calls.length === 0) return of([]);
-
-    return forkJoin(calls).pipe(
-      map((results) => ({
-        seatIds: results.flatMap((r) => r.seatIds),
-        expiresAt: Math.min(...results.map((r) => new Date(r.expiresAt).getTime())),
-      })),
-      tap(({ seatIds, expiresAt }) => {
-        this.heldSeatIds.set(seatIds);
-        this.expiresAt.set(expiresAt);
-      }),
-      map(({ seatIds }) => seatIds),
+  reserve(): Observable<ReservationResponseDto> {
+    return this.reservations.create(this.eventId(), this.buildBody()).pipe(
+      tap((res) => this.reservation.set(res)),
     );
   }
 
-  /** Commit: crea la orden con los asientos ya reservados. */
-  createOrder(): Observable<OrderResponseDto> {
-    return this.orders.create(this.eventId(), { seatIds: this.heldSeatIds() });
+  private buildBody(): CreateReservationDto {
+    if (this.seatSel().size > 0) return { seatIds: [...this.seatSel()] };
+    const ga = [...this.qtySel().entries()].find(([, n]) => n > 0);
+    if (ga) return { localityId: ga[0], quantity: ga[1] };
+    return {};
   }
 
-  /** Libera la reserva (best-effort al salir o expirar). */
-  release(): void {
-    const seatIds = this.heldSeatIds();
-    if (seatIds.length === 0) return;
-    this.inventory.release(this.eventId(), seatIds).subscribe({ error: () => undefined });
-    this.heldSeatIds.set([]);
-    this.expiresAt.set(null);
+  /** Paga la reserva (requiere sesión): crea la orden a nombre del usuario. */
+  checkout(): Observable<OrderResponseDto> {
+    const token = this.reservation()?.token ?? '';
+    return this.reservations.checkout(token);
   }
 }
