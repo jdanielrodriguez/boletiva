@@ -79,13 +79,11 @@ export class PurchasePage implements OnDestroy {
     });
   }
 
-  protected onQuantity(loc: LocalityAvailabilityDto, value: string): void {
-    const n = Math.max(0, Math.min(this.store.maxFor(loc), Number(value) || 0));
+  /** Stepper +/− de cantidad para una localidad general (capado a [0, max]). */
+  protected changeQuantity(loc: LocalityAvailabilityDto, delta: number): void {
+    const current = this.store.quantityFor(loc.id);
+    const n = Math.max(0, Math.min(this.store.maxFor(loc), current + delta));
     this.store.setQuantity(loc.id, n);
-  }
-
-  protected range(loc: LocalityAvailabilityDto): number[] {
-    return Array.from({ length: this.store.maxFor(loc) + 1 }, (_, i) => i);
   }
 
   /** Reservar NO exige login: crea la reserva anónima compartible. */

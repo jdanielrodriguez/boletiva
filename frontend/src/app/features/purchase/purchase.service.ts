@@ -108,6 +108,11 @@ export class PurchaseService {
     this.qtySel.set(next);
   }
 
+  /** Cantidad seleccionada actual para una localidad (0 si ninguna). */
+  quantityFor(localityId: string): number {
+    return this.qtySel().get(localityId) ?? 0;
+  }
+
   /**
    * Crea la reserva anónima (sin login). Por simplicidad, una reserva por
    * modo: asientos numerados seleccionados, o una localidad general por cantidad.

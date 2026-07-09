@@ -4,7 +4,13 @@
   @if (order(); as ord) {
     @if (status() === 'paid') {
       <div class="paid" data-testid="status-paid">
-        <h2>¡Pago confirmado! 🎉</h2>
+        <span class="paid-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2.2">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M8 12.5l2.5 2.5L16 9" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </span>
+        <h2>¡Pago confirmado!</h2>
         <p>Tus boletos se están emitiendo. Los verás en tu cuenta en segundos.</p>
       </div>
     } @else if (status() === 'cancelled' || status() === 'expired') {
@@ -19,12 +25,22 @@
           <section class="pay-section">
             <h2>Método de pago</h2>
             <div class="method-card selected">
-              <span class="method-icon">💳</span>
+              <span class="method-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9">
+                  <rect x="2.5" y="5" width="19" height="14" rx="2.5" />
+                  <path d="M2.5 9.5h19" stroke-width="2.4" />
+                  <path d="M6 15h4" stroke-linecap="round" />
+                </svg>
+              </span>
               <div>
                 <strong>Tarjeta de crédito o débito</strong>
                 <span class="method-sub">Visa, Mastercard, American Express</span>
               </div>
-              <span class="method-check">✓</span>
+              <span class="method-check" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6">
+                  <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </span>
             </div>
 
             <div class="card-form">
@@ -91,9 +107,9 @@
                     @for (opt of gw.installmentOptions; track opt.installments) {
                       <option [value]="opt.installments" [selected]="opt.installments === installments()">
                         @if (opt.installments === 1) {
-                          1 pago de Q{{ opt.total }}
+                          1 pago de {{ opt.total | money }}
                         } @else {
-                          {{ opt.installments }} cuotas de Q{{ perInstallment(opt.total, opt.installments) }}
+                          {{ opt.installments }} cuotas de {{ perInstallment(opt.total, opt.installments) | money }}
                         }
                       </option>
                     }
@@ -109,10 +125,10 @@
           <h2>Resumen</h2>
           @if (breakdown(); as b) {
             <div class="breakdown" data-testid="breakdown">
-              <div class="row"><span>Precio de boleto</span><span>Q{{ b.boleto }}</span></div>
-              <div class="row"><span>Cuota por servicio</span><span data-testid="service-fee">Q{{ b.serviceFee }}</span></div>
-              <div class="row"><span>IVA</span><span>Q{{ b.iva }}</span></div>
-              <div class="row total"><span>Total</span><span data-testid="total">Q{{ b.total }}</span></div>
+              <div class="row"><span>Precio de boleto</span><span>{{ b.boleto | money }}</span></div>
+              <div class="row"><span>Cuota por servicio</span><span data-testid="service-fee">{{ b.serviceFee | money }}</span></div>
+              <div class="row"><span>IVA</span><span>{{ b.iva | money }}</span></div>
+              <div class="row total"><span>Total</span><span data-testid="total">{{ b.total | money }}</span></div>
             </div>
             <p class="note">La cuota por servicio varía según el método de pago.</p>
           }
@@ -125,11 +141,16 @@
           }
 
           <button type="button" class="primary btn-block" data-testid="pay-confirm" [disabled]="paying()" (click)="pay()">
-            {{ paying() ? 'Procesando…' : 'Pagar Q' + (breakdown()?.total ?? '') }}
+            @if (paying()) { Procesando… } @else { Pagar {{ breakdown()?.total | money }} }
           </button>
           <p class="secure-note">
-            🔒 Pago seguro. Guardamos un <strong>token cifrado</strong> (con la marca y el
-            vencimiento), nunca el número completo de tu tarjeta.
+            <span class="lock-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="4" y="10" width="16" height="10" rx="2" />
+                <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke-linecap="round" />
+              </svg>
+            </span>
+            Pago seguro y cifrado. Tus datos de tarjeta se procesan de forma protegida; nunca guardamos el número completo.
           </p>
         </aside>
       </div>

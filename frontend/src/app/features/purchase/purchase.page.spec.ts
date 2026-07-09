@@ -78,8 +78,9 @@ describe('PurchasePage', () => {
 
   it('reservar SIN login crea reserva anónima y muestra compartir + countdown', async () => {
     await setup();
-    (el.querySelector('.loc-quantity select') as HTMLSelectElement).value = '2';
-    el.querySelector('.loc-quantity select')!.dispatchEvent(new Event('change'));
+    (el.querySelector('[data-testid="qty-plus"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    (el.querySelector('[data-testid="qty-plus"]') as HTMLButtonElement).click();
     fixture.detectChanges();
     (el.querySelector('[data-testid="reserve-btn"]') as HTMLButtonElement).click();
     fixture.detectChanges();
@@ -94,8 +95,7 @@ describe('PurchasePage', () => {
 
   it('continuar al pago sin sesión abre el modal de login', async () => {
     await setup();
-    (el.querySelector('.loc-quantity select') as HTMLSelectElement).value = '1';
-    el.querySelector('.loc-quantity select')!.dispatchEvent(new Event('change'));
+    (el.querySelector('[data-testid="qty-plus"]') as HTMLButtonElement).click();
     fixture.detectChanges();
     (el.querySelector('[data-testid="reserve-btn"]') as HTMLButtonElement).click();
     fixture.detectChanges();

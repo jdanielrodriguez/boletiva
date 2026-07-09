@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { forkJoin, startWith, switchMap } from 'rxjs';
+import { MoneyPipe } from '../../shared/money.pipe';
 import { OrderStreamService } from '../../core/api/order-stream.service';
 import { OrdersApi } from '../../core/api/orders.api';
 import type {
@@ -21,7 +22,7 @@ type OrderStatus = 'pending' | 'paid' | 'cancelled' | 'expired' | 'refunded';
  */
 @Component({
   selector: 'app-checkout',
-  imports: [FormsModule],
+  imports: [FormsModule, MoneyPipe],
   templateUrl: './checkout.page.html',
 })
 export class CheckoutPage {
