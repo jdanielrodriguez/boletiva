@@ -11,6 +11,8 @@ export interface CreateGatewayInput {
   name: string;
   provider: string;
   feePct: number;
+  transactionFixedFee?: number;
+  minCostSharePct?: number;
   installmentRates?: Record<string, number>;
   installmentFixedFee?: number;
   credentialsRef?: string;
@@ -20,6 +22,8 @@ export interface CreateGatewayInput {
 export interface UpdateGatewayInput {
   name?: string;
   feePct?: number;
+  transactionFixedFee?: number;
+  minCostSharePct?: number;
   installmentRates?: Record<string, number>;
   installmentFixedFee?: number;
   credentialsRef?: string;
@@ -60,6 +64,8 @@ export class PaymentGatewaysService {
 
   async create(input: CreateGatewayInput) {
     this.assertPct(input.feePct);
+    if (input.transactionFixedFee !== undefined) this.assertFixed(input.transactionFixedFee);
+    if (input.minCostSharePct !== undefined) this.assertSharePct(input.minCostSharePct);
     if (input.installmentRates !== undefined) this.assertInstallmentRates(input.installmentRates);
     try {
       return await this.prisma.paymentGateway.create({
@@ -67,6 +73,14 @@ export class PaymentGatewaysService {
           name: input.name,
           provider: input.provider,
           feePct: new Prisma.Decimal(input.feePct),
+          transactionFixedFee:
+            input.transactionFixedFee !== undefined
+              ? new Prisma.Decimal(input.transactionFixedFee)
+              : undefined,
+          minCostSharePct:
+            input.minCostSharePct !== undefined
+              ? new Prisma.Decimal(input.minCostSharePct)
+              : undefined,
           installmentRates: (input.installmentRates ?? undefined) as Prisma.InputJsonValue | undefined,
           installmentFixedFee:
             input.installmentFixedFee !== undefined
@@ -86,14 +100,31 @@ export class PaymentGatewaysService {
 
   async update(id: string, input: UpdateGatewayInput) {
     if (input.feePct !== undefined) this.assertPct(input.feePct);
+    if (input.transactionFixedFee !== undefined) this.assertFixed(input.transactionFixedFee);
+    if (input.minCostSharePct !== undefined) this.assertSharePct(input.minCostSharePct);
     if (input.installmentRates !== undefined) this.assertInstallmentRates(input.installmentRates);
-    await this.get(id);
+    const current = await this.get(id);
+    // Edge 5: la pasarela default del sistema NO puede exigir cost-share (siempre
+    // debe ser vendible para cualquier promotor → evita dejar un evento sin método).
+    if (current.isPlatformDefault && input.minCostSharePct !== undefined && input.minCostSharePct > 0) {
+      throw new ConflictException(
+        'La pasarela default de plataforma no puede exigir colaboración mínima (debe estar disponible para todos)',
+      );
+    }
     try {
       return await this.prisma.paymentGateway.update({
         where: { id },
         data: {
           name: input.name,
           feePct: input.feePct !== undefined ? new Prisma.Decimal(input.feePct) : undefined,
+          transactionFixedFee:
+            input.transactionFixedFee !== undefined
+              ? new Prisma.Decimal(input.transactionFixedFee)
+              : undefined,
+          minCostSharePct:
+            input.minCostSharePct !== undefined
+              ? new Prisma.Decimal(input.minCostSharePct)
+              : undefined,
           installmentRates:
             input.installmentRates !== undefined
               ? (input.installmentRates as Prisma.InputJsonValue)
@@ -135,6 +166,13 @@ export class PaymentGatewaysService {
     if (gw.status !== GatewayStatus.active) {
       throw new ConflictException('Solo una pasarela activa puede ser la default');
     }
+    // Edge 5: la default no puede exigir colaboración mínima (dejaría a algunos
+    // promotores sin ninguna pasarela). Debe bajarse su umbral a 0 primero.
+    if (gw.minCostSharePct.gt(0)) {
+      throw new ConflictException(
+        'La pasarela exige colaboración mínima; ponla en 0 antes de hacerla default',
+      );
+    }
     return this.prisma.$transaction(async (tx) => {
       await tx.paymentGateway.updateMany({
         where: { isPlatformDefault: true },
@@ -173,6 +211,18 @@ export class PaymentGatewaysService {
   private assertPct(v: number): void {
     if (!Number.isFinite(v) || v < 0 || v >= 1) {
       throw new BadRequestException('feePct debe estar en el rango [0, 1)');
+    }
+  }
+
+  private assertFixed(v: number): void {
+    if (!Number.isFinite(v) || v < 0) {
+      throw new BadRequestException('transactionFixedFee no puede ser negativo');
+    }
+  }
+
+  private assertSharePct(v: number): void {
+    if (!Number.isFinite(v) || v < 0 || v > 1) {
+      throw new BadRequestException('minCostSharePct debe estar entre 0 y 1');
     }
   }
 

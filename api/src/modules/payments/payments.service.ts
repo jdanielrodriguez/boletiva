@@ -15,6 +15,7 @@ import { LedgerService } from '../ledger/ledger.service';
 import { PricingService } from '../pricing/pricing.service';
 import { FeeParams, InstallmentPlan, PricingEngine } from '../pricing/pricing.engine';
 import { PaymentGatewaysService } from '../payment-gateways/payment-gateways.service';
+import { CostShareService } from '../cost-share/cost-share.service';
 import { hmacSha256, randomToken, safeEqual } from '../../common/utils/crypto';
 import { QueueService } from '../../infra/queue/queue.service';
 import { QUEUES } from '../../infra/queue/queue.constants';
@@ -38,6 +39,7 @@ export class PaymentsService {
     private readonly ledger: LedgerService,
     private readonly pricing: PricingService,
     private readonly gateways: PaymentGatewaysService,
+    private readonly costShare: CostShareService,
     private readonly config: ConfigService,
     private readonly queue: QueueService,
     private readonly tickets: TicketsService,
@@ -110,6 +112,17 @@ export class PaymentsService {
     // (p.ej. saldo parcial sin tarjeta / sin método de pago configurado).
     if (gatewayCharge.gt(0) && !gateway) {
       throw new BadRequestException('No hay un método de pago disponible para completar la compra');
+    }
+    // Ola 6.6 (edge 3): en pago MIXTO, la porción por pasarela no puede ser menor
+    // que su fijo por transacción (la cobraría a pérdida / monto no procesable).
+    // El comprador debe pagar todo por pasarela o usar más saldo.
+    if (walletPortion.gt(0) && gatewayCharge.gt(0) && gateway) {
+      const txFixed = gateway.transactionFixedFee.toNumber();
+      if (txFixed > 0 && gatewayCharge.lte(txFixed)) {
+        throw new BadRequestException(
+          'El monto a cobrar por pasarela es menor que su cargo fijo; paga el total por pasarela',
+        );
+      }
     }
 
     // Caso 1: el wallet cubre el total → confirmación inmediata (sin pasarela).
@@ -185,14 +198,19 @@ export class PaymentsService {
       where: { id: orderId },
       include: {
         items: true,
-        event: { select: { ivaOnNet: true, absorbInstallmentCost: true } },
+        event: { select: { ivaOnNet: true, absorbInstallmentCost: true, promoterId: true } },
       },
     });
     if (!order || order.buyerId !== buyerId) {
       throw new NotFoundException('Orden no encontrada'); // IDOR → 404
     }
     const absorbedByPromoter = order.event.absorbInstallmentCost;
-    const gateways = await this.gateways.listActive();
+    // Política del promotor (Ola 6.6): cuotas y pasarelas según su cost-share.
+    const promoterPct = await this.costShare.effectivePct(order.event.promoterId);
+    const installmentsAllowed = promoterPct >= (await this.costShare.installmentsMinPct());
+    const gateways = (await this.gateways.listActive()).filter((gw) =>
+      this.costShare.gatewayAllowed(gw, promoterPct),
+    );
 
     // La tabla de comisiones (plataforma+IVA+fijos) es la misma para todas las
     // pasarelas: se lee UNA vez; por pasarela solo cambia gatewayFeePct.
@@ -203,12 +221,17 @@ export class PaymentsService {
     );
 
     const result = gateways.map((gw) => {
-      const params: FeeParams = { ...platformBase, gatewayFeePct: gw.feePct.toNumber() };
+      const params: FeeParams = {
+        ...platformBase,
+        gatewayFeePct: gw.feePct.toNumber(),
+        transactionFixedFee: gw.transactionFixedFee.toNumber(),
+      };
       const base = this.quoteOrderTotals(order.items, params);
       const options = [{ installments: 1, total: base.total, serviceFee: base.serviceFee }];
 
-      const rates = (gw.installmentRates as Record<string, number> | null) ?? {};
-      const fixedFee = gw.installmentFixedFee ? gw.installmentFixedFee.toNumber() : 0;
+      const rates = installmentsAllowed
+        ? (gw.installmentRates as Record<string, number> | null) ?? {}
+        : {};
       const counts = Object.keys(rates)
         .map(Number)
         .filter((n) => Number.isInteger(n) && n >= 2)
@@ -220,7 +243,6 @@ export class PaymentsService {
           q = this.quoteOrderTotals(order.items, params, {
             count,
             ratePct: rates[String(count)],
-            fixedFee,
             absorbedByPromoter,
           });
         } catch {
@@ -324,22 +346,32 @@ export class PaymentsService {
       where: { id: orderId },
       include: {
         items: true,
-        event: { select: { ivaOnNet: true, absorbInstallmentCost: true } },
+        event: { select: { ivaOnNet: true, absorbInstallmentCost: true, promoterId: true } },
       },
     });
+    // Ola 6.6: re-validar la política del promotor EN EL MOMENTO del cobro (por si
+    // el admin bajó su cost-share entre el quote y el pago).
+    const promoterPct = await this.costShare.effectivePct(order.event.promoterId);
+    if (!this.costShare.gatewayAllowed(gateway, promoterPct)) {
+      throw new ConflictException('La pasarela ya no está disponible para este evento');
+    }
+    if (installments > 1 && !(await this.costShare.installmentsAllowed(order.event.promoterId))) {
+      throw new ConflictException('Las cuotas ya no están habilitadas para este evento');
+    }
     const params = await this.pricing.paramsForRequote(
       order.feeScheduleVersion,
       gateway.feePct.toNumber(),
       order.event.ivaOnNet,
+      gateway.transactionFixedFee.toNumber(),
     );
-    // Plan de cuotas (solo si >1): tasa y fijo de la pasarela; lo absorbe la
-    // plataforma salvo que el evento marque que lo absorbe el promotor.
+    // Plan de cuotas (solo si >1): tasa de la pasarela; lo absorbe la plataforma
+    // salvo que el evento marque que lo absorbe el promotor. El fijo por
+    // transacción va en `params` (mismo en 1 pago y cuotas → se cancela en el costo).
     const plan: InstallmentPlan | undefined =
       installments > 1
         ? {
             count: installments,
             ratePct: this.pricing.installmentRate(gateway, installments),
-            fixedFee: gateway.installmentFixedFee ? gateway.installmentFixedFee.toNumber() : 0,
             absorbedByPromoter: order.event.absorbInstallmentCost,
           }
         : undefined;
@@ -474,7 +506,10 @@ export class PaymentsService {
     const payment = await this.prisma.payment.findUniqueOrThrow({ where: { id: paymentId } });
     const order = await this.prisma.order.findUniqueOrThrow({
       where: { id: payment.orderId },
-      include: { event: { select: { promoterId: true } } },
+      include: {
+        event: { select: { promoterId: true } },
+        items: { select: { total: true } },
+      },
     });
     if (order.status === 'paid') return; // ya confirmada (idempotente)
 
@@ -492,11 +527,22 @@ export class PaymentsService {
       const gatewayCharge = new Decimal(payment.amount.toString());
       const promoterId = order.event.promoterId;
 
-      // Comisión de pasarela SOLO sobre la porción cobrada por gateway (proporcional).
-      // El ahorro por usar wallet acredita a la plataforma (misma cifra que cancela
-      // en la suma → partida doble exacta).
-      const gatewayFeeActual = gatewayFee.mul(total.isZero() ? 0 : gatewayCharge.div(total));
-      const gatewayFeeR = gatewayFeeActual.toDecimalPlaces(2, Decimal.ROUND_HALF_EVEN);
+      // Ola 6.6: la pasarela cobra UN solo fijo por transacción, pero el comprador
+      // pagó N (uno embebido por ítem con total>0). El surplus (N-1)·fijo lo retiene
+      // la plataforma. Se separa el fijo del %: el % escala con la porción cobrada
+      // (proporción wallet), el fijo aplica UNA vez si la pasarela cobra algo.
+      const gw = order.feeGatewayId
+        ? await this.prisma.paymentGateway.findUnique({ where: { id: order.feeGatewayId } })
+        : null;
+      const txFixed = new Decimal(gw ? gw.transactionFixedFee.toString() : 0);
+      const paidItems = order.items.filter((it) => new Decimal(it.total.toString()).gt(0)).length;
+      const fixedBaked = txFixed.mul(Math.max(paidItems, 0)); // N·fijo embebido en gatewayFee
+      const pctPart = gatewayFee.sub(fixedBaked); // = %pasarela · total
+      const realPctFee = pctPart.mul(total.isZero() ? 0 : gatewayCharge.div(total));
+      const realFixed = gatewayCharge.gt(0) ? txFixed : new Decimal(0);
+      const gatewayFeeR = realPctFee.add(realFixed).toDecimalPlaces(2, Decimal.ROUND_HALF_EVEN);
+      // La plataforma retiene la diferencia: surplus (N-1)·fijo + ahorro por wallet.
+      // Cancela exacto en la suma (partida doble) porque gatewayFeeR es común.
       const savedFee = gatewayFee.sub(gatewayFeeR);
       const gatewayInflow = gatewayCharge.sub(gatewayFeeR);
 

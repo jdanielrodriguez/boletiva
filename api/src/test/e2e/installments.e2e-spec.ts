@@ -48,6 +48,10 @@ describe('Pagos en cuotas (e2e)', () => {
 
     const promoter = await prisma.user.findUniqueOrThrow({ where: { email: SEED.promoter } });
     promoterId = promoter.id;
+    // Ola 6.6: las cuotas se habilitan si el promotor colabora ≥ umbral (0.3). Se
+    // fija su cost-share por encima para que el suite sea determinista sin depender
+    // del default global (que puede ser 0). Se restaura en afterAll.
+    await prisma.user.update({ where: { id: promoterId }, data: { costSharePct: '0.50000' } });
     token = await loginTrusted(SEED.buyer, 'inst-buyer');
 
     const emailB = `inst_b_${stamp}@test.com`;
@@ -57,14 +61,15 @@ describe('Pagos en cuotas (e2e)', () => {
     await prisma.user.update({ where: { id: sB.body.user.id }, data: { emailVerifiedAt: new Date() } });
     buyerBToken = await loginTrusted(emailB, 'inst-buyerB');
 
-    // Pasarela con cuotas (Recurrente): 3→8% · 6→9% · 12→10% · 18→14% + Q2 fijo.
+    // Pasarela con cuotas (Recurrente): 3→8% · 6→9% · 12→10% · 18→14% + Q2 FIJO POR
+    // TRANSACCIÓN (Ola 6.6: aplica a 1 pago y cuotas; sube el precio base a 131.79).
     const recu = await prisma.paymentGateway.create({
       data: {
         name: `INST_recu_${stamp}`,
         provider: 'simulator',
         feePct: '0.05000',
+        transactionFixedFee: '2.00',
         installmentRates: { '3': 0.08, '6': 0.09, '12': 0.1, '18': 0.14 },
-        installmentFixedFee: '2.00',
         status: 'active',
       },
     });
@@ -125,6 +130,7 @@ describe('Pagos en cuotas (e2e)', () => {
   }
 
   afterAll(async () => {
+    await prisma.user.update({ where: { id: promoterId }, data: { costSharePct: null } });
     const ids = [platEventId, promEventId];
     await prisma.payment.deleteMany({ where: { order: { eventId: { in: ids } } } });
     await prisma.webhookEvent.deleteMany({});
@@ -146,10 +152,10 @@ describe('Pagos en cuotas (e2e)', () => {
   const itemQuote = async (orderId: string) =>
     (await prisma.orderItem.findFirstOrThrow({ where: { orderId } })).quote as Record<string, unknown>;
 
-  it('base: sin cuotas el precio es el de 1 pago (129.68) — el catálogo no cambia', async () => {
+  it('base: sin cuotas el precio es el de 1 pago (Recurrente 131.79 con Q2) — el catálogo no cambia', async () => {
     const o = await order(platEventId, platSeats[0]);
-    expect(money(o.total)).toBe('129.68');
-    expect(money(o.gatewayFee)).toBe('6.48');
+    expect(money(o.total)).toBe('131.79'); // incluye el Q2 fijo por transacción
+    expect(money(o.gatewayFee)).toBe('8.59'); // 131.79*0.05 + 2
     expect(money(o.platformFee)).toBe('10.00');
     expect(money(o.iva)).toBe('13.20');
   });
@@ -158,64 +164,64 @@ describe('Pagos en cuotas (e2e)', () => {
     const o = await order(platEventId, platSeats[1]);
     const res = await pay(o.id, { installments: 3 }).expect(201);
     expect(res.body.installments).toBe(3);
-    expect(money(res.body.amount)).toBe('129.68'); // el comprador paga lo mismo
+    expect(money(res.body.amount)).toBe('131.79'); // el comprador paga lo mismo
 
     const up = await prisma.order.findUniqueOrThrow({ where: { id: o.id } });
-    expect(money(up.total)).toBe('129.68'); // total intacto
+    expect(money(up.total)).toBe('131.79'); // total intacto
     expect(money(up.net)).toBe('100.00'); //  promotor intacto
     expect(money(up.iva)).toBe('13.20'); //   IVA intacto (no subdeclara)
-    expect(money(up.gatewayFee)).toBe('12.37'); // 129.68*0.08 + 2
-    expect(money(up.platformFee)).toBe('4.11'); //  10 − (12.37 − 6.48) = 4.11
+    expect(money(up.gatewayFee)).toBe('12.54'); // 131.79*0.08 + 2
+    expect(money(up.platformFee)).toBe('6.05'); //  10 − (12.54 − 8.59); el fijo se cancela
     // Suma exacta: net + platform + iva + gateway = total.
     const sum = new Decimal(up.net.toString())
       .add(up.platformFee.toString())
       .add(up.iva.toString())
       .add(up.gatewayFee.toString());
-    expect(sum.toFixed(2)).toBe('129.68');
+    expect(sum.toFixed(2)).toBe('131.79');
 
     // Desglose de transparencia en el snapshot del ítem.
     const q = await itemQuote(o.id);
     expect(q.installments).toBe(3);
     expect(q.installmentFeePct).toBe(0.08);
     expect(money(q.installmentFixedFee)).toBe('2.00');
-    expect(money(q.installmentSurcharge)).toBe('5.89');
+    expect(money(q.installmentSurcharge)).toBe('3.95'); // solo el %-extra
     expect(q.installmentAbsorbedBy).toBe('platform');
-    expect(money(q.basePrice)).toBe('129.68');
+    expect(money(q.basePrice)).toBe('131.79');
     // Vista comprador: cuota de servicio fusionada (plataforma+pasarela) estable e igual a 1 pago.
-    expect(money(q.serviceFee)).toBe('16.48');
+    expect(money(q.serviceFee)).toBe('18.59');
   });
 
   it('promotor absorbe (flag del evento, 3 cuotas): baja el NETO del promotor, platform intacto', async () => {
     const o = await order(promEventId, promSeats[0]);
     await pay(o.id, { installments: 3 }).expect(201);
     const up = await prisma.order.findUniqueOrThrow({ where: { id: o.id } });
-    expect(money(up.total)).toBe('129.68'); // comprador paga igual
-    expect(money(up.net)).toBe('94.11'); //   100 − 5.89 (promotor absorbe)
+    expect(money(up.total)).toBe('131.79'); // comprador paga igual
+    expect(money(up.net)).toBe('96.05'); //   100 − 3.95 (promotor absorbe el %-extra)
     expect(money(up.platformFee)).toBe('10.00'); // plataforma intacta
     expect(money(up.iva)).toBe('13.20');
-    expect(money(up.gatewayFee)).toBe('12.37');
+    expect(money(up.gatewayFee)).toBe('12.54');
     const q = await itemQuote(o.id);
     expect(q.installmentAbsorbedBy).toBe('promoter');
-    expect(money(q.installmentSurcharge)).toBe('5.89');
+    expect(money(q.installmentSurcharge)).toBe('3.95');
   });
 
   it('18 cuotas (14%): la plataforma puede quedar con margen NEGATIVo (sin buffer)', async () => {
     const o = await order(platEventId, platSeats[2]);
     await pay(o.id, { installments: 18 }).expect(201);
     const up = await prisma.order.findUniqueOrThrow({ where: { id: o.id } });
-    expect(money(up.gatewayFee)).toBe('20.16'); // 129.68*0.14 + 2
-    expect(money(up.platformFee)).toBe('-3.68'); // 10 − 13.68 (plataforma pierde)
-    expect(money(up.total)).toBe('129.68');
+    expect(money(up.gatewayFee)).toBe('20.45'); // 131.79*0.14 + 2
+    expect(money(up.platformFee)).toBe('-1.86'); // 10 − (20.45 − 8.59) (plataforma pierde)
+    expect(money(up.total)).toBe('131.79');
     expect(money(up.net)).toBe('100.00');
   });
 
   it('ledger balanceado tras confirmar el pago en cuotas (webhook succeeded)', async () => {
     const o = await order(platEventId, platSeats[3]);
     const p = await pay(o.id, { installments: 12 }).expect(201);
-    // 12 cuotas (10%): gateway = 129.68*0.10 + 2 = 14.97 ; platform = 10 − 8.49 = 1.51.
+    // 12 cuotas (10%): gateway = 131.79*0.10 + 2 = 15.18 ; platform = 10 − 6.59 = 3.41.
     const up = await prisma.order.findUniqueOrThrow({ where: { id: o.id } });
-    expect(money(up.gatewayFee)).toBe('14.97');
-    expect(money(up.platformFee)).toBe('1.51');
+    expect(money(up.gatewayFee)).toBe('15.18');
+    expect(money(up.platformFee)).toBe('3.41');
 
     const evt = `evt_inst_${stamp}`;
     await http()
@@ -231,7 +237,7 @@ describe('Pagos en cuotas (e2e)', () => {
     expect(chain.ok).toBe(true);
     // La plataforma ve su impuesto (IVA) y su costo real de pasarela por separado.
     expect(money(paid.iva)).toBe('13.20');
-    expect(money(paid.gatewayFee)).toBe('14.97');
+    expect(money(paid.gatewayFee)).toBe('15.18');
   });
 
   it('elegir cuotas en una pasarela SIN tarifario de cuotas → 400', async () => {
@@ -264,11 +270,11 @@ describe('Pagos en cuotas (e2e)', () => {
     const recu = opts.gateways.find((g: { gatewayId: string }) => g.gatewayId === recurrenteId);
     expect(recu).toBeDefined();
     const counts = recu.installmentOptions.map((x: { installments: number }) => x.installments).sort((a: number, b: number) => a - b);
-    expect(counts).toEqual([1, 3, 6, 12]); // 18 oculto (10 − 13.68 < 0)
+    expect(counts).toEqual([1, 3, 6, 12]); // 18 oculto (10 − 11.86 < 0)
     // El comprador paga lo mismo en todos los plazos ofrecidos.
     for (const opt of recu.installmentOptions) {
-      expect(money(opt.total)).toBe('129.68');
-      expect(money(opt.serviceFee)).toBe('16.48');
+      expect(money(opt.total)).toBe('131.79');
+      expect(money(opt.serviceFee)).toBe('18.59');
     }
   });
 

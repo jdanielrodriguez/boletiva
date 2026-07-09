@@ -6,7 +6,12 @@ import { LedgerService } from '../ledger/ledger.service';
 Decimal.set({ rounding: Decimal.ROUND_HALF_EVEN });
 
 const SETTING_KEY = 'costshare.default_pct';
-const DEFAULT_PCT = 0.5;
+/** Ola 6.6: el promotor por defecto NO ayuda con los gastos extra (0%). Sube su
+ * % (a pedido) para habilitarle cuotas y pasarelas premium. */
+const DEFAULT_PCT = 0;
+/** Umbral configurable de cost-share para habilitar CUOTAS al promotor. */
+const INSTALLMENTS_MIN_KEY = 'installments.min_cost_share_pct';
+const INSTALLMENTS_MIN_DEFAULT = 0.3;
 
 export interface ExtraCostInput {
   promoterId: string;
@@ -56,6 +61,35 @@ export class CostShareService {
     if (!user) throw new NotFoundException('Promotor no encontrado');
     if (user.costSharePct !== null) return user.costSharePct.toNumber();
     return this.getDefaultPct();
+  }
+
+  /** Umbral configurable (setting) de cost-share para habilitar CUOTAS. */
+  async installmentsMinPct(): Promise<number> {
+    const s = await this.prisma.setting.findUnique({ where: { key: INSTALLMENTS_MIN_KEY } });
+    const n = typeof s?.value === 'number' ? s.value : Number(s?.value);
+    return Number.isFinite(n) ? n : INSTALLMENTS_MIN_DEFAULT;
+  }
+
+  /** ¿El promotor califica para ofrecer CUOTAS? (cost-share ≥ umbral). */
+  async installmentsAllowed(promoterId: string): Promise<boolean> {
+    const [pct, min] = await Promise.all([
+      this.effectivePct(promoterId),
+      this.installmentsMinPct(),
+    ]);
+    return pct >= min;
+  }
+
+  /**
+   * ¿El promotor puede USAR esta pasarela? La default del sistema SIEMPRE (ignora
+   * su umbral — evita la paradoja de dejar un evento sin pasarela). Las demás
+   * exigen cost-share ≥ su `minCostSharePct`.
+   */
+  gatewayAllowed(
+    gw: { minCostSharePct: { toNumber(): number }; isPlatformDefault: boolean },
+    promoterPct: number,
+  ): boolean {
+    if (gw.isPlatformDefault) return true;
+    return promoterPct >= gw.minCostSharePct.toNumber();
   }
 
   async setPromoterPct(promoterId: string, pct: number | null) {

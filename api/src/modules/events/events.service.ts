@@ -14,6 +14,7 @@ import { slugify, slugWithSuffix } from '../../common/utils/slug';
 import { PromotersService } from '../promoters/promoters.service';
 import { PricingService } from '../pricing/pricing.service';
 import { PriceQuote } from '../pricing/pricing.engine';
+import { CostShareService } from '../cost-share/cost-share.service';
 import { CreateEventDto, UpdateEventDto } from './dto/events.dto';
 
 /** URLs firmadas de media públicas: expiran holgadamente para sobrevivir al
@@ -28,6 +29,7 @@ export class EventsService {
     private readonly storage: StorageService,
     private readonly pricing: PricingService,
     private readonly redis: RedisService,
+    private readonly costShare: CostShareService,
   ) {}
 
   /** Añade una URL firmada a cada media (para catálogo/SEO/og:image). */
@@ -49,12 +51,24 @@ export class EventsService {
     }
   }
 
-  /** La pasarela elegida debe existir y estar activa. */
-  private async assertGatewayActive(gatewayId?: string): Promise<void> {
+  /**
+   * La pasarela elegida debe existir, estar activa y el PROMOTOR debe calificar
+   * para usarla (Ola 6.6: su cost-share ≥ `minCostSharePct` de la pasarela; la
+   * default del sistema siempre está disponible).
+   */
+  private async assertGatewayActive(gatewayId?: string, promoterId?: string): Promise<void> {
     if (!gatewayId) return;
     const gw = await this.prisma.paymentGateway.findUnique({ where: { id: gatewayId } });
     if (!gw || gw.status !== GatewayStatus.active) {
       throw new BadRequestException('La pasarela indicada no existe o no está activa');
+    }
+    if (promoterId) {
+      const promoterPct = await this.costShare.effectivePct(promoterId);
+      if (!this.costShare.gatewayAllowed(gw, promoterPct)) {
+        throw new BadRequestException(
+          'Tu nivel de colaboración no habilita esta pasarela; solicita un ajuste al administrador',
+        );
+      }
     }
   }
 
@@ -217,7 +231,7 @@ export class EventsService {
     // Solo un promotor autorizado por un admin (o un admin) puede crear eventos.
     await this.promoters.assertCanOperate(userId);
     this.assertDates(dto.startsAt, dto.endsAt);
-    await this.assertGatewayActive(dto.gatewayId);
+    await this.assertGatewayActive(dto.gatewayId, userId);
     return this.prisma.event.create({
       data: {
         promoterId: userId,
@@ -264,7 +278,7 @@ export class EventsService {
         'El evento ya tiene compras; su pasarela e IVA quedaron congelados',
       );
     }
-    await this.assertGatewayActive(dto.gatewayId);
+    await this.assertGatewayActive(dto.gatewayId, event.promoterId);
     return this.prisma.event.update({
       where: { id },
       data: {

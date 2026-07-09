@@ -20,6 +20,14 @@ export interface FeeParams {
   ivaOnNet?: boolean;
   /** Cargos fijos opcionales (lado plataforma; se suman a la base gravable). */
   fixedFees?: number;
+  /**
+   * Cargo FIJO por transacción de la PASARELA (GTQ, p.ej. Q2 de Recurrente; Pagalo
+   * = 0). Aplica a TODO cobro (pago único y cuotas). Se grossea en la capa de
+   * división como el %: NO entra a la base gravable (no lleva IVA). El comprador
+   * lo cubre por boleto; al combinar N boletos en 1 transacción, la pasarela cobra
+   * el fijo UNA vez y la plataforma captura el ahorro (surplus) en el ledger.
+   */
+  transactionFixedFee?: number;
 }
 
 export interface PriceQuote {
@@ -129,13 +137,13 @@ export class PricingEngine {
     // del otro, el IVA, la base gravable ni el total. El ledger cuadra igual:
     //   net + platformFee + iva + gatewayFee = total.
     const gn = pct(plan.ratePct, 'installmentRatePct');
-    const fixedFee = new Decimal(plan.fixedFee ?? 0);
-    if (fixedFee.isNaN() || fixedFee.lt(0)) {
-      throw new BadRequestException('El cargo fijo de cuotas no puede ser negativo');
-    }
+    // El fijo por transacción es el MISMO en 1 pago y en cuotas (ya está en
+    // base.total y base.gatewayFee) → se cancela en `cost`; el promotor/plataforma
+    // solo absorbe el %-extra de financiamiento, no el fijo (lo paga el comprador).
+    const fixedFee = new Decimal(params.transactionFixedFee ?? 0);
     const total = new Decimal(base.total);
     const gatewayFee = round(total.mul(gn).add(fixedFee));
-    const cost = gatewayFee.sub(new Decimal(base.gatewayFee)); // extra vs 1 pago
+    const cost = gatewayFee.sub(new Decimal(base.gatewayFee)); // extra vs 1 pago (solo %)
     const byPromoter = plan.absorbedByPromoter === true;
 
     const net0 = new Decimal(base.net);
@@ -201,13 +209,19 @@ export class PricingEngine {
     const gatewayPct = pct(params.gatewayFeePct, 'gatewayFeePct');
     const ivaPct = pct(params.ivaPct, 'ivaPct');
     const ivaOnNet = params.ivaOnNet ?? true;
+    const txFixed = new Decimal(params.transactionFixedFee ?? 0);
+    if (txFixed.isNaN() || txFixed.lt(0)) {
+      throw new BadRequestException('El cargo fijo de pasarela no puede ser negativo');
+    }
 
     // Cálculo forward con precisión completa. Si ivaOnNet=false el IVA aplica solo
     // a la comisión de plataforma (+fijos); el neto igual se cobra, pero sin IVA.
     const platformFeeRaw = N.mul(platformPct);
     const ivaBaseRaw = (ivaOnNet ? N.add(platformFeeRaw) : platformFeeRaw).add(fixed);
     const ivaRaw = ivaBaseRaw.mul(ivaPct);
-    const prePasarelaRaw = N.add(platformFeeRaw).add(fixed).add(ivaRaw);
+    // El fijo de pasarela también se groosea por división (se suma al numerador),
+    // igual que el %; NO entra a la base gravable (no lleva IVA).
+    const prePasarelaRaw = N.add(platformFeeRaw).add(fixed).add(ivaRaw).add(txFixed);
     const totalRaw = prePasarelaRaw.div(new Decimal(1).sub(gatewayPct));
 
     // El total es lo cobrado (redondeado). Reconstruimos para que todo cuadre.
@@ -215,7 +229,8 @@ export class PricingEngine {
     const netR = round(N);
     const fixedR = round(fixed);
     const iva = round(ivaRaw);
-    const gatewayFee = round(total.mul(gatewayPct));
+    // Comisión de pasarela = % del total + fijo por transacción.
+    const gatewayFee = round(total.mul(gatewayPct).add(txFixed));
     // La comisión de plataforma absorbe el residuo de redondeo (margen del negocio).
     const platformFee = total.sub(gatewayFee).sub(iva).sub(netR).sub(fixedR);
     // Base gravable declarada = lo que efectivamente tributa IVA.

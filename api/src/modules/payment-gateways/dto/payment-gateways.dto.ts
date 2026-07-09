@@ -34,6 +34,27 @@ export class CreateGatewayDto {
 
   @ApiPropertyOptional({
     description:
+      'Cargo FIJO por transacción de la pasarela (GTQ, p.ej. Q2 de Recurrente). Aplica a TODO cobro (1 pago y cuotas).',
+    example: 2,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  transactionFixedFee?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Cost-share mínimo del promotor para usar esta pasarela (0.5 = 50%). La default de plataforma debe ser 0.',
+    example: 0.5,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  minCostSharePct?: number;
+
+  @ApiPropertyOptional({
+    description:
       'Comisión por cuotas: mapa cuotas→tasa, p.ej. {"3":0.08,"6":0.09,"12":0.10,"18":0.14}',
     example: { '3': 0.08, '6': 0.09, '12': 0.1, '18': 0.14 },
   })
@@ -75,6 +96,22 @@ export class UpdateGatewayDto {
   @Min(0)
   @Max(0.99999)
   feePct?: number;
+
+  @ApiPropertyOptional({ description: 'Cargo fijo por transacción (GTQ). Aplica a todo cobro.', example: 2 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  transactionFixedFee?: number;
+
+  @ApiPropertyOptional({
+    description: 'Cost-share mínimo del promotor para usar esta pasarela (0-1). La default debe ser 0.',
+    example: 0.5,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  minCostSharePct?: number;
 
   @ApiPropertyOptional({
     description: 'Comisión por cuotas: mapa cuotas→tasa. {} borra las cuotas.',
@@ -132,6 +169,20 @@ export class GatewayResponseDto {
     description: 'Comisión de la pasarela en 1 pago (Decimal serializado como string)',
   })
   feePct!: string;
+
+  @ApiProperty({
+    type: String,
+    example: '2.00',
+    description: 'Cargo fijo por transacción (GTQ). Aplica a todo cobro (1 pago y cuotas).',
+  })
+  transactionFixedFee!: string;
+
+  @ApiProperty({
+    type: String,
+    example: '0.00',
+    description: 'Cost-share mínimo del promotor para usar esta pasarela. La default = 0.',
+  })
+  minCostSharePct!: string;
 
   @ApiProperty({
     type: 'object',

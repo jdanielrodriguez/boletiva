@@ -41,9 +41,15 @@ async function seedSettings(): Promise<void> {
     },
     {
       key: 'costshare.default_pct',
-      value: 0.5,
+      value: 0,
       description:
-        'Reparto por defecto de gastos EXTRA que asume el promotor (0.5 = 50%; 0 = plataforma cubre todo)',
+        'Colaboración por defecto del promotor con gastos EXTRA (Ola 6.6: 0 = no colabora; el admin la sube a pedido para habilitarle cuotas/pasarelas premium)',
+    },
+    {
+      key: 'installments.min_cost_share_pct',
+      value: 0.3,
+      description:
+        'Cost-share mínimo del promotor para habilitar CUOTAS a sus compradores (0.3 = 30%)',
     },
     {
       key: 'promoters.require_approval',
@@ -86,26 +92,31 @@ async function seedFeeSchedule(): Promise<void> {
 /**
  * Pasarelas de pago (alpha/beta corren sobre el simulador webhook-first).
  * Recurrente = default de plataforma con pago en CUOTAS (Visacuotas/Mastercuotas:
- * 3→8% · 6→9% · 12→10% · 18→14%, +Q2 fijo — tarifario real). Pagalo = alternativa
- * sin cuotas. Sandbox se conserva (compatibilidad). El 1 pago de Recurrente es 5%
- * (idéntico al anterior → los precios base no cambian). El `provider` real se
- * enchufa detrás del mismo puerto cuando lleguen credenciales. Idempotente.
+ * 3→8% · 6→9% · 12→10% · 18→14%, +Q2 fijo — tarifario real). Ola 6.6: el Q2 es el
+ * FIJO POR TRANSACCIÓN (`transactionFixedFee`), aplica a TODO cobro (1 pago y
+ * cuotas); al combinar N boletos en 1 transacción la pasarela cobra el fijo una
+ * vez y la plataforma captura el surplus. Pagalo = alternativa sin cuotas ni fijo.
+ * Sandbox (fijo 0) se conserva → su precio base 129.68 queda intacto. Recurrente,
+ * al llevar Q2, sube levemente su precio de 1 pago (COGS real). El `provider` real
+ * se enchufa detrás del mismo puerto cuando lleguen credenciales. Idempotente.
+ * `minCostSharePct` = 0 en todas (Recurrente es la default → SIEMPRE disponible,
+ * edge 5). PayPal (a futuro) llevará 0.50.
  */
 async function seedGateway(): Promise<void> {
   const gateways: Array<{
     name: string;
     provider: string;
     feePct: string;
+    transactionFixedFee?: string;
     installmentRates?: Record<string, number>;
-    installmentFixedFee?: string;
     sandbox: boolean;
   }> = [
     {
       name: 'Recurrente',
       provider: 'simulator',
       feePct: '0.05000',
+      transactionFixedFee: '2.00',
       installmentRates: { '3': 0.08, '6': 0.09, '12': 0.1, '18': 0.14 },
-      installmentFixedFee: '2.00',
       sandbox: true,
     },
     { name: 'Pagalo', provider: 'simulator', feePct: '0.05000', sandbox: true },
@@ -116,14 +127,14 @@ async function seedGateway(): Promise<void> {
       where: { name: g.name },
       update: {
         installmentRates: g.installmentRates,
-        installmentFixedFee: g.installmentFixedFee,
+        transactionFixedFee: g.transactionFixedFee ?? '0.00',
       },
       create: {
         name: g.name,
         provider: g.provider,
         feePct: g.feePct,
+        transactionFixedFee: g.transactionFixedFee ?? '0.00',
         installmentRates: g.installmentRates,
-        installmentFixedFee: g.installmentFixedFee,
         sandbox: g.sandbox,
         status: 'active',
       },

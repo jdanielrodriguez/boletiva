@@ -609,6 +609,14 @@ model PaymentGateway {
   /// Cargo FIJO por transacción en cuotas (GTQ, p.ej. Q2 de Recurrente). Se suma
   /// al costo que absorbe la plataforma/promotor. null/0 = sin fijo.
   installmentFixedFee Decimal?   @map("installment_fixed_fee") @db.Decimal(12, 2)
+  /// Ola 6.6: cargo FIJO por transacción que aplica a TODO cobro (pago único y
+  /// cuotas). Se grossea como el %; el comprador lo paga por boleto y al combinar
+  /// N boletos en 1 transacción la plataforma captura (N-1)·fijo. Pagalo = 0.
+  transactionFixedFee Decimal   @default(0) @map("transaction_fixed_fee") @db.Decimal(12, 2)
+  /// Ola 6.6: % MÍNIMO de cost-share del promotor para poder USAR esta pasarela
+  /// (0 = disponible para todos; p.ej. PayPal 0.50). La pasarela default del
+  /// sistema ignora este umbral (siempre vendible).
+  minCostSharePct  Decimal       @default(0) @map("min_cost_share_pct") @db.Decimal(6, 5)
   credentialsRef   String?       @map("credentials_ref")
   status           GatewayStatus @default(active)
   isPlatformDefault Boolean      @default(false) @map("is_platform_default")

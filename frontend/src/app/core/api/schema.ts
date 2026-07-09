@@ -4651,6 +4651,16 @@ export interface components {
              */
             feePct: string;
             /**
+             * @description Cargo fijo por transacción (GTQ). Aplica a todo cobro (1 pago y cuotas).
+             * @example 2.00
+             */
+            transactionFixedFee: string;
+            /**
+             * @description Cost-share mínimo del promotor para usar esta pasarela. La default = 0.
+             * @example 0.00
+             */
+            minCostSharePct: string;
+            /**
              * @description Comisión por cuotas: mapa cuotas→tasa. null = sin cuotas.
              * @example {
              *       "3": 0.08,
@@ -4693,6 +4703,16 @@ export interface components {
              */
             feePct: number;
             /**
+             * @description Cargo FIJO por transacción de la pasarela (GTQ, p.ej. Q2 de Recurrente). Aplica a TODO cobro (1 pago y cuotas).
+             * @example 2
+             */
+            transactionFixedFee?: number;
+            /**
+             * @description Cost-share mínimo del promotor para usar esta pasarela (0.5 = 50%). La default de plataforma debe ser 0.
+             * @example 0.5
+             */
+            minCostSharePct?: number;
+            /**
              * @description Comisión por cuotas: mapa cuotas→tasa, p.ej. {"3":0.08,"6":0.09,"12":0.10,"18":0.14}
              * @example {
              *       "3": 0.08,
@@ -4716,6 +4736,16 @@ export interface components {
             name?: string;
             /** @example 0.05 */
             feePct?: number;
+            /**
+             * @description Cargo fijo por transacción (GTQ). Aplica a todo cobro.
+             * @example 2
+             */
+            transactionFixedFee?: number;
+            /**
+             * @description Cost-share mínimo del promotor para usar esta pasarela (0-1). La default debe ser 0.
+             * @example 0.5
+             */
+            minCostSharePct?: number;
             /**
              * @description Comisión por cuotas: mapa cuotas→tasa. {} borra las cuotas.
              * @example {

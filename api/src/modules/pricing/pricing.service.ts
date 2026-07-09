@@ -55,7 +55,7 @@ export class PricingService {
     const base = await this.platformFees();
     const gw = await this.resolveGateway(null, null);
     return {
-      params: { ...base.params, gatewayFeePct: gw.pct, ivaOnNet: true },
+      params: { ...base.params, gatewayFeePct: gw.pct, transactionFixedFee: gw.txFixed, ivaOnNet: true },
       scheduleId: base.scheduleId,
       version: base.version,
       gatewayId: gw.id,
@@ -67,7 +67,12 @@ export class PricingService {
     const base = await this.platformFees();
     const gw = await this.resolveGateway(event.gatewayId, event.frozenGatewayId);
     return {
-      params: { ...base.params, gatewayFeePct: gw.pct, ivaOnNet: event.ivaOnNet },
+      params: {
+        ...base.params,
+        gatewayFeePct: gw.pct,
+        transactionFixedFee: gw.txFixed,
+        ivaOnNet: event.ivaOnNet,
+      },
       scheduleId: base.scheduleId,
       version: base.version,
       gatewayId: gw.id,
@@ -87,6 +92,7 @@ export class PricingService {
     feeScheduleVersion: number | null,
     gatewayFeePct: number,
     ivaOnNet: boolean,
+    transactionFixedFee = 0,
   ): Promise<FeeParams> {
     const sched =
       (feeScheduleVersion !== null
@@ -95,6 +101,7 @@ export class PricingService {
     return {
       platformFeePct: sched ? sched.platformFeePct.toNumber() : DEFAULTS.platformFeePct,
       gatewayFeePct,
+      transactionFixedFee,
       ivaPct: sched ? sched.ivaPct.toNumber() : DEFAULTS.ivaPct,
       ivaOnNet,
       fixedFees: sched ? sched.fixedFees.toNumber() : 0,
@@ -137,13 +144,17 @@ export class PricingService {
   private async resolveGateway(
     gatewayId: string | null,
     frozenGatewayId: string | null,
-  ): Promise<{ pct: number; id: string | null }> {
+  ): Promise<{ pct: number; id: string | null; txFixed: number }> {
     const id = frozenGatewayId ?? gatewayId;
     let gw = id ? await this.prisma.paymentGateway.findUnique({ where: { id } }) : null;
     if (!gw)
       gw = await this.prisma.paymentGateway.findFirst({ where: { isPlatformDefault: true } });
-    if (!gw) return { pct: DEFAULTS.gatewayFeePct, id: null };
-    return { pct: gw.feePct.toNumber(), id: gw.id };
+    if (!gw) return { pct: DEFAULTS.gatewayFeePct, id: null, txFixed: 0 };
+    return {
+      pct: gw.feePct.toNumber(),
+      id: gw.id,
+      txFixed: gw.transactionFixedFee.toNumber(),
+    };
   }
 
   /** Plataforma + IVA (+ fijos) del fee_schedule activo (fallback settings/defaults). */
