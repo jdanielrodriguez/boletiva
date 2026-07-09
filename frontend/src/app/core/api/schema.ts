@@ -842,6 +842,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/promoters/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Mis invitaciones (admin ve todas) */
+        get: operations["PromoterInvitationsController_list_v1"];
+        put?: never;
+        /** Invita a uno o varios correos como promotor (genera URLs con token) */
+        post: operations["PromoterInvitationsController_create_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/promoters/invitations/peek": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Vista pública para precargar el registro (valida el token) */
+        get: operations["PromoterInvitationsController_peek_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/promoters/invitations/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Acepta la invitación: el usuario queda auto-aprobado como promotor */
+        post: operations["PromoterInvitationsController_accept_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/promoters/invitations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoca una invitación pendiente */
+        delete: operations["PromoterInvitationsController_revoke_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/pricing/schedules": {
         parameters: {
             query?: never;
@@ -1820,6 +1889,23 @@ export interface paths {
         get: operations["StreamController_orderStream_v1"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/banner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Genera (o regenera) el banner del evento con IA */
+        post: operations["BannerController_generate_v1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3273,6 +3359,74 @@ export interface components {
         PromoterDecisionDto: {
             /** @description Motivo de rechazo/suspensión */
             note?: string;
+        };
+        CreateInvitationsDto: {
+            /**
+             * @description Correos a invitar como promotor (uno o varios)
+             * @example [
+             *       "nuevo@promotor.com",
+             *       "otro@promotor.com"
+             *     ]
+             */
+            emails: string[];
+        };
+        CreatedInvitationDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example nuevo@promotor.com */
+            email: string;
+            /**
+             * @description Token en claro (solo aquí)
+             * @example a1b2c3…
+             */
+            token: string;
+            /**
+             * @description URL de registro con el token
+             * @example https://app/registro?token=…
+             */
+            url: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        CreateInvitationsResponseDto: {
+            invitations: components["schemas"]["CreatedInvitationDto"][];
+        };
+        InvitationListItemDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example nuevo@promotor.com */
+            email: string;
+            /** @enum {string} */
+            status: "pending" | "accepted" | "revoked" | "expired";
+            /** Format: uuid */
+            invitedById: string;
+            /** Format: uuid */
+            acceptedByUserId: string | null;
+            /** Format: date-time */
+            expiresAt: string;
+            /** Format: date-time */
+            acceptedAt: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        InvitationPeekDto: {
+            /**
+             * @description Correo al que se invitó
+             * @example nuevo@promotor.com
+             */
+            email: string;
+            /** @example true */
+            valid: boolean;
+        };
+        ClaimInvitationDto: {
+            /** @description Token de invitación (de la URL) */
+            token: string;
+        };
+        InvitationRevokedDto: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            status: "pending" | "accepted" | "revoked" | "expired";
         };
         FeeScheduleResponseDto: {
             /** Format: uuid */
@@ -4851,6 +5005,26 @@ export interface components {
              */
             total: string;
         };
+        BannerResponseDto: {
+            /**
+             * Format: uuid
+             * @description Id del media creado
+             */
+            id: string;
+            /** Format: uuid */
+            eventId: string;
+            /** @description Clave del objeto en el bucket */
+            key: string;
+            /** @enum {string} */
+            kind: "cover" | "gallery";
+            /** @description URL firmada del banner */
+            url: string;
+            /**
+             * @description Proveedor que generó el banner
+             * @example stub
+             */
+            provider: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -6024,6 +6198,111 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PromoterStatusResponseDto"];
+                };
+            };
+        };
+    };
+    PromoterInvitationsController_list_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationListItemDto"][];
+                };
+            };
+        };
+    };
+    PromoterInvitationsController_create_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateInvitationsDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateInvitationsResponseDto"];
+                };
+            };
+        };
+    };
+    PromoterInvitationsController_peek_v1: {
+        parameters: {
+            query: {
+                token: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationPeekDto"];
+                };
+            };
+        };
+    };
+    PromoterInvitationsController_accept_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClaimInvitationDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PromoterInvitationsController_revoke_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationRevokedDto"];
                 };
             };
         };
@@ -7619,6 +7898,27 @@ export interface operations {
                 };
                 content: {
                     "text/event-stream": components["schemas"]["OrderStreamSnapshotDto"];
+                };
+            };
+        };
+    };
+    BannerController_generate_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BannerResponseDto"];
                 };
             };
         };

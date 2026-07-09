@@ -35,6 +35,7 @@ import { TicketsModule } from './modules/tickets/tickets.module';
 import { PromotersModule } from './modules/promoters/promoters.module';
 import { RetentionModule } from './modules/retention/retention.module';
 import { StreamModule } from './modules/stream/stream.module';
+import { BannerModule } from './modules/banner/banner.module';
 
 @Module({
   imports: [
@@ -95,6 +96,7 @@ import { StreamModule } from './modules/stream/stream.module';
     PromotersModule,
     RetentionModule,
     StreamModule,
+    BannerModule,
   ],
   providers: [
     // Orden importa: autentica (JWT) → autoriza por rol → exige correo verificado.

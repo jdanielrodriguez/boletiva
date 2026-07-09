@@ -1795,6 +1795,173 @@
         ]
       }
     },
+    "/api/v1/promoters/invitations": {
+      "post": {
+        "operationId": "PromoterInvitationsController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInvitationsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateInvitationsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Invita a uno o varios correos como promotor (genera URLs con token)",
+        "tags": [
+          "promoters"
+        ]
+      },
+      "get": {
+        "operationId": "PromoterInvitationsController_list_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvitationListItemDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mis invitaciones (admin ve todas)",
+        "tags": [
+          "promoters"
+        ]
+      }
+    },
+    "/api/v1/promoters/invitations/peek": {
+      "get": {
+        "operationId": "PromoterInvitationsController_peek_v1",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationPeekDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Vista pública para precargar el registro (valida el token)",
+        "tags": [
+          "promoters"
+        ]
+      }
+    },
+    "/api/v1/promoters/invitations/accept": {
+      "post": {
+        "operationId": "PromoterInvitationsController_accept_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimInvitationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Acepta la invitación: el usuario queda auto-aprobado como promotor",
+        "tags": [
+          "promoters"
+        ]
+      }
+    },
+    "/api/v1/promoters/invitations/{id}": {
+      "delete": {
+        "operationId": "PromoterInvitationsController_revoke_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationRevokedDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revoca una invitación pendiente",
+        "tags": [
+          "promoters"
+        ]
+      }
+    },
     "/api/v1/pricing/schedules": {
       "get": {
         "operationId": "PricingController_listSchedules_v1",
@@ -4506,6 +4673,42 @@
           "stream"
         ]
       }
+    },
+    "/api/v1/events/{id}/banner": {
+      "post": {
+        "operationId": "BannerController_generate_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Genera (o regenera) el banner del evento con IA",
+        "tags": [
+          "events"
+        ]
+      }
     }
   },
   "info": {
@@ -6896,6 +7099,179 @@
             "description": "Motivo de rechazo/suspensión"
           }
         }
+      },
+      "CreateInvitationsDto": {
+        "type": "object",
+        "properties": {
+          "emails": {
+            "description": "Correos a invitar como promotor (uno o varios)",
+            "example": [
+              "nuevo@promotor.com",
+              "otro@promotor.com"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "emails"
+        ]
+      },
+      "CreatedInvitationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "example": "nuevo@promotor.com"
+          },
+          "token": {
+            "type": "string",
+            "description": "Token en claro (solo aquí)",
+            "example": "a1b2c3…"
+          },
+          "url": {
+            "type": "string",
+            "description": "URL de registro con el token",
+            "example": "https://app/registro?token=…"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "token",
+          "url",
+          "expiresAt"
+        ]
+      },
+      "CreateInvitationsResponseDto": {
+        "type": "object",
+        "properties": {
+          "invitations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreatedInvitationDto"
+            }
+          }
+        },
+        "required": [
+          "invitations"
+        ]
+      },
+      "InvitationListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "example": "nuevo@promotor.com"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "accepted",
+              "revoked",
+              "expired"
+            ]
+          },
+          "invitedById": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "acceptedByUserId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "acceptedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "status",
+          "invitedById",
+          "acceptedByUserId",
+          "expiresAt",
+          "acceptedAt",
+          "createdAt"
+        ]
+      },
+      "InvitationPeekDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "nuevo@promotor.com",
+            "description": "Correo al que se invitó"
+          },
+          "valid": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "email",
+          "valid"
+        ]
+      },
+      "ClaimInvitationDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token de invitación (de la URL)"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "InvitationRevokedDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "accepted",
+              "revoked",
+              "expired"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "status"
+        ]
       },
       "FeeScheduleResponseDto": {
         "type": "object",
@@ -9683,6 +10059,48 @@
           "id",
           "status",
           "total"
+        ]
+      },
+      "BannerResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Id del media creado"
+          },
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string",
+            "description": "Clave del objeto en el bucket"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "cover",
+              "gallery"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "description": "URL firmada del banner"
+          },
+          "provider": {
+            "type": "string",
+            "example": "stub",
+            "description": "Proveedor que generó el banner"
+          }
+        },
+        "required": [
+          "id",
+          "eventId",
+          "key",
+          "kind",
+          "url",
+          "provider"
         ]
       }
     }
