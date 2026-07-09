@@ -1,12 +1,13 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { SessionStore } from '../../core/auth/session.store';
 
 /**
  * Cabecera con navegación y área de sesión. El estado se hidrata en el cliente
- * (SSR anónimo → páginas públicas cacheables). El nombre del usuario abre un
- * menú desplegable con Perfil, Configuraciones y Salir.
+ * (SSR anónimo → páginas públicas cacheables). El "Hola, {nombre}" va FUERA del
+ * botón; el trigger es un icono de persona (o la foto del usuario si tiene) que
+ * abre el menú desplegable con Perfil, accesos rápidos, panel y Salir.
  */
 @Component({
   selector: 'app-header',
@@ -19,6 +20,11 @@ export class Header {
   protected readonly session = inject(SessionStore);
 
   protected readonly menuOpen = signal(false);
+
+  /** Foto del usuario si la tiene; null → el trigger cae al icono de persona. */
+  protected readonly avatarUrl = computed(
+    () => (this.session.user() as { avatarUrl?: string | null } | null)?.avatarUrl ?? null,
+  );
 
   toggleMenu(): void {
     this.menuOpen.update((v) => !v);

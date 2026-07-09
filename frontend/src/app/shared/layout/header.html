@@ -22,18 +22,36 @@
 
   <div class="session-area" data-testid="session-area">
     @if (session.isAuthenticated()) {
+      <span class="greeting" data-testid="session-greeting">Hola, {{ session.user()?.firstName }}</span>
       <div class="user-menu">
-        <button type="button" class="user-trigger" data-testid="user-menu-trigger" (click)="toggleMenu()">
-          <span class="greeting" data-testid="session-greeting">Hola, {{ session.user()?.firstName }}</span>
-          <span class="caret" aria-hidden="true">▾</span>
+        <button
+          type="button"
+          class="user-trigger"
+          data-testid="user-menu-trigger"
+          [attr.aria-expanded]="menuOpen()"
+          aria-haspopup="menu"
+          aria-label="Menú de la cuenta"
+          (click)="toggleMenu()"
+        >
+          @if (avatarUrl(); as url) {
+            <img class="user-avatar" [src]="url" alt="" data-testid="user-avatar" width="36" height="36" />
+          } @else {
+            <span class="user-avatar user-avatar-icon" data-testid="user-avatar-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4 20c0-3.6 3.6-6 8-6s8 2.4 8 6" stroke-linecap="round" />
+              </svg>
+            </span>
+          }
         </button>
         @if (menuOpen()) {
-          <div class="user-dropdown" data-testid="user-dropdown">
+          <div class="user-dropdown" data-testid="user-dropdown" role="menu">
             <a routerLink="/cuenta" (click)="closeMenu()" data-testid="dd-perfil">Perfil</a>
 
             <div class="dd-quick" aria-label="Accesos rápidos">
-              <a [routerLink]="['/cuenta']" [queryParams]="{ s: 'metodos' }" (click)="closeMenu()" data-testid="dd-metodos">Método de pago</a>
+              <a [routerLink]="['/cuenta']" [queryParams]="{ s: 'metodos' }" (click)="closeMenu()" data-testid="dd-metodos">Métodos de pago</a>
               <a [routerLink]="['/cuenta']" [queryParams]="{ s: 'activos' }" (click)="closeMenu()" data-testid="dd-boletos">Boletos</a>
+              <a [routerLink]="['/cuenta']" [queryParams]="{ s: 'facturacion' }" (click)="closeMenu()" data-testid="dd-facturacion">Facturación</a>
               <a [routerLink]="['/cuenta']" [queryParams]="{ s: 'wallet' }" (click)="closeMenu()" data-testid="dd-wallet">Wallet</a>
             </div>
 

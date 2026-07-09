@@ -45,4 +45,17 @@ describe('ToastContainer', () => {
     fixture.detectChanges();
     expect(el.querySelectorAll('.toast').length).toBe(2);
   });
+
+  it('cada toast lleva un icono SVG por tipo', () => {
+    toasts.success('ok', 0);
+    fixture.detectChanges();
+    const node = el.querySelector('[data-testid="toast-success"]');
+    expect(node?.querySelector('.toast-icon svg')).not.toBeNull();
+  });
+
+  it('los errores/advertencias usan role="alert"', () => {
+    toasts.error('boom', 0);
+    fixture.detectChanges();
+    expect(el.querySelector('[data-testid="toast-error"]')?.getAttribute('role')).toBe('alert');
+  });
 });

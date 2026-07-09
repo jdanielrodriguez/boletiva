@@ -10,7 +10,9 @@ describe('Header', () => {
   let fixture: ComponentFixture<Header>;
   let comp: Header;
 
-  async function setup(opts: { authed?: boolean; roles?: string[]; logout?: unknown } = {}) {
+  async function setup(
+    opts: { authed?: boolean; roles?: string[]; logout?: unknown; avatarUrl?: string | null } = {},
+  ) {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
@@ -23,7 +25,7 @@ describe('Header', () => {
           provide: SessionStore,
           useValue: {
             isAuthenticated: () => opts.authed ?? true,
-            user: () => ({ firstName: 'Ana' }),
+            user: () => ({ firstName: 'Ana', avatarUrl: opts.avatarUrl ?? null }),
             hasAnyRole: (r: string[]) => (opts.roles ?? []).some((x) => r.includes(x)),
           },
         },
@@ -70,6 +72,39 @@ describe('Header', () => {
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('[data-testid="promoter-link"]')).not.toBeNull();
     expect(el.querySelector('[data-testid="config-link"]')).not.toBeNull();
+  });
+
+  it('el saludo va FUERA del botón trigger', async () => {
+    await setup();
+    const el = fixture.nativeElement as HTMLElement;
+    const greeting = el.querySelector('[data-testid="session-greeting"]');
+    const trigger = el.querySelector('[data-testid="user-menu-trigger"]');
+    expect(greeting).not.toBeNull();
+    expect(trigger?.contains(greeting)).toBe(false);
+  });
+
+  it('sin avatar el trigger muestra el icono de persona', async () => {
+    await setup({ avatarUrl: null });
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="user-avatar-icon"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="user-avatar"]')).toBeNull();
+  });
+
+  it('con avatar el trigger muestra la foto del usuario', async () => {
+    await setup({ avatarUrl: 'https://cdn/x.png' });
+    const el = fixture.nativeElement as HTMLElement;
+    const img = el.querySelector('[data-testid="user-avatar"]') as HTMLImageElement | null;
+    expect(img).not.toBeNull();
+    expect(img?.getAttribute('src')).toBe('https://cdn/x.png');
+    expect(el.querySelector('[data-testid="user-avatar-icon"]')).toBeNull();
+  });
+
+  it('el dropdown incluye Facturación', async () => {
+    await setup({ roles: [] });
+    comp.toggleMenu();
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="dd-facturacion"]')).not.toBeNull();
   });
 
   it('logout navega al inicio', async () => {
