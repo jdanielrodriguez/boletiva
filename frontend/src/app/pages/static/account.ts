@@ -1,4 +1,4 @@
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -67,7 +67,7 @@ function groupByEventOrder(tickets: TicketResponseDto[]): EventGroup[] {
  */
 @Component({
   selector: 'app-account',
-  imports: [FormsModule, DatePipe],
+  imports: [FormsModule, DatePipe, DecimalPipe],
   templateUrl: './account.html',
 })
 export class Account {
@@ -111,6 +111,19 @@ export class Account {
   protected readonly withdrawals = signal<WithdrawalResponseDto[]>([]);
   protected readonly withdrawAmount = signal<number | null>(null);
   protected readonly withdrawing = signal(false);
+  /**
+   * Comisión de retiro estimada por rol: promotor 3%, usuario 6% (el doble). Es
+   * solo una previsualización; el valor autoritativo lo calcula el backend.
+   */
+  protected readonly withdrawFeePct = computed(() =>
+    this.session.hasAnyRole?.(['promoter', 'admin']) ? 0.03 : 0.06,
+  );
+  /** Neto estimado a recibir (monto − comisión), para la previsualización. */
+  protected readonly withdrawNetPreview = computed(() => {
+    const amount = this.withdrawAmount() ?? 0;
+    if (amount <= 0) return null;
+    return amount * (1 - this.withdrawFeePct());
+  });
 
   // --- Facturación (órdenes) ---
   protected readonly orders = signal<OrderResponseDto[]>([]);
@@ -146,7 +159,7 @@ export class Account {
     const s = this.route.snapshot.queryParamMap.get('s') as Section | null;
     if (s && Account.SECTIONS.includes(s)) this.section.set(s);
     this.orderFilter.set(this.route.snapshot.queryParamMap.get('order'));
-    if (this.section() === 'facturacion') this.loadOrders();
+    if (this.section() === 'facturacion' || this.section() === 'wallet') this.loadOrders();
     this.loadWallet();
 
     // El QR se muestra por defecto: al abrir "activos", precargamos la media de los
@@ -164,7 +177,7 @@ export class Account {
 
   protected select(s: Section): void {
     this.section.set(s);
-    if (s === 'facturacion' && this.orders().length === 0) this.loadOrders();
+    if ((s === 'facturacion' || s === 'wallet') && this.orders().length === 0) this.loadOrders();
   }
 
   // --- Perfil ---

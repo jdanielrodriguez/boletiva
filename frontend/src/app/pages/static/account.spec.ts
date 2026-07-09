@@ -169,6 +169,26 @@ describe('Account (mi cuenta)', () => {
     expect(lastToast()?.kind).toBe('warning');
   });
 
+  it('wallet muestra preview de comisión/neto al ingresar monto', async () => {
+    await setup();
+    go('menu-wallet');
+    fixture.componentInstance['withdrawAmount'].set(100);
+    fixture.detectChanges();
+    const preview = el.querySelector('[data-testid="withdraw-preview"]')?.textContent ?? '';
+    expect(preview).toContain('6%'); // usuario sin rol promotor → 6%
+    expect(preview).toContain('94.00'); // neto estimado 100 - 6%
+  });
+
+  it('wallet: ver transacción navega a facturación con la orden', async () => {
+    await setup({ orders: { list: () => of({ items: [{ id: 'o9', total: '129.68', status: 'paid', createdAt: '2026-07-01' }], nextCursor: null }) } });
+    const nav = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    go('menu-wallet');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    go('wallet-ver-transaccion');
+    expect(nav).toHaveBeenCalledWith(['/cuenta'], { queryParams: { s: 'facturacion', order: 'o9' } });
+  });
+
   it('solicitar retiro con monto llama al API y notifica', async () => {
     const requestWithdrawal = jasmine.createSpy('req').and.returnValue(of({}));
     await setup({ wallet: { requestWithdrawal } });

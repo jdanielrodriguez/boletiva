@@ -93,40 +93,76 @@
 
         @case ('wallet') {
           <h2>Wallet</h2>
-          @if (wallet(); as w) {
-            <p class="wallet-balance" data-testid="wallet-balance">Saldo: Q{{ w.balance }}</p>
-          } @else {
-            <p class="muted">No se pudo cargar tu saldo.</p>
-          }
+
+          <div class="wallet-hero">
+            <span class="wallet-hero-label">Saldo disponible</span>
+            @if (wallet(); as w) {
+              <span class="wallet-hero-amount" data-testid="wallet-balance">Q{{ w.balance }}</span>
+              <span class="wallet-hero-currency">{{ w.currency }}</span>
+            } @else {
+              <span class="muted">No se pudo cargar tu saldo.</span>
+            }
+          </div>
+
           <p class="muted wallet-source" data-testid="wallet-source">
             Tu saldo proviene únicamente de <strong>reembolsos</strong> y <strong>reventas</strong> de boletos.
             No es posible recargarlo con tarjeta: solo circula dinero ya amparado por una compra.
             Puedes usarlo para pagar boletos o retirarlo a tu cuenta.
           </p>
 
-          <form class="withdraw-form" (ngSubmit)="requestWithdrawal()">
-            <label for="wd-amount">Retirar saldo (Q)</label>
-            <input id="wd-amount" type="number" min="1" step="0.01" [ngModel]="withdrawAmount()" (ngModelChange)="withdrawAmount.set($event)" name="amount" data-testid="withdraw-amount" />
-            <button type="submit" class="primary" [disabled]="withdrawing()" data-testid="request-withdrawal">
-              {{ withdrawing() ? 'Solicitando…' : 'Solicitar retiro' }}
-            </button>
-          </form>
-
-          @if (withdrawals().length > 0) {
-            <h3>Mis retiros</h3>
-            <ul class="withdrawal-list" data-testid="withdrawals-list">
-              @for (w of withdrawals(); track w.id) {
-                <li>
-                  <span>Q{{ w.amount }}</span>
-                  <span class="muted">neto Q{{ w.net }}</span>
-                  <span class="muted">{{ w.status }}</span>
-                  @if (w.status === 'pending') {
-                    <button type="button" (click)="cancelWithdrawal(w.id)" data-testid="cancel-withdrawal">Cancelar</button>
-                  }
-                </li>
+          <div class="card-block">
+            <h3>Solicitar retiro</h3>
+            <form class="stacked-form withdraw-form" (ngSubmit)="requestWithdrawal()">
+              <div class="field">
+                <label for="wd-amount">Monto a retirar (Q)</label>
+                <input id="wd-amount" type="number" min="1" step="0.01" [ngModel]="withdrawAmount()" (ngModelChange)="withdrawAmount.set($event)" name="amount" data-testid="withdraw-amount" />
+              </div>
+              @if (withdrawNetPreview(); as net) {
+                <p class="withdraw-preview" data-testid="withdraw-preview">
+                  Comisión estimada ({{ withdrawFeePct() * 100 }}%): se te acreditará aprox.
+                  <strong>Q{{ net | number: '1.2-2' }}</strong>.
+                  El retiro queda <strong>pendiente de aprobación</strong> del equipo.
+                </p>
               }
-            </ul>
-          }
+              <button type="submit" class="primary" [disabled]="withdrawing()" data-testid="request-withdrawal">
+                {{ withdrawing() ? 'Solicitando…' : 'Solicitar retiro' }}
+              </button>
+            </form>
+
+            @if (withdrawals().length > 0) {
+              <h4>Mis retiros</h4>
+              <ul class="withdrawal-list" data-testid="withdrawals-list">
+                @for (w of withdrawals(); track w.id) {
+                  <li>
+                    <span>Q{{ w.amount }}</span>
+                    <span class="muted">neto Q{{ w.net }}</span>
+                    <span class="badge badge-{{ w.status }}">{{ w.status }}</span>
+                    @if (w.status === 'pending') {
+                      <button type="button" (click)="cancelWithdrawal(w.id)" data-testid="cancel-withdrawal">Cancelar</button>
+                    }
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+
+          <div class="card-block">
+            <h3>Movimientos recientes</h3>
+            @if (orders().length > 0) {
+              <ul class="order-list mini" data-testid="wallet-orders">
+                @for (o of orders().slice(0, 5); track o.id) {
+                  <li>
+                    <span>{{ o.createdAt | date: 'dd/MM/yyyy' }}</span>
+                    <span class="badge badge-{{ o.status }}">{{ o.status }}</span>
+                    <span>Q{{ o.total }}</span>
+                    <button type="button" class="link-btn" (click)="verCompra(o.id)" data-testid="wallet-ver-transaccion">Ver transacción</button>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="muted">Aún no tienes compras registradas.</p>
+            }
+          </div>
         }
 
         @case ('activos') {
