@@ -115,7 +115,11 @@ async function seedGateway(): Promise<void> {
       name: 'Recurrente',
       provider: 'simulator',
       feePct: '0.05000',
-      transactionFixedFee: '2.00',
+      // En producción Recurrente cobra Q2 fijo por transacción; en seed/demo se deja
+      // en 0 para preservar el precio canónico (129.68) que usan los e2e generales.
+      // El mecanismo del fijo + surplus se prueba con pasarelas dedicadas en los
+      // e2e de cuotas y de Ola 6.6.
+      transactionFixedFee: '0.00',
       installmentRates: { '3': 0.08, '6': 0.09, '12': 0.1, '18': 0.14 },
       sandbox: true,
     },
@@ -125,9 +129,14 @@ async function seedGateway(): Promise<void> {
   for (const g of gateways) {
     await prisma.paymentGateway.upsert({
       where: { name: g.name },
+      // El update resetea feePct/fijo/estado → reseed deja un estado PRISTINO (evita
+      // arrastrar mutaciones de tarifa entre corridas de e2e).
       update: {
-        installmentRates: g.installmentRates,
+        feePct: g.feePct,
+        installmentRates: g.installmentRates ?? undefined,
         transactionFixedFee: g.transactionFixedFee ?? '0.00',
+        minCostSharePct: '0.00000',
+        status: 'active',
       },
       create: {
         name: g.name,
@@ -140,14 +149,17 @@ async function seedGateway(): Promise<void> {
       },
     });
   }
-  // Garantizar una sola default = Recurrente (sin violar el índice parcial).
+  // Default de plataforma = Sandbox (simulador, 5% sin fijo): precio canónico para
+  // demo/tests. Recurrente/Pagalo quedan como opciones seleccionables (cuotas). El
+  // comprador igual puede elegir Recurrente en el checkout. Una sola default (índice
+  // parcial). En producción se designa la pasarela real como default.
   await prisma.$transaction([
     prisma.paymentGateway.updateMany({
-      where: { isPlatformDefault: true, name: { not: 'Recurrente' } },
+      where: { isPlatformDefault: true, name: { not: 'Sandbox' } },
       data: { isPlatformDefault: false },
     }),
     prisma.paymentGateway.updateMany({
-      where: { name: 'Recurrente' },
+      where: { name: 'Sandbox' },
       data: { isPlatformDefault: true, status: 'active' },
     }),
   ]);

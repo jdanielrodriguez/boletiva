@@ -148,6 +148,14 @@ enum PromoterStatus {
   suspended // autorización revocada por el admin
 }
 
+/// Estado de una invitación de promotor por token (Ola F4).
+enum PromoterInvitationStatus {
+  pending // enviada; el token sigue vigente
+  accepted // el destinatario se registró y quedó auto-aprobado
+  revoked // cancelada por quien invitó
+  expired // venció sin usarse
+}
+
 /// Estado de una orden de compra.
 enum OrderStatus {
   pending // creada; asientos ya reservados (sold) a la espera de pago
@@ -227,6 +235,7 @@ model User {
   tickets       Ticket[]           @relation("TicketOwner")
   withdrawals   WalletWithdrawal[]
   gateAssignments GateAssignment[] @relation("GateOperator")
+  promoterInvitations PromoterInvitation[] @relation("InvitedBy")
 
   @@index([status])
   @@map("users")
@@ -910,4 +919,27 @@ model GateAssignment {
   @@unique([eventId, operatorId])
   @@index([operatorId])
   @@map("gate_assignments")
+}
+
+/// Invitación de promotor por token (Ola F4). Un admin o promotor aprobado invita
+/// por correo; el destinatario abre la URL con el token, se registra con el email
+/// precargado y queda AUTO-APROBADO como promotor (se salta la autorización). El
+/// token se guarda hasheado (solo se muestra una vez en la URL).
+model PromoterInvitation {
+  id               String                   @id @default(uuid()) @db.Uuid
+  email            String
+  tokenHash        String                   @unique @map("token_hash")
+  status           PromoterInvitationStatus @default(pending)
+  invitedById      String                   @map("invited_by_id") @db.Uuid
+  acceptedByUserId String?                  @map("accepted_by_user_id") @db.Uuid
+  expiresAt        DateTime                 @map("expires_at")
+  acceptedAt       DateTime?                @map("accepted_at")
+  createdAt        DateTime                 @default(now()) @map("created_at")
+  updatedAt        DateTime                 @updatedAt @map("updated_at")
+
+  invitedBy User @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([email])
+  @@index([invitedById])
+  @@map("promoter_invitations")
 }

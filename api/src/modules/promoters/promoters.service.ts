@@ -86,6 +86,12 @@ export class PromotersService {
     return this.summarize(await this.grant(user));
   }
 
+  /** Auto-aprueba a un usuario que aceptó una invitación por token (F4). */
+  async autoApprove(userId: string) {
+    const user = await this.getUser(userId);
+    return this.summarize(await this.grant(user));
+  }
+
   async reject(id: string, note?: string) {
     const user = await this.getUser(id);
     return this.summarize(await this.revoke(user, PromoterStatus.rejected, note));
