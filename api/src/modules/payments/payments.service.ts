@@ -538,7 +538,10 @@ export class PaymentsService {
       const paidItems = order.items.filter((it) => new Decimal(it.total.toString()).gt(0)).length;
       const fixedBaked = txFixed.mul(Math.max(paidItems, 0)); // N·fijo embebido en gatewayFee
       const pctPart = gatewayFee.sub(fixedBaked); // = %pasarela · total
-      const realPctFee = pctPart.mul(total.isZero() ? 0 : gatewayCharge.div(total));
+      const realPctFee = pctPart.mul(
+        /* istanbul ignore next: el total de una orden nunca es 0 (precio server-authoritative con neto > 0); la guarda evita una división por cero de forma puramente defensiva */
+        total.isZero() ? 0 : gatewayCharge.div(total),
+      );
       const realFixed = gatewayCharge.gt(0) ? txFixed : new Decimal(0);
       const gatewayFeeR = realPctFee.add(realFixed).toDecimalPlaces(2, Decimal.ROUND_HALF_EVEN);
       // La plataforma retiene la diferencia: surplus (N-1)·fijo + ahorro por wallet.
