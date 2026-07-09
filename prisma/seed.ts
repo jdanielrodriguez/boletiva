@@ -160,6 +160,7 @@ async function seedUsers() {
     firstName: string;
     roles: Role[];
     promoterStatus?: PromoterStatus;
+    costSharePct?: number;
   }> = [
     { email: 'admin@pasaeventos.com', firstName: 'Admin', roles: [Role.admin] },
     {
@@ -167,6 +168,9 @@ async function seedUsers() {
       firstName: 'Promotor',
       roles: [Role.promoter],
       promoterStatus: PromoterStatus.approved, // ya autorizado (puede operar)
+      // Demo: colabora 50% → habilita CUOTAS y pasarelas premium en sus eventos
+      // (con el default 0 no las ofrecería). Ola 6.6.
+      costSharePct: 0.5,
     },
     { email: 'cliente@pasaeventos.com', firstName: 'Cliente', roles: [Role.buyer] },
   ];
@@ -176,9 +180,10 @@ async function seedUsers() {
       u.promoterStatus === PromoterStatus.approved
         ? { promoterStatus: PromoterStatus.approved, promoterDecidedAt: new Date() }
         : {};
+    const costShare = u.costSharePct !== undefined ? { costSharePct: u.costSharePct } : {};
     const user = await prisma.user.upsert({
       where: { email: u.email },
-      update: { roles: u.roles, emailVerifiedAt: new Date(), ...promoter },
+      update: { roles: u.roles, emailVerifiedAt: new Date(), ...promoter, ...costShare },
       create: {
         email: u.email,
         firstName: u.firstName,
@@ -186,6 +191,7 @@ async function seedUsers() {
         roles: u.roles,
         emailVerifiedAt: new Date(), // usuarios semilla ya verificados
         ...promoter,
+        ...costShare,
       },
     });
     created[u.email] = user.id;
