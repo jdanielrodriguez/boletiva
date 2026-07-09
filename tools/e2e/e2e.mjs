@@ -130,7 +130,8 @@ async function main() {
   await step('reserva SIN login y genera link para compartir', async () => {
     await page.goto(`${FE}/eventos/${EVENT_SLUG}/comprar`, { waitUntil: 'networkidle0' });
     await waitSel(page, '[data-testid="loc-quantity"]');
-    await (await page.$('.loc-quantity select')).select('1');
+    await waitSel(page, '[data-testid="qty-plus"]');
+    await page.click('[data-testid="qty-plus"]');
     await page.click('[data-testid="reserve-btn"]');
     await waitSel(page, '[data-testid="share-box"]', 15000);
     const wa = await page.$eval('.share-btn.wa', (a) => a.href);
@@ -172,9 +173,20 @@ async function main() {
   await step('selecciona General por cantidad y reserva', async () => {
     await page.goto(`${FE}/eventos/${EVENT_SLUG}/comprar`, { waitUntil: 'networkidle0' });
     await waitSel(page, '[data-testid="loc-quantity"]');
-    const select = await page.$('.loc-quantity select');
-    assert(select !== null, 'no hay selector de cantidad para General');
-    await select.select('2');
+    // Stepper +/− (reemplazó al <select> nativo): sube a 2, esperando el re-render
+    // (zoneless) entre clics para no perder ninguna pulsación.
+    const plus = await page.$('[data-testid="qty-plus"]');
+    assert(plus !== null, 'no hay selector de cantidad para General');
+    await page.click('[data-testid="qty-plus"]');
+    await page.waitForFunction(
+      () => document.querySelector('[data-testid="qty-value"]')?.textContent.trim() === '1',
+      { timeout: 5000 },
+    );
+    await page.click('[data-testid="qty-plus"]');
+    await page.waitForFunction(
+      () => document.querySelector('[data-testid="qty-value"]')?.textContent.trim() === '2',
+      { timeout: 5000 },
+    );
     await page.click('[data-testid="reserve-btn"]');
     await waitSel(page, '[data-testid="countdown"]', 15000);
   });
@@ -259,7 +271,7 @@ async function main() {
     for (let i = 0; i < 20 && !src; i++) {
       await page.goto(`${FE}/cuenta?s=activos`, { waitUntil: 'networkidle0' });
       await waitSel(page, '.account-menu', 20000);
-      const img = await page.$('.ticket-media img');
+      const img = await page.$('.poster-qr img');
       if (img) src = await page.evaluate((el) => el.getAttribute('src'), img);
       if (!src) await sleep(1500);
     }

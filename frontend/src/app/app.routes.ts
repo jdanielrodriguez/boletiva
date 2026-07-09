@@ -100,6 +100,13 @@ export const routes: Routes = [
     title: 'Mi cuenta — Pasa Eventos',
   },
   {
+    path: 'cuenta/transaccion/:orderId',
+    loadComponent: () =>
+      import('./pages/account/transaction-detail').then((m) => m.TransactionDetail),
+    canActivate: [authGuard],
+    title: 'Transacción — Pasa Eventos',
+  },
+  {
     path: 'configuracion',
     loadComponent: () => import('./pages/config/config.page').then((m) => m.ConfigPage),
     canActivate: [roleGuard('admin')],

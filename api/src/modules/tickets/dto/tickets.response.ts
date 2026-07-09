@@ -57,6 +57,14 @@ export class TicketResponseDto {
   @ApiPropertyOptional({ type: () => TicketEventSummaryDto, description: 'Evento anidado (si se incluyó)' })
   event?: TicketEventSummaryDto;
 
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    description: 'URL firmada del banner (cover) del evento, para el boleto estilo póster; null si el evento no tiene cover',
+    example: 'https://storage.pasaeventos.com/events/.../cover.jpg?sig=...',
+  })
+  eventBannerUrl?: string | null;
+
   @ApiProperty({ example: true, description: 'Si la media (QR/PDF) ya está generada' })
   mediaReady!: boolean;
 }

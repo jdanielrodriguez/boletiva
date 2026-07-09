@@ -196,14 +196,14 @@ describe('Account (mi cuenta)', () => {
     expect(preview).toContain('94.00'); // neto estimado 100 - 6%
   });
 
-  it('wallet: ver transacción navega a facturación con la orden', async () => {
+  it('wallet: ver transacción navega a la vista de detalle de la orden', async () => {
     await setup({ orders: { list: () => of({ items: [{ id: 'o9', total: '129.68', status: 'paid', createdAt: '2026-07-01' }], nextCursor: null }) } });
     const nav = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
     go('menu-wallet');
     await fixture.whenStable();
     fixture.detectChanges();
     go('wallet-ver-transaccion');
-    expect(nav).toHaveBeenCalledWith(['/cuenta'], { queryParams: { s: 'facturacion', order: 'o9' } });
+    expect(nav).toHaveBeenCalledWith(['/cuenta/transaccion', 'o9']);
   });
 
   it('solicitar retiro con monto llama al API y notifica', async () => {
@@ -231,16 +231,15 @@ describe('Account (mi cuenta)', () => {
     expect(cont?.querySelectorAll('.event-card').length).toBe(1); // un solo evento (e1)
     expect(cont?.querySelectorAll('.order-block').length).toBe(2); // dos compras (o1, o2)
     expect(cont?.textContent).toContain('VIP');
-    expect(cont?.textContent).toContain('Asiento A1');
+    expect(cont?.textContent).toContain('A1'); // localidad · asiento en el título del póster
   });
 
-  it('ver compra navega a facturación filtrando la orden', async () => {
+  it('ver compra navega a la vista de detalle de la transacción', async () => {
     await setup();
     const nav = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
     go('menu-activos');
     go('ver-compra');
-    expect(nav).toHaveBeenCalledWith(['/cuenta'], { queryParams: { s: 'facturacion', order: 'o1' } });
-    expect(fixture.componentInstance['orderFilter']()).toBe('o1');
+    expect(nav).toHaveBeenCalledWith(['/cuenta/transaccion', 'o1']);
   });
 
   it('transferir un boleto muestra el código a compartir', async () => {
@@ -259,7 +258,7 @@ describe('Account (mi cuenta)', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     expect(media).toHaveBeenCalledWith('t1');
-    expect(el.querySelector('.ticket-media img')?.getAttribute('src')).toContain('qr.png');
+    expect(el.querySelector('.poster-qr img')?.getAttribute('src')).toContain('qr.png');
   });
 
   it('el botón alterna la visibilidad del QR (Ocultar/Ver)', async () => {
@@ -268,14 +267,14 @@ describe('Account (mi cuenta)', () => {
     go('menu-activos');
     await fixture.whenStable();
     fixture.detectChanges();
-    const firstCard = el.querySelector('.ticket-card') as HTMLElement;
+    const firstCard = el.querySelector('.poster-ticket') as HTMLElement;
     const btn = firstCard.querySelector('[data-testid="ticket-media"]') as HTMLButtonElement;
-    expect(btn.textContent).toContain('Ocultar QR'); // visible por defecto
-    expect(firstCard.querySelector('.ticket-media img')).not.toBeNull();
+    expect(btn.getAttribute('aria-label')).toBe('Ocultar QR'); // visible por defecto
+    expect(firstCard.querySelector('.poster-qr img')).not.toBeNull();
     btn.click();
     fixture.detectChanges();
-    expect(btn.textContent).toContain('Ver QR'); // ocultado
-    expect(firstCard.querySelector('.ticket-media img')).toBeNull();
+    expect(btn.getAttribute('aria-label')).toBe('Ver QR'); // ocultado
+    expect(firstCard.querySelector('.poster-qr img')).toBeNull();
   });
 
   it('media no lista muestra toast warning', async () => {

@@ -67,9 +67,15 @@
 
         @case ('metodos') {
           <h2>Métodos de pago</h2>
-          <p class="muted">
-            Tus tarjetas se guardan <strong>tokenizadas</strong>: el número se procesa en tu
-            navegador y nunca llega a nuestros servidores (cumplimos PCI-DSS).
+          <p class="info-banner" data-testid="metodos-info">
+            <span class="info-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="4" y="10" width="16" height="10" rx="2" />
+                <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke-linecap="round" />
+              </svg>
+            </span>
+            Guarda tus tarjetas para pagar en segundos. Ciframos tus datos y nunca almacenamos el
+            número completo de tu tarjeta. <a routerLink="/terminos">Más detalles de seguridad</a>.
           </p>
 
           @if (cards().length > 0) {
@@ -173,26 +179,29 @@
                     </div>
                     <div class="invoice-head-right">
                       <span class="badge badge-{{ o.status }}">{{ o.status }}</span>
-                      <span class="invoice-total">Q{{ o.total }}</span>
+                      <span class="invoice-total">{{ o.total | money }}</span>
                     </div>
                   </header>
 
                   <ul class="invoice-items">
-                    @for (it of o.items ?? []; track it.id) {
+                    @for (it of o.items; track it.id) {
                       <li>
                         <span>{{ it.locality?.name ?? 'General' }}@if (it.label) { · {{ it.label }}}</span>
-                        <span class="muted">Q{{ it.total }}</span>
+                        <span class="muted">{{ it.total | money }}</span>
                       </li>
                     }
                   </ul>
 
                   <div class="invoice-meta">
-                    <span class="muted">{{ (o.items ?? []).length }} boleto(s)</span>
+                    <span class="muted">{{ o.items.length }} boleto(s)</span>
                     @if (o.felUuid) {
                       <span class="muted">FEL {{ o.felSerie }}-{{ o.felNumero }}</span>
                     } @else {
                       <span class="muted">NIT {{ o.billingNit }}</span>
                     }
+                    <button type="button" class="link-btn" (click)="verCompra(o.id)" data-testid="ver-detalle">
+                      Ver detalle completo
+                    </button>
                     <button type="button" class="link-btn" (click)="loadChain(o.id)" data-testid="toggle-chain">
                       {{ chains()[o.id] ? 'Ocultar' : 'Ver' }} cadena de la transacción
                     </button>
@@ -232,9 +241,18 @@
           <h2>Wallet</h2>
 
           <div class="wallet-hero">
-            <span class="wallet-hero-label">Saldo disponible</span>
+            <span class="wallet-hero-label">
+              Saldo disponible
+              <button
+                type="button"
+                class="info-dot"
+                data-testid="wallet-source-tip"
+                aria-label="¿De dónde sale este saldo?"
+                title="Tu saldo proviene solo de reembolsos y reventas de boletos. No se puede recargar con tarjeta: solo circula dinero ya amparado por una compra."
+              >i</button>
+            </span>
             @if (wallet(); as w) {
-              <span class="wallet-hero-amount" data-testid="wallet-balance">Q{{ w.balance }}</span>
+              <span class="wallet-hero-amount" data-testid="wallet-balance">{{ w.balance | money }}</span>
               <span class="wallet-hero-currency">{{ w.currency }}</span>
             } @else {
               <span class="muted">No se pudo cargar tu saldo.</span>
@@ -243,10 +261,69 @@
 
           <p class="muted wallet-source" data-testid="wallet-source">
             Tu saldo proviene únicamente de <strong>reembolsos</strong> y <strong>reventas</strong> de boletos.
-            No es posible recargarlo con tarjeta: solo circula dinero ya amparado por una compra.
-            Puedes usarlo para pagar boletos o retirarlo a tu cuenta.
+            No es posible recargarlo con tarjeta. Puedes usarlo para pagar boletos o retirarlo a tu cuenta.
           </p>
 
+          <!-- Primero la mini-facturación de movimientos -->
+          <div class="card-block">
+            <h3>Movimientos recientes</h3>
+            @if (orders().length > 0) {
+              <ul class="order-list mini" data-testid="wallet-orders">
+                @for (o of orders().slice(0, 5); track o.id) {
+                  <li>
+                    <span>{{ o.createdAt | date: 'dd/MM/yyyy' }}</span>
+                    <span class="badge badge-{{ o.status }}">{{ o.status }}</span>
+                    <span>{{ o.total | money }}</span>
+                    <button type="button" class="link-btn" (click)="verCompra(o.id)" data-testid="wallet-ver-transaccion">Ver transacción</button>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="muted">Aún no tienes compras registradas.</p>
+            }
+          </div>
+
+          <!-- Luego la tabla de retiros con filtros -->
+          <div class="card-block">
+            <h3>Mis retiros</h3>
+            @if (withdrawals().length > 0) {
+              <div class="filters" data-testid="withdrawal-filters">
+                <div class="field">
+                  <label for="wd-f-status">Estado</label>
+                  <select id="wd-f-status" [ngModel]="wdFilterStatus()" (ngModelChange)="wdFilterStatus.set($event)" name="wdfstatus" data-testid="wd-filter-status">
+                    <option value="">Todos</option>
+                    @for (s of withdrawalStatuses(); track s) {
+                      <option [value]="s">{{ s }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="wd-f-date">Fecha</label>
+                  <input id="wd-f-date" type="date" [ngModel]="wdFilterDate()" (ngModelChange)="wdFilterDate.set($event)" name="wdfdate" data-testid="wd-filter-date" />
+                </div>
+              </div>
+              @if (filteredWithdrawals().length > 0) {
+                <ul class="withdrawal-list" data-testid="withdrawals-list">
+                  @for (w of filteredWithdrawals(); track w.id) {
+                    <li>
+                      <span>{{ w.amount | money }}</span>
+                      <span class="muted">neto {{ w.net | money }}</span>
+                      <span class="badge badge-{{ w.status }}">{{ w.status }}</span>
+                      @if (w.status === 'pending') {
+                        <button type="button" (click)="cancelWithdrawal(w.id)" data-testid="cancel-withdrawal">Cancelar</button>
+                      }
+                    </li>
+                  }
+                </ul>
+              } @else {
+                <p class="muted" data-testid="withdrawals-filtered-empty">Ningún retiro coincide con los filtros.</p>
+              }
+            } @else {
+              <p class="muted">Aún no has solicitado retiros.</p>
+            }
+          </div>
+
+          <!-- Al final, el formulario de solicitar retiro -->
           <div class="card-block">
             <h3>Solicitar retiro</h3>
             <form class="stacked-form withdraw-form" (ngSubmit)="requestWithdrawal()">
@@ -257,7 +334,7 @@
               @if (withdrawNetPreview(); as net) {
                 <p class="withdraw-preview" data-testid="withdraw-preview">
                   Comisión estimada ({{ withdrawFeePct() * 100 }}%): se te acreditará aprox.
-                  <strong>Q{{ net | number: '1.2-2' }}</strong>.
+                  <strong>{{ net | money }}</strong>.
                   El retiro queda <strong>pendiente de aprobación</strong> del equipo.
                 </p>
               }
@@ -265,40 +342,6 @@
                 {{ withdrawing() ? 'Solicitando…' : 'Solicitar retiro' }}
               </button>
             </form>
-
-            @if (withdrawals().length > 0) {
-              <h4>Mis retiros</h4>
-              <ul class="withdrawal-list" data-testid="withdrawals-list">
-                @for (w of withdrawals(); track w.id) {
-                  <li>
-                    <span>Q{{ w.amount }}</span>
-                    <span class="muted">neto Q{{ w.net }}</span>
-                    <span class="badge badge-{{ w.status }}">{{ w.status }}</span>
-                    @if (w.status === 'pending') {
-                      <button type="button" (click)="cancelWithdrawal(w.id)" data-testid="cancel-withdrawal">Cancelar</button>
-                    }
-                  </li>
-                }
-              </ul>
-            }
-          </div>
-
-          <div class="card-block">
-            <h3>Movimientos recientes</h3>
-            @if (orders().length > 0) {
-              <ul class="order-list mini" data-testid="wallet-orders">
-                @for (o of orders().slice(0, 5); track o.id) {
-                  <li>
-                    <span>{{ o.createdAt | date: 'dd/MM/yyyy' }}</span>
-                    <span class="badge badge-{{ o.status }}">{{ o.status }}</span>
-                    <span>Q{{ o.total }}</span>
-                    <button type="button" class="link-btn" (click)="verCompra(o.id)" data-testid="wallet-ver-transaccion">Ver transacción</button>
-                  </li>
-                }
-              </ul>
-            } @else {
-              <p class="muted">Aún no tienes compras registradas.</p>
-            }
           </div>
         }
 
@@ -324,37 +367,85 @@
                           Ver compra
                         </button>
                       </div>
-                      <div class="ticket-cards">
+                      <div class="poster-cards">
                         @for (t of og.tickets; track t.id) {
-                          <div class="ticket-card">
-                            <div class="ticket-card-info">
-                              <span class="ticket-serial">{{ t.serial }}</span>
-                              <span class="ticket-seat">
-                                {{ t.localityName ?? 'General' }}@if (t.seatLabel) { · Asiento {{ t.seatLabel }}}
+                          <div
+                            class="poster-ticket"
+                            [class.no-banner]="!eg.bannerUrl"
+                            [style.background-image]="eg.bannerUrl ? 'url(' + eg.bannerUrl + ')' : null"
+                          >
+                            <div class="poster-overlay"></div>
+                            <span class="poster-serial" aria-hidden="true">{{ t.serial }}</span>
+
+                            <div class="poster-body">
+                              <span class="poster-chip" data-testid="poster-live">
+                                <span class="live-dot" aria-hidden="true"></span> Boleto válido
                               </span>
-                            </div>
-                            @if (qrVisible(t.id)) {
-                              @if (media()[t.id]; as m) {
-                                <div class="ticket-media">
-                                  <img [src]="m.qrUrl" alt="QR del boleto" width="150" height="150" />
-                                  <a [href]="m.pdfUrl" target="_blank" rel="noopener">Descargar PDF</a>
-                                </div>
-                              } @else {
-                                <p class="muted qr-pending" data-testid="qr-pending">Preparando el QR…</p>
+                              <span class="poster-title">
+                                {{ t.localityName ?? 'General' }}@if (t.seatLabel) { · {{ t.seatLabel }}}
+                              </span>
+                              <span class="poster-subtitle">{{ eg.eventName }}</span>
+                              @if (eg.startsAt) {
+                                <span class="poster-date">{{ eg.startsAt | date: 'd MMM y, HH:mm' }}</span>
                               }
-                            }
-                            <div class="ticket-actions">
-                              <button type="button" (click)="toggleQr(t.id)" data-testid="ticket-media">
-                                {{ qrVisible(t.id) ? 'Ocultar QR' : 'Ver QR' }}
-                              </button>
-                              <button type="button" (click)="startTransfer(t.id)" data-testid="ticket-transfer">Transferir</button>
+
+                              @if (qrVisible(t.id)) {
+                                @if (media()[t.id]; as m) {
+                                  <div class="poster-qr">
+                                    <img [src]="m.qrUrl" alt="Código QR del boleto para validar en la puerta" width="160" height="160" />
+                                  </div>
+                                } @else {
+                                  <p class="muted qr-pending" data-testid="qr-pending">Preparando el QR…</p>
+                                }
+                              }
+
+                              <div class="poster-actions">
+                                <button
+                                  type="button"
+                                  class="icon-btn"
+                                  (click)="toggleQr(t.id)"
+                                  data-testid="ticket-media"
+                                  [attr.aria-label]="qrVisible(t.id) ? 'Ocultar QR' : 'Ver QR'"
+                                  [attr.title]="qrVisible(t.id) ? 'Ocultar QR' : 'Ver QR'"
+                                >
+                                  @if (qrVisible(t.id)) {
+                                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7z"/><path d="M4 4l16 16" stroke-linecap="round"/></svg>
+                                  } @else {
+                                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7z"/><circle cx="12" cy="12" r="2.6"/></svg>
+                                  }
+                                </button>
+                                @if (media()[t.id]; as m) {
+                                  <a
+                                    class="icon-btn"
+                                    [href]="m.pdfUrl"
+                                    target="_blank"
+                                    rel="noopener"
+                                    data-testid="ticket-pdf"
+                                    aria-label="Descargar PDF del boleto"
+                                    title="Descargar PDF"
+                                  >
+                                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12" stroke-linecap="round"/><path d="M7 11l5 5 5-5" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 20h14" stroke-linecap="round"/></svg>
+                                  </a>
+                                }
+                                <button
+                                  type="button"
+                                  class="icon-btn"
+                                  (click)="startTransfer(t.id)"
+                                  data-testid="ticket-transfer"
+                                  aria-label="Compartir boleto"
+                                  title="Compartir"
+                                >
+                                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.7l6.8-4M8.6 13.3l6.8 4" stroke-linecap="round"/></svg>
+                                </button>
+                              </div>
+
+                              @if (transferCode()[t.id]; as code) {
+                                <p class="transfer-code" data-testid="transfer-code">
+                                  Comparte este código con quien recibirá el boleto (se muestra una sola vez):
+                                  <strong>{{ code }}</strong>
+                                </p>
+                              }
                             </div>
-                            @if (transferCode()[t.id]; as code) {
-                              <p class="transfer-code" data-testid="transfer-code">
-                                Comparte este código con quien recibirá el boleto (se muestra una sola vez):
-                                <strong>{{ code }}</strong>
-                              </p>
-                            }
                           </div>
                         }
                       </div>

@@ -4499,6 +4499,11 @@ export interface components {
             /** @description Evento anidado (si se incluyó) */
             event?: components["schemas"]["TicketEventSummaryDto"];
             /**
+             * @description URL firmada del banner (cover) del evento, para el boleto estilo póster; null si el evento no tiene cover
+             * @example https://storage.pasaeventos.com/events/.../cover.jpg?sig=...
+             */
+            eventBannerUrl?: string | null;
+            /**
              * @description Si la media (QR/PDF) ya está generada
              * @example true
              */

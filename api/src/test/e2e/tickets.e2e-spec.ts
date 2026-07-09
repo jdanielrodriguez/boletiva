@@ -172,6 +172,8 @@ describe('Boletos: emisión + media + validación (e2e)', () => {
   it('GET /tickets lista los míos; el detalle ajeno da 404 (IDOR)', async () => {
     const mine = await http().get('/api/v1/tickets').set(bearer(buyerToken)).expect(200);
     expect(mine.body.items.length).toBeGreaterThanOrEqual(1);
+    // El resumen incluye el banner del evento (firmado; null si el evento no tiene cover).
+    expect(mine.body.items[0]).toHaveProperty('eventBannerUrl');
     const id = mine.body.items[0].id;
     await http().get(`/api/v1/tickets/${id}`).set(bearer(buyerToken)).expect(200);
     await http().get(`/api/v1/tickets/${id}`).set(bearer(buyerBToken)).expect(404);

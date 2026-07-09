@@ -152,36 +152,67 @@ export class TicketsService implements OnModuleInit {
     return `PE${randomToken(9).toUpperCase()}`;
   }
 
+  /**
+   * Include común del resumen: evento (con su media `cover` para el banner del
+   * boleto estilo póster), localidad y asiento.
+   */
+  private readonly summaryInclude = {
+    event: {
+      select: {
+        name: true,
+        slug: true,
+        startsAt: true,
+        media: { where: { kind: 'cover' as const }, orderBy: { position: 'asc' as const }, take: 1, select: { key: true } },
+      },
+    },
+    locality: { select: { name: true } },
+    seat: { select: { label: true } },
+  } satisfies Prisma.TicketInclude;
+
   /** Boletos del usuario autenticado (keyset por `(issuedAt, id)` desc). */
   async listMine(userId: string, page: KeysetQuery = {}) {
     const rows = await this.prisma.ticket.findMany({
       where: { ownerId: userId },
       orderBy: [{ issuedAt: 'desc' }, { id: 'desc' }],
-      include: {
-        event: { select: { name: true, slug: true, startsAt: true } },
-        locality: { select: { name: true } },
-        seat: { select: { label: true } },
-      },
+      include: this.summaryInclude,
       ...keysetTake(page),
     });
     const res = keysetResult(rows, page);
-    return { items: res.items.map((t) => this.toSummary(t)), nextCursor: res.nextCursor };
+    // Firma cada banner una sola vez por clave (varios boletos comparten evento).
+    const bannerByKey = await this.signBanners(res.items);
+    const items = await Promise.all(res.items.map((t) => this.toSummary(t, bannerByKey)));
+    return { items, nextCursor: res.nextCursor };
   }
 
   /** Detalle de un boleto (dueño o admin; si no, 404 para no filtrar existencia). */
   async getOne(id: string, user: AuthUser) {
     const ticket = await this.prisma.ticket.findUnique({
       where: { id },
-      include: {
-        event: { select: { name: true, slug: true, startsAt: true } },
-        locality: { select: { name: true } },
-        seat: { select: { label: true } },
-      },
+      include: this.summaryInclude,
     });
     if (!ticket || (ticket.ownerId !== user.userId && !user.roles.includes(Role.admin))) {
       throw new NotFoundException('Boleto no encontrado');
     }
-    return this.toSummary(ticket);
+    return this.toSummary(ticket, await this.signBanners([ticket]));
+  }
+
+  /**
+   * Firma la URL (TTL 1h) del banner `cover` de cada evento presente, una sola
+   * vez por clave. Devuelve un mapa clave→URL firmada para el póster del boleto.
+   */
+  private async signBanners(
+    tickets: { event?: { media?: { key: string }[] } | null }[],
+  ): Promise<Map<string, string>> {
+    const keys = new Set<string>();
+    for (const t of tickets) {
+      const key = t.event?.media?.[0]?.key;
+      if (key) keys.add(key);
+    }
+    const map = new Map<string, string>();
+    await Promise.all(
+      [...keys].map(async (key) => map.set(key, await this.storage.signedGetUrl(key, 3600))),
+    );
+    return map;
   }
 
   /**
@@ -326,21 +357,25 @@ export class TicketsService implements OnModuleInit {
     return { integrity, events };
   }
 
-  private toSummary(t: {
-    id: string;
-    serial: string;
-    status: TicketStatus;
-    seatId: string | null;
-    orderId: string;
-    localityId: string;
-    qrKey: string | null;
-    pdfKey: string | null;
-    mediaReadyAt: Date | null;
-    eventId: string;
-    event?: { name: string; slug: string; startsAt: Date };
-    locality?: { name: string } | null;
-    seat?: { label: string } | null;
-  }) {
+  private toSummary(
+    t: {
+      id: string;
+      serial: string;
+      status: TicketStatus;
+      seatId: string | null;
+      orderId: string;
+      localityId: string;
+      qrKey: string | null;
+      pdfKey: string | null;
+      mediaReadyAt: Date | null;
+      eventId: string;
+      event?: { name: string; slug: string; startsAt: Date; media?: { key: string }[] } | null;
+      locality?: { name: string } | null;
+      seat?: { label: string } | null;
+    },
+    bannerByKey?: Map<string, string>,
+  ) {
+    const coverKey = t.event?.media?.[0]?.key;
     return {
       id: t.id,
       serial: t.serial,
@@ -351,7 +386,9 @@ export class TicketsService implements OnModuleInit {
       localityName: t.locality?.name ?? null,
       seatLabel: t.seat?.label ?? null,
       eventId: t.eventId,
-      event: t.event,
+      event: t.event ? { name: t.event.name, slug: t.event.slug, startsAt: t.event.startsAt } : undefined,
+      // Banner del evento (firmado) para el boleto estilo póster; null si no hay cover.
+      eventBannerUrl: (coverKey && bannerByKey?.get(coverKey)) ?? null,
       mediaReady: t.mediaReadyAt != null,
     };
   }

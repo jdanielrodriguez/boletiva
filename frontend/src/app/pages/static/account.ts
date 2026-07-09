@@ -1,7 +1,8 @@
-import { DatePipe, DecimalPipe, UpperCasePipe } from '@angular/common';
+import { DatePipe, UpperCasePipe } from '@angular/common';
 import { Component, computed, effect, inject, signal } from '@angular/core';
+import { MoneyPipe } from '../../shared/money.pipe';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { catchError, of } from 'rxjs';
 import { OrdersApi } from '../../core/api/orders.api';
@@ -36,6 +37,8 @@ interface EventGroup {
   eventId: string;
   eventName: string;
   startsAt?: string;
+  /** Banner (cover) firmado del evento, para el boleto estilo póster. */
+  bannerUrl?: string | null;
   orders: OrderGroup[];
 }
 
@@ -49,7 +52,13 @@ function groupByEventOrder(tickets: TicketResponseDto[]): EventGroup[] {
     const eventName = t.event?.name ?? t.eventId;
     let eg = byEvent.get(t.eventId);
     if (!eg) {
-      eg = { eventId: t.eventId, eventName, startsAt: t.event?.startsAt, orders: [] };
+      eg = {
+        eventId: t.eventId,
+        eventName,
+        startsAt: t.event?.startsAt,
+        bannerUrl: (t as { eventBannerUrl?: string | null }).eventBannerUrl ?? null,
+        orders: [],
+      };
       byEvent.set(t.eventId, eg);
     }
     let og = eg.orders.find((o) => o.orderId === t.orderId);
@@ -71,7 +80,7 @@ function groupByEventOrder(tickets: TicketResponseDto[]): EventGroup[] {
  */
 @Component({
   selector: 'app-account',
-  imports: [FormsModule, DatePipe, DecimalPipe, UpperCasePipe],
+  imports: [FormsModule, DatePipe, UpperCasePipe, MoneyPipe, RouterLink],
   templateUrl: './account.html',
 })
 export class Account {
@@ -126,6 +135,21 @@ export class Account {
   protected readonly withdrawals = signal<WithdrawalResponseDto[]>([]);
   protected readonly withdrawAmount = signal<number | null>(null);
   protected readonly withdrawing = signal(false);
+  /** Filtros de la tabla de retiros (estado/fecha). */
+  protected readonly wdFilterStatus = signal<string>('');
+  protected readonly wdFilterDate = signal<string>('');
+  protected readonly withdrawalStatuses = computed(() => [
+    ...new Set(this.withdrawals().map((w) => w.status)),
+  ]);
+  protected readonly filteredWithdrawals = computed(() => {
+    const status = this.wdFilterStatus();
+    const date = this.wdFilterDate();
+    return this.withdrawals().filter((w) => {
+      if (status && w.status !== status) return false;
+      if (date && !((w as { createdAt?: string }).createdAt ?? '').startsWith(date)) return false;
+      return true;
+    });
+  });
   /**
    * Comisión de retiro estimada por rol: promotor 3%, usuario 6% (el doble). Es
    * solo una previsualización; el valor autoritativo lo calcula el backend.
@@ -441,11 +465,9 @@ export class Account {
     });
   }
 
-  /** Abre la facturación filtrando por la orden del boleto/compra. */
+  /** Abre la vista dedicada de detalle de la transacción (compra). */
   protected verCompra(orderId: string): void {
-    void this.router.navigate(['/cuenta'], { queryParams: { s: 'facturacion', order: orderId } });
-    this.select('facturacion');
-    this.orderFilter.set(orderId);
+    void this.router.navigate(['/cuenta/transaccion', orderId]);
   }
 
   // --- Boletos: media + transferencia ---
