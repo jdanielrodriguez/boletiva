@@ -1,4 +1,5 @@
 import { INestApplication } from '@nestjs/common';
+import Decimal from 'decimal.js';
 import { LedgerService } from '../../modules/ledger/ledger.service';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { createTestApp } from './utils';
@@ -81,6 +82,18 @@ describe('Ledger doble-entrada + hash-chain (e2e)', () => {
     ).rejects.toThrow();
   });
 
+  it('rechaza una cuenta de usuario sin ownerId → 400', async () => {
+    await expect(
+      ledger.post({
+        kind: 'bad',
+        entries: [
+          { type: 'user_wallet', amount: '10.00' }, // falta ownerId → BadRequest
+          { type: 'gateway_clearing', amount: '-10.00' },
+        ],
+      }),
+    ).rejects.toThrow();
+  });
+
   it('rechaza una transacción con menos de 2 asientos → 400', async () => {
     await expect(
       ledger.post({ kind: 'bad', entries: [{ type: 'user_wallet', ownerId: U1, amount: '0.00' }] }),
@@ -108,6 +121,52 @@ describe('Ledger doble-entrada + hash-chain (e2e)', () => {
     const hashes = new Set(txs.map((t) => t.hash));
     expect(hashes.size).toBe(txs.length); // sin colisiones de hash
     expect((await ledger.walletBalance(U2)).toFixed(2)).toBe('150.00'); // 15 * 10
+  });
+
+  it('detecta manipulación: alterar el HASH de una transacción rompe el chain', async () => {
+    // El chain está íntegro (tests previos). Corrompemos SOLO el hash de la última
+    // transacción (entries y prevHash intactos): sumará 0 y encadenará bien, pero el
+    // hash recomputado no coincidirá → verifyChain debe fallar en ESA tx (línea 188).
+    const last = await prisma.ledgerTransaction.findFirstOrThrow({ orderBy: { seq: 'desc' } });
+    const originalHash = last.hash;
+    await prisma.ledgerTransaction.update({
+      where: { id: last.id },
+      data: { hash: '0'.repeat(64) }, // hash con formato válido pero incorrecto
+    });
+    try {
+      const check = await ledger.verifyChain();
+      expect(check.ok).toBe(false);
+      expect(check.brokenAt).toBe(last.id);
+    } finally {
+      await prisma.ledgerTransaction.update({
+        where: { id: last.id },
+        data: { hash: originalHash }, // restaura para no ensuciar tests posteriores
+      });
+    }
+    // Restaurado: el chain vuelve a estar íntegro.
+    expect((await ledger.verifyChain()).ok).toBe(true);
+  });
+
+  it('detecta manipulación: un SALDO cacheado que no cuadra con sus asientos', async () => {
+    // Chain de transacciones íntegro; corrompemos el balance cacheado de una cuenta
+    // para que difiera de la suma de sus asientos → verifyChain lo detecta (línea 201).
+    const acc = await prisma.ledgerAccount.findFirstOrThrow();
+    const originalBalance = acc.balance.toString();
+    await prisma.ledgerAccount.update({
+      where: { id: acc.id },
+      data: { balance: new Decimal(originalBalance).add(1).toFixed(2) },
+    });
+    try {
+      const check = await ledger.verifyChain();
+      expect(check.ok).toBe(false);
+      expect(check.brokenAt).toBe(acc.id);
+    } finally {
+      await prisma.ledgerAccount.update({
+        where: { id: acc.id },
+        data: { balance: originalBalance },
+      });
+    }
+    expect((await ledger.verifyChain()).ok).toBe(true);
   });
 
   it('detecta manipulación: alterar un asiento invalida el chain (verifyChain ok:false)', async () => {
