@@ -259,6 +259,19 @@ async function main() {
     assert(chain.includes('íntegra'), 'la cadena de la transacción no se verificó como íntegra');
   });
 
+  await step('métodos de pago: guarda una tarjeta tokenizada (el PAN no sale del navegador)', async () => {
+    await page.goto(`${FE}/cuenta?s=metodos`, { waitUntil: 'networkidle0' });
+    await waitSel(page, '.account-menu', 20000);
+    await page.click('[data-testid="add-method"]');
+    await waitSel(page, '[data-testid="card-number"]', 6000);
+    await page.type('[data-testid="card-number"]', '4242424242424242');
+    await page.type('[data-testid="card-cvc"]', '123');
+    await page.click('[data-testid="save-card"]');
+    await waitSel(page, '[data-testid="cards-list"]', 8000);
+    const cards = await text(page, '[data-testid="cards-list"]');
+    assert(cards.includes('4242'), 'la tarjeta guardada no aparece en la lista');
+  });
+
   // --- F4: panel del promotor + invitación de promotores ---
   async function doLogin(pg, email, password) {
     await clearMail();

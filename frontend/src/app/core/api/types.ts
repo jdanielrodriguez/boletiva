@@ -64,6 +64,10 @@ export type TicketMediaResponseDto = Schemas['TicketMediaResponseDto'];
 // --- Perfil ---
 export type UpdateProfileDto = Schemas['UpdateProfileDto'];
 
+// --- Métodos de pago (tarjetas tokenizadas, PCI) ---
+export type AddPaymentMethodDto = Schemas['AddPaymentMethodDto'];
+export type PaymentMethodResponseDto = Schemas['PaymentMethodResponseDto'];
+
 // --- Retiros de wallet ---
 export type RequestWithdrawalDto = Schemas['RequestWithdrawalDto'];
 export type WithdrawalResponseDto = Schemas['WithdrawalResponseDto'];

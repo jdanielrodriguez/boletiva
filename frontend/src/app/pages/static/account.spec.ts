@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { OrdersApi } from '../../core/api/orders.api';
+import { PaymentMethodsApi } from '../../core/api/payment-methods.api';
 import { TicketsApi } from '../../core/api/tickets.api';
 import { TransfersApi } from '../../core/api/transfers.api';
 import { UsersApi } from '../../core/api/users.api';
@@ -28,6 +29,7 @@ interface Overrides {
   transfers?: Record<string, unknown>;
   users?: Record<string, unknown>;
   auth?: Record<string, unknown>;
+  cardsApi?: Record<string, unknown>;
   section?: string;
 }
 
@@ -58,6 +60,16 @@ describe('Account (mi cuenta)', () => {
         { provide: OrdersApi, useValue: { list: () => of({ items: [], nextCursor: null }), ledgerChain: () => of({ orderId: 'o1', transactions: [], chainValid: true }), ...o.orders } as unknown as OrdersApi },
         { provide: TransfersApi, useValue: { claim: () => of({}), outgoing: () => of([]), cancel: () => of({}), ...o.transfers } as unknown as TransfersApi },
         { provide: UsersApi, useValue: { updateMe: () => of({ firstName: 'Ana' }), ...o.users } as unknown as UsersApi },
+        {
+          provide: PaymentMethodsApi,
+          useValue: {
+            list: () => of([]),
+            add: () => of({ id: 'c1', brand: 'visa', last4: '4242', isDefault: true }),
+            setDefault: () => of({}),
+            remove: () => of({ deleted: true }),
+            ...o.cardsApi,
+          } as unknown as PaymentMethodsApi,
+        },
         { provide: AuthService, useValue: { changePassword: () => of({ message: 'ok' }), ...o.auth } as unknown as AuthService },
         {
           provide: SessionStore,
@@ -268,6 +280,65 @@ describe('Account (mi cuenta)', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     expect(lastToast()?.kind).toBe('warning');
+  });
+
+  it('métodos: sin tarjetas muestra estado vacío y botón agregar', async () => {
+    await setup();
+    go('menu-metodos');
+    expect(el.querySelector('[data-testid="cards-empty"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="add-method"]')).not.toBeNull();
+  });
+
+  it('métodos: lista las tarjetas guardadas (sin datos sensibles)', async () => {
+    const list = () => of([{ id: 'c1', brand: 'visa', last4: '4242', isDefault: true, createdAt: '2026-07-01' }]);
+    await setup({ cardsApi: { list } });
+    go('menu-metodos');
+    const listEl = el.querySelector('[data-testid="cards-list"]');
+    expect(listEl?.textContent).toContain('4242');
+    expect(listEl?.textContent?.toLowerCase()).toContain('predeterminada');
+  });
+
+  it('métodos: guardar tarjeta tokeniza en cliente y NO envía el PAN al backend', async () => {
+    const add = jasmine.createSpy('add').and.returnValue(of({ id: 'c1', brand: 'visa', last4: '4242', isDefault: true }));
+    await setup({ cardsApi: { add } });
+    go('menu-metodos');
+    go('add-method');
+    fixture.componentInstance['cardNumber'].set('4242424242424242');
+    fixture.componentInstance['cardExpMonth'].set('12');
+    fixture.componentInstance['cardExpYear'].set('28');
+    fixture.componentInstance['cardCvc'].set('123');
+    go('save-card');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(add).toHaveBeenCalled();
+    const body = add.calls.mostRecent().args[0] as Record<string, unknown>;
+    expect(body['brand']).toBe('visa');
+    expect(body['last4']).toBe('4242');
+    expect(body['nonce']).toMatch(/^nonce_/);
+    // El PAN NUNCA viaja al backend.
+    expect(JSON.stringify(body)).not.toContain('4242424242424242');
+    expect(lastToast()?.kind).toBe('success');
+  });
+
+  it('métodos: número inválido muestra toast y no llama al backend', async () => {
+    const add = jasmine.createSpy('add').and.returnValue(of({}));
+    await setup({ cardsApi: { add } });
+    go('menu-metodos');
+    go('add-method');
+    fixture.componentInstance['cardNumber'].set('123');
+    fixture.componentInstance['cardCvc'].set('123');
+    go('save-card');
+    expect(add).not.toHaveBeenCalled();
+    expect(lastToast()?.kind).toBe('warning');
+  });
+
+  it('métodos: eliminar tarjeta llama al API', async () => {
+    const remove = jasmine.createSpy('remove').and.returnValue(of({ deleted: true }));
+    const list = () => of([{ id: 'c9', brand: 'visa', last4: '4242', isDefault: true, createdAt: '2026-07-01' }]);
+    await setup({ cardsApi: { list, remove } });
+    go('menu-metodos');
+    go('remove-card');
+    expect(remove).toHaveBeenCalledWith('c9');
   });
 
   it('facturación vacía muestra estado vacío', async () => {

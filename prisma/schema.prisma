@@ -236,9 +236,30 @@ model User {
   withdrawals   WalletWithdrawal[]
   gateAssignments GateAssignment[] @relation("GateOperator")
   promoterInvitations PromoterInvitation[] @relation("InvitedBy")
+  savedCards SavedCard[]
 
   @@index([status])
   @@map("users")
+}
+
+/// Tarjetas guardadas (métodos de pago) tokenizadas (PCI-DSS). NUNCA se guarda el
+/// PAN: la pasarela tokeniza en sus servidores y aquí solo persistimos el TOKEN
+/// opaco reutilizable + la marca y los últimos 4 dígitos (no sensibles) para mostrar.
+model SavedCard {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  brand     String // visa, mastercard, amex, ...
+  last4     String   @db.VarChar(4)
+  /// Token opaco devuelto por el tokenizador (referencia, no la tarjeta).
+  token     String
+  isDefault Boolean  @default(false) @map("is_default")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("saved_cards")
 }
 
 /// Refresh tokens con rotación y detección de reuso (por "family").

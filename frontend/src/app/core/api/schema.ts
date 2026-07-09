@@ -1861,6 +1861,58 @@ export interface paths {
         patch: operations["CostShareController_setPromoter_v1"];
         trace?: never;
     };
+    "/api/v1/payment-methods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lista mis métodos de pago (sin datos sensibles) */
+        get: operations["PaymentMethodsController_list_v1"];
+        put?: never;
+        /** Guarda una tarjeta (tokeniza el nonce; nunca recibe el PAN) */
+        post: operations["PaymentMethodsController_add_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payment-methods/{id}/default": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Marca un método propio como predeterminado */
+        post: operations["PaymentMethodsController_setDefault_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payment-methods/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Elimina un método de pago propio */
+        delete: operations["PaymentMethodsController_remove_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/users/{id}/anonymize": {
         parameters: {
             query?: never;
@@ -5050,6 +5102,37 @@ export interface components {
              */
             effectivePct: number;
         };
+        PaymentMethodResponseDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example visa */
+            brand: string;
+            /** @example 4242 */
+            last4: string;
+            /** @example true */
+            isDefault: boolean;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        AddPaymentMethodDto: {
+            /** @description Nonce de un solo uso del SDK de la pasarela (NO es el PAN) */
+            nonce: string;
+            /**
+             * @example visa
+             * @enum {string}
+             */
+            brand: "visa" | "mastercard" | "amex" | "discover" | "other";
+            /**
+             * @description Últimos 4 dígitos (para mostrar)
+             * @example 4242
+             */
+            last4: string;
+            /**
+             * @description Marcar como método por defecto
+             * @example true
+             */
+            isDefault?: boolean;
+        };
         AnonymizeResponseDto: {
             /**
              * Format: uuid
@@ -7935,6 +8018,88 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PromoterCostSharePctResponseDto"];
                 };
+            };
+        };
+    };
+    PaymentMethodsController_list_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentMethodResponseDto"][];
+                };
+            };
+        };
+    };
+    PaymentMethodsController_add_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddPaymentMethodDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentMethodResponseDto"];
+                };
+            };
+        };
+    };
+    PaymentMethodsController_setDefault_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentMethodResponseDto"];
+                };
+            };
+        };
+    };
+    PaymentMethodsController_remove_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

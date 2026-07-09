@@ -1,10 +1,11 @@
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe, UpperCasePipe } from '@angular/common';
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { catchError, of } from 'rxjs';
 import { OrdersApi } from '../../core/api/orders.api';
+import { PaymentMethodsApi } from '../../core/api/payment-methods.api';
 import { TicketsApi } from '../../core/api/tickets.api';
 import { TransfersApi } from '../../core/api/transfers.api';
 import { UsersApi } from '../../core/api/users.api';
@@ -12,11 +13,13 @@ import { WalletApi } from '../../core/api/wallet.api';
 import type {
   OrderLedgerChainDto,
   OrderResponseDto,
+  PaymentMethodResponseDto,
   TicketMediaResponseDto,
   TicketPageResponseDto,
   TicketResponseDto,
   WithdrawalResponseDto,
 } from '../../core/api/types';
+import { CardTokenizerStub } from '../../core/payments/card-tokenizer.stub';
 import { AuthService } from '../../core/auth/auth.service';
 import { SessionStore } from '../../core/auth/session.store';
 import { ToastService } from '../../core/ui/toast.service';
@@ -68,7 +71,7 @@ function groupByEventOrder(tickets: TicketResponseDto[]): EventGroup[] {
  */
 @Component({
   selector: 'app-account',
-  imports: [FormsModule, DatePipe, DecimalPipe],
+  imports: [FormsModule, DatePipe, DecimalPipe, UpperCasePipe],
   templateUrl: './account.html',
 })
 export class Account {
@@ -78,6 +81,8 @@ export class Account {
   private readonly ordersApi = inject(OrdersApi);
   private readonly transfersApi = inject(TransfersApi);
   private readonly usersApi = inject(UsersApi);
+  private readonly paymentMethodsApi = inject(PaymentMethodsApi);
+  private readonly tokenizer = inject(CardTokenizerStub);
   private readonly auth = inject(AuthService);
   private readonly toasts = inject(ToastService);
   private readonly router = inject(Router);
@@ -100,6 +105,15 @@ export class Account {
   protected readonly lastName = signal(this.session.user()?.lastName ?? '');
   protected readonly phone = signal((this.session.user() as { phone?: string })?.phone ?? '');
   protected readonly savingProfile = signal(false);
+
+  // --- Métodos de pago (tarjetas tokenizadas, PCI) ---
+  protected readonly cards = signal<PaymentMethodResponseDto[]>([]);
+  protected readonly cardNumber = signal('');
+  protected readonly cardExpMonth = signal('');
+  protected readonly cardExpYear = signal('');
+  protected readonly cardCvc = signal('');
+  protected readonly savingCard = signal(false);
+  protected readonly showCardForm = signal(false);
 
   // --- Cambio de contraseña (autenticado) ---
   protected readonly currentPassword = signal('');
@@ -184,6 +198,7 @@ export class Account {
     if (s && Account.SECTIONS.includes(s)) this.section.set(s);
     this.orderFilter.set(this.route.snapshot.queryParamMap.get('order'));
     if (this.section() === 'facturacion' || this.section() === 'wallet') this.loadOrders();
+    if (this.section() === 'metodos') this.loadCards();
     this.loadWallet();
 
     // El QR se muestra por defecto: al abrir "activos", precargamos la media de los
@@ -202,6 +217,73 @@ export class Account {
   protected select(s: Section): void {
     this.section.set(s);
     if ((s === 'facturacion' || s === 'wallet') && this.orders().length === 0) this.loadOrders();
+    if (s === 'metodos' && this.cards().length === 0) this.loadCards();
+  }
+
+  // --- Métodos de pago ---
+  private loadCards(): void {
+    this.paymentMethodsApi.list().subscribe({
+      next: (c) => this.cards.set(c),
+      error: () => this.cards.set([]),
+    });
+  }
+
+  /**
+   * Guarda una tarjeta. PCI: el número se tokeniza EN EL NAVEGADOR (stub que simula
+   * el SDK de la pasarela); al backend solo viaja el nonce + marca + últimos 4.
+   */
+  protected addCard(): void {
+    let token;
+    try {
+      token = this.tokenizer.tokenize({
+        number: this.cardNumber(),
+        expMonth: this.cardExpMonth(),
+        expYear: this.cardExpYear(),
+        cvc: this.cardCvc(),
+      });
+    } catch (e) {
+      this.toasts.warning((e as Error).message);
+      return;
+    }
+    this.savingCard.set(true);
+    this.paymentMethodsApi
+      .add({ nonce: token.nonce, brand: token.brand, last4: token.last4 })
+      .subscribe({
+        next: () => {
+          this.savingCard.set(false);
+          this.showCardForm.set(false);
+          this.cardNumber.set('');
+          this.cardExpMonth.set('');
+          this.cardExpYear.set('');
+          this.cardCvc.set('');
+          this.loadCards();
+          this.toasts.success('Tarjeta guardada de forma segura (tokenizada).');
+        },
+        error: () => {
+          this.savingCard.set(false);
+          this.toasts.error('No se pudo guardar la tarjeta. Intenta de nuevo.');
+        },
+      });
+  }
+
+  protected setDefaultCard(id: string): void {
+    this.paymentMethodsApi.setDefault(id).subscribe({
+      next: () => {
+        this.loadCards();
+        this.toasts.info('Método predeterminado actualizado.');
+      },
+      error: () => this.toasts.error('No se pudo actualizar el método predeterminado.'),
+    });
+  }
+
+  protected removeCard(id: string): void {
+    this.paymentMethodsApi.remove(id).subscribe({
+      next: () => {
+        this.loadCards();
+        this.toasts.info('Tarjeta eliminada.');
+      },
+      error: () => this.toasts.error('No se pudo eliminar la tarjeta.'),
+    });
   }
 
   // --- Perfil ---

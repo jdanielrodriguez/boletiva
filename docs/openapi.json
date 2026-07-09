@@ -4606,6 +4606,136 @@
         ]
       }
     },
+    "/api/v1/payment-methods": {
+      "get": {
+        "operationId": "PaymentMethodsController_list_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PaymentMethodResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lista mis métodos de pago (sin datos sensibles)",
+        "tags": [
+          "payment-methods"
+        ]
+      },
+      "post": {
+        "operationId": "PaymentMethodsController_add_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddPaymentMethodDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentMethodResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Guarda una tarjeta (tokeniza el nonce; nunca recibe el PAN)",
+        "tags": [
+          "payment-methods"
+        ]
+      }
+    },
+    "/api/v1/payment-methods/{id}/default": {
+      "post": {
+        "operationId": "PaymentMethodsController_setDefault_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentMethodResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Marca un método propio como predeterminado",
+        "tags": [
+          "payment-methods"
+        ]
+      }
+    },
+    "/api/v1/payment-methods/{id}": {
+      "delete": {
+        "operationId": "PaymentMethodsController_remove_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Elimina un método de pago propio",
+        "tags": [
+          "payment-methods"
+        ]
+      }
+    },
     "/api/v1/admin/users/{id}/anonymize": {
       "post": {
         "operationId": "RetentionController_anonymize_v1",
@@ -10156,6 +10286,73 @@
           "promoterId",
           "override",
           "effectivePct"
+        ]
+      },
+      "PaymentMethodResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "brand": {
+            "type": "string",
+            "example": "visa"
+          },
+          "last4": {
+            "type": "string",
+            "example": "4242"
+          },
+          "isDefault": {
+            "type": "boolean",
+            "example": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "brand",
+          "last4",
+          "isDefault",
+          "createdAt"
+        ]
+      },
+      "AddPaymentMethodDto": {
+        "type": "object",
+        "properties": {
+          "nonce": {
+            "type": "string",
+            "description": "Nonce de un solo uso del SDK de la pasarela (NO es el PAN)"
+          },
+          "brand": {
+            "type": "string",
+            "enum": [
+              "visa",
+              "mastercard",
+              "amex",
+              "discover",
+              "other"
+            ],
+            "example": "visa"
+          },
+          "last4": {
+            "type": "string",
+            "description": "Últimos 4 dígitos (para mostrar)",
+            "example": "4242"
+          },
+          "isDefault": {
+            "type": "boolean",
+            "description": "Marcar como método por defecto",
+            "example": true
+          }
+        },
+        "required": [
+          "nonce",
+          "brand",
+          "last4"
         ]
       },
       "AnonymizeResponseDto": {

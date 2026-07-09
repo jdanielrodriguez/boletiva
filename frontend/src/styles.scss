@@ -479,6 +479,41 @@ app-root {
   color: var(--pe-teal);
 }
 
+/* Métodos de pago (tarjetas) */
+.card-methods {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.method-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius-sm);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.method-brand {
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.method-dots {
+  font-family: monospace;
+  color: var(--pe-muted);
+  flex: 1;
+}
+
+.link-btn.danger {
+  color: var(--pe-danger, #ef4444);
+}
+
 /* Facturación */
 .filters {
   display: grid;

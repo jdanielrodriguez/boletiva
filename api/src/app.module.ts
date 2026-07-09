@@ -33,6 +33,7 @@ import { PaymentGatewaysModule } from './modules/payment-gateways/payment-gatewa
 import { CostShareModule } from './modules/cost-share/cost-share.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
 import { PromotersModule } from './modules/promoters/promoters.module';
+import { PaymentMethodsModule } from './modules/payment-methods/payment-methods.module';
 import { RetentionModule } from './modules/retention/retention.module';
 import { StreamModule } from './modules/stream/stream.module';
 import { BannerModule } from './modules/banner/banner.module';
@@ -94,6 +95,7 @@ import { BannerModule } from './modules/banner/banner.module';
     CostShareModule,
     TicketsModule,
     PromotersModule,
+    PaymentMethodsModule,
     RetentionModule,
     StreamModule,
     BannerModule,

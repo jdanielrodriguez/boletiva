@@ -67,8 +67,65 @@
 
         @case ('metodos') {
           <h2>Métodos de pago</h2>
-          <p class="muted">Aún no tienes métodos de pago guardados.</p>
-          <p class="muted">Próximamente podrás guardar tarjetas de forma segura (tokenizadas por la pasarela).</p>
+          <p class="muted">
+            Tus tarjetas se guardan <strong>tokenizadas</strong>: el número se procesa en tu
+            navegador y nunca llega a nuestros servidores (cumplimos PCI-DSS).
+          </p>
+
+          @if (cards().length > 0) {
+            <ul class="card-methods" data-testid="cards-list">
+              @for (c of cards(); track c.id) {
+                <li class="method-card">
+                  <span class="method-brand">{{ c.brand | uppercase }}</span>
+                  <span class="method-dots">•••• {{ c.last4 }}</span>
+                  @if (c.isDefault) {
+                    <span class="badge badge-approved">predeterminada</span>
+                  } @else {
+                    <button type="button" class="link-btn" (click)="setDefaultCard(c.id)" data-testid="set-default-card">Hacer predeterminada</button>
+                  }
+                  <button type="button" class="link-btn danger" (click)="removeCard(c.id)" data-testid="remove-card">Eliminar</button>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="muted" data-testid="cards-empty">Aún no tienes métodos de pago guardados.</p>
+          }
+
+          @if (!showCardForm()) {
+            <button type="button" class="primary" (click)="showCardForm.set(true)" data-testid="add-method">
+              + Agregar tarjeta
+            </button>
+          } @else {
+            <div class="card-block">
+              <h3>Nueva tarjeta</h3>
+              <form class="stacked-form" (ngSubmit)="addCard()">
+                <div class="field">
+                  <label for="card-number">Número de tarjeta</label>
+                  <input id="card-number" type="text" inputmode="numeric" autocomplete="cc-number" placeholder="4242 4242 4242 4242" [ngModel]="cardNumber()" (ngModelChange)="cardNumber.set($event)" name="ccnumber" data-testid="card-number" />
+                </div>
+                <div class="form-row">
+                  <div class="field">
+                    <label for="card-exp-m">Mes (MM)</label>
+                    <input id="card-exp-m" type="text" inputmode="numeric" maxlength="2" placeholder="12" [ngModel]="cardExpMonth()" (ngModelChange)="cardExpMonth.set($event)" name="ccexpm" />
+                  </div>
+                  <div class="field">
+                    <label for="card-exp-y">Año (AA)</label>
+                    <input id="card-exp-y" type="text" inputmode="numeric" maxlength="2" placeholder="28" [ngModel]="cardExpYear()" (ngModelChange)="cardExpYear.set($event)" name="ccexpy" />
+                  </div>
+                  <div class="field">
+                    <label for="card-cvc">CVC</label>
+                    <input id="card-cvc" type="text" inputmode="numeric" maxlength="4" placeholder="123" [ngModel]="cardCvc()" (ngModelChange)="cardCvc.set($event)" name="cccvc" data-testid="card-cvc" />
+                  </div>
+                </div>
+                <div class="ticket-actions">
+                  <button type="submit" class="primary" [disabled]="savingCard()" data-testid="save-card">
+                    {{ savingCard() ? 'Guardando…' : 'Guardar tarjeta' }}
+                  </button>
+                  <button type="button" (click)="showCardForm.set(false)">Cancelar</button>
+                </div>
+              </form>
+            </div>
+          }
         }
 
         @case ('facturacion') {
