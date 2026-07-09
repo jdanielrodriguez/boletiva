@@ -62,7 +62,7 @@
               @if (expanded() === ev.id) {
                 <div class="pe-localities">
                   <ul>
-                    @for (l of localities()[ev.id] ?? []; track l.id) {
+                    @for (l of localitiesFor(ev.id); track l.id) {
                       <li>{{ l.name }} <span class="muted">({{ l.kind }})</span></li>
                     } @empty {
                       <li class="muted">Aún no hay localidades.</li>

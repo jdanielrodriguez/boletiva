@@ -137,6 +137,11 @@ export class PromoterPanel {
     if (!this.localities()[eventId]) this.loadLocalities(eventId);
   }
 
+  /** Localidades ya cargadas de un evento (vacío si aún no se cargaron). */
+  protected localitiesFor(eventId: string): LocalityView[] {
+    return this.localities()[eventId] ?? [];
+  }
+
   private loadLocalities(eventId: string): void {
     this.eventsApi.localities(eventId).subscribe({
       next: (l) => this.localities.update((cur) => ({ ...cur, [eventId]: l })),

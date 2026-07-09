@@ -230,6 +230,68 @@ async function main() {
     assert(ok, 'los boletos activos (con transferir) no aparecieron tras la compra');
   });
 
+  // --- F4: panel del promotor + invitación de promotores ---
+  async function doLogin(pg, email, password) {
+    await clearMail();
+    await pg.goto(`${FE}/login`, { waitUntil: 'networkidle0' });
+    await pg.waitForSelector('#email', { timeout: 15000 });
+    await pg.type('#email', email);
+    await pg.type('#password', password);
+    await pg.click('button[type="submit"]');
+    await pg.waitForSelector('#code, [data-testid="session-greeting"]', { timeout: 15000 });
+    if (await pg.$('#code')) {
+      await pg.type('#code', await otpFromMail());
+      await pg.click('button[type="submit"]');
+    }
+    await pg.waitForSelector('[data-testid="session-greeting"]', { timeout: 15000 });
+  }
+
+  console.log('\n▶ Panel del promotor (F4)');
+  const promoCtx = await browser.createBrowserContext();
+  const promo = await promoCtx.newPage();
+  let inviteLink = '';
+  await step('el promotor entra al panel y ve sus eventos', async () => {
+    await doLogin(promo, 'promotor@pasaeventos.com', 'Password123');
+    await promo.goto(`${FE}/promotor`, { waitUntil: 'networkidle0' });
+    await promo.waitForSelector('[data-testid="tab-eventos"]', { timeout: 15000 });
+    await promo.waitForSelector('[data-testid="events-list"], [data-testid="events-empty"]', { timeout: 10000 });
+  });
+
+  await step('genera el banner IA de un evento (aparece la imagen)', async () => {
+    const btn = await promo.$('[data-testid="ev-banner"]');
+    assert(btn !== null, 'no hay botón de banner (¿sin eventos?)');
+    await btn.click();
+    await promo.waitForSelector('.pe-banner', { timeout: 15000 });
+    const src = await promo.$eval('.pe-banner', (i) => i.getAttribute('src'));
+    assert(src && src.includes('http'), 'el banner no tiene URL');
+  });
+
+  await step('invita a un promotor por correo y obtiene el enlace con token', async () => {
+    await promo.click('[data-testid="tab-invitaciones"]');
+    await promo.waitForSelector('[data-testid="inv-emails"]', { timeout: 8000 });
+    const invitee = `e2e_inv_${Date.now()}@test.com`;
+    await promo.type('[data-testid="inv-emails"]', invitee);
+    await promo.click('[data-testid="inv-submit"]');
+    await promo.waitForSelector('[data-testid="inv-created"] input', { timeout: 10000 });
+    inviteLink = await promo.$eval('[data-testid="inv-created"] input', (i) => i.value);
+    assert(inviteLink.includes('/registro?token='), `enlace inesperado: ${inviteLink}`);
+  });
+
+  await step('abrir el enlace de invitación precarga el correo en el registro', async () => {
+    const guestCtx = await browser.createBrowserContext();
+    const guest = await guestCtx.newPage();
+    // El enlace trae el host interno del backend; se usa la ruta contra el FE.
+    const path = inviteLink.slice(inviteLink.indexOf('/registro'));
+    await guest.goto(`${FE}${path}`, { waitUntil: 'networkidle0' });
+    await guest.waitForSelector('[data-testid="invited-note"]', { timeout: 12000 });
+    const email = await guest.$eval('[data-testid="rg-email"]', (i) => i.value);
+    assert(email.includes('e2e_inv_'), `correo no precargado: ${email}`);
+    const ro = await guest.$eval('[data-testid="rg-email"]', (i) => i.readOnly);
+    assert(ro === true, 'el correo de la invitación debería estar bloqueado');
+    await guestCtx.close();
+  });
+
+  await promoCtx.close();
   await browser.close();
 
   console.log(`\n=== E2E: ${pass} pasaron, ${fail} fallaron ===`);
