@@ -14,6 +14,7 @@ describe('Reservas anónimas compartibles (e2e)', () => {
   let prisma: PrismaService;
   let eventId: string;
   let localityId: string;
+  let vipSeatId: string;
   let buyerToken: string;
   let stamp: number;
 
@@ -40,6 +41,19 @@ describe('Reservas anónimas compartibles (e2e)', () => {
     await prisma.seat.createMany({
       data: Array.from({ length: 50 }, (_, i) => ({ localityId: loc.id, label: `GA-${i + 1}` })),
     });
+    // Localidad numerada (seated) con coordenadas, para probar reserva MULTI.
+    const vip = await prisma.locality.create({
+      data: { eventId, name: 'VIP', slug: 'vip', kind: 'seated', desiredNet: 100, capacity: 4 },
+    });
+    await prisma.seat.createMany({
+      data: Array.from({ length: 4 }, (_, i) => ({
+        localityId: vip.id,
+        label: `V-${i + 1}`,
+        x: 10 + i * 30,
+        y: 10,
+      })),
+    });
+    vipSeatId = (await prisma.seat.findFirstOrThrow({ where: { localityId: vip.id } })).id;
     buyerToken = await login(app, SEED.buyer);
   });
 
@@ -60,6 +74,15 @@ describe('Reservas anónimas compartibles (e2e)', () => {
     expect(res.body.items.length).toBe(2);
     expect(res.body.total).toBe('259.36'); // 2 × 129.68
     expect(res.body.expiresAt).toBeTruthy();
+  });
+
+  it('reserva MULTI: asientos numerados + cantidades en varias localidades → 201', async () => {
+    const res = await http()
+      .post(`/api/v1/events/${eventId}/reservations`)
+      .send({ seatIds: [vipSeatId], quantities: [{ localityId, quantity: 2 }] })
+      .expect(201);
+    expect(res.body.valid).toBe(true);
+    expect(res.body.items.length).toBe(3); // 1 VIP + 2 General
   });
 
   it('ver la reserva por token (link compartido) → 200 valid', async () => {

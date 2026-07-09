@@ -22,8 +22,19 @@
 
   <div class="session-area" data-testid="session-area">
     @if (session.isAuthenticated()) {
-      <span class="greeting" data-testid="session-greeting">Hola, {{ session.user()?.firstName }}</span>
-      <button type="button" (click)="logout()">Salir</button>
+      <div class="user-menu">
+        <button type="button" class="user-trigger" data-testid="user-menu-trigger" (click)="toggleMenu()">
+          <span class="greeting" data-testid="session-greeting">Hola, {{ session.user()?.firstName }}</span>
+          <span class="caret" aria-hidden="true">▾</span>
+        </button>
+        @if (menuOpen()) {
+          <div class="user-dropdown" data-testid="user-dropdown">
+            <a routerLink="/cuenta" (click)="closeMenu()">Perfil</a>
+            <a routerLink="/cuenta/configuracion" (click)="closeMenu()">Configuraciones</a>
+            <button type="button" data-testid="logout-btn" (click)="logout()">Salir de sesión</button>
+          </div>
+        }
+      </div>
     } @else {
       <a class="btn primary" routerLink="/login" data-testid="login-link">Iniciar sesión</a>
     }

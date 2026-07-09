@@ -12,14 +12,16 @@ import type { SeatAvailabilityDto } from '../../core/api/types';
 
 const COLORS = {
   available: '#2ecc71',
-  selected: '#6c5ce7',
-  taken: '#555b66',
+  selected: '#7b5cff',
+  taken: '#3a3f52',
 };
+const PAD = 40;
 
 /**
- * Mapa de asientos con Konva/Canvas (hit-testing) — escalable a miles de nodos
- * (SVG/DOM colapsaría en móviles de gama baja). SOLO navegador: Konva se importa
- * dinámicamente dentro de afterNextRender, así no se ejecuta en SSR.
+ * Mapa de asientos con Konva/Canvas: dibuja SILLITAS (no puntos) coloreadas por
+ * estado, con un icono ✓ al seleccionar y × cuando están ocupadas. El cursor es
+ * pointer SOLO sobre asientos disponibles; los ocupados no cambian el cursor ni
+ * son clicables. Solo navegador (Konva se importa dinámicamente en afterNextRender).
  */
 @Component({
   selector: 'app-seat-map',
@@ -28,8 +30,6 @@ const COLORS = {
 export class SeatMapComponent {
   readonly seats = input<SeatAvailabilityDto[]>([]);
   readonly selected = input<ReadonlySet<string>>(new Set<string>());
-  readonly width = input(1000);
-  readonly height = input(800);
   readonly seatToggle = output<string>();
 
   private readonly host = viewChild.required<ElementRef<HTMLDivElement>>('host');
@@ -37,15 +37,12 @@ export class SeatMapComponent {
   private konva: typeof Konva | null = null;
   private stage: Konva.Stage | null = null;
   private layer: Konva.Layer | null = null;
-  private circles = new Map<string, Konva.Circle>();
 
   constructor() {
     afterNextRender(async () => {
       this.konva = (await import('konva')).default;
       this.build();
-      this.paint();
     });
-    // Repinta cuando cambian los asientos o la selección (tras el primer render).
     effect(() => {
       this.seats();
       this.selected();
@@ -55,54 +52,79 @@ export class SeatMapComponent {
 
   private build(): void {
     if (!this.konva) return;
-    this.stage = new this.konva.Stage({
-      container: this.host().nativeElement,
-      width: this.width(),
-      height: this.height(),
-    });
+    const { width, height } = this.extents();
+    this.stage = new this.konva.Stage({ container: this.host().nativeElement, width, height });
     this.layer = new this.konva.Layer();
     this.stage.add(this.layer);
     this.drawSeats();
   }
 
   private rebuild(): void {
+    if (!this.konva || !this.stage) return;
+    const { width, height } = this.extents();
+    this.stage.size({ width, height });
     this.layer?.destroyChildren();
-    this.circles.clear();
     this.drawSeats();
-    this.paint();
+  }
+
+  /** Ajusta el lienzo al contenido (evita canvas enorme con espacio vacío). */
+  private extents(): { width: number; height: number } {
+    const pts = this.seats().filter((s) => s.x != null && s.y != null);
+    if (pts.length === 0) return { width: 320, height: 160 };
+    const maxX = Math.max(...pts.map((s) => s.x as number));
+    const maxY = Math.max(...pts.map((s) => s.y as number));
+    return { width: maxX + PAD, height: maxY + PAD };
   }
 
   private drawSeats(): void {
     if (!this.konva || !this.layer) return;
+    const K = this.konva;
+    const sel = this.selected();
+
     for (const seat of this.seats()) {
       if (seat.x == null || seat.y == null) continue;
-      const circle = new this.konva.Circle({
-        x: seat.x,
-        y: seat.y,
-        radius: 8,
-        stroke: '#1a1c22',
-        strokeWidth: 1,
-      });
-      if (seat.status === 'available') {
-        circle.on('click tap', () => this.seatToggle.emit(seat.id));
-        circle.on('mouseenter', () => (this.stage!.container().style.cursor = 'pointer'));
-        circle.on('mouseleave', () => (this.stage!.container().style.cursor = 'default'));
+      const taken = seat.status !== 'available';
+      const chosen = sel.has(seat.id);
+      const color = taken ? COLORS.taken : chosen ? COLORS.selected : COLORS.available;
+
+      const g = new K.Group({ x: seat.x, y: seat.y });
+      // Respaldo + asiento (sillita).
+      g.add(new K.Rect({ x: -11, y: -16, width: 22, height: 6, cornerRadius: 3, fill: color }));
+      g.add(new K.Rect({ x: -13, y: -8, width: 26, height: 16, cornerRadius: 5, fill: color }));
+
+      if (chosen && !taken) {
+        g.add(this.icon(K, '✓', '#ffffff'));
+      } else if (taken) {
+        g.add(this.icon(K, '×', '#9aa0b0'));
       }
-      this.circles.set(seat.id, circle);
-      this.layer.add(circle);
+
+      if (!taken) {
+        g.on('click tap', () => this.seatToggle.emit(seat.id));
+        g.on('mouseenter', () => this.setCursor('pointer'));
+        g.on('mouseleave', () => this.setCursor('default'));
+      }
+      this.layer.add(g);
     }
     this.layer.draw();
   }
 
-  private paint(): void {
-    const sel = this.selected();
-    for (const seat of this.seats()) {
-      const circle = this.circles.get(seat.id);
-      if (!circle) continue;
-      const color =
-        seat.status !== 'available' ? COLORS.taken : sel.has(seat.id) ? COLORS.selected : COLORS.available;
-      circle.fill(color);
-    }
-    this.layer?.draw();
+  private icon(K: typeof Konva, text: string, fill: string): Konva.Text {
+    return new K.Text({
+      text,
+      x: -13,
+      y: -8,
+      width: 26,
+      height: 16,
+      align: 'center',
+      verticalAlign: 'middle',
+      fontSize: 13,
+      fontStyle: 'bold',
+      fill,
+      listening: false,
+    });
+  }
+
+  private setCursor(value: string): void {
+    if (this.stage) this.stage.container().style.cursor = value;
   }
 }

@@ -212,10 +212,113 @@ select:focus {
   color: var(--pe-muted);
 }
 
+/* Layout sticky: el footer siempre al fondo, crezca lo que crezca la página. */
+app-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
 .site-main {
+  flex: 1 0 auto;
+  width: 100%;
   max-width: 1120px;
   margin: 0 auto;
   padding: 1.75rem 1.5rem 3rem;
+}
+
+.site-footer {
+  margin-top: auto;
+  border-top: 1px solid var(--pe-border);
+  padding: 1.5rem;
+  text-align: center;
+  background: var(--pe-bg-elev);
+}
+
+.footer-menu {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.25rem;
+  margin-bottom: 0.6rem;
+}
+
+.footer-menu a {
+  color: var(--pe-muted);
+  font-size: 0.9rem;
+}
+
+.footer-menu a:hover {
+  color: var(--pe-text);
+}
+
+.footer-copy {
+  color: var(--pe-muted);
+  font-size: 0.82rem;
+  margin: 0;
+}
+
+/* Menú de usuario (header) */
+.user-menu {
+  position: relative;
+}
+
+.user-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  border: 1px solid var(--pe-border);
+}
+
+.user-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  min-width: 190px;
+  background: var(--pe-surface);
+  border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius-sm);
+  box-shadow: var(--pe-shadow);
+  padding: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  z-index: 30;
+}
+
+.user-dropdown a,
+.user-dropdown button {
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  color: var(--pe-text);
+  cursor: pointer;
+}
+
+.user-dropdown a:hover,
+.user-dropdown button:hover {
+  background: var(--pe-surface-2);
+}
+
+/* Ítems reservados (detalle de boletos) */
+.reserved-items {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+}
+
+.reserved-items li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--pe-border);
+}
+
+.static-page {
+  max-width: 720px;
+  margin: 0 auto;
 }
 
 /* --- Auth / formularios centrados --- */
@@ -428,16 +531,11 @@ select:focus {
 .event-localities ul {
   list-style: none;
   padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  margin: 0;
 }
 
 .event-localities li {
-  background: var(--pe-surface);
-  border: 1px solid var(--pe-border);
-  border-radius: 999px;
-  padding: 0.4rem 0.9rem;
+  list-style: none;
 }
 
 .event-cancelled {
@@ -468,6 +566,81 @@ select:focus {
   overflow: auto;
   max-width: 100%;
   background: var(--pe-bg-elev);
+  padding: 0.5rem;
+}
+
+/* Botones de localidad (una a la vez) */
+.loc-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0.5rem 0 1.25rem;
+}
+
+.loc-tab {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  padding: 0.7rem 1.1rem;
+  border-radius: var(--pe-radius-sm);
+  border: 1px solid var(--pe-border);
+  background: var(--pe-surface);
+  min-width: 130px;
+}
+
+.loc-tab:hover {
+  border-color: var(--pe-primary);
+}
+
+.loc-tab.active {
+  background: var(--pe-grad);
+  border-color: transparent;
+  color: #fff;
+}
+
+.loc-tab .loc-tab-price {
+  font-size: 0.85rem;
+  color: var(--pe-teal);
+  font-weight: 700;
+}
+
+.loc-tab.active .loc-tab-price {
+  color: #fff;
+}
+
+.loc-active h2 {
+  font-size: 1.15rem;
+  margin: 0 0 0.75rem;
+}
+
+.seat-legend {
+  display: flex;
+  gap: 1.25rem;
+  margin-top: 0.75rem;
+  color: var(--pe-muted);
+  font-size: 0.85rem;
+}
+
+.seat-legend .legend::before {
+  content: '';
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  margin-right: 0.4rem;
+  vertical-align: -1px;
+}
+
+.seat-legend .legend.av::before {
+  background: #2ecc71;
+}
+.seat-legend .legend.sel::before {
+  background: #7b5cff;
+}
+.seat-legend .legend.tk::before {
+  background: #3a3f52;
 }
 
 .loc-quantity {
@@ -931,6 +1104,21 @@ select:focus {
   background: var(--pe-surface);
   border: 1px solid var(--pe-border);
   border-radius: var(--pe-radius);
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.locality-row:hover {
+  transform: translateY(-2px);
+  border-color: var(--pe-primary);
+  box-shadow: var(--pe-shadow);
+}
+
+.locality-go {
+  color: var(--pe-muted);
+  font-size: 1.6rem;
+  line-height: 1;
+  padding-left: 0.25rem;
 }
 
 .locality-thumb {

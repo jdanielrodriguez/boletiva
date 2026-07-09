@@ -54,18 +54,17 @@ export class PurchasePage implements OnDestroy {
       switchMap((ev) => this.eventsApi.availability(ev.id)),
       tap((av) => {
         this.store.availability.set(av);
+        if (!this.store.activeLocalityId() && av.localities.length > 0) {
+          // La localidad viene del botón del detalle (?loc=); si no, la primera.
+          const wanted = this.route.snapshot.queryParamMap.get('loc');
+          const chosen = av.localities.find((l) => l.id === wanted) ?? av.localities[0];
+          this.store.setActiveLocality(chosen.id);
+        }
         this.loaded.set(true);
       }),
     ),
     { initialValue: null },
   );
-
-  protected readonly seatLocalities = computed(() => {
-    const av = this.data();
-    if (!av) return [];
-    const withSeats = new Set(av.seats.map((s) => s.localityId));
-    return av.localities.filter((l) => withSeats.has(l.id));
-  });
 
   protected readonly shareUrl = computed(
     () => `${this.siteUrl}/reserva/${this.store.reservation()?.token ?? ''}`,
@@ -77,10 +76,6 @@ export class PurchasePage implements OnDestroy {
     afterNextRender(() => {
       this.ticker = setInterval(() => this.tick(), 1000);
     });
-  }
-
-  protected seatsForLocality(localityId: string) {
-    return (this.data()?.seats ?? []).filter((s) => s.localityId === localityId);
   }
 
   protected onQuantity(loc: LocalityAvailabilityDto, value: string): void {
@@ -102,6 +97,7 @@ export class PurchasePage implements OnDestroy {
         this.working.set(false);
         this.phase.set('reserved');
         this.secondsLeft.set(this.remaining(res.expiresAt ?? null));
+        this.store.clearSelection();
       },
       error: () => {
         this.working.set(false);

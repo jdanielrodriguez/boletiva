@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
@@ -7,15 +8,34 @@ import {
   IsUUID,
   Max,
   Min,
+  ValidateNested,
 } from 'class-validator';
 
-/** Crea una reserva anónima: por asientos (numerada) o por cantidad (general). */
+/** Cupos de una localidad general (admisión por cantidad). */
+export class ReservationQuantityDto {
+  @ApiProperty({ format: 'uuid', description: 'Localidad general' })
+  @IsUUID()
+  localityId!: string;
+
+  @ApiProperty({ example: 2, minimum: 1, maximum: 50, description: 'Cantidad de cupos' })
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  quantity!: number;
+}
+
+/**
+ * Crea una reserva anónima. Puede combinar VARIAS localidades a la vez:
+ * `seatIds` (asientos numerados, de una o varias localidades) y/o `quantities`
+ * (cupos de una o varias localidades generales). `localityId`+`quantity` se
+ * mantienen como atajo para una sola localidad general.
+ */
 export class CreateReservationDto {
   @ApiPropertyOptional({
     type: String,
     isArray: true,
     format: 'uuid',
-    description: 'Modo numerado: asientos a reservar (1–50). Excluyente con localityId+quantity',
+    description: 'Asientos numerados a reservar (1–50, de una o varias localidades)',
   })
   @IsOptional()
   @IsArray()
@@ -23,17 +43,29 @@ export class CreateReservationDto {
   @IsUUID(undefined, { each: true })
   seatIds?: string[];
 
-  @ApiPropertyOptional({ format: 'uuid', description: 'Modo general: localidad de la que se toman los cupos' })
+  @ApiPropertyOptional({ format: 'uuid', description: 'Atajo de una sola localidad general' })
   @IsOptional()
   @IsUUID()
   localityId?: string;
 
-  @ApiPropertyOptional({ example: 2, minimum: 1, maximum: 50, description: 'Modo general: cantidad de cupos' })
+  @ApiPropertyOptional({ example: 2, minimum: 1, maximum: 50, description: 'Cantidad (con localityId)' })
   @IsOptional()
   @IsInt()
   @Min(1)
   @Max(50)
   quantity?: number;
+
+  @ApiPropertyOptional({
+    type: () => ReservationQuantityDto,
+    isArray: true,
+    description: 'Cupos por localidad general (permite varias localidades a la vez)',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @ValidateNested({ each: true })
+  @Type(() => ReservationQuantityDto)
+  quantities?: ReservationQuantityDto[];
 }
 
 /** Datos de facturación FEL al pagar una reserva (opcionales; sin NIT → CF). */

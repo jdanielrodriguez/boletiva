@@ -34,18 +34,43 @@ export class PurchaseService {
   private readonly seatSel = signal<ReadonlySet<string>>(new Set());
   private readonly qtySel = signal<ReadonlyMap<string, number>>(new Map());
 
+  /** Localidad activa: se elige UNA a la vez (una localidad por reserva). */
+  readonly activeLocalityId = signal<string | null>(null);
+
   readonly selectedSeatIds = computed(() => [...this.seatSel()]);
   readonly selectedSet = computed<ReadonlySet<string>>(() => this.seatSel());
 
   /** La reserva creada (con token para compartir). */
   readonly reservation = signal<ReservationResponseDto | null>(null);
 
-  readonly quantityLocalities = computed<LocalityAvailabilityDto[]>(() => {
-    const av = this.availability();
-    if (!av) return [];
-    const withSeats = new Set(av.seats.map((s) => s.localityId));
-    return av.localities.filter((l) => !withSeats.has(l.id));
+  readonly localities = computed<LocalityAvailabilityDto[]>(
+    () => this.availability()?.localities ?? [],
+  );
+
+  readonly activeLocality = computed<LocalityAvailabilityDto | null>(
+    () => this.localities().find((l) => l.id === this.activeLocalityId()) ?? null,
+  );
+
+  /** Asientos (con coordenadas) de la localidad activa. */
+  readonly activeSeats = computed(() => {
+    const id = this.activeLocalityId();
+    return (this.availability()?.seats ?? []).filter((s) => s.localityId === id);
   });
+
+  /** true si la localidad activa es numerada (tiene asientos con coordenadas). */
+  readonly activeIsSeated = computed(() => this.activeSeats().length > 0);
+
+  /** Cambia la localidad en vista. La selección se ACUMULA entre localidades
+   * (se permite comprar varias localidades a la vez). */
+  setActiveLocality(id: string): void {
+    this.activeLocalityId.set(id);
+  }
+
+  /** Reinicia la selección (p.ej. tras reservar o cambiar de vista). */
+  clearSelection(): void {
+    this.seatSel.set(new Set());
+    this.qtySel.set(new Map());
+  }
 
   maxFor(loc: LocalityAvailabilityDto): number {
     return Math.min(loc.available, MAX_PER_CART);
@@ -94,10 +119,13 @@ export class PurchaseService {
   }
 
   private buildBody(): CreateReservationDto {
-    if (this.seatSel().size > 0) return { seatIds: [...this.seatSel()] };
-    const ga = [...this.qtySel().entries()].find(([, n]) => n > 0);
-    if (ga) return { localityId: ga[0], quantity: ga[1] };
-    return {};
+    const body: CreateReservationDto = {};
+    if (this.seatSel().size > 0) body.seatIds = [...this.seatSel()];
+    const quantities = [...this.qtySel().entries()]
+      .filter(([, n]) => n > 0)
+      .map(([localityId, quantity]) => ({ localityId, quantity }));
+    if (quantities.length > 0) body.quantities = quantities;
+    return body;
   }
 
   /** Paga la reserva (requiere sesión): crea la orden a nombre del usuario. */

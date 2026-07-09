@@ -35,8 +35,18 @@ describe('PurchaseService', () => {
     store.availability.set(AVAIL);
   });
 
-  it('quantityLocalities excluye localidades con asientos (mapa)', () => {
-    expect(store.quantityLocalities().map((l) => l.id)).toEqual(['ga']);
+  it('localidad activa: cambiarla NO limpia la selección (multi-localidad)', () => {
+    expect(store.localities().map((l) => l.id)).toEqual(['ga', 'vip']);
+    store.setActiveLocality('vip');
+    expect(store.activeIsSeated()).toBe(true);
+    expect(store.activeSeats().map((s) => s.id)).toEqual(['s1', 's2']);
+    store.toggleSeat('s1');
+    store.setActiveLocality('ga');
+    expect(store.activeIsSeated()).toBe(false);
+    store.setQuantity('ga', 2);
+    // La selección de VIP se mantiene → se compran varias localidades a la vez.
+    expect(store.selectedSeatIds()).toEqual(['s1']);
+    expect(store.totalCount()).toBe(3);
   });
 
   it('maxFor = min(disponibles, 50)', () => {
@@ -61,11 +71,11 @@ describe('PurchaseService', () => {
     });
   });
 
-  it('reserve por cantidad → create {localityId, quantity}', (done) => {
+  it('reserve por cantidad → create con quantities[]', (done) => {
     store.setQuantity('ga', 2);
     store.reserve().subscribe(() => {
       const body = api.create.calls.mostRecent().args[1] as CreateReservationDto;
-      expect(body).toEqual({ localityId: 'ga', quantity: 2 });
+      expect(body.quantities).toEqual([{ localityId: 'ga', quantity: 2 }]);
       done();
     });
   });

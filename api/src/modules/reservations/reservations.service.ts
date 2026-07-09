@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { ConfigService } from '@nestjs/config';
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { PrismaService } from '../../infra/prisma/prisma.service';
-import { SeatHoldService, HoldResult } from '../inventory/seat-hold.service';
+import { SeatHoldService } from '../inventory/seat-hold.service';
 import { CheckoutService, BillingInput } from '../orders/checkout.service';
 import { PricingService } from '../pricing/pricing.service';
 import { CreateReservationDto } from './dto/reservations.dto';
@@ -61,20 +61,40 @@ export class ReservationsService {
     return payload;
   }
 
-  /** Crea una reserva anónima (hold bajo el token) y devuelve el resumen + token. */
+  /**
+   * Crea una reserva anónima (hold bajo el token). Puede combinar VARIAS
+   * localidades: asientos numerados + cupos generales, todo bajo el mismo `rid`.
+   * Si algún hold falla, libera lo ya tomado (todo-o-nada a nivel de reserva).
+   */
   async create(eventId: string, dto: CreateReservationDto) {
-    const rid = randomUUID();
-    let hold: HoldResult;
-    if (dto.seatIds && dto.seatIds.length > 0) {
-      hold = await this.holds.hold(eventId, dto.seatIds, rid, RESERVATION_TTL);
-    } else if (dto.localityId && dto.quantity) {
-      hold = await this.holds.holdByQuantity(eventId, dto.localityId, dto.quantity, rid, RESERVATION_TTL);
-    } else {
-      throw new BadRequestException('Indica asientos (seatIds) o localidad + cantidad');
+    const quantities = [
+      ...(dto.localityId && dto.quantity ? [{ localityId: dto.localityId, quantity: dto.quantity }] : []),
+      ...(dto.quantities ?? []),
+    ];
+    const hasSeats = !!(dto.seatIds && dto.seatIds.length > 0);
+    if (!hasSeats && quantities.length === 0) {
+      throw new BadRequestException('Indica asientos (seatIds) o cantidades por localidad');
     }
+
+    const rid = randomUUID();
+    const held: string[] = [];
+    try {
+      if (hasSeats) {
+        const h = await this.holds.hold(eventId, dto.seatIds as string[], rid, RESERVATION_TTL);
+        held.push(...h.seatIds);
+      }
+      for (const q of quantities) {
+        const h = await this.holds.holdByQuantity(eventId, q.localityId, q.quantity, rid, RESERVATION_TTL);
+        held.push(...h.seatIds);
+      }
+    } catch (e) {
+      if (held.length > 0) await this.holds.release(eventId, held, rid).catch(() => undefined);
+      throw e;
+    }
+
     const exp = Date.now() + RESERVATION_TTL * 1000;
-    const token = this.sign({ rid, eventId, seatIds: hold.seatIds, exp });
-    return this.summarize(token, eventId, hold.seatIds, rid);
+    const token = this.sign({ rid, eventId, seatIds: held, exp });
+    return this.summarize(token, eventId, held, rid);
   }
 
   /** Resumen de una reserva por token (para verla desde el link compartido). */

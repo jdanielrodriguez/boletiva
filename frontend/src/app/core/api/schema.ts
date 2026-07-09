@@ -3744,19 +3744,33 @@ export interface components {
              */
             nextCursor: string | null;
         };
+        ReservationQuantityDto: {
+            /**
+             * Format: uuid
+             * @description Localidad general
+             */
+            localityId: string;
+            /**
+             * @description Cantidad de cupos
+             * @example 2
+             */
+            quantity: number;
+        };
         CreateReservationDto: {
-            /** @description Modo numerado: asientos a reservar (1–50). Excluyente con localityId+quantity */
+            /** @description Asientos numerados a reservar (1–50, de una o varias localidades) */
             seatIds?: string[];
             /**
              * Format: uuid
-             * @description Modo general: localidad de la que se toman los cupos
+             * @description Atajo de una sola localidad general
              */
             localityId?: string;
             /**
-             * @description Modo general: cantidad de cupos
+             * @description Cantidad (con localityId)
              * @example 2
              */
             quantity?: number;
+            /** @description Cupos por localidad general (permite varias localidades a la vez) */
+            quantities?: components["schemas"]["ReservationQuantityDto"][];
         };
         ReservationPriceDto: {
             /** @example GTQ */

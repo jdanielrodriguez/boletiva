@@ -8,6 +8,7 @@ import {
 import { Event, GatewayStatus, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { StorageService } from '../../infra/storage/storage.service';
+import { RedisService } from '../../infra/redis/redis.service';
 import { AuthUser } from '../../common/decorators/current-user.decorator';
 import { slugify, slugWithSuffix } from '../../common/utils/slug';
 import { PromotersService } from '../promoters/promoters.service';
@@ -26,6 +27,7 @@ export class EventsService {
     private readonly promoters: PromotersService,
     private readonly storage: StorageService,
     private readonly pricing: PricingService,
+    private readonly redis: RedisService,
   ) {}
 
   /** Añade una URL firmada a cada media (para catálogo/SEO/og:image). */
@@ -120,13 +122,23 @@ export class EventsService {
 
     const seatMap = await this.prisma.seatMap.findFirst({ where: { eventId, active: true } });
 
-    // Cupos disponibles por localidad (una sola consulta agrupada).
-    const counts = await this.prisma.seat.groupBy({
-      by: ['localityId'],
+    // Asientos `available` en BD (para conteos y para marcar los que están
+    // RESERVADOS en Redis: un hold no cambia el estado en BD, pero para el
+    // comprador un asiento reservado por otra persona NO está disponible).
+    const available = await this.prisma.seat.findMany({
       where: { locality: { eventId }, status: 'available' },
-      _count: { _all: true },
+      select: { id: true, localityId: true },
     });
-    const availByLoc = new Map(counts.map((c) => [c.localityId, c._count._all]));
+    const held = await this.heldSet(
+      eventId,
+      available.map((s) => s.id),
+    );
+
+    // Cupos realmente disponibles = available en BD y NO reservados en Redis.
+    const availByLoc = new Map<string, number>();
+    for (const s of available) {
+      if (!held.has(s.id)) availByLoc.set(s.localityId, (availByLoc.get(s.localityId) ?? 0) + 1);
+    }
 
     const localities = await Promise.all(
       event.localities.map(async (loc) => ({
@@ -142,8 +154,10 @@ export class EventsService {
       })),
     );
 
-    // Asientos individuales SOLO para localidades con coordenadas (seated).
-    const seats = await this.prisma.seat.findMany({
+    // Asientos individuales SOLO para localidades con coordenadas (seated). Un
+    // asiento `available` pero reservado en Redis se reporta como `held`
+    // (ocupado para el comprador; se libera al expirar la reserva).
+    const seated = await this.prisma.seat.findMany({
       where: { locality: { eventId }, x: { not: null } },
       select: {
         id: true,
@@ -157,8 +171,23 @@ export class EventsService {
       },
       orderBy: { label: 'asc' },
     });
+    const seats = seated.map((s) =>
+      s.status === 'available' && held.has(s.id) ? { ...s, status: 'held' as const } : s,
+    );
 
     return { seatMap, localities, seats };
+  }
+
+  /** IDs (de entre los dados) que están reservados en Redis (hold vigente). */
+  private async heldSet(eventId: string, seatIds: string[]): Promise<Set<string>> {
+    if (seatIds.length === 0) return new Set();
+    const keys = seatIds.map((id) => `hold:${eventId}:${id}`);
+    const holders = await this.redis.getClient().mget(...keys);
+    const held = new Set<string>();
+    holders.forEach((h, i) => {
+      if (h !== null) held.add(seatIds[i]);
+    });
+    return held;
   }
 
   /** Desglose que ve el comprador (plataforma+pasarela fusionadas en serviceFee). */

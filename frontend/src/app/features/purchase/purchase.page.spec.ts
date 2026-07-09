@@ -52,7 +52,13 @@ describe('PurchasePage', () => {
         { provide: SITE_URL, useValue: 'http://localhost:4200' },
         { provide: SessionStore, useValue: { ensureLoaded: () => of(null), isEmailVerified: () => false } },
         { provide: AuthService, useValue: {} },
-        { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ slug: 'fiesta' })) } },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            paramMap: of(convertToParamMap({ slug: 'fiesta' })),
+            snapshot: { queryParamMap: convertToParamMap({}) },
+          },
+        },
       ],
     });
     fixture = TestBed.createComponent(PurchasePage);
@@ -78,7 +84,9 @@ describe('PurchasePage', () => {
     (el.querySelector('[data-testid="reserve-btn"]') as HTMLButtonElement).click();
     fixture.detectChanges();
 
-    expect(reservations.create).toHaveBeenCalledWith('ev1', { localityId: 'ga', quantity: 2 });
+    expect(reservations.create).toHaveBeenCalledWith('ev1', {
+      quantities: [{ localityId: 'ga', quantity: 2 }],
+    });
     expect(el.querySelector('[data-testid="reserved"]')).not.toBeNull();
     expect(el.querySelector('[data-testid="countdown"]')).not.toBeNull();
     expect(el.querySelector('[data-testid="share-box"]')).not.toBeNull();

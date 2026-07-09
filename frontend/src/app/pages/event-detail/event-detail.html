@@ -29,29 +29,37 @@
       @if (localities().length > 0) {
         <ul class="locality-rows">
           @for (loc of localities(); track loc.id) {
-            <li class="locality-row" data-testid="locality-row">
-              <div class="locality-thumb" aria-hidden="true">
-                @if (coverImage(); as img) {
-                  <img [src]="img" [alt]="loc.name" />
-                } @else {
-                  <span>{{ loc.name.charAt(0) }}</span>
-                }
-              </div>
-              <div class="locality-info">
-                <strong>{{ loc.name }}</strong>
-                <span class="locality-sub">
-                  {{ loc.kind === 'general' ? 'Admisión general' : 'Asiento numerado' }}
-                  · {{ loc.available }} disponibles
-                </span>
-              </div>
-              <div class="locality-price">
-                @if (loc.price) {
-                  <span class="price-amount">Q{{ loc.price.total }}</span>
-                  <span class="price-label">por boleto</span>
-                } @else {
-                  <span class="price-label">Precio por definir</span>
-                }
-              </div>
+            <li>
+              <a
+                class="locality-row"
+                data-testid="locality-row"
+                [routerLink]="['/eventos', ev.slug, 'comprar']"
+                [queryParams]="{ loc: loc.id }"
+              >
+                <div class="locality-thumb" aria-hidden="true">
+                  @if (coverImage(); as img) {
+                    <img [src]="img" [alt]="loc.name" />
+                  } @else {
+                    <span>{{ loc.name.charAt(0) }}</span>
+                  }
+                </div>
+                <div class="locality-info">
+                  <strong>{{ loc.name }}</strong>
+                  <span class="locality-sub">
+                    {{ loc.kind === 'general' ? 'Admisión general' : 'Asiento numerado' }}
+                    · {{ loc.available }} disponibles
+                  </span>
+                </div>
+                <div class="locality-price">
+                  @if (loc.price) {
+                    <span class="price-amount">Q{{ loc.price.total }}</span>
+                    <span class="price-label">por boleto</span>
+                  } @else {
+                    <span class="price-label">Precio por definir</span>
+                  }
+                </div>
+                <span class="locality-go" aria-hidden="true">›</span>
+              </a>
             </li>
           }
         </ul>
@@ -59,10 +67,6 @@
         <p>Aún no hay localidades publicadas.</p>
       }
     </section>
-
-    @if (ev.status === 'published') {
-      <a class="buy" [routerLink]="['/eventos', ev.slug, 'comprar']">Comprar boletos</a>
-    }
   </article>
 } @else if (loading()) {
   <p data-testid="event-loading">Cargando evento…</p>

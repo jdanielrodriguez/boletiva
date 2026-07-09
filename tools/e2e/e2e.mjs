@@ -112,7 +112,11 @@ async function main() {
     assert(ld !== null, 'falta JSON-LD');
     const type = await page.$eval('#pe-jsonld', (el) => JSON.parse(el.textContent)['@type']);
     assert(type === 'Event', `@type=${type}`);
-    assert((await page.$('a.buy')) !== null, 'falta botón Comprar');
+    // Las localidades son enlaces (CTA) que llevan a comprar esa localidad.
+    const row = await page.$('[data-testid="locality-row"]');
+    assert(row !== null, 'faltan filas de localidad');
+    const href = await page.$eval('[data-testid="locality-row"]', (a) => a.getAttribute('href'));
+    assert(href && href.includes('/comprar'), `la localidad no enlaza a comprar: ${href}`);
   });
 
   await step('slug inexistente devuelve 404 y muestra no-encontrado', async () => {

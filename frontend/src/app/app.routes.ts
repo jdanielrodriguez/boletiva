@@ -44,5 +44,27 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/forbidden/forbidden').then((m) => m.Forbidden),
     title: 'Sin permiso — Pasa Eventos',
   },
+  {
+    path: 'terminos',
+    loadComponent: () => import('./pages/static/terms').then((m) => m.Terms),
+    title: 'Términos y condiciones — Pasa Eventos',
+  },
+  {
+    path: 'registro',
+    loadComponent: () => import('./pages/static/register').then((m) => m.Register),
+    title: 'Crear cuenta — Pasa Eventos',
+  },
+  {
+    path: 'cuenta',
+    loadComponent: () => import('./pages/static/account').then((m) => m.Account),
+    canActivate: [authGuard],
+    title: 'Mi cuenta — Pasa Eventos',
+  },
+  {
+    path: 'cuenta/configuracion',
+    loadComponent: () => import('./pages/static/account').then((m) => m.Account),
+    canActivate: [authGuard],
+    title: 'Configuraciones — Pasa Eventos',
+  },
   { path: '**', redirectTo: '' },
 ];
