@@ -92,6 +92,15 @@ describe('Account (mi cuenta)', () => {
     expect(el.querySelector('[data-testid="wallet-balance"]')?.textContent).toContain('50.00');
   });
 
+  it('wallet explicita el origen del saldo (reembolsos/reventas, no recarga con tarjeta)', async () => {
+    await setup();
+    go('menu-wallet');
+    const note = el.querySelector('[data-testid="wallet-source"]')?.textContent ?? '';
+    expect(note).toContain('reembolsos');
+    expect(note).toContain('reventas');
+    expect(note.toLowerCase()).toContain('tarjeta');
+  });
+
   it('solicitar retiro sin monto muestra error', async () => {
     await setup();
     go('menu-wallet');

@@ -73,6 +73,11 @@
           } @else {
             <p class="muted">No se pudo cargar tu saldo.</p>
           }
+          <p class="muted wallet-source" data-testid="wallet-source">
+            Tu saldo proviene únicamente de <strong>reembolsos</strong> y <strong>reventas</strong> de boletos.
+            No es posible recargarlo con tarjeta: solo circula dinero ya amparado por una compra.
+            Puedes usarlo para pagar boletos o retirarlo a tu cuenta.
+          </p>
 
           <form class="withdraw-form" (ngSubmit)="requestWithdrawal()">
             <label for="wd-amount">Retirar saldo (Q)</label>
