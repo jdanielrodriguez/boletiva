@@ -70,9 +70,11 @@ export const routes: Routes = [
     title: 'Términos y condiciones — Pasa Eventos',
   },
   {
+    // Sin guestGuard: con ?token= debe poder ACTIVAR el rol aunque haya sesión
+    // (invitación a cuenta existente). El propio componente redirige a /cuenta si
+    // entra un usuario logueado sin token.
     path: 'registro',
     loadComponent: () => import('./pages/static/register').then((m) => m.Register),
-    canActivate: [guestGuard],
     title: 'Crear cuenta — Pasa Eventos',
   },
   {

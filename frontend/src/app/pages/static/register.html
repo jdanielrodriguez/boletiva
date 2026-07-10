@@ -1,36 +1,71 @@
 <div class="auth-wrap">
   <section class="auth-card">
-    <h1>Crear cuenta</h1>
-    @if (invited()) {
-      <p class="auth-sub" data-testid="invited-note">
-        Fuiste invitado como <strong>promotor</strong>. Completa tus datos para activar tu cuenta.
-      </p>
-    } @else {
-      <p class="auth-sub">Regístrate para comprar boletos y gestionar tu cuenta.</p>
-    }
-
-    <form (ngSubmit)="submit()">
-      <label for="rg-first">Nombre</label>
-      <input id="rg-first" type="text" [ngModel]="firstName()" (ngModelChange)="firstName.set($event)" name="firstName" autocomplete="given-name" />
-
-      <label for="rg-last">Apellido</label>
-      <input id="rg-last" type="text" [ngModel]="lastName()" (ngModelChange)="lastName.set($event)" name="lastName" autocomplete="family-name" />
-
-      <label for="rg-email">Correo</label>
-      <input id="rg-email" type="email" [ngModel]="email()" (ngModelChange)="email.set($event)" name="email" autocomplete="email" [readonly]="invited()" data-testid="rg-email" />
-
-      <label for="rg-pass">Contraseña</label>
-      <input id="rg-pass" type="password" [ngModel]="password()" (ngModelChange)="password.set($event)" name="password" autocomplete="new-password" />
-
-      <button type="submit" class="primary" [disabled]="working()" data-testid="rg-submit">
-        {{ working() ? 'Creando…' : 'Crear cuenta' }}
-      </button>
-
-      @if (error(); as e) {
-        <p class="error" data-testid="rg-error">{{ e }}</p>
+    @switch (mode()) {
+      @case ('loading') {
+        <h1>Invitación</h1>
+        <p class="auth-sub" data-testid="inv-loading">Validando tu invitación…</p>
       }
-    </form>
 
-    <p class="auth-alt">¿Ya tienes cuenta? <a routerLink="/login">Inicia sesión</a></p>
+      @case ('invalid') {
+        <h1>Invitación no válida</h1>
+        <p class="error" data-testid="inv-invalid">{{ error() ?? 'La invitación no es válida o venció.' }}</p>
+        <p class="auth-alt"><a routerLink="/login">Ir a iniciar sesión</a></p>
+      }
+
+      @case ('activate') {
+        <h1>Activar cuenta de promotor</h1>
+        <p class="auth-sub" data-testid="activate-note">
+          Fuiste invitado como <strong>promotor</strong> con el correo
+          <strong>{{ invitedEmail() }}</strong>. Ya tienes una cuenta con ese correo.
+        </p>
+        @if (sameAccount()) {
+          <button type="button" class="primary" [disabled]="working()" (click)="activate()" data-testid="activate-btn">
+            {{ working() ? 'Activando…' : 'Activar mi cuenta de promotor' }}
+          </button>
+        } @else {
+          <p class="auth-sub" data-testid="activate-login-note">
+            Inicia sesión con <strong>{{ invitedEmail() }}</strong> para activar tu rol de promotor.
+          </p>
+          <a class="primary btn-link" [routerLink]="['/login']" [queryParams]="{ returnUrl: loginReturnUrl() }" data-testid="activate-login">
+            Iniciar sesión
+          </a>
+        }
+      }
+
+      @default {
+        <h1>Crear cuenta</h1>
+        @if (mode() === 'register') {
+          <p class="auth-sub" data-testid="invited-note">
+            Fuiste invitado como <strong>promotor</strong>. Completa tus datos para activar tu cuenta.
+          </p>
+        } @else {
+          <p class="auth-sub">Regístrate para comprar boletos y gestionar tu cuenta.</p>
+        }
+
+        <form (ngSubmit)="submit()">
+          <label for="rg-first">Nombre</label>
+          <input id="rg-first" type="text" [ngModel]="firstName()" (ngModelChange)="firstName.set($event)" name="firstName" autocomplete="given-name" />
+
+          <label for="rg-last">Apellido</label>
+          <input id="rg-last" type="text" [ngModel]="lastName()" (ngModelChange)="lastName.set($event)" name="lastName" autocomplete="family-name" />
+
+          <label for="rg-email">Correo</label>
+          <input id="rg-email" type="email" [ngModel]="email()" (ngModelChange)="email.set($event)" name="email" autocomplete="email" [readonly]="mode() === 'register'" data-testid="rg-email" />
+
+          <label for="rg-pass">Contraseña</label>
+          <input id="rg-pass" type="password" [ngModel]="password()" (ngModelChange)="password.set($event)" name="password" autocomplete="new-password" />
+
+          <button type="submit" class="primary" [disabled]="working()" data-testid="rg-submit">
+            {{ working() ? 'Creando…' : 'Crear cuenta' }}
+          </button>
+
+          @if (error(); as e) {
+            <p class="error" data-testid="rg-error">{{ e }}</p>
+          }
+        </form>
+
+        <p class="auth-alt">¿Ya tienes cuenta? <a routerLink="/login">Inicia sesión</a></p>
+      }
+    }
   </section>
 </div>
