@@ -24,6 +24,10 @@ import { CardTokenizerStub } from '../../core/payments/card-tokenizer.stub';
 import { AuthService } from '../../core/auth/auth.service';
 import { SessionStore } from '../../core/auth/session.store';
 import { ToastService } from '../../core/ui/toast.service';
+import {
+  ConfirmDialogComponent,
+  type ConfirmRequest,
+} from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 
 type Section = 'perfil' | 'metodos' | 'facturacion' | 'wallet' | 'activos' | 'pasados';
@@ -84,7 +88,7 @@ function groupByEventOrder(tickets: TicketResponseDto[]): EventGroup[] {
  */
 @Component({
   selector: 'app-account',
-  imports: [FormsModule, DatePipe, UpperCasePipe, MoneyPipe, RouterLink, IconComponent],
+  imports: [FormsModule, DatePipe, UpperCasePipe, MoneyPipe, RouterLink, IconComponent, ConfirmDialogComponent],
   templateUrl: './account.html',
 })
 export class Account {
@@ -361,6 +365,25 @@ export class Account {
     });
   }
 
+  // --- Confirmación de acciones destructivas ---
+  protected readonly confirm = signal<ConfirmRequest | null>(null);
+  protected onConfirmAccept(): void {
+    const c = this.confirm();
+    this.confirm.set(null);
+    c?.onConfirm();
+  }
+  protected onConfirmCancel(): void {
+    this.confirm.set(null);
+  }
+
+  protected askRemoveCard(c: PaymentMethodResponseDto): void {
+    this.confirm.set({
+      title: 'Eliminar tarjeta',
+      message: `¿Seguro que deseas eliminar la tarjeta ${c.brand.toUpperCase()} •••• ${c.last4}?`,
+      onConfirm: () => this.removeCard(c.id),
+    });
+  }
+
   protected removeCard(id: string): void {
     this.paymentMethodsApi.remove(id).subscribe({
       next: () => {
@@ -456,6 +479,16 @@ export class Account {
         this.withdrawing.set(false);
         this.toasts.error('No se pudo solicitar el retiro (¿saldo insuficiente?).');
       },
+    });
+  }
+
+  protected askCancelWithdrawal(w: WithdrawalResponseDto): void {
+    this.confirm.set({
+      title: 'Cancelar retiro',
+      message: '¿Seguro que deseas cancelar este retiro? El saldo se reintegrará a tu wallet.',
+      confirmLabel: 'Cancelar retiro',
+      confirmIcon: 'cancel',
+      onConfirm: () => this.cancelWithdrawal(w.id),
     });
   }
 

@@ -257,6 +257,17 @@ describe('ConfigPage (v3, admin console)', () => {
     expect(revoke).toHaveBeenCalledWith('i1');
   });
 
+  it('invitaciones: revocar pide confirmación (modal) antes de llamar al API', async () => {
+    const revoke = jasmine.createSpy('r').and.returnValue(of({ id: 'i1', status: 'revoked' }));
+    await setup({}, { revoke });
+    await selectTab('tab-invitaciones');
+    click('inv-revoke');
+    expect(revoke).not.toHaveBeenCalled();
+    expect(el.querySelector('[data-testid="confirm-dialog"]')).not.toBeNull();
+    click('confirm-accept');
+    expect(revoke).toHaveBeenCalledWith('i1');
+  });
+
   it('sistema: el buscador de pasarelas filtra por nombre', async () => {
     await setup();
     await selectTab('tab-sistema');

@@ -336,13 +336,28 @@ describe('Account (mi cuenta)', () => {
     expect(lastToast()?.kind).toBe('warning');
   });
 
-  it('métodos: eliminar tarjeta llama al API', async () => {
+  it('métodos: eliminar tarjeta pide confirmación y luego llama al API', async () => {
     const remove = jasmine.createSpy('remove').and.returnValue(of({ deleted: true }));
     const list = () => of([{ id: 'c9', brand: 'visa', last4: '4242', isDefault: true, createdAt: '2026-07-01' }]);
     await setup({ cardsApi: { list, remove } });
     go('menu-metodos');
     go('remove-card');
+    // No se elimina al primer click: aparece el modal de confirmación.
+    expect(remove).not.toHaveBeenCalled();
+    expect(el.querySelector('[data-testid="confirm-dialog"]')).not.toBeNull();
+    go('confirm-accept');
     expect(remove).toHaveBeenCalledWith('c9');
+  });
+
+  it('métodos: cancelar la confirmación NO elimina la tarjeta', async () => {
+    const remove = jasmine.createSpy('remove').and.returnValue(of({ deleted: true }));
+    const list = () => of([{ id: 'c9', brand: 'visa', last4: '4242', isDefault: true, createdAt: '2026-07-01' }]);
+    await setup({ cardsApi: { list, remove } });
+    go('menu-metodos');
+    go('remove-card');
+    go('confirm-cancel');
+    expect(remove).not.toHaveBeenCalled();
+    expect(el.querySelector('[data-testid="confirm-dialog"]')).toBeNull();
   });
 
   it('facturación vacía muestra estado vacío', async () => {

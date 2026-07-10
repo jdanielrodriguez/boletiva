@@ -113,17 +113,32 @@ describe('PromoterPanel (v3 grid)', () => {
     expect(publish).toHaveBeenCalledWith('e1');
   });
 
-  it('eliminar un evento draft llama remove', async () => {
+  it('eliminar un evento draft pide confirmación y luego llama remove', async () => {
     const remove = jasmine.createSpy('remove').and.returnValue(of(undefined));
     await setup({ remove });
     click('ev-delete');
+    // No elimina al primer click: aparece el modal de confirmación.
+    expect(remove).not.toHaveBeenCalled();
+    expect(el.querySelector('[data-testid="confirm-dialog"]')).not.toBeNull();
+    click('confirm-accept');
     expect(remove).toHaveBeenCalledWith('e1');
   });
 
-  it('cancelar un evento publicado llama cancel', async () => {
+  it('cancelar la confirmación NO elimina el evento', async () => {
+    const remove = jasmine.createSpy('remove').and.returnValue(of(undefined));
+    await setup({ remove });
+    click('ev-delete');
+    click('confirm-cancel');
+    expect(remove).not.toHaveBeenCalled();
+    expect(el.querySelector('[data-testid="confirm-dialog"]')).toBeNull();
+  });
+
+  it('cancelar un evento publicado pide confirmación y luego llama cancel', async () => {
     const cancel = jasmine.createSpy('cancel').and.returnValue(of(EVENTS[1]));
     await setup({ cancel });
     click('ev-cancel');
+    expect(cancel).not.toHaveBeenCalled();
+    click('confirm-accept');
     expect(cancel).toHaveBeenCalledWith('e2');
   });
 

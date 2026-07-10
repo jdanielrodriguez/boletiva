@@ -4,8 +4,8 @@
       <h1>Mis eventos</h1>
       <p class="muted">Crea, configura y publica tus eventos.</p>
     </div>
-    <button type="button" class="btn primary" (click)="toggleCreate()" data-testid="toggle-create">
-      {{ showCreate() ? 'Cerrar' : '+ Nuevo evento' }}
+    <button type="button" class="btn primary" (click)="toggleCreate()" data-testid="toggle-create" title="Nuevo evento">
+      <app-icon [name]="showCreate() ? 'cancel' : 'add'" /> {{ showCreate() ? 'Cerrar' : 'Nuevo evento' }}
     </button>
   </div>
 
@@ -28,8 +28,8 @@
             <input type="datetime-local" [ngModel]="form.startsAt()" (ngModelChange)="form.startsAt.set($event)" name="startsAt" data-testid="ev-start" />
           </label>
         </div>
-        <button type="submit" class="btn primary" [disabled]="creating()" data-testid="ev-create">
-          {{ creating() ? 'Creando…' : 'Crear y editar' }}
+        <button type="submit" class="btn primary" [disabled]="creating()" data-testid="ev-create" title="Crear y editar">
+          <app-icon name="add" /> {{ creating() ? 'Creando…' : 'Crear y editar' }}
         </button>
       </form>
     </div>
@@ -69,13 +69,21 @@
           <a class="ev-card-name" [routerLink]="['/promotor/eventos', ev.id, 'editar']" data-testid="ev-name-link">{{ ev.name }}</a>
           <time class="muted small">{{ ev.startsAt | date: 'EEE d MMM y, HH:mm' }}</time>
           <div class="ev-card-actions">
-            <a class="btn small" [routerLink]="['/promotor/eventos', ev.id, 'editar']" data-testid="ev-edit">Editar</a>
+            <a class="btn small" [routerLink]="['/promotor/eventos', ev.id, 'editar']" data-testid="ev-edit" title="Editar evento">
+              <app-icon name="edit" /> Editar
+            </a>
             @if (ev.status === 'draft') {
-              <button type="button" class="btn small primary" (click)="publish(ev)" data-testid="ev-publish">Publicar</button>
-              <button type="button" class="btn small danger" (click)="remove(ev)" data-testid="ev-delete">Eliminar</button>
+              <button type="button" class="btn small primary" (click)="publish(ev)" data-testid="ev-publish" title="Publicar evento">
+                <app-icon name="publish" /> Publicar
+              </button>
+              <button type="button" class="btn small danger" (click)="askRemove(ev)" data-testid="ev-delete" title="Eliminar evento">
+                <app-icon name="delete" /> Eliminar
+              </button>
             }
             @if (ev.status === 'published') {
-              <button type="button" class="btn small danger" (click)="cancelEvent(ev)" data-testid="ev-cancel">Cancelar</button>
+              <button type="button" class="btn small danger" (click)="askCancelEvent(ev)" data-testid="ev-cancel" title="Cancelar evento">
+                <app-icon name="cancel" /> Cancelar
+              </button>
             }
           </div>
         </article>
@@ -91,5 +99,16 @@
         <button type="button" class="pager-arrow" [disabled]="!hasNext()" (click)="goToPage(page() + 1)">›</button>
       </div>
     }
+  }
+
+  @if (confirm(); as cf) {
+    <app-confirm-dialog
+      [title]="cf.title"
+      [message]="cf.message"
+      [confirmLabel]="cf.confirmLabel ?? 'Eliminar'"
+      [confirmIcon]="cf.confirmIcon ?? 'delete'"
+      (accept)="onConfirmAccept()"
+      (cancelled)="onConfirmCancel()"
+    />
   }
 </section>

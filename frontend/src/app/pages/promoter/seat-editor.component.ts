@@ -13,6 +13,11 @@ import { FormsModule } from '@angular/forms';
 import type Konva from 'konva';
 import { PromoterEventsApi, SeatView } from '../../core/api/promoter-events.api';
 import { ToastService } from '../../core/ui/toast.service';
+import {
+  ConfirmDialogComponent,
+  type ConfirmRequest,
+} from '../../shared/confirm-dialog/confirm-dialog.component';
+import { IconComponent } from '../../shared/icon/icon.component';
 import { buildGrid } from './seat-grid';
 
 const PAD = 30;
@@ -26,7 +31,7 @@ const PAD = 30;
  */
 @Component({
   selector: 'app-seat-editor',
-  imports: [FormsModule],
+  imports: [FormsModule, IconComponent, ConfirmDialogComponent],
   templateUrl: './seat-editor.component.html',
 })
 export class SeatEditorComponent {
@@ -88,6 +93,27 @@ export class SeatEditorComponent {
         this.saving.set(false);
         this.toasts.error('No se pudieron generar los asientos.');
       },
+    });
+  }
+
+  // --- Confirmación de acciones destructivas ---
+  protected readonly confirm = signal<ConfirmRequest | null>(null);
+  protected onConfirmAccept(): void {
+    const c = this.confirm();
+    this.confirm.set(null);
+    c?.onConfirm();
+  }
+  protected onConfirmCancel(): void {
+    this.confirm.set(null);
+  }
+
+  protected askClearAll(): void {
+    if (this.readonly() || this.seats().length === 0) return;
+    this.confirm.set({
+      title: 'Vaciar el mapa de asientos',
+      message: `¿Seguro que deseas eliminar los ${this.seats().length} asiento(s) de esta localidad? Esta acción no se puede deshacer.`,
+      confirmLabel: 'Vaciar',
+      onConfirm: () => this.clearAll(),
     });
   }
 

@@ -15,11 +15,13 @@
         <span>Sección</span>
         <input type="text" placeholder="Platea" [ngModel]="section()" (ngModelChange)="section.set($event)" name="section" />
       </label>
-      <button type="button" class="btn small primary" [disabled]="saving()" (click)="generate()" data-testid="se-generate">
-        {{ saving() ? 'Guardando…' : 'Generar cuadrícula' }}
+      <button type="button" class="btn small primary" [disabled]="saving()" (click)="generate()" data-testid="se-generate" title="Generar cuadrícula">
+        <app-icon name="seats" /> {{ saving() ? 'Guardando…' : 'Generar cuadrícula' }}
       </button>
       @if (seatCount() > 0) {
-        <button type="button" class="btn small danger" [disabled]="saving()" (click)="clearAll()" data-testid="se-clear">Vaciar</button>
+        <button type="button" class="btn small danger" [disabled]="saving()" (click)="askClearAll()" data-testid="se-clear" title="Vaciar el mapa">
+          <app-icon name="delete" /> Vaciar
+        </button>
       }
     </div>
     <p class="muted small">Genera filas/asientos posicionados. "Generar" agrega a lo existente; "Vaciar" borra todo.</p>
@@ -27,4 +29,15 @@
 
   <p class="muted small" data-testid="se-count">{{ seatCount() }} asiento(s) en el mapa.</p>
   <div #host class="seat-editor-canvas"></div>
+
+  @if (confirm(); as cf) {
+    <app-confirm-dialog
+      [title]="cf.title"
+      [message]="cf.message"
+      [confirmLabel]="cf.confirmLabel ?? 'Eliminar'"
+      [confirmIcon]="cf.confirmIcon ?? 'delete'"
+      (accept)="onConfirmAccept()"
+      (cancelled)="onConfirmCancel()"
+    />
+  }
 </div>

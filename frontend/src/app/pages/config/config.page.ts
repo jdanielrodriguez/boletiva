@@ -11,6 +11,10 @@ import {
 } from '../../core/api/admin.api';
 import { InvitationsApi } from '../../core/api/invitations.api';
 import { ToastService } from '../../core/ui/toast.service';
+import {
+  ConfirmDialogComponent,
+  type ConfirmRequest,
+} from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 import type { CreatedInvitationDto, InvitationListItemDto } from '../../core/api/types';
 
@@ -48,7 +52,7 @@ const INV_PAGE = 9;
  */
 @Component({
   selector: 'app-config-page',
-  imports: [FormsModule, DatePipe, IconComponent],
+  imports: [FormsModule, DatePipe, IconComponent, ConfirmDialogComponent],
   templateUrl: './config.page.html',
 })
 export class ConfigPage {
@@ -485,6 +489,27 @@ export class ConfigPage {
       },
     });
   }
+  // --- Confirmación de acciones destructivas ---
+  protected readonly confirm = signal<ConfirmRequest | null>(null);
+  protected onConfirmAccept(): void {
+    const c = this.confirm();
+    this.confirm.set(null);
+    c?.onConfirm();
+  }
+  protected onConfirmCancel(): void {
+    this.confirm.set(null);
+  }
+
+  protected askRevoke(i: InvitationListItemDto): void {
+    this.confirm.set({
+      title: 'Revocar invitación',
+      message: `¿Seguro que deseas revocar la invitación de ${i.email}? El enlace dejará de funcionar.`,
+      confirmLabel: 'Revocar',
+      confirmIcon: 'revoke',
+      onConfirm: () => this.revoke(i),
+    });
+  }
+
   protected revoke(i: InvitationListItemDto): void {
     this.invitationsApi.revoke(i.id).subscribe({
       next: () => {

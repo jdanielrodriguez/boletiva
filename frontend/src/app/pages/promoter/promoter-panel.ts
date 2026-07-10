@@ -4,6 +4,11 @@ import { DatePipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
 import { ToastService } from '../../core/ui/toast.service';
+import {
+  ConfirmDialogComponent,
+  type ConfirmRequest,
+} from '../../shared/confirm-dialog/confirm-dialog.component';
+import { IconComponent } from '../../shared/icon/icon.component';
 import type { MyEventListItemDto } from '../../core/api/types';
 
 const PAGE_SIZE = 9;
@@ -16,7 +21,7 @@ const PAGE_SIZE = 9;
  */
 @Component({
   selector: 'app-promoter-panel',
-  imports: [FormsModule, DatePipe, RouterLink],
+  imports: [FormsModule, DatePipe, RouterLink, IconComponent, ConfirmDialogComponent],
   templateUrl: './promoter-panel.html',
 })
 export class PromoterPanel {
@@ -139,6 +144,27 @@ export class PromoterPanel {
     });
   }
 
+  // --- Confirmación de acciones destructivas ---
+  protected readonly confirm = signal<ConfirmRequest | null>(null);
+  protected onConfirmAccept(): void {
+    const c = this.confirm();
+    this.confirm.set(null);
+    c?.onConfirm();
+  }
+  protected onConfirmCancel(): void {
+    this.confirm.set(null);
+  }
+
+  protected askCancelEvent(ev: MyEventListItemDto): void {
+    this.confirm.set({
+      title: 'Cancelar evento',
+      message: `¿Seguro que deseas cancelar "${ev.name}"? Dejará de venderse.`,
+      confirmLabel: 'Cancelar evento',
+      confirmIcon: 'cancel',
+      onConfirm: () => this.cancelEvent(ev),
+    });
+  }
+
   protected cancelEvent(ev: MyEventListItemDto): void {
     this.eventsApi.cancel(ev.id).subscribe({
       next: () => {
@@ -146,6 +172,14 @@ export class PromoterPanel {
         this.loadEvents();
       },
       error: () => this.toasts.error('No se pudo cancelar el evento.'),
+    });
+  }
+
+  protected askRemove(ev: MyEventListItemDto): void {
+    this.confirm.set({
+      title: 'Eliminar evento',
+      message: `¿Seguro que deseas eliminar "${ev.name}"? Esta acción no se puede deshacer.`,
+      onConfirm: () => this.remove(ev),
     });
   }
 

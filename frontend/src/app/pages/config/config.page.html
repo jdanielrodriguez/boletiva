@@ -384,7 +384,7 @@
               </div>
               <span class="inv-email">{{ i.email }}</span>
               @if (i.status === 'pending') {
-                <button type="button" class="btn small danger" (click)="revoke(i)" data-testid="inv-revoke" title="Revocar invitación">
+                <button type="button" class="btn small danger" (click)="askRevoke(i)" data-testid="inv-revoke" title="Revocar invitación">
                   <app-icon name="revoke" /> Revocar
                 </button>
               }
@@ -404,5 +404,16 @@
         <p class="muted">Aún no has enviado invitaciones.</p>
       }
     }
+  }
+
+  @if (confirm(); as cf) {
+    <app-confirm-dialog
+      [title]="cf.title"
+      [message]="cf.message"
+      [confirmLabel]="cf.confirmLabel ?? 'Eliminar'"
+      [confirmIcon]="cf.confirmIcon ?? 'delete'"
+      (accept)="onConfirmAccept()"
+      (cancelled)="onConfirmCancel()"
+    />
   }
 </section>

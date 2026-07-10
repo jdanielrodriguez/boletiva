@@ -89,7 +89,7 @@
                   } @else {
                     <button type="button" class="link-btn" (click)="setDefaultCard(c.id)" data-testid="set-default-card">Hacer predeterminada</button>
                   }
-                  <button type="button" class="link-btn danger" (click)="removeCard(c.id)" data-testid="remove-card">Eliminar</button>
+                  <button type="button" class="link-btn danger" (click)="askRemoveCard(c)" data-testid="remove-card" title="Eliminar tarjeta">Eliminar</button>
                 </li>
               }
             </ul>
@@ -319,7 +319,7 @@
                       <span class="muted">neto {{ w.net | money }}</span>
                       <span class="badge badge-{{ w.status }}">{{ w.status }}</span>
                       @if (w.status === 'pending') {
-                        <button type="button" (click)="cancelWithdrawal(w.id)" data-testid="cancel-withdrawal" title="Cancelar retiro">
+                        <button type="button" (click)="askCancelWithdrawal(w)" data-testid="cancel-withdrawal" title="Cancelar retiro">
                           <app-icon name="cancel" /> Cancelar
                         </button>
                       }
@@ -514,4 +514,15 @@
       }
     </div>
   </div>
+
+  @if (confirm(); as cf) {
+    <app-confirm-dialog
+      [title]="cf.title"
+      [message]="cf.message"
+      [confirmLabel]="cf.confirmLabel ?? 'Eliminar'"
+      [confirmIcon]="cf.confirmIcon ?? 'delete'"
+      (accept)="onConfirmAccept()"
+      (cancelled)="onConfirmCancel()"
+    />
+  }
 </section>
