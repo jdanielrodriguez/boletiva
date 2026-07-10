@@ -259,9 +259,27 @@ app-root {
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 1rem;
-  text-align: center;
+}
+
+/* Cada fila: izquierda ↔ derecha en desktop; apilada y centrada en móvil. */
+.footer-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+}
+
+.footer-row--bottom {
+  border-top: 1px solid var(--pe-border);
+  padding-top: 1rem;
+}
+
+.footer-brand {
+  min-height: 1px;
+  flex: 1 1 auto;
 }
 
 .footer-menu {
@@ -269,7 +287,6 @@ app-root {
   flex-direction: row;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
   gap: 1.25rem;
 }
 
@@ -284,17 +301,34 @@ app-root {
   color: var(--pe-text);
 }
 
+/* "Conviértete en promotor": resaltado suave, se distingue del resto del menú. */
+.footer-menu a.footer-cta {
+  color: var(--pe-primary, var(--pe-text));
+  font-weight: 600;
+}
+
 .footer-legal {
-  order: 3;
   font-size: 0.85rem;
 }
 
 .footer-copy {
-  order: 2;
-  text-align: center;
   color: var(--pe-muted);
   font-size: 0.82rem;
   margin: 0;
+}
+
+@media (max-width: 640px) {
+  .footer-row {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .footer-brand {
+    display: none;
+  }
+  .footer-menu {
+    justify-content: center;
+  }
 }
 
 /* Menú de usuario (header) */

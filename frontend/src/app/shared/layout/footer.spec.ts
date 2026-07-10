@@ -36,15 +36,16 @@ describe('Footer', () => {
     expect(allLinks(el)).toContain('Términos y condiciones');
   });
 
-  it('logueado (comprador): solo Perfil en el menú, sin Configuración', () => {
+  it('logueado (comprador): Perfil + "Conviértete en promotor", sin Configuración', () => {
     const el = render({ isAuthenticated: () => true, hasAnyRole: () => false } as unknown as SessionStore);
     const l = links(el);
     expect(l).toContain('Perfil');
+    expect(l).toContain('Conviértete en promotor');
     expect(l).not.toContain('Configuración');
     expect(l).not.toContain('Iniciar sesión');
   });
 
-  it('logueado (promotor): Perfil + Configuración', () => {
+  it('logueado (promotor): Perfil + Configuración, SIN "Conviértete en promotor"', () => {
     const el = render({
       isAuthenticated: () => true,
       hasAnyRole: (roles: string[]) => roles.includes('promoter'),
@@ -52,6 +53,18 @@ describe('Footer', () => {
     const l = links(el);
     expect(l).toContain('Perfil');
     expect(l).toContain('Configuración');
+    expect(l).not.toContain('Conviértete en promotor');
+  });
+
+  it('logueado (admin): Perfil + Configuración, SIN "Conviértete en promotor"', () => {
+    const el = render({
+      isAuthenticated: () => true,
+      hasAnyRole: (roles: string[]) => roles.includes('admin'),
+    } as unknown as SessionStore);
+    const l = links(el);
+    expect(l).toContain('Perfil');
+    expect(l).toContain('Configuración');
+    expect(l).not.toContain('Conviértete en promotor');
   });
 
   it('Términos y condiciones va en el bloque legal (hasta abajo), no en el menú', () => {

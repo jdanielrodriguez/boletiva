@@ -14,6 +14,7 @@ export const shell = {
   logout: 'Sign out',
   login: 'Sign in',
   createAccount: 'Create account',
+  becomePromoter: 'Become a promoter',
   footerMenu: 'Footer links',
   legal: 'Legal',
   terms: 'Terms and conditions',
