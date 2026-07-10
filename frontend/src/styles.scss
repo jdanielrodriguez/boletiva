@@ -329,6 +329,34 @@ app-root {
   .footer-menu {
     justify-content: center;
   }
+
+  /* Cabecera compacta en móvil: reduce padding/gap, oculta el nav redundante
+     ("Eventos" ya es el brand) y el saludo, y minimiza el conmutador de idioma
+     (solo banderas). Así el header cabe en 360-430px sin scroll lateral. */
+  .site-header {
+    gap: 0.6rem;
+    padding: 0.7rem 0.9rem;
+  }
+  .site-nav {
+    display: none;
+  }
+  .session-area {
+    gap: 0.5rem;
+    min-width: 0;
+  }
+  .session-area .greeting {
+    display: none;
+  }
+  .brand {
+    font-size: 1.05rem;
+    min-width: 0;
+  }
+  .lang-switcher .lang-code {
+    display: none;
+  }
+  .lang-flag {
+    padding: 0.2rem 0.25rem !important;
+  }
 }
 
 /* Menú de usuario (header) */
@@ -523,14 +551,20 @@ app-root {
 /* Mi cuenta */
 .account-grid {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 220px minmax(0, 1fr);
   gap: 1.5rem;
   align-items: start;
+}
+/* minmax(0,…) evita que el min-content del contenido (una tabla/texto largo)
+   estire la columna y desborde en móvil; los hijos deben poder encoger. */
+.account-menu,
+.account-content {
+  min-width: 0;
 }
 
 @media (max-width: 720px) {
   .account-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -1221,6 +1255,21 @@ app-root {
   width: 100%;
 }
 
+/* Los campos son items de grid/flex: sin `min-width:0` su tamaño mínimo es el
+   min-content del control (un <select> con opciones largas puede forzar ~480px
+   y desbordar en móvil). Forzamos que encojan y que todo control llene el ancho. */
+.field {
+  min-width: 0;
+}
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
 .form-error {
   background: rgba(255, 107, 129, 0.12);
   border: 1px solid rgba(255, 107, 129, 0.4);
@@ -1260,6 +1309,7 @@ app-root {
 
 .catalog-search input {
   flex: 1;
+  min-width: 0; /* permite encoger el input (placeholder largo) sin empujar el botón */
 }
 
 .catalog-categories {
