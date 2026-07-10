@@ -60,7 +60,7 @@ describe('Account (mi cuenta)', () => {
           } as unknown as WalletApi,
         },
         { provide: TicketsApi, useValue: { list: () => of(TICKETS), media: () => of({}), transfer: () => of({}), ...o.tickets } as unknown as TicketsApi },
-        { provide: OrdersApi, useValue: { list: () => of({ items: [], nextCursor: null }), ledgerChain: () => of({ orderId: 'o1', transactions: [], chainValid: true }), ...o.orders } as unknown as OrdersApi },
+        { provide: OrdersApi, useValue: { list: () => of({ items: [], nextCursor: null }), movements: () => of({ items: [] }), ledgerChain: () => of({ orderId: 'o1', transactions: [], chainValid: true }), ...o.orders } as unknown as OrdersApi },
         { provide: TransfersApi, useValue: { claim: () => of({}), outgoing: () => of([]), cancel: () => of({}), ...o.transfers } as unknown as TransfersApi },
         { provide: UsersApi, useValue: { updateMe: () => of({ firstName: 'Ana' }), ...o.users } as unknown as UsersApi },
         {
@@ -364,10 +364,14 @@ describe('Account (mi cuenta)', () => {
     expect(el.querySelector('[data-testid="confirm-dialog"]')).toBeNull();
   });
 
-  it('facturación vacía muestra estado vacío', async () => {
+  it('facturación vacía muestra estado vacío bonito (empty-state)', async () => {
     await setup();
     go('menu-facturacion');
-    expect(el.querySelector('[data-testid="orders-empty"]')).not.toBeNull();
+    const empty = el.querySelector('[data-testid="orders-empty"]');
+    expect(empty).not.toBeNull();
+    // Es el componente empty-state (ilustración + CTA), no una sola línea.
+    expect(empty?.querySelector('.empty-illustration')).not.toBeNull();
+    expect(empty?.querySelector('[data-testid="empty-cta"]')).not.toBeNull();
   });
 
   it('cancelar retiro llama al API y notifica', async () => {
@@ -429,7 +433,7 @@ describe('Account (mi cuenta)', () => {
   it('facturación: ocultar la cadena tras verla', async () => {
     const chain = { orderId: 'o1', chainValid: true, transactions: [] };
     const ledgerChain = jasmine.createSpy('lc').and.returnValue(of(chain));
-    await setup({ orders: { list: () => of({ items: ORDERS, nextCursor: null }), ledgerChain } });
+    await setup({ orders: { movements: () => of({ items: MOVEMENTS }), ledgerChain } });
     go('menu-facturacion');
     fixture.componentInstance['loadChain']('o1'); // carga
     fixture.detectChanges();
@@ -438,32 +442,37 @@ describe('Account (mi cuenta)', () => {
     expect(fixture.componentInstance['chains']()['o1']).toBeUndefined();
   });
 
-  const ORDERS = [
-    { id: 'o1', eventId: 'e1', event: { name: 'Fiesta' }, status: 'paid', total: '129.68', createdAt: '2026-07-01T10:00:00Z', billingNit: 'CF', items: [{ id: 'i1', label: 'A1', total: '129.68', locality: { name: 'VIP' } }] },
-    { id: 'o2', eventId: 'e2', event: { name: 'Concierto' }, status: 'cancelled', total: '50.00', createdAt: '2026-07-02T10:00:00Z', billingNit: 'CF', items: [{ id: 'i2', label: null, total: '50.00', locality: { name: 'General' } }] },
+  // Feed unificado de movimientos: un egreso (compra) y un ingreso (devolución).
+  const MOVEMENTS = [
+    { id: 'ledger:e1', direction: 'income', kind: 'refund', amount: '25.00', currency: 'GTQ', status: null, eventName: 'Concierto', orderId: 'o2', createdAt: '2026-07-05T10:00:00Z' },
+    { id: 'order:o1', direction: 'expense', kind: 'purchase', amount: '129.68', currency: 'GTQ', status: 'paid', eventName: 'Fiesta', orderId: 'o1', createdAt: '2026-07-01T10:00:00Z' },
   ];
 
-  it('facturación lista compras con evento, localidad y total', async () => {
-    await setup({ orders: { list: () => of({ items: ORDERS, nextCursor: null }) } });
+  it('facturación lista movimientos con evento, tipo y monto', async () => {
+    await setup({ orders: { movements: () => of({ items: MOVEMENTS }) } });
     go('menu-facturacion');
     const list = el.querySelector('[data-testid="orders-list"]');
     expect(list?.textContent).toContain('Fiesta');
-    expect(list?.textContent).toContain('VIP');
     expect(list?.textContent).toContain('129.68');
+    expect(list?.textContent).toContain('Devolución'); // kind refund traducido
+    expect(list?.textContent).toContain('25.00'); // el ingreso
   });
 
-  it('facturación filtra por estado', async () => {
-    await setup({ orders: { list: () => of({ items: ORDERS, nextCursor: null }) } });
+  it('facturación filtra por dirección (ingresos vs egresos)', async () => {
+    await setup({ orders: { movements: () => of({ items: MOVEMENTS }) } });
     go('menu-facturacion');
-    fixture.componentInstance['filterStatus'].set('cancelled');
-    fixture.detectChanges();
-    const list = el.querySelector('[data-testid="orders-list"]');
-    expect(list?.textContent).toContain('Concierto');
-    expect(list?.textContent).not.toContain('Fiesta');
+    go('dir-income');
+    let list = el.querySelector('[data-testid="orders-list"]');
+    expect(list?.textContent).toContain('Concierto'); // ingreso (refund)
+    expect(list?.textContent).not.toContain('Fiesta'); // egreso oculto
+    go('dir-expense');
+    list = el.querySelector('[data-testid="orders-list"]');
+    expect(list?.textContent).toContain('Fiesta');
+    expect(list?.textContent).not.toContain('Concierto');
   });
 
-  it('facturación: filtro sin coincidencias muestra vacío', async () => {
-    await setup({ orders: { list: () => of({ items: ORDERS, nextCursor: null }) } });
+  it('facturación: filtro sin coincidencias muestra vacío bonito', async () => {
+    await setup({ orders: { movements: () => of({ items: MOVEMENTS }) } });
     go('menu-facturacion');
     fixture.componentInstance['filterEvent'].set('inexistente');
     fixture.detectChanges();
@@ -471,7 +480,7 @@ describe('Account (mi cuenta)', () => {
   });
 
   it('deep-link con ?order filtra una sola compra y permite limpiar', async () => {
-    await setup({ section: 'facturacion', orders: { list: () => of({ items: ORDERS, nextCursor: null }) } });
+    await setup({ section: 'facturacion', orders: { movements: () => of({ items: MOVEMENTS }) } });
     // Forzamos el filtro por orden (deep-link) manualmente.
     fixture.componentInstance['orderFilter'].set('o2');
     fixture.detectChanges();
@@ -482,12 +491,14 @@ describe('Account (mi cuenta)', () => {
     expect(fixture.componentInstance['orderFilter']()).toBeNull();
   });
 
-  it('facturación muestra la cadena blockchain al pedirla', async () => {
+  it('facturación muestra la cadena blockchain al pedirla (movimiento con orden)', async () => {
     const chain = { orderId: 'o1', chainValid: true, transactions: [{ seq: '1', kind: 'order_payment', createdAt: '2026-07-01', hash: 'abcdef0123456789', prevHash: '', verified: true }] };
     const ledgerChain = jasmine.createSpy('lc').and.returnValue(of(chain));
-    await setup({ orders: { list: () => of({ items: ORDERS, nextCursor: null }), ledgerChain } });
+    await setup({ orders: { movements: () => of({ items: MOVEMENTS }), ledgerChain } });
     go('menu-facturacion');
-    go('toggle-chain');
+    // El primer movimiento (más reciente) es el ingreso o1... buscamos toggle sobre o1.
+    const toggles = el.querySelectorAll('[data-testid="toggle-chain"]');
+    (toggles[toggles.length - 1] as HTMLButtonElement).click(); // el egreso (compra o1)
     await fixture.whenStable();
     fixture.detectChanges();
     expect(ledgerChain).toHaveBeenCalledWith('o1');
@@ -498,9 +509,9 @@ describe('Account (mi cuenta)', () => {
 
   it('facturación: error al cargar la cadena muestra toast', async () => {
     const ledgerChain = jasmine.createSpy('lc').and.returnValue(throwError(() => new Error('x')));
-    await setup({ orders: { list: () => of({ items: ORDERS, nextCursor: null }), ledgerChain } });
+    await setup({ orders: { movements: () => of({ items: MOVEMENTS }), ledgerChain } });
     go('menu-facturacion');
-    go('toggle-chain');
+    (el.querySelector('[data-testid="toggle-chain"]') as HTMLButtonElement).click();
     await fixture.whenStable();
     fixture.detectChanges();
     expect(lastToast()?.kind).toBe('error');
@@ -508,36 +519,37 @@ describe('Account (mi cuenta)', () => {
 
   it('facturación: pagina (6 por página) y navega entre páginas', async () => {
     const many = Array.from({ length: 14 }, (_, i) => ({
-      id: `o${i}`,
-      eventId: 'e1',
-      event: { name: 'Fiesta' },
+      id: `order:o${i}`,
+      direction: 'expense',
+      kind: 'purchase',
+      amount: '10.00',
+      currency: 'GTQ',
       status: 'paid',
-      total: '10.00',
+      eventName: 'Fiesta',
+      orderId: `o${i}`,
       createdAt: '2026-07-01T10:00:00Z',
-      billingNit: 'CF',
-      items: [],
     }));
-    await setup({ orders: { list: () => of({ items: many, nextCursor: null }) } });
+    await setup({ orders: { movements: () => of({ items: many }) } });
     go('menu-facturacion');
     const c = fixture.componentInstance as unknown as {
-      pageOrders: () => unknown[];
+      pageMovements: () => unknown[];
       billingTotalPages: () => number;
       goToBillingPage: (p: number) => void;
       billingPage: () => number;
     };
-    expect(c.pageOrders().length).toBe(6);
+    expect(c.pageMovements().length).toBe(6);
     expect(c.billingTotalPages()).toBe(3);
     expect(el.querySelector('[data-testid="billing-pager"]')).not.toBeNull();
     c.goToBillingPage(3);
     expect(c.billingPage()).toBe(3);
-    expect(c.pageOrders().length).toBe(2);
+    expect(c.pageMovements().length).toBe(2);
   });
 
   it('facturación: cambiar filtro reinicia a la página 1', async () => {
     const many = Array.from({ length: 14 }, (_, i) => ({
-      id: `o${i}`, eventId: 'e1', event: { name: 'Fiesta' }, status: 'paid', total: '10.00', createdAt: '2026-07-01T10:00:00Z', billingNit: 'CF', items: [],
+      id: `order:o${i}`, direction: 'expense', kind: 'purchase', amount: '10.00', currency: 'GTQ', status: 'paid', eventName: 'Fiesta', orderId: `o${i}`, createdAt: '2026-07-01T10:00:00Z',
     }));
-    await setup({ orders: { list: () => of({ items: many, nextCursor: null }) } });
+    await setup({ orders: { movements: () => of({ items: many }) } });
     go('menu-facturacion');
     const c = fixture.componentInstance as unknown as {
       goToBillingPage: (p: number) => void;
@@ -568,6 +580,52 @@ describe('Account (mi cuenta)', () => {
     c.goToActivosPage(3);
     expect(c.activosPage()).toBe(3);
     expect(c.pageActivosGrouped().length).toBe(2);
+  });
+
+  it('boletos activos: pagina las compras dentro de un evento (nivel 2, 3 por página)', async () => {
+    // Un solo evento con 7 compras (una por orden) → nivel 2 pagina de 3 en 3.
+    const items = Array.from({ length: 7 }, (_, i) => ({
+      id: `t${i}`, serial: `PE-${i}`, status: 'valid', eventId: 'e1', orderId: `o${i}`, localityName: 'GA', mediaReady: false, event: { name: 'Fiesta' },
+    }));
+    await setup({ tickets: { list: () => of({ items } as unknown as TicketPageResponseDto), media: () => of({}), transfer: () => of({}) } });
+    go('menu-activos');
+    const c = fixture.componentInstance as unknown as {
+      activosGrouped: () => { eventId: string; orders: unknown[] }[];
+      orderTotalPages: (eg: unknown) => number;
+      pageOrdersOf: (k: string, eg: unknown) => unknown[];
+      orderPageOf: (k: string, id: string) => number;
+      goToOrderPage: (k: string, id: string, p: number) => void;
+    };
+    const eg = c.activosGrouped()[0];
+    expect(eg.orders.length).toBe(7);
+    expect(c.orderTotalPages(eg)).toBe(3); // ceil(7/3)
+    expect(c.pageOrdersOf('activos', eg).length).toBe(3);
+    c.goToOrderPage('activos', 'e1', 3);
+    expect(c.orderPageOf('activos', 'e1')).toBe(3);
+    expect(c.pageOrdersOf('activos', eg).length).toBe(1); // última página: resto
+  });
+
+  it('boletos activos vacío muestra empty-state con CTA a explorar eventos', async () => {
+    await setup({ tickets: { list: () => of({ items: [] } as unknown as TicketPageResponseDto), media: () => of({}), transfer: () => of({}) } });
+    go('menu-activos');
+    const empty = el.querySelector('[data-testid="activos-empty"]');
+    expect(empty).not.toBeNull();
+    expect(empty?.querySelector('[data-testid="empty-cta"]')).not.toBeNull();
+  });
+
+  it('boletos pasados: pagina los grupos de evento (nivel 1) y muestra empty-state si no hay', async () => {
+    const items = Array.from({ length: 8 }, (_, i) => ({
+      id: `t${i}`, serial: `PE-${i}`, status: 'used', eventId: `e${i}`, orderId: `o${i}`, localityName: 'GA', event: { name: `Ev ${i}` },
+    }));
+    await setup({ tickets: { list: () => of({ items } as unknown as TicketPageResponseDto), media: () => of({}), transfer: () => of({}) } });
+    go('menu-pasados');
+    const c = fixture.componentInstance as unknown as {
+      eventTotalPages: (k: string) => number;
+      pageEvents: (k: string) => unknown[];
+    };
+    expect(c.eventTotalPages('pasados')).toBe(2); // ceil(8/6)
+    expect(c.pageEvents('pasados').length).toBe(6);
+    expect(el.querySelector('[data-testid="pasados-pager"]')).not.toBeNull();
   });
 
   it('traduce los textos al cambiar el idioma a inglés', async () => {

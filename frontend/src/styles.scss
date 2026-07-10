@@ -718,7 +718,7 @@ app-root {
 .invoice-total {
   font-size: 1.25rem;
   font-weight: 800;
-  color: var(--pe-teal);
+  color: var(--pe-text);
 }
 
 .invoice-items {
@@ -912,6 +912,58 @@ app-root {
 .badge-warn {
   color: var(--pe-warn, #f59e0b);
   border-color: rgba(245, 158, 11, 0.55);
+}
+
+/* Facturación: ingresos (verde) vs egresos (neutro). */
+.badge-income {
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.5);
+}
+.badge-expense {
+  color: var(--pe-muted);
+  border-color: var(--pe-border);
+}
+.invoice-total.income {
+  color: #22c55e;
+}
+.invoice-card.is-income {
+  border-left: 3px solid rgba(34, 197, 94, 0.6);
+}
+.movement-kind {
+  font-weight: 600;
+}
+
+/* Control segmentado (filtro Todos / Ingresos / Egresos). */
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--pe-border);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--pe-surface-2);
+}
+.seg button {
+  background: transparent;
+  border: none;
+  color: var(--pe-muted);
+  padding: 0.4rem 0.9rem;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+.seg button.active {
+  background: var(--pe-grad);
+  color: #fff;
+}
+
+/* Paginador de compras (nivel 2) dentro de un evento. */
+.order-pager-wrap {
+  padding: 0.5rem 1.1rem 0.9rem;
+  display: flex;
+  justify-content: center;
+}
+.event-purchase-count {
+  font-size: 0.8rem;
+  white-space: nowrap;
 }
 
 .ticket-list {

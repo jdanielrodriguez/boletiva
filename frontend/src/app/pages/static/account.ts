@@ -15,6 +15,7 @@ import { TransfersApi } from '../../core/api/transfers.api';
 import { UsersApi } from '../../core/api/users.api';
 import { WalletApi } from '../../core/api/wallet.api';
 import type {
+  MovementResponseDto,
   OrderLedgerChainDto,
   OrderResponseDto,
   PaymentMethodResponseDto,
@@ -32,12 +33,16 @@ import {
   type ConfirmRequest,
 } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
+import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
 
 type Section = 'perfil' | 'metodos' | 'facturacion' | 'wallet' | 'activos' | 'pasados';
+type TicketKind = 'activos' | 'pasados';
 
-/** Tamaño de página para facturación y boletos activos. */
+/** Tamaño de página para facturación y el NIVEL 1 (eventos) de los boletos. */
 const ACCOUNT_PAGE = 6;
+/** Tamaño de página del NIVEL 2: compras (órdenes) dentro de un mismo evento. */
+const ORDERS_PER_EVENT = 3;
 
 /** Grupo de boletos de una misma compra (orden). */
 interface OrderGroup {
@@ -92,7 +97,7 @@ function groupByEventOrder(tickets: TicketResponseDto[]): EventGroup[] {
  */
 @Component({
   selector: 'app-account',
-  imports: [FormsModule, TranslatePipe, LocalizedDatePipe, UpperCasePipe, MoneyPipe, RouterLink, IconComponent, ConfirmDialogComponent, PagerComponent, LangSwitcherComponent],
+  imports: [FormsModule, TranslatePipe, LocalizedDatePipe, UpperCasePipe, MoneyPipe, RouterLink, IconComponent, ConfirmDialogComponent, PagerComponent, EmptyStateComponent, LangSwitcherComponent],
   templateUrl: './account.html',
 })
 export class Account {
@@ -177,46 +182,52 @@ export class Account {
     return amount * (1 - this.withdrawFeePct());
   });
 
-  // --- Facturación (órdenes) ---
+  // --- Facturación (movimientos: ingresos + egresos) ---
+  /** Órdenes: solo para la mini-lista de movimientos del Wallet. */
   protected readonly orders = signal<OrderResponseDto[]>([]);
+  /** Feed unificado de movimientos (egreso = compra; ingreso = refund/reventa/venta). */
+  protected readonly movements = signal<MovementResponseDto[]>([]);
   /** Filtro por orden concreta (deep-link desde un boleto/compra). null = todas. */
   protected readonly orderFilter = signal<string | null>(null);
+  /** Filtro de dirección: '' = todos | 'income' = ingresos | 'expense' = egresos. */
+  protected readonly movementDir = signal<'' | 'income' | 'expense'>('');
   /** Filtros de facturación. */
-  protected readonly filterStatus = signal<string>('');
   protected readonly filterEvent = signal<string>('');
   protected readonly filterDate = signal<string>('');
-  /** Órdenes tras aplicar los filtros (estado/evento/fecha) y el deep-link. */
-  protected readonly filteredOrders = computed(() => {
-    const of = this.orderFilter();
-    const status = this.filterStatus();
+  /** Movimientos tras aplicar dirección/evento/fecha y el deep-link por orden. */
+  protected readonly filteredMovements = computed(() => {
+    const only = this.orderFilter();
+    const dir = this.movementDir();
     const eventQ = this.filterEvent().trim().toLowerCase();
     const date = this.filterDate();
-    // El backend ya devuelve las órdenes más recientes primero (keyset DESC).
-    return this.orders().filter((o) => {
-      if (of) return o.id === of;
-      if (status && o.status !== status) return false;
-      if (eventQ && !(o.event?.name ?? o.eventId).toLowerCase().includes(eventQ)) return false;
-      if (date && !(o.createdAt ?? '').startsWith(date)) return false;
+    // El backend ya devuelve los movimientos más recientes primero.
+    return this.movements().filter((m) => {
+      if (only) return m.orderId === only;
+      if (dir && m.direction !== dir) return false;
+      if (eventQ && !(m.eventName ?? '').toLowerCase().includes(eventQ)) return false;
+      if (date && !(m.createdAt ?? '').startsWith(date)) return false;
       return true;
     });
   });
-  /** Estados distintos presentes (para el selector de filtro). */
-  protected readonly orderStatuses = computed(() => [...new Set(this.orders().map((o) => o.status))]);
-  /** Paginación de facturación (sobre las órdenes ya filtradas). */
+  /** ¿Hay al menos un ingreso? (para dar sentido al filtro Ingresos/Egresos). */
+  protected readonly hasIncome = computed(() =>
+    this.movements().some((m) => m.direction === 'income'),
+  );
+  /** Paginación de facturación (sobre los movimientos ya filtrados). */
   protected readonly billingPage = signal(1);
   protected readonly billingTotalPages = computed(() =>
-    Math.max(1, Math.ceil(this.filteredOrders().length / ACCOUNT_PAGE)),
+    Math.max(1, Math.ceil(this.filteredMovements().length / ACCOUNT_PAGE)),
   );
-  protected readonly pageOrders = computed(() => {
+  protected readonly pageMovements = computed(() => {
     const start = (this.billingPage() - 1) * ACCOUNT_PAGE;
-    return this.filteredOrders().slice(start, start + ACCOUNT_PAGE);
+    return this.filteredMovements().slice(start, start + ACCOUNT_PAGE);
   });
   protected goToBillingPage(p: number): void {
     this.billingPage.set(Math.min(Math.max(1, p), this.billingTotalPages()));
   }
   /** Setters de filtro que reinician la página (facturación). */
-  protected setFilterStatus(v: string): void {
-    this.filterStatus.set(v);
+  protected setMovementDir(v: '' | 'income' | 'expense'): void {
+    this.movementDir.set(v);
     this.billingPage.set(1);
   }
   protected setFilterEvent(v: string): void {
@@ -245,8 +256,66 @@ export class Account {
   /** Boletos activos y pasados agrupados por evento → compra (para las cards). */
   protected readonly activosGrouped = computed(() => groupByEventOrder(this.activos()));
   protected readonly pasadosGrouped = computed(() => groupByEventOrder(this.pasados()));
-  /** Paginación de boletos activos (sobre los grupos de evento). */
+
+  // --- Boletos: paginación en 3 NIVELES ---
+  // Nivel 1: por EVENTO (paginado). Nivel 2: por COMPRA dentro del evento
+  // (paginado, ORDERS_PER_EVENT). Nivel 3: los boletos de una compra NO se paginan.
   protected readonly activosPage = signal(1);
+  protected readonly pasadosPage = signal(1);
+  /** Página de compras (nivel 2) por evento, para activos y pasados por separado. */
+  private readonly activosOrderPages = signal<Record<string, number>>({});
+  private readonly pasadosOrderPages = signal<Record<string, number>>({});
+
+  private eventPageSignal(kind: TicketKind) {
+    return kind === 'activos' ? this.activosPage : this.pasadosPage;
+  }
+  private groupsFor(kind: TicketKind): EventGroup[] {
+    return kind === 'activos' ? this.activosGrouped() : this.pasadosGrouped();
+  }
+  private orderPagesSignal(kind: TicketKind) {
+    return kind === 'activos' ? this.activosOrderPages : this.pasadosOrderPages;
+  }
+
+  /** Nivel 1: total de páginas de eventos. */
+  protected eventTotalPages(kind: TicketKind): number {
+    return Math.max(1, Math.ceil(this.groupsFor(kind).length / ACCOUNT_PAGE));
+  }
+  /** Nivel 1: eventos de la página actual. */
+  protected pageEvents(kind: TicketKind): EventGroup[] {
+    const start = (this.eventPageSignal(kind)() - 1) * ACCOUNT_PAGE;
+    return this.groupsFor(kind).slice(start, start + ACCOUNT_PAGE);
+  }
+  protected goToEventPage(kind: TicketKind, p: number): void {
+    this.eventPageSignal(kind).set(Math.min(Math.max(1, p), this.eventTotalPages(kind)));
+  }
+
+  /** Nivel 2: total de páginas de compras dentro de un evento. */
+  protected orderTotalPages(eg: EventGroup): number {
+    return Math.max(1, Math.ceil(eg.orders.length / ORDERS_PER_EVENT));
+  }
+  /** Nivel 2: página de compras actual del evento (1 por defecto). */
+  protected orderPageOf(kind: TicketKind, eventId: string): number {
+    return this.orderPagesSignal(kind)()[eventId] ?? 1;
+  }
+  /** Nivel 2: compras de la página actual de un evento. */
+  protected pageOrdersOf(kind: TicketKind, eg: EventGroup): OrderGroup[] {
+    const page = this.orderPageOf(kind, eg.eventId);
+    const start = (page - 1) * ORDERS_PER_EVENT;
+    return eg.orders.slice(start, start + ORDERS_PER_EVENT);
+  }
+  protected goToOrderPage(kind: TicketKind, eventId: string, p: number): void {
+    const total = Math.max(
+      1,
+      Math.ceil(
+        (this.groupsFor(kind).find((e) => e.eventId === eventId)?.orders.length ?? 0) /
+          ORDERS_PER_EVENT,
+      ),
+    );
+    const next = Math.min(Math.max(1, p), total);
+    this.orderPagesSignal(kind).update((m) => ({ ...m, [eventId]: next }));
+  }
+
+  // Nivel 1 (compatibilidad con specs previos): activos por página + navegación.
   protected readonly activosTotalPages = computed(() =>
     Math.max(1, Math.ceil(this.activosGrouped().length / ACCOUNT_PAGE)),
   );
@@ -278,7 +347,8 @@ export class Account {
       const s = pm.get('s') as Section | null;
       this.section.set(s && Account.SECTIONS.includes(s) ? s : 'perfil');
       this.orderFilter.set(pm.get('order'));
-      if (this.section() === 'facturacion' || this.section() === 'wallet') this.loadOrders();
+      if (this.section() === 'facturacion') this.loadMovements();
+      if (this.section() === 'wallet') this.loadOrders();
       if (this.section() === 'metodos') this.loadCards();
     });
 
@@ -304,7 +374,8 @@ export class Account {
   protected select(s: Section): void {
     this.section.set(s); // respuesta inmediata del menú lateral (y para tests)
     this.orderFilter.set(null);
-    if ((s === 'facturacion' || s === 'wallet') && this.orders().length === 0) this.loadOrders();
+    if (s === 'facturacion' && this.movements().length === 0) this.loadMovements();
+    if (s === 'wallet' && this.orders().length === 0) this.loadOrders();
     if (s === 'metodos' && this.cards().length === 0) this.loadCards();
     // Sincroniza el ESTADO DEL ROUTER (no solo la URL): así el dropdown del header
     // nunca queda en navegación nula tras usar el menú lateral (bug del "menú que
@@ -516,6 +587,14 @@ export class Account {
     this.ordersApi.list().subscribe({
       next: (p) => this.orders.set(p.items ?? []),
       error: () => this.orders.set([]),
+    });
+  }
+
+  /** Carga el feed de movimientos (ingresos + egresos) para la facturación. */
+  private loadMovements(): void {
+    this.ordersApi.movements().subscribe({
+      next: (p) => this.movements.set(p.items ?? []),
+      error: () => this.movements.set([]),
     });
   }
 
