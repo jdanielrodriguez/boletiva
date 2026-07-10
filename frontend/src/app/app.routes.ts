@@ -109,6 +109,13 @@ export const routes: Routes = [
     title: 'Administrar asientos — Pasa Eventos',
   },
   {
+    path: 'conviertete-en-promotor',
+    loadComponent: () =>
+      import('./pages/promoter/become-promoter.page').then((m) => m.BecomePromoterPage),
+    canActivate: [authGuard, verifiedEmailGuard],
+    title: 'Conviértete en promotor — Pasa Eventos',
+  },
+  {
     path: 'cuenta',
     loadComponent: () => import('./pages/static/account').then((m) => m.Account),
     canActivate: [authGuard],

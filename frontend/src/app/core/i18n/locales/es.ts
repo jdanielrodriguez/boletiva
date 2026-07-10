@@ -10,6 +10,7 @@ import { purchase } from './es/purchase';
 import { checkout } from './es/checkout';
 import { account } from './es/account';
 import { promoter } from './es/promoter';
+import { becomePromoter } from './es/become-promoter';
 import { config } from './es/config';
 
 /** Diccionario ESPAÑOL (default, es-GT). Compuesto por namespaces. */
@@ -25,5 +26,6 @@ export const es: TranslationObject = {
   checkout,
   account,
   promoter,
+  becomePromoter,
   config,
 };

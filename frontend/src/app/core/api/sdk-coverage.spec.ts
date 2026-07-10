@@ -11,6 +11,7 @@ import { InvitationsApi } from './invitations.api';
 import { OrdersApi } from './orders.api';
 import { PaymentMethodsApi } from './payment-methods.api';
 import { PromoterEventsApi } from './promoter-events.api';
+import { PromotersApi } from './promoters.api';
 import { ReservationsApi } from './reservations.api';
 import { HallsApi } from './halls.api';
 import { SeatTemplatesApi } from './seat-templates.api';
@@ -92,6 +93,14 @@ describe('SDK — contrato de rutas', () => {
     hit('POST', '/payment-methods/c1/default');
     p.remove('c1').subscribe();
     hit('DELETE', '/payment-methods/c1');
+  });
+
+  it('PromotersApi cubre me/apply (autoservicio)', () => {
+    const p = TestBed.inject(PromotersApi);
+    p.myStatus().subscribe();
+    hit('GET', '/promoters/me');
+    p.apply().subscribe();
+    hit('POST', '/promoters/apply');
   });
 
   it('AdminApi cubre promotores/cost-share/gateways/eventos', () => {

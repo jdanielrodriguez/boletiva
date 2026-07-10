@@ -10,6 +10,7 @@ import { purchase } from './en/purchase';
 import { checkout } from './en/checkout';
 import { account } from './en/account';
 import { promoter } from './en/promoter';
+import { becomePromoter } from './en/become-promoter';
 import { config } from './en/config';
 
 /** ENGLISH dictionary (en-US). Composed from namespaces. */
@@ -25,5 +26,6 @@ export const en: TranslationObject = {
   checkout,
   account,
   promoter,
+  becomePromoter,
   config,
 };

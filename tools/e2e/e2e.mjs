@@ -314,6 +314,29 @@ async function main() {
     assert(cards.includes('4242'), 'la tarjeta guardada no aparece en la lista');
   });
 
+  console.log('\n▶ Conviértete en promotor (v3.6)');
+  await step('el cliente ve "Conviértete en promotor" en el footer y llega al formulario', async () => {
+    await page.goto(`${FE}/`, { waitUntil: 'networkidle0' });
+    await waitSel(page, '.footer-menu', 10000);
+    const links = await page.$$eval('.footer-menu a', (as) => as.map((a) => a.textContent.trim()));
+    assert(
+      links.some((t) => /Conviértete en promotor/i.test(t)),
+      `el cliente debería ver el CTA en el footer: ${links.join(' | ')}`,
+    );
+    await page.click('.footer-menu a.footer-cta');
+    await page.waitForFunction(() => location.pathname === '/conviertete-en-promotor', { timeout: 12000 });
+  });
+
+  await step('el cliente envía la solicitud de promotor (require_approval → pendiente)', async () => {
+    await page.goto(`${FE}/conviertete-en-promotor`, { waitUntil: 'networkidle0' });
+    // Puede aparecer el form (primera vez) o ya el estado pendiente (corridas previas).
+    await waitSel(page, '[data-testid="bp-submit"], [data-testid="bp-pending"]', 12000);
+    if (await page.$('[data-testid="bp-submit"]')) {
+      await page.click('[data-testid="bp-submit"]');
+    }
+    await waitSel(page, '[data-testid="bp-pending"]', 12000);
+  });
+
   // --- F4: panel del promotor + invitación de promotores ---
   async function doLogin(pg, email, password) {
     await clearMail();
