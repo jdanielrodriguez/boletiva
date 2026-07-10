@@ -1,5 +1,5 @@
 <header class="site-header">
-  <a class="brand" routerLink="/" aria-label="Pasa Eventos - inicio">
+  <a class="brand" routerLink="/" [attr.aria-label]="'shell.brandHome' | translate">
     <svg class="brand-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
       <defs>
         <linearGradient id="peGrad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
@@ -17,12 +17,13 @@
   </a>
 
   <nav class="site-nav">
-    <a routerLink="/">Eventos</a>
+    <a routerLink="/">{{ 'shell.navEvents' | translate }}</a>
   </nav>
 
   <div class="session-area" data-testid="session-area">
+    <app-lang-switcher />
     @if (session.isAuthenticated()) {
-      <span class="greeting" data-testid="session-greeting">Hola, {{ session.user()?.firstName }}</span>
+      <span class="greeting" data-testid="session-greeting">{{ 'shell.greeting' | translate: { name: session.user()?.firstName } }}</span>
       <div class="user-menu">
         <button
           type="button"
@@ -30,7 +31,7 @@
           data-testid="user-menu-trigger"
           [attr.aria-expanded]="menuOpen()"
           aria-haspopup="menu"
-          aria-label="Menú de la cuenta"
+          [attr.aria-label]="'shell.accountMenu' | translate"
           (click)="toggleMenu()"
         >
           @if (avatarUrl(); as url) {
@@ -46,27 +47,27 @@
         </button>
         @if (menuOpen()) {
           <div class="user-dropdown" data-testid="user-dropdown" role="menu">
-            <a routerLink="/cuenta" (click)="closeMenu()" data-testid="dd-perfil">Perfil</a>
+            <a routerLink="/cuenta" (click)="closeMenu()" data-testid="dd-perfil">{{ 'shell.profile' | translate }}</a>
 
-            <div class="dd-quick" aria-label="Accesos rápidos">
-              <a [routerLink]="['/cuenta']" [queryParams]="{ s: 'metodos' }" (click)="closeMenu()" data-testid="dd-metodos">Métodos de pago</a>
-              <a [routerLink]="['/cuenta']" [queryParams]="{ s: 'activos' }" (click)="closeMenu()" data-testid="dd-boletos">Boletos</a>
-              <a [routerLink]="['/cuenta']" [queryParams]="{ s: 'facturacion' }" (click)="closeMenu()" data-testid="dd-facturacion">Facturación</a>
-              <a [routerLink]="['/cuenta']" [queryParams]="{ s: 'wallet' }" (click)="closeMenu()" data-testid="dd-wallet">Wallet</a>
+            <div class="dd-quick" [attr.aria-label]="'shell.quickAccess' | translate">
+              <a [routerLink]="['/cuenta']" [queryParams]="{ s: 'metodos' }" (click)="closeMenu()" data-testid="dd-metodos">{{ 'shell.paymentMethods' | translate }}</a>
+              <a [routerLink]="['/cuenta']" [queryParams]="{ s: 'activos' }" (click)="closeMenu()" data-testid="dd-boletos">{{ 'shell.tickets' | translate }}</a>
+              <a [routerLink]="['/cuenta']" [queryParams]="{ s: 'facturacion' }" (click)="closeMenu()" data-testid="dd-facturacion">{{ 'shell.billing' | translate }}</a>
+              <a [routerLink]="['/cuenta']" [queryParams]="{ s: 'wallet' }" (click)="closeMenu()" data-testid="dd-wallet">{{ 'shell.wallet' | translate }}</a>
             </div>
 
             @if (session.hasAnyRole(['promoter']) && !session.hasAnyRole(['admin'])) {
-              <a routerLink="/promotor" (click)="closeMenu()" data-testid="promoter-link">Configuración</a>
+              <a routerLink="/promotor" (click)="closeMenu()" data-testid="promoter-link">{{ 'shell.configuration' | translate }}</a>
             }
             @if (session.hasAnyRole(['admin'])) {
-              <a routerLink="/configuracion" (click)="closeMenu()" data-testid="config-link">Configuración</a>
+              <a routerLink="/configuracion" (click)="closeMenu()" data-testid="config-link">{{ 'shell.configuration' | translate }}</a>
             }
-            <button type="button" data-testid="logout-btn" (click)="logout()">Salir de sesión</button>
+            <button type="button" data-testid="logout-btn" (click)="logout()">{{ 'shell.logout' | translate }}</button>
           </div>
         }
       </div>
     } @else {
-      <a class="btn primary" routerLink="/login" data-testid="login-link">Iniciar sesión</a>
+      <a class="btn primary" routerLink="/login" data-testid="login-link">{{ 'shell.login' | translate }}</a>
     }
   </div>
 </header>

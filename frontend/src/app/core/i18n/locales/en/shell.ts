@@ -1,0 +1,42 @@
+/** Header, footer, language switcher and minimal shell pages. English. */
+export const shell = {
+  brandHome: 'Pasa Eventos - home',
+  navEvents: 'Events',
+  greeting: 'Hi, {{name}}',
+  accountMenu: 'Account menu',
+  profile: 'Profile',
+  quickAccess: 'Quick access',
+  paymentMethods: 'Payment methods',
+  tickets: 'Tickets',
+  billing: 'Billing',
+  wallet: 'Wallet',
+  configuration: 'Settings',
+  logout: 'Sign out',
+  login: 'Sign in',
+  createAccount: 'Create account',
+  footerMenu: 'Footer links',
+  legal: 'Legal',
+  terms: 'Terms and conditions',
+  copyright: '© 2026 Pasa Eventos · All rights reserved',
+  language: 'Language',
+  langEs: 'Spanish (Guatemala)',
+  langEn: 'English (United States)',
+  langEsShort: 'ES',
+  langEnShort: 'EN',
+  verifyTitle: 'Verify your email',
+  verifyBody: 'You need to confirm your email to buy, create or transfer tickets.',
+  verifyBackHome: 'Back to home',
+  termsIntro:
+    'By using Pasa Eventos you accept our purchase conditions, the refund policy for each event and the processing of your data under the applicable law in Guatemala.',
+  termsSecurityTitle: 'Payment and card security',
+  termsSecurityP1:
+    'The security of your payment methods is a priority. When you save a card, the number (PAN) is processed by the payment provider and turned into an <strong>opaque token</strong> before reaching our systems: your full card number is <strong>never</strong> stored or transmitted through our servers. We only keep that token, the brand and the last 4 digits to show you which one you chose.',
+  termsSecurityP2:
+    'We operate under the <strong>PCI-DSS</strong> standard guidelines and all communication travels encrypted over TLS. The charge is executed by the authorized payment gateway; Pasa Eventos does not capture sensitive card data on its platform.',
+  termsWalletTitle: 'Balance (wallet)',
+  termsWalletP:
+    'Your wallet balance comes only from refunds and ticket resales: it represents money already backed by a purchase. It cannot be topped up with a card.',
+  termsComingSoon: 'The full legal content will be published soon.',
+  forbiddenTitle: '403 — Forbidden',
+  forbiddenBody: 'Your account does not have access to this section.',
+};

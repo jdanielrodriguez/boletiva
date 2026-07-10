@@ -1,0 +1,80 @@
+/** Login, register, recover/reset password, invitation, 2FA. English. */
+export const auth = {
+  // Login
+  loginTitle: 'Sign in',
+  loginSubtitle: 'Sign in to buy and manage your tickets.',
+  email: 'Email',
+  emailPlaceholder: 'you@example.com',
+  password: 'Password',
+  signingIn: 'Signing in…',
+  signIn: 'Sign in',
+  forgot: 'Forgot your password?',
+  noAccount: "Don't have an account yet?",
+  registerLink: 'Sign up',
+  // 2FA
+  code: 'Code',
+  twofaEmail: 'We sent a 6-digit code to your email. Enter it to continue.',
+  twofaApp: 'Enter the code from your authenticator app.',
+  twofaEmailShort: 'We sent a 6-digit code to your email.',
+  verifying: 'Verifying…',
+  verify: 'Verify',
+  // Login modal (during purchase)
+  modalTitle: 'Sign in to pay',
+  modalSubtitle: 'Your reservation is still saved. Just sign in to complete the payment.',
+  // Recover
+  recoverTitle: 'Recover password',
+  recoverSubtitle: 'We will email you a link to create a new password.',
+  recoverSent:
+    'If the email is registered, you will receive a link to reset your password. Check your inbox (and spam).',
+  backToLogin: 'Back to sign in',
+  rememberedQ: 'Remembered it?',
+  sendLink: 'Send link',
+  // Reset
+  resetTitle: 'Reset password',
+  resetSubtitle: 'Choose a new password for your account.',
+  resetNoToken1: 'Invalid or incomplete link. Request a new one from',
+  resetNoTokenLink: 'recover password',
+  newPassword: 'New password',
+  confirmPassword: 'Confirm password',
+  saving: 'Saving…',
+  resetSubmit: 'Reset password',
+  // Register
+  registerTitle: 'Create account',
+  registerSubtitle: 'Sign up to buy tickets and manage your account.',
+  firstName: 'First name',
+  lastName: 'Last name',
+  creating: 'Creating…',
+  createAccount: 'Create account',
+  haveAccountQ: 'Already have an account?',
+  loginLink: 'Sign in',
+  // Promoter invitation
+  invitationTitle: 'Invitation',
+  invitationValidating: 'Validating your invitation…',
+  invitationInvalidTitle: 'Invalid invitation',
+  invitationInvalidBody: 'The invitation is not valid or has expired.',
+  goToLogin: 'Go to sign in',
+  activateTitle: 'Activate promoter account',
+  activateNote:
+    'You were invited as a <strong>promoter</strong> with the email <strong>{{email}}</strong>. You already have an account with that email.',
+  activating: 'Activating…',
+  activateBtn: 'Activate my promoter account',
+  activateLoginNote: 'Sign in with <strong>{{email}}</strong> to activate your promoter role.',
+  invitedNote:
+    'You were invited as a <strong>promoter</strong>. Fill in your details to activate your account.',
+  // Messages (toasts / errors)
+  msgInvitationInvalid: 'The invitation is not valid or has expired.',
+  msgCompleteFields: 'Complete name, email and password.',
+  msgCreateFailed: 'Could not create the account (is the email already registered?).',
+  msgActivateOk: 'Done! Your account is now a promoter. Sign in again to see it.',
+  msgActivateFailed: 'Could not activate (has the invitation expired or been used?).',
+  msgEnterEmail: 'Enter your email.',
+  msgRecoverSent: 'If the email exists, we sent you a link to reset your password.',
+  msgInvalidCredentials: 'Invalid credentials.',
+  msgInvalidCode: 'Invalid or expired code.',
+  msgNoToken: 'Invalid link: the recovery token is missing.',
+  msgPasswordMin: 'The password must be at least 8 characters.',
+  msgConfirmMismatch: 'The confirmation does not match.',
+  msgResetOk: 'Password reset. You can now sign in.',
+  msgResetFailed:
+    'Could not reset: the link may have expired or already been used. Request a new one.',
+};

@@ -1,7 +1,9 @@
 import { Component, computed, HostListener, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../../core/auth/auth.service';
 import { SessionStore } from '../../core/auth/session.store';
+import { LangSwitcherComponent } from './lang-switcher.component';
 
 /**
  * Cabecera con navegación y área de sesión. El estado se hidrata en el cliente
@@ -11,7 +13,7 @@ import { SessionStore } from '../../core/auth/session.store';
  */
 @Component({
   selector: 'app-header',
-  imports: [RouterLink],
+  imports: [RouterLink, TranslatePipe, LangSwitcherComponent],
   templateUrl: './header.html',
 })
 export class Header {

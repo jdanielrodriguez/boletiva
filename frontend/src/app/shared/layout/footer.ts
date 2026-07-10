@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
 import { SessionStore } from '../../core/auth/session.store';
 
 /**
@@ -11,26 +12,26 @@ import { SessionStore } from '../../core/auth/session.store';
  */
 @Component({
   selector: 'app-footer',
-  imports: [RouterLink],
+  imports: [RouterLink, TranslatePipe],
   template: `
     <footer class="site-footer">
       <div class="footer-inner">
-        <nav class="footer-menu" aria-label="Enlaces del pie">
+        <nav class="footer-menu" [attr.aria-label]="'shell.footerMenu' | translate">
           @if (session.isAuthenticated()) {
-            <a routerLink="/cuenta">Perfil</a>
+            <a routerLink="/cuenta">{{ 'shell.profile' | translate }}</a>
             @if (session.hasAnyRole(['admin'])) {
-              <a routerLink="/configuracion">Configuración</a>
+              <a routerLink="/configuracion">{{ 'shell.configuration' | translate }}</a>
             } @else if (session.hasAnyRole(['promoter'])) {
-              <a routerLink="/promotor">Configuración</a>
+              <a routerLink="/promotor">{{ 'shell.configuration' | translate }}</a>
             }
           } @else {
-            <a routerLink="/login">Iniciar sesión</a>
-            <a routerLink="/registro">Crear cuenta</a>
+            <a routerLink="/login">{{ 'shell.login' | translate }}</a>
+            <a routerLink="/registro">{{ 'shell.createAccount' | translate }}</a>
           }
         </nav>
-        <p class="footer-copy">© 2026 Pasa Eventos · Todos los derechos reservados</p>
-        <nav class="footer-legal" aria-label="Legal">
-          <a routerLink="/terminos">Términos y condiciones</a>
+        <p class="footer-copy">{{ 'shell.copyright' | translate }}</p>
+        <nav class="footer-legal" [attr.aria-label]="'shell.legal' | translate">
+          <a routerLink="/terminos">{{ 'shell.terms' | translate }}</a>
         </nav>
       </div>
     </footer>

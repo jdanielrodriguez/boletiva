@@ -4,6 +4,7 @@ import { Router, provideRouter } from '@angular/router';
 import { EMPTY, of } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { SessionStore } from '../../core/auth/session.store';
+import { provideI18nTesting } from '../../core/i18n/testing';
 import { Header } from './header';
 
 describe('Header', () => {
@@ -17,6 +18,7 @@ describe('Header', () => {
       providers: [
         provideZonelessChangeDetection(),
         provideRouter([]),
+        ...provideI18nTesting(),
         {
           provide: AuthService,
           useValue: { logout: () => (opts.logout ?? of(undefined)) } as unknown as AuthService,

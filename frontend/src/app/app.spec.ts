@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { provideI18nTesting } from './/core/i18n/testing';
 import { provideRouter } from '@angular/router';
 import { App } from './app';
 import { API_BASE_URL } from './core/config/api.tokens';
@@ -12,6 +13,8 @@ describe('App', () => {
     await TestBed.configureTestingModule({
       imports: [App],
       providers: [
+        ...provideI18nTesting(),
+        ...provideI18nTesting(),
         provideZonelessChangeDetection(),
         provideRouter([]),
         provideHttpClient(),

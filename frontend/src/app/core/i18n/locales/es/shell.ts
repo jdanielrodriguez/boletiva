@@ -1,0 +1,42 @@
+/** Cabecera, pie, selector de idioma y páginas mínimas del cascarón. Español. */
+export const shell = {
+  brandHome: 'Pasa Eventos - inicio',
+  navEvents: 'Eventos',
+  greeting: 'Hola, {{name}}',
+  accountMenu: 'Menú de la cuenta',
+  profile: 'Perfil',
+  quickAccess: 'Accesos rápidos',
+  paymentMethods: 'Métodos de pago',
+  tickets: 'Boletos',
+  billing: 'Facturación',
+  wallet: 'Wallet',
+  configuration: 'Configuración',
+  logout: 'Salir de sesión',
+  login: 'Iniciar sesión',
+  createAccount: 'Crear cuenta',
+  footerMenu: 'Enlaces del pie',
+  legal: 'Legal',
+  terms: 'Términos y condiciones',
+  copyright: '© 2026 Pasa Eventos · Todos los derechos reservados',
+  language: 'Idioma',
+  langEs: 'Español (Guatemala)',
+  langEn: 'English (Estados Unidos)',
+  langEsShort: 'ES',
+  langEnShort: 'EN',
+  verifyTitle: 'Verifica tu correo',
+  verifyBody: 'Necesitas confirmar tu correo para comprar, crear o transferir boletos.',
+  verifyBackHome: 'Volver al inicio',
+  termsIntro:
+    'Al usar Pasa Eventos aceptas nuestras condiciones de compra, la política de reembolsos según cada evento y el tratamiento de tus datos conforme a la ley aplicable en Guatemala.',
+  termsSecurityTitle: 'Seguridad de los pagos y tus tarjetas',
+  termsSecurityP1:
+    'La seguridad de tus medios de pago es prioritaria. Cuando guardas una tarjeta, el número (PAN) se procesa mediante el proveedor de pago y se convierte en un <strong>token opaco</strong> antes de llegar a nuestros sistemas: el número completo de tu tarjeta <strong>nunca</strong> se almacena ni transita por nuestros servidores. Solo conservamos ese token, la marca y los últimos 4 dígitos para mostrarte cuál elegiste.',
+  termsSecurityP2:
+    'Operamos bajo los lineamientos del estándar <strong>PCI-DSS</strong> y toda la comunicación viaja cifrada mediante TLS. El cobro lo ejecuta la pasarela de pago autorizada; Pasa Eventos no captura datos sensibles de tarjeta en su plataforma.',
+  termsWalletTitle: 'Saldo (wallet)',
+  termsWalletP:
+    'El saldo de tu wallet proviene únicamente de reembolsos y reventas de boletos: representa dinero ya amparado por una compra. No es posible recargarlo con tarjeta.',
+  termsComingSoon: 'El contenido legal completo se publicará próximamente.',
+  forbiddenTitle: '403 — Sin permiso',
+  forbiddenBody: 'Tu cuenta no tiene acceso a esta sección.',
+};

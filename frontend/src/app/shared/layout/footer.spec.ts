@@ -1,5 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { provideI18nTesting } from '../../core/i18n/testing';
 import { provideRouter } from '@angular/router';
 import { SessionStore } from '../../core/auth/session.store';
 import { Footer } from './footer';
@@ -7,6 +8,8 @@ import { Footer } from './footer';
 function render(session: Partial<SessionStore>): HTMLElement {
   TestBed.configureTestingModule({
     providers: [
+        ...provideI18nTesting(),
+        ...provideI18nTesting(),
       provideZonelessChangeDetection(),
       provideRouter([]),
       { provide: SessionStore, useValue: session },
