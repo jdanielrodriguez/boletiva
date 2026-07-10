@@ -1,7 +1,8 @@
-import { DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import {
   AdminApi,
   AdminEventListItemDto,
@@ -91,7 +92,8 @@ const INV_PAGE = 9;
   selector: 'app-config-page',
   imports: [
     FormsModule,
-    DatePipe,
+    TranslatePipe,
+    LocalizedDatePipe,
     IconComponent,
     ConfirmDialogComponent,
     PagerComponent,
@@ -107,8 +109,18 @@ export class ConfigPage {
   private readonly settingsApi = inject(SettingsApi);
   private readonly toasts = inject(ToastService);
   private readonly router = inject(Router);
+  private readonly translate = inject(TranslateService);
 
   protected readonly tab = signal<AdminTab>('eventos');
+
+  /** Etiqueta amigable de un setting (key con puntos → guion bajo). */
+  protected settingLabel(key: string): string {
+    return this.translate.instant('config.settingLabels.' + key.split('.').join('_'));
+  }
+  /** Descripción amigable de un setting (key con puntos → guion bajo). */
+  protected settingDescription(key: string): string {
+    return this.translate.instant('config.settingDescriptions.' + key.split('.').join('_'));
+  }
 
   // --- Eventos ---
   protected readonly events = signal<AdminEventListItemDto[]>([]);
@@ -244,7 +256,7 @@ export class ConfigPage {
         this.events.set(e);
         this.eventsPage.set(1);
       },
-      error: () => this.toasts.error('No se pudieron cargar los eventos.'),
+      error: () => this.toasts.error(this.translate.instant('config.events.loadError')),
     });
   }
   protected goToEventsPage(p: number): void {
@@ -267,7 +279,7 @@ export class ConfigPage {
   protected loadPromoters(): void {
     this.admin.listPromoters(this.promoterStatus() || undefined).subscribe({
       next: (p) => this.promoters.set(p),
-      error: () => this.toasts.error('No se pudieron cargar los promotores.'),
+      error: () => this.toasts.error(this.translate.instant('config.promoters.loadError')),
     });
   }
   protected setNote(id: string, value: string): void {
@@ -279,19 +291,19 @@ export class ConfigPage {
   protected approve(p: PromoterListItemDto): void {
     this.admin.approvePromoter(p.id).subscribe({
       next: () => {
-        this.toasts.success(`${p.firstName} aprobado como promotor.`);
+        this.toasts.success(this.translate.instant('config.promoters.approved', { name: p.firstName }));
         this.loadPromoters();
       },
-      error: () => this.toasts.error('No se pudo aprobar.'),
+      error: () => this.toasts.error(this.translate.instant('config.promoters.approveError')),
     });
   }
   protected reject(p: PromoterListItemDto): void {
     this.admin.rejectPromoter(p.id, this.noteFor(p.id)).subscribe({
       next: () => {
-        this.toasts.info(`Solicitud de ${p.firstName} rechazada.`);
+        this.toasts.info(this.translate.instant('config.promoters.rejected', { name: p.firstName }));
         this.loadPromoters();
       },
-      error: () => this.toasts.error('No se pudo rechazar.'),
+      error: () => this.toasts.error(this.translate.instant('config.promoters.rejectError')),
     });
   }
 
@@ -310,11 +322,11 @@ export class ConfigPage {
     if (!p) return;
     this.admin.suspendPromoter(p.id, this.suspendReason().trim() || undefined).subscribe({
       next: () => {
-        this.toasts.info(`${p.firstName} suspendido.`);
+        this.toasts.info(this.translate.instant('config.promoters.suspended', { name: p.firstName }));
         this.suspendTarget.set(null);
         this.loadPromoters();
       },
-      error: () => this.toasts.error('No se pudo suspender.'),
+      error: () => this.toasts.error(this.translate.instant('config.promoters.suspendError')),
     });
   }
 
@@ -330,18 +342,18 @@ export class ConfigPage {
     this.history.set([]);
     this.admin.promoterHistory(p.id).subscribe({
       next: (h) => this.history.set(h),
-      error: () => this.toasts.error('No se pudo cargar el historial.'),
+      error: () => this.toasts.error(this.translate.instant('config.promoters.historyError')),
     });
   }
   protected setPromoterPct(p: PromoterListItemDto, value: string): void {
     const pct = Number(value);
     if (Number.isNaN(pct) || pct < 0 || pct > 1) {
-      this.toasts.warning('El reparto debe estar entre 0 y 1 (p.ej. 0.5 = 50%).');
+      this.toasts.warning(this.translate.instant('config.promoters.shareRange'));
       return;
     }
     this.admin.setPromoterPct(p.id, pct).subscribe({
-      next: () => this.toasts.success('Reparto del promotor actualizado.'),
-      error: () => this.toasts.error('No se pudo actualizar el reparto.'),
+      next: () => this.toasts.success(this.translate.instant('config.promoters.shareUpdated')),
+      error: () => this.toasts.error(this.translate.instant('config.promoters.shareError')),
     });
   }
 
@@ -368,23 +380,25 @@ export class ConfigPage {
     this.admin.setRequireApproval(next).subscribe({
       next: (r) => {
         this.requireApproval.set(r.requireApproval);
-        this.toasts.success(next ? 'Autorización de promotores exigida.' : 'Modo pruebas: auto-aprobación activada.');
+        this.toasts.success(
+          this.translate.instant(next ? 'config.system.approvalRequired' : 'config.system.testModeOn'),
+        );
       },
-      error: () => this.toasts.error('No se pudo cambiar la configuración.'),
+      error: () => this.toasts.error(this.translate.instant('config.system.approvalError')),
     });
   }
   protected saveDefaultPct(value: string): void {
     const pct = Number(value);
     if (Number.isNaN(pct) || pct < 0 || pct > 1) {
-      this.toasts.warning('El reparto por defecto debe estar entre 0 y 1.');
+      this.toasts.warning(this.translate.instant('config.system.defaultShareRange'));
       return;
     }
     this.admin.setDefaultPct(pct).subscribe({
       next: () => {
         this.defaultPct.set(pct);
-        this.toasts.success('Reparto por defecto actualizado.');
+        this.toasts.success(this.translate.instant('config.system.defaultShareUpdated'));
       },
-      error: () => this.toasts.error('No se pudo actualizar el reparto por defecto.'),
+      error: () => this.toasts.error(this.translate.instant('config.system.defaultShareError')),
     });
   }
 
@@ -416,7 +430,7 @@ export class ConfigPage {
       try {
         installmentRates = JSON.parse(d.installmentRatesJson) as Record<string, number>;
       } catch {
-        this.toasts.warning('Las tasas de cuotas deben ser JSON válido (p.ej. {"3":0.08}).');
+        this.toasts.warning(this.translate.instant('config.system.ratesJsonInvalid'));
         return;
       }
     }
@@ -431,29 +445,29 @@ export class ConfigPage {
       })
       .subscribe({
         next: () => {
-          this.toasts.success('Pasarela actualizada.');
+          this.toasts.success(this.translate.instant('config.system.gatewayUpdated'));
           this.gatewayDraft.set(null);
           this.loadGateways();
         },
-        error: () => this.toasts.error('No se pudo actualizar la pasarela.'),
+        error: () => this.toasts.error(this.translate.instant('config.system.gatewayUpdateError')),
       });
   }
   protected setGatewayStatus(g: GatewayResponseDto, status: string): void {
     this.admin.setGatewayStatus(g.id, status).subscribe({
       next: () => {
-        this.toasts.success('Estado de la pasarela actualizado.');
+        this.toasts.success(this.translate.instant('config.system.gatewayStatusUpdated'));
         this.loadGateways();
       },
-      error: () => this.toasts.error('No se pudo cambiar el estado (¿es la default?).'),
+      error: () => this.toasts.error(this.translate.instant('config.system.gatewayStatusError')),
     });
   }
   protected makeDefault(g: GatewayResponseDto): void {
     this.admin.makeGatewayDefault(g.id).subscribe({
       next: () => {
-        this.toasts.success(`"${g.name}" es la nueva pasarela default.`);
+        this.toasts.success(this.translate.instant('config.system.gatewayDefaultSet', { name: g.name }));
         this.loadGateways();
       },
-      error: () => this.toasts.error('No se pudo definir como default.'),
+      error: () => this.toasts.error(this.translate.instant('config.system.gatewayDefaultError')),
     });
   }
 
@@ -475,15 +489,15 @@ export class ConfigPage {
     this.admin.unlockGateway().subscribe({
       next: () => {
         this.unlockSent.set(true);
-        this.toasts.info('Te enviamos un código al correo para autorizar agregar la pasarela.');
+        this.toasts.info(this.translate.instant('config.system.unlockSentToast'));
       },
-      error: () => this.toasts.error('No se pudo enviar el código de desbloqueo.'),
+      error: () => this.toasts.error(this.translate.instant('config.system.unlockSendError')),
     });
   }
   /** Confirma el código (habilita el formulario de creación). */
   protected confirmUnlock(): void {
     if (this.unlockCode().trim().length < 6) {
-      this.toasts.warning('Ingresa el código de 6 dígitos que recibiste.');
+      this.toasts.warning(this.translate.instant('config.system.unlockCodeRequired'));
       return;
     }
     this.unlockUnlocked.set(true);
@@ -497,7 +511,7 @@ export class ConfigPage {
   protected createGateway(): void {
     const g = this.newGateway();
     if (!g.name.trim()) {
-      this.toasts.warning('La pasarela necesita un nombre.');
+      this.toasts.warning(this.translate.instant('config.system.gatewayNameRequired'));
       return;
     }
     this.admin
@@ -511,12 +525,12 @@ export class ConfigPage {
       })
       .subscribe({
         next: () => {
-          this.toasts.success(`Pasarela "${g.name}" agregada.`);
+          this.toasts.success(this.translate.instant('config.system.gatewayAdded', { name: g.name }));
           this.cancelUnlock();
           this.newGateway.set({ name: '', provider: 'pagalo', feePct: 0.03, transactionFixedFee: 0 });
           this.loadGateways();
         },
-        error: () => this.toasts.error('No se pudo agregar (¿código inválido o expirado?).'),
+        error: () => this.toasts.error(this.translate.instant('config.system.gatewayAddError')),
       });
   }
 
@@ -536,7 +550,7 @@ export class ConfigPage {
   protected invite(): void {
     const emails = this.parsedEmails();
     if (emails.length === 0) {
-      this.toasts.warning('Ingresa al menos un correo.');
+      this.toasts.warning(this.translate.instant('config.invitations.atLeastOneEmail'));
       return;
     }
     this.inviting.set(true);
@@ -546,12 +560,12 @@ export class ConfigPage {
         this.created.set(res.invitations);
         this.emailsText.set('');
         this.inviteTestUser.set(false);
-        this.toasts.success(`Se generaron ${res.invitations.length} invitación(es).`);
+        this.toasts.success(this.translate.instant('config.invitations.generated', { n: res.invitations.length }));
         this.loadInvitations();
       },
       error: () => {
         this.inviting.set(false);
-        this.toasts.error('No se pudieron crear las invitaciones (revisa los correos).');
+        this.toasts.error(this.translate.instant('config.invitations.createError'));
       },
     });
   }
@@ -585,7 +599,7 @@ export class ConfigPage {
   private loadHalls(): void {
     this.hallsApi.list().subscribe({
       next: (h) => this.halls.set(h),
-      error: () => this.toasts.error('No se pudieron cargar los salones.'),
+      error: () => this.toasts.error(this.translate.instant('config.halls.loadError')),
     });
   }
   protected newHall(): void {
@@ -617,7 +631,7 @@ export class ConfigPage {
   protected saveHall(): void {
     const d = this.hallDraft();
     if (!d || d.name.trim().length < 2) {
-      this.toasts.warning('El salón necesita un nombre.');
+      this.toasts.warning(this.translate.instant('config.halls.nameRequired'));
       return;
     }
     const body = {
@@ -631,26 +645,26 @@ export class ConfigPage {
     const req = d.id ? this.hallsApi.update(d.id, body) : this.hallsApi.create(body);
     req.subscribe({
       next: () => {
-        this.toasts.success(d.id ? 'Salón actualizado.' : 'Salón creado.');
+        this.toasts.success(this.translate.instant(d.id ? 'config.halls.updated' : 'config.halls.created'));
         this.hallDraft.set(null);
         this.loadHalls();
       },
-      error: () => this.toasts.error('No se pudo guardar el salón.'),
+      error: () => this.toasts.error(this.translate.instant('config.halls.saveError')),
     });
   }
   protected askRemoveHall(h: HallResponseDto): void {
     this.confirm.set({
-      title: 'Eliminar salón',
-      message: `¿Eliminar el salón "${h.name}"? Los eventos que lo usaban quedarán sin salón asociado.`,
-      confirmLabel: 'Eliminar',
+      title: this.translate.instant('config.halls.removeConfirmTitle'),
+      message: this.translate.instant('config.halls.removeConfirmMessage', { name: h.name }),
+      confirmLabel: this.translate.instant('common.delete'),
       confirmIcon: 'delete',
       onConfirm: () =>
         this.hallsApi.remove(h.id).subscribe({
           next: () => {
-            this.toasts.info('Salón eliminado.');
+            this.toasts.info(this.translate.instant('config.halls.removed'));
             this.loadHalls();
           },
-          error: () => this.toasts.error('No se pudo eliminar el salón.'),
+          error: () => this.toasts.error(this.translate.instant('config.halls.removeError')),
         }),
     });
   }
@@ -668,7 +682,7 @@ export class ConfigPage {
   private loadTemplates(): void {
     this.templatesApi.list().subscribe({
       next: (t) => this.templates.set(t),
-      error: () => this.toasts.error('No se pudieron cargar las plantillas.'),
+      error: () => this.toasts.error(this.translate.instant('config.templates.loadError')),
     });
   }
   protected newTemplate(): void {
@@ -676,7 +690,7 @@ export class ConfigPage {
   }
   protected editTemplate(t: SeatTemplateResponseDto): void {
     if (t.isBuiltIn) {
-      this.toasts.warning('Las plantillas del sistema no se pueden editar.');
+      this.toasts.warning(this.translate.instant('config.templates.builtInEditWarn'));
       return;
     }
     this.templateDraft.set({
@@ -696,7 +710,7 @@ export class ConfigPage {
   protected saveTemplate(): void {
     const d = this.templateDraft();
     if (!d || d.name.trim().length < 2) {
-      this.toasts.warning('La plantilla necesita un nombre.');
+      this.toasts.warning(this.translate.instant('config.templates.nameRequired'));
       return;
     }
     let params: Record<string, unknown> | undefined;
@@ -704,7 +718,7 @@ export class ConfigPage {
       try {
         params = JSON.parse(d.paramsJson) as Record<string, unknown>;
       } catch {
-        this.toasts.warning('Los parámetros deben ser JSON válido (p.ej. {"rows":5,"cols":10}).');
+        this.toasts.warning(this.translate.instant('config.templates.paramsJsonInvalid'));
         return;
       }
     }
@@ -712,35 +726,37 @@ export class ConfigPage {
     const req = d.id ? this.templatesApi.update(d.id, body) : this.templatesApi.create(body);
     req.subscribe({
       next: () => {
-        this.toasts.success(d.id ? 'Plantilla actualizada.' : 'Plantilla creada.');
+        this.toasts.success(this.translate.instant(d.id ? 'config.templates.updated' : 'config.templates.created'));
         this.templateDraft.set(null);
         this.loadTemplates();
       },
       error: (err: { status?: number }) =>
         this.toasts.error(
-          err?.status === 409
-            ? 'Las plantillas del sistema no se pueden modificar.'
-            : 'No se pudo guardar la plantilla.',
+          this.translate.instant(
+            err?.status === 409
+              ? 'config.templates.builtInSaveError'
+              : 'config.templates.saveError',
+          ),
         ),
     });
   }
   protected askRemoveTemplate(t: SeatTemplateResponseDto): void {
     if (t.isBuiltIn) {
-      this.toasts.warning('Las plantillas del sistema no se pueden eliminar.');
+      this.toasts.warning(this.translate.instant('config.templates.builtInRemoveWarn'));
       return;
     }
     this.confirm.set({
-      title: 'Eliminar plantilla',
-      message: `¿Eliminar la plantilla "${t.name}"?`,
-      confirmLabel: 'Eliminar',
+      title: this.translate.instant('config.templates.removeConfirmTitle'),
+      message: this.translate.instant('config.templates.removeConfirmMessage', { name: t.name }),
+      confirmLabel: this.translate.instant('common.delete'),
       confirmIcon: 'delete',
       onConfirm: () =>
         this.templatesApi.remove(t.id).subscribe({
           next: () => {
-            this.toasts.info('Plantilla eliminada.');
+            this.toasts.info(this.translate.instant('config.templates.removed'));
             this.loadTemplates();
           },
-          error: () => this.toasts.error('No se pudo eliminar (¿es del sistema?).'),
+          error: () => this.toasts.error(this.translate.instant('config.templates.removeError')),
         }),
     });
   }
@@ -755,7 +771,7 @@ export class ConfigPage {
         this.settings.set(s);
         this.settingEdits.set(Object.fromEntries(s.map((x) => [x.key, x.value])));
       },
-      error: () => this.toasts.error('No se pudieron cargar las configuraciones.'),
+      error: () => this.toasts.error(this.translate.instant('config.settings.loadError')),
     });
   }
   protected setSettingValue(key: string, value: number | boolean): void {
@@ -766,9 +782,9 @@ export class ConfigPage {
     this.settingsApi.update(s.key, value).subscribe({
       next: (updated) => {
         this.settings.update((list) => list.map((x) => (x.key === updated.key ? updated : x)));
-        this.toasts.success(`Configuración "${s.key}" guardada.`);
+        this.toasts.success(this.translate.instant('config.settings.saved', { key: s.key }));
       },
-      error: () => this.toasts.error('No se pudo guardar (revisa el tipo/rango del valor).'),
+      error: () => this.toasts.error(this.translate.instant('config.settings.saveError')),
     });
   }
 
@@ -785,9 +801,9 @@ export class ConfigPage {
 
   protected askRevoke(i: InvitationListItemDto): void {
     this.confirm.set({
-      title: 'Revocar invitación',
-      message: `¿Seguro que deseas revocar la invitación de ${i.email}? El enlace dejará de funcionar.`,
-      confirmLabel: 'Revocar',
+      title: this.translate.instant('config.invitations.revokeConfirmTitle'),
+      message: this.translate.instant('config.invitations.revokeConfirmMessage', { email: i.email }),
+      confirmLabel: this.translate.instant('config.invitations.revoke'),
       confirmIcon: 'revoke',
       onConfirm: () => this.revoke(i),
     });
@@ -796,10 +812,10 @@ export class ConfigPage {
   protected revoke(i: InvitationListItemDto): void {
     this.invitationsApi.revoke(i.id).subscribe({
       next: () => {
-        this.toasts.info('Invitación revocada.');
+        this.toasts.info(this.translate.instant('config.invitations.revoked'));
         this.loadInvitations();
       },
-      error: () => this.toasts.error('No se pudo revocar la invitación.'),
+      error: () => this.toasts.error(this.translate.instant('config.invitations.revokeError')),
     });
   }
 }

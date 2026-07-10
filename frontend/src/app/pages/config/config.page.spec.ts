@@ -9,6 +9,8 @@ import { HallsApi } from '../../core/api/halls.api';
 import { SeatTemplatesApi } from '../../core/api/seat-templates.api';
 import { SettingsApi } from '../../core/api/settings.api';
 import { ToastService } from '../../core/ui/toast.service';
+import { I18nService } from '../../core/i18n/i18n.service';
+import { initI18nTesting, provideI18nTesting } from '../../core/i18n/testing';
 import { ConfigPage } from './config.page';
 
 const EVENTS = [
@@ -32,6 +34,7 @@ describe('ConfigPage (v3, admin console)', () => {
   async function setup(admin: Record<string, unknown> = {}, inv: Record<string, unknown> = {}) {
     TestBed.configureTestingModule({
       providers: [
+        ...provideI18nTesting(),
         provideZonelessChangeDetection(),
         provideRouter([]),
         ToastService,
@@ -95,6 +98,7 @@ describe('ConfigPage (v3, admin console)', () => {
         },
       ],
     });
+    initI18nTesting();
     fixture = TestBed.createComponent(ConfigPage);
     toasts = TestBed.inject(ToastService);
     fixture.detectChanges();
@@ -446,5 +450,25 @@ describe('ConfigPage (v3, admin console)', () => {
     c.setSettingValue('costshare.default_pct', 0.5);
     c.saveSetting(SETTINGS[0]);
     expect(update).toHaveBeenCalledWith('costshare.default_pct', 0.5);
+  });
+
+  // --- i18n: los settings muestran un label amigable (no la key cruda) ---
+  it('ajustes: muestra el label amigable del setting en es y en (no la key cruda)', async () => {
+    const SETTINGS = [
+      { key: 'pricing.platform_fee_pct', value: 0.1, default: 0.1, type: 'pct', description: 'x', fallbackOnly: false },
+    ];
+    await setup();
+    spyOn(TestBed.inject(SettingsApi), 'list').and.returnValue(of(SETTINGS) as never);
+    await selectTab('tab-ajustes');
+    const list = () => el.querySelector('[data-testid="settings-list"]');
+    // Español (default): label humano, sin la key cruda con puntos.
+    expect(list()?.textContent).toContain('Comisión de plataforma');
+    expect(list()?.textContent).not.toContain('pricing.platform_fee_pct');
+
+    // Inglés: cambia el idioma y el label sale traducido.
+    TestBed.inject(I18nService).use('en');
+    fixture.detectChanges();
+    expect(list()?.textContent).toContain('Platform fee');
+    expect(list()?.textContent).not.toContain('pricing.platform_fee_pct');
   });
 });

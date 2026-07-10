@@ -1,34 +1,34 @@
 <section class="config-page">
-  <h1>Configuración</h1>
+  <h1>{{ 'config.title' | translate }}</h1>
 
-  <nav class="config-tabs" aria-label="Secciones de configuración">
-    <button type="button" [class.active]="tab() === 'eventos'" (click)="selectTab('eventos')" data-testid="tab-eventos">Eventos</button>
-    <button type="button" [class.active]="tab() === 'promotores'" (click)="selectTab('promotores')" data-testid="tab-promotores">Promotores</button>
-    <button type="button" [class.active]="tab() === 'salones'" (click)="selectTab('salones')" data-testid="tab-salones">Salones</button>
-    <button type="button" [class.active]="tab() === 'plantillas'" (click)="selectTab('plantillas')" data-testid="tab-plantillas">Plantillas</button>
-    <button type="button" [class.active]="tab() === 'sistema'" (click)="selectTab('sistema')" data-testid="tab-sistema">Sistema</button>
-    <button type="button" [class.active]="tab() === 'ajustes'" (click)="selectTab('ajustes')" data-testid="tab-ajustes">Configuraciones</button>
-    <button type="button" [class.active]="tab() === 'invitaciones'" (click)="selectTab('invitaciones')" data-testid="tab-invitaciones">Invitaciones</button>
+  <nav class="config-tabs" [attr.aria-label]="'config.tabsAria' | translate">
+    <button type="button" [class.active]="tab() === 'eventos'" (click)="selectTab('eventos')" data-testid="tab-eventos">{{ 'config.tabs.events' | translate }}</button>
+    <button type="button" [class.active]="tab() === 'promotores'" (click)="selectTab('promotores')" data-testid="tab-promotores">{{ 'config.tabs.promoters' | translate }}</button>
+    <button type="button" [class.active]="tab() === 'salones'" (click)="selectTab('salones')" data-testid="tab-salones">{{ 'config.tabs.halls' | translate }}</button>
+    <button type="button" [class.active]="tab() === 'plantillas'" (click)="selectTab('plantillas')" data-testid="tab-plantillas">{{ 'config.tabs.templates' | translate }}</button>
+    <button type="button" [class.active]="tab() === 'sistema'" (click)="selectTab('sistema')" data-testid="tab-sistema">{{ 'config.tabs.system' | translate }}</button>
+    <button type="button" [class.active]="tab() === 'ajustes'" (click)="selectTab('ajustes')" data-testid="tab-ajustes">{{ 'config.tabs.settings' | translate }}</button>
+    <button type="button" [class.active]="tab() === 'invitaciones'" (click)="selectTab('invitaciones')" data-testid="tab-invitaciones">{{ 'config.tabs.invitations' | translate }}</button>
   </nav>
 
   @switch (tab()) {
     @case ('eventos') {
-      <h2>Todos los eventos</h2>
+      <h2>{{ 'config.events.heading' | translate }}</h2>
       <div class="filters-row">
-        <label class="field"><span>Buscar</span>
-          <input type="text" placeholder="Evento o promotor" [ngModel]="eventSearch()" (ngModelChange)="setEventSearch($event)" name="esearch" data-testid="event-search" />
+        <label class="field"><span>{{ 'common.search' | translate }}</span>
+          <input type="text" [attr.placeholder]="'config.events.searchPlaceholder' | translate" [ngModel]="eventSearch()" (ngModelChange)="setEventSearch($event)" name="esearch" data-testid="event-search" />
         </label>
-        <label class="field"><span>Estado</span>
+        <label class="field"><span>{{ 'common.status' | translate }}</span>
           <select [ngModel]="eventStatus()" (ngModelChange)="setEventStatus($event)" name="estatus" data-testid="event-status-filter">
-            <option value="">Todos</option>
-            <option value="draft">Borrador</option>
-            <option value="published">Publicado</option>
-            <option value="cancelled">Cancelado</option>
+            <option value="">{{ 'common.all' | translate }}</option>
+            <option value="draft">{{ 'config.events.statusDraft' | translate }}</option>
+            <option value="published">{{ 'config.events.statusPublished' | translate }}</option>
+            <option value="cancelled">{{ 'config.events.statusCancelled' | translate }}</option>
           </select>
         </label>
-        <label class="field"><span>Promotor</span>
+        <label class="field"><span>{{ 'config.events.promoter' | translate }}</span>
           <select [ngModel]="eventPromoter()" (ngModelChange)="setEventPromoter($event)" name="epromoter" data-testid="event-promoter-filter">
-            <option value="">Todos</option>
+            <option value="">{{ 'common.all' | translate }}</option>
             @for (p of eventPromoters(); track p.id) { <option [value]="p.id">{{ p.name }}</option> }
           </select>
         </label>
@@ -39,17 +39,17 @@
             <article class="ev-card" data-testid="ev-card">
               <div class="ev-card-top">
                 <span class="badge badge-{{ e.status }}">{{ e.status }}</span>
-                <span class="muted small">{{ e._count.localities }} localidad(es)</span>
+                <span class="muted small">{{ 'config.events.localitiesCount' | translate: { n: e._count.localities } }}</span>
               </div>
               <button type="button" class="ev-card-name link-btn" (click)="openEvent(e.id)" data-testid="ev-open">{{ e.name }}</button>
-              <time class="muted small">{{ e.startsAt | date: 'EEE d MMM y' }}</time>
+              <time class="muted small">{{ e.startsAt | localizedDate: 'EEE d MMM y' }}</time>
               <span class="muted small">{{ e.promoter.firstName }} {{ e.promoter.lastName }}</span>
               <div class="ev-card-actions">
-                <button type="button" class="btn small" (click)="openEvent(e.id, 'cuentas')" data-testid="ev-accounts" title="Ver cuentas del evento">
-                  <app-icon name="accounts" /> Cuentas
+                <button type="button" class="btn small" (click)="openEvent(e.id, 'cuentas')" data-testid="ev-accounts" [title]="'config.events.accountsTitle' | translate">
+                  <app-icon name="accounts" /> {{ 'config.events.accounts' | translate }}
                 </button>
-                <button type="button" class="btn small" (click)="openEvent(e.id)" data-testid="ev-open-btn" title="Abrir el evento">
-                  <app-icon name="view" /> Ver evento
+                <button type="button" class="btn small" (click)="openEvent(e.id)" data-testid="ev-open-btn" [title]="'config.events.viewEventTitle' | translate">
+                  <app-icon name="view" /> {{ 'config.events.viewEvent' | translate }}
                 </button>
               </div>
             </article>
@@ -57,23 +57,23 @@
         </div>
         <app-pager [page]="eventsPage()" [totalPages]="eventsTotalPages()" (pageChange)="goToEventsPage($event)" data-testid="events-pager" />
       } @else {
-        <p class="muted">No hay eventos con ese filtro.</p>
+        <p class="muted">{{ 'config.events.empty' | translate }}</p>
       }
     }
 
     @case ('promotores') {
-      <h2>Promotores</h2>
+      <h2>{{ 'config.promoters.heading' | translate }}</h2>
       <div class="filters-row">
-        <label class="field"><span>Buscar</span>
-          <input type="text" placeholder="Nombre o correo" [ngModel]="promoterSearch()" (ngModelChange)="promoterSearch.set($event)" name="psearch" data-testid="promoter-search" />
+        <label class="field"><span>{{ 'common.search' | translate }}</span>
+          <input type="text" [attr.placeholder]="'config.promoters.searchPlaceholder' | translate" [ngModel]="promoterSearch()" (ngModelChange)="promoterSearch.set($event)" name="psearch" data-testid="promoter-search" />
         </label>
-        <label class="field"><span>Estado</span>
+        <label class="field"><span>{{ 'common.status' | translate }}</span>
           <select [ngModel]="promoterStatus()" (ngModelChange)="promoterStatus.set($event); loadPromoters()" name="pstatus" data-testid="promoter-status-filter">
-            <option value="">Todos</option>
-            <option value="pending">Pendientes</option>
-            <option value="approved">Aprobados</option>
-            <option value="rejected">Rechazados</option>
-            <option value="suspended">Suspendidos</option>
+            <option value="">{{ 'common.all' | translate }}</option>
+            <option value="pending">{{ 'config.promoters.statusPending' | translate }}</option>
+            <option value="approved">{{ 'config.promoters.statusApproved' | translate }}</option>
+            <option value="rejected">{{ 'config.promoters.statusRejected' | translate }}</option>
+            <option value="suspended">{{ 'config.promoters.statusSuspended' | translate }}</option>
           </select>
         </label>
       </div>
@@ -90,49 +90,49 @@
                 <span class="badge badge-{{ p.promoterStatus }}">{{ p.promoterStatus }}</span>
               </div>
               <div class="promoter-card-body">
-                <label class="field"><span>Nota (opcional)</span>
-                  <input type="text" placeholder="Motivo / observación" [ngModel]="notes()[p.id]" (ngModelChange)="setNote(p.id, $event)" [name]="'note-' + p.id" />
+                <label class="field"><span>{{ 'config.promoters.noteLabel' | translate }}</span>
+                  <input type="text" [attr.placeholder]="'config.promoters.notePlaceholder' | translate" [ngModel]="notes()[p.id]" (ngModelChange)="setNote(p.id, $event)" [name]="'note-' + p.id" />
                 </label>
-                <label class="field inline"><span>Reparto (cost-share)</span>
-                  <input type="number" min="0" max="1" step="0.05" #pct placeholder="0.5" />
-                  <button type="button" class="btn small" (click)="setPromoterPct(p, pct.value)" data-testid="promoter-pct-save" title="Guardar reparto">
-                    <app-icon name="save" /> Guardar
+                <label class="field inline"><span>{{ 'config.promoters.costShareLabel' | translate }}</span>
+                  <input type="number" min="0" max="1" step="0.05" #pct [attr.placeholder]="'config.promoters.costSharePlaceholder' | translate" />
+                  <button type="button" class="btn small" (click)="setPromoterPct(p, pct.value)" data-testid="promoter-pct-save" [title]="'config.promoters.saveShareTitle' | translate">
+                    <app-icon name="save" /> {{ 'common.save' | translate }}
                   </button>
                 </label>
               </div>
               <div class="ev-card-actions">
                 @if (p.promoterStatus !== 'approved') {
                   <button type="button" class="btn small primary" (click)="approve(p)" data-testid="promoter-approve"
-                    [title]="p.promoterStatus === 'suspended' ? 'Reactivar promotor' : 'Aprobar promotor'">
+                    [title]="(p.promoterStatus === 'suspended' ? 'config.promoters.reactivateTitle' : 'config.promoters.approveTitle') | translate">
                     <app-icon [name]="p.promoterStatus === 'suspended' ? 'reactivate' : 'save'" />
-                    {{ p.promoterStatus === 'suspended' ? 'Reactivar' : 'Aprobar' }}
+                    {{ (p.promoterStatus === 'suspended' ? 'config.promoters.reactivate' : 'config.promoters.approve') | translate }}
                   </button>
                 }
                 @if (p.promoterStatus === 'pending') {
-                  <button type="button" class="btn small danger" (click)="reject(p)" data-testid="promoter-reject" title="Rechazar solicitud">
-                    <app-icon name="cancel" /> Rechazar
+                  <button type="button" class="btn small danger" (click)="reject(p)" data-testid="promoter-reject" [title]="'config.promoters.rejectTitle' | translate">
+                    <app-icon name="cancel" /> {{ 'config.promoters.reject' | translate }}
                   </button>
                 }
                 @if (p.promoterStatus === 'approved') {
-                  <button type="button" class="btn small danger" (click)="openSuspend(p)" data-testid="promoter-suspend" title="Suspender promotor">
-                    <app-icon name="suspend" /> Suspender
+                  <button type="button" class="btn small danger" (click)="openSuspend(p)" data-testid="promoter-suspend" [title]="'config.promoters.suspendTitle' | translate">
+                    <app-icon name="suspend" /> {{ 'config.promoters.suspend' | translate }}
                   </button>
                 }
                 <button type="button" class="btn small" (click)="toggleHistory(p)" data-testid="promoter-history"
-                  [title]="historyFor() === p.id ? 'Ocultar historial' : 'Ver historial'">
-                  <app-icon name="history" /> {{ historyFor() === p.id ? 'Ocultar historial' : 'Historial' }}
+                  [title]="(historyFor() === p.id ? 'config.promoters.hideHistoryTitle' : 'config.promoters.historyTitle') | translate">
+                  <app-icon name="history" /> {{ (historyFor() === p.id ? 'config.promoters.hideHistory' : 'config.promoters.history') | translate }}
                 </button>
               </div>
               @if (historyFor() === p.id) {
                 <div class="promoter-history" data-testid="promoter-history-list">
                   @if (history().length === 0) {
-                    <p class="muted small">Sin transiciones registradas.</p>
+                    <p class="muted small">{{ 'config.promoters.noTransitions' | translate }}</p>
                   } @else {
                     <ul class="history-list">
                       @for (h of history(); track h.id) {
                         <li>
                           <span class="badge badge-{{ h.statusTo }}">{{ h.statusTo }}</span>
-                          <span class="muted small">{{ h.createdAt | date: 'd MMM y, HH:mm' }}</span>
+                          <span class="muted small">{{ h.createdAt | localizedDate: 'd MMM y, HH:mm' }}</span>
                           @if (h.reason) { <span class="small">— {{ h.reason }}</span> }
                         </li>
                       }
@@ -144,22 +144,22 @@
           }
         </div>
       } @else {
-        <p class="muted">No hay promotores con ese filtro.</p>
+        <p class="muted">{{ 'config.promoters.empty' | translate }}</p>
       }
 
       @if (suspendTarget(); as target) {
         <div class="modal-backdrop" data-testid="suspend-modal">
           <div class="modal-card">
-            <h3>Suspender a {{ target.firstName }}</h3>
-            <label class="field"><span>Motivo de la suspensión</span>
-              <textarea rows="3" [ngModel]="suspendReason()" (ngModelChange)="suspendReason.set($event)" name="susreason" data-testid="suspend-reason" placeholder="Explica por qué se suspende (queda en el historial)"></textarea>
+            <h3>{{ 'config.promoters.suspendModalTitle' | translate: { name: target.firstName } }}</h3>
+            <label class="field"><span>{{ 'config.promoters.suspendReasonLabel' | translate }}</span>
+              <textarea rows="3" [ngModel]="suspendReason()" (ngModelChange)="suspendReason.set($event)" name="susreason" data-testid="suspend-reason" [attr.placeholder]="'config.promoters.suspendReasonPlaceholder' | translate"></textarea>
             </label>
             <div class="ev-card-actions">
-              <button type="button" class="btn danger" (click)="confirmSuspend()" data-testid="suspend-confirm" title="Confirmar suspensión">
-                <app-icon name="suspend" /> Suspender
+              <button type="button" class="btn danger" (click)="confirmSuspend()" data-testid="suspend-confirm" [title]="'config.promoters.confirmSuspendTitle' | translate">
+                <app-icon name="suspend" /> {{ 'config.promoters.suspend' | translate }}
               </button>
-              <button type="button" class="btn" (click)="cancelSuspend()" data-testid="suspend-cancel" title="Cancelar">
-                <app-icon name="cancel" /> Cancelar
+              <button type="button" class="btn" (click)="cancelSuspend()" data-testid="suspend-cancel" [title]="'common.cancel' | translate">
+                <app-icon name="cancel" /> {{ 'common.cancel' | translate }}
               </button>
             </div>
           </div>
@@ -168,65 +168,65 @@
     }
 
     @case ('sistema') {
-      <h2>Configuración del sistema</h2>
+      <h2>{{ 'config.system.heading' | translate }}</h2>
 
       <div class="card-block">
-        <h3>Autorización de promotores</h3>
+        <h3>{{ 'config.system.approvalHeading' | translate }}</h3>
         @if (requireApproval() === null) {
-          <p class="muted">Cargando…</p>
+          <p class="muted">{{ 'common.loading' | translate }}</p>
         } @else {
-          <p class="muted">{{ requireApproval() ? 'Se exige aprobación del admin para operar como promotor.' : 'Modo pruebas: los promotores se auto-aprueban.' }}</p>
-          <button type="button" class="btn primary" (click)="toggleRequireApproval()" data-testid="toggle-require-approval" title="Cambiar modo de autorización">
-            <app-icon name="reactivate" /> {{ requireApproval() ? 'Activar modo pruebas (auto-aprobar)' : 'Exigir aprobación' }}
+          <p class="muted">{{ (requireApproval() ? 'config.system.approvalOn' : 'config.system.approvalOff') | translate }}</p>
+          <button type="button" class="btn primary" (click)="toggleRequireApproval()" data-testid="toggle-require-approval" [title]="'config.system.approvalToggleTitle' | translate">
+            <app-icon name="reactivate" /> {{ (requireApproval() ? 'config.system.enableTestMode' : 'config.system.requireApproval') | translate }}
           </button>
         }
       </div>
 
       <div class="card-block">
-        <h3>Reparto de gastos por defecto</h3>
-        <p class="muted">Fracción de los gastos EXTRA (p.ej. pasar a wallet) que asume el promotor (0–1).</p>
+        <h3>{{ 'config.system.defaultShareHeading' | translate }}</h3>
+        <p class="muted">{{ 'config.system.defaultShareHint' | translate }}</p>
         <div class="field inline">
           <input type="number" min="0" max="1" step="0.05" [ngModel]="defaultPct()" (ngModelChange)="defaultPct.set($event)" name="defpct" #dp data-testid="default-pct" />
-          <button type="button" class="btn primary" (click)="saveDefaultPct(dp.value)" data-testid="save-default-pct" title="Guardar reparto por defecto">
-            <app-icon name="save" /> Guardar
+          <button type="button" class="btn primary" (click)="saveDefaultPct(dp.value)" data-testid="save-default-pct" [title]="'config.system.saveDefaultShareTitle' | translate">
+            <app-icon name="save" /> {{ 'common.save' | translate }}
           </button>
         </div>
       </div>
 
       <div class="card-block">
-        <h3>Pasarelas de pago</h3>
+        <h3>{{ 'config.system.gatewaysHeading' | translate }}</h3>
 
         <div class="gateway-add" data-testid="gateway-add">
           @if (!unlockUnlocked()) {
             @if (!unlockSent()) {
-              <button type="button" class="btn" (click)="requestUnlock()" data-testid="gw-unlock" title="Desbloquear agregar pasarela">
-                <app-icon name="unlock" /> Desbloquear agregado
+              <button type="button" class="btn" (click)="requestUnlock()" data-testid="gw-unlock" [title]="'config.system.unlockTitle' | translate">
+                <app-icon name="unlock" /> {{ 'config.system.unlock' | translate }}
               </button>
-              <p class="muted small">Agregar una pasarela es una acción sensible: te enviaremos un código al correo.</p>
+              <p class="muted small">{{ 'config.system.unlockHint' | translate }}</p>
             } @else {
-              <p class="muted small">Te enviamos un código al correo. Ingrésalo en la ventana para continuar.</p>
+              <p class="muted small">{{ 'config.system.unlockSentHint' | translate }}</p>
             }
           } @else {
             <div class="gateway-edit-grid" data-testid="gw-create-form">
-              <label class="field"><span>Nombre</span>
+              <label class="field"><span>{{ 'config.system.gwName' | translate }}</span>
                 <input type="text" [ngModel]="newGateway().name" (ngModelChange)="patchNewGateway('name', $event)" name="ngn" data-testid="gw-new-name" />
               </label>
-              <label class="field"><span>Proveedor</span>
-                <input type="text" [ngModel]="newGateway().provider" (ngModelChange)="patchNewGateway('provider', $event)" name="ngp" placeholder="pagalo / recurrente / stripe" />
+              <label class="field"><span>{{ 'config.system.gwProvider' | translate }}</span>
+                <input type="text" [ngModel]="newGateway().provider" (ngModelChange)="patchNewGateway('provider', $event)" name="ngp" [attr.placeholder]="'config.system.gwProviderPlaceholder' | translate" />
               </label>
-              <label class="field"><span>Comisión % (0.03)</span>
+              <label class="field"><span>{{ 'config.system.gwFeePct' | translate }}</span>
                 <input type="number" step="0.001" min="0" max="0.99" [ngModel]="newGateway().feePct" (ngModelChange)="patchNewGateway('feePct', +$event)" name="ngf" />
               </label>
-              <label class="field"><span>Fijo por transacción (Q)</span>
+              <label class="field"><span>{{ 'config.system.gwFixed' | translate }}</span>
                 <input type="number" step="0.01" min="0" [ngModel]="newGateway().transactionFixedFee" (ngModelChange)="patchNewGateway('transactionFixedFee', +$event)" name="ngt" />
               </label>
             </div>
             <div class="ev-card-actions">
-              <button type="button" class="btn primary" (click)="createGateway()" data-testid="gw-create" title="Agregar pasarela">
-                <app-icon name="add" /> Agregar pasarela
+              <button type="button" class="btn primary" (click)="createGateway()" data-testid="gw-create" [title]="'config.system.addGatewayTitle' | translate">
+                <app-icon name="add" /> {{ 'config.system.addGateway' | translate }}
               </button>
-              <button type="button" class="btn" (click)="cancelUnlock()" title="Cancelar">
-                <app-icon name="cancel" /> Cancelar
+              <button type="button" class="btn" (click)="cancelUnlock()" [title]="'common.cancel' | translate">
+                <app-icon name="cancel" /> {{ 'common.cancel' | translate }}
               </button>
             </div>
           }
@@ -236,17 +236,17 @@
         @if (unlockSent() && !unlockUnlocked()) {
           <div class="modal-backdrop" data-testid="gw-unlock-modal">
             <div class="modal-card">
-              <h3>Autorizar agregar pasarela</h3>
-              <p class="muted small">Ingresa el código de 6 dígitos que enviamos a tu correo.</p>
-              <label class="field"><span>Código recibido por correo</span>
+              <h3>{{ 'config.system.unlockModalTitle' | translate }}</h3>
+              <p class="muted small">{{ 'config.system.unlockModalHint' | translate }}</p>
+              <label class="field"><span>{{ 'config.system.unlockCodeLabel' | translate }}</span>
                 <input type="text" maxlength="6" inputmode="numeric" [ngModel]="unlockCode()" (ngModelChange)="unlockCode.set($event)" name="unlockcode" data-testid="gw-unlock-code" />
               </label>
               <div class="ev-card-actions">
-                <button type="button" class="btn primary" (click)="confirmUnlock()" data-testid="gw-unlock-confirm" title="Validar código">
-                  <app-icon name="save" /> Validar código
+                <button type="button" class="btn primary" (click)="confirmUnlock()" data-testid="gw-unlock-confirm" [title]="'config.system.validateCode' | translate">
+                  <app-icon name="save" /> {{ 'config.system.validateCode' | translate }}
                 </button>
-                <button type="button" class="btn" (click)="cancelUnlock()" title="Cancelar">
-                  <app-icon name="cancel" /> Cancelar
+                <button type="button" class="btn" (click)="cancelUnlock()" [title]="'common.cancel' | translate">
+                  <app-icon name="cancel" /> {{ 'common.cancel' | translate }}
                 </button>
               </div>
             </div>
@@ -255,7 +255,7 @@
 
         @if (gateways().length > 0) {
           <div class="list-filters">
-            <input type="search" placeholder="Buscar pasarela…" [ngModel]="gatewaySearch()" (ngModelChange)="gatewaySearch.set($event)" name="gwq" data-testid="gw-search" />
+            <input type="search" [attr.placeholder]="'config.system.gwSearchPlaceholder' | translate" [ngModel]="gatewaySearch()" (ngModelChange)="gatewaySearch.set($event)" name="gwq" data-testid="gw-search" />
           </div>
           <div data-testid="gateways-list">
             @for (g of filteredGateways(); track g.id) {
@@ -263,17 +263,17 @@
                 <div class="gateway-edit-head">
                   <strong>{{ g.name }}</strong>
                   <span class="badge badge-{{ g.status }}">{{ g.status }}</span>
-                  @if (g.isPlatformDefault) { <span class="badge badge-approved">default</span> }
+                  @if (g.isPlatformDefault) { <span class="badge badge-approved">{{ 'config.system.defaultBadge' | translate }}</span> }
                   <span class="muted small">{{ g.provider }} · {{ g.feePct }} + Q{{ g.transactionFixedFee }}</span>
                   <span class="gateway-edit-actions" style="margin-left:auto; display:flex; gap:0.4rem;">
                     @if (!g.isPlatformDefault) {
-                      <button type="button" class="btn small" (click)="makeDefault(g)" data-testid="gw-make-default" title="Definir como pasarela default">
-                        <app-icon name="default" /> Definir default
+                      <button type="button" class="btn small" (click)="makeDefault(g)" data-testid="gw-make-default" [title]="'config.system.makeDefaultTitle' | translate">
+                        <app-icon name="default" /> {{ 'config.system.makeDefault' | translate }}
                       </button>
                     }
                     @if (gatewayDraft()?.id !== g.id) {
-                      <button type="button" class="btn small" (click)="editGateway(g)" data-testid="gw-edit" title="Editar pasarela">
-                        <app-icon name="edit" /> Editar
+                      <button type="button" class="btn small" (click)="editGateway(g)" data-testid="gw-edit" [title]="'config.system.editGatewayTitle' | translate">
+                        <app-icon name="edit" /> {{ 'common.edit' | translate }}
                       </button>
                     }
                   </span>
@@ -282,44 +282,44 @@
                 @if (gatewayDraft(); as d) {
                   @if (d.id === g.id) {
                     <div class="gateway-edit-grid" data-testid="gw-form">
-                      <label class="field"><span>Nombre</span>
+                      <label class="field"><span>{{ 'config.system.gwName' | translate }}</span>
                         <input type="text" [ngModel]="d.name" (ngModelChange)="patchDraft('name', $event)" [name]="'gn-' + g.id" />
                       </label>
-                      <label class="field"><span>Comisión % (0.05)</span>
+                      <label class="field"><span>{{ 'config.system.gwFeePctEdit' | translate }}</span>
                         <input type="number" step="0.001" min="0" max="0.99" [ngModel]="d.feePct" (ngModelChange)="patchDraft('feePct', +$event)" [name]="'gf-' + g.id" data-testid="gw-feepct" />
                       </label>
-                      <label class="field"><span>Fijo por transacción (Q)</span>
+                      <label class="field"><span>{{ 'config.system.gwFixed' | translate }}</span>
                         <input type="number" step="0.01" min="0" [ngModel]="d.transactionFixedFee" (ngModelChange)="patchDraft('transactionFixedFee', +$event)" [name]="'gt-' + g.id" />
                       </label>
-                      <label class="field"><span>Cost-share mínimo (0–1)</span>
+                      <label class="field"><span>{{ 'config.system.gwMinCostShare' | translate }}</span>
                         <input type="number" step="0.05" min="0" max="1" [ngModel]="d.minCostSharePct" (ngModelChange)="patchDraft('minCostSharePct', +$event)" [name]="'gm-' + g.id" />
                       </label>
-                      <label class="field"><span>Fijo en cuotas (Q)</span>
+                      <label class="field"><span>{{ 'config.system.gwInstallmentFixed' | translate }}</span>
                         <input type="number" step="0.01" min="0" [ngModel]="d.installmentFixedFee" (ngModelChange)="patchDraft('installmentFixedFee', +$event)" [name]="'gif-' + g.id" />
                       </label>
-                      <label class="field full"><span>Tasas de cuotas (JSON)</span>
+                      <label class="field full"><span>{{ 'config.system.gwInstallmentRates' | translate }}</span>
                         <input type="text" placeholder='{"3":0.08,"6":0.09}' [ngModel]="d.installmentRatesJson" (ngModelChange)="patchDraft('installmentRatesJson', $event)" [name]="'gir-' + g.id" />
                       </label>
                     </div>
                     <div class="ev-card-actions">
-                      <button type="button" class="btn small primary" (click)="saveGateway()" data-testid="gw-save" title="Guardar cambios">
-                        <app-icon name="save" /> Guardar
+                      <button type="button" class="btn small primary" (click)="saveGateway()" data-testid="gw-save" [title]="'config.system.saveGatewayTitle' | translate">
+                        <app-icon name="save" /> {{ 'common.save' | translate }}
                       </button>
-                      <button type="button" class="btn small" (click)="cancelGatewayEdit()" title="Cancelar edición">
-                        <app-icon name="cancel" /> Cancelar
+                      <button type="button" class="btn small" (click)="cancelGatewayEdit()" [title]="'config.system.cancelEditTitle' | translate">
+                        <app-icon name="cancel" /> {{ 'common.cancel' | translate }}
                       </button>
                       @if (!g.isPlatformDefault) {
                         @if (g.status !== 'active') {
-                          <button type="button" class="btn small" (click)="setGatewayStatus(g, 'active')" title="Activar pasarela">
-                            <app-icon name="activate" /> Activar
+                          <button type="button" class="btn small" (click)="setGatewayStatus(g, 'active')" [title]="'config.system.activateTitle' | translate">
+                            <app-icon name="activate" /> {{ 'config.system.activate' | translate }}
                           </button>
                         }
                         @if (g.status === 'active') {
-                          <button type="button" class="btn small" (click)="setGatewayStatus(g, 'maintenance')" title="Poner en mantenimiento">
-                            <app-icon name="maintenance" /> Mantenimiento
+                          <button type="button" class="btn small" (click)="setGatewayStatus(g, 'maintenance')" [title]="'config.system.maintenanceTitle' | translate">
+                            <app-icon name="maintenance" /> {{ 'config.system.maintenance' | translate }}
                           </button>
-                          <button type="button" class="btn small danger" (click)="setGatewayStatus(g, 'inactive')" title="Desactivar pasarela">
-                            <app-icon name="cancel" /> Desactivar
+                          <button type="button" class="btn small danger" (click)="setGatewayStatus(g, 'inactive')" [title]="'config.system.deactivateTitle' | translate">
+                            <app-icon name="cancel" /> {{ 'config.system.deactivate' | translate }}
                           </button>
                         }
                       }
@@ -328,34 +328,34 @@
                 }
               </div>
             } @empty {
-              <p class="muted" data-testid="gw-search-empty">Ninguna pasarela coincide con la búsqueda.</p>
+              <p class="muted" data-testid="gw-search-empty">{{ 'config.system.gwSearchEmpty' | translate }}</p>
             }
           </div>
         } @else {
-          <p class="muted">No hay pasarelas configuradas.</p>
+          <p class="muted">{{ 'config.system.noGateways' | translate }}</p>
         }
       </div>
     }
 
     @case ('invitaciones') {
-      <h2>Invitar promotores</h2>
-      <p class="muted">Ingresa uno o varios correos (coma, espacio o salto de línea). Cada invitado recibe un enlace para registrarse ya aprobado como promotor.</p>
+      <h2>{{ 'config.invitations.heading' | translate }}</h2>
+      <p class="muted">{{ 'config.invitations.intro' | translate }}</p>
       <form class="inv-form card-block" (ngSubmit)="invite()">
-        <label class="field full"><span>Correos a invitar</span>
-          <textarea [ngModel]="emailsText()" (ngModelChange)="emailsText.set($event)" name="emails" rows="3" placeholder="correo1@dominio.com, correo2@dominio.com" data-testid="inv-emails"></textarea>
+        <label class="field full"><span>{{ 'config.invitations.emailsLabel' | translate }}</span>
+          <textarea [ngModel]="emailsText()" (ngModelChange)="emailsText.set($event)" name="emails" rows="3" [attr.placeholder]="'config.invitations.emailsPlaceholder' | translate" data-testid="inv-emails"></textarea>
         </label>
         <label class="check-row">
           <input type="checkbox" [ngModel]="inviteTestUser()" (ngModelChange)="inviteTestUser.set($event)" name="testuser" data-testid="inv-testuser" />
-          <span>Usuario de prueba (anclado a Sandbox; no usa pasarelas reales).</span>
+          <span>{{ 'config.invitations.testUser' | translate }}</span>
         </label>
-        <button type="submit" class="btn primary" [disabled]="inviting()" data-testid="inv-submit" title="Enviar invitaciones">
-          <app-icon name="invite" /> {{ inviting() ? 'Enviando…' : 'Invitar' }}
+        <button type="submit" class="btn primary" [disabled]="inviting()" data-testid="inv-submit" [title]="'config.invitations.inviteTitle' | translate">
+          <app-icon name="invite" /> {{ (inviting() ? 'common.sending' : 'config.invitations.invite') | translate }}
         </button>
       </form>
 
       @if (created().length > 0) {
         <div class="card-block" data-testid="inv-created">
-          <h3>Enlaces generados (cópialos y compártelos)</h3>
+          <h3>{{ 'config.invitations.createdHeading' | translate }}</h3>
           <div class="inv-grid">
             @for (c of created(); track c.id) {
               <article class="inv-card">
@@ -367,12 +367,12 @@
         </div>
       }
 
-      <h3>Invitaciones</h3>
+      <h3>{{ 'config.invitations.listHeading' | translate }}</h3>
       @if (invitations().length > 0) {
         <div class="list-filters">
-          <input type="search" placeholder="Buscar correo…" [ngModel]="invSearch()" (ngModelChange)="setInvSearch($event)" name="invq" data-testid="inv-search" />
+          <input type="search" [attr.placeholder]="'config.invitations.searchPlaceholder' | translate" [ngModel]="invSearch()" (ngModelChange)="setInvSearch($event)" name="invq" data-testid="inv-search" />
           <select [ngModel]="invFilterStatus()" (ngModelChange)="setInvFilter($event)" name="invstatus" data-testid="inv-filter">
-            <option value="">Todos los estados</option>
+            <option value="">{{ 'config.invitations.allStatuses' | translate }}</option>
             @for (s of invStatuses(); track s) {
               <option [value]="s">{{ s }}</option>
             }
@@ -383,65 +383,65 @@
             <article class="inv-card" data-testid="inv-card">
               <div class="inv-card-top">
                 <span class="badge badge-{{ i.status }}">{{ i.status }}</span>
-                @if (i.isTestUser) { <span class="badge badge-test" data-testid="inv-badge-test">prueba</span> }
+                @if (i.isTestUser) { <span class="badge badge-test" data-testid="inv-badge-test">{{ 'config.invitations.testBadge' | translate }}</span> }
               </div>
               <span class="inv-email">{{ i.email }}</span>
               @if (i.status === 'pending') {
-                <button type="button" class="btn small danger" (click)="askRevoke(i)" data-testid="inv-revoke" title="Revocar invitación">
-                  <app-icon name="revoke" /> Revocar
+                <button type="button" class="btn small danger" (click)="askRevoke(i)" data-testid="inv-revoke" [title]="'config.invitations.revokeTitle' | translate">
+                  <app-icon name="revoke" /> {{ 'config.invitations.revoke' | translate }}
                 </button>
               }
             </article>
           } @empty {
-            <p class="muted" data-testid="inv-no-match">Ninguna invitación coincide con la búsqueda.</p>
+            <p class="muted" data-testid="inv-no-match">{{ 'config.invitations.noMatch' | translate }}</p>
           }
         </div>
         <app-pager [page]="invPage()" [totalPages]="invTotalPages()" (pageChange)="goToInvPage($event)" data-testid="inv-pager" />
       } @else {
-        <p class="muted">Aún no has enviado invitaciones.</p>
+        <p class="muted">{{ 'config.invitations.empty' | translate }}</p>
       }
     }
 
     @case ('salones') {
-      <h2>Salones</h2>
-      <p class="muted">Lugares reutilizables con ubicación en el mapa. El promotor puede elegir uno al crear un evento (prefija dirección/ubicación).</p>
+      <h2>{{ 'config.halls.heading' | translate }}</h2>
+      <p class="muted">{{ 'config.halls.intro' | translate }}</p>
 
       <div class="list-filters">
-        <input type="search" placeholder="Buscar salón por nombre o ciudad…" [ngModel]="hallSearch()" (ngModelChange)="setHallSearch($event)" name="hallq" data-testid="hall-search" />
+        <input type="search" [attr.placeholder]="'config.halls.searchPlaceholder' | translate" [ngModel]="hallSearch()" (ngModelChange)="setHallSearch($event)" name="hallq" data-testid="hall-search" />
         @if (!hallDraft()) {
-          <button type="button" class="btn primary" (click)="newHall()" data-testid="hall-new" title="Crear salón">
-            <app-icon name="add" /> Nuevo salón
+          <button type="button" class="btn primary" (click)="newHall()" data-testid="hall-new" [title]="'config.halls.newHallTitle' | translate">
+            <app-icon name="add" /> {{ 'config.halls.newHall' | translate }}
           </button>
         }
       </div>
 
       @if (hallDraft(); as d) {
         <div class="card-block" data-testid="hall-form">
-          <h3>{{ d.id ? 'Editar salón' : 'Nuevo salón' }}</h3>
+          <h3>{{ (d.id ? 'config.halls.editHallHeading' : 'config.halls.newHall') | translate }}</h3>
           <div class="form-grid">
-            <label class="field"><span>Nombre</span>
+            <label class="field"><span>{{ 'config.system.gwName' | translate }}</span>
               <input type="text" [ngModel]="d.name" (ngModelChange)="patchHall('name', $event)" name="hn" data-testid="hall-name" />
             </label>
-            <label class="field"><span>Ciudad</span>
+            <label class="field"><span>{{ 'config.halls.city' | translate }}</span>
               <input type="text" [ngModel]="d.city" (ngModelChange)="patchHall('city', $event)" name="hc" />
             </label>
-            <label class="field full"><span>Dirección</span>
+            <label class="field full"><span>{{ 'config.halls.address' | translate }}</span>
               <input type="text" [ngModel]="d.address" (ngModelChange)="patchHall('address', $event)" name="ha" data-testid="hall-address" />
             </label>
-            <label class="field full"><span>Notas</span>
+            <label class="field full"><span>{{ 'config.halls.notes' | translate }}</span>
               <textarea rows="2" [ngModel]="d.notes" (ngModelChange)="patchHall('notes', $event)" name="hnotes"></textarea>
             </label>
             <div class="field full">
-              <span>Ubicación</span>
+              <span>{{ 'config.halls.location' | translate }}</span>
               <app-map-picker [lat]="d.lat" [lng]="d.lng" [address]="d.address" (locationChange)="onHallMap($event)" data-testid="hall-map" />
             </div>
           </div>
           <div class="ev-card-actions">
-            <button type="button" class="btn primary" (click)="saveHall()" data-testid="hall-save" title="Guardar salón">
-              <app-icon name="save" /> Guardar
+            <button type="button" class="btn primary" (click)="saveHall()" data-testid="hall-save" [title]="'config.halls.saveTitle' | translate">
+              <app-icon name="save" /> {{ 'common.save' | translate }}
             </button>
-            <button type="button" class="btn" (click)="cancelHallEdit()" title="Cancelar">
-              <app-icon name="cancel" /> Cancelar
+            <button type="button" class="btn" (click)="cancelHallEdit()" [title]="'common.cancel' | translate">
+              <app-icon name="cancel" /> {{ 'common.cancel' | translate }}
             </button>
           </div>
         </div>
@@ -456,11 +456,11 @@
               @if (h.address) { <span class="muted small">{{ h.address }}</span> }
               @if (h.lat != null && h.lng != null) { <span class="muted small">{{ h.lat }}, {{ h.lng }}</span> }
               <div class="ev-card-actions">
-                <button type="button" class="btn small" (click)="editHall(h)" data-testid="hall-edit" title="Editar salón">
-                  <app-icon name="edit" /> Editar
+                <button type="button" class="btn small" (click)="editHall(h)" data-testid="hall-edit" [title]="'config.halls.editTitle' | translate">
+                  <app-icon name="edit" /> {{ 'common.edit' | translate }}
                 </button>
-                <button type="button" class="btn small danger" (click)="askRemoveHall(h)" data-testid="hall-remove" title="Eliminar salón">
-                  <app-icon name="delete" /> Eliminar
+                <button type="button" class="btn small danger" (click)="askRemoveHall(h)" data-testid="hall-remove" [title]="'config.halls.removeTitle' | translate">
+                  <app-icon name="delete" /> {{ 'common.delete' | translate }}
                 </button>
               </div>
             </article>
@@ -468,45 +468,45 @@
         </div>
         <app-pager [page]="hallsPage()" [totalPages]="hallsTotalPages()" (pageChange)="goToHallsPage($event)" data-testid="halls-pager" />
       } @else {
-        <p class="muted" data-testid="halls-empty">No hay salones. Crea el primero.</p>
+        <p class="muted" data-testid="halls-empty">{{ 'config.halls.empty' | translate }}</p>
       }
     }
 
     @case ('plantillas') {
-      <h2>Plantillas de asientos</h2>
-      <p class="muted">Alimentan el desplegable "Generar" del editor de asientos. Las del sistema no se pueden editar/eliminar.</p>
+      <h2>{{ 'config.templates.heading' | translate }}</h2>
+      <p class="muted">{{ 'config.templates.intro' | translate }}</p>
 
       <div class="list-filters">
-        <input type="search" placeholder="Buscar plantilla…" [ngModel]="templateSearch()" (ngModelChange)="templateSearch.set($event)" name="tplq" data-testid="tpl-search" />
+        <input type="search" [attr.placeholder]="'config.templates.searchPlaceholder' | translate" [ngModel]="templateSearch()" (ngModelChange)="templateSearch.set($event)" name="tplq" data-testid="tpl-search" />
         @if (!templateDraft()) {
-          <button type="button" class="btn primary" (click)="newTemplate()" data-testid="tpl-new" title="Crear plantilla">
-            <app-icon name="add" /> Nueva plantilla
+          <button type="button" class="btn primary" (click)="newTemplate()" data-testid="tpl-new" [title]="'config.templates.newTemplateTitle' | translate">
+            <app-icon name="add" /> {{ 'config.templates.newTemplate' | translate }}
           </button>
         }
       </div>
 
       @if (templateDraft(); as d) {
         <div class="card-block" data-testid="tpl-form">
-          <h3>{{ d.id ? 'Editar plantilla' : 'Nueva plantilla' }}</h3>
+          <h3>{{ (d.id ? 'config.templates.editTemplateHeading' : 'config.templates.newTemplate') | translate }}</h3>
           <div class="form-grid">
-            <label class="field"><span>Nombre</span>
+            <label class="field"><span>{{ 'config.system.gwName' | translate }}</span>
               <input type="text" [ngModel]="d.name" (ngModelChange)="patchTemplate('name', $event)" name="tn" data-testid="tpl-name" />
             </label>
-            <label class="field"><span>Tipo</span>
+            <label class="field"><span>{{ 'config.templates.kind' | translate }}</span>
               <select [ngModel]="d.kind" (ngModelChange)="patchTemplate('kind', $event)" name="tk" data-testid="tpl-kind">
                 @for (k of templateKinds; track k) { <option [value]="k">{{ k }}</option> }
               </select>
             </label>
-            <label class="field full"><span>Parámetros (JSON)</span>
+            <label class="field full"><span>{{ 'config.templates.paramsJson' | translate }}</span>
               <input type="text" placeholder='{"rows":5,"cols":10}' [ngModel]="d.paramsJson" (ngModelChange)="patchTemplate('paramsJson', $event)" name="tp" data-testid="tpl-params" />
             </label>
           </div>
           <div class="ev-card-actions">
-            <button type="button" class="btn primary" (click)="saveTemplate()" data-testid="tpl-save" title="Guardar plantilla">
-              <app-icon name="save" /> Guardar
+            <button type="button" class="btn primary" (click)="saveTemplate()" data-testid="tpl-save" [title]="'config.templates.saveTitle' | translate">
+              <app-icon name="save" /> {{ 'common.save' | translate }}
             </button>
-            <button type="button" class="btn" (click)="cancelTemplateEdit()" title="Cancelar">
-              <app-icon name="cancel" /> Cancelar
+            <button type="button" class="btn" (click)="cancelTemplateEdit()" [title]="'common.cancel' | translate">
+              <app-icon name="cancel" /> {{ 'common.cancel' | translate }}
             </button>
           </div>
         </div>
@@ -518,61 +518,61 @@
             <article class="ev-card" data-testid="tpl-card">
               <div class="ev-card-top">
                 <span class="badge">{{ t.kind }}</span>
-                @if (t.isBuiltIn) { <span class="badge badge-approved" data-testid="tpl-builtin">sistema</span> }
+                @if (t.isBuiltIn) { <span class="badge badge-approved" data-testid="tpl-builtin">{{ 'config.templates.builtInBadge' | translate }}</span> }
               </div>
               <strong>{{ t.name }}</strong>
               <div class="ev-card-actions">
                 @if (!t.isBuiltIn) {
-                  <button type="button" class="btn small" (click)="editTemplate(t)" data-testid="tpl-edit" title="Editar plantilla">
-                    <app-icon name="edit" /> Editar
+                  <button type="button" class="btn small" (click)="editTemplate(t)" data-testid="tpl-edit" [title]="'config.templates.editTitle' | translate">
+                    <app-icon name="edit" /> {{ 'common.edit' | translate }}
                   </button>
-                  <button type="button" class="btn small danger" (click)="askRemoveTemplate(t)" data-testid="tpl-remove" title="Eliminar plantilla">
-                    <app-icon name="delete" /> Eliminar
+                  <button type="button" class="btn small danger" (click)="askRemoveTemplate(t)" data-testid="tpl-remove" [title]="'config.templates.removeTitle' | translate">
+                    <app-icon name="delete" /> {{ 'common.delete' | translate }}
                   </button>
                 } @else {
-                  <span class="muted small">Plantilla del sistema (no editable)</span>
+                  <span class="muted small">{{ 'config.templates.builtInNote' | translate }}</span>
                 }
               </div>
             </article>
           }
         </div>
       } @else {
-        <p class="muted" data-testid="tpl-empty">No hay plantillas.</p>
+        <p class="muted" data-testid="tpl-empty">{{ 'config.templates.empty' | translate }}</p>
       }
     }
 
     @case ('ajustes') {
-      <h2>Configuraciones</h2>
-      <p class="muted">Catálogo de knobs del sistema. Las de precios (fallback) son informativas: el motor usa el fee_schedule activo.</p>
+      <h2>{{ 'config.settings.heading' | translate }}</h2>
+      <p class="muted">{{ 'config.settings.intro' | translate }}</p>
       @if (settings().length > 0) {
         <div class="settings-list" data-testid="settings-list">
           @for (s of settings(); track s.key) {
             <div class="card-block setting-row" data-testid="setting-row">
               <div class="setting-head">
-                <strong>{{ s.key }}</strong>
-                @if (s.fallbackOnly) { <span class="badge" data-testid="setting-fallback">informativo</span> }
+                <strong>{{ settingLabel(s.key) }}</strong>
+                @if (s.fallbackOnly) { <span class="badge" data-testid="setting-fallback">{{ 'config.settings.informativeBadge' | translate }}</span> }
                 <span class="badge">{{ s.type }}</span>
               </div>
-              <p class="muted small">{{ s.description }}</p>
+              <p class="muted small">{{ settingDescription(s.key) }}</p>
               <div class="field inline">
                 @if (s.type === 'bool') {
                   <label class="check-row">
                     <input type="checkbox" [ngModel]="settingEdits()[s.key]" (ngModelChange)="setSettingValue(s.key, $event)" [name]="'set-' + s.key" [attr.data-testid]="'setting-input-' + s.key" />
-                    <span>{{ settingEdits()[s.key] ? 'Activado' : 'Desactivado' }}</span>
+                    <span>{{ (settingEdits()[s.key] ? 'config.settings.enabled' : 'config.settings.disabled') | translate }}</span>
                   </label>
                 } @else {
                   <input type="number" step="0.01" [ngModel]="settingEdits()[s.key]" (ngModelChange)="setSettingValue(s.key, +$event)" [name]="'set-' + s.key" [attr.data-testid]="'setting-input-' + s.key" />
                 }
-                <button type="button" class="btn small primary" (click)="saveSetting(s)" [attr.data-testid]="'setting-save-' + s.key" title="Guardar configuración">
-                  <app-icon name="save" /> Guardar
+                <button type="button" class="btn small primary" (click)="saveSetting(s)" [attr.data-testid]="'setting-save-' + s.key" [title]="'config.settings.saveTitle' | translate">
+                  <app-icon name="save" /> {{ 'common.save' | translate }}
                 </button>
-                <span class="muted small">default: {{ s.default }}</span>
+                <span class="muted small">{{ 'config.settings.defaultLabel' | translate: { value: s.default } }}</span>
               </div>
             </div>
           }
         </div>
       } @else {
-        <p class="muted" data-testid="settings-empty">Cargando configuraciones…</p>
+        <p class="muted" data-testid="settings-empty">{{ 'config.settings.loading' | translate }}</p>
       }
     }
   }
@@ -581,7 +581,7 @@
     <app-confirm-dialog
       [title]="cf.title"
       [message]="cf.message"
-      [confirmLabel]="cf.confirmLabel ?? 'Eliminar'"
+      [confirmLabel]="cf.confirmLabel ?? ('common.delete' | translate)"
       [confirmIcon]="cf.confirmIcon ?? 'delete'"
       (accept)="onConfirmAccept()"
       (cancelled)="onConfirmCancel()"
