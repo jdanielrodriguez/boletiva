@@ -2530,3 +2530,53 @@ button.danger:hover:not(:disabled) { background: rgba(255, 107, 129, 0.12); bord
   padding-top: 0.6rem;
 }
 .txn-chain-actions { margin-top: 1rem; }
+
+/* --- Listas con filtros (regla v3.2: grid + búsqueda + filtro) --- */
+.list-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0.5rem 0 1rem;
+}
+.list-filters input[type='search'] {
+  flex: 1 1 220px;
+  min-width: 180px;
+}
+.list-filters select { flex: 0 0 auto; }
+
+/* Grid de promotores (consola admin) */
+.promoters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+/* Grid de invitaciones (consola admin) */
+.inv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.85rem;
+  margin: 0.75rem 0;
+}
+.inv-card {
+  background: var(--pe-surface);
+  border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius);
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.inv-card-top { display: flex; align-items: center; gap: 0.4rem; }
+.inv-email { font-weight: 600; word-break: break-all; }
+.inv-url {
+  width: 100%;
+  font-size: 0.8rem;
+  color: var(--pe-muted);
+}
+.badge-test {
+  background: rgba(245, 158, 11, 0.18);
+  color: var(--pe-warn, #f59e0b);
+  border-color: var(--pe-warn, #f59e0b);
+}

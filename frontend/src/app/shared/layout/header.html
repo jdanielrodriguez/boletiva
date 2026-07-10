@@ -55,11 +55,11 @@
               <a [routerLink]="['/cuenta']" [queryParams]="{ s: 'wallet' }" (click)="closeMenu()" data-testid="dd-wallet">Wallet</a>
             </div>
 
-            @if (session.hasAnyRole(['promoter', 'admin'])) {
+            @if (session.hasAnyRole(['promoter']) && !session.hasAnyRole(['admin'])) {
               <a routerLink="/promotor" (click)="closeMenu()" data-testid="promoter-link">Panel del promotor</a>
             }
             @if (session.hasAnyRole(['admin'])) {
-              <a routerLink="/configuracion" (click)="closeMenu()" data-testid="config-link">Configuración (admin)</a>
+              <a routerLink="/configuracion" (click)="closeMenu()" data-testid="config-link">Configuración</a>
             }
             <button type="button" data-testid="logout-btn" (click)="logout()">Salir de sesión</button>
           </div>

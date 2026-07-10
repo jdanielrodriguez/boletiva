@@ -65,12 +65,12 @@ describe('Header', () => {
     expect(el.querySelector('[data-testid="config-link"]')).toBeNull();
   });
 
-  it('admin ve el panel del promotor y Configuración', async () => {
+  it('admin ve Configuración (admin) pero NO el panel del promotor (no impersona)', async () => {
     await setup({ roles: ['admin'] });
     comp.toggleMenu();
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('[data-testid="promoter-link"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="promoter-link"]')).toBeNull();
     expect(el.querySelector('[data-testid="config-link"]')).not.toBeNull();
   });
 

@@ -1,5 +1,5 @@
 <section class="config-page">
-  <h1>Configuración (admin)</h1>
+  <h1>Configuración</h1>
 
   <nav class="config-tabs" aria-label="Secciones de configuración">
     <button type="button" [class.active]="tab() === 'eventos'" (click)="selectTab('eventos')" data-testid="tab-eventos">Eventos</button>
@@ -288,28 +288,44 @@
       @if (created().length > 0) {
         <div class="card-block" data-testid="inv-created">
           <h3>Enlaces generados (cópialos y compártelos)</h3>
-          <ul class="inv-list">
+          <div class="inv-grid">
             @for (c of created(); track c.id) {
-              <li><span>{{ c.email }}</span><input type="text" readonly [value]="c.url" /></li>
+              <article class="inv-card">
+                <span class="inv-email">{{ c.email }}</span>
+                <input class="inv-url" type="text" readonly [value]="c.url" />
+              </article>
             }
-          </ul>
+          </div>
         </div>
       }
 
       <h3>Invitaciones</h3>
       @if (invitations().length > 0) {
-        <ul class="inv-list" data-testid="inv-list">
-          @for (i of invitations(); track i.id) {
-            <li>
-              <span>{{ i.email }}</span>
-              <span class="badge badge-{{ i.status }}">{{ i.status }}</span>
-              @if (i.isTestUser) { <span class="badge">prueba</span> }
+        <div class="list-filters">
+          <input type="search" placeholder="Buscar correo…" [ngModel]="invSearch()" (ngModelChange)="invSearch.set($event)" name="invq" data-testid="inv-search" />
+          <select [ngModel]="invFilterStatus()" (ngModelChange)="invFilterStatus.set($event)" name="invstatus" data-testid="inv-filter">
+            <option value="">Todos los estados</option>
+            @for (s of invStatuses(); track s) {
+              <option [value]="s">{{ s }}</option>
+            }
+          </select>
+        </div>
+        <div class="inv-grid" data-testid="inv-list">
+          @for (i of filteredInvitations(); track i.id) {
+            <article class="inv-card" data-testid="inv-card">
+              <div class="inv-card-top">
+                <span class="badge badge-{{ i.status }}">{{ i.status }}</span>
+                @if (i.isTestUser) { <span class="badge badge-test" data-testid="inv-badge-test">prueba</span> }
+              </div>
+              <span class="inv-email">{{ i.email }}</span>
               @if (i.status === 'pending') {
                 <button type="button" class="btn small danger" (click)="revoke(i)" data-testid="inv-revoke">Revocar</button>
               }
-            </li>
+            </article>
+          } @empty {
+            <p class="muted" data-testid="inv-no-match">Ninguna invitación coincide con la búsqueda.</p>
           }
-        </ul>
+        </div>
       } @else {
         <p class="muted">Aún no has enviado invitaciones.</p>
       }

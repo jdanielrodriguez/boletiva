@@ -113,6 +113,19 @@ export class ConfigPage {
   protected readonly created = signal<CreatedInvitationDto[]>([]);
   protected readonly invitations = signal<InvitationListItemDto[]>([]);
   protected readonly inviting = signal(false);
+  /** Búsqueda + filtro de estado de invitaciones (regla v3.2). */
+  protected readonly invSearch = signal('');
+  protected readonly invFilterStatus = signal('');
+  protected readonly invStatuses = computed(() => [...new Set(this.invitations().map((i) => i.status))]);
+  protected readonly filteredInvitations = computed(() => {
+    const q = this.invSearch().trim().toLowerCase();
+    const st = this.invFilterStatus();
+    return this.invitations().filter((i) => {
+      if (st && i.status !== st) return false;
+      if (q && !i.email.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  });
 
   constructor() {
     this.loadEvents();
