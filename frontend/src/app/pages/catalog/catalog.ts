@@ -8,6 +8,7 @@ import { EventsApi } from '../../core/api/events.api';
 import type { PublicEventListDto } from '../../core/api/types';
 import { SeoService } from '../../core/seo/seo.service';
 import { HeroSlider, SlideItem } from '../../shared/hero-slider/hero-slider.component';
+import { PagerComponent } from '../../shared/ui/pager.component';
 
 const PAGE_SIZE = 12;
 
@@ -19,7 +20,7 @@ const PAGE_SIZE = 12;
  */
 @Component({
   selector: 'app-catalog',
-  imports: [RouterLink, DatePipe, HeroSlider],
+  imports: [RouterLink, DatePipe, HeroSlider, PagerComponent],
   templateUrl: './catalog.html',
 })
 export class Catalog {
@@ -83,32 +84,7 @@ export class Catalog {
   protected readonly events = computed(() => this.result()?.items ?? []);
   protected readonly total = computed(() => this.result()?.total ?? 0);
   protected readonly loaded = computed(() => this.result() !== null);
-  protected readonly hasNext = computed(() => this.page() * PAGE_SIZE < this.total());
-  protected readonly hasPrev = computed(() => this.page() > 1);
   protected readonly totalPages = computed(() => Math.max(1, Math.ceil(this.total() / PAGE_SIZE)));
-
-  /**
-   * Preview compacto de páginas: siempre la 1 y la última; una ventana de ±1 en
-   * torno a la actual; huecos ('gap') donde se saltan páginas. Con ≤7 páginas se
-   * muestran todas. Alimenta la barra con la página actual resaltada.
-   */
-  protected readonly pageItems = computed<({ page: number } | 'gap')[]>(() => {
-    const total = this.totalPages();
-    const current = Math.min(this.page(), total);
-    if (total <= 7) {
-      return Array.from({ length: total }, (_, i) => ({ page: i + 1 }));
-    }
-    const nums = new Set<number>([1, total, current, current - 1, current + 1]);
-    const sorted = [...nums].filter((n) => n >= 1 && n <= total).sort((a, b) => a - b);
-    const items: ({ page: number } | 'gap')[] = [];
-    let prev = 0;
-    for (const n of sorted) {
-      if (n - prev > 1) items.push('gap');
-      items.push({ page: n });
-      prev = n;
-    }
-    return items;
-  });
 
   protected selectCategory(slug: string): void {
     void this.router.navigate([], {
