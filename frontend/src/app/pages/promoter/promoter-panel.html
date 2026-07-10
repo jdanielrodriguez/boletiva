@@ -40,7 +40,7 @@
             <span class="badge badge-{{ ev.status }}">{{ ev.status }}</span>
             <span class="ev-card-loc muted small">{{ ev._count.localities }} localidad(es)</span>
             @if (ev.status === 'draft') {
-              <button type="button" class="btn icon-only primary" (click)="publish(ev)" data-testid="ev-publish"
+              <button type="button" class="btn icon-only primary" (click)="askPublish(ev)" data-testid="ev-publish"
                 title="Publicar evento" aria-label="Publicar evento">
                 <app-icon name="publish" />
               </button>

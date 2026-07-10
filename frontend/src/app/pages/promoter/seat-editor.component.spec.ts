@@ -2,6 +2,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
+import { SeatTemplatesApi } from '../../core/api/seat-templates.api';
 import { ToastService } from '../../core/ui/toast.service';
 import { SeatEditorComponent } from './seat-editor.component';
 
@@ -19,6 +20,10 @@ describe('SeatEditorComponent (editor de asientos)', () => {
         {
           provide: PromoterEventsApi,
           useValue: { seats: () => of([]), bulkSeats, deleteSeats } as unknown as PromoterEventsApi,
+        },
+        {
+          provide: SeatTemplatesApi,
+          useValue: { list: () => of([]) } as unknown as SeatTemplatesApi,
         },
         {
           provide: ToastService,
@@ -55,8 +60,28 @@ describe('SeatEditorComponent (editor de asientos)', () => {
     generatorSearch: { set: (v: string) => void };
     filteredGenerators: () => { id: string }[];
     filteredTemplates: () => { id: string }[];
+    filteredBackendTemplates: () => { id: string; name: string }[];
+    applyBackendTemplate: (t: unknown) => void;
     onDocumentClick: (ev: Event) => void;
   };
+
+  /** Setup con plantillas del backend en el desplegable. */
+  async function setupWithBackend(templates: unknown[]): Promise<void> {
+    bulkSeats = jasmine.createSpy('bulkSeats').and.returnValue(of({ created: 0, capacity: 0 }));
+    deleteSeats = jasmine.createSpy('deleteSeats').and.returnValue(of({ deleted: 0, capacity: 0 }));
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        { provide: PromoterEventsApi, useValue: { seats: () => of([]), bulkSeats, deleteSeats } as unknown as PromoterEventsApi },
+        { provide: SeatTemplatesApi, useValue: { list: () => of(templates) } as unknown as SeatTemplatesApi },
+        { provide: ToastService, useValue: { success: () => undefined, error: () => undefined, info: () => undefined, warning: () => undefined } },
+      ],
+    });
+    fixture = TestBed.createComponent(SeatEditorComponent);
+    fixture.componentRef.setInput('localityId', 'l1');
+    fixture.detectChanges();
+    await fixture.whenStable();
+  }
 
   it('aplica una plantilla → llena el borrador y marca cambios sin guardar', async () => {
     await setup();
@@ -126,5 +151,15 @@ describe('SeatEditorComponent (editor de asientos)', () => {
     inst().onDocumentClick({ target: outside } as unknown as Event);
     expect(inst().showGenerator()).toBe(false);
     outside.remove();
+  });
+
+  // --- v3.5: plantillas del backend en el desplegable "Generar" ---
+  it('lista las plantillas del backend y las aplica al canvas', async () => {
+    await setupWithBackend([
+      { id: 'bt1', name: 'Auditorio', kind: 'grid', params: { rows: 3, cols: 4 }, isBuiltIn: false },
+    ]);
+    expect(inst().filteredBackendTemplates().some((t) => t.id === 'bt1')).toBe(true);
+    inst().applyBackendTemplate({ id: 'bt1', name: 'Auditorio', kind: 'grid', params: { rows: 3, cols: 4 } });
+    expect(inst().seatCount()).toBe(12); // 3×4
   });
 });

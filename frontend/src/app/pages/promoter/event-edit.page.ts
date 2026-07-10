@@ -1,11 +1,13 @@
-import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
+import { Component, computed, DestroyRef, OnDestroy, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
 import { CategoriesApi } from '../../core/api/categories.api';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
+import { HallsApi } from '../../core/api/halls.api';
 import { MediaApi } from '../../core/api/media.api';
+import { EditUnlockStore } from '../../core/events/edit-unlock.store';
 import { ToastService } from '../../core/ui/toast.service';
 import {
   ConfirmDialogComponent,
@@ -13,9 +15,11 @@ import {
 } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { EventSettlementComponent } from '../../shared/event-settlement/event-settlement.component';
 import { IconComponent } from '../../shared/icon/icon.component';
+import { MapPickerComponent, type MapLocation } from '../../shared/map/map-picker.component';
 import type {
   CategoryResponseDto,
   GatewayResponseDto,
+  HallResponseDto,
   LocalityView,
   ManagedEventDetailDto,
   PriceQuoteResponseDto,
@@ -42,13 +46,22 @@ function toLocalInput(iso: string | null | undefined): string {
  */
 @Component({
   selector: 'app-event-edit',
-  imports: [FormsModule, RouterLink, EventSettlementComponent, IconComponent, ConfirmDialogComponent],
+  imports: [
+    FormsModule,
+    RouterLink,
+    EventSettlementComponent,
+    IconComponent,
+    ConfirmDialogComponent,
+    MapPickerComponent,
+  ],
   templateUrl: './event-edit.page.html',
 })
-export class EventEditPage {
+export class EventEditPage implements OnDestroy {
   private readonly api = inject(PromoterEventsApi);
+  private readonly hallsApi = inject(HallsApi);
   private readonly media = inject(MediaApi);
   private readonly categoriesApi = inject(CategoriesApi);
+  private readonly editUnlock = inject(EditUnlockStore);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toasts = inject(ToastService);
@@ -73,6 +86,22 @@ export class EventEditPage {
 
   /** Origen de navegación: 'admin' vuelve a /configuracion; si no, a /promotor. */
   protected readonly from = signal<string>(this.route.snapshot.queryParamMap.get('from') ?? '');
+
+  // --- Desbloqueo de edición (admin no-dueño llega con ?from=admin) ---
+  /** true si esta sesión llegó como admin desde la consola (necesita desbloquear). */
+  protected readonly adminContext = computed(() => this.from() === 'admin');
+  /** Bloqueado mientras el admin no desbloquee (o expiró). El dueño nunca se bloquea. */
+  protected readonly locked = computed(
+    () => this.adminContext() && !this.isNew() && !this.editUnlock.isUnlocked(this.eventId()),
+  );
+  /** Estado del modal de desbloqueo. */
+  protected readonly showUnlockModal = signal(false);
+  protected readonly unlockSending = signal(false);
+  protected readonly unlockSent = signal(false);
+  protected readonly unlockCode = signal('');
+  protected readonly unlocking = signal(false);
+  /** Salones disponibles (para el selector del promotor). */
+  protected readonly halls = signal<HallResponseDto[]>([]);
   protected readonly backLink = computed(() =>
     this.from() === 'admin' ? '/configuracion' : '/promotor',
   );
@@ -85,9 +114,14 @@ export class EventEditPage {
     name: signal(''),
     description: signal(''),
     categoryId: signal(''),
+    hallId: signal(''),
     address: signal(''),
+    lat: signal<number | null>(null),
+    lng: signal<number | null>(null),
     startsAt: signal(''),
   };
+  /** Muestra/oculta el mapa de ubicación en el campo Dirección. */
+  protected readonly showMap = signal(false);
   // Config
   protected readonly c = {
     gatewayId: signal(''),
@@ -112,6 +146,8 @@ export class EventEditPage {
     capacity: signal<number | null>(null),
     desiredNet: signal<number | null>(null),
   };
+  /** Localidad en edición (PATCH) o null cuando se está creando una nueva. */
+  protected readonly editingLoc = signal<LocalityView | null>(null);
 
   // Preview de precio (debounced 300ms) al teclear el neto de una localidad.
   private readonly netInput$ = new Subject<number>();
@@ -163,6 +199,9 @@ export class EventEditPage {
   constructor() {
     this.categoriesApi.list().subscribe({ next: (c) => this.categories.set(c), error: () => undefined });
     this.api.activeGateways().subscribe({ next: (g) => this.gateways.set(g), error: () => undefined });
+    this.hallsApi.list().subscribe({ next: (h) => this.halls.set(h), error: () => undefined });
+    // Contexto para el interceptor: adjunta x-edit-unlock del evento activo (admin).
+    if (!this.isNew()) this.editUnlock.setCurrentEvent(this.eventId());
 
     const tab = this.route.snapshot.queryParamMap.get('tab');
     if (tab && ['datos', 'localidades', 'banner', 'config', 'cuentas', 'dashboard'].includes(tab)) {
@@ -198,6 +237,88 @@ export class EventEditPage {
     }
   }
 
+  ngOnDestroy(): void {
+    this.editUnlock.clearCurrentEvent();
+  }
+
+  // --- Desbloqueo de edición (admin) ---
+  protected openUnlock(): void {
+    this.showUnlockModal.set(true);
+    this.unlockSent.set(false);
+    this.unlockCode.set('');
+  }
+  protected closeUnlock(): void {
+    this.showUnlockModal.set(false);
+  }
+  /** Pide el OTP al correo del admin. */
+  protected requestUnlock(): void {
+    this.unlockSending.set(true);
+    this.api.requestEditUnlock(this.eventId()).subscribe({
+      next: () => {
+        this.unlockSending.set(false);
+        this.unlockSent.set(true);
+        this.toasts.info('Te enviamos un código al correo para desbloquear la edición.');
+      },
+      error: () => {
+        this.unlockSending.set(false);
+        this.toasts.error('No se pudo enviar el código de desbloqueo.');
+      },
+    });
+  }
+  /** Verifica el OTP → guarda el token (5 min); el interceptor lo adjunta. */
+  protected verifyUnlock(): void {
+    const code = this.unlockCode().trim();
+    if (code.length !== 6) {
+      this.toasts.warning('Ingresa el código de 6 dígitos que recibiste.');
+      return;
+    }
+    this.unlocking.set(true);
+    this.api.verifyEditUnlock(this.eventId(), code).subscribe({
+      next: (res) => {
+        this.unlocking.set(false);
+        this.editUnlock.setUnlock(this.eventId(), res.token, res.expiresAt);
+        this.showUnlockModal.set(false);
+        this.toasts.success('Edición desbloqueada por 5 minutos.');
+      },
+      error: () => {
+        this.unlocking.set(false);
+        this.toasts.error('Código inválido o expirado.');
+      },
+    });
+  }
+
+  /** Si está bloqueado, avisa (sin perder los cambios del form) y devuelve true. */
+  private blockedByLock(): boolean {
+    if (this.locked()) {
+      this.toasts.warning('Desbloquea la edición para guardar los cambios.');
+      this.openUnlock();
+      return true;
+    }
+    return false;
+  }
+
+  // --- Salón: al elegirlo, prefija la ubicación del evento ---
+  protected onHallChange(hallId: string): void {
+    this.d.hallId.set(hallId);
+    const hall = this.halls().find((h) => h.id === hallId);
+    if (hall) {
+      if (hall.address) this.d.address.set(hall.address);
+      this.d.lat.set(hall.lat ?? null);
+      this.d.lng.set(hall.lng ?? null);
+    }
+  }
+
+  /** Actualiza dirección/coords desde el mapa. */
+  protected onMapLocation(loc: MapLocation): void {
+    this.d.lat.set(loc.lat);
+    this.d.lng.set(loc.lng);
+    if (loc.address) this.d.address.set(loc.address);
+  }
+
+  protected toggleMap(): void {
+    this.showMap.update((v) => !v);
+  }
+
   protected onNetChange(value: number | null): void {
     this.locForm.desiredNet.set(value);
     if (value != null && value > 0) {
@@ -228,6 +349,8 @@ export class EventEditPage {
     this.d.description.set(ev.description ?? '');
     this.d.categoryId.set(ev.categoryId ?? '');
     this.d.address.set(ev.address ?? '');
+    this.d.lat.set(ev.lat ?? null);
+    this.d.lng.set(ev.lng ?? null);
     this.d.startsAt.set(toLocalInput(ev.startsAt));
     this.c.gatewayId.set(ev.gatewayId ?? '');
     this.c.ivaOnNet.set(ev.ivaOnNet);
@@ -241,6 +364,7 @@ export class EventEditPage {
 
   // --- Datos / Guardar (crea en modo nuevo; actualiza en edición) ---
   protected saveData(): void {
+    if (this.blockedByLock()) return;
     if (!this.d.name() || this.d.name().trim().length < 3) {
       this.toasts.warning('El evento necesita un nombre (mínimo 3 caracteres).');
       return;
@@ -256,7 +380,10 @@ export class EventEditPage {
           name: this.d.name(),
           description: this.d.description() || undefined,
           categoryId: this.d.categoryId() || undefined,
+          hallId: this.d.hallId() || undefined,
           address: this.d.address() || undefined,
+          lat: this.d.lat() ?? undefined,
+          lng: this.d.lng() ?? undefined,
           startsAt: new Date(this.d.startsAt()).toISOString(),
           ivaOnNet: this.c.ivaOnNet(),
           absorbInstallmentCost: this.c.absorbInstallmentCost(),
@@ -283,7 +410,10 @@ export class EventEditPage {
         name: this.d.name(),
         description: this.d.description() || undefined,
         categoryId: this.d.categoryId() || undefined,
+        hallId: this.d.hallId() || undefined,
         address: this.d.address() || undefined,
+        lat: this.d.lat() ?? undefined,
+        lng: this.d.lng() ?? undefined,
         startsAt: this.d.startsAt() ? new Date(this.d.startsAt()).toISOString() : undefined,
         ivaOnNet: this.c.ivaOnNet(),
         absorbInstallmentCost: this.c.absorbInstallmentCost(),
@@ -303,6 +433,7 @@ export class EventEditPage {
 
   // --- Configuración ---
   protected saveConfig(): void {
+    if (this.blockedByLock()) return;
     this.savingConfig.set(true);
     this.api
       .update(this.eventId(), {
@@ -332,7 +463,33 @@ export class EventEditPage {
   }
 
   protected toggleLocForm(): void {
-    this.showLocForm.update((v) => !v);
+    const open = !this.showLocForm();
+    this.showLocForm.set(open);
+    // Abrir para "crear" limpia cualquier edición en curso.
+    if (open) this.editingLoc.set(null);
+    if (!open) this.resetLocForm();
+  }
+
+  private resetLocForm(): void {
+    this.locForm.name.set('');
+    this.locForm.kind.set('general');
+    this.locForm.capacity.set(null);
+    this.locForm.desiredNet.set(null);
+    this.pricePreview.set(null);
+    this.editingLoc.set(null);
+  }
+
+  /** Abre el form con los datos de una localidad para editarla (solo no-publicado). */
+  protected startEditLocality(l: LocalityView): void {
+    if (this.isPublished()) return;
+    this.editingLoc.set(l);
+    this.showLocForm.set(true);
+    this.locForm.name.set(l.name);
+    this.locForm.kind.set(l.kind);
+    this.locForm.capacity.set(l.capacity ?? null);
+    const net = l.desiredNet != null ? Number(l.desiredNet) : null;
+    this.locForm.desiredNet.set(net);
+    if (net != null && net > 0) this.onNetChange(net);
   }
 
   protected manageSeats(l: LocalityView): void {
@@ -343,11 +500,33 @@ export class EventEditPage {
   }
 
   protected addLocality(): void {
+    if (this.blockedByLock()) return;
     if (!this.locForm.name()) {
       this.toasts.warning('La localidad necesita un nombre.');
       return;
     }
     const kind = this.locForm.kind();
+    const editing = this.editingLoc();
+    // Modo edición: PATCH sobre la localidad existente (solo no-publicado).
+    if (editing) {
+      this.api
+        .updateLocality(editing.id, {
+          name: this.locForm.name(),
+          kind,
+          capacity: kind === 'general' ? this.locForm.capacity() ?? undefined : undefined,
+          desiredNet: this.locForm.desiredNet() ?? undefined,
+        })
+        .subscribe({
+          next: () => {
+            this.resetLocForm();
+            this.showLocForm.set(false);
+            this.toasts.success('Localidad actualizada.');
+            this.loadLocalities();
+          },
+          error: () => this.toasts.error('No se pudo actualizar la localidad (¿evento publicado?).'),
+        });
+      return;
+    }
     this.api
       .addLocality(this.eventId(), {
         name: this.locForm.name(),
@@ -357,10 +536,7 @@ export class EventEditPage {
       })
       .subscribe({
         next: () => {
-          this.locForm.name.set('');
-          this.locForm.capacity.set(null);
-          this.locForm.desiredNet.set(null);
-          this.pricePreview.set(null);
+          this.resetLocForm();
           this.showLocForm.set(false);
           this.toasts.success('Localidad agregada.');
           this.loadLocalities();
@@ -370,6 +546,7 @@ export class EventEditPage {
   }
 
   protected askRemoveLocality(l: LocalityView): void {
+    if (this.blockedByLock()) return;
     this.confirm.set({
       title: 'Eliminar localidad',
       message: `¿Seguro que deseas eliminar la localidad "${l.name}"? Esta acción no se puede deshacer.`,
@@ -452,6 +629,23 @@ export class EventEditPage {
   }
 
   // --- Acciones de estado ---
+  /** Pide confirmación antes de publicar (modal). */
+  protected askPublish(): void {
+    if (this.blockedByLock()) return;
+    const reason = this.publishBlock();
+    if (reason) {
+      this.toasts.warning(reason);
+      return;
+    }
+    this.confirm.set({
+      title: 'Publicar evento',
+      message: `¿Publicar "${this.event()?.name ?? 'este evento'}"? Quedará visible para la venta y las localidades/pasarela se bloquearán.`,
+      confirmLabel: 'Publicar',
+      confirmIcon: 'publish',
+      onConfirm: () => this.publish(),
+    });
+  }
+
   protected publish(): void {
     const reason = this.publishBlock();
     if (reason) {

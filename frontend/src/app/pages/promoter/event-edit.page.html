@@ -13,25 +13,39 @@
         @if (isNew()) { <span class="badge badge-draft" data-testid="new-badge">nuevo</span> }
       </div>
       <div class="ev-card-actions">
+        @if (locked()) {
+          <button type="button" class="btn primary" (click)="openUnlock()" data-testid="unlock-btn" title="Desbloquear edición">
+            <app-icon name="unlock" /> Desbloquear edición
+          </button>
+        }
         <button type="button" class="btn primary" [disabled]="savingData()" (click)="saveData()" data-testid="save-draft-btn" title="Guardar">
           <app-icon name="save" /> {{ savingData() ? 'Guardando…' : 'Guardar' }}
         </button>
         @if (!isNew() && event()?.status === 'draft') {
-          <button type="button" class="btn primary" [disabled]="!canPublish()" (click)="publish()" data-testid="publish-btn"
+          <button type="button" class="btn primary" [disabled]="!canPublish()" (click)="askPublish()" data-testid="publish-btn"
             [title]="publishBlock() ?? 'Publicar evento'">
             <app-icon name="publish" /> Publicar
           </button>
-          <button type="button" class="btn danger" (click)="askRemove()" data-testid="delete-btn" title="Eliminar evento">
+          <button type="button" class="btn danger" [disabled]="locked()" (click)="askRemove()" data-testid="delete-btn" title="Eliminar evento">
             <app-icon name="delete" /> Eliminar
           </button>
         }
         @if (event()?.status === 'published') {
-          <button type="button" class="btn danger" (click)="askCancelEvent()" data-testid="cancel-btn" title="Cancelar evento">
+          <button type="button" class="btn danger" [disabled]="locked()" (click)="askCancelEvent()" data-testid="cancel-btn" title="Cancelar evento">
             <app-icon name="cancel" /> Cancelar evento
           </button>
         }
       </div>
     </div>
+
+    @if (locked()) {
+      <p class="lock-banner" data-testid="lock-banner">
+        <app-icon name="unlock" />
+        Estás editando como <strong>administrador</strong>. Los campos están bloqueados
+        para evitar cambios accidentales. Pulsa <strong>Desbloquear edición</strong> (te
+        enviaremos un código al correo).
+      </p>
+    }
 
     @if (isNew()) {
       <p class="muted small" data-testid="new-note">
@@ -59,6 +73,7 @@
       </nav>
     }
 
+    <fieldset class="lock-fieldset" [disabled]="locked()">
     @if (isNew() || tab() === 'datos') {
       <div class="card-block">
         <div class="form-grid">
@@ -71,12 +86,35 @@
               @for (c of categories(); track c.id) { <option [value]="c.id">{{ c.name }}</option> }
             </select>
           </label>
+          @if (halls().length > 0) {
+            <label class="field full"><span>Salón (opcional)</span>
+              <select [ngModel]="d.hallId()" (ngModelChange)="onHallChange($event)" name="hall" data-testid="ed-hall">
+                <option value="">— Sin salón —</option>
+                @for (h of halls(); track h.id) { <option [value]="h.id">{{ h.name }}{{ h.city ? ' · ' + h.city : '' }}</option> }
+              </select>
+            </label>
+            <p class="field full muted small">Elegir un salón conocido prefija su dirección y ubicación en el mapa.</p>
+          }
           <label class="field full"><span>Inicio</span>
             <input type="datetime-local" [ngModel]="d.startsAt()" (ngModelChange)="d.startsAt.set($event)" name="starts" data-testid="ed-start" />
           </label>
           <label class="field full"><span>Dirección / lugar</span>
-            <input type="text" [ngModel]="d.address()" (ngModelChange)="d.address.set($event)" name="addr" />
+            <input type="text" [ngModel]="d.address()" (ngModelChange)="d.address.set($event)" name="addr" data-testid="ed-address" />
           </label>
+          <div class="field full">
+            <button type="button" class="btn small" (click)="toggleMap()" data-testid="ed-map-toggle" [attr.aria-expanded]="showMap()" title="Ubicar en el mapa">
+              <app-icon name="search" /> {{ showMap() ? 'Ocultar mapa' : 'Ubicar en el mapa' }}
+            </button>
+            @if (showMap()) {
+              <app-map-picker
+                [lat]="d.lat()"
+                [lng]="d.lng()"
+                [address]="d.address()"
+                (locationChange)="onMapLocation($event)"
+                data-testid="ed-map"
+              />
+            }
+          </div>
           <label class="field full"><span>Descripción</span>
             <textarea [ngModel]="d.description()" (ngModelChange)="d.description.set($event)" name="desc" rows="3"></textarea>
           </label>
@@ -123,6 +161,9 @@
                           <span class="muted small loc-general-note" data-testid="loc-general-note">Se vende por aforo (sin mapa de asientos)</span>
                         }
                         @if (!isPublished()) {
+                          <button type="button" class="btn small" (click)="startEditLocality(l)" data-testid="loc-edit" title="Editar localidad">
+                            <app-icon name="edit" /> Editar
+                          </button>
                           <button type="button" class="btn small danger" (click)="askRemoveLocality(l)" data-testid="loc-remove" title="Eliminar localidad">
                             <app-icon name="delete" /> Eliminar
                           </button>
@@ -146,7 +187,7 @@
                 </button>
               } @else {
                 <div class="card-block loc-add-block" data-testid="loc-add-form">
-                  <h3>Agregar localidad</h3>
+                  <h3>{{ editingLoc() ? 'Editar localidad' : 'Agregar localidad' }}</h3>
                   <div class="loc-form-grid">
                     <label class="field"><span>Nombre</span>
                       <input type="text" placeholder="p. ej. General, VIP…" [ngModel]="locForm.name()" (ngModelChange)="locForm.name.set($event)" name="ln" data-testid="loc-name" />
@@ -185,8 +226,8 @@
                   }
 
                   <div class="loc-form-actions">
-                    <button type="button" class="btn primary" (click)="addLocality()" data-testid="loc-add" title="Agregar localidad">
-                      <app-icon name="add" /> Agregar localidad
+                    <button type="button" class="btn primary" (click)="addLocality()" data-testid="loc-add" [title]="editingLoc() ? 'Guardar localidad' : 'Agregar localidad'">
+                      <app-icon name="save" /> {{ editingLoc() ? 'Guardar localidad' : 'Agregar localidad' }}
                     </button>
                     <button type="button" class="btn" (click)="toggleLocForm()" data-testid="loc-add-cancel" title="Cancelar">
                       <app-icon name="cancel" /> Cancelar
@@ -290,6 +331,41 @@
         }
       }
     }
+    </fieldset>
+  }
+
+  @if (showUnlockModal()) {
+    <div class="modal-backdrop" data-testid="unlock-modal">
+      <div class="modal-card">
+        <h3>Desbloquear edición</h3>
+        @if (!unlockSent()) {
+          <p class="muted small">
+            Editar un evento como administrador requiere un código. Te lo enviaremos a tu correo.
+          </p>
+          <div class="ev-card-actions">
+            <button type="button" class="btn primary" [disabled]="unlockSending()" (click)="requestUnlock()" data-testid="unlock-request" title="Enviar código">
+              <app-icon name="unlock" /> {{ unlockSending() ? 'Enviando…' : 'Enviar código al correo' }}
+            </button>
+            <button type="button" class="btn" (click)="closeUnlock()" title="Cancelar">
+              <app-icon name="cancel" /> Cancelar
+            </button>
+          </div>
+        } @else {
+          <p class="muted small">Ingresa el código de 6 dígitos que enviamos a tu correo.</p>
+          <label class="field"><span>Código</span>
+            <input type="text" maxlength="6" inputmode="numeric" [ngModel]="unlockCode()" (ngModelChange)="unlockCode.set($event)" name="unlockcode" data-testid="unlock-code" />
+          </label>
+          <div class="ev-card-actions">
+            <button type="button" class="btn primary" [disabled]="unlocking()" (click)="verifyUnlock()" data-testid="unlock-verify" title="Validar código">
+              <app-icon name="save" /> {{ unlocking() ? 'Validando…' : 'Desbloquear' }}
+            </button>
+            <button type="button" class="btn" (click)="closeUnlock()" title="Cancelar">
+              <app-icon name="cancel" /> Cancelar
+            </button>
+          </div>
+        }
+      </div>
+    </div>
   }
 
   @if (confirm(); as cf) {

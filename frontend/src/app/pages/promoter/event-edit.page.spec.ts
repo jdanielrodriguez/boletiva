@@ -4,6 +4,7 @@ import { ActivatedRoute, provideRouter, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { CategoriesApi } from '../../core/api/categories.api';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
+import { HallsApi } from '../../core/api/halls.api';
 import { MediaApi } from '../../core/api/media.api';
 import { ToastService } from '../../core/ui/toast.service';
 import { EventEditPage } from './event-edit.page';
@@ -65,6 +66,7 @@ describe('EventEditPage (v3)', () => {
           } as unknown as PromoterEventsApi,
         },
         { provide: CategoriesApi, useValue: { list: () => of([]) } },
+        { provide: HallsApi, useValue: { list: () => of([]) } as unknown as HallsApi },
         {
           provide: MediaApi,
           useValue: { uploadBanner: () => of({ id: 'm1', key: 'k', kind: 'cover' }) } as unknown as MediaApi,
@@ -363,5 +365,74 @@ describe('EventEditPage (v3)', () => {
     expect(removeLocality).not.toHaveBeenCalled();
     fixture.componentInstance['onConfirmAccept']();
     expect(removeLocality).toHaveBeenCalledWith('l1');
+  });
+
+  // --- v3.5: publicar con confirmación ---
+  it('askPublish pide confirmación (modal) antes de publicar', async () => {
+    const publish = jasmine.createSpy('p').and.returnValue(of({ ...EVENT, status: 'published' }));
+    await setup({ publish, localities: () => of(OK_LOCS) });
+    fixture.componentInstance['askPublish']();
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="confirm-dialog"]')).not.toBeNull();
+    expect(publish).not.toHaveBeenCalled();
+    fixture.componentInstance['onConfirmAccept']();
+    expect(publish).toHaveBeenCalled();
+  });
+
+  // --- v3.5: desbloqueo de edición (admin no-dueño) ---
+  it('promotor dueño (sin from=admin): NO bloquea', async () => {
+    await setup();
+    expect(fixture.componentInstance['locked']()).toBe(false);
+    expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="lock-banner"]')).toBeNull();
+  });
+
+  it('admin (from=admin): arranca bloqueado y muestra el botón desbloquear', async () => {
+    await setup({}, { from: 'admin' });
+    expect(fixture.componentInstance['locked']()).toBe(true);
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="lock-banner"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="unlock-btn"]')).not.toBeNull();
+  });
+
+  it('guardar bloqueado avisa y NO llama update', async () => {
+    const update = jasmine.createSpy('u').and.returnValue(of(EVENT));
+    await setup({ update }, { from: 'admin' });
+    fixture.componentInstance['saveData']();
+    expect(update).not.toHaveBeenCalled();
+    expect(lastToast()?.kind).toBe('warning');
+  });
+
+  it('verificar OTP desbloquea (persiste) y deja de bloquear', async () => {
+    const verifyEditUnlock = jasmine
+      .createSpy('v')
+      .and.returnValue(of({ token: 'tok', expiresAt: new Date(Date.now() + 300000).toISOString() }));
+    await setup({ verifyEditUnlock }, { from: 'admin' });
+    (fixture.componentInstance['unlockCode'] as unknown as { set: (v: string) => void }).set('123456');
+    fixture.componentInstance['verifyUnlock']();
+    fixture.detectChanges();
+    expect(verifyEditUnlock).toHaveBeenCalledWith('e1', '123456');
+    expect(fixture.componentInstance['locked']()).toBe(false);
+  });
+
+  // --- v3.5: salón prefija dirección ---
+  it('elegir salón prefija dirección y coordenadas', async () => {
+    await setup();
+    fixture.componentInstance['halls'].set([
+      { id: 'h1', name: 'Teatro', address: 'Zona 1', lat: 14.6, lng: -90.5, city: 'GT', notes: null, seatTemplateId: null, createdAt: '', updatedAt: '' },
+    ]);
+    fixture.componentInstance['onHallChange']('h1');
+    expect(fixture.componentInstance['d'].address()).toBe('Zona 1');
+    expect(fixture.componentInstance['d'].lat()).toBe(14.6);
+  });
+
+  // --- v3.5: editar localidad (PATCH) ---
+  it('editar localidad hace PATCH con updateLocality', async () => {
+    const updateLocality = jasmine.createSpy('ul').and.returnValue(of({ id: 'l1' }));
+    await setup({ updateLocality, localities: () => of([{ id: 'l1', name: 'VIP', kind: 'general', capacity: 5, desiredNet: 100 }]) });
+    fixture.componentInstance['startEditLocality']({ id: 'l1', name: 'VIP', kind: 'general', capacity: 5, desiredNet: 100 } as never);
+    expect(fixture.componentInstance['editingLoc']()).not.toBeNull();
+    fixture.componentInstance['addLocality']();
+    expect(updateLocality).toHaveBeenCalledWith('l1', jasmine.objectContaining({ name: 'VIP' }));
   });
 });

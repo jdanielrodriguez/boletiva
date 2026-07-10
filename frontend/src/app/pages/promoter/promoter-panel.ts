@@ -94,6 +94,17 @@ export class PromoterPanel {
     void this.router.navigate(['/promotor/eventos/nuevo']);
   }
 
+  /** Pide confirmación (modal) antes de publicar el evento. */
+  protected askPublish(ev: MyEventListItemDto): void {
+    this.confirm.set({
+      title: 'Publicar evento',
+      message: `¿Publicar "${ev.name}"? Quedará visible para la venta.`,
+      confirmLabel: 'Publicar',
+      confirmIcon: 'publish',
+      onConfirm: () => this.publish(ev),
+    });
+  }
+
   protected publish(ev: MyEventListItemDto): void {
     this.eventsApi.publish(ev.id).subscribe({
       next: () => {

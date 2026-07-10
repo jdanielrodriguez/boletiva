@@ -21,7 +21,12 @@
       </div>
     </div>
 
-    @if (readonly()) {
+    @if (adminLocked()) {
+      <p class="muted small" data-testid="seat-admin-locked">
+        Edición bloqueada. Vuelve al evento y pulsa <strong>Desbloquear edición</strong>
+        (código al correo) para poder modificar los asientos.
+      </p>
+    } @else if (readonly()) {
       <p class="muted small" data-testid="seat-readonly-note">
         El evento está publicado: el mapa de asientos está bloqueado (solo lectura).
       </p>

@@ -1,6 +1,7 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
+import { EditUnlockStore } from '../../core/events/edit-unlock.store';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { SeatEditorComponent } from './seat-editor.component';
 import type { LocalityView, ManagedEventDetailDto } from '../../core/api/types';
@@ -17,8 +18,9 @@ import type { LocalityView, ManagedEventDetailDto } from '../../core/api/types';
   imports: [RouterLink, SeatEditorComponent, IconComponent],
   templateUrl: './seat-manager.page.html',
 })
-export class SeatManagerPage {
+export class SeatManagerPage implements OnDestroy {
   private readonly api = inject(PromoterEventsApi);
+  private readonly editUnlock = inject(EditUnlockStore);
   private readonly route = inject(ActivatedRoute);
 
   protected readonly eventId = signal(this.route.snapshot.paramMap.get('eventId') ?? '');
@@ -30,8 +32,14 @@ export class SeatManagerPage {
   protected readonly loading = signal(true);
   protected readonly notFound = signal(false);
 
-  /** Publicado → asientos bloqueados (solo lectura); el backend también lo valida. */
-  protected readonly readonly = computed(() => (this.event()?.status ?? 'draft') !== 'draft');
+  /** Bloqueado para admin no-dueño sin desbloqueo vigente (persiste entre vistas). */
+  protected readonly adminLocked = computed(
+    () => this.from() === 'admin' && !this.editUnlock.isUnlocked(this.eventId()),
+  );
+  /** Publicado o bloqueado por admin → asientos solo lectura; el backend también valida. */
+  protected readonly readonly = computed(
+    () => (this.event()?.status ?? 'draft') !== 'draft' || this.adminLocked(),
+  );
 
   /** Vuelve al editor del evento (pestaña Localidades), preservando el origen. */
   protected readonly backLink = computed(() => `/promotor/eventos/${this.eventId()}/editar`);
@@ -40,6 +48,8 @@ export class SeatManagerPage {
   );
 
   constructor() {
+    // Mantiene el contexto para el interceptor (x-edit-unlock) al entrar a asientos.
+    this.editUnlock.setCurrentEvent(this.eventId());
     this.api.get(this.eventId()).subscribe({
       next: (ev) => {
         this.event.set(ev);
@@ -54,5 +64,9 @@ export class SeatManagerPage {
       next: (list) => this.locality.set(list.find((l) => l.id === this.localityId()) ?? null),
       error: () => this.locality.set(null),
     });
+  }
+
+  ngOnDestroy(): void {
+    this.editUnlock.clearCurrentEvent();
   }
 }

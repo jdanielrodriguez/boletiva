@@ -15,7 +15,9 @@ import { FormsModule } from '@angular/forms';
 import { DomSanitizer, type SafeHtml } from '@angular/platform-browser';
 import type Konva from 'konva';
 import { PromoterEventsApi, SeatView, BulkSeatInput } from '../../core/api/promoter-events.api';
+import { SeatTemplatesApi } from '../../core/api/seat-templates.api';
 import { ToastService } from '../../core/ui/toast.service';
+import type { SeatTemplateResponseDto } from '../../core/api/types';
 import {
   ConfirmDialogComponent,
   type ConfirmRequest,
@@ -63,6 +65,7 @@ type EditMode = 'move' | 'add' | 'delete' | 'line';
 })
 export class SeatEditorComponent {
   private readonly api = inject(PromoterEventsApi);
+  private readonly templatesApi = inject(SeatTemplatesApi);
   private readonly toasts = inject(ToastService);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly elRef = inject(ElementRef<HTMLElement>);
@@ -78,6 +81,14 @@ export class SeatEditorComponent {
 
   /** Generadores paramétricos del menú "Generar". */
   protected readonly generators = SEAT_GENERATORS;
+
+  /** Plantillas gestionables del backend (alimentan también el desplegable). */
+  protected readonly backendTemplates = signal<SeatTemplateResponseDto[]>([]);
+  protected readonly filteredBackendTemplates = computed(() => {
+    const q = this.generatorSearch().trim().toLowerCase();
+    if (!q) return this.backendTemplates();
+    return this.backendTemplates().filter((t) => t.name.toLowerCase().includes(q));
+  });
 
   /** Asientos ya persistidos en el servidor (para saber qué borrar al guardar). */
   private readonly persisted = signal<SeatView[]>([]);
@@ -116,6 +127,10 @@ export class SeatEditorComponent {
   private previewLine: Konva.Line | null = null;
 
   constructor() {
+    this.templatesApi.list().subscribe({
+      next: (t) => this.backendTemplates.set(t),
+      error: () => this.backendTemplates.set([]),
+    });
     effect(() => {
       const id = this.localityId();
       this.load(id);
@@ -220,6 +235,42 @@ export class SeatEditorComponent {
     this.dirty.set(true);
     this.showGenerator.set(false);
     this.toasts.info('Plantilla aplicada. Puedes editarla y luego guardar.');
+  }
+
+  /**
+   * Aplica una plantilla gestionada del backend. Mapea su `kind` a un generador
+   * paramétrico usando sus `params` (rows/cols/perTable/section) con fallback a los
+   * campos del formulario. Así las plantillas del admin alimentan el mismo canvas.
+   */
+  protected applyBackendTemplate(t: SeatTemplateResponseDto): void {
+    if (this.readonly()) return;
+    const p = (t.params ?? {}) as Record<string, unknown>;
+    const num = (v: unknown, fallback: number): number =>
+      typeof v === 'number' && Number.isFinite(v) ? v : fallback;
+    const rows = num(p['rows'], this.rows());
+    const cols = num(p['cols'], this.cols());
+    const perTable = num(p['perTable'] ?? p['seatsPerTable'], this.perTable());
+    const section = (typeof p['section'] === 'string' ? (p['section'] as string) : '') || this.section();
+    let seats: BulkSeatInput[];
+    switch (t.kind) {
+      case 'tables':
+        seats = generateTables(rows, perTable, section);
+        break;
+      case 'theater':
+      case 'curve':
+      case 'stadium':
+        seats = generateCurve(rows, cols, section);
+        break;
+      case 'line':
+        seats = generateLine(cols, section);
+        break;
+      default: // rows / grid / custom
+        seats = generateGrid(rows, cols, section);
+    }
+    this.draft.set(seats.map((s) => ({ label: s.label, section: s.section, row: s.row, x: s.x as number, y: s.y as number })));
+    this.dirty.set(true);
+    this.showGenerator.set(false);
+    this.toasts.info(`Plantilla "${t.name}" aplicada. Ajusta y guarda la disposición.`);
   }
 
   /** Etiqueta única para un asiento nuevo agregado a mano. */

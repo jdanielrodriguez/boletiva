@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
+import { SeatTemplatesApi } from '../../core/api/seat-templates.api';
 import { SeatManagerPage } from './seat-manager.page';
 
 describe('SeatManagerPage (vista de asientos a página completa)', () => {
@@ -23,6 +24,10 @@ describe('SeatManagerPage (vista de asientos a página completa)', () => {
             seats: () => of([]),
             ...api,
           } as unknown as PromoterEventsApi,
+        },
+        {
+          provide: SeatTemplatesApi,
+          useValue: { list: () => of([]) } as unknown as SeatTemplatesApi,
         },
         {
           provide: ActivatedRoute,

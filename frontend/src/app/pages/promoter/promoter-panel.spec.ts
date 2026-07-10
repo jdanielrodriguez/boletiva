@@ -87,10 +87,14 @@ describe('PromoterPanel (v3 grid)', () => {
     expect(nav).toHaveBeenCalledWith(['/promotor/eventos/nuevo']);
   });
 
-  it('publicar un evento draft llama publish', async () => {
+  it('publicar un evento draft pide confirmación y luego llama publish', async () => {
     const publish = jasmine.createSpy('publish').and.returnValue(of(EVENTS[0]));
     await setup({ publish });
     click('ev-publish');
+    // No publica al primer click: aparece el modal de confirmación.
+    expect(publish).not.toHaveBeenCalled();
+    expect(el.querySelector('[data-testid="confirm-dialog"]')).not.toBeNull();
+    click('confirm-accept');
     expect(publish).toHaveBeenCalledWith('e1');
   });
 
