@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { Event, GatewayStatus, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
@@ -366,8 +367,42 @@ export class EventsService {
       if (event.localities.length === 0) {
         throw new BadRequestException('El evento necesita al menos una localidad para publicarse');
       }
+      await this.assertPublishable(event);
     }
     return this.prisma.event.update({ where: { id }, data: { status } });
+  }
+
+  /**
+   * Requisitos para publicar (además de tener ≥1 localidad):
+   *  (a) el evento DEBE tener un banner (media `cover`);
+   *  (b) toda localidad `seated` DEBE tener al menos un asiento colocado (con
+   *      coordenadas). Las `general` se venden por aforo y no requieren mapa.
+   * Devuelve 422 con un mensaje que dice exactamente qué falta.
+   */
+  private async assertPublishable(
+    event: Event & { media: { kind: string }[]; localities: { id: string; name: string; kind: string }[] },
+  ): Promise<void> {
+    const hasBanner = event.media.some((m) => m.kind === 'cover');
+    if (!hasBanner) {
+      throw new UnprocessableEntityException(
+        'El evento necesita un banner (imagen) para publicarse. Agrega un banner.',
+      );
+    }
+    const seated = event.localities.filter((l) => l.kind === 'seated');
+    if (seated.length > 0) {
+      const placed = await this.prisma.seat.groupBy({
+        by: ['localityId'],
+        where: { localityId: { in: seated.map((l) => l.id) }, x: { not: null } },
+        _count: { _all: true },
+      });
+      const withSeats = new Set(placed.map((p) => p.localityId));
+      const missing = seated.find((l) => !withSeats.has(l.id));
+      if (missing) {
+        throw new UnprocessableEntityException(
+          `La localidad "${missing.name}" no tiene asientos colocados. Agrega asientos en el editor o cámbiala a general.`,
+        );
+      }
+    }
   }
 
   async remove(id: string, user: AuthUser) {

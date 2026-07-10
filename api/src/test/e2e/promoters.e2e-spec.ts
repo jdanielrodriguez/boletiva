@@ -229,6 +229,9 @@ describe('Autorización de promotores (e2e)', () => {
     await prisma.locality.create({
       data: { eventId: created.body.id, name: 'GA', slug: 'ga', kind: 'general', capacity: 10 },
     });
+    await prisma.eventMedia.create({
+      data: { eventId: created.body.id, key: `events/${created.body.id}/cover.svg`, kind: 'cover', position: 0 },
+    });
     await http().post(`/api/v1/events/${created.body.id}/publish`).set(bearer(adminToken)).expect(200);
   });
 

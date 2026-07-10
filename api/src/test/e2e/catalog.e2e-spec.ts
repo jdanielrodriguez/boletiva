@@ -113,6 +113,9 @@ describe('Catálogo y venues (e2e)', () => {
     expect(seats.body.created).toBe(10);
     expect(seats.body.capacity).toBe(10);
 
+    await prisma.eventMedia.create({
+      data: { eventId, key: `events/${eventId}/cover.svg`, kind: 'cover', position: 0 },
+    });
     await http().post(`/api/v1/events/${eventId}/publish`).set(auth(promoterToken)).expect(200);
   });
 

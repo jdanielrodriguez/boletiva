@@ -96,6 +96,12 @@ describe('Eventos: gestión (e2e)', () => {
   const createEvent = async (token: string, over = {}) =>
     (await http().post('/api/v1/events').set(bearer(token)).send(body(over)).expect(201)).body;
 
+  /** Publicar exige banner: crea una media `cover` para el evento (aislado del flujo IA). */
+  const addBanner = (eventId: string) =>
+    prisma.eventMedia.create({
+      data: { eventId, key: `events/${eventId}/cover-${Date.now()}.svg`, kind: 'cover', position: 0 },
+    });
+
   it('publicar exige promotor aprobado: rol promoter pero pending → 403', async () => {
     // Evento propiedad del promotor no-aprobado (insertado directo para aislar publish).
     const ev = await prisma.event.create({
@@ -183,10 +189,43 @@ describe('Eventos: gestión (e2e)', () => {
     await prisma.locality.create({
       data: { eventId: ev.id, name: 'GA', slug: 'ga', kind: 'general', capacity: 5 },
     });
+    await addBanner(ev.id);
     await http().post(`/api/v1/events/${ev.id}/publish`).set(bearer(promoterToken)).expect(200);
     await http().post(`/api/v1/events/${ev.id}/cancel`).set(bearer(promoterBToken)).expect(403); // ajeno
     const res = await http().post(`/api/v1/events/${ev.id}/cancel`).set(bearer(promoterToken)).expect(200);
     expect(res.body.status).toBe('cancelled');
+  });
+
+  it('publicar SIN banner → 422 (pide agregar banner)', async () => {
+    const ev = await createEvent(promoterToken);
+    await prisma.locality.create({
+      data: { eventId: ev.id, name: 'GA', slug: `ga-nb-${stamp}`, kind: 'general', capacity: 5 },
+    });
+    const res = await http().post(`/api/v1/events/${ev.id}/publish`).set(bearer(promoterToken)).expect(422);
+    expect(String(res.body.message)).toMatch(/banner/i);
+  });
+
+  it('publicar con localidad seated SIN asientos colocados → 422 (nombra la localidad)', async () => {
+    const ev = await createEvent(promoterToken);
+    await addBanner(ev.id);
+    await prisma.locality.create({
+      data: { eventId: ev.id, name: 'Platea VIP', slug: `platea-${stamp}`, kind: 'seated', capacity: 0 },
+    });
+    const res = await http().post(`/api/v1/events/${ev.id}/publish`).set(bearer(promoterToken)).expect(422);
+    expect(String(res.body.message)).toMatch(/Platea VIP/);
+  });
+
+  it('publicar con banner + localidad seated CON asientos colocados → 200', async () => {
+    const ev = await createEvent(promoterToken);
+    await addBanner(ev.id);
+    const loc = await prisma.locality.create({
+      data: { eventId: ev.id, name: 'Platea', slug: `platea-ok-${stamp}`, kind: 'seated', capacity: 1 },
+    });
+    await prisma.seat.create({
+      data: { localityId: loc.id, label: `A-1-${stamp}`, section: 'Platea', row: 'A', x: 30, y: 30, status: 'available' },
+    });
+    const res = await http().post(`/api/v1/events/${ev.id}/publish`).set(bearer(promoterToken)).expect(200);
+    expect(res.body.status).toBe('published');
   });
 
   it('eliminar: borrador OK (204); publicado → 400; ajeno → 403; inexistente → 404', async () => {
@@ -198,6 +237,7 @@ describe('Eventos: gestión (e2e)', () => {
     await prisma.locality.create({
       data: { eventId: pub.id, name: 'GA', slug: 'ga', kind: 'general', capacity: 5 },
     });
+    await addBanner(pub.id);
     await http().post(`/api/v1/events/${pub.id}/publish`).set(bearer(promoterToken)).expect(200);
     await http().delete(`/api/v1/events/${pub.id}`).set(bearer(promoterToken)).expect(400); // publicado
 
@@ -245,6 +285,7 @@ describe('Eventos: gestión (e2e)', () => {
       .set(bearer(promoterToken))
       .send({ name: 'GA', kind: 'general', capacity: 10, desiredNet: 100 })
       .expect(201);
+    await addBanner(ev.id);
     await http().post(`/api/v1/events/${ev.id}/publish`).set(bearer(promoterToken)).expect(200);
     // Ya publicado: crear/editar/borrar localidades queda bloqueado.
     await http()
