@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Post,
+  Req,
+  Res,
+  UnauthorizedException,
+} from '@nestjs/common';
 import {
   ApiAcceptedResponse,
   ApiBearerAuth,
@@ -8,11 +19,13 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { Request } from 'express';
+import { ConfigService } from '@nestjs/config';
+import { Request, Response } from 'express';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { MessageResponseDto } from '../../common/dto/response.dto';
 import { AuthService } from './auth.service';
+import { clearRefreshCookie, readRefreshCookie, setRefreshCookie } from './refresh-cookie';
 import { TwoFactorService } from './twofactor.service';
 import { DevicesService, DeviceContext } from './devices.service';
 import {
@@ -49,6 +62,7 @@ export class AuthController {
     private readonly auth: AuthService,
     private readonly twofactor: TwoFactorService,
     private readonly devices: DevicesService,
+    private readonly config: ConfigService,
   ) {}
 
   private ctx(req: Request): DeviceContext {
@@ -59,14 +73,30 @@ export class AuthController {
     };
   }
 
+  /**
+   * Cuando el resultado del flujo trae tokens (login ok, 2fa ok, passwordless,
+   * google, signup), estampa la cookie httpOnly con el refresh. Devuelve el mismo
+   * resultado para no alterar el contrato del body (el refresh se mantiene ahí como
+   * fallback no-web). Los resultados sin tokens (p.ej. `2fa_required`) se ignoran.
+   */
+  private issueCookie<T>(res: Response, result: T): T {
+    const tokens = (result as { tokens?: { refreshToken?: string } }).tokens;
+    setRefreshCookie(res, this.config, tokens?.refreshToken);
+    return result;
+  }
+
   // ---- Registro / login ----
 
   @Public()
   @Post('signup')
   @ApiOperation({ summary: 'Registro con correo y contraseña (envía verificación)' })
   @ApiCreatedResponse({ type: SignupResponseDto })
-  signup(@Body() dto: SignupDto, @Req() req: Request) {
-    return this.auth.signup(dto, this.ctx(req));
+  async signup(
+    @Body() dto: SignupDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.issueCookie(res, await this.auth.signup(dto, this.ctx(req)));
   }
 
   @Public()
@@ -74,8 +104,12 @@ export class AuthController {
   @HttpCode(200)
   @ApiOperation({ summary: 'Login por contraseña (puede requerir 2FA en dispositivo nuevo)' })
   @ApiOkResponse({ type: LoginResponseDto })
-  login(@Body() dto: LoginDto, @Req() req: Request) {
-    return this.auth.login(dto, this.ctx(req));
+  async login(
+    @Body() dto: LoginDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.issueCookie(res, await this.auth.login(dto, this.ctx(req)));
   }
 
   @Public()
@@ -83,8 +117,15 @@ export class AuthController {
   @HttpCode(200)
   @ApiOperation({ summary: 'Completa el login enviando el segundo factor' })
   @ApiOkResponse({ type: AuthSessionResponseDto })
-  verify2fa(@Body() dto: TwoFactorVerifyDto, @Req() req: Request) {
-    return this.auth.verifyTwoFactor(dto.preauthToken, dto.code, this.ctx(req));
+  async verify2fa(
+    @Body() dto: TwoFactorVerifyDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.issueCookie(
+      res,
+      await this.auth.verifyTwoFactor(dto.preauthToken, dto.code, this.ctx(req)),
+    );
   }
 
   // ---- Verificación de correo ----
@@ -134,8 +175,15 @@ export class AuthController {
   @HttpCode(200)
   @ApiOperation({ summary: 'Entra con el código enviado al correo' })
   @ApiOkResponse({ type: AuthSessionResponseDto })
-  passwordlessVerify(@Body() dto: PasswordlessVerifyDto, @Req() req: Request) {
-    return this.auth.passwordlessVerifyCode(dto.email, dto.code, this.ctx(req));
+  async passwordlessVerify(
+    @Body() dto: PasswordlessVerifyDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.issueCookie(
+      res,
+      await this.auth.passwordlessVerifyCode(dto.email, dto.code, this.ctx(req)),
+    );
   }
 
   @Public()
@@ -143,8 +191,15 @@ export class AuthController {
   @HttpCode(200)
   @ApiOperation({ summary: 'Entra con el token del enlace mágico' })
   @ApiOkResponse({ type: AuthSessionResponseDto })
-  passwordlessToken(@Body() dto: TokenDto, @Req() req: Request) {
-    return this.auth.passwordlessVerifyToken(dto.token, this.ctx(req));
+  async passwordlessToken(
+    @Body() dto: TokenDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.issueCookie(
+      res,
+      await this.auth.passwordlessVerifyToken(dto.token, this.ctx(req)),
+    );
   }
 
   // ---- Google ----
@@ -154,8 +209,12 @@ export class AuthController {
   @HttpCode(200)
   @ApiOperation({ summary: 'Login con Google (id_token del cliente)' })
   @ApiOkResponse({ type: AuthSessionResponseDto })
-  google(@Body() dto: GoogleLoginDto, @Req() req: Request) {
-    return this.auth.googleLogin(dto.idToken, this.ctx(req));
+  async google(
+    @Body() dto: GoogleLoginDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.issueCookie(res, await this.auth.googleLogin(dto.idToken, this.ctx(req)));
   }
 
   @Public()
@@ -173,17 +232,33 @@ export class AuthController {
   @HttpCode(200)
   @ApiOperation({ summary: 'Rota el refresh token' })
   @ApiOkResponse({ type: TokenPairResponseDto })
-  refresh(@Body() dto: RefreshDto, @Req() req: Request) {
-    return this.auth.refresh(dto.refreshToken, this.ctx(req));
+  async refresh(
+    @Body() dto: RefreshDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    // La cookie httpOnly es la fuente primaria; el body es el fallback no-web.
+    const token = readRefreshCookie(req) ?? dto.refreshToken;
+    if (!token) throw new UnauthorizedException('No hay refresh token');
+    const pair = await this.auth.refresh(token, this.ctx(req));
+    setRefreshCookie(res, this.config, pair.refreshToken); // re-set con el rotado
+    return pair;
   }
 
+  @Public()
   @Post('logout')
   @HttpCode(204)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Cierra la sesión' })
   @ApiNoContentResponse()
-  async logout(@Body() dto: RefreshDto) {
-    await this.auth.logout(dto.refreshToken);
+  async logout(
+    @Body() dto: RefreshDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const token = readRefreshCookie(req) ?? dto.refreshToken;
+    if (token) await this.auth.logout(token);
+    clearRefreshCookie(res, this.config);
   }
 
   @Public()

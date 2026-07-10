@@ -89,4 +89,71 @@ describe('Auth (e2e)', () => {
       await http().post('/api/v1/auth/login').send({ email: mail, password }).expect(200);
     }
   });
+
+  // ---- Refresh token en cookie httpOnly (Ola 6.6) --------------------------
+
+  const cookiesOf = (res: request.Response): string[] => {
+    const raw = res.headers['set-cookie'];
+    return Array.isArray(raw) ? raw : raw ? [raw] : [];
+  };
+  const refreshCookie = (res: request.Response): string | undefined =>
+    cookiesOf(res).find((c) => c.startsWith('refresh_token='));
+
+  it('POST /auth/login set-ea la cookie httpOnly refresh_token', async () => {
+    const res = await http().post('/api/v1/auth/login').send({ email, password }).expect(200);
+    const cookie = refreshCookie(res);
+    expect(cookie).toBeDefined();
+    expect(cookie).toContain('HttpOnly');
+    expect(cookie).toMatch(/SameSite=Lax/i);
+    expect(cookie).toContain('Path=/');
+    // El valor de la cookie coincide con el refresh del body (fallback no-web).
+    expect(cookie).toContain(`refresh_token=${res.body.tokens.refreshToken}`);
+  });
+
+  it('POST /auth/refresh lee el refresh de la cookie (sin body) y rota', async () => {
+    const login = await http().post('/api/v1/auth/login').send({ email, password });
+    const loginCookie = refreshCookie(login) as string;
+    const oldRefresh = login.body.tokens.refreshToken;
+
+    const rotated = await http()
+      .post('/api/v1/auth/refresh')
+      .set('Cookie', loginCookie)
+      .send({})
+      .expect(200);
+    expect(rotated.body.accessToken).toBeDefined();
+    expect(rotated.body.refreshToken).not.toBe(oldRefresh);
+    // Re-set de la cookie con el token rotado.
+    const rotatedCookie = refreshCookie(rotated);
+    expect(rotatedCookie).toContain(`refresh_token=${rotated.body.refreshToken}`);
+  });
+
+  it('POST /auth/refresh detecta reuso del refresh de la cookie', async () => {
+    const login = await http().post('/api/v1/auth/login').send({ email, password });
+    const loginCookie = refreshCookie(login) as string;
+    await http().post('/api/v1/auth/refresh').set('Cookie', loginCookie).send({}).expect(200);
+    // Reusar la cookie vieja (ya rotada) revoca la familia → 401.
+    await http().post('/api/v1/auth/refresh').set('Cookie', loginCookie).send({}).expect(401);
+  });
+
+  it('POST /auth/refresh sin cookie ni body → 401', async () => {
+    await http().post('/api/v1/auth/refresh').send({}).expect(401);
+  });
+
+  it('POST /auth/logout borra la cookie y revoca la familia', async () => {
+    const login = await http().post('/api/v1/auth/login').send({ email, password });
+    const loginCookie = refreshCookie(login) as string;
+
+    const out = await http()
+      .post('/api/v1/auth/logout')
+      .set('Cookie', loginCookie)
+      .send({})
+      .expect(204);
+    // clearCookie emite un Set-Cookie con expiración en el pasado.
+    const cleared = refreshCookie(out);
+    expect(cleared).toBeDefined();
+    expect(cleared).toMatch(/Expires=Thu, 01 Jan 1970/i);
+
+    // Tras logout, la cookie ya no sirve para refrescar.
+    await http().post('/api/v1/auth/refresh').set('Cookie', loginCookie).send({}).expect(401);
+  });
 });

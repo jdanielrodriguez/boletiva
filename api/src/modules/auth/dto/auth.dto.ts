@@ -48,13 +48,16 @@ export class LoginDto {
 }
 
 export class RefreshDto {
-  @ApiProperty({
-    description: 'Refresh token vigente a rotar/revocar',
+  @ApiPropertyOptional({
+    description:
+      'Refresh token vigente a rotar/revocar. Opcional: el flujo web lo transporta ' +
+      'en la cookie httpOnly `refresh_token`; este campo es el fallback para clientes no-web.',
     example: 'a3f1c9e2b47d8f0a1c2e3b4d5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a',
   })
+  @IsOptional()
   @IsString()
   @MinLength(1)
-  refreshToken!: string;
+  refreshToken?: string;
 }
 
 export class ForgotPasswordDto {
