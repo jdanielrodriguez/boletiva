@@ -501,11 +501,14 @@ async function main() {
     await adminPg.goto(`${FE}/configuracion`, { waitUntil: 'networkidle0' });
     await adminPg.waitForSelector('[data-testid="tab-invitaciones"]', { timeout: 15000 });
     await adminPg.click('[data-testid="tab-invitaciones"]');
+    // v3.6: el form está oculto; el botón "Invitar" lo abre antes de escribir.
+    await adminPg.waitForSelector('[data-testid="inv-toggle"]', { timeout: 8000 });
+    await adminPg.click('[data-testid="inv-toggle"]');
     await adminPg.waitForSelector('[data-testid="inv-emails"]', { timeout: 8000 });
     const invitee = `e2e_inv_${Date.now()}@test.com`;
     await clearMail();
     await adminPg.type('[data-testid="inv-emails"]', invitee);
-    await adminPg.click('[data-testid="inv-submit"]');
+    await adminPg.click('[data-testid="inv-toggle"]'); // abierto → envía
     await adminPg.waitForSelector('[data-testid="inv-created"] input', { timeout: 10000 });
     inviteLink = await adminPg.$eval('[data-testid="inv-created"] input', (i) => i.value);
     assert(inviteLink.includes('/registro?token='), `enlace inesperado: ${inviteLink}`);
@@ -615,9 +618,12 @@ async function main() {
     await adminPg.goto(`${FE}/configuracion`, { waitUntil: 'networkidle0' });
     await adminPg.waitForSelector('[data-testid="tab-invitaciones"]', { timeout: 12000 });
     await adminPg.click('[data-testid="tab-invitaciones"]');
+    // v3.6: abre el form oculto con el botón "Invitar".
+    await adminPg.waitForSelector('[data-testid="inv-toggle"]', { timeout: 8000 });
+    await adminPg.click('[data-testid="inv-toggle"]');
     await adminPg.waitForSelector('[data-testid="inv-emails"]', { timeout: 8000 });
     await adminPg.type('[data-testid="inv-emails"]', 'cliente@pasaeventos.com');
-    await adminPg.click('[data-testid="inv-submit"]');
+    await adminPg.click('[data-testid="inv-toggle"]'); // abierto → envía
     await adminPg.waitForSelector('[data-testid="inv-created"] input', { timeout: 10000 });
     const link = await adminPg.$eval('[data-testid="inv-created"] input', (i) => i.value);
     const guestCtx = await browser.createBrowserContext();

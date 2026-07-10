@@ -1,6 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { AdminApi } from '../../core/api/admin.api';
 import { InvitationsApi } from '../../core/api/invitations.api';
@@ -178,15 +178,15 @@ describe('ConfigPage (v3, admin console)', () => {
     expect(el.querySelector('[data-testid="suspend-modal"]')).not.toBeNull();
   });
 
-  it('promotores: ver historial carga las transiciones', async () => {
-    const promoterHistory = jasmine.createSpy('ph').and.returnValue(
-      of([{ id: 'h1', promoterId: 'u2', adminId: 'a1', statusFrom: 'approved', statusTo: 'suspended', reason: 'x', createdAt: '2026-08-01T10:00:00Z' }]),
-    );
-    await setup({ promoterHistory, listPromoters: () => of([PROMOTERS[1]]) });
+  it('promotores: "Historial" navega a la página dedicada del promotor', async () => {
+    await setup({ listPromoters: () => of([PROMOTERS[1]]) });
     await selectTab('tab-promotores');
+    const nav = spyOn(fixture.componentInstance['router'], 'navigate').and.resolveTo(true);
     click('promoter-history');
-    expect(promoterHistory).toHaveBeenCalledWith('u2');
-    expect(el.querySelector('[data-testid="promoter-history-list"]')).not.toBeNull();
+    expect(nav).toHaveBeenCalledWith(
+      ['/configuracion/promotores', 'u2', 'historial'],
+      { queryParams: { name: 'Leo G' } },
+    );
   });
 
   it('promotores: cost-share válido llama API; inválido → warning', async () => {
@@ -251,9 +251,10 @@ describe('ConfigPage (v3, admin console)', () => {
     const create = jasmine.createSpy('c').and.returnValue(of({ invitations: [{ id: 'i1', email: 'a@b.com', url: 'http://x/registro?token=t' }] }));
     await setup({}, { create });
     await selectTab('tab-invitaciones');
+    click('inv-toggle'); // abre el form (oculto por defecto)
     fixture.componentInstance['emailsText'].set('a@b.com, c@d.com');
     fixture.componentInstance['inviteTestUser'].set(true);
-    click('inv-submit');
+    click('inv-toggle'); // abierto → envía
     expect(create).toHaveBeenCalledWith(['a@b.com', 'c@d.com'], true);
     expect((el.querySelector('[data-testid="inv-created"] input') as HTMLInputElement).value).toContain('registro?token=t');
   });
@@ -450,6 +451,62 @@ describe('ConfigPage (v3, admin console)', () => {
     c.setSettingValue('costshare.default_pct', 0.5);
     c.saveSetting(SETTINGS[0]);
     expect(update).toHaveBeenCalledWith('costshare.default_pct', 0.5);
+  });
+
+  // --- v3.6: recordar el tab al recargar (deep-link ?tab=) ---
+  it('recuerda el tab: selectTab refleja el tab en la URL (?tab=)', async () => {
+    await setup();
+    const nav = spyOn(fixture.componentInstance['router'], 'navigate').and.resolveTo(true);
+    fixture.componentInstance['selectTab']('sistema');
+    expect(nav).toHaveBeenCalled();
+    const opts = nav.calls.mostRecent().args[1] as { queryParams: { tab: string | null } };
+    expect(opts.queryParams.tab).toBe('sistema');
+    // 'eventos' limpia el query (tab = null).
+    fixture.componentInstance['selectTab']('eventos');
+    const opts2 = nav.calls.mostRecent().args[1] as { queryParams: { tab: string | null } };
+    expect(opts2.queryParams.tab).toBeNull();
+  });
+
+  it('recuerda el tab: restaura desde ?tab= al cargar (queryParamMap)', async () => {
+    await setup();
+    await TestBed.inject(Router).navigate([], { queryParams: { tab: 'sistema' } });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.componentInstance['tab']()).toBe('sistema');
+  });
+
+  // --- v3.6: form de invitar OCULTO con toggle "Invitar" ---
+  it('invitaciones: el form está oculto por defecto y "Invitar" lo abre', async () => {
+    await setup();
+    await selectTab('tab-invitaciones');
+    expect(el.querySelector('[data-testid="inv-form"]')).toBeNull();
+    click('inv-toggle');
+    expect(el.querySelector('[data-testid="inv-form"]')).not.toBeNull();
+  });
+
+  it('invitaciones: abierto + correo válido invita; inválido no invita', async () => {
+    const create = jasmine.createSpy('c').and.returnValue(of({ invitations: [] }));
+    await setup({}, { create });
+    await selectTab('tab-invitaciones');
+    click('inv-toggle'); // abre el form
+    // Correo vacío/mal escrito → NO invita, muestra warning.
+    fixture.componentInstance['onInviteButton']();
+    expect(create).not.toHaveBeenCalled();
+    expect(lastToast()?.kind).toBe('warning');
+    // Correo válido → invita.
+    fixture.componentInstance['emailsText'].set('ok@x.com');
+    fixture.componentInstance['onInviteButton']();
+    expect(create).toHaveBeenCalledWith(['ok@x.com'], false);
+  });
+
+  it('invitaciones: "Cancelar" oculta el form y limpia el correo', async () => {
+    await setup();
+    await selectTab('tab-invitaciones');
+    click('inv-toggle');
+    fixture.componentInstance['emailsText'].set('x@y.com');
+    click('inv-cancel');
+    expect(el.querySelector('[data-testid="inv-form"]')).toBeNull();
+    expect(fixture.componentInstance['emailsText']()).toBe('');
   });
 
   // --- i18n: los settings muestran un label amigable (no la key cruda) ---

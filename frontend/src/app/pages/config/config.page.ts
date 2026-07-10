@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import {
@@ -8,7 +9,6 @@ import {
   AdminEventListItemDto,
   GatewayResponseDto,
   PromoterListItemDto,
-  PromoterStatusEventDto,
 } from '../../core/api/admin.api';
 import { InvitationsApi } from '../../core/api/invitations.api';
 import { HallsApi } from '../../core/api/halls.api';
@@ -109,9 +109,21 @@ export class ConfigPage {
   private readonly settingsApi = inject(SettingsApi);
   private readonly toasts = inject(ToastService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly translate = inject(TranslateService);
 
   protected readonly tab = signal<AdminTab>('eventos');
+
+  /** Tabs válidos para el deep-link `?tab=` (se restaura al recargar). */
+  private static readonly TABS: AdminTab[] = [
+    'eventos',
+    'promotores',
+    'salones',
+    'plantillas',
+    'sistema',
+    'ajustes',
+    'invitaciones',
+  ];
 
   /** Etiqueta amigable de un setting (key con puntos → guion bajo). */
   protected settingLabel(key: string): string {
@@ -194,6 +206,8 @@ export class ConfigPage {
   });
 
   // --- Invitaciones ---
+  /** El formulario de invitar está OCULTO por defecto; el botón "Invitar" lo alterna. */
+  protected readonly showInviteForm = signal(false);
   protected readonly emailsText = signal('');
   protected readonly inviteTestUser = signal(false);
   protected readonly created = signal<CreatedInvitationDto[]>([]);
@@ -235,10 +249,16 @@ export class ConfigPage {
   }
 
   constructor() {
-    this.loadEvents();
+    // Deep-link REACTIVO a `?tab=`: al recargar (o al navegar cambiando el query)
+    // se restaura el tab activo. Es la única fuente de la carga inicial.
+    this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((pm) => {
+      const t = pm.get('tab') as AdminTab | null;
+      this.applyTab(t && ConfigPage.TABS.includes(t) ? t : 'eventos');
+    });
   }
 
-  protected selectTab(t: AdminTab): void {
+  /** Fija el tab y hace la carga perezosa de sus datos (sin tocar la URL). */
+  private applyTab(t: AdminTab): void {
     this.tab.set(t);
     if (t === 'eventos' && this.events().length === 0) this.loadEvents();
     if (t === 'promotores' && this.promoters().length === 0) this.loadPromoters();
@@ -247,6 +267,19 @@ export class ConfigPage {
     if (t === 'salones' && this.halls().length === 0) this.loadHalls();
     if (t === 'plantillas' && this.templates().length === 0) this.loadTemplates();
     if (t === 'ajustes' && this.settings().length === 0) this.loadSettings();
+  }
+
+  protected selectTab(t: AdminTab): void {
+    this.applyTab(t); // respuesta inmediata del tab (y para tests)
+    // Refleja el tab en la URL (`?tab=`) para que sobreviva a la recarga. La
+    // suscripción de arriba re-aplica (idempotente). 'eventos' = sin query (limpio).
+    void this.router
+      .navigate([], {
+        relativeTo: this.route,
+        queryParams: { tab: t === 'eventos' ? null : t },
+        queryParamsHandling: 'merge',
+      })
+      .catch(() => undefined);
   }
 
   // --- Eventos ---
@@ -330,19 +363,10 @@ export class ConfigPage {
     });
   }
 
-  // --- Historial de estados (append-only) ---
-  protected readonly historyFor = signal<string | null>(null);
-  protected readonly history = signal<PromoterStatusEventDto[]>([]);
-  protected toggleHistory(p: PromoterListItemDto): void {
-    if (this.historyFor() === p.id) {
-      this.historyFor.set(null);
-      return;
-    }
-    this.historyFor.set(p.id);
-    this.history.set([]);
-    this.admin.promoterHistory(p.id).subscribe({
-      next: (h) => this.history.set(h),
-      error: () => this.toasts.error(this.translate.instant('config.promoters.historyError')),
+  // --- Historial de estados (append-only) → PÁGINA dedicada (filtrar/buscar). ---
+  protected openHistory(p: PromoterListItemDto): void {
+    void this.router.navigate(['/configuracion/promotores', p.id, 'historial'], {
+      queryParams: { name: `${p.firstName} ${p.lastName ?? ''}`.trim() },
     });
   }
   protected setPromoterPct(p: PromoterListItemDto, value: string): void {
@@ -547,6 +571,23 @@ export class ConfigPage {
       .map((e) => e.trim())
       .filter(Boolean),
   );
+  /**
+   * Botón "Invitar" (toggle): si el form está CERRADO lo abre; si está ABIERTO
+   * envía (con la validación de correos existente).
+   */
+  protected onInviteButton(): void {
+    if (!this.showInviteForm()) {
+      this.showInviteForm.set(true);
+      return;
+    }
+    this.invite();
+  }
+  /** "Cancelar": oculta el form y limpia lo tecleado. */
+  protected cancelInvite(): void {
+    this.showInviteForm.set(false);
+    this.emailsText.set('');
+    this.inviteTestUser.set(false);
+  }
   protected invite(): void {
     const emails = this.parsedEmails();
     if (emails.length === 0) {
@@ -560,6 +601,7 @@ export class ConfigPage {
         this.created.set(res.invitations);
         this.emailsText.set('');
         this.inviteTestUser.set(false);
+        this.showInviteForm.set(false);
         this.toasts.success(this.translate.instant('config.invitations.generated', { n: res.invitations.length }));
         this.loadInvitations();
       },

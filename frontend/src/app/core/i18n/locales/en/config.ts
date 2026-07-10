@@ -147,6 +147,8 @@ export const config = {
     emailsPlaceholder: 'email1@domain.com, email2@domain.com',
     testUser: 'Test user (pinned to Sandbox; does not use real gateways).',
     inviteTitle: 'Send invitations',
+    openFormTitle: 'Open the invitation form',
+    submitHint: 'Press "Invite" again (or Enter) to send.',
     invite: 'Invite',
     createdHeading: 'Generated links (copy and share them)',
     listHeading: 'Invitations',

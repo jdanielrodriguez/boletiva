@@ -147,6 +147,8 @@ export const config = {
     emailsPlaceholder: 'correo1@dominio.com, correo2@dominio.com',
     testUser: 'Usuario de prueba (anclado a Sandbox; no usa pasarelas reales).',
     inviteTitle: 'Enviar invitaciones',
+    openFormTitle: 'Abrir el formulario de invitación',
+    submitHint: 'Pulsa "Invitar" de nuevo (o Enter) para enviar.',
     invite: 'Invitar',
     createdHeading: 'Enlaces generados (cópialos y compártelos)',
     listHeading: 'Invitaciones',
