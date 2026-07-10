@@ -34,8 +34,8 @@
                 <label for="pf-phone">Teléfono</label>
                 <input id="pf-phone" type="tel" [ngModel]="phone()" (ngModelChange)="phone.set($event)" name="phone" maxlength="30" autocomplete="tel" />
               </div>
-              <button type="submit" class="primary" [disabled]="savingProfile()" data-testid="save-profile">
-                {{ savingProfile() ? 'Guardando…' : 'Guardar cambios' }}
+              <button type="submit" class="primary" [disabled]="savingProfile()" data-testid="save-profile" title="Guardar cambios">
+                <app-icon name="save" /> {{ savingProfile() ? 'Guardando…' : 'Guardar cambios' }}
               </button>
             </form>
           </div>
@@ -58,8 +58,8 @@
                   <input id="pw-confirm" type="password" [ngModel]="confirmPassword()" (ngModelChange)="confirmPassword.set($event)" name="confirmPassword" autocomplete="new-password" minlength="8" data-testid="pw-confirm" />
                 </div>
               </div>
-              <button type="submit" class="primary" [disabled]="changingPassword()" data-testid="change-password">
-                {{ changingPassword() ? 'Cambiando…' : 'Cambiar contraseña' }}
+              <button type="submit" class="primary" [disabled]="changingPassword()" data-testid="change-password" title="Cambiar contraseña">
+                <app-icon name="save" /> {{ changingPassword() ? 'Cambiando…' : 'Cambiar contraseña' }}
               </button>
             </form>
           </div>
@@ -98,8 +98,8 @@
           }
 
           @if (!showCardForm()) {
-            <button type="button" class="primary" (click)="showCardForm.set(true)" data-testid="add-method">
-              + Agregar tarjeta
+            <button type="button" class="primary" (click)="showCardForm.set(true)" data-testid="add-method" title="Agregar tarjeta">
+              <app-icon name="add" /> Agregar tarjeta
             </button>
           } @else {
             <div class="card-block">
@@ -124,10 +124,12 @@
                   </div>
                 </div>
                 <div class="ticket-actions">
-                  <button type="submit" class="primary" [disabled]="savingCard()" data-testid="save-card">
-                    {{ savingCard() ? 'Guardando…' : 'Guardar tarjeta' }}
+                  <button type="submit" class="primary" [disabled]="savingCard()" data-testid="save-card" title="Guardar tarjeta">
+                    <app-icon name="save" /> {{ savingCard() ? 'Guardando…' : 'Guardar tarjeta' }}
                   </button>
-                  <button type="button" (click)="showCardForm.set(false)">Cancelar</button>
+                  <button type="button" (click)="showCardForm.set(false)" title="Cancelar">
+                    <app-icon name="cancel" /> Cancelar
+                  </button>
                 </div>
               </form>
             </div>
@@ -146,7 +148,7 @@
             <div class="filters" data-testid="billing-filters">
               <div class="field">
                 <label for="f-status">Estado</label>
-                <select id="f-status" [ngModel]="filterStatus()" (ngModelChange)="filterStatus.set($event)" name="fstatus" data-testid="filter-status">
+                <select id="f-status" [ngModel]="filterStatus()" (ngModelChange)="setFilterStatus($event)" name="fstatus" data-testid="filter-status">
                   <option value="">Todos</option>
                   @for (s of orderStatuses(); track s) {
                     <option [value]="s">{{ s }}</option>
@@ -155,11 +157,11 @@
               </div>
               <div class="field">
                 <label for="f-event">Evento</label>
-                <input id="f-event" type="text" [ngModel]="filterEvent()" (ngModelChange)="filterEvent.set($event)" name="fevent" placeholder="Buscar evento" data-testid="filter-event" />
+                <input id="f-event" type="text" [ngModel]="filterEvent()" (ngModelChange)="setFilterEvent($event)" name="fevent" placeholder="Buscar evento" data-testid="filter-event" />
               </div>
               <div class="field">
                 <label for="f-date">Fecha</label>
-                <input id="f-date" type="date" [ngModel]="filterDate()" (ngModelChange)="filterDate.set($event)" name="fdate" data-testid="filter-date" />
+                <input id="f-date" type="date" [ngModel]="filterDate()" (ngModelChange)="setFilterDate($event)" name="fdate" data-testid="filter-date" />
               </div>
             </div>
           }
@@ -170,7 +172,7 @@
             <p class="muted" data-testid="orders-filtered-empty">No hay compras que coincidan con los filtros.</p>
           } @else {
             <div class="invoice-list" data-testid="orders-list">
-              @for (o of filteredOrders(); track o.id) {
+              @for (o of pageOrders(); track o.id) {
                 <article class="invoice-card">
                   <header class="invoice-head">
                     <div>
@@ -234,6 +236,13 @@
                 </article>
               }
             </div>
+            @if (billingTotalPages() > 1) {
+              <div class="catalog-pager" data-testid="billing-pager">
+                <button type="button" class="pager-arrow" [disabled]="billingPage() <= 1" (click)="goToBillingPage(billingPage() - 1)" aria-label="Página anterior" title="Anterior">‹</button>
+                <span class="pager-page is-current">{{ billingPage() }} / {{ billingTotalPages() }}</span>
+                <button type="button" class="pager-arrow" [disabled]="billingPage() >= billingTotalPages()" (click)="goToBillingPage(billingPage() + 1)" aria-label="Página siguiente" title="Siguiente">›</button>
+              </div>
+            }
           }
         }
 
@@ -310,7 +319,9 @@
                       <span class="muted">neto {{ w.net | money }}</span>
                       <span class="badge badge-{{ w.status }}">{{ w.status }}</span>
                       @if (w.status === 'pending') {
-                        <button type="button" (click)="cancelWithdrawal(w.id)" data-testid="cancel-withdrawal">Cancelar</button>
+                        <button type="button" (click)="cancelWithdrawal(w.id)" data-testid="cancel-withdrawal" title="Cancelar retiro">
+                          <app-icon name="cancel" /> Cancelar
+                        </button>
                       }
                     </li>
                   }
@@ -338,8 +349,8 @@
                   El retiro queda <strong>pendiente de aprobación</strong> del equipo.
                 </p>
               }
-              <button type="submit" class="primary" [disabled]="withdrawing()" data-testid="request-withdrawal">
-                {{ withdrawing() ? 'Solicitando…' : 'Solicitar retiro' }}
+              <button type="submit" class="primary" [disabled]="withdrawing()" data-testid="request-withdrawal" title="Solicitar retiro">
+                <app-icon name="save" /> {{ withdrawing() ? 'Solicitando…' : 'Solicitar retiro' }}
               </button>
             </form>
           </div>
@@ -349,7 +360,7 @@
           <h2>Boletos activos</h2>
           @if (activos().length > 0) {
             <div class="ticket-groups" data-testid="tickets-activos">
-              @for (eg of activosGrouped(); track eg.eventId) {
+              @for (eg of pageActivosGrouped(); track eg.eventId) {
                 <article class="event-card">
                   <header class="event-card-head">
                     <div>
@@ -454,6 +465,13 @@
                 </article>
               }
             </div>
+            @if (activosTotalPages() > 1) {
+              <div class="catalog-pager" data-testid="activos-pager">
+                <button type="button" class="pager-arrow" [disabled]="activosPage() <= 1" (click)="goToActivosPage(activosPage() - 1)" aria-label="Página anterior" title="Anterior">‹</button>
+                <span class="pager-page is-current">{{ activosPage() }} / {{ activosTotalPages() }}</span>
+                <button type="button" class="pager-arrow" [disabled]="activosPage() >= activosTotalPages()" (click)="goToActivosPage(activosPage() + 1)" aria-label="Página siguiente" title="Siguiente">›</button>
+              </div>
+            }
           } @else {
             <p class="muted">No tienes boletos activos.</p>
           }

@@ -24,8 +24,12 @@ import { CardTokenizerStub } from '../../core/payments/card-tokenizer.stub';
 import { AuthService } from '../../core/auth/auth.service';
 import { SessionStore } from '../../core/auth/session.store';
 import { ToastService } from '../../core/ui/toast.service';
+import { IconComponent } from '../../shared/icon/icon.component';
 
 type Section = 'perfil' | 'metodos' | 'facturacion' | 'wallet' | 'activos' | 'pasados';
+
+/** Tamaño de página para facturación y boletos activos. */
+const ACCOUNT_PAGE = 6;
 
 /** Grupo de boletos de una misma compra (orden). */
 interface OrderGroup {
@@ -80,7 +84,7 @@ function groupByEventOrder(tickets: TicketResponseDto[]): EventGroup[] {
  */
 @Component({
   selector: 'app-account',
-  imports: [FormsModule, DatePipe, UpperCasePipe, MoneyPipe, RouterLink],
+  imports: [FormsModule, DatePipe, UpperCasePipe, MoneyPipe, RouterLink, IconComponent],
   templateUrl: './account.html',
 })
 export class Account {
@@ -188,6 +192,31 @@ export class Account {
   });
   /** Estados distintos presentes (para el selector de filtro). */
   protected readonly orderStatuses = computed(() => [...new Set(this.orders().map((o) => o.status))]);
+  /** Paginación de facturación (sobre las órdenes ya filtradas). */
+  protected readonly billingPage = signal(1);
+  protected readonly billingTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.filteredOrders().length / ACCOUNT_PAGE)),
+  );
+  protected readonly pageOrders = computed(() => {
+    const start = (this.billingPage() - 1) * ACCOUNT_PAGE;
+    return this.filteredOrders().slice(start, start + ACCOUNT_PAGE);
+  });
+  protected goToBillingPage(p: number): void {
+    this.billingPage.set(Math.min(Math.max(1, p), this.billingTotalPages()));
+  }
+  /** Setters de filtro que reinician la página (facturación). */
+  protected setFilterStatus(v: string): void {
+    this.filterStatus.set(v);
+    this.billingPage.set(1);
+  }
+  protected setFilterEvent(v: string): void {
+    this.filterEvent.set(v);
+    this.billingPage.set(1);
+  }
+  protected setFilterDate(v: string): void {
+    this.filterDate.set(v);
+    this.billingPage.set(1);
+  }
   /** Cadena contable (blockchain) por orden, cargada bajo demanda. */
   protected readonly chains = signal<Record<string, OrderLedgerChainDto>>({});
   protected readonly loadingChain = signal<string | null>(null);
@@ -206,6 +235,18 @@ export class Account {
   /** Boletos activos y pasados agrupados por evento → compra (para las cards). */
   protected readonly activosGrouped = computed(() => groupByEventOrder(this.activos()));
   protected readonly pasadosGrouped = computed(() => groupByEventOrder(this.pasados()));
+  /** Paginación de boletos activos (sobre los grupos de evento). */
+  protected readonly activosPage = signal(1);
+  protected readonly activosTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.activosGrouped().length / ACCOUNT_PAGE)),
+  );
+  protected readonly pageActivosGrouped = computed(() => {
+    const start = (this.activosPage() - 1) * ACCOUNT_PAGE;
+    return this.activosGrouped().slice(start, start + ACCOUNT_PAGE);
+  });
+  protected goToActivosPage(p: number): void {
+    this.activosPage.set(Math.min(Math.max(1, p), this.activosTotalPages()));
+  }
   /** Media (QR/PDF) por boleto, cargada bajo demanda. */
   protected readonly media = signal<Record<string, TicketMediaResponseDto>>({});
   /** QR oculto por boleto (por defecto el QR se muestra; el botón alterna). */

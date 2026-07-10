@@ -486,4 +486,68 @@ describe('Account (mi cuenta)', () => {
     fixture.detectChanges();
     expect(lastToast()?.kind).toBe('error');
   });
+
+  it('facturación: pagina (6 por página) y navega entre páginas', async () => {
+    const many = Array.from({ length: 14 }, (_, i) => ({
+      id: `o${i}`,
+      eventId: 'e1',
+      event: { name: 'Fiesta' },
+      status: 'paid',
+      total: '10.00',
+      createdAt: '2026-07-01T10:00:00Z',
+      billingNit: 'CF',
+      items: [],
+    }));
+    await setup({ orders: { list: () => of({ items: many, nextCursor: null }) } });
+    go('menu-facturacion');
+    const c = fixture.componentInstance as unknown as {
+      pageOrders: () => unknown[];
+      billingTotalPages: () => number;
+      goToBillingPage: (p: number) => void;
+      billingPage: () => number;
+    };
+    expect(c.pageOrders().length).toBe(6);
+    expect(c.billingTotalPages()).toBe(3);
+    expect(el.querySelector('[data-testid="billing-pager"]')).not.toBeNull();
+    c.goToBillingPage(3);
+    expect(c.billingPage()).toBe(3);
+    expect(c.pageOrders().length).toBe(2);
+  });
+
+  it('facturación: cambiar filtro reinicia a la página 1', async () => {
+    const many = Array.from({ length: 14 }, (_, i) => ({
+      id: `o${i}`, eventId: 'e1', event: { name: 'Fiesta' }, status: 'paid', total: '10.00', createdAt: '2026-07-01T10:00:00Z', billingNit: 'CF', items: [],
+    }));
+    await setup({ orders: { list: () => of({ items: many, nextCursor: null }) } });
+    go('menu-facturacion');
+    const c = fixture.componentInstance as unknown as {
+      goToBillingPage: (p: number) => void;
+      setFilterEvent: (v: string) => void;
+      billingPage: () => number;
+    };
+    c.goToBillingPage(2);
+    expect(c.billingPage()).toBe(2);
+    c.setFilterEvent('Fiesta');
+    expect(c.billingPage()).toBe(1);
+  });
+
+  it('boletos activos: pagina los grupos de evento (6 por página)', async () => {
+    const items = Array.from({ length: 14 }, (_, i) => ({
+      id: `t${i}`, serial: `PE-${i}`, status: 'valid', eventId: `e${i}`, orderId: `o${i}`, localityName: 'GA', mediaReady: false, event: { name: `Ev ${i}` },
+    }));
+    await setup({ tickets: { list: () => of({ items } as unknown as TicketPageResponseDto), media: () => of({}), transfer: () => of({}) } });
+    go('menu-activos');
+    const c = fixture.componentInstance as unknown as {
+      pageActivosGrouped: () => unknown[];
+      activosTotalPages: () => number;
+      goToActivosPage: (p: number) => void;
+      activosPage: () => number;
+    };
+    expect(c.pageActivosGrouped().length).toBe(6);
+    expect(c.activosTotalPages()).toBe(3);
+    expect(el.querySelector('[data-testid="activos-pager"]')).not.toBeNull();
+    c.goToActivosPage(3);
+    expect(c.activosPage()).toBe(3);
+    expect(c.pageActivosGrouped().length).toBe(2);
+  });
 });
