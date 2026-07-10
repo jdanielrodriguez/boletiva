@@ -701,7 +701,7 @@ export interface paths {
         delete: operations["EventsController_remove_v1"];
         options?: never;
         head?: never;
-        /** Actualiza un evento (owner/admin) */
+        /** Actualiza un evento (owner/admin; admin no-dueño requiere desbloqueo) */
         patch: operations["EventsController_update_v1"];
         trace?: never;
     };
@@ -733,6 +733,40 @@ export interface paths {
         put?: never;
         /** Cancela un evento */
         post: operations["EventsController_cancel_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/edit-unlock/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Envía un código OTP al admin para desbloquear la edición del evento */
+        post: operations["EventEditUnlockController_request_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/edit-unlock/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verifica el OTP y devuelve un token de desbloqueo (5 min) */
+        post: operations["EventEditUnlockController_verify_v1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -911,6 +945,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/promoters/invitations/by-token/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Vista pública por token: correo invitado + si ya existe cuenta (login vs registro) */
+        get: operations["PromoterInvitationsController_byToken_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/promoters/invitations/accept": {
         parameters: {
             query?: never;
@@ -922,6 +973,23 @@ export interface paths {
         put?: never;
         /** Acepta la invitación: el usuario queda auto-aprobado como promotor */
         post: operations["PromoterInvitationsController_accept_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/promoters/invitations/by-token/{token}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Acepta por token en la URL (cuenta existente): activa el rol promotor sin registro */
+        post: operations["PromoterInvitationsController_acceptByToken_v1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2047,6 +2115,115 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/halls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lista salones/venues (para seleccionar al crear evento) */
+        get: operations["HallsController_list_v1"];
+        put?: never;
+        /** Crea un salón (admin) */
+        post: operations["HallsController_create_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/halls/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detalle de un salón */
+        get: operations["HallsController_get_v1"];
+        put?: never;
+        post?: never;
+        /** Elimina un salón (admin; desvincula sus eventos) */
+        delete: operations["HallsController_remove_v1"];
+        options?: never;
+        head?: never;
+        /** Actualiza un salón (admin) */
+        patch: operations["HallsController_update_v1"];
+        trace?: never;
+    };
+    "/api/v1/seat-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Plantillas de asientos (para el desplegable del editor) */
+        get: operations["SeatTemplatesController_list_v1"];
+        put?: never;
+        /** Crea una plantilla de asientos (admin) */
+        post: operations["SeatTemplatesController_create_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/seat-templates/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detalle de una plantilla */
+        get: operations["SeatTemplatesController_get_v1"];
+        put?: never;
+        post?: never;
+        /** Elimina una plantilla (admin; built-in bloqueada) */
+        delete: operations["SeatTemplatesController_remove_v1"];
+        options?: never;
+        head?: never;
+        /** Actualiza una plantilla (admin; built-in bloqueada) */
+        patch: operations["SeatTemplatesController_update_v1"];
+        trace?: never;
+    };
+    "/api/v1/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lista todas las configuraciones del sistema con su valor actual (admin) */
+        get: operations["SettingsController_list_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detalle de una configuración (admin) */
+        get: operations["SettingsController_get_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Actualiza una configuración validando su tipo/rango (admin) */
+        patch: operations["SettingsController_update_v1"];
         trace?: never;
     };
 }
@@ -3333,6 +3510,11 @@ export interface components {
              */
             categoryId?: string;
             /**
+             * Format: uuid
+             * @description Salón/venue reutilizable. Si se indica, prefija address/lat/lng vacíos.
+             */
+            hallId?: string;
+            /**
              * @description Dirección/lugar (máx 300)
              * @example Estadio Nacional, Ciudad de Guatemala
              */
@@ -3490,6 +3672,11 @@ export interface components {
              */
             categoryId?: string;
             /**
+             * Format: uuid
+             * @description Salón/venue reutilizable. Si se indica, prefija address/lat/lng vacíos.
+             */
+            hallId?: string;
+            /**
              * @description Dirección/lugar (máx 300)
              * @example Estadio Nacional, Ciudad de Guatemala
              */
@@ -3536,6 +3723,26 @@ export interface components {
              * @example 1
              */
             promotedPriority?: number | null;
+        };
+        EditUnlockRequestedDto: {
+            /** @example true */
+            sent: boolean;
+        };
+        EditUnlockVerifyDto: {
+            /**
+             * @description Código OTP de 6 dígitos enviado al correo del admin
+             * @example 123456
+             */
+            code: string;
+        };
+        EditUnlockTokenDto: {
+            /** @description Token de desbloqueo (header x-edit-unlock en las mutaciones) */
+            token: string;
+            /**
+             * Format: date-time
+             * @description Expiración del token (5 min)
+             */
+            expiresAt: string;
         };
         PromoterStatusResponseDto: {
             /** Format: uuid */
@@ -3687,9 +3894,31 @@ export interface components {
             /** @example true */
             valid: boolean;
         };
+        InvitationByTokenDto: {
+            /**
+             * @description Correo al que se invitó
+             * @example nuevo@promotor.com
+             */
+            email: string;
+            /**
+             * @description Si ya existe una cuenta con ese correo (→ iniciar sesión y aceptar, sin registro)
+             * @example true
+             */
+            accountExists: boolean;
+            /** @example true */
+            valid: boolean;
+        };
         ClaimInvitationDto: {
             /** @description Token de invitación (de la URL) */
             token: string;
+        };
+        InvitationAcceptedDto: {
+            /** @example true */
+            accepted: boolean;
+            /** @description Estado de promotor resultante */
+            promoter: {
+                [key: string]: unknown;
+            };
         };
         InvitationRevokedDto: {
             /** Format: uuid */
@@ -5470,6 +5699,152 @@ export interface components {
              */
             provider: string;
         };
+        HallResponseDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example Teatro Nacional */
+            name: string;
+            /** @example 24 Calle 3-81, Zona 1 */
+            address: string | null;
+            /** @example 14.6407 */
+            lat: number | null;
+            /** @example -90.5133 */
+            lng: number | null;
+            /** @example Ciudad de Guatemala */
+            city: string | null;
+            notes: string | null;
+            /** Format: uuid */
+            seatTemplateId: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        CreateHallDto: {
+            /**
+             * @description Nombre del salón/venue
+             * @example Teatro Nacional
+             */
+            name: string;
+            /**
+             * @description Dirección
+             * @example 24 Calle 3-81, Zona 1
+             */
+            address?: string;
+            /**
+             * @description Latitud
+             * @example 14.6407
+             */
+            lat?: number;
+            /**
+             * @description Longitud
+             * @example -90.5133
+             */
+            lng?: number;
+            /**
+             * @description Ciudad
+             * @example Ciudad de Guatemala
+             */
+            city?: string;
+            /**
+             * @description Notas internas
+             * @example Aforo 1200; parqueo propio
+             */
+            notes?: string;
+            /**
+             * Format: uuid
+             * @description Plantilla de asientos base del salón
+             */
+            seatTemplateId?: string;
+        };
+        UpdateHallDto: {
+            /** @example Teatro Nacional */
+            name?: string;
+            /** @example 24 Calle 3-81, Zona 1 */
+            address?: string;
+            /** @example 14.6407 */
+            lat?: number;
+            /** @example -90.5133 */
+            lng?: number;
+            /** @example Ciudad de Guatemala */
+            city?: string;
+            /** @example Aforo 1200; parqueo propio */
+            notes?: string;
+            /** Format: uuid */
+            seatTemplateId?: string;
+        };
+        SeatTemplateResponseDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example Filas rectas */
+            name: string;
+            /** @enum {string} */
+            kind: "rows" | "theater" | "stadium" | "tables" | "grid" | "curve" | "line" | "custom";
+            layoutJson: {
+                [key: string]: unknown;
+            };
+            params: {
+                [key: string]: unknown;
+            } | null;
+            /** @description Plantilla del sistema (no editable/borrable) */
+            isBuiltIn: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        CreateSeatTemplateDto: {
+            /**
+             * @description Nombre de la plantilla
+             * @example Auditorio central
+             */
+            name: string;
+            /**
+             * @default custom
+             * @enum {string}
+             */
+            kind: "rows" | "theater" | "stadium" | "tables" | "grid" | "curve" | "line" | "custom";
+            /** @description Geometría/metadata de la plantilla (icono, hint, layout). */
+            layoutJson?: {
+                [key: string]: unknown;
+            };
+            /** @description Parámetros de generación (filas, columnas, radio, etc.). */
+            params?: {
+                [key: string]: unknown;
+            };
+        };
+        UpdateSeatTemplateDto: {
+            /** @example Auditorio central */
+            name?: string;
+            /** @enum {string} */
+            kind?: "rows" | "theater" | "stadium" | "tables" | "grid" | "curve" | "line" | "custom";
+            layoutJson?: {
+                [key: string]: unknown;
+            };
+            params?: {
+                [key: string]: unknown;
+            };
+        };
+        SettingViewDto: {
+            /** @example costshare.default_pct */
+            key: string;
+            /** @example 0 */
+            value: number | boolean;
+            /** @example 0 */
+            default: number | boolean;
+            /** @enum {string} */
+            type: "pct" | "int" | "bool";
+            description: string;
+            /** @description true = el motor de precios prioriza el fee_schedule sobre este valor */
+            fallbackOnly: boolean;
+        };
+        UpdateSettingDto: {
+            /**
+             * @description Nuevo valor (number para pct/int, boolean para bool). Validado contra el catálogo.
+             * @example 0.1
+             */
+            value: number | boolean;
+        };
     };
     responses: never;
     parameters: never;
@@ -6410,7 +6785,10 @@ export interface operations {
     EventsController_remove_v1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Token de desbloqueo (admin no-dueño) */
+                "x-edit-unlock"?: string;
+            };
             path: {
                 id: string;
             };
@@ -6430,7 +6808,10 @@ export interface operations {
     EventsController_update_v1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Token de desbloqueo (admin no-dueño) */
+                "x-edit-unlock"?: string;
+            };
             path: {
                 id: string;
             };
@@ -6455,7 +6836,10 @@ export interface operations {
     EventsController_publish_v1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Token de desbloqueo (admin no-dueño) */
+                "x-edit-unlock"?: string;
+            };
             path: {
                 id: string;
             };
@@ -6476,7 +6860,10 @@ export interface operations {
     EventsController_cancel_v1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Token de desbloqueo (admin no-dueño) */
+                "x-edit-unlock"?: string;
+            };
             path: {
                 id: string;
             };
@@ -6490,6 +6877,52 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EventResponseDto"];
+                };
+            };
+        };
+    };
+    EventEditUnlockController_request_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditUnlockRequestedDto"];
+                };
+            };
+        };
+    };
+    EventEditUnlockController_verify_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditUnlockVerifyDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditUnlockTokenDto"];
                 };
             };
         };
@@ -6750,6 +7183,27 @@ export interface operations {
             };
         };
     };
+    PromoterInvitationsController_byToken_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationByTokenDto"];
+                };
+            };
+        };
+    };
     PromoterInvitationsController_accept_v1: {
         parameters: {
             query?: never;
@@ -6767,7 +7221,30 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["InvitationAcceptedDto"];
+                };
+            };
+        };
+    };
+    PromoterInvitationsController_acceptByToken_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationAcceptedDto"];
+                };
             };
         };
     };
@@ -6897,7 +7374,9 @@ export interface operations {
     LocalitiesController_add_v1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-edit-unlock"?: string;
+            };
             path: {
                 eventId: string;
             };
@@ -6920,7 +7399,9 @@ export interface operations {
     LocalitiesController_remove_v1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-edit-unlock"?: string;
+            };
             path: {
                 id: string;
             };
@@ -6939,7 +7420,9 @@ export interface operations {
     LocalitiesController_update_v1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-edit-unlock"?: string;
+            };
             path: {
                 id: string;
             };
@@ -6981,7 +7464,9 @@ export interface operations {
     SeatsController_bulk_v1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-edit-unlock"?: string;
+            };
             path: {
                 localityId: string;
             };
@@ -7004,7 +7489,9 @@ export interface operations {
     SeatsController_remove_v1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-edit-unlock"?: string;
+            };
             path: {
                 localityId: string;
             };
@@ -7027,7 +7514,9 @@ export interface operations {
     SeatsController_generate_v1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-edit-unlock"?: string;
+            };
             path: {
                 localityId: string;
             };
@@ -7088,7 +7577,9 @@ export interface operations {
     SeatMapsController_create_v1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-edit-unlock"?: string;
+            };
             path: {
                 eventId: string;
             };
@@ -7111,7 +7602,9 @@ export interface operations {
     SeatMapsController_activate_v1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-edit-unlock"?: string;
+            };
             path: {
                 id: string;
             };
@@ -8551,6 +9044,285 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BannerResponseDto"];
+                };
+            };
+        };
+    };
+    HallsController_list_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HallResponseDto"][];
+                };
+            };
+        };
+    };
+    HallsController_create_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateHallDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HallResponseDto"];
+                };
+            };
+        };
+    };
+    HallsController_get_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HallResponseDto"];
+                };
+            };
+        };
+    };
+    HallsController_remove_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    HallsController_update_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateHallDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HallResponseDto"];
+                };
+            };
+        };
+    };
+    SeatTemplatesController_list_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeatTemplateResponseDto"][];
+                };
+            };
+        };
+    };
+    SeatTemplatesController_create_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSeatTemplateDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeatTemplateResponseDto"];
+                };
+            };
+        };
+    };
+    SeatTemplatesController_get_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeatTemplateResponseDto"];
+                };
+            };
+        };
+    };
+    SeatTemplatesController_remove_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SeatTemplatesController_update_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateSeatTemplateDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeatTemplateResponseDto"];
+                };
+            };
+        };
+    };
+    SettingsController_list_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingViewDto"][];
+                };
+            };
+        };
+    };
+    SettingsController_get_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingViewDto"];
+                };
+            };
+        };
+    };
+    SettingsController_update_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateSettingDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingViewDto"];
                 };
             };
         };
