@@ -5,6 +5,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
 import { CategoriesApi } from '../../core/api/categories.api';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
+import { MediaApi } from '../../core/api/media.api';
 import { ToastService } from '../../core/ui/toast.service';
 import {
   ConfirmDialogComponent,
@@ -32,11 +33,12 @@ function toLocalInput(iso: string | null | undefined): string {
 }
 
 /**
- * Vista de edición de un evento (ruta aparte, F-v3). Secciones: datos, localidades
- * (con editor de asientos), banner con IA (plantilla + prompt + imágenes de
- * ejemplo), configuración (pasarela/IVA/cuotas) y cuentas del evento. Una vez
- * PUBLICADO, las localidades quedan bloqueadas y no se cambia pasarela/IVA (el
- * backend lo valida; aquí se refleja en la UI).
+ * Vista de alta/edición de un evento (ruta aparte, F-v3). MISMA página en dos
+ * modos: `nuevo` (formulario en blanco; el evento se crea al primer Guardar) y
+ * edición (con id). Secciones: datos, localidades (con editor de asientos), banner
+ * (subir uno ya hecho o generarlo con IA), configuración y cuentas. Publicar está
+ * DESHABILITADO hasta guardar y hasta cumplir el gate (banner + asientos en las
+ * localidades con mapa). Publicado → localidades bloqueadas y pasarela/IVA fijos.
  */
 @Component({
   selector: 'app-event-edit',
@@ -45,15 +47,18 @@ function toLocalInput(iso: string | null | undefined): string {
 })
 export class EventEditPage {
   private readonly api = inject(PromoterEventsApi);
+  private readonly media = inject(MediaApi);
   private readonly categoriesApi = inject(CategoriesApi);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toasts = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
 
-  protected readonly templates: BannerTemplate[] = ['aurora', 'midnight', 'sunset', 'forest', 'mono'];
+  protected readonly bannerTemplates: BannerTemplate[] = ['aurora', 'midnight', 'sunset', 'forest', 'mono'];
 
   protected readonly eventId = signal<string>(this.route.snapshot.paramMap.get('id') ?? '');
+  /** Modo creación: sin id en la ruta (/promotor/eventos/nuevo). */
+  protected readonly isNew = signal<boolean>(!this.route.snapshot.paramMap.get('id'));
   protected readonly event = signal<ManagedEventDetailDto | null>(null);
   protected readonly categories = signal<CategoryResponseDto[]>([]);
   protected readonly gateways = signal<GatewayResponseDto[]>([]);
@@ -75,8 +80,7 @@ export class EventEditPage {
     this.from() === 'admin' ? '← Volver a la consola' : '← Volver a mis eventos',
   );
 
-  // Datos (sin fin: el backend lo autocalcula = inicio + 12h; se puede ajustar
-  // vía API pero la UI del promotor solo pide el inicio).
+  // Datos
   protected readonly d = {
     name: signal(''),
     description: signal(''),
@@ -93,9 +97,10 @@ export class EventEditPage {
 
   // Localidades
   protected readonly localities = signal<LocalityView[]>([]);
-  // Buscador OPCIONAL de localidades (oculto por defecto; útil si hay muchas).
   protected readonly locSearchOpen = signal(false);
   protected readonly locSearch = signal('');
+  /** Form de "crear localidad" plegado por defecto (patrón botón→form). */
+  protected readonly showLocForm = signal(false);
   protected readonly filteredLocalities = computed(() => {
     const q = this.locSearch().trim().toLowerCase();
     if (!q) return this.localities();
@@ -113,7 +118,7 @@ export class EventEditPage {
   protected readonly pricePreview = signal<PriceQuoteResponseDto | null>(null);
   protected readonly previewLoading = signal(false);
 
-  // Banner
+  // Banner: subir uno ya hecho o generar con IA (form de IA plegado tras el desplegable).
   protected readonly banner = {
     template: signal<BannerTemplate>('aurora'),
     prompt: signal(''),
@@ -121,6 +126,28 @@ export class EventEditPage {
   };
   protected readonly bannerUrl = signal<string | null>(null);
   protected readonly generatingBanner = signal(false);
+  protected readonly uploadingBanner = signal(false);
+  /** El form de IA no está siempre visible: se abre desde el desplegable. */
+  protected readonly showAiForm = signal(false);
+
+  /** ¿Hay banner? (media cover o uno recién subido/generado). */
+  protected readonly hasBanner = computed(() => !!this.bannerUrl());
+
+  /**
+   * Motivo por el que NO se puede publicar (o null si sí). Refleja el gate del
+   * backend: evento guardado + banner + toda localidad seated con asientos.
+   */
+  protected readonly publishBlock = computed<string | null>(() => {
+    if (this.isNew() || !this.event()) return 'Guarda el evento antes de publicar.';
+    if (this.localities().length === 0) return 'Agrega al menos una localidad.';
+    if (!this.hasBanner()) return 'Agrega un banner (imagen) del evento.';
+    const emptySeated = this.localities().find(
+      (l) => l.kind === 'seated' && (l.capacity ?? 0) === 0,
+    );
+    if (emptySeated) return `La localidad "${emptySeated.name}" no tiene asientos colocados.`;
+    return null;
+  });
+  protected readonly canPublish = computed(() => this.publishBlock() === null);
 
   // Confirmación de acciones destructivas (modal reutilizable).
   protected readonly confirm = signal<ConfirmRequest | null>(null);
@@ -137,14 +164,11 @@ export class EventEditPage {
     this.categoriesApi.list().subscribe({ next: (c) => this.categories.set(c), error: () => undefined });
     this.api.activeGateways().subscribe({ next: (g) => this.gateways.set(g), error: () => undefined });
 
-    // Tab inicial desde el query param (?tab=cuentas) — usado por la consola admin.
     const tab = this.route.snapshot.queryParamMap.get('tab');
     if (tab && ['datos', 'localidades', 'banner', 'config', 'cuentas', 'dashboard'].includes(tab)) {
       this.tab.set(tab as Tab);
     }
 
-    // Preview de precio server-authoritative con DEBOUNCE (evita DDoS del endpoint
-    // de cotización al teclear). Cada neto válido cotiza y muestra el desglose.
     this.netInput$
       .pipe(
         debounceTime(300),
@@ -166,10 +190,14 @@ export class EventEditPage {
         },
       });
 
-    this.reload();
+    if (this.isNew()) {
+      // Modo NUEVO: formulario en blanco; el evento aún no existe.
+      this.loading.set(false);
+    } else {
+      this.reload();
+    }
   }
 
-  /** Al teclear el neto de una localidad: actualiza el modelo y dispara el preview. */
   protected onNetChange(value: number | null): void {
     this.locForm.desiredNet.set(value);
     if (value != null && value > 0) {
@@ -211,11 +239,45 @@ export class EventEditPage {
     this.tab.set(t);
   }
 
-  // --- Datos / Guardar borrador ---
-  // El fin se OMITE (endsAt opcional): el backend conserva/autocalcula. Sirve como
-  // "Guardar borrador": persiste los cambios del draft sin publicar.
+  // --- Datos / Guardar (crea en modo nuevo; actualiza en edición) ---
   protected saveData(): void {
+    if (!this.d.name() || this.d.name().trim().length < 3) {
+      this.toasts.warning('El evento necesita un nombre (mínimo 3 caracteres).');
+      return;
+    }
+    if (this.isNew() && !this.d.startsAt()) {
+      this.toasts.warning('Indica la fecha y hora de inicio.');
+      return;
+    }
     this.savingData.set(true);
+    if (this.isNew()) {
+      this.api
+        .create({
+          name: this.d.name(),
+          description: this.d.description() || undefined,
+          categoryId: this.d.categoryId() || undefined,
+          address: this.d.address() || undefined,
+          startsAt: new Date(this.d.startsAt()).toISOString(),
+          ivaOnNet: this.c.ivaOnNet(),
+          absorbInstallmentCost: this.c.absorbInstallmentCost(),
+        })
+        .subscribe({
+          next: (ev) => {
+            this.savingData.set(false);
+            this.toasts.success('Evento creado. Completa localidades, banner y publícalo.');
+            // Pasa a modo edición reemplazando la URL por la del evento real.
+            void this.router.navigate(['/promotor/eventos', ev.id, 'editar'], {
+              replaceUrl: true,
+              queryParams: this.from() === 'admin' ? { from: 'admin' } : {},
+            });
+          },
+          error: () => {
+            this.savingData.set(false);
+            this.toasts.error('No se pudo crear el evento (revisa nombre y fecha de inicio).');
+          },
+        });
+      return;
+    }
     this.api
       .update(this.eventId(), {
         name: this.d.name(),
@@ -223,7 +285,6 @@ export class EventEditPage {
         categoryId: this.d.categoryId() || undefined,
         address: this.d.address() || undefined,
         startsAt: this.d.startsAt() ? new Date(this.d.startsAt()).toISOString() : undefined,
-        // Preserva la config actual (el contrato UpdateEventDto los exige).
         ivaOnNet: this.c.ivaOnNet(),
         absorbInstallmentCost: this.c.absorbInstallmentCost(),
       })
@@ -231,7 +292,7 @@ export class EventEditPage {
         next: (ev) => {
           this.savingData.set(false);
           this.event.set(ev);
-          this.toasts.success('Borrador guardado.');
+          this.toasts.success('Cambios guardados.');
         },
         error: () => {
           this.savingData.set(false);
@@ -270,10 +331,10 @@ export class EventEditPage {
     });
   }
 
-  /**
-   * Navega al editor de asientos a PÁGINA COMPLETA de la localidad (vista aparte,
-   * no inline). Preserva `?from=admin` para que el "Volver" regrese bien.
-   */
+  protected toggleLocForm(): void {
+    this.showLocForm.update((v) => !v);
+  }
+
   protected manageSeats(l: LocalityView): void {
     void this.router.navigate(
       ['/promotor/eventos', this.eventId(), 'localidades', l.id, 'asientos'],
@@ -300,6 +361,7 @@ export class EventEditPage {
           this.locForm.capacity.set(null);
           this.locForm.desiredNet.set(null);
           this.pricePreview.set(null);
+          this.showLocForm.set(false);
           this.toasts.success('Localidad agregada.');
           this.loadLocalities();
         },
@@ -325,14 +387,44 @@ export class EventEditPage {
     });
   }
 
-  /** Muestra/oculta el buscador opcional de localidades. */
   protected toggleLocSearch(): void {
     const open = !this.locSearchOpen();
     this.locSearchOpen.set(open);
     if (!open) this.locSearch.set('');
   }
 
-  // --- Banner ---
+  // --- Banner: subir imagen ya hecha ---
+  protected onBannerFile(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      this.toasts.error('El banner debe ser una imagen.');
+      return;
+    }
+    this.uploadingBanner.set(true);
+    // Vista previa inmediata mientras sube.
+    const localUrl = URL.createObjectURL(file);
+    this.media.uploadBanner(this.eventId(), file).subscribe({
+      next: () => {
+        this.uploadingBanner.set(false);
+        this.bannerUrl.set(localUrl);
+        this.toasts.success('Banner subido.');
+        this.reload();
+      },
+      error: () => {
+        this.uploadingBanner.set(false);
+        this.toasts.error('No se pudo subir el banner.');
+      },
+    });
+    input.value = '';
+  }
+
+  protected toggleAiForm(): void {
+    this.showAiForm.update((v) => !v);
+  }
+
+  // --- Banner: generar con IA ---
   protected generateBanner(): void {
     this.generatingBanner.set(true);
     const images = this.banner
@@ -361,13 +453,26 @@ export class EventEditPage {
 
   // --- Acciones de estado ---
   protected publish(): void {
+    const reason = this.publishBlock();
+    if (reason) {
+      this.toasts.warning(reason);
+      return;
+    }
     this.api.publish(this.eventId()).subscribe({
       next: (ev) => {
         this.event.set(ev);
         this.toasts.success('Evento publicado.');
       },
-      error: () => this.toasts.error('No se pudo publicar (¿faltan localidades?).'),
+      error: (err) => this.toasts.error(this.publishError(err)),
     });
+  }
+
+  /** Mensaje del backend (422 con el detalle de qué falta) o uno genérico. */
+  private publishError(err: unknown): string {
+    const msg = (err as { error?: { message?: string | string[] } })?.error?.message;
+    if (Array.isArray(msg)) return msg.join(' ');
+    if (typeof msg === 'string') return msg;
+    return 'No se pudo publicar el evento.';
   }
 
   protected askCancelEvent(): void {

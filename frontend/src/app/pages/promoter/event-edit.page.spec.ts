@@ -1,9 +1,10 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute, provideRouter } from '@angular/router';
+import { ActivatedRoute, provideRouter, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { CategoriesApi } from '../../core/api/categories.api';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
+import { MediaApi } from '../../core/api/media.api';
 import { ToastService } from '../../core/ui/toast.service';
 import { EventEditPage } from './event-edit.page';
 
@@ -20,9 +21,12 @@ const EVENT = {
   frozenGatewayId: null,
   ivaOnNet: true,
   absorbInstallmentCost: false,
-  media: [],
+  // Con banner (cover) → publicable si además hay localidades OK.
+  media: [{ kind: 'cover', url: 'http://x/cover.svg' }],
   localities: [],
 };
+// Localidad general con aforo → no exige asientos (publicable).
+const OK_LOCS = [{ id: 'l1', name: 'General', kind: 'general', capacity: 10 }];
 
 describe('EventEditPage (v3)', () => {
   let fixture: ComponentFixture<EventEditPage>;
@@ -30,7 +34,11 @@ describe('EventEditPage (v3)', () => {
 
   let queryParams: Record<string, string> = {};
 
-  async function setup(api: Record<string, unknown> = {}, qp: Record<string, string> = {}) {
+  async function setup(
+    api: Record<string, unknown> = {},
+    qp: Record<string, string> = {},
+    paramId: string | null = 'e1',
+  ) {
     queryParams = qp;
     TestBed.configureTestingModule({
       providers: [
@@ -41,11 +49,12 @@ describe('EventEditPage (v3)', () => {
           provide: PromoterEventsApi,
           useValue: {
             get: () => of(EVENT),
+            create: () => of(EVENT),
             update: () => of(EVENT),
             publish: () => of({ ...EVENT, status: 'published' }),
             cancel: () => of({ ...EVENT, status: 'cancelled' }),
             remove: () => of(undefined),
-            localities: () => of([{ id: 'l1', name: 'VIP', kind: 'seated' }]),
+            localities: () => of(OK_LOCS),
             addLocality: () => of({ id: 'l2', name: 'GA', kind: 'general' }),
             removeLocality: () => of(undefined),
             generateBanner: () => of({ url: 'http://x/b.svg' }),
@@ -57,10 +66,14 @@ describe('EventEditPage (v3)', () => {
         },
         { provide: CategoriesApi, useValue: { list: () => of([]) } },
         {
+          provide: MediaApi,
+          useValue: { uploadBanner: () => of({ id: 'm1', key: 'k', kind: 'cover' }) } as unknown as MediaApi,
+        },
+        {
           provide: ActivatedRoute,
           useValue: {
             snapshot: {
-              paramMap: { get: () => 'e1' },
+              paramMap: { get: () => paramId },
               queryParamMap: { get: (k: string) => queryParams[k] ?? null },
             },
           },
@@ -75,6 +88,7 @@ describe('EventEditPage (v3)', () => {
   }
 
   const lastToast = () => toasts.toasts().at(-1);
+  const inst = () => fixture.componentInstance as unknown as Record<string, () => unknown>;
 
   it('carga el evento y lo hidrata', async () => {
     await setup();
@@ -106,6 +120,75 @@ describe('EventEditPage (v3)', () => {
     expect(update).toHaveBeenCalled();
   });
 
+  // --- Modo CREACIÓN (ruta /promotor/eventos/nuevo, sin id) ---
+  it('modo nuevo: formulario en blanco, sin tabs y Publicar bloqueado', async () => {
+    await setup({}, {}, null);
+    expect(inst()['isNew']()).toBe(true);
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="new-badge"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="tab-localidades"]')).toBeNull(); // sin tabs hasta guardar
+    expect(inst()['canPublish']()).toBe(false);
+  });
+
+  it('modo nuevo: Guardar llama create y navega a la vista de edición', async () => {
+    const create = jasmine.createSpy('c').and.returnValue(of(EVENT));
+    await setup({ create }, {}, null);
+    const nav = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    fixture.componentInstance['d'].name.set('Mi evento');
+    fixture.componentInstance['d'].startsAt.set('2028-08-15T20:00');
+    fixture.componentInstance['saveData']();
+    expect(create).toHaveBeenCalled();
+    expect(nav).toHaveBeenCalledWith(['/promotor/eventos', 'e1', 'editar'], jasmine.objectContaining({ replaceUrl: true }));
+  });
+
+  it('modo nuevo: Guardar sin nombre no llama create', async () => {
+    const create = jasmine.createSpy('c').and.returnValue(of(EVENT));
+    await setup({ create }, {}, null);
+    fixture.componentInstance['d'].name.set('');
+    fixture.componentInstance['saveData']();
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  // --- Gating de publicación ---
+  it('publicar HABILITADO con banner + localidades ok', async () => {
+    await setup();
+    expect(inst()['canPublish']()).toBe(true);
+    expect(inst()['publishBlock']()).toBeNull();
+  });
+
+  it('publicar BLOQUEADO sin banner (mensaje pide agregar banner)', async () => {
+    await setup({ get: () => of({ ...EVENT, media: [] }) });
+    expect(inst()['canPublish']()).toBe(false);
+    expect(String(inst()['publishBlock']())).toMatch(/banner/i);
+  });
+
+  it('publicar BLOQUEADO si una localidad seated no tiene asientos (nombra la localidad)', async () => {
+    await setup({ localities: () => of([{ id: 'l9', name: 'Platea', kind: 'seated', capacity: 0 }]) });
+    expect(inst()['canPublish']()).toBe(false);
+    expect(String(inst()['publishBlock']())).toMatch(/Platea/);
+  });
+
+  it('publish() no llama al API si está bloqueado (avisa el motivo)', async () => {
+    const publish = jasmine.createSpy('p').and.returnValue(of(EVENT));
+    await setup({ publish, get: () => of({ ...EVENT, media: [] }) });
+    fixture.componentInstance['publish']();
+    expect(publish).not.toHaveBeenCalled();
+    expect(lastToast()?.kind).toBe('warning');
+  });
+
+  // --- Localidades: patrón botón → form ---
+  it('crear localidad: el form está plegado y se abre con el botón', async () => {
+    await setup();
+    fixture.componentInstance['selectTab']('localidades');
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="loc-add-form"]')).toBeNull();
+    expect(el.querySelector('[data-testid="loc-add-toggle"]')).not.toBeNull();
+    fixture.componentInstance['toggleLocForm']();
+    fixture.detectChanges();
+    expect(el.querySelector('[data-testid="loc-add-form"]')).not.toBeNull();
+  });
+
   it('agregar localidad sin nombre no llama al API', async () => {
     const addLocality = jasmine.createSpy('a').and.returnValue(of({}));
     await setup({ addLocality });
@@ -114,12 +197,38 @@ describe('EventEditPage (v3)', () => {
     expect(lastToast()?.kind).toBe('warning');
   });
 
-  it('agregar localidad válida llama al API', async () => {
+  it('agregar localidad válida llama al API y cierra el form', async () => {
     const addLocality = jasmine.createSpy('a').and.returnValue(of({ id: 'l2' }));
     await setup({ addLocality });
+    fixture.componentInstance['toggleLocForm']();
     fixture.componentInstance['locForm'].name.set('Nueva');
     fixture.componentInstance['addLocality']();
     expect(addLocality).toHaveBeenCalled();
+    expect(inst()['showLocForm']()).toBe(false);
+  });
+
+  // --- Banner: subir + IA ---
+  it('banner: el form de IA está oculto y se abre desde el desplegable', async () => {
+    await setup();
+    fixture.componentInstance['selectTab']('banner');
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="bn-ai-form"]')).toBeNull();
+    expect(el.querySelector('[data-testid="bn-ai-toggle"]')).not.toBeNull();
+    fixture.componentInstance['toggleAiForm']();
+    fixture.detectChanges();
+    expect(el.querySelector('[data-testid="bn-ai-form"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="bn-generate"]')).not.toBeNull();
+  });
+
+  it('banner: subir un archivo llama a MediaApi.uploadBanner', async () => {
+    const uploadBanner = jasmine.createSpy('ub').and.returnValue(of({ id: 'm1', key: 'k', kind: 'cover' }));
+    await setup({}, {}, 'e1');
+    // Inyecta el spy en la instancia (el MediaApi real es privado).
+    (fixture.componentInstance as unknown as { media: { uploadBanner: typeof uploadBanner } }).media = { uploadBanner };
+    const file = new File(['x'], 'banner.png', { type: 'image/png' });
+    fixture.componentInstance['onBannerFile']({ target: { files: [file], value: '' } } as unknown as Event);
+    expect(uploadBanner).toHaveBeenCalledWith('e1', file);
   });
 
   it('generar banner arma opciones y muestra la imagen', async () => {
@@ -155,8 +264,8 @@ describe('EventEditPage (v3)', () => {
     await setup({ quote });
     const c = fixture.componentInstance as unknown as { onNetChange: (v: number) => void };
     c.onNetChange(100);
-    expect(quote).not.toHaveBeenCalled(); // aún no: espera el debounce
-    await new Promise((r) => setTimeout(r, 400)); // supera los 300ms del debounce
+    expect(quote).not.toHaveBeenCalled();
+    await new Promise((r) => setTimeout(r, 400));
     expect(quote).toHaveBeenCalledWith(100);
     fixture.detectChanges();
     expect(fixture.componentInstance['pricePreview']()?.total).toBe('129.68');
@@ -178,8 +287,8 @@ describe('EventEditPage (v3)', () => {
     await setup({
       localities: () =>
         of([
-          { id: 'l1', name: 'VIP', kind: 'seated' },
-          { id: 'l2', name: 'General', kind: 'general' },
+          { id: 'l1', name: 'VIP', kind: 'seated', capacity: 5 },
+          { id: 'l2', name: 'General', kind: 'general', capacity: 10 },
         ]),
     });
     const c = fixture.componentInstance as unknown as {
@@ -188,7 +297,6 @@ describe('EventEditPage (v3)', () => {
       filteredLocalities: () => { id: string }[];
       toggleLocSearch: () => void;
     };
-    // Oculto por defecto.
     expect(c.locSearchOpen()).toBe(false);
     c.toggleLocSearch();
     expect(c.locSearchOpen()).toBe(true);
@@ -196,7 +304,6 @@ describe('EventEditPage (v3)', () => {
     fixture.detectChanges();
     expect(c.filteredLocalities().length).toBe(1);
     expect(c.filteredLocalities()[0].id).toBe('l1');
-    // Cerrar el buscador limpia el término.
     c.toggleLocSearch();
     expect(c.filteredLocalities().length).toBe(2);
   });
@@ -205,8 +312,8 @@ describe('EventEditPage (v3)', () => {
     await setup({
       localities: () =>
         of([
-          { id: 'l1', name: 'VIP', kind: 'seated' },
-          { id: 'l2', name: 'General', kind: 'general' },
+          { id: 'l1', name: 'VIP', kind: 'seated', capacity: 5 },
+          { id: 'l2', name: 'General', kind: 'general', capacity: 10 },
         ]),
     });
     fixture.componentInstance['selectTab']('localidades');
@@ -217,7 +324,7 @@ describe('EventEditPage (v3)', () => {
   });
 
   it('localidades: "Administrar asientos" navega a la vista de asientos (no inline)', async () => {
-    await setup({ localities: () => of([{ id: 'l1', name: 'VIP', kind: 'seated' }]) });
+    await setup({ localities: () => of([{ id: 'l1', name: 'VIP', kind: 'seated', capacity: 5 }]) });
     const nav = spyOn(fixture.componentInstance['router'], 'navigate').and.resolveTo(true);
     fixture.componentInstance['manageSeats']({ id: 'l1', name: 'VIP', kind: 'seated' } as never);
     expect(nav).toHaveBeenCalledWith(
@@ -227,7 +334,7 @@ describe('EventEditPage (v3)', () => {
   });
 
   it('localidades: como admin (?from=admin) la navegación a asientos preserva el origen', async () => {
-    await setup({ localities: () => of([{ id: 'l1', name: 'VIP', kind: 'seated' }]) }, { from: 'admin' });
+    await setup({ localities: () => of([{ id: 'l1', name: 'VIP', kind: 'seated', capacity: 5 }]) }, { from: 'admin' });
     const nav = spyOn(fixture.componentInstance['router'], 'navigate').and.resolveTo(true);
     fixture.componentInstance['manageSeats']({ id: 'l1', name: 'VIP', kind: 'seated' } as never);
     expect(nav).toHaveBeenCalledWith(
@@ -239,7 +346,6 @@ describe('EventEditPage (v3)', () => {
   it('eliminar evento pide confirmación (modal) antes de borrar', async () => {
     const remove = jasmine.createSpy('r').and.returnValue(of(undefined));
     await setup({ remove });
-    // Al eliminar con éxito navega al listado; se espía para no chocar con las rutas vacías.
     spyOn(fixture.componentInstance['router'], 'navigateByUrl').and.resolveTo(true);
     fixture.componentInstance['askRemove']();
     fixture.detectChanges();
@@ -252,7 +358,7 @@ describe('EventEditPage (v3)', () => {
 
   it('eliminar localidad pide confirmación antes de borrar', async () => {
     const removeLocality = jasmine.createSpy('rl').and.returnValue(of(undefined));
-    await setup({ removeLocality, localities: () => of([{ id: 'l1', name: 'VIP', kind: 'seated' }]) });
+    await setup({ removeLocality, localities: () => of([{ id: 'l1', name: 'VIP', kind: 'seated', capacity: 5 }]) });
     fixture.componentInstance['askRemoveLocality']({ id: 'l1', name: 'VIP', kind: 'seated' } as never);
     expect(removeLocality).not.toHaveBeenCalled();
     fixture.componentInstance['onConfirmAccept']();

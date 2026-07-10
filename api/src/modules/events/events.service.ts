@@ -266,11 +266,12 @@ export class EventsService {
   async getManaged(id: string, user: AuthUser) {
     const event = await this.prisma.event.findUnique({
       where: { id },
-      include: { category: true, media: true, localities: true },
+      include: { category: true, media: { orderBy: { position: 'asc' } }, localities: true },
     });
     if (!event) throw new NotFoundException('Evento no encontrado');
     if (!this.canManage(event, user)) throw new ForbiddenException('No es tu evento');
-    return event;
+    // Firma la media (banner/galería) para que el editor pueda previsualizarla.
+    return this.signMedia(event);
   }
 
   async create(dto: CreateEventDto, userId: string) {

@@ -31,20 +31,11 @@ export class PromoterPanel {
 
   protected readonly events = signal<MyEventListItemDto[]>([]);
   protected readonly loading = signal(true);
-  protected readonly creating = signal(false);
-  protected readonly showCreate = signal(false);
   protected readonly page = signal(1);
   protected readonly pageSize = PAGE_SIZE;
   /** Búsqueda por nombre + filtro por estado (regla v3.2: toda lista los tiene). */
   protected readonly search = signal('');
   protected readonly filterStatus = signal('');
-
-  // Crear = borrador mínimo (solo nombre + inicio); el resto se completa en el
-  // editor (misma vista de alta/edición). El fin se autocalcula en el backend.
-  protected readonly form = {
-    name: signal(''),
-    startsAt: signal(''),
-  };
 
   /** Estados presentes (para el selector de filtro). */
   protected readonly statuses = computed(() => [...new Set(this.events().map((e) => e.status))]);
@@ -93,45 +84,13 @@ export class PromoterPanel {
     });
   }
 
-  protected toggleCreate(): void {
-    this.showCreate.update((v) => !v);
-  }
-
   protected goToPage(p: number): void {
     this.page.set(Math.min(Math.max(1, p), this.totalPages()));
   }
 
-  /**
-   * Crea un BORRADOR mínimo y navega a la vista de edición (única vista de
-   * alta/edición). El fin es opcional: el backend lo autocalcula (inicio + 12h).
-   */
-  protected createEvent(): void {
-    if (!this.form.name() || !this.form.startsAt()) {
-      this.toasts.warning('Completa el nombre y la fecha de inicio del evento.');
-      return;
-    }
-    this.creating.set(true);
-    this.eventsApi
-      .create({
-        name: this.form.name(),
-        startsAt: new Date(this.form.startsAt()).toISOString(),
-        ivaOnNet: true,
-        absorbInstallmentCost: false,
-      })
-      .subscribe({
-        next: (ev) => {
-          this.creating.set(false);
-          this.form.name.set('');
-          this.form.startsAt.set('');
-          this.showCreate.set(false);
-          this.toasts.success('Borrador creado. Completa los datos y publícalo.');
-          void this.router.navigate(['/promotor/eventos', ev.id, 'editar']);
-        },
-        error: () => {
-          this.creating.set(false);
-          this.toasts.error('No se pudo crear el evento. Revisa la fecha de inicio.');
-        },
-      });
+  /** "Nuevo evento" abre la MISMA vista de edición en modo creación (form en blanco). */
+  protected newEvent(): void {
+    void this.router.navigate(['/promotor/eventos/nuevo']);
   }
 
   protected publish(ev: MyEventListItemDto): void {
@@ -140,8 +99,16 @@ export class PromoterPanel {
         this.toasts.success(`"${ev.name}" publicado.`);
         this.loadEvents();
       },
-      error: () => this.toasts.error('No se pudo publicar (¿faltan localidades?).'),
+      error: (err) => this.toasts.error(this.publishError(err)),
     });
+  }
+
+  /** Extrae el motivo (422 del backend: falta banner/asientos) o uno genérico. */
+  private publishError(err: unknown): string {
+    const msg = (err as { error?: { message?: string | string[] } })?.error?.message;
+    if (Array.isArray(msg)) return msg.join(' ');
+    if (typeof msg === 'string') return msg;
+    return 'No se pudo publicar. Abre el evento para ver qué falta (banner/asientos).';
   }
 
   // --- Confirmación de acciones destructivas ---

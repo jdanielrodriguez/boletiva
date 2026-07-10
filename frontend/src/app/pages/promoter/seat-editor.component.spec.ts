@@ -22,7 +22,12 @@ describe('SeatEditorComponent (editor de asientos)', () => {
         },
         {
           provide: ToastService,
-          useValue: { success: () => {}, error: () => {}, info: () => {}, warning: () => {} },
+          useValue: {
+            success: () => undefined,
+            error: () => undefined,
+            info: () => undefined,
+            warning: () => undefined,
+          },
         },
       ],
     });

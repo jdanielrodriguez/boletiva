@@ -43,12 +43,6 @@ describe('PromoterPanel (v3 grid)', () => {
     (el.querySelector(`[data-testid="${id}"]`) as HTMLButtonElement).click();
     fixture.detectChanges();
   };
-  const setSig = (path: string, value: unknown) => {
-    const c = fixture.componentInstance as unknown as Record<string, Record<string, { set: (v: unknown) => void }>>;
-    const parts = path.split('.');
-    (c[parts[0]][parts[1]] as { set: (v: unknown) => void }).set(value);
-  };
-
   it('lista mis eventos en un grid de cards', async () => {
     await setup();
     const cards = el.querySelectorAll('[data-testid="ev-card"]');
@@ -84,26 +78,13 @@ describe('PromoterPanel (v3 grid)', () => {
     expect(el.querySelector('[data-testid="events-no-match"]')).not.toBeNull();
   });
 
-  it('crear evento sin fechas no llama create', async () => {
-    const create = jasmine.createSpy('create').and.returnValue(of(EVENTS[0]));
-    await setup({ create });
-    click('toggle-create');
-    setSig('form.name', 'Nuevo');
-    click('ev-create');
-    expect(create).not.toHaveBeenCalled();
-  });
-
-  it('crear borrador válido llama create (sin endsAt) y navega al editor', async () => {
-    const create = jasmine.createSpy('create').and.returnValue(of(EVENTS[0]));
-    await setup({ create });
+  it('"Nuevo evento" navega a la vista de creación en blanco (no hay mini-form)', async () => {
+    await setup();
     const nav = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    // Ya no existe el mini-form inline (create-form) en el panel.
+    expect(el.querySelector('[data-testid="create-form"]')).toBeNull();
     click('toggle-create');
-    setSig('form.name', 'Nuevo');
-    setSig('form.startsAt', '2028-08-15T20:00');
-    click('ev-create');
-    expect(create).toHaveBeenCalled();
-    expect(create.calls.mostRecent().args[0].endsAt).toBeUndefined();
-    expect(nav).toHaveBeenCalledWith(['/promotor/eventos', 'e1', 'editar']);
+    expect(nav).toHaveBeenCalledWith(['/promotor/eventos/nuevo']);
   });
 
   it('publicar un evento draft llama publish', async () => {

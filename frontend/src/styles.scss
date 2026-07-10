@@ -878,6 +878,11 @@ app-root {
   border-color: rgba(239, 68, 68, 0.5);
 }
 
+.badge-warn {
+  color: var(--pe-warn, #f59e0b);
+  border-color: rgba(245, 158, 11, 0.55);
+}
+
 .ticket-list {
   list-style: none;
   padding: 0;
@@ -2195,7 +2200,12 @@ button.danger:hover:not(:disabled) { background: rgba(255, 107, 129, 0.12); bord
   flex-direction: column;
   gap: 0.5rem;
 }
-.ev-card-top { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+/* Fila superior: badge (izq) · localidades (centro) · Publicar icon-only (der). */
+.ev-card-top { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 0.5rem; }
+.ev-card-top > .badge { justify-self: start; }
+.ev-card-loc { justify-self: center; text-align: center; white-space: nowrap; }
+.ev-card-top > .btn.icon-only,
+.ev-card-top-spacer { justify-self: end; }
 .ev-card-name {
   font-weight: 700;
   font-size: 1.05rem;
@@ -2203,7 +2213,21 @@ button.danger:hover:not(:disabled) { background: rgba(255, 107, 129, 0.12); bord
   text-decoration: none;
 }
 .ev-card-name:hover { color: var(--pe-primary); }
-.ev-card-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.4rem; }
+.ev-card-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; }
+.ev-card-actions .btn.small { flex: 1 1 auto; justify-content: center; min-width: 96px; }
+
+/* Botón solo-icono (cuadrado, sin label). */
+.btn.icon-only {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+}
+.btn.icon-only app-icon,
+.btn.icon-only svg { margin: 0; }
 
 /* Edición de evento */
 .event-edit { max-width: 960px; margin: 0 auto; }
@@ -2215,6 +2239,33 @@ button.danger:hover:not(:disabled) { background: rgba(255, 107, 129, 0.12); bord
   margin-top: 1rem;
   border-radius: var(--pe-radius);
   border: 1px solid var(--pe-border);
+}
+
+/* Sección de banner: subir uno hecho vs generar con IA */
+.banner-section { display: flex; flex-direction: column; gap: 0.6rem; }
+.banner-option h3 { margin: 0 0 0.3rem; }
+.banner-option .btn.disabled { opacity: 0.6; pointer-events: none; }
+.banner-option label.btn { cursor: pointer; }
+.banner-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: var(--pe-muted, #9aa0b0);
+  font-size: 0.85rem;
+}
+.banner-divider::before,
+.banner-divider::after {
+  content: '';
+  flex: 1;
+  border-top: 1px solid var(--pe-border);
+}
+.banner-divider span { padding: 0 0.7rem; }
+.banner-ai-form {
+  margin-top: 0.6rem;
+  padding: 0.8rem;
+  border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius-sm);
+  background: var(--pe-surface-2);
 }
 
 /* Localidades (gestión) */

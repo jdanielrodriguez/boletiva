@@ -4,36 +4,10 @@
       <h1>Mis eventos</h1>
       <p class="muted">Crea, configura y publica tus eventos.</p>
     </div>
-    <button type="button" class="btn primary" (click)="toggleCreate()" data-testid="toggle-create" title="Nuevo evento">
-      <app-icon [name]="showCreate() ? 'cancel' : 'add'" /> {{ showCreate() ? 'Cerrar' : 'Nuevo evento' }}
+    <button type="button" class="btn primary" (click)="newEvent()" data-testid="toggle-create" title="Nuevo evento">
+      <app-icon name="add" /> Nuevo evento
     </button>
   </div>
-
-  @if (showCreate()) {
-    <div class="card-block panel-create" data-testid="create-form">
-      <h2>Crear evento</h2>
-      <p class="muted small">
-        Crea un borrador con lo mínimo; en el editor completas categoría, descripción,
-        localidades, banner y configuración. La fecha de fin se calcula automáticamente
-        (puedes ajustarla luego).
-      </p>
-      <form (ngSubmit)="createEvent()">
-        <div class="form-grid">
-          <label class="field">
-            <span>Nombre</span>
-            <input type="text" [ngModel]="form.name()" (ngModelChange)="form.name.set($event)" name="name" data-testid="ev-name" />
-          </label>
-          <label class="field">
-            <span>Inicio</span>
-            <input type="datetime-local" [ngModel]="form.startsAt()" (ngModelChange)="form.startsAt.set($event)" name="startsAt" data-testid="ev-start" />
-          </label>
-        </div>
-        <button type="submit" class="btn primary" [disabled]="creating()" data-testid="ev-create" title="Crear y editar">
-          <app-icon name="add" /> {{ creating() ? 'Creando…' : 'Crear y editar' }}
-        </button>
-      </form>
-    </div>
-  }
 
   @if (!loading() && events().length > 0) {
     <div class="list-filters" data-testid="panel-filters">
@@ -64,7 +38,15 @@
         <article class="ev-card" data-testid="ev-card">
           <div class="ev-card-top">
             <span class="badge badge-{{ ev.status }}">{{ ev.status }}</span>
-            <span class="muted small">{{ ev._count.localities }} localidad(es)</span>
+            <span class="ev-card-loc muted small">{{ ev._count.localities }} localidad(es)</span>
+            @if (ev.status === 'draft') {
+              <button type="button" class="btn icon-only primary" (click)="publish(ev)" data-testid="ev-publish"
+                title="Publicar evento" aria-label="Publicar evento">
+                <app-icon name="publish" />
+              </button>
+            } @else {
+              <span class="ev-card-top-spacer" aria-hidden="true"></span>
+            }
           </div>
           <a class="ev-card-name" [routerLink]="['/promotor/eventos', ev.id, 'editar']" data-testid="ev-name-link">{{ ev.name }}</a>
           <time class="muted small">{{ ev.startsAt | date: 'EEE d MMM y, HH:mm' }}</time>
@@ -73,9 +55,6 @@
               <app-icon name="edit" /> Editar
             </a>
             @if (ev.status === 'draft') {
-              <button type="button" class="btn small primary" (click)="publish(ev)" data-testid="ev-publish" title="Publicar evento">
-                <app-icon name="publish" /> Publicar
-              </button>
               <button type="button" class="btn small danger" (click)="askRemove(ev)" data-testid="ev-delete" title="Eliminar evento">
                 <app-icon name="delete" /> Eliminar
               </button>
