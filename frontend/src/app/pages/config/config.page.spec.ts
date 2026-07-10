@@ -256,4 +256,82 @@ describe('ConfigPage (v3, admin console)', () => {
     fixture.componentInstance['revoke']({ id: 'i1', email: 'a@b.com', status: 'pending' } as never);
     expect(revoke).toHaveBeenCalledWith('i1');
   });
+
+  it('sistema: el buscador de pasarelas filtra por nombre', async () => {
+    await setup();
+    await selectTab('tab-sistema');
+    const c = fixture.componentInstance as unknown as {
+      gatewaySearch: { set: (v: string) => void };
+      filteredGateways: () => { id: string }[];
+    };
+    c.gatewaySearch.set('recurrente');
+    fixture.detectChanges();
+    expect(c.filteredGateways().length).toBe(1);
+    expect(c.filteredGateways()[0].id).toBe('g2');
+  });
+
+  it('sistema: al editar una pasarela se oculta su botón Editar', async () => {
+    await setup();
+    await selectTab('tab-sistema');
+    // Antes de editar hay al menos un botón Editar visible.
+    expect(el.querySelectorAll('[data-testid="gw-edit"]').length).toBeGreaterThan(0);
+    fixture.componentInstance['editGateway'](GATEWAYS[1] as never);
+    fixture.detectChanges();
+    // El de esa pasarela ya no está (el draft coincide con su id).
+    const buttons = [...el.querySelectorAll('[data-testid="gw-edit"]')];
+    expect(buttons.length).toBe(GATEWAYS.length - 1);
+  });
+
+  it('sistema: el desbloqueo por código aparece en un MODAL centrado', async () => {
+    const unlockGateway = jasmine.createSpy('u').and.returnValue(of({ sent: true }));
+    await setup({ unlockGateway });
+    await selectTab('tab-sistema');
+    expect(el.querySelector('[data-testid="gw-unlock-modal"]')).toBeNull();
+    click('gw-unlock');
+    const modal = el.querySelector('[data-testid="gw-unlock-modal"]');
+    expect(modal).not.toBeNull();
+    expect(modal?.classList.contains('modal-backdrop')).toBe(true);
+    // Cancelar cierra el modal.
+    fixture.componentInstance['cancelUnlock']();
+    fixture.detectChanges();
+    expect(el.querySelector('[data-testid="gw-unlock-modal"]')).toBeNull();
+  });
+
+  it('invitaciones: pagina el grid (9 por página) y navega', async () => {
+    const many = Array.from({ length: 20 }, (_, i) => ({
+      id: `i${i}`,
+      email: `p${i}@x.com`,
+      status: 'pending',
+    }));
+    await setup({}, { list: () => of(many) });
+    await selectTab('tab-invitaciones');
+    const c = fixture.componentInstance as unknown as {
+      pageInvitations: () => unknown[];
+      invTotalPages: () => number;
+      goToInvPage: (p: number) => void;
+      invPage: () => number;
+    };
+    expect(c.pageInvitations().length).toBe(9);
+    expect(c.invTotalPages()).toBe(3);
+    c.goToInvPage(3);
+    expect(c.invPage()).toBe(3);
+    expect(c.pageInvitations().length).toBe(2);
+    // El pager se renderiza.
+    expect(el.querySelector('[data-testid="inv-pager"]')).not.toBeNull();
+  });
+
+  it('invitaciones: buscar reinicia a la página 1', async () => {
+    const many = Array.from({ length: 20 }, (_, i) => ({ id: `i${i}`, email: `p${i}@x.com`, status: 'pending' }));
+    await setup({}, { list: () => of(many) });
+    await selectTab('tab-invitaciones');
+    const c = fixture.componentInstance as unknown as {
+      goToInvPage: (p: number) => void;
+      setInvSearch: (v: string) => void;
+      invPage: () => number;
+    };
+    c.goToInvPage(2);
+    expect(c.invPage()).toBe(2);
+    c.setInvSearch('p1');
+    expect(c.invPage()).toBe(1);
+  });
 });

@@ -11,6 +11,7 @@ import {
 } from '../../core/api/admin.api';
 import { InvitationsApi } from '../../core/api/invitations.api';
 import { ToastService } from '../../core/ui/toast.service';
+import { IconComponent } from '../../shared/icon/icon.component';
 import type { CreatedInvitationDto, InvitationListItemDto } from '../../core/api/types';
 
 type AdminTab = 'eventos' | 'promotores' | 'sistema' | 'invitaciones';
@@ -36,6 +37,7 @@ interface GatewayDraft {
 }
 
 const EVENTS_PAGE = 12;
+const INV_PAGE = 9;
 
 /**
  * Consola de administración (F-v3, SOLO admin — roleGuard admin). Tabs: Eventos
@@ -46,7 +48,7 @@ const EVENTS_PAGE = 12;
  */
 @Component({
   selector: 'app-config-page',
-  imports: [FormsModule, DatePipe],
+  imports: [FormsModule, DatePipe, IconComponent],
   templateUrl: './config.page.html',
 })
 export class ConfigPage {
@@ -106,6 +108,15 @@ export class ConfigPage {
   protected readonly defaultPct = signal<number | null>(null);
   protected readonly gateways = signal<GatewayResponseDto[]>([]);
   protected readonly gatewayDraft = signal<GatewayDraft | null>(null);
+  /** Buscador de pasarelas (regla v3.2: filtro por nombre). */
+  protected readonly gatewaySearch = signal('');
+  protected readonly filteredGateways = computed(() => {
+    const q = this.gatewaySearch().trim().toLowerCase();
+    if (!q) return this.gateways();
+    return this.gateways().filter(
+      (g) => g.name.toLowerCase().includes(q) || (g.provider ?? '').toLowerCase().includes(q),
+    );
+  });
 
   // --- Invitaciones ---
   protected readonly emailsText = signal('');
@@ -126,6 +137,27 @@ export class ConfigPage {
       return true;
     });
   });
+  /** Paginación del grid de invitaciones (regla v3.2). */
+  protected readonly invPage = signal(1);
+  protected readonly invPageSize = INV_PAGE;
+  protected readonly invTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.filteredInvitations().length / INV_PAGE)),
+  );
+  protected readonly pageInvitations = computed(() => {
+    const start = (this.invPage() - 1) * INV_PAGE;
+    return this.filteredInvitations().slice(start, start + INV_PAGE);
+  });
+  protected goToInvPage(p: number): void {
+    this.invPage.set(Math.min(Math.max(1, p), this.invTotalPages()));
+  }
+  protected setInvSearch(v: string): void {
+    this.invSearch.set(v);
+    this.invPage.set(1);
+  }
+  protected setInvFilter(v: string): void {
+    this.invFilterStatus.set(v);
+    this.invPage.set(1);
+  }
 
   constructor() {
     this.loadEvents();

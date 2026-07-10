@@ -36,8 +36,12 @@
               <time class="muted small">{{ e.startsAt | date: 'EEE d MMM y' }}</time>
               <span class="muted small">{{ e.promoter.firstName }} {{ e.promoter.lastName }}</span>
               <div class="ev-card-actions">
-                <button type="button" class="btn small" (click)="openEvent(e.id, 'cuentas')" data-testid="ev-accounts">Cuentas</button>
-                <button type="button" class="btn small" (click)="openEvent(e.id)" data-testid="ev-open-btn">Ver evento</button>
+                <button type="button" class="btn small" (click)="openEvent(e.id, 'cuentas')" data-testid="ev-accounts" title="Ver cuentas del evento">
+                  <app-icon name="accounts" /> Cuentas
+                </button>
+                <button type="button" class="btn small" (click)="openEvent(e.id)" data-testid="ev-open-btn" title="Abrir el evento">
+                  <app-icon name="view" /> Ver evento
+                </button>
               </div>
             </article>
           }
@@ -88,23 +92,32 @@
                 </label>
                 <label class="field inline"><span>Reparto (cost-share)</span>
                   <input type="number" min="0" max="1" step="0.05" #pct placeholder="0.5" />
-                  <button type="button" class="btn small" (click)="setPromoterPct(p, pct.value)" data-testid="promoter-pct-save">Guardar</button>
+                  <button type="button" class="btn small" (click)="setPromoterPct(p, pct.value)" data-testid="promoter-pct-save" title="Guardar reparto">
+                    <app-icon name="save" /> Guardar
+                  </button>
                 </label>
               </div>
               <div class="ev-card-actions">
                 @if (p.promoterStatus !== 'approved') {
-                  <button type="button" class="btn small primary" (click)="approve(p)" data-testid="promoter-approve">
+                  <button type="button" class="btn small primary" (click)="approve(p)" data-testid="promoter-approve"
+                    [title]="p.promoterStatus === 'suspended' ? 'Reactivar promotor' : 'Aprobar promotor'">
+                    <app-icon [name]="p.promoterStatus === 'suspended' ? 'reactivate' : 'save'" />
                     {{ p.promoterStatus === 'suspended' ? 'Reactivar' : 'Aprobar' }}
                   </button>
                 }
                 @if (p.promoterStatus === 'pending') {
-                  <button type="button" class="btn small danger" (click)="reject(p)" data-testid="promoter-reject">Rechazar</button>
+                  <button type="button" class="btn small danger" (click)="reject(p)" data-testid="promoter-reject" title="Rechazar solicitud">
+                    <app-icon name="cancel" /> Rechazar
+                  </button>
                 }
                 @if (p.promoterStatus === 'approved') {
-                  <button type="button" class="btn small danger" (click)="openSuspend(p)" data-testid="promoter-suspend">Suspender</button>
+                  <button type="button" class="btn small danger" (click)="openSuspend(p)" data-testid="promoter-suspend" title="Suspender promotor">
+                    <app-icon name="suspend" /> Suspender
+                  </button>
                 }
-                <button type="button" class="btn small" (click)="toggleHistory(p)" data-testid="promoter-history">
-                  {{ historyFor() === p.id ? 'Ocultar historial' : 'Historial' }}
+                <button type="button" class="btn small" (click)="toggleHistory(p)" data-testid="promoter-history"
+                  [title]="historyFor() === p.id ? 'Ocultar historial' : 'Ver historial'">
+                  <app-icon name="history" /> {{ historyFor() === p.id ? 'Ocultar historial' : 'Historial' }}
                 </button>
               </div>
               @if (historyFor() === p.id) {
@@ -139,8 +152,12 @@
               <textarea rows="3" [ngModel]="suspendReason()" (ngModelChange)="suspendReason.set($event)" name="susreason" data-testid="suspend-reason" placeholder="Explica por qué se suspende (queda en el historial)"></textarea>
             </label>
             <div class="ev-card-actions">
-              <button type="button" class="btn danger" (click)="confirmSuspend()" data-testid="suspend-confirm">Suspender</button>
-              <button type="button" class="btn" (click)="cancelSuspend()" data-testid="suspend-cancel">Cancelar</button>
+              <button type="button" class="btn danger" (click)="confirmSuspend()" data-testid="suspend-confirm" title="Confirmar suspensión">
+                <app-icon name="suspend" /> Suspender
+              </button>
+              <button type="button" class="btn" (click)="cancelSuspend()" data-testid="suspend-cancel" title="Cancelar">
+                <app-icon name="cancel" /> Cancelar
+              </button>
             </div>
           </div>
         </div>
@@ -156,8 +173,8 @@
           <p class="muted">Cargando…</p>
         } @else {
           <p class="muted">{{ requireApproval() ? 'Se exige aprobación del admin para operar como promotor.' : 'Modo pruebas: los promotores se auto-aprueban.' }}</p>
-          <button type="button" class="btn primary" (click)="toggleRequireApproval()" data-testid="toggle-require-approval">
-            {{ requireApproval() ? 'Activar modo pruebas (auto-aprobar)' : 'Exigir aprobación' }}
+          <button type="button" class="btn primary" (click)="toggleRequireApproval()" data-testid="toggle-require-approval" title="Cambiar modo de autorización">
+            <app-icon name="reactivate" /> {{ requireApproval() ? 'Activar modo pruebas (auto-aprobar)' : 'Exigir aprobación' }}
           </button>
         }
       </div>
@@ -167,7 +184,9 @@
         <p class="muted">Fracción de los gastos EXTRA (p.ej. pasar a wallet) que asume el promotor (0–1).</p>
         <div class="field inline">
           <input type="number" min="0" max="1" step="0.05" [ngModel]="defaultPct()" (ngModelChange)="defaultPct.set($event)" name="defpct" #dp data-testid="default-pct" />
-          <button type="button" class="btn primary" (click)="saveDefaultPct(dp.value)" data-testid="save-default-pct">Guardar</button>
+          <button type="button" class="btn primary" (click)="saveDefaultPct(dp.value)" data-testid="save-default-pct" title="Guardar reparto por defecto">
+            <app-icon name="save" /> Guardar
+          </button>
         </div>
       </div>
 
@@ -175,17 +194,15 @@
         <h3>Pasarelas de pago</h3>
 
         <div class="gateway-add" data-testid="gateway-add">
-          @if (!unlockSent()) {
-            <button type="button" class="btn" (click)="requestUnlock()" data-testid="gw-unlock">Desbloquear agregado</button>
-            <p class="muted small">Agregar una pasarela es una acción sensible: te enviaremos un código al correo.</p>
-          } @else if (!unlockUnlocked()) {
-            <div class="unlock-modal" data-testid="gw-unlock-modal">
-              <label class="field"><span>Código recibido por correo</span>
-                <input type="text" maxlength="6" [ngModel]="unlockCode()" (ngModelChange)="unlockCode.set($event)" name="unlockcode" data-testid="gw-unlock-code" />
-              </label>
-              <button type="button" class="btn primary" (click)="confirmUnlock()" data-testid="gw-unlock-confirm">Validar código</button>
-              <button type="button" class="btn" (click)="cancelUnlock()">Cancelar</button>
-            </div>
+          @if (!unlockUnlocked()) {
+            @if (!unlockSent()) {
+              <button type="button" class="btn" (click)="requestUnlock()" data-testid="gw-unlock" title="Desbloquear agregar pasarela">
+                <app-icon name="unlock" /> Desbloquear agregado
+              </button>
+              <p class="muted small">Agregar una pasarela es una acción sensible: te enviaremos un código al correo.</p>
+            } @else {
+              <p class="muted small">Te enviamos un código al correo. Ingrésalo en la ventana para continuar.</p>
+            }
           } @else {
             <div class="gateway-edit-grid" data-testid="gw-create-form">
               <label class="field"><span>Nombre</span>
@@ -202,15 +219,43 @@
               </label>
             </div>
             <div class="ev-card-actions">
-              <button type="button" class="btn primary" (click)="createGateway()" data-testid="gw-create">Agregar pasarela</button>
-              <button type="button" class="btn" (click)="cancelUnlock()">Cancelar</button>
+              <button type="button" class="btn primary" (click)="createGateway()" data-testid="gw-create" title="Agregar pasarela">
+                <app-icon name="add" /> Agregar pasarela
+              </button>
+              <button type="button" class="btn" (click)="cancelUnlock()" title="Cancelar">
+                <app-icon name="cancel" /> Cancelar
+              </button>
             </div>
           }
         </div>
 
+        <!-- Modal centrado de desbloqueo por código (acción sensible). -->
+        @if (unlockSent() && !unlockUnlocked()) {
+          <div class="modal-backdrop" data-testid="gw-unlock-modal">
+            <div class="modal-card">
+              <h3>Autorizar agregar pasarela</h3>
+              <p class="muted small">Ingresa el código de 6 dígitos que enviamos a tu correo.</p>
+              <label class="field"><span>Código recibido por correo</span>
+                <input type="text" maxlength="6" inputmode="numeric" [ngModel]="unlockCode()" (ngModelChange)="unlockCode.set($event)" name="unlockcode" data-testid="gw-unlock-code" />
+              </label>
+              <div class="ev-card-actions">
+                <button type="button" class="btn primary" (click)="confirmUnlock()" data-testid="gw-unlock-confirm" title="Validar código">
+                  <app-icon name="save" /> Validar código
+                </button>
+                <button type="button" class="btn" (click)="cancelUnlock()" title="Cancelar">
+                  <app-icon name="cancel" /> Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+
         @if (gateways().length > 0) {
+          <div class="list-filters">
+            <input type="search" placeholder="Buscar pasarela…" [ngModel]="gatewaySearch()" (ngModelChange)="gatewaySearch.set($event)" name="gwq" data-testid="gw-search" />
+          </div>
           <div data-testid="gateways-list">
-            @for (g of gateways(); track g.id) {
+            @for (g of filteredGateways(); track g.id) {
               <div class="gateway-edit">
                 <div class="gateway-edit-head">
                   <strong>{{ g.name }}</strong>
@@ -219,9 +264,15 @@
                   <span class="muted small">{{ g.provider }} · {{ g.feePct }} + Q{{ g.transactionFixedFee }}</span>
                   <span class="gateway-edit-actions" style="margin-left:auto; display:flex; gap:0.4rem;">
                     @if (!g.isPlatformDefault) {
-                      <button type="button" class="btn small" (click)="makeDefault(g)" data-testid="gw-make-default">Definir default</button>
+                      <button type="button" class="btn small" (click)="makeDefault(g)" data-testid="gw-make-default" title="Definir como pasarela default">
+                        <app-icon name="default" /> Definir default
+                      </button>
                     }
-                    <button type="button" class="btn small" (click)="editGateway(g)" data-testid="gw-edit">Editar</button>
+                    @if (gatewayDraft()?.id !== g.id) {
+                      <button type="button" class="btn small" (click)="editGateway(g)" data-testid="gw-edit" title="Editar pasarela">
+                        <app-icon name="edit" /> Editar
+                      </button>
+                    }
                   </span>
                 </div>
 
@@ -248,21 +299,33 @@
                       </label>
                     </div>
                     <div class="ev-card-actions">
-                      <button type="button" class="btn small primary" (click)="saveGateway()" data-testid="gw-save">Guardar</button>
-                      <button type="button" class="btn small" (click)="cancelGatewayEdit()">Cancelar</button>
+                      <button type="button" class="btn small primary" (click)="saveGateway()" data-testid="gw-save" title="Guardar cambios">
+                        <app-icon name="save" /> Guardar
+                      </button>
+                      <button type="button" class="btn small" (click)="cancelGatewayEdit()" title="Cancelar edición">
+                        <app-icon name="cancel" /> Cancelar
+                      </button>
                       @if (!g.isPlatformDefault) {
                         @if (g.status !== 'active') {
-                          <button type="button" class="btn small" (click)="setGatewayStatus(g, 'active')">Activar</button>
+                          <button type="button" class="btn small" (click)="setGatewayStatus(g, 'active')" title="Activar pasarela">
+                            <app-icon name="activate" /> Activar
+                          </button>
                         }
                         @if (g.status === 'active') {
-                          <button type="button" class="btn small" (click)="setGatewayStatus(g, 'maintenance')">Mantenimiento</button>
-                          <button type="button" class="btn small danger" (click)="setGatewayStatus(g, 'inactive')">Desactivar</button>
+                          <button type="button" class="btn small" (click)="setGatewayStatus(g, 'maintenance')" title="Poner en mantenimiento">
+                            <app-icon name="maintenance" /> Mantenimiento
+                          </button>
+                          <button type="button" class="btn small danger" (click)="setGatewayStatus(g, 'inactive')" title="Desactivar pasarela">
+                            <app-icon name="cancel" /> Desactivar
+                          </button>
                         }
                       }
                     </div>
                   }
                 }
               </div>
+            } @empty {
+              <p class="muted" data-testid="gw-search-empty">Ninguna pasarela coincide con la búsqueda.</p>
             }
           </div>
         } @else {
@@ -274,14 +337,16 @@
     @case ('invitaciones') {
       <h2>Invitar promotores</h2>
       <p class="muted">Ingresa uno o varios correos (coma, espacio o salto de línea). Cada invitado recibe un enlace para registrarse ya aprobado como promotor.</p>
-      <form (ngSubmit)="invite()">
-        <textarea [ngModel]="emailsText()" (ngModelChange)="emailsText.set($event)" name="emails" rows="3" placeholder="correo1@dominio.com, correo2@dominio.com" data-testid="inv-emails"></textarea>
+      <form class="inv-form card-block" (ngSubmit)="invite()">
+        <label class="field full"><span>Correos a invitar</span>
+          <textarea [ngModel]="emailsText()" (ngModelChange)="emailsText.set($event)" name="emails" rows="3" placeholder="correo1@dominio.com, correo2@dominio.com" data-testid="inv-emails"></textarea>
+        </label>
         <label class="check-row">
           <input type="checkbox" [ngModel]="inviteTestUser()" (ngModelChange)="inviteTestUser.set($event)" name="testuser" data-testid="inv-testuser" />
           <span>Usuario de prueba (anclado a Sandbox; no usa pasarelas reales).</span>
         </label>
-        <button type="submit" class="btn primary" [disabled]="inviting()" data-testid="inv-submit">
-          {{ inviting() ? 'Enviando…' : 'Invitar' }}
+        <button type="submit" class="btn primary" [disabled]="inviting()" data-testid="inv-submit" title="Enviar invitaciones">
+          <app-icon name="invite" /> {{ inviting() ? 'Enviando…' : 'Invitar' }}
         </button>
       </form>
 
@@ -302,8 +367,8 @@
       <h3>Invitaciones</h3>
       @if (invitations().length > 0) {
         <div class="list-filters">
-          <input type="search" placeholder="Buscar correo…" [ngModel]="invSearch()" (ngModelChange)="invSearch.set($event)" name="invq" data-testid="inv-search" />
-          <select [ngModel]="invFilterStatus()" (ngModelChange)="invFilterStatus.set($event)" name="invstatus" data-testid="inv-filter">
+          <input type="search" placeholder="Buscar correo…" [ngModel]="invSearch()" (ngModelChange)="setInvSearch($event)" name="invq" data-testid="inv-search" />
+          <select [ngModel]="invFilterStatus()" (ngModelChange)="setInvFilter($event)" name="invstatus" data-testid="inv-filter">
             <option value="">Todos los estados</option>
             @for (s of invStatuses(); track s) {
               <option [value]="s">{{ s }}</option>
@@ -311,7 +376,7 @@
           </select>
         </div>
         <div class="inv-grid" data-testid="inv-list">
-          @for (i of filteredInvitations(); track i.id) {
+          @for (i of pageInvitations(); track i.id) {
             <article class="inv-card" data-testid="inv-card">
               <div class="inv-card-top">
                 <span class="badge badge-{{ i.status }}">{{ i.status }}</span>
@@ -319,13 +384,22 @@
               </div>
               <span class="inv-email">{{ i.email }}</span>
               @if (i.status === 'pending') {
-                <button type="button" class="btn small danger" (click)="revoke(i)" data-testid="inv-revoke">Revocar</button>
+                <button type="button" class="btn small danger" (click)="revoke(i)" data-testid="inv-revoke" title="Revocar invitación">
+                  <app-icon name="revoke" /> Revocar
+                </button>
               }
             </article>
           } @empty {
             <p class="muted" data-testid="inv-no-match">Ninguna invitación coincide con la búsqueda.</p>
           }
         </div>
+        @if (invTotalPages() > 1) {
+          <div class="catalog-pager" data-testid="inv-pager">
+            <button type="button" class="pager-arrow" [disabled]="invPage() <= 1" (click)="goToInvPage(invPage() - 1)" aria-label="Página anterior" title="Anterior">‹</button>
+            <span class="pager-page is-current">{{ invPage() }} / {{ invTotalPages() }}</span>
+            <button type="button" class="pager-arrow" [disabled]="invPage() >= invTotalPages()" (click)="goToInvPage(invPage() + 1)" aria-label="Página siguiente" title="Siguiente">›</button>
+          </div>
+        }
       } @else {
         <p class="muted">Aún no has enviado invitaciones.</p>
       }
