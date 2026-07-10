@@ -1,11 +1,13 @@
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { Component, OnDestroy, afterNextRender, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { catchError, of, startWith, switchMap } from 'rxjs';
 import { ReservationsApi } from '../../core/api/reservations.api';
 import { SessionStore } from '../../core/auth/session.store';
 import type { ReservationResponseDto } from '../../core/api/types';
+import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { LoginModal } from '../../shared/login-modal/login-modal.component';
 import { ReservationItems } from '../../shared/reservation-items/reservation-items.component';
 
@@ -16,7 +18,7 @@ import { ReservationItems } from '../../shared/reservation-items/reservation-ite
  */
 @Component({
   selector: 'app-reservation',
-  imports: [DatePipe, DecimalPipe, RouterLink, LoginModal, ReservationItems],
+  imports: [DecimalPipe, LocalizedDatePipe, TranslatePipe, RouterLink, LoginModal, ReservationItems],
   templateUrl: './reservation.page.html',
 })
 export class ReservationPage implements OnDestroy {
@@ -24,6 +26,7 @@ export class ReservationPage implements OnDestroy {
   private readonly router = inject(Router);
   private readonly api = inject(ReservationsApi);
   private readonly session = inject(SessionStore);
+  private readonly translate = inject(TranslateService);
 
   protected readonly working = signal(false);
   protected readonly error = signal<string | null>(null);
@@ -76,7 +79,7 @@ export class ReservationPage implements OnDestroy {
       next: (order) => void this.router.navigate(['/checkout', order.id]),
       error: () => {
         this.working.set(false);
-        this.error.set('No se pudo continuar al pago. La reserva pudo expirar.');
+        this.error.set(this.translate.instant('reservation.msgPayFailed'));
       },
     });
   }

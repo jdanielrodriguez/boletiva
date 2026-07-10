@@ -1,18 +1,18 @@
 <section class="purchase">
-  <h1>Comprar — {{ eventName() }}</h1>
+  <h1>{{ 'purchase.title' | translate: { name: eventName() } }}</h1>
 
   @if (!loaded()) {
-    <p data-testid="purchase-loading">Cargando disponibilidad…</p>
+    <p data-testid="purchase-loading">{{ 'purchase.loading' | translate }}</p>
   } @else if (phase() === 'reserved') {
     <section class="reserved" data-testid="reserved">
       <p class="countdown" data-testid="countdown">
-        Reserva activa — expira en {{ mm() }}:{{ ss() | number: '2.0-0' }}
+        {{ 'purchase.countdown' | translate: { mm: mm(), ss: (ss() | number: '2.0-0') } }}
       </p>
 
       @if (store.reservation(); as r) {
-        <h2>Tus boletos</h2>
+        <h2>{{ 'purchase.yourTickets' | translate }}</h2>
         <app-reservation-items [items]="r.items" />
-        <p class="total">{{ r.items.length }} boleto(s) · Total Q{{ r.total }}</p>
+        <p class="total">{{ 'purchase.reservedTotal' | translate: { n: r.items.length, total: r.total } }}</p>
       }
 
       <app-share-box [url]="shareUrl()" />
@@ -23,10 +23,10 @@
 
       <div class="actions">
         <button type="button" class="primary" data-testid="pay-btn" [disabled]="working()" (click)="continueToPay()">
-          {{ working() ? 'Procesando…' : 'Continuar al pago' }}
+          {{ working() ? ('purchase.processing' | translate) : ('purchase.continueToPay' | translate) }}
         </button>
         <button type="button" class="ghost" [disabled]="working()" (click)="backToSelect()">
-          Volver a elegir
+          {{ 'purchase.backToSelect' | translate }}
         </button>
       </div>
     </section>
@@ -34,8 +34,8 @@
     <!-- Cuadro de total + Reservar: SIEMPRE arriba, junto a la selección -->
     <aside class="cart-summary cart-top">
       <div>
-        <p class="cart-count">{{ store.totalCount() }} boleto(s) seleccionado(s)</p>
-        <p class="total">Total: Q{{ store.totalDisplay() }}</p>
+        <p class="cart-count">{{ 'purchase.selectedCount' | translate: { n: store.totalCount() } }}</p>
+        <p class="total">{{ 'purchase.totalAmount' | translate: { total: store.totalDisplay() } }}</p>
       </div>
       <button
         type="button"
@@ -44,19 +44,19 @@
         [disabled]="store.totalCount() === 0 || working()"
         (click)="reserve()"
       >
-        {{ working() ? 'Reservando…' : 'Reservar' }}
+        {{ working() ? ('purchase.reserving' | translate) : ('purchase.reserve' | translate) }}
       </button>
     </aside>
 
     @if (phase() === 'expired') {
-      <p class="warn" data-testid="purchase-expired">Tu reserva expiró. Vuelve a seleccionar tus boletos.</p>
+      <p class="warn" data-testid="purchase-expired">{{ 'purchase.expiredWarn' | translate }}</p>
     }
     @if (error()) {
       <p class="error" data-testid="purchase-error">{{ error() }}</p>
     }
 
     <!-- Botones de localidad: se elige UNA a la vez (la que venga del detalle o la 1ª) -->
-    <div class="loc-tabs" role="group" aria-label="Localidades">
+    <div class="loc-tabs" role="group" [attr.aria-label]="'purchase.localities' | translate">
       @for (loc of store.localities(); track loc.id) {
         <button
           type="button"
@@ -73,7 +73,7 @@
 
     @if (store.activeLocality(); as loc) {
       <section class="loc-active">
-        <h2>{{ loc.name }} @if (loc.price) { · Q{{ loc.price.total }} por boleto }</h2>
+        <h2>{{ loc.name }} @if (loc.price) { · Q{{ loc.price.total }} {{ 'purchase.perTicket' | translate }} }</h2>
 
         @if (store.activeIsSeated()) {
           <app-seat-map
@@ -82,20 +82,20 @@
             (seatToggle)="store.toggleSeat($event)"
           />
           <p class="seat-legend">
-            <span class="legend av">Disponible</span>
-            <span class="legend sel">Seleccionada</span>
-            <span class="legend tk">Ocupada</span>
+            <span class="legend av">{{ 'purchase.legendAvailable' | translate }}</span>
+            <span class="legend sel">{{ 'purchase.legendSelected' | translate }}</span>
+            <span class="legend tk">{{ 'purchase.legendTaken' | translate }}</span>
           </p>
         } @else {
           <div class="loc-quantity" data-testid="loc-quantity">
-            <span class="loc-avail">{{ loc.available }} disponibles</span>
+            <span class="loc-avail">{{ 'purchase.availableCount' | translate: { n: loc.available } }}</span>
             @if (store.maxFor(loc) > 0) {
-              <div class="qty-stepper" role="group" [attr.aria-label]="'Cantidad para ' + loc.name">
+              <div class="qty-stepper" role="group" [attr.aria-label]="'purchase.quantityFor' | translate: { name: loc.name }">
                 <button
                   type="button"
                   class="qty-btn"
                   data-testid="qty-minus"
-                  aria-label="Quitar uno"
+                  [attr.aria-label]="'purchase.removeOne' | translate"
                   [disabled]="store.quantityFor(loc.id) === 0"
                   (click)="changeQuantity(loc, -1)"
                 >
@@ -106,7 +106,7 @@
                   type="button"
                   class="qty-btn"
                   data-testid="qty-plus"
-                  aria-label="Agregar uno"
+                  [attr.aria-label]="'purchase.addOne' | translate"
                   [disabled]="store.quantityFor(loc.id) >= store.maxFor(loc)"
                   (click)="changeQuantity(loc, 1)"
                 >
@@ -114,7 +114,7 @@
                 </button>
               </div>
             } @else {
-              <span class="sold-out">Agotado</span>
+              <span class="sold-out">{{ 'purchase.soldOut' | translate }}</span>
             }
           </div>
         }

@@ -1,4 +1,5 @@
 import { Component, computed, inject, input, effect, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
 import type { EventSettlementDto } from '../../core/api/types';
 
@@ -10,7 +11,7 @@ import type { EventSettlementDto } from '../../core/api/types';
  */
 @Component({
   selector: 'app-event-settlement',
-  imports: [],
+  imports: [TranslatePipe],
   templateUrl: './event-settlement.component.html',
 })
 export class EventSettlementComponent {

@@ -1,5 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideI18nTesting } from '../../core/i18n/testing';
 import { of, throwError } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { LoginModal } from './login-modal.component';
@@ -11,6 +12,8 @@ describe('LoginModal', () => {
   async function setup(auth: Record<string, unknown> = {}) {
     TestBed.configureTestingModule({
       providers: [
+        ...provideI18nTesting(),
+        ...provideI18nTesting(),
         provideZonelessChangeDetection(),
         {
           provide: AuthService,

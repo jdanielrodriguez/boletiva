@@ -1,5 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideI18nTesting } from '../../core/i18n/testing';
 import { provideRouter } from '@angular/router';
 import { HeroSlider, SlideItem } from './hero-slider.component';
 
@@ -15,7 +16,9 @@ describe('HeroSlider', () => {
 
   function setup(slides: SlideItem[]) {
     TestBed.configureTestingModule({
-      providers: [provideZonelessChangeDetection(), provideRouter([])],
+      providers: [
+        ...provideI18nTesting(),
+        ...provideI18nTesting(),provideZonelessChangeDetection(), provideRouter([])],
     });
     fixture = TestBed.createComponent(HeroSlider);
     fixture.componentRef.setInput('slides', slides);

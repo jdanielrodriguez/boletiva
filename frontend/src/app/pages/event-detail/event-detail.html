@@ -1,6 +1,6 @@
 @if (event(); as ev) {
   <article class="event-detail">
-    <a class="back" routerLink="/">← Eventos</a>
+    <a class="back" routerLink="/">{{ 'eventDetail.backToEvents' | translate }}</a>
     @if (coverImage(); as img) {
       <img class="event-cover" [src]="img" [alt]="ev.name" />
     }
@@ -10,7 +10,7 @@
       @if (ev.category) {
         <span class="event-cat">{{ ev.category.name }}</span>
       }
-      <time [attr.datetime]="ev.startsAt">{{ ev.startsAt | date: 'full' }}</time>
+      <time [attr.datetime]="ev.startsAt">{{ ev.startsAt | localizedDate: 'full' }}</time>
       @if (ev.address) {
         <span class="event-place">{{ ev.address }}</span>
       }
@@ -21,11 +21,11 @@
     }
 
     @if (ev.status === 'cancelled') {
-      <p class="event-cancelled" data-testid="event-cancelled">Este evento fue cancelado.</p>
+      <p class="event-cancelled" data-testid="event-cancelled">{{ 'eventDetail.cancelled' | translate }}</p>
     }
 
     <section class="event-localities">
-      <h2>Localidades</h2>
+      <h2>{{ 'eventDetail.localities' | translate }}</h2>
       @if (localities().length > 0) {
         <ul class="locality-rows">
           @for (loc of localities(); track loc.id) {
@@ -46,16 +46,16 @@
                 <div class="locality-info">
                   <strong>{{ loc.name }}</strong>
                   <span class="locality-sub">
-                    {{ loc.kind === 'general' ? 'Admisión general' : 'Asiento numerado' }}
-                    · {{ loc.available }} disponibles
+                    {{ loc.kind === 'general' ? ('eventDetail.general' | translate) : ('eventDetail.seated' | translate) }}
+                    · {{ 'eventDetail.available' | translate: { count: loc.available } }}
                   </span>
                 </div>
                 <div class="locality-price">
                   @if (loc.price) {
                     <span class="price-amount">Q{{ loc.price.total }}</span>
-                    <span class="price-label">por boleto</span>
+                    <span class="price-label">{{ 'eventDetail.perTicket' | translate }}</span>
                   } @else {
-                    <span class="price-label">Precio por definir</span>
+                    <span class="price-label">{{ 'eventDetail.priceTbd' | translate }}</span>
                   }
                 </div>
                 <span class="locality-go" aria-hidden="true">›</span>
@@ -64,16 +64,16 @@
           }
         </ul>
       } @else {
-        <p>Aún no hay localidades publicadas.</p>
+        <p>{{ 'eventDetail.noLocalities' | translate }}</p>
       }
     </section>
   </article>
 } @else if (loading()) {
-  <p data-testid="event-loading">Cargando evento…</p>
+  <p data-testid="event-loading">{{ 'eventDetail.loading' | translate }}</p>
 } @else {
   <section class="event-notfound" data-testid="event-notfound">
-    <h1>Evento no encontrado</h1>
-    <p>El evento que buscas no existe o ya no está disponible.</p>
-    <a routerLink="/">Ver todos los eventos</a>
+    <h1>{{ 'eventDetail.notFoundTitle' | translate }}</h1>
+    <p>{{ 'eventDetail.notFoundBody' | translate }}</p>
+    <a routerLink="/">{{ 'eventDetail.seeAll' | translate }}</a>
   </section>
 }

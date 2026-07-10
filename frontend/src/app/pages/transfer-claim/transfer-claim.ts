@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { TransfersApi } from '../../core/api/transfers.api';
 
 /**
@@ -10,12 +11,13 @@ import { TransfersApi } from '../../core/api/transfers.api';
  */
 @Component({
   selector: 'app-transfer-claim',
-  imports: [FormsModule],
+  imports: [FormsModule, TranslatePipe],
   templateUrl: './transfer-claim.html',
 })
 export class TransferClaim {
   private readonly transfersApi = inject(TransfersApi);
   private readonly router = inject(Router);
+  private readonly translate = inject(TranslateService);
 
   protected readonly code = signal('');
   protected readonly working = signal(false);
@@ -25,7 +27,7 @@ export class TransferClaim {
   protected claim(): void {
     const code = this.code().trim();
     if (!code) {
-      this.error.set('Ingresa el código que te compartieron.');
+      this.error.set(this.translate.instant('transfer.msgEnterCode'));
       return;
     }
     this.working.set(true);
@@ -37,7 +39,7 @@ export class TransferClaim {
       },
       error: () => {
         this.working.set(false);
-        this.error.set('Código inválido, vencido o ya utilizado.');
+        this.error.set(this.translate.instant('transfer.msgClaimFailed'));
       },
     });
   }

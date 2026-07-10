@@ -2,6 +2,8 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
+import { initI18nTesting, provideI18nTesting } from '../../core/i18n/testing';
+import { I18nService } from '../../core/i18n/i18n.service';
 import { EventSettlementComponent } from './event-settlement.component';
 
 const DATA = {
@@ -26,9 +28,11 @@ describe('EventSettlementComponent', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
+        ...provideI18nTesting(),
         { provide: PromoterEventsApi, useValue: { settlement } as unknown as PromoterEventsApi },
       ],
     });
+    initI18nTesting();
     fixture = TestBed.createComponent(EventSettlementComponent);
     fixture.componentRef.setInput('eventId', 'e1');
     fixture.componentRef.setInput('showSplit', showSplit);
@@ -56,5 +60,15 @@ describe('EventSettlementComponent', () => {
     await setup(() => throwError(() => new Error('x')));
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('.error')).not.toBeNull();
+  });
+
+  // --- i18n: cambiar el idioma traduce los textos ---
+  it('traduce los textos al inglés al cambiar el idioma', async () => {
+    await setup(() => of(DATA), false);
+    TestBed.inject(I18nService).use('en');
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    // "Neto del promotor" pasa a "Promoter net".
+    expect(el.textContent).toContain('Promoter net');
   });
 });

@@ -1,72 +1,72 @@
 <section class="account">
-  <h1>Mi cuenta</h1>
+  <h1>{{ 'account.title' | translate }}</h1>
 
   <div class="account-grid">
-    <nav class="account-menu" aria-label="Secciones de la cuenta">
-      <button type="button" [class.active]="section() === 'perfil'" (click)="select('perfil')">Perfil</button>
-      <button type="button" [class.active]="section() === 'metodos'" (click)="select('metodos')" data-testid="menu-metodos">Métodos de pago</button>
-      <button type="button" [class.active]="section() === 'facturacion'" (click)="select('facturacion')" data-testid="menu-facturacion">Facturación</button>
-      <button type="button" [class.active]="section() === 'wallet'" (click)="select('wallet')" data-testid="menu-wallet">Wallet</button>
-      <button type="button" [class.active]="section() === 'activos'" (click)="select('activos')" data-testid="menu-activos">Boletos activos</button>
-      <button type="button" [class.active]="section() === 'pasados'" (click)="select('pasados')">Boletos pasados</button>
+    <nav class="account-menu" [attr.aria-label]="'account.sectionsAria' | translate">
+      <button type="button" [class.active]="section() === 'perfil'" (click)="select('perfil')">{{ 'account.nav.profile' | translate }}</button>
+      <button type="button" [class.active]="section() === 'metodos'" (click)="select('metodos')" data-testid="menu-metodos">{{ 'account.nav.methods' | translate }}</button>
+      <button type="button" [class.active]="section() === 'facturacion'" (click)="select('facturacion')" data-testid="menu-facturacion">{{ 'account.nav.billing' | translate }}</button>
+      <button type="button" [class.active]="section() === 'wallet'" (click)="select('wallet')" data-testid="menu-wallet">{{ 'account.nav.wallet' | translate }}</button>
+      <button type="button" [class.active]="section() === 'activos'" (click)="select('activos')" data-testid="menu-activos">{{ 'account.nav.activeTickets' | translate }}</button>
+      <button type="button" [class.active]="section() === 'pasados'" (click)="select('pasados')">{{ 'account.nav.pastTickets' | translate }}</button>
     </nav>
 
     <div class="account-content">
       @switch (section()) {
         @case ('perfil') {
-          <h2>Perfil</h2>
+          <h2>{{ 'account.nav.profile' | translate }}</h2>
           <p class="muted account-email">{{ session.user()?.email }}</p>
 
           <div class="card-block">
-            <h3>Tus datos</h3>
+            <h3>{{ 'account.profile.yourData' | translate }}</h3>
             <form class="stacked-form" (ngSubmit)="saveProfile()">
               <div class="form-row">
                 <div class="field">
-                  <label for="pf-first">Nombre</label>
+                  <label for="pf-first">{{ 'common.name' | translate }}</label>
                   <input id="pf-first" type="text" [ngModel]="firstName()" (ngModelChange)="firstName.set($event)" name="firstName" maxlength="100" autocomplete="given-name" />
                 </div>
                 <div class="field">
-                  <label for="pf-last">Apellido</label>
+                  <label for="pf-last">{{ 'account.profile.lastName' | translate }}</label>
                   <input id="pf-last" type="text" [ngModel]="lastName()" (ngModelChange)="lastName.set($event)" name="lastName" maxlength="100" autocomplete="family-name" />
                 </div>
               </div>
               <div class="field">
-                <label for="pf-phone">Teléfono</label>
+                <label for="pf-phone">{{ 'account.profile.phone' | translate }}</label>
                 <input id="pf-phone" type="tel" [ngModel]="phone()" (ngModelChange)="phone.set($event)" name="phone" maxlength="30" autocomplete="tel" />
               </div>
-              <button type="submit" class="primary" [disabled]="savingProfile()" data-testid="save-profile" title="Guardar cambios">
-                <app-icon name="save" /> {{ savingProfile() ? 'Guardando…' : 'Guardar cambios' }}
+              <button type="submit" class="primary" [disabled]="savingProfile()" data-testid="save-profile" [title]="'account.profile.saveChanges' | translate">
+                <app-icon name="save" /> {{ (savingProfile() ? 'account.profile.saving' : 'account.profile.saveChanges') | translate }}
               </button>
             </form>
           </div>
 
           <div class="card-block">
-            <h3>Cambiar contraseña</h3>
-            <p class="muted">Necesitas tu contraseña actual para confirmar el cambio.</p>
+            <h3>{{ 'account.password.title' | translate }}</h3>
+            <p class="muted">{{ 'account.password.hint' | translate }}</p>
             <form class="stacked-form" (ngSubmit)="changePassword()">
               <div class="field">
-                <label for="pw-current">Contraseña actual</label>
+                <label for="pw-current">{{ 'account.password.current' | translate }}</label>
                 <input id="pw-current" type="password" [ngModel]="currentPassword()" (ngModelChange)="currentPassword.set($event)" name="currentPassword" autocomplete="current-password" data-testid="pw-current" />
               </div>
               <div class="form-row">
                 <div class="field">
-                  <label for="pw-new">Nueva contraseña</label>
+                  <label for="pw-new">{{ 'account.password.new' | translate }}</label>
                   <input id="pw-new" type="password" [ngModel]="newPassword()" (ngModelChange)="newPassword.set($event)" name="newPassword" autocomplete="new-password" minlength="8" data-testid="pw-new" />
                 </div>
                 <div class="field">
-                  <label for="pw-confirm">Confirmar nueva</label>
+                  <label for="pw-confirm">{{ 'account.password.confirm' | translate }}</label>
                   <input id="pw-confirm" type="password" [ngModel]="confirmPassword()" (ngModelChange)="confirmPassword.set($event)" name="confirmPassword" autocomplete="new-password" minlength="8" data-testid="pw-confirm" />
                 </div>
               </div>
-              <button type="submit" class="primary" [disabled]="changingPassword()" data-testid="change-password" title="Cambiar contraseña">
-                <app-icon name="save" /> {{ changingPassword() ? 'Cambiando…' : 'Cambiar contraseña' }}
+              <button type="submit" class="primary" [disabled]="changingPassword()" data-testid="change-password" [title]="'account.password.title' | translate">
+                <app-icon name="save" /> {{ (changingPassword() ? 'account.password.changing' : 'account.password.title') | translate }}
               </button>
             </form>
           </div>
         }
 
         @case ('metodos') {
-          <h2>Métodos de pago</h2>
+          <h2>{{ 'account.nav.methods' | translate }}</h2>
           <p class="info-banner" data-testid="metodos-info">
             <span class="info-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
@@ -74,8 +74,8 @@
                 <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke-linecap="round" />
               </svg>
             </span>
-            Guarda tus tarjetas para pagar en segundos. Ciframos tus datos y nunca almacenamos el
-            número completo de tu tarjeta. <a routerLink="/terminos">Más detalles de seguridad</a>.
+            {{ 'account.methods.infoLead' | translate }}
+            <a routerLink="/terminos">{{ 'account.methods.securityDetails' | translate }}</a>.
           </p>
 
           @if (cards().length > 0) {
@@ -85,50 +85,50 @@
                   <span class="method-brand">{{ c.brand | uppercase }}</span>
                   <span class="method-dots">•••• {{ c.last4 }}</span>
                   @if (c.isDefault) {
-                    <span class="badge badge-approved">predeterminada</span>
+                    <span class="badge badge-approved">{{ 'account.methods.default' | translate }}</span>
                   } @else {
-                    <button type="button" class="link-btn" (click)="setDefaultCard(c.id)" data-testid="set-default-card">Hacer predeterminada</button>
+                    <button type="button" class="link-btn" (click)="setDefaultCard(c.id)" data-testid="set-default-card">{{ 'account.methods.makeDefault' | translate }}</button>
                   }
-                  <button type="button" class="link-btn danger" (click)="askRemoveCard(c)" data-testid="remove-card" title="Eliminar tarjeta">Eliminar</button>
+                  <button type="button" class="link-btn danger" (click)="askRemoveCard(c)" data-testid="remove-card" [title]="'account.methods.removeCardTitle' | translate">{{ 'common.delete' | translate }}</button>
                 </li>
               }
             </ul>
           } @else {
-            <p class="muted" data-testid="cards-empty">Aún no tienes métodos de pago guardados.</p>
+            <p class="muted" data-testid="cards-empty">{{ 'account.methods.empty' | translate }}</p>
           }
 
           @if (!showCardForm()) {
-            <button type="button" class="primary" (click)="showCardForm.set(true)" data-testid="add-method" title="Agregar tarjeta">
-              <app-icon name="add" /> Agregar tarjeta
+            <button type="button" class="primary" (click)="showCardForm.set(true)" data-testid="add-method" [title]="'account.methods.addCard' | translate">
+              <app-icon name="add" /> {{ 'account.methods.addCard' | translate }}
             </button>
           } @else {
             <div class="card-block">
-              <h3>Nueva tarjeta</h3>
+              <h3>{{ 'account.methods.newCard' | translate }}</h3>
               <form class="stacked-form" (ngSubmit)="addCard()">
                 <div class="field">
-                  <label for="card-number">Número de tarjeta</label>
+                  <label for="card-number">{{ 'account.methods.cardNumber' | translate }}</label>
                   <input id="card-number" type="text" inputmode="numeric" autocomplete="cc-number" placeholder="4242 4242 4242 4242" [ngModel]="cardNumber()" (ngModelChange)="cardNumber.set($event)" name="ccnumber" data-testid="card-number" />
                 </div>
                 <div class="form-row">
                   <div class="field">
-                    <label for="card-exp-m">Mes (MM)</label>
+                    <label for="card-exp-m">{{ 'account.methods.monthMM' | translate }}</label>
                     <input id="card-exp-m" type="text" inputmode="numeric" maxlength="2" placeholder="12" [ngModel]="cardExpMonth()" (ngModelChange)="cardExpMonth.set($event)" name="ccexpm" />
                   </div>
                   <div class="field">
-                    <label for="card-exp-y">Año (AA)</label>
+                    <label for="card-exp-y">{{ 'account.methods.yearYY' | translate }}</label>
                     <input id="card-exp-y" type="text" inputmode="numeric" maxlength="2" placeholder="28" [ngModel]="cardExpYear()" (ngModelChange)="cardExpYear.set($event)" name="ccexpy" />
                   </div>
                   <div class="field">
-                    <label for="card-cvc">CVC</label>
+                    <label for="card-cvc">{{ 'account.methods.cvc' | translate }}</label>
                     <input id="card-cvc" type="text" inputmode="numeric" maxlength="4" placeholder="123" [ngModel]="cardCvc()" (ngModelChange)="cardCvc.set($event)" name="cccvc" data-testid="card-cvc" />
                   </div>
                 </div>
                 <div class="ticket-actions">
-                  <button type="submit" class="primary" [disabled]="savingCard()" data-testid="save-card" title="Guardar tarjeta">
-                    <app-icon name="save" /> {{ savingCard() ? 'Guardando…' : 'Guardar tarjeta' }}
+                  <button type="submit" class="primary" [disabled]="savingCard()" data-testid="save-card" [title]="'account.methods.saveCard' | translate">
+                    <app-icon name="save" /> {{ (savingCard() ? 'account.methods.savingCard' : 'account.methods.saveCard') | translate }}
                   </button>
-                  <button type="button" (click)="showCardForm.set(false)" title="Cancelar">
-                    <app-icon name="cancel" /> Cancelar
+                  <button type="button" (click)="showCardForm.set(false)" [title]="'common.cancel' | translate">
+                    <app-icon name="cancel" /> {{ 'common.cancel' | translate }}
                   </button>
                 </div>
               </form>
@@ -137,39 +137,39 @@
         }
 
         @case ('facturacion') {
-          <h2>Facturación</h2>
+          <h2>{{ 'account.nav.billing' | translate }}</h2>
 
           @if (orderFilter(); as of) {
             <p class="filter-pill" data-testid="order-filter-pill">
-              Mostrando una compra específica.
-              <button type="button" class="link-btn" (click)="clearOrderFilter()" data-testid="clear-order-filter">Ver todas</button>
+              {{ 'account.billing.filterPill' | translate }}
+              <button type="button" class="link-btn" (click)="clearOrderFilter()" data-testid="clear-order-filter">{{ 'account.billing.viewAll' | translate }}</button>
             </p>
           } @else if (orders().length > 0) {
             <div class="filters" data-testid="billing-filters">
               <div class="field">
-                <label for="f-status">Estado</label>
+                <label for="f-status">{{ 'common.status' | translate }}</label>
                 <select id="f-status" [ngModel]="filterStatus()" (ngModelChange)="setFilterStatus($event)" name="fstatus" data-testid="filter-status">
-                  <option value="">Todos</option>
+                  <option value="">{{ 'common.all' | translate }}</option>
                   @for (s of orderStatuses(); track s) {
                     <option [value]="s">{{ s }}</option>
                   }
                 </select>
               </div>
               <div class="field">
-                <label for="f-event">Evento</label>
-                <input id="f-event" type="text" [ngModel]="filterEvent()" (ngModelChange)="setFilterEvent($event)" name="fevent" placeholder="Buscar evento" data-testid="filter-event" />
+                <label for="f-event">{{ 'account.billing.event' | translate }}</label>
+                <input id="f-event" type="text" [ngModel]="filterEvent()" (ngModelChange)="setFilterEvent($event)" name="fevent" [attr.placeholder]="'account.billing.searchEvent' | translate" data-testid="filter-event" />
               </div>
               <div class="field">
-                <label for="f-date">Fecha</label>
+                <label for="f-date">{{ 'common.date' | translate }}</label>
                 <input id="f-date" type="date" [ngModel]="filterDate()" (ngModelChange)="setFilterDate($event)" name="fdate" data-testid="filter-date" />
               </div>
             </div>
           }
 
           @if (orders().length === 0) {
-            <p class="muted" data-testid="orders-empty">Aún no tienes compras.</p>
+            <p class="muted" data-testid="orders-empty">{{ 'account.billing.empty' | translate }}</p>
           } @else if (filteredOrders().length === 0) {
-            <p class="muted" data-testid="orders-filtered-empty">No hay compras que coincidan con los filtros.</p>
+            <p class="muted" data-testid="orders-filtered-empty">{{ 'account.billing.filteredEmpty' | translate }}</p>
           } @else {
             <div class="invoice-list" data-testid="orders-list">
               @for (o of pageOrders(); track o.id) {
@@ -177,7 +177,7 @@
                   <header class="invoice-head">
                     <div>
                       <h3>{{ o.event?.name ?? o.eventId }}</h3>
-                      <span class="muted">{{ o.createdAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+                      <span class="muted">{{ o.createdAt | localizedDate: 'dd/MM/yyyy HH:mm' }}</span>
                     </div>
                     <div class="invoice-head-right">
                       <span class="badge badge-{{ o.status }}">{{ o.status }}</span>
@@ -188,34 +188,34 @@
                   <ul class="invoice-items">
                     @for (it of o.items; track it.id) {
                       <li>
-                        <span>{{ it.locality?.name ?? 'General' }}@if (it.label) { · {{ it.label }}}</span>
+                        <span>{{ it.locality?.name ?? ('account.general' | translate) }}@if (it.label) { · {{ it.label }}}</span>
                         <span class="muted">{{ it.total | money }}</span>
                       </li>
                     }
                   </ul>
 
                   <div class="invoice-meta">
-                    <span class="muted">{{ o.items.length }} boleto(s)</span>
+                    <span class="muted">{{ 'account.billing.ticketsCount' | translate: { n: o.items.length } }}</span>
                     @if (o.felUuid) {
-                      <span class="muted">FEL {{ o.felSerie }}-{{ o.felNumero }}</span>
+                      <span class="muted">{{ 'account.billing.fel' | translate: { serie: o.felSerie, numero: o.felNumero } }}</span>
                     } @else {
-                      <span class="muted">NIT {{ o.billingNit }}</span>
+                      <span class="muted">{{ 'account.billing.nit' | translate: { nit: o.billingNit } }}</span>
                     }
                     <button type="button" class="link-btn" (click)="verCompra(o.id)" data-testid="ver-detalle">
-                      Ver detalle completo
+                      {{ 'account.billing.viewFullDetail' | translate }}
                     </button>
                     <button type="button" class="link-btn" (click)="loadChain(o.id)" data-testid="toggle-chain">
-                      {{ chains()[o.id] ? 'Ocultar' : 'Ver' }} cadena de la transacción
+                      {{ (chains()[o.id] ? 'account.billing.hideChain' : 'account.billing.showChain') | translate }}
                     </button>
                   </div>
 
                   @if (loadingChain() === o.id) {
-                    <p class="muted">Cargando cadena…</p>
+                    <p class="muted">{{ 'account.chain.loading' | translate }}</p>
                   }
                   @if (chains()[o.id]; as chain) {
                     <div class="chain" data-testid="ledger-chain">
                       <p class="chain-status" [class.ok]="chain.chainValid" [class.bad]="!chain.chainValid">
-                        {{ chain.chainValid ? '✓ Cadena íntegra y verificada' : '✗ Cadena alterada' }}
+                        {{ (chain.chainValid ? 'account.chain.valid' : 'account.chain.invalid') | translate }}
                       </p>
                       <ol class="chain-list">
                         @for (tx of chain.transactions; track tx.seq) {
@@ -228,8 +228,7 @@
                         }
                       </ol>
                       <p class="muted chain-note">
-                        Cada transacción se enlaza con la anterior por su hash (libro contable inmutable):
-                        cualquier alteración rompe la cadena.
+                        {{ 'account.chain.note' | translate }}
                       </p>
                     </div>
                   }
@@ -241,67 +240,64 @@
         }
 
         @case ('wallet') {
-          <h2>Wallet</h2>
+          <h2>{{ 'account.nav.wallet' | translate }}</h2>
 
           <div class="wallet-hero">
             <span class="wallet-hero-label">
-              Saldo disponible
+              {{ 'account.wallet.available' | translate }}
               <button
                 type="button"
                 class="info-dot"
                 data-testid="wallet-source-tip"
-                aria-label="¿De dónde sale este saldo?"
-                title="Tu saldo proviene solo de reembolsos y reventas de boletos. No se puede recargar con tarjeta: solo circula dinero ya amparado por una compra."
+                [attr.aria-label]="'account.wallet.sourceTipAria' | translate"
+                [title]="'account.wallet.sourceTipTitle' | translate"
               >i</button>
             </span>
             @if (wallet(); as w) {
               <span class="wallet-hero-amount" data-testid="wallet-balance">{{ w.balance | money }}</span>
               <span class="wallet-hero-currency">{{ w.currency }}</span>
             } @else {
-              <span class="muted">No se pudo cargar tu saldo.</span>
+              <span class="muted">{{ 'account.wallet.balanceError' | translate }}</span>
             }
           </div>
 
-          <p class="muted wallet-source" data-testid="wallet-source">
-            Tu saldo proviene únicamente de <strong>reembolsos</strong> y <strong>reventas</strong> de boletos.
-            No es posible recargarlo con tarjeta. Puedes usarlo para pagar boletos o retirarlo a tu cuenta.
-          </p>
+          <p class="muted wallet-source" data-testid="wallet-source" [innerHTML]="'account.wallet.source' | translate"></p>
 
           <!-- Primero la mini-facturación de movimientos -->
           <div class="card-block">
-            <h3>Movimientos recientes</h3>
+            <h3>{{ 'account.wallet.recentMovements' | translate }}</h3>
             @if (orders().length > 0) {
               <ul class="order-list mini" data-testid="wallet-orders">
                 @for (o of orders().slice(0, 5); track o.id) {
                   <li>
-                    <span>{{ o.createdAt | date: 'dd/MM/yyyy' }}</span>
+                    <span>{{ o.createdAt | localizedDate: 'dd/MM/yyyy' }}</span>
                     <span class="badge badge-{{ o.status }}">{{ o.status }}</span>
                     <span>{{ o.total | money }}</span>
-                    <button type="button" class="link-btn" (click)="verCompra(o.id)" data-testid="wallet-ver-transaccion">Ver transacción</button>
+                    <button type="button" class="link-btn" (click)="verCompra(o.id)" data-testid="wallet-ver-transaccion">{{ 'account.wallet.viewTransaction' | translate }}</button>
                   </li>
                 }
               </ul>
             } @else {
-              <p class="muted">Aún no tienes compras registradas.</p>
+              <p class="muted">{{ 'account.wallet.noOrders' | translate }}</p>
             }
           </div>
 
           <!-- Luego la tabla de retiros con filtros -->
           <div class="card-block">
-            <h3>Mis retiros</h3>
+            <h3>{{ 'account.wallet.myWithdrawals' | translate }}</h3>
             @if (withdrawals().length > 0) {
               <div class="filters" data-testid="withdrawal-filters">
                 <div class="field">
-                  <label for="wd-f-status">Estado</label>
+                  <label for="wd-f-status">{{ 'common.status' | translate }}</label>
                   <select id="wd-f-status" [ngModel]="wdFilterStatus()" (ngModelChange)="wdFilterStatus.set($event)" name="wdfstatus" data-testid="wd-filter-status">
-                    <option value="">Todos</option>
+                    <option value="">{{ 'common.all' | translate }}</option>
                     @for (s of withdrawalStatuses(); track s) {
                       <option [value]="s">{{ s }}</option>
                     }
                   </select>
                 </div>
                 <div class="field">
-                  <label for="wd-f-date">Fecha</label>
+                  <label for="wd-f-date">{{ 'common.date' | translate }}</label>
                   <input id="wd-f-date" type="date" [ngModel]="wdFilterDate()" (ngModelChange)="wdFilterDate.set($event)" name="wdfdate" data-testid="wd-filter-date" />
                 </div>
               </div>
@@ -310,48 +306,48 @@
                   @for (w of filteredWithdrawals(); track w.id) {
                     <li>
                       <span>{{ w.amount | money }}</span>
-                      <span class="muted">neto {{ w.net | money }}</span>
+                      <span class="muted">{{ 'account.wallet.net' | translate }} {{ w.net | money }}</span>
                       <span class="badge badge-{{ w.status }}">{{ w.status }}</span>
                       @if (w.status === 'pending') {
-                        <button type="button" (click)="askCancelWithdrawal(w)" data-testid="cancel-withdrawal" title="Cancelar retiro">
-                          <app-icon name="cancel" /> Cancelar
+                        <button type="button" (click)="askCancelWithdrawal(w)" data-testid="cancel-withdrawal" [title]="'account.wallet.cancelWithdrawalTitle' | translate">
+                          <app-icon name="cancel" /> {{ 'common.cancel' | translate }}
                         </button>
                       }
                     </li>
                   }
                 </ul>
               } @else {
-                <p class="muted" data-testid="withdrawals-filtered-empty">Ningún retiro coincide con los filtros.</p>
+                <p class="muted" data-testid="withdrawals-filtered-empty">{{ 'account.wallet.withdrawalsFilteredEmpty' | translate }}</p>
               }
             } @else {
-              <p class="muted">Aún no has solicitado retiros.</p>
+              <p class="muted">{{ 'account.wallet.noWithdrawals' | translate }}</p>
             }
           </div>
 
           <!-- Al final, el formulario de solicitar retiro -->
           <div class="card-block">
-            <h3>Solicitar retiro</h3>
+            <h3>{{ 'account.wallet.requestWithdrawal' | translate }}</h3>
             <form class="stacked-form withdraw-form" (ngSubmit)="requestWithdrawal()">
               <div class="field">
-                <label for="wd-amount">Monto a retirar (Q)</label>
+                <label for="wd-amount">{{ 'account.wallet.amountToWithdraw' | translate }}</label>
                 <input id="wd-amount" type="number" min="1" step="0.01" [ngModel]="withdrawAmount()" (ngModelChange)="withdrawAmount.set($event)" name="amount" data-testid="withdraw-amount" />
               </div>
               @if (withdrawNetPreview(); as net) {
                 <p class="withdraw-preview" data-testid="withdraw-preview">
-                  Comisión estimada ({{ withdrawFeePct() * 100 }}%): se te acreditará aprox.
+                  {{ 'account.wallet.previewLead' | translate: { pct: withdrawFeePct() * 100 } }}
                   <strong>{{ net | money }}</strong>.
-                  El retiro queda <strong>pendiente de aprobación</strong> del equipo.
+                  <span [innerHTML]="'account.wallet.previewTail' | translate"></span>
                 </p>
               }
-              <button type="submit" class="primary" [disabled]="withdrawing()" data-testid="request-withdrawal" title="Solicitar retiro">
-                <app-icon name="save" /> {{ withdrawing() ? 'Solicitando…' : 'Solicitar retiro' }}
+              <button type="submit" class="primary" [disabled]="withdrawing()" data-testid="request-withdrawal" [title]="'account.wallet.requestWithdrawal' | translate">
+                <app-icon name="save" /> {{ (withdrawing() ? 'account.wallet.requesting' : 'account.wallet.requestWithdrawal') | translate }}
               </button>
             </form>
           </div>
         }
 
         @case ('activos') {
-          <h2>Boletos activos</h2>
+          <h2>{{ 'account.nav.activeTickets' | translate }}</h2>
           @if (activos().length > 0) {
             <div class="ticket-groups" data-testid="tickets-activos">
               @for (eg of pageActivosGrouped(); track eg.eventId) {
@@ -360,16 +356,16 @@
                     <div>
                       <h3>{{ eg.eventName }}</h3>
                       @if (eg.startsAt) {
-                        <span class="muted">{{ eg.startsAt | date: 'EEEE d MMM y, HH:mm' }}</span>
+                        <span class="muted">{{ eg.startsAt | localizedDate: 'EEEE d MMM y, HH:mm' }}</span>
                       }
                     </div>
                   </header>
                   @for (og of eg.orders; track og.orderId) {
                     <div class="order-block">
                       <div class="order-block-head">
-                        <h4 class="order-title">Compra <span class="muted">· {{ og.tickets.length }} boleto(s)</span></h4>
+                        <h4 class="order-title">{{ 'account.tickets.purchase' | translate }} <span class="muted">· {{ 'account.billing.ticketsCount' | translate: { n: og.tickets.length } }}</span></h4>
                         <button type="button" class="link-btn" (click)="verCompra(og.orderId)" data-testid="ver-compra">
-                          Ver compra
+                          {{ 'account.tickets.viewPurchase' | translate }}
                         </button>
                       </div>
                       <div class="poster-cards">
@@ -384,14 +380,14 @@
 
                             <div class="poster-body">
                               <span class="poster-chip" data-testid="poster-live">
-                                <span class="live-dot" aria-hidden="true"></span> Boleto válido
+                                <span class="live-dot" aria-hidden="true"></span> {{ 'account.tickets.valid' | translate }}
                               </span>
                               <span class="poster-title">
-                                {{ t.localityName ?? 'General' }}@if (t.seatLabel) { · {{ t.seatLabel }}}
+                                {{ t.localityName ?? ('account.general' | translate) }}@if (t.seatLabel) { · {{ t.seatLabel }}}
                               </span>
                               <span class="poster-subtitle">{{ eg.eventName }}</span>
                               @if (eg.startsAt) {
-                                <span class="poster-date">{{ eg.startsAt | date: 'd MMM y, HH:mm' }}</span>
+                                <span class="poster-date">{{ eg.startsAt | localizedDate: 'd MMM y, HH:mm' }}</span>
                               }
 
                               @if (qrVisible(t.id)) {
@@ -400,7 +396,7 @@
                                     <img [src]="m.qrUrl" alt="Código QR del boleto para validar en la puerta" width="160" height="160" />
                                   </div>
                                 } @else {
-                                  <p class="muted qr-pending" data-testid="qr-pending">Preparando el QR…</p>
+                                  <p class="muted qr-pending" data-testid="qr-pending">{{ 'account.tickets.qrPending' | translate }}</p>
                                 }
                               }
 
@@ -410,8 +406,8 @@
                                   class="icon-btn"
                                   (click)="toggleQr(t.id)"
                                   data-testid="ticket-media"
-                                  [attr.aria-label]="qrVisible(t.id) ? 'Ocultar QR' : 'Ver QR'"
-                                  [attr.title]="qrVisible(t.id) ? 'Ocultar QR' : 'Ver QR'"
+                                  [attr.aria-label]="(qrVisible(t.id) ? 'account.tickets.hideQr' : 'account.tickets.showQr') | translate"
+                                  [attr.title]="(qrVisible(t.id) ? 'account.tickets.hideQr' : 'account.tickets.showQr') | translate"
                                 >
                                   @if (qrVisible(t.id)) {
                                     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7z"/><path d="M4 4l16 16" stroke-linecap="round"/></svg>
@@ -426,8 +422,8 @@
                                     target="_blank"
                                     rel="noopener"
                                     data-testid="ticket-pdf"
-                                    aria-label="Descargar PDF del boleto"
-                                    title="Descargar PDF"
+                                    [attr.aria-label]="'account.tickets.downloadPdfAria' | translate"
+                                    [title]="'account.tickets.downloadPdf' | translate"
                                   >
                                     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12" stroke-linecap="round"/><path d="M7 11l5 5 5-5" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 20h14" stroke-linecap="round"/></svg>
                                   </a>
@@ -437,8 +433,8 @@
                                   class="icon-btn"
                                   (click)="startTransfer(t.id)"
                                   data-testid="ticket-transfer"
-                                  aria-label="Compartir boleto"
-                                  title="Compartir"
+                                  [attr.aria-label]="'account.tickets.shareTicketAria' | translate"
+                                  [title]="'account.tickets.share' | translate"
                                 >
                                   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.7l6.8-4M8.6 13.3l6.8 4" stroke-linecap="round"/></svg>
                                 </button>
@@ -446,7 +442,7 @@
 
                               @if (transferCode()[t.id]; as code) {
                                 <p class="transfer-code" data-testid="transfer-code">
-                                  Comparte este código con quien recibirá el boleto (se muestra una sola vez):
+                                  {{ 'account.tickets.transferCodeHint' | translate }}
                                   <strong>{{ code }}</strong>
                                 </p>
                               }
@@ -461,12 +457,12 @@
             </div>
             <app-pager [page]="activosPage()" [totalPages]="activosTotalPages()" (pageChange)="goToActivosPage($event)" data-testid="activos-pager" />
           } @else {
-            <p class="muted">No tienes boletos activos.</p>
+            <p class="muted">{{ 'account.tickets.noActive' | translate }}</p>
           }
         }
 
         @case ('pasados') {
-          <h2>Boletos pasados</h2>
+          <h2>{{ 'account.nav.pastTickets' | translate }}</h2>
           @if (pasados().length > 0) {
             <div class="ticket-groups">
               @for (eg of pasadosGrouped(); track eg.eventId) {
@@ -475,19 +471,19 @@
                     <div>
                       <h3>{{ eg.eventName }}</h3>
                       @if (eg.startsAt) {
-                        <span class="muted">{{ eg.startsAt | date: 'd MMM y' }}</span>
+                        <span class="muted">{{ eg.startsAt | localizedDate: 'd MMM y' }}</span>
                       }
                     </div>
                   </header>
                   @for (og of eg.orders; track og.orderId) {
                     <div class="order-block">
                       <div class="order-block-head">
-                        <h4 class="order-title">Compra <span class="muted">· {{ og.tickets.length }} boleto(s)</span></h4>
-                        <button type="button" class="link-btn" (click)="verCompra(og.orderId)">Ver compra</button>
+                        <h4 class="order-title">{{ 'account.tickets.purchase' | translate }} <span class="muted">· {{ 'account.billing.ticketsCount' | translate: { n: og.tickets.length } }}</span></h4>
+                        <button type="button" class="link-btn" (click)="verCompra(og.orderId)">{{ 'account.tickets.viewPurchase' | translate }}</button>
                       </div>
                       <ul class="ticket-list">
                         @for (t of og.tickets; track t.id) {
-                          <li><span>{{ t.serial }}</span><span class="muted">{{ t.localityName ?? 'General' }}@if (t.seatLabel) { · Asiento {{ t.seatLabel }}}</span></li>
+                          <li><span>{{ t.serial }}</span><span class="muted">{{ t.localityName ?? ('account.general' | translate) }}@if (t.seatLabel) { · {{ 'account.tickets.seat' | translate }} {{ t.seatLabel }}}</span></li>
                         }
                       </ul>
                     </div>
@@ -496,7 +492,7 @@
               }
             </div>
           } @else {
-            <p class="muted">Aún no tienes boletos usados.</p>
+            <p class="muted">{{ 'account.tickets.noPast' | translate }}</p>
           }
         }
       }
@@ -507,7 +503,7 @@
     <app-confirm-dialog
       [title]="cf.title"
       [message]="cf.message"
-      [confirmLabel]="cf.confirmLabel ?? 'Eliminar'"
+      [confirmLabel]="cf.confirmLabel ?? ('common.delete' | translate)"
       [confirmIcon]="cf.confirmIcon ?? 'delete'"
       (accept)="onConfirmAccept()"
       (cancelled)="onConfirmCancel()"

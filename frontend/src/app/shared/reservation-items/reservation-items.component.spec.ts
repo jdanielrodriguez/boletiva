@@ -1,5 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideI18nTesting } from '../../core/i18n/testing';
 import type { ReservationItemDto } from '../../core/api/types';
 import { ReservationItems } from './reservation-items.component';
 
@@ -14,7 +15,9 @@ describe('ReservationItems (ficha técnica)', () => {
   let el: HTMLElement;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [provideZonelessChangeDetection()] });
+    TestBed.configureTestingModule({ providers: [
+        ...provideI18nTesting(),
+        ...provideI18nTesting(),provideZonelessChangeDetection()] });
     fixture = TestBed.createComponent(ReservationItems);
     fixture.componentRef.setInput('items', ITEMS);
     fixture.detectChanges();

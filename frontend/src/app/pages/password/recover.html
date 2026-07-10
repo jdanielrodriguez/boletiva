@@ -1,34 +1,33 @@
 <div class="auth-wrap">
   <section class="auth-card">
-    <h1>Recuperar contraseña</h1>
-    <p class="auth-sub">Te enviaremos un enlace a tu correo para crear una nueva contraseña.</p>
+    <h1>{{ 'auth.recoverTitle' | translate }}</h1>
+    <p class="auth-sub">{{ 'auth.recoverSubtitle' | translate }}</p>
 
     @if (sent()) {
       <p class="ok" data-testid="recover-sent">
-        Si el correo está registrado, recibirás un enlace para restablecer tu contraseña.
-        Revisa tu bandeja de entrada (y el spam).
+        {{ 'auth.recoverSent' | translate }}
       </p>
-      <p class="auth-alt"><a routerLink="/login">Volver a iniciar sesión</a></p>
+      <p class="auth-alt"><a routerLink="/login">{{ 'auth.backToLogin' | translate }}</a></p>
     } @else {
       <form (ngSubmit)="submit()">
         <div class="field">
-          <label for="email">Correo</label>
+          <label for="email">{{ 'auth.email' | translate }}</label>
           <input
             id="email"
             type="email"
             name="email"
             autocomplete="email"
-            placeholder="tucorreo@ejemplo.com"
+            [attr.placeholder]="'auth.emailPlaceholder' | translate"
             [ngModel]="email()"
             (ngModelChange)="email.set($event)"
             required
           />
         </div>
         <button type="submit" class="primary btn-block" [disabled]="submitting()" data-testid="recover-submit">
-          {{ submitting() ? 'Enviando…' : 'Enviar enlace' }}
+          {{ submitting() ? ('common.sending' | translate) : ('auth.sendLink' | translate) }}
         </button>
       </form>
-      <p class="auth-alt">¿La recordaste? <a routerLink="/login">Inicia sesión</a></p>
+      <p class="auth-alt">{{ 'auth.rememberedQ' | translate }} <a routerLink="/login">{{ 'auth.loginLink' | translate }}</a></p>
     }
   </section>
 </div>

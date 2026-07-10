@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../core/auth/auth.service';
 import { SessionStore } from '../../core/auth/session.store';
 import { InvitationsApi } from '../../core/api/invitations.api';
@@ -22,7 +23,7 @@ type Mode = 'loading' | 'register' | 'activate' | 'normal' | 'invalid';
  */
 @Component({
   selector: 'app-register',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, TranslatePipe],
   templateUrl: './register.html',
 })
 export class Register {
@@ -32,6 +33,7 @@ export class Register {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toasts = inject(ToastService);
+  private readonly translate = inject(TranslateService);
 
   protected readonly firstName = signal('');
   protected readonly lastName = signal('');
@@ -70,7 +72,7 @@ export class Register {
       next: (res) => {
         if (!res.valid) {
           this.mode.set('invalid');
-          this.error.set('La invitación no es válida o venció.');
+          this.error.set(this.translate.instant('auth.msgInvitationInvalid'));
           return;
         }
         this.invitedEmail.set(res.email);
@@ -79,7 +81,7 @@ export class Register {
       },
       error: () => {
         this.mode.set('invalid');
-        this.error.set('La invitación no es válida o venció.');
+        this.error.set(this.translate.instant('auth.msgInvitationInvalid'));
       },
     });
   }
@@ -87,7 +89,7 @@ export class Register {
   /** Alta de cuenta nueva (invitada o normal) → verifica correo; si invitada, acepta. */
   protected submit(): void {
     if (!this.email() || !this.password() || !this.firstName()) {
-      this.error.set('Completa nombre, correo y contraseña.');
+      this.error.set(this.translate.instant('auth.msgCompleteFields'));
       return;
     }
     this.working.set(true);
@@ -103,7 +105,7 @@ export class Register {
         next: () => (this.token ? this.acceptThenGo(this.token) : this.done()),
         error: () => {
           this.working.set(false);
-          this.error.set('No se pudo crear la cuenta (¿el correo ya está registrado?).');
+          this.error.set(this.translate.instant('auth.msgCreateFailed'));
         },
       });
   }
@@ -115,12 +117,12 @@ export class Register {
     this.invitations.acceptByToken(this.token).subscribe({
       next: () => {
         this.working.set(false);
-        this.toasts.success('¡Listo! Tu cuenta ahora es promotora. Vuelve a iniciar sesión para verlo.');
+        this.toasts.success(this.translate.instant('auth.msgActivateOk'));
         void this.router.navigate(['/promotor']);
       },
       error: () => {
         this.working.set(false);
-        this.toasts.error('No se pudo activar (¿la invitación venció o ya la usaste?).');
+        this.toasts.error(this.translate.instant('auth.msgActivateFailed'));
       },
     });
   }

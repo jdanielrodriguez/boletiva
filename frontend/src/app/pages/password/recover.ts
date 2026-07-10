@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/ui/toast.service';
 
@@ -11,12 +12,13 @@ import { ToastService } from '../../core/ui/toast.service';
  */
 @Component({
   selector: 'app-password-recover',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, TranslatePipe],
   templateUrl: './recover.html',
 })
 export class PasswordRecover {
   private readonly auth = inject(AuthService);
   private readonly toasts = inject(ToastService);
+  private readonly translate = inject(TranslateService);
 
   protected readonly email = signal('');
   protected readonly submitting = signal(false);
@@ -25,7 +27,7 @@ export class PasswordRecover {
   submit(): void {
     const email = this.email().trim();
     if (!email) {
-      this.toasts.warning('Ingresa tu correo.');
+      this.toasts.warning(this.translate.instant('auth.msgEnterEmail'));
       return;
     }
     this.submitting.set(true);
@@ -33,13 +35,13 @@ export class PasswordRecover {
       next: () => {
         this.submitting.set(false);
         this.sent.set(true);
-        this.toasts.success('Si el correo existe, te enviamos un enlace para restablecer tu contraseña.');
+        this.toasts.success(this.translate.instant('auth.msgRecoverSent'));
       },
       error: () => {
         // Respuesta neutra igualmente: no revelamos el error al usuario.
         this.submitting.set(false);
         this.sent.set(true);
-        this.toasts.success('Si el correo existe, te enviamos un enlace para restablecer tu contraseña.');
+        this.toasts.success(this.translate.instant('auth.msgRecoverSent'));
       },
     });
   }

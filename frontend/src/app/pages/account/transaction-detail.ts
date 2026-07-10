@@ -1,8 +1,9 @@
-import { DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { catchError, of, switchMap } from 'rxjs';
+import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { MoneyPipe } from '../../shared/money.pipe';
 import { OrdersApi } from '../../core/api/orders.api';
 import type { OrderLedgerChainDto, OrderResponseDto } from '../../core/api/types';
@@ -16,13 +17,14 @@ import { ToastService } from '../../core/ui/toast.service';
  */
 @Component({
   selector: 'app-transaction-detail',
-  imports: [DatePipe, RouterLink, MoneyPipe],
+  imports: [TranslatePipe, LocalizedDatePipe, RouterLink, MoneyPipe],
   templateUrl: './transaction-detail.html',
 })
 export class TransactionDetail {
   private readonly route = inject(ActivatedRoute);
   private readonly ordersApi = inject(OrdersApi);
   private readonly toasts = inject(ToastService);
+  private readonly translate = inject(TranslateService);
 
   protected readonly orderId = signal('');
   protected readonly notFound = signal(false);
@@ -74,7 +76,7 @@ export class TransactionDetail {
       },
       error: () => {
         this.loadingChain.set(false);
-        this.toasts.error('No se pudo cargar la cadena de la transacción.');
+        this.toasts.error(this.translate.instant('account.toast.chainError'));
       },
     });
   }

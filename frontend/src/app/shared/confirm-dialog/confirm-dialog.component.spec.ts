@@ -1,5 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideI18nTesting } from '../../core/i18n/testing';
 import { ConfirmDialogComponent } from './confirm-dialog.component';
 
 describe('ConfirmDialogComponent', () => {
@@ -7,7 +8,9 @@ describe('ConfirmDialogComponent', () => {
   let el: HTMLElement;
 
   async function setup() {
-    TestBed.configureTestingModule({ providers: [provideZonelessChangeDetection()] });
+    TestBed.configureTestingModule({ providers: [
+        ...provideI18nTesting(),
+        ...provideI18nTesting(),provideZonelessChangeDetection()] });
     fixture = TestBed.createComponent(ConfirmDialogComponent);
     fixture.componentRef.setInput('title', 'Eliminar evento');
     fixture.componentRef.setInput('message', '¿Seguro que deseas eliminar "Fiesta"?');

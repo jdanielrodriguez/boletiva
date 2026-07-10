@@ -4,6 +4,8 @@ import { of } from 'rxjs';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
 import { SeatTemplatesApi } from '../../core/api/seat-templates.api';
 import { ToastService } from '../../core/ui/toast.service';
+import { initI18nTesting, provideI18nTesting } from '../../core/i18n/testing';
+import { I18nService } from '../../core/i18n/i18n.service';
 import { SeatEditorComponent } from './seat-editor.component';
 
 describe('SeatEditorComponent (editor de asientos)', () => {
@@ -17,6 +19,7 @@ describe('SeatEditorComponent (editor de asientos)', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
+        ...provideI18nTesting(),
         {
           provide: PromoterEventsApi,
           useValue: { seats: () => of([]), bulkSeats, deleteSeats } as unknown as PromoterEventsApi,
@@ -36,6 +39,7 @@ describe('SeatEditorComponent (editor de asientos)', () => {
         },
       ],
     });
+    initI18nTesting();
     fixture = TestBed.createComponent(SeatEditorComponent);
     fixture.componentRef.setInput('localityId', 'l1');
     fixture.detectChanges();
@@ -72,11 +76,13 @@ describe('SeatEditorComponent (editor de asientos)', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
+        ...provideI18nTesting(),
         { provide: PromoterEventsApi, useValue: { seats: () => of([]), bulkSeats, deleteSeats } as unknown as PromoterEventsApi },
         { provide: SeatTemplatesApi, useValue: { list: () => of(templates) } as unknown as SeatTemplatesApi },
         { provide: ToastService, useValue: { success: () => undefined, error: () => undefined, info: () => undefined, warning: () => undefined } },
       ],
     });
+    initI18nTesting();
     fixture = TestBed.createComponent(SeatEditorComponent);
     fixture.componentRef.setInput('localityId', 'l1');
     fixture.detectChanges();
@@ -161,5 +167,15 @@ describe('SeatEditorComponent (editor de asientos)', () => {
     expect(inst().filteredBackendTemplates().some((t) => t.id === 'bt1')).toBe(true);
     inst().applyBackendTemplate({ id: 'bt1', name: 'Auditorio', kind: 'grid', params: { rows: 3, cols: 4 } });
     expect(inst().seatCount()).toBe(12); // 3×4
+  });
+
+  // --- i18n: cambiar el idioma traduce los textos ---
+  it('traduce los textos al inglés al cambiar el idioma', async () => {
+    await setup();
+    TestBed.inject(I18nService).use('en');
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    // El botón "Mover" pasa a "Move".
+    expect(el.querySelector('[data-testid="tool-move"]')?.textContent).toContain('Move');
   });
 });

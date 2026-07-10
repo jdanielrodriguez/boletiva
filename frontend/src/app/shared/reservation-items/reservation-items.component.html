@@ -3,7 +3,7 @@
     <div class="res-group">
       <div class="res-group-head">
         <strong>{{ g.localityName }}</strong>
-        <span class="res-group-count">{{ g.items.length }} boleto(s)</span>
+        <span class="res-group-count">{{ 'reservation.ticketsCount' | translate: { count: g.items.length } }}</span>
       </div>
       <ul>
         @for (it of g.items; track it.seatId) {
@@ -13,7 +13,7 @@
           </li>
         }
       </ul>
-      <div class="res-subtotal">Subtotal {{ g.localityName }}: Q{{ g.subtotal }}</div>
+      <div class="res-subtotal">{{ 'reservation.subtotal' | translate: { name: g.localityName, amount: g.subtotal } }}</div>
     </div>
   }
 </div>

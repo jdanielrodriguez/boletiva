@@ -1,5 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideI18nTesting } from '../../core/i18n/testing';
 import { Router, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { TransfersApi } from '../../core/api/transfers.api';
@@ -12,6 +13,8 @@ describe('TransferClaim (reclamar boleto)', () => {
   async function setup(claim: jasmine.Spy) {
     TestBed.configureTestingModule({
       providers: [
+        ...provideI18nTesting(),
+        ...provideI18nTesting(),
         provideZonelessChangeDetection(),
         provideRouter([]),
         { provide: TransfersApi, useValue: { claim } },

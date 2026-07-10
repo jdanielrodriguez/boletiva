@@ -1,5 +1,6 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideI18nTesting } from '../../core/i18n/testing';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
@@ -45,6 +46,8 @@ describe('Register (F4/v3.5)', () => {
     acceptByToken = jasmine.createSpy('acceptByToken').and.returnValue(of({ accepted: true }));
     TestBed.configureTestingModule({
       providers: [
+        ...provideI18nTesting(),
+        ...provideI18nTesting(),
         provideZonelessChangeDetection(),
         provideRouter([]),
         ToastService,
@@ -159,6 +162,8 @@ describe('Register (F4/v3.5)', () => {
     acceptByToken = jasmine.createSpy('acceptByToken').and.returnValue(of({ accepted: true }));
     TestBed.configureTestingModule({
       providers: [
+        ...provideI18nTesting(),
+        ...provideI18nTesting(),
         provideZonelessChangeDetection(),
         provideRouter([]),
         ToastService,

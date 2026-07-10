@@ -1,17 +1,17 @@
 <div class="share-box" data-testid="share-box">
-  <span class="share-label">Compartir reserva</span>
+  <span class="share-label">{{ 'reservation.shareLabel' | translate }}</span>
   <div class="share-actions">
-    <a class="share-btn wa" [href]="whatsapp()" target="_blank" rel="noopener" aria-label="Compartir por WhatsApp">
+    <a class="share-btn wa" [href]="whatsapp()" target="_blank" rel="noopener" [attr.aria-label]="'reservation.shareWhatsapp' | translate">
       WhatsApp
     </a>
-    <a class="share-btn fb" [href]="facebook()" target="_blank" rel="noopener" aria-label="Compartir en Facebook">
+    <a class="share-btn fb" [href]="facebook()" target="_blank" rel="noopener" [attr.aria-label]="'reservation.shareFacebook' | translate">
       Facebook
     </a>
-    <a class="share-btn x" [href]="x()" target="_blank" rel="noopener" aria-label="Compartir en X">
+    <a class="share-btn x" [href]="x()" target="_blank" rel="noopener" [attr.aria-label]="'reservation.shareX' | translate">
       X
     </a>
     <button type="button" class="share-btn copy" (click)="copy()" data-testid="share-copy">
-      {{ copied() ? '¡Link copiado!' : 'Copiar link' }}
+      {{ copied() ? ('reservation.linkCopied' | translate) : ('reservation.copyLink' | translate) }}
     </button>
   </div>
 </div>

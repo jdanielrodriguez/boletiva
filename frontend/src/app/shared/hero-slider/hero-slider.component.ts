@@ -8,6 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
 
 /** Ítem del slider (desacoplado del SDK para testear sin dependencias). */
 export interface SlideItem {
@@ -27,7 +28,7 @@ const AUTOPLAY_MS = 6000;
  */
 @Component({
   selector: 'app-hero-slider',
-  imports: [RouterLink],
+  imports: [RouterLink, TranslatePipe],
   templateUrl: './hero-slider.component.html',
 })
 export class HeroSlider implements OnDestroy {

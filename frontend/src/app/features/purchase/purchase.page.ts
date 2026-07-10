@@ -2,6 +2,7 @@ import { DecimalPipe } from '@angular/common';
 import { Component, OnDestroy, afterNextRender, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { switchMap, tap } from 'rxjs';
 import { EventsApi } from '../../core/api/events.api';
 import { SessionStore } from '../../core/auth/session.store';
@@ -23,7 +24,7 @@ type Phase = 'select' | 'reserved' | 'expired';
  */
 @Component({
   selector: 'app-purchase',
-  imports: [SeatMapComponent, DecimalPipe, ShareBox, LoginModal, ReservationItems],
+  imports: [SeatMapComponent, DecimalPipe, ShareBox, LoginModal, ReservationItems, TranslatePipe],
   templateUrl: './purchase.page.html',
   providers: [PurchaseService],
 })
@@ -33,6 +34,7 @@ export class PurchasePage implements OnDestroy {
   private readonly eventsApi = inject(EventsApi);
   private readonly session = inject(SessionStore);
   private readonly siteUrl = inject(SITE_URL);
+  private readonly translate = inject(TranslateService);
   protected readonly store = inject(PurchaseService);
 
   protected readonly phase = signal<Phase>('select');
@@ -100,7 +102,7 @@ export class PurchasePage implements OnDestroy {
       },
       error: () => {
         this.working.set(false);
-        this.error.set('No se pudieron reservar los boletos (alguien más los tomó). Intenta de nuevo.');
+        this.error.set(this.translate.instant('purchase.reserveError'));
       },
     });
   }
@@ -127,7 +129,7 @@ export class PurchasePage implements OnDestroy {
       next: (order) => void this.router.navigate(['/checkout', order.id]),
       error: () => {
         this.working.set(false);
-        this.error.set('No se pudo continuar al pago. Intenta de nuevo.');
+        this.error.set(this.translate.instant('purchase.checkoutError'));
       },
     });
   }

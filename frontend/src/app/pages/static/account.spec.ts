@@ -11,6 +11,8 @@ import { WalletApi } from '../../core/api/wallet.api';
 import type { TicketPageResponseDto, WalletBalanceResponseDto } from '../../core/api/types';
 import { AuthService } from '../../core/auth/auth.service';
 import { SessionStore } from '../../core/auth/session.store';
+import { I18nService } from '../../core/i18n/i18n.service';
+import { initI18nTesting, provideI18nTesting } from '../../core/i18n/testing';
 import { ToastService } from '../../core/ui/toast.service';
 import { Account } from './account';
 
@@ -45,6 +47,7 @@ describe('Account (mi cuenta)', () => {
       providers: [
         provideZonelessChangeDetection(),
         provideRouter([]),
+        ...provideI18nTesting(),
         ToastService,
         {
           provide: WalletApi,
@@ -89,6 +92,7 @@ describe('Account (mi cuenta)', () => {
         },
       ],
     });
+    initI18nTesting();
     fixture = TestBed.createComponent(Account);
     toasts = TestBed.inject(ToastService);
     fixture.detectChanges();
@@ -564,5 +568,16 @@ describe('Account (mi cuenta)', () => {
     c.goToActivosPage(3);
     expect(c.activosPage()).toBe(3);
     expect(c.pageActivosGrouped().length).toBe(2);
+  });
+
+  it('traduce los textos al cambiar el idioma a inglés', async () => {
+    await setup();
+    // Español por defecto.
+    expect(el.querySelector('h1')?.textContent).toContain('Mi cuenta');
+    TestBed.inject(I18nService).use('en');
+    fixture.detectChanges();
+    expect(el.querySelector('h1')?.textContent).toContain('My account');
+    expect(el.querySelector('[data-testid="menu-wallet"]')?.textContent).toContain('Wallet');
+    expect(el.querySelector('[data-testid="menu-metodos"]')?.textContent).toContain('Payment methods');
   });
 });

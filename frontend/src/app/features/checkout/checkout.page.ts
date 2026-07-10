@@ -2,6 +2,7 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { forkJoin, startWith, switchMap } from 'rxjs';
 import { MoneyPipe } from '../../shared/money.pipe';
 import { OrderStreamService } from '../../core/api/order-stream.service';
@@ -22,13 +23,14 @@ type OrderStatus = 'pending' | 'paid' | 'cancelled' | 'expired' | 'refunded';
  */
 @Component({
   selector: 'app-checkout',
-  imports: [FormsModule, MoneyPipe],
+  imports: [FormsModule, MoneyPipe, TranslatePipe],
   templateUrl: './checkout.page.html',
 })
 export class CheckoutPage {
   private readonly route = inject(ActivatedRoute);
   private readonly ordersApi = inject(OrdersApi);
   private readonly stream = inject(OrderStreamService);
+  private readonly translate = inject(TranslateService);
 
   protected readonly orderId = signal('');
   protected readonly loaded = signal(false);
@@ -146,7 +148,7 @@ export class CheckoutPage {
         next: () => this.paying.set(false),
         error: () => {
           this.paying.set(false);
-          this.error.set('No se pudo iniciar el pago. Intenta de nuevo.');
+          this.error.set(this.translate.instant('checkout.payError'));
         },
       });
   }

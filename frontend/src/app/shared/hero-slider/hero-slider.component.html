@@ -1,5 +1,5 @@
 @if (count() > 0) {
-  <section class="hero" aria-roledescription="carrusel" aria-label="Eventos destacados">
+  <section class="hero" [attr.aria-roledescription]="'catalog.heroCarousel' | translate" [attr.aria-label]="'catalog.heroAria' | translate">
     <div class="hero-viewport">
       <div class="hero-track" [style.transform]="'translateX(' + offset() + '%)'">
         @for (slide of slides(); track slide.slug) {
@@ -21,8 +21,8 @@
     </div>
 
     @if (count() > 1) {
-      <button class="hero-arrow prev" type="button" aria-label="Anterior" (click)="onArrow(-1)">‹</button>
-      <button class="hero-arrow next" type="button" aria-label="Siguiente" (click)="onArrow(1)">›</button>
+      <button class="hero-arrow prev" type="button" [attr.aria-label]="'catalog.heroPrev' | translate" (click)="onArrow(-1)">‹</button>
+      <button class="hero-arrow next" type="button" [attr.aria-label]="'catalog.heroNext' | translate" (click)="onArrow(1)">›</button>
 
       <div class="hero-dots" role="tablist">
         @for (slide of slides(); track slide.slug; let i = $index) {
@@ -30,7 +30,7 @@
             type="button"
             class="hero-dot"
             [class.active]="i === index()"
-            [attr.aria-label]="'Ir al evento ' + (i + 1)"
+            [attr.aria-label]="'catalog.heroGoTo' | translate: { n: i + 1 }"
             [attr.aria-selected]="i === index()"
             (click)="goTo(i)"
           ></button>

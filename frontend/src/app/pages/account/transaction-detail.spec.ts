@@ -3,6 +3,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { OrdersApi } from '../../core/api/orders.api';
+import { I18nService } from '../../core/i18n/i18n.service';
+import { initI18nTesting, provideI18nTesting } from '../../core/i18n/testing';
 import { ToastService } from '../../core/ui/toast.service';
 import type { OrderLedgerChainDto, OrderResponseDto } from '../../core/api/types';
 import { TransactionDetail } from './transaction-detail';
@@ -41,11 +43,13 @@ describe('TransactionDetail', () => {
       providers: [
         provideZonelessChangeDetection(),
         provideRouter([]),
+        ...provideI18nTesting(),
         { provide: OrdersApi, useValue: orders },
         { provide: ToastService, useValue: { error: () => 0 } },
         { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ orderId: 'o1' })) } },
       ],
     });
+    initI18nTesting();
     fixture = TestBed.createComponent(TransactionDetail);
     fixture.detectChanges();
     await fixture.whenStable();
@@ -72,11 +76,13 @@ describe('TransactionDetail', () => {
       providers: [
         provideZonelessChangeDetection(),
         provideRouter([]),
+        ...provideI18nTesting(),
         { provide: OrdersApi, useValue: orders },
         { provide: ToastService, useValue: { error: () => 0 } },
         { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ orderId: 'o1' })) } },
       ],
     });
+    initI18nTesting();
     const fx = TestBed.createComponent(TransactionDetail);
     fx.detectChanges();
     await fx.whenStable();
@@ -100,5 +106,14 @@ describe('TransactionDetail', () => {
   it('orden inexistente → mensaje de no encontrada', async () => {
     await setup({ fail: true });
     expect(el.querySelector('[data-testid="txn-notfound"]')).not.toBeNull();
+  });
+
+  it('traduce los textos al cambiar el idioma a inglés', async () => {
+    await setup();
+    expect(el.querySelector('h1')?.textContent).toContain('Detalle de la transacción');
+    TestBed.inject(I18nService).use('en');
+    fixture.detectChanges();
+    expect(el.querySelector('h1')?.textContent).toContain('Transaction detail');
+    expect(el.querySelector('[data-testid="txn-back"]')?.textContent).toContain('Back to billing');
   });
 });

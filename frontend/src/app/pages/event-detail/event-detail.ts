@@ -1,7 +1,7 @@
-import { DatePipe } from '@angular/common';
 import { Component, RESPONSE_INIT, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
 import { catchError, map, of, startWith, switchMap, tap } from 'rxjs';
 import { EventsApi } from '../../core/api/events.api';
 import type {
@@ -9,6 +9,7 @@ import type {
   LocalityAvailabilityDto,
   PublicEventDetailDto,
 } from '../../core/api/types';
+import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { SeoService } from '../../core/seo/seo.service';
 
 interface DetailData {
@@ -25,7 +26,7 @@ const EMPTY_AV: EventAvailabilityDto = { seatMap: null, localities: [], seats: [
  */
 @Component({
   selector: 'app-event-detail',
-  imports: [RouterLink, DatePipe],
+  imports: [RouterLink, LocalizedDatePipe, TranslatePipe],
   templateUrl: './event-detail.html',
 })
 export class EventDetail {

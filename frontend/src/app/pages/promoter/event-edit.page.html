@@ -2,37 +2,37 @@
   <a [routerLink]="backLink()" class="link-btn" data-testid="back-link">{{ backLabel() }}</a>
 
   @if (loading()) {
-    <p class="muted">Cargando evento…</p>
+    <p class="muted">{{ 'promoter.edit.loadingEvent' | translate }}</p>
   } @else if (notFound()) {
-    <p class="error" data-testid="edit-notfound">Evento no encontrado o no tienes permiso.</p>
+    <p class="error" data-testid="edit-notfound">{{ 'promoter.edit.notFound' | translate }}</p>
   } @else {
     <div class="panel-header">
       <div>
-        <h1>{{ isNew() ? 'Nuevo evento' : event()?.name }}</h1>
+        <h1>{{ isNew() ? ('promoter.edit.newEvent' | translate) : event()?.name }}</h1>
         @if (event(); as ev) { <span class="badge badge-{{ ev.status }}">{{ ev.status }}</span> }
-        @if (isNew()) { <span class="badge badge-draft" data-testid="new-badge">nuevo</span> }
+        @if (isNew()) { <span class="badge badge-draft" data-testid="new-badge">{{ 'promoter.edit.badgeNew' | translate }}</span> }
       </div>
       <div class="ev-card-actions">
         @if (locked()) {
-          <button type="button" class="btn primary" (click)="openUnlock()" data-testid="unlock-btn" title="Desbloquear edición">
-            <app-icon name="unlock" /> Desbloquear edición
+          <button type="button" class="btn primary" (click)="openUnlock()" data-testid="unlock-btn" [title]="'promoter.edit.unlockEdit' | translate">
+            <app-icon name="unlock" /> {{ 'promoter.edit.unlockEdit' | translate }}
           </button>
         }
-        <button type="button" class="btn primary" [disabled]="savingData()" (click)="saveData()" data-testid="save-draft-btn" title="Guardar">
-          <app-icon name="save" /> {{ savingData() ? 'Guardando…' : 'Guardar' }}
+        <button type="button" class="btn primary" [disabled]="savingData()" (click)="saveData()" data-testid="save-draft-btn" [title]="'common.save' | translate">
+          <app-icon name="save" /> {{ savingData() ? ('promoter.edit.savingShort' | translate) : ('common.save' | translate) }}
         </button>
         @if (!isNew() && event()?.status === 'draft') {
           <button type="button" class="btn primary" [disabled]="!canPublish()" (click)="askPublish()" data-testid="publish-btn"
-            [title]="publishBlock() ?? 'Publicar evento'">
-            <app-icon name="publish" /> Publicar
+            [title]="publishBlock() ?? ('promoter.edit.publishEventTitle' | translate)">
+            <app-icon name="publish" /> {{ 'promoter.edit.publish' | translate }}
           </button>
-          <button type="button" class="btn danger" [disabled]="locked()" (click)="askRemove()" data-testid="delete-btn" title="Eliminar evento">
-            <app-icon name="delete" /> Eliminar
+          <button type="button" class="btn danger" [disabled]="locked()" (click)="askRemove()" data-testid="delete-btn" [title]="'promoter.edit.deleteEventTitle' | translate">
+            <app-icon name="delete" /> {{ 'common.delete' | translate }}
           </button>
         }
         @if (event()?.status === 'published') {
-          <button type="button" class="btn danger" [disabled]="locked()" (click)="askCancelEvent()" data-testid="cancel-btn" title="Cancelar evento">
-            <app-icon name="cancel" /> Cancelar evento
+          <button type="button" class="btn danger" [disabled]="locked()" (click)="askCancelEvent()" data-testid="cancel-btn" [title]="'promoter.edit.cancelEvent' | translate">
+            <app-icon name="cancel" /> {{ 'promoter.edit.cancelEvent' | translate }}
           </button>
         }
       </div>
@@ -41,35 +41,30 @@
     @if (locked()) {
       <p class="lock-banner" data-testid="lock-banner">
         <app-icon name="unlock" />
-        Estás editando como <strong>administrador</strong>. Los campos están bloqueados
-        para evitar cambios accidentales. Pulsa <strong>Desbloquear edición</strong> (te
-        enviaremos un código al correo).
+        <span [innerHTML]="'promoter.edit.lockBanner' | translate"></span>
       </p>
     }
 
     @if (isNew()) {
-      <p class="muted small" data-testid="new-note">
-        Completa los datos y pulsa <strong>Guardar</strong> para crear el evento. Luego podrás
-        agregar localidades, banner y publicarlo.
-      </p>
+      <p class="muted small" data-testid="new-note" [innerHTML]="'promoter.edit.newNote' | translate"></p>
     } @else if (publishBlock()) {
-      <p class="muted small" data-testid="publish-block">Para publicar: {{ publishBlock() }}</p>
+      <p class="muted small" data-testid="publish-block">{{ 'promoter.edit.publishBlockPrefix' | translate }} {{ publishBlock() }}</p>
     }
 
     @if (isPublished()) {
       <p class="muted small" data-testid="published-note">
-        Evento publicado: las localidades y asientos están bloqueados y no se puede cambiar la pasarela ni el IVA.
+        {{ 'promoter.edit.publishedNote' | translate }}
       </p>
     }
 
     @if (!isNew()) {
-      <nav class="config-tabs" aria-label="Secciones del evento">
-        <button type="button" [class.active]="tab() === 'datos'" (click)="selectTab('datos')" data-testid="tab-datos">Datos</button>
-        <button type="button" [class.active]="tab() === 'localidades'" (click)="selectTab('localidades')" data-testid="tab-localidades">Localidades</button>
-        <button type="button" [class.active]="tab() === 'banner'" (click)="selectTab('banner')" data-testid="tab-banner">Banner</button>
-        <button type="button" [class.active]="tab() === 'config'" (click)="selectTab('config')" data-testid="tab-config">Configuración</button>
-        <button type="button" [class.active]="tab() === 'cuentas'" (click)="selectTab('cuentas')" data-testid="tab-cuentas">Cuentas</button>
-        <button type="button" [class.active]="tab() === 'dashboard'" (click)="selectTab('dashboard')" data-testid="tab-dashboard">Dashboard</button>
+      <nav class="config-tabs" [attr.aria-label]="'promoter.edit.sectionsAria' | translate">
+        <button type="button" [class.active]="tab() === 'datos'" (click)="selectTab('datos')" data-testid="tab-datos">{{ 'promoter.edit.tabData' | translate }}</button>
+        <button type="button" [class.active]="tab() === 'localidades'" (click)="selectTab('localidades')" data-testid="tab-localidades">{{ 'promoter.edit.tabLocalities' | translate }}</button>
+        <button type="button" [class.active]="tab() === 'banner'" (click)="selectTab('banner')" data-testid="tab-banner">{{ 'promoter.edit.tabBanner' | translate }}</button>
+        <button type="button" [class.active]="tab() === 'config'" (click)="selectTab('config')" data-testid="tab-config">{{ 'promoter.edit.tabConfig' | translate }}</button>
+        <button type="button" [class.active]="tab() === 'cuentas'" (click)="selectTab('cuentas')" data-testid="tab-cuentas">{{ 'promoter.edit.tabAccounts' | translate }}</button>
+        <button type="button" [class.active]="tab() === 'dashboard'" (click)="selectTab('dashboard')" data-testid="tab-dashboard">{{ 'promoter.edit.tabDashboard' | translate }}</button>
       </nav>
     }
 
@@ -77,33 +72,33 @@
     @if (isNew() || tab() === 'datos') {
       <div class="card-block">
         <div class="form-grid">
-          <label class="field"><span>Nombre</span>
+          <label class="field"><span>{{ 'common.name' | translate }}</span>
             <input type="text" [ngModel]="d.name()" (ngModelChange)="d.name.set($event)" name="name" data-testid="ed-name" />
           </label>
-          <label class="field"><span>Categoría</span>
+          <label class="field"><span>{{ 'promoter.edit.fieldCategory' | translate }}</span>
             <select [ngModel]="d.categoryId()" (ngModelChange)="d.categoryId.set($event)" name="cat">
-              <option value="">— Sin categoría —</option>
+              <option value="">{{ 'promoter.edit.noCategory' | translate }}</option>
               @for (c of categories(); track c.id) { <option [value]="c.id">{{ c.name }}</option> }
             </select>
           </label>
           @if (halls().length > 0) {
-            <label class="field full"><span>Salón (opcional)</span>
+            <label class="field full"><span>{{ 'promoter.edit.fieldHall' | translate }}</span>
               <select [ngModel]="d.hallId()" (ngModelChange)="onHallChange($event)" name="hall" data-testid="ed-hall">
-                <option value="">— Sin salón —</option>
+                <option value="">{{ 'promoter.edit.noHall' | translate }}</option>
                 @for (h of halls(); track h.id) { <option [value]="h.id">{{ h.name }}{{ h.city ? ' · ' + h.city : '' }}</option> }
               </select>
             </label>
-            <p class="field full muted small">Elegir un salón conocido prefija su dirección y ubicación en el mapa.</p>
+            <p class="field full muted small">{{ 'promoter.edit.hallHint' | translate }}</p>
           }
-          <label class="field full"><span>Inicio</span>
+          <label class="field full"><span>{{ 'promoter.edit.fieldStart' | translate }}</span>
             <input type="datetime-local" [ngModel]="d.startsAt()" (ngModelChange)="d.startsAt.set($event)" name="starts" data-testid="ed-start" />
           </label>
-          <label class="field full"><span>Dirección / lugar</span>
+          <label class="field full"><span>{{ 'promoter.edit.fieldAddress' | translate }}</span>
             <input type="text" [ngModel]="d.address()" (ngModelChange)="d.address.set($event)" name="addr" data-testid="ed-address" />
           </label>
           <div class="field full">
-            <button type="button" class="btn small" (click)="toggleMap()" data-testid="ed-map-toggle" [attr.aria-expanded]="showMap()" title="Ubicar en el mapa">
-              <app-icon name="search" /> {{ showMap() ? 'Ocultar mapa' : 'Ubicar en el mapa' }}
+            <button type="button" class="btn small" (click)="toggleMap()" data-testid="ed-map-toggle" [attr.aria-expanded]="showMap()" [title]="'promoter.edit.locateOnMap' | translate">
+              <app-icon name="search" /> {{ showMap() ? ('promoter.edit.hideMap' | translate) : ('promoter.edit.locateOnMap' | translate) }}
             </button>
             @if (showMap()) {
               <app-map-picker
@@ -115,12 +110,12 @@
               />
             }
           </div>
-          <label class="field full"><span>Descripción</span>
+          <label class="field full"><span>{{ 'promoter.edit.fieldDescription' | translate }}</span>
             <textarea [ngModel]="d.description()" (ngModelChange)="d.description.set($event)" name="desc" rows="3"></textarea>
           </label>
         </div>
-        <button type="button" class="btn primary" [disabled]="savingData()" (click)="saveData()" data-testid="ed-save" title="Guardar datos">
-          <app-icon name="save" /> {{ savingData() ? 'Guardando…' : (isNew() ? 'Crear evento' : 'Guardar datos') }}
+        <button type="button" class="btn primary" [disabled]="savingData()" (click)="saveData()" data-testid="ed-save" [title]="'promoter.edit.saveData' | translate">
+          <app-icon name="save" /> {{ savingData() ? ('promoter.edit.savingShort' | translate) : (isNew() ? ('promoter.edit.createEvent' | translate) : ('promoter.edit.saveData' | translate)) }}
         </button>
       </div>
     }
@@ -132,11 +127,11 @@
             @if (localities().length > 0) {
               <div class="loc-toolbar">
                 <button type="button" class="btn small" (click)="toggleLocSearch()" data-testid="loc-search-toggle"
-                  [title]="locSearchOpen() ? 'Ocultar buscador' : 'Buscar localidad'">
-                  <app-icon name="search" /> {{ locSearchOpen() ? 'Ocultar buscador' : 'Buscar' }}
+                  [title]="locSearchOpen() ? ('promoter.edit.hideSearch' | translate) : ('promoter.edit.searchLocalityTitle' | translate)">
+                  <app-icon name="search" /> {{ locSearchOpen() ? ('promoter.edit.hideSearch' | translate) : ('common.search' | translate) }}
                 </button>
                 @if (locSearchOpen()) {
-                  <input type="search" class="loc-search-input" placeholder="Buscar localidad por nombre…"
+                  <input type="search" class="loc-search-input" [attr.placeholder]="'promoter.edit.searchLocalityPlaceholder' | translate"
                     [ngModel]="locSearch()" (ngModelChange)="locSearch.set($event)" name="locsearch" data-testid="loc-search-input" />
                 }
               </div>
@@ -145,95 +140,95 @@
                   <li class="loc-manage-item">
                     <div class="loc-manage-head">
                       <span class="loc-name">{{ l.name }}</span>
-                      <span class="badge">{{ l.kind === 'seated' ? 'con asiento' : 'general' }}</span>
-                      @if (l.capacity != null) { <span class="muted small">aforo {{ l.capacity }}</span> }
+                      <span class="badge">{{ l.kind === 'seated' ? ('promoter.edit.kindSeated' | translate) : ('promoter.edit.kindGeneral' | translate) }}</span>
+                      @if (l.capacity != null) { <span class="muted small">{{ 'promoter.edit.capacityLabel' | translate: { n: l.capacity } }}</span> }
                       @if (l.kind === 'seated' && (l.capacity ?? 0) === 0) {
-                        <span class="badge badge-warn" data-testid="loc-noseats">sin asientos</span>
+                        <span class="badge badge-warn" data-testid="loc-noseats">{{ 'promoter.edit.noSeats' | translate }}</span>
                       }
-                      @if (l.desiredNet != null) { <span class="muted small">neto Q{{ l.desiredNet }}</span> }
+                      @if (l.desiredNet != null) { <span class="muted small">{{ 'promoter.edit.netLabel' | translate: { n: l.desiredNet } }}</span> }
                       <span class="loc-manage-actions">
                         @if (l.kind === 'seated') {
                           <button type="button" class="btn small primary" (click)="manageSeats(l)" data-testid="loc-seats"
-                            [title]="isPublished() ? 'Ver el mapa de asientos' : 'Abrir el editor de asientos'">
-                            <app-icon name="seats" /> {{ isPublished() ? 'Ver asientos' : 'Administrar asientos' }}
+                            [title]="isPublished() ? ('promoter.edit.viewSeatMap' | translate) : ('promoter.edit.openSeatEditor' | translate)">
+                            <app-icon name="seats" /> {{ isPublished() ? ('promoter.edit.viewSeats' | translate) : ('promoter.edit.manageSeats' | translate) }}
                           </button>
                         } @else {
-                          <span class="muted small loc-general-note" data-testid="loc-general-note">Se vende por aforo (sin mapa de asientos)</span>
+                          <span class="muted small loc-general-note" data-testid="loc-general-note">{{ 'promoter.edit.soldByCapacity' | translate }}</span>
                         }
                         @if (!isPublished()) {
-                          <button type="button" class="btn small" (click)="startEditLocality(l)" data-testid="loc-edit" title="Editar localidad">
-                            <app-icon name="edit" /> Editar
+                          <button type="button" class="btn small" (click)="startEditLocality(l)" data-testid="loc-edit" [title]="'promoter.edit.editLocalityTitle' | translate">
+                            <app-icon name="edit" /> {{ 'common.edit' | translate }}
                           </button>
-                          <button type="button" class="btn small danger" (click)="askRemoveLocality(l)" data-testid="loc-remove" title="Eliminar localidad">
-                            <app-icon name="delete" /> Eliminar
+                          <button type="button" class="btn small danger" (click)="askRemoveLocality(l)" data-testid="loc-remove" [title]="'promoter.edit.deleteLocalityTitle' | translate">
+                            <app-icon name="delete" /> {{ 'common.delete' | translate }}
                           </button>
                         }
                       </span>
                     </div>
                   </li>
                 } @empty {
-                  <p class="muted" data-testid="loc-search-empty">Ninguna localidad coincide con la búsqueda.</p>
+                  <p class="muted" data-testid="loc-search-empty">{{ 'promoter.edit.noLocalityMatch' | translate }}</p>
                 }
               </ul>
             } @else {
-              <p class="muted" data-testid="loc-empty">Aún no hay localidades.</p>
+              <p class="muted" data-testid="loc-empty">{{ 'promoter.edit.noLocalities' | translate }}</p>
             }
 
             @if (!isPublished()) {
               <!-- Patrón botón → form: por defecto solo el botón; se abre al pulsar. -->
               @if (!showLocForm()) {
-                <button type="button" class="btn primary" (click)="toggleLocForm()" data-testid="loc-add-toggle" title="Agregar localidad">
-                  <app-icon name="add" /> Agregar localidad
+                <button type="button" class="btn primary" (click)="toggleLocForm()" data-testid="loc-add-toggle" [title]="'promoter.edit.addLocality' | translate">
+                  <app-icon name="add" /> {{ 'promoter.edit.addLocality' | translate }}
                 </button>
               } @else {
                 <div class="card-block loc-add-block" data-testid="loc-add-form">
-                  <h3>{{ editingLoc() ? 'Editar localidad' : 'Agregar localidad' }}</h3>
+                  <h3>{{ editingLoc() ? ('promoter.edit.editLocalityTitle' | translate) : ('promoter.edit.addLocality' | translate) }}</h3>
                   <div class="loc-form-grid">
-                    <label class="field"><span>Nombre</span>
-                      <input type="text" placeholder="p. ej. General, VIP…" [ngModel]="locForm.name()" (ngModelChange)="locForm.name.set($event)" name="ln" data-testid="loc-name" />
+                    <label class="field"><span>{{ 'common.name' | translate }}</span>
+                      <input type="text" [attr.placeholder]="'promoter.edit.localityNamePlaceholder' | translate" [ngModel]="locForm.name()" (ngModelChange)="locForm.name.set($event)" name="ln" data-testid="loc-name" />
                     </label>
-                    <label class="field"><span>Tipo</span>
+                    <label class="field"><span>{{ 'promoter.edit.fieldKind' | translate }}</span>
                       <select [ngModel]="locForm.kind()" (ngModelChange)="locForm.kind.set($event)" name="lk">
-                        <option value="general">General (por cantidad)</option>
-                        <option value="seated">Con asiento (mapa)</option>
+                        <option value="general">{{ 'promoter.edit.kindGeneralOption' | translate }}</option>
+                        <option value="seated">{{ 'promoter.edit.kindSeatedOption' | translate }}</option>
                       </select>
                     </label>
                     @if (locForm.kind() === 'general') {
-                      <label class="field"><span>Aforo</span>
-                        <input type="number" placeholder="Aforo" min="1" [ngModel]="locForm.capacity()" (ngModelChange)="locForm.capacity.set($event)" name="lc" />
+                      <label class="field"><span>{{ 'promoter.edit.fieldCapacity' | translate }}</span>
+                        <input type="number" [attr.placeholder]="'promoter.edit.fieldCapacity' | translate" min="1" [ngModel]="locForm.capacity()" (ngModelChange)="locForm.capacity.set($event)" name="lc" />
                       </label>
                     }
-                    <label class="field"><span>Neto por boleto (Q)</span>
-                      <input type="number" placeholder="Neto (Q)" min="0" step="0.01" [ngModel]="locForm.desiredNet()" (ngModelChange)="onNetChange($event)" name="ln2" data-testid="loc-net" />
+                    <label class="field"><span>{{ 'promoter.edit.fieldNet' | translate }}</span>
+                      <input type="number" [attr.placeholder]="'promoter.edit.netPlaceholder' | translate" min="0" step="0.01" [ngModel]="locForm.desiredNet()" (ngModelChange)="onNetChange($event)" name="ln2" data-testid="loc-net" />
                     </label>
                   </div>
 
                   @if (previewLoading()) {
-                    <p class="muted small" data-testid="price-preview-loading">Calculando precio…</p>
+                    <p class="muted small" data-testid="price-preview-loading">{{ 'promoter.edit.calculatingPrice' | translate }}</p>
                   } @else {
                     @if (pricePreview(); as q) {
                       <div class="price-preview" data-testid="price-preview">
-                        <span class="pp-total">El comprador paga <strong>Q{{ q.total }}</strong></span>
+                        <span class="pp-total" [innerHTML]="'promoter.edit.buyerPays' | translate: { total: q.total }"></span>
                         <ul class="pp-breakdown">
-                          <li>Tu neto: <strong>Q{{ q.net }}</strong></li>
-                          <li>Comisión plataforma: Q{{ q.platformFee }}</li>
-                          <li>Comisión pasarela: Q{{ q.gatewayFee }}</li>
-                          <li>IVA: Q{{ q.iva }}</li>
-                          <li class="pp-service">Cuota de servicio (comprador): Q{{ q.serviceFee }}</li>
+                          <li [innerHTML]="'promoter.edit.ppNet' | translate: { n: q.net }"></li>
+                          <li>{{ 'promoter.edit.ppPlatform' | translate: { n: q.platformFee } }}</li>
+                          <li>{{ 'promoter.edit.ppGateway' | translate: { n: q.gatewayFee } }}</li>
+                          <li>{{ 'promoter.edit.ppIva' | translate: { n: q.iva } }}</li>
+                          <li class="pp-service">{{ 'promoter.edit.ppService' | translate: { n: q.serviceFee } }}</li>
                         </ul>
                       </div>
                     }
                   }
 
                   <div class="loc-form-actions">
-                    <button type="button" class="btn primary" (click)="addLocality()" data-testid="loc-add" [title]="editingLoc() ? 'Guardar localidad' : 'Agregar localidad'">
-                      <app-icon name="save" /> {{ editingLoc() ? 'Guardar localidad' : 'Agregar localidad' }}
+                    <button type="button" class="btn primary" (click)="addLocality()" data-testid="loc-add" [title]="editingLoc() ? ('promoter.edit.saveLocality' | translate) : ('promoter.edit.addLocality' | translate)">
+                      <app-icon name="save" /> {{ editingLoc() ? ('promoter.edit.saveLocality' | translate) : ('promoter.edit.addLocality' | translate) }}
                     </button>
-                    <button type="button" class="btn" (click)="toggleLocForm()" data-testid="loc-add-cancel" title="Cancelar">
-                      <app-icon name="cancel" /> Cancelar
+                    <button type="button" class="btn" (click)="toggleLocForm()" data-testid="loc-add-cancel" [title]="'common.cancel' | translate">
+                      <app-icon name="cancel" /> {{ 'common.cancel' | translate }}
                     </button>
                   </div>
-                  <p class="muted small">Las "con asiento" permiten dibujar el mapa; las "general" venden por cantidad (aforo).</p>
+                  <p class="muted small">{{ 'promoter.edit.localityKindsHint' | translate }}</p>
                 </div>
               }
             }
@@ -244,91 +239,91 @@
           <div class="card-block banner-section">
             <!-- Opción A: subir un banner ya hecho -->
             <div class="banner-option" data-testid="banner-upload">
-              <h3>Usar un banner ya hecho</h3>
-              <p class="muted small">Sube una imagen (JPG/PNG/WebP). Se usará como portada del evento.</p>
+              <h3>{{ 'promoter.edit.bannerUploadTitle' | translate }}</h3>
+              <p class="muted small">{{ 'promoter.edit.bannerUploadHint' | translate }}</p>
               <label class="btn" [class.disabled]="uploadingBanner()">
-                <app-icon name="add" /> {{ uploadingBanner() ? 'Subiendo…' : 'Subir imagen' }}
+                <app-icon name="add" /> {{ uploadingBanner() ? ('promoter.edit.uploading' | translate) : ('promoter.edit.uploadImage' | translate) }}
                 <input type="file" accept="image/*" hidden (change)="onBannerFile($event)" data-testid="bn-file" [disabled]="uploadingBanner()" />
               </label>
             </div>
 
-            <div class="banner-divider"><span>o</span></div>
+            <div class="banner-divider"><span>{{ 'promoter.edit.orDivider' | translate }}</span></div>
 
             <!-- Opción B: generar con IA (form dentro de un desplegable) -->
             <div class="banner-option" data-testid="banner-ai">
               <button type="button" class="btn" (click)="toggleAiForm()" data-testid="bn-ai-toggle" [attr.aria-expanded]="showAiForm()"
-                title="Generar un banner con IA">
-                <app-icon name="banner" /> Generar con IA {{ showAiForm() ? '▲' : '▼' }}
+                [title]="'promoter.edit.generateAiTitle' | translate">
+                <app-icon name="banner" /> {{ 'promoter.edit.generateWithAi' | translate }} {{ showAiForm() ? '▲' : '▼' }}
               </button>
               @if (showAiForm()) {
                 <div class="banner-ai-form" data-testid="bn-ai-form">
                   <div class="form-grid">
-                    <label class="field"><span>Plantilla</span>
+                    <label class="field"><span>{{ 'promoter.edit.fieldTemplate' | translate }}</span>
                       <select [ngModel]="banner.template()" (ngModelChange)="banner.template.set($event)" name="tpl" data-testid="bn-template">
                         @for (t of bannerTemplates; track t) { <option [value]="t">{{ t }}</option> }
                       </select>
                     </label>
-                    <label class="field full"><span>Instrucción / prompt</span>
-                      <textarea [ngModel]="banner.prompt()" (ngModelChange)="banner.prompt.set($event)" name="bp" rows="2" placeholder="Ambiente neón, tipografía audaz…" data-testid="bn-prompt"></textarea>
+                    <label class="field full"><span>{{ 'promoter.edit.fieldPrompt' | translate }}</span>
+                      <textarea [ngModel]="banner.prompt()" (ngModelChange)="banner.prompt.set($event)" name="bp" rows="2" [attr.placeholder]="'promoter.edit.promptPlaceholder' | translate" data-testid="bn-prompt"></textarea>
                     </label>
-                    <label class="field full"><span>Imágenes de ejemplo (URLs separadas por coma)</span>
+                    <label class="field full"><span>{{ 'promoter.edit.fieldSampleImages' | translate }}</span>
                       <input type="text" [ngModel]="banner.sampleImages()" (ngModelChange)="banner.sampleImages.set($event)" name="bi" />
                     </label>
                   </div>
-                  <button type="button" class="btn primary" [disabled]="generatingBanner()" (click)="generateBanner()" data-testid="bn-generate" title="Generar banner con IA">
-                    <app-icon name="banner" /> {{ generatingBanner() ? 'Generando…' : 'Generar banner con IA' }}
+                  <button type="button" class="btn primary" [disabled]="generatingBanner()" (click)="generateBanner()" data-testid="bn-generate" [title]="'promoter.edit.generateBanner' | translate">
+                    <app-icon name="banner" /> {{ generatingBanner() ? ('promoter.edit.generating' | translate) : ('promoter.edit.generateBanner' | translate) }}
                   </button>
                 </div>
               }
             </div>
 
             @if (bannerUrl(); as url) {
-              <img class="banner-preview" [src]="url" alt="Banner del evento" data-testid="bn-preview" />
+              <img class="banner-preview" [src]="url" [alt]="'promoter.edit.bannerAlt' | translate" data-testid="bn-preview" />
             } @else if (hasBanner()) {
-              <p class="muted small" data-testid="bn-present">Banner cargado. Ya puedes publicar el evento.</p>
+              <p class="muted small" data-testid="bn-present">{{ 'promoter.edit.bannerPresent' | translate }}</p>
             } @else {
-              <p class="muted small" data-testid="bn-empty">Aún no hay banner. Súbelo o genéralo para poder publicar.</p>
+              <p class="muted small" data-testid="bn-empty">{{ 'promoter.edit.bannerEmpty' | translate }}</p>
             }
           </div>
         }
 
         @case ('config') {
           <div class="card-block">
-            <label class="field"><span>Pasarela de pago</span>
+            <label class="field"><span>{{ 'promoter.edit.fieldGateway' | translate }}</span>
               <select [ngModel]="c.gatewayId()" (ngModelChange)="c.gatewayId.set($event)" name="gw" [disabled]="isFrozen()" data-testid="cfg-gateway">
-                <option value="">— Usar la default de la plataforma —</option>
+                <option value="">{{ 'promoter.edit.gatewayDefault' | translate }}</option>
                 @for (g of gateways(); track g.id) { <option [value]="g.id">{{ g.name }}</option> }
               </select>
             </label>
-            <p class="muted small">Determina la comisión de pasarela incluida en el precio. {{ isFrozen() ? 'Bloqueada: el evento ya tiene compras.' : '' }}</p>
+            <p class="muted small">{{ 'promoter.edit.gatewayHint' | translate }} {{ isFrozen() ? ('promoter.edit.gatewayFrozen' | translate) : '' }}</p>
 
             <label class="check-row">
               <input type="checkbox" [ngModel]="c.ivaOnNet()" (ngModelChange)="c.ivaOnNet.set($event)" name="iva" [disabled]="isFrozen()" data-testid="cfg-iva" />
-              <span>El IVA aplica sobre mi neto (desmarca solo si ya pagas IVA del boleto por tu cuenta).</span>
+              <span>{{ 'promoter.edit.ivaOnNetLabel' | translate }}</span>
             </label>
 
             <label class="check-row">
               <input type="checkbox" [ngModel]="c.absorbInstallmentCost()" (ngModelChange)="c.absorbInstallmentCost.set($event)" name="abs" data-testid="cfg-absorb" />
-              <span>Absorbo el costo de las cuotas (Visacuotas/Mastercuotas). Si lo activas, el recargo por financiamiento se descuenta de tu neto; si no, lo cubre la plataforma. El comprador paga igual.</span>
+              <span>{{ 'promoter.edit.absorbLabel' | translate }}</span>
             </label>
 
-            <button type="button" class="btn primary" [disabled]="savingConfig()" (click)="saveConfig()" data-testid="cfg-save" title="Guardar configuración">
-              <app-icon name="save" /> {{ savingConfig() ? 'Guardando…' : 'Guardar configuración' }}
+            <button type="button" class="btn primary" [disabled]="savingConfig()" (click)="saveConfig()" data-testid="cfg-save" [title]="'promoter.edit.saveConfig' | translate">
+              <app-icon name="save" /> {{ savingConfig() ? ('promoter.edit.savingShort' | translate) : ('promoter.edit.saveConfig' | translate) }}
             </button>
           </div>
         }
 
         @case ('cuentas') {
           <div class="card-block">
-            <h2>Cuentas del evento</h2>
+            <h2>{{ 'promoter.edit.accountsTitle' | translate }}</h2>
             <app-event-settlement [eventId]="eventId()" [showSplit]="false" />
           </div>
         }
 
         @case ('dashboard') {
           <div class="card-block" data-testid="dashboard-placeholder">
-            <h2>Dashboard</h2>
-            <p class="muted">Próximamente: gráficos de ventas y estadísticas del evento.</p>
+            <h2>{{ 'promoter.edit.dashboardTitle' | translate }}</h2>
+            <p class="muted">{{ 'promoter.edit.dashboardSoon' | translate }}</p>
           </div>
         }
       }
@@ -339,30 +334,30 @@
   @if (showUnlockModal()) {
     <div class="modal-backdrop" data-testid="unlock-modal">
       <div class="modal-card">
-        <h3>Desbloquear edición</h3>
+        <h3>{{ 'promoter.edit.unlockEdit' | translate }}</h3>
         @if (!unlockSent()) {
           <p class="muted small">
-            Editar un evento como administrador requiere un código. Te lo enviaremos a tu correo.
+            {{ 'promoter.edit.unlockIntro' | translate }}
           </p>
           <div class="ev-card-actions">
-            <button type="button" class="btn primary" [disabled]="unlockSending()" (click)="requestUnlock()" data-testid="unlock-request" title="Enviar código">
-              <app-icon name="unlock" /> {{ unlockSending() ? 'Enviando…' : 'Enviar código al correo' }}
+            <button type="button" class="btn primary" [disabled]="unlockSending()" (click)="requestUnlock()" data-testid="unlock-request" [title]="'promoter.edit.sendCodeTitle' | translate">
+              <app-icon name="unlock" /> {{ unlockSending() ? ('common.sending' | translate) : ('promoter.edit.sendCodeToEmail' | translate) }}
             </button>
-            <button type="button" class="btn" (click)="closeUnlock()" title="Cancelar">
-              <app-icon name="cancel" /> Cancelar
+            <button type="button" class="btn" (click)="closeUnlock()" [title]="'common.cancel' | translate">
+              <app-icon name="cancel" /> {{ 'common.cancel' | translate }}
             </button>
           </div>
         } @else {
-          <p class="muted small">Ingresa el código de 6 dígitos que enviamos a tu correo.</p>
-          <label class="field"><span>Código</span>
+          <p class="muted small">{{ 'promoter.edit.unlockCodePrompt' | translate }}</p>
+          <label class="field"><span>{{ 'promoter.edit.fieldCode' | translate }}</span>
             <input type="text" maxlength="6" inputmode="numeric" [ngModel]="unlockCode()" (ngModelChange)="unlockCode.set($event)" name="unlockcode" data-testid="unlock-code" />
           </label>
           <div class="ev-card-actions">
-            <button type="button" class="btn primary" [disabled]="unlocking()" (click)="verifyUnlock()" data-testid="unlock-verify" title="Validar código">
-              <app-icon name="save" /> {{ unlocking() ? 'Validando…' : 'Desbloquear' }}
+            <button type="button" class="btn primary" [disabled]="unlocking()" (click)="verifyUnlock()" data-testid="unlock-verify" [title]="'promoter.edit.validateCodeTitle' | translate">
+              <app-icon name="save" /> {{ unlocking() ? ('promoter.edit.validating' | translate) : ('promoter.edit.unlock' | translate) }}
             </button>
-            <button type="button" class="btn" (click)="closeUnlock()" title="Cancelar">
-              <app-icon name="cancel" /> Cancelar
+            <button type="button" class="btn" (click)="closeUnlock()" [title]="'common.cancel' | translate">
+              <app-icon name="cancel" /> {{ 'common.cancel' | translate }}
             </button>
           </div>
         }
@@ -374,7 +369,7 @@
     <app-confirm-dialog
       [title]="cf.title"
       [message]="cf.message"
-      [confirmLabel]="cf.confirmLabel ?? 'Eliminar'"
+      [confirmLabel]="cf.confirmLabel ?? ('common.delete' | translate)"
       [confirmIcon]="cf.confirmIcon ?? 'delete'"
       (accept)="onConfirmAccept()"
       (cancelled)="onConfirmCancel()"

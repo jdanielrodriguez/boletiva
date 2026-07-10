@@ -1,5 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideI18nTesting } from '../../core/i18n/testing';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
@@ -15,6 +16,8 @@ describe('PasswordReset (restablecer contraseña)', () => {
   async function setup(token: string | null, auth: Partial<AuthService> = {}) {
     TestBed.configureTestingModule({
       providers: [
+        ...provideI18nTesting(),
+        ...provideI18nTesting(),
         provideZonelessChangeDetection(),
         provideRouter([]),
         ToastService,

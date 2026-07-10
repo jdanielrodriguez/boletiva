@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../core/auth/auth.service';
 
 /**
@@ -10,13 +11,14 @@ import { AuthService } from '../../core/auth/auth.service';
  */
 @Component({
   selector: 'app-login',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, TranslatePipe],
   templateUrl: './login.html',
 })
 export class Login {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly translate = inject(TranslateService);
 
   protected readonly email = signal('');
   protected readonly password = signal('');
@@ -44,7 +46,7 @@ export class Login {
       },
       error: () => {
         this.submitting.set(false);
-        this.error.set('Credenciales inválidas.');
+        this.error.set(this.translate.instant('auth.msgInvalidCredentials'));
       },
     });
   }
@@ -60,7 +62,7 @@ export class Login {
       },
       error: () => {
         this.submitting.set(false);
-        this.error.set('Código inválido o expirado.');
+        this.error.set(this.translate.instant('auth.msgInvalidCode'));
       },
     });
   }

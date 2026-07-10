@@ -7,6 +7,8 @@ import { ReservationsApi } from '../../core/api/reservations.api';
 import { AuthService } from '../../core/auth/auth.service';
 import { SessionStore } from '../../core/auth/session.store';
 import { SITE_URL } from '../../core/config/api.tokens';
+import { I18nService } from '../../core/i18n/i18n.service';
+import { initI18nTesting, provideI18nTesting } from '../../core/i18n/testing';
 import type { EventAvailabilityDto, PublicEventDetailDto, ReservationResponseDto } from '../../core/api/types';
 import { PurchasePage } from './purchase.page';
 
@@ -47,6 +49,7 @@ describe('PurchasePage', () => {
       providers: [
         provideZonelessChangeDetection(),
         provideRouter([]),
+        ...provideI18nTesting(),
         { provide: EventsApi, useValue: events },
         { provide: ReservationsApi, useValue: reservations },
         { provide: SITE_URL, useValue: 'http://localhost:4200' },
@@ -61,6 +64,7 @@ describe('PurchasePage', () => {
         },
       ],
     });
+    initI18nTesting();
     fixture = TestBed.createComponent(PurchasePage);
     fixture.detectChanges();
     await fixture.whenStable();
@@ -102,5 +106,14 @@ describe('PurchasePage', () => {
     (el.querySelector('[data-testid="pay-btn"]') as HTMLButtonElement).click();
     fixture.detectChanges();
     expect(el.querySelector('[data-testid="login-modal"]')).not.toBeNull();
+  });
+
+  it('traduce la interfaz al inglés al cambiar de idioma', async () => {
+    await setup();
+    expect(el.querySelector('h1')?.textContent).toContain('Comprar');
+    TestBed.inject(I18nService).use('en');
+    fixture.detectChanges();
+    expect(el.querySelector('h1')?.textContent).toContain('Buy');
+    expect(el.querySelector('[data-testid="reserve-btn"]')?.textContent).toContain('Reserve');
   });
 });

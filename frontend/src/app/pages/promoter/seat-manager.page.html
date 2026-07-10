@@ -1,34 +1,31 @@
 <section class="seat-manager">
   <a [routerLink]="backLink()" [queryParams]="backQuery()" class="link-btn" data-testid="seat-back">
-    ← Volver al evento
+    {{ 'promoter.seatMgr.back' | translate }}
   </a>
 
   @if (loading()) {
-    <p class="muted">Cargando…</p>
+    <p class="muted">{{ 'common.loading' | translate }}</p>
   } @else if (notFound()) {
-    <p class="error" data-testid="seat-notfound">Evento no encontrado o no tienes permiso.</p>
+    <p class="error" data-testid="seat-notfound">{{ 'promoter.seatMgr.notFound' | translate }}</p>
   } @else {
     <div class="panel-header">
       <div>
         <h1>
           <app-icon name="seats" [size]="22" />
-          Administrar asientos
+          {{ 'promoter.seatMgr.title' | translate }}
         </h1>
         <p class="muted">
-          {{ event()?.name }} · Localidad
+          {{ event()?.name }} · {{ 'promoter.seatMgr.locality' | translate }}
           <strong>{{ locality()?.name ?? localityId() }}</strong>
         </p>
       </div>
     </div>
 
     @if (adminLocked()) {
-      <p class="muted small" data-testid="seat-admin-locked">
-        Edición bloqueada. Vuelve al evento y pulsa <strong>Desbloquear edición</strong>
-        (código al correo) para poder modificar los asientos.
-      </p>
+      <p class="muted small" data-testid="seat-admin-locked" [innerHTML]="'promoter.seatMgr.adminLocked' | translate"></p>
     } @else if (readonly()) {
       <p class="muted small" data-testid="seat-readonly-note">
-        El evento está publicado: el mapa de asientos está bloqueado (solo lectura).
+        {{ 'promoter.seatMgr.readonlyNote' | translate }}
       </p>
     }
 

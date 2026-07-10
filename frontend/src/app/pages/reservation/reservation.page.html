@@ -1,16 +1,16 @@
 <section class="reservation">
   @if (reservation(); as r) {
-    <h1>Reserva de boletos</h1>
-    <p class="reservation-event">{{ r.eventName }} · {{ r.startsAt | date: 'medium' }}</p>
+    <h1>{{ 'reservation.title' | translate }}</h1>
+    <p class="reservation-event">{{ r.eventName }} · {{ r.startsAt | localizedDate: 'medium' }}</p>
 
     @if (r.valid) {
-      <p class="countdown" data-testid="countdown">Expira en {{ mm() }}:{{ ss() | number: '2.0-0' }}</p>
+      <p class="countdown" data-testid="countdown">{{ 'reservation.expiresIn' | translate: { mm: mm(), ss: (ss() | number: '2.0-0') } }}</p>
     } @else {
-      <p class="warn" data-testid="reservation-expired">Esta reserva expiró.</p>
+      <p class="warn" data-testid="reservation-expired">{{ 'reservation.expired' | translate }}</p>
     }
 
     <app-reservation-items [items]="r.items" />
-    <p class="total">Total: Q{{ r.total }}</p>
+    <p class="total">{{ 'reservation.total' | translate: { total: r.total } }}</p>
 
     @if (error()) {
       <p class="error" data-testid="reservation-error">{{ error() }}</p>
@@ -18,16 +18,16 @@
 
     @if (r.valid) {
       <button type="button" class="primary" data-testid="pay-btn" [disabled]="working()" (click)="continueToPay()">
-        {{ working() ? 'Procesando…' : 'Continuar al pago' }}
+        {{ working() ? ('reservation.processing' | translate) : ('reservation.continueToPay' | translate) }}
       </button>
     }
   } @else if (loading()) {
-    <p data-testid="reservation-loading">Cargando reserva…</p>
+    <p data-testid="reservation-loading">{{ 'reservation.loading' | translate }}</p>
   } @else {
     <div class="reservation-invalid" data-testid="reservation-invalid">
-      <h1>Reserva no disponible</h1>
-      <p>El link es inválido o la reserva ya expiró.</p>
-      <a routerLink="/">Ver eventos</a>
+      <h1>{{ 'reservation.invalidTitle' | translate }}</h1>
+      <p>{{ 'reservation.invalidBody' | translate }}</p>
+      <a routerLink="/">{{ 'reservation.seeEvents' | translate }}</a>
     </div>
   }
 

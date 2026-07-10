@@ -1,4 +1,5 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, inject, input } from '@angular/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { ReservationItemDto } from '../../core/api/types';
 
 interface Group {
@@ -14,10 +15,12 @@ interface Group {
  */
 @Component({
   selector: 'app-reservation-items',
+  imports: [TranslatePipe],
   templateUrl: './reservation-items.component.html',
 })
 export class ReservationItems {
   readonly items = input<ReservationItemDto[]>([]);
+  private readonly translate = inject(TranslateService);
 
   protected readonly groups = computed<Group[]>(() => {
     const byLoc = new Map<string, ReservationItemDto[]>();
@@ -37,8 +40,8 @@ export class ReservationItems {
     if (!it.section && !it.row) return it.label;
     const parts: string[] = [];
     if (it.section) parts.push(it.section);
-    if (it.row) parts.push(`Fila ${it.row}`);
-    parts.push(`Asiento ${it.label}`);
+    if (it.row) parts.push(this.translate.instant('reservation.rowLabel', { n: it.row }));
+    parts.push(this.translate.instant('reservation.seatLabel', { n: it.label }));
     return parts.join(' · ');
   }
 }

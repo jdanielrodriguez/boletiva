@@ -3,23 +3,23 @@
     <app-hero-slider [slides]="slides()" />
   }
 
-  <h1>Eventos</h1>
+  <h1>{{ 'catalog.title' | translate }}</h1>
 
   <form class="catalog-search" (ngSubmit)="submitSearch(searchBox.value)">
     <input
       #searchBox
       type="search"
       name="search"
-      placeholder="Buscar eventos…"
+      [attr.placeholder]="'catalog.searchPlaceholder' | translate"
       [value]="search()"
-      aria-label="Buscar eventos"
+      [attr.aria-label]="'catalog.searchAria' | translate"
     />
-    <button type="submit" class="primary">Buscar</button>
+    <button type="submit" class="primary">{{ 'catalog.searchButton' | translate }}</button>
   </form>
 
-  <div class="catalog-categories" role="group" aria-label="Filtrar por categoría">
+  <div class="catalog-categories" role="group" [attr.aria-label]="'catalog.filterByCategory' | translate">
     <button type="button" [class.active]="activeCategory() === ''" (click)="selectCategory('')">
-      Todas
+      {{ 'catalog.allCategories' | translate }}
     </button>
     @for (cat of categories(); track cat.id) {
       <button
@@ -33,11 +33,11 @@
   </div>
 
   @if (!loaded()) {
-    <p data-testid="catalog-error">No se pudo cargar el catálogo. Intenta de nuevo.</p>
+    <p data-testid="catalog-error">{{ 'catalog.loadError' | translate }}</p>
   } @else if (events().length === 0) {
-    <p data-testid="catalog-empty">No hay eventos que coincidan con tu búsqueda.</p>
+    <p data-testid="catalog-empty">{{ 'catalog.empty' | translate }}</p>
   } @else {
-    <p class="catalog-count" data-testid="catalog-count">{{ total() }} evento(s)</p>
+    <p class="catalog-count" data-testid="catalog-count">{{ 'catalog.count' | translate: { count: total() } }}</p>
     <ul class="catalog-grid">
       @for (ev of events(); track ev.id) {
         <li class="event-card">
@@ -51,7 +51,7 @@
             @if (ev.category) {
               <span class="event-cat">{{ ev.category.name }}</span>
             }
-            <time [attr.datetime]="ev.startsAt">{{ ev.startsAt | date: 'medium' }}</time>
+            <time [attr.datetime]="ev.startsAt">{{ ev.startsAt | localizedDate: 'medium' }}</time>
             @if (ev.address) {
               <span class="event-place">{{ ev.address }}</span>
             }

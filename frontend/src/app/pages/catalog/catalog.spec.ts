@@ -1,5 +1,7 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { I18nService } from '../../core/i18n/i18n.service';
+import { provideI18nTesting } from '../../core/i18n/testing';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { Observable, of, throwError } from 'rxjs';
 import { CategoriesApi } from '../../core/api/categories.api';
@@ -24,6 +26,8 @@ function setup(
 ): ComponentFixture<Catalog> {
   TestBed.configureTestingModule({
     providers: [
+        ...provideI18nTesting(),
+        ...provideI18nTesting(),
       provideZonelessChangeDetection(),
       provideRouter([]),
       { provide: EventsApi, useValue: { listPublic, promoted: () => of([]) } },
@@ -109,5 +113,14 @@ describe('Catalog', () => {
     expect(navSpy).toHaveBeenCalled();
     const args = navSpy.calls.mostRecent().args[1] as { queryParams: Record<string, unknown> };
     expect(args.queryParams['category']).toBe('conciertos');
+  });
+
+  it('traduce el título al cambiar de idioma (i18n runtime)', () => {
+    const fixture = setup(() => of({ items: [EVENT], total: 1, skip: 0, take: 12 }));
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('h1')?.textContent?.trim()).toBe('Eventos');
+    TestBed.inject(I18nService).use('en');
+    fixture.detectChanges();
+    expect(el.querySelector('h1')?.textContent?.trim()).toBe('Events');
   });
 });

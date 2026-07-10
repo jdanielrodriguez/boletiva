@@ -1,11 +1,12 @@
-import { DatePipe } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
 import { catchError, of, switchMap, tap } from 'rxjs';
 import { CategoriesApi } from '../../core/api/categories.api';
 import { EventsApi } from '../../core/api/events.api';
 import type { PublicEventListDto } from '../../core/api/types';
+import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { SeoService } from '../../core/seo/seo.service';
 import { HeroSlider, SlideItem } from '../../shared/hero-slider/hero-slider.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
@@ -20,7 +21,7 @@ const PAGE_SIZE = 12;
  */
 @Component({
   selector: 'app-catalog',
-  imports: [RouterLink, DatePipe, HeroSlider, PagerComponent],
+  imports: [RouterLink, LocalizedDatePipe, TranslatePipe, HeroSlider, PagerComponent],
   templateUrl: './catalog.html',
 })
 export class Catalog {

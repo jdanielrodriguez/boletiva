@@ -1,6 +1,7 @@
 import { Component, computed, DestroyRef, OnDestroy, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
 import { CategoriesApi } from '../../core/api/categories.api';
@@ -54,6 +55,7 @@ function toLocalInput(iso: string | null | undefined): string {
     IconComponent,
     ConfirmDialogComponent,
     MapPickerComponent,
+    TranslatePipe,
   ],
   templateUrl: './event-edit.page.html',
 })
@@ -67,6 +69,7 @@ export class EventEditPage implements OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toasts = inject(ToastService);
+  private readonly translate = inject(TranslateService);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly bannerTemplates: BannerTemplate[] = ['aurora', 'midnight', 'sunset', 'forest', 'mono'];
@@ -116,7 +119,9 @@ export class EventEditPage implements OnDestroy {
     this.from() === 'admin' ? '/configuracion' : '/promotor',
   );
   protected readonly backLabel = computed(() =>
-    this.from() === 'admin' ? '← Volver a la consola' : '← Volver a mis eventos',
+    this.from() === 'admin'
+      ? this.translate.instant('promoter.edit.backToConsole')
+      : this.translate.instant('promoter.edit.backToMyEvents'),
   );
 
   // Datos
@@ -191,13 +196,14 @@ export class EventEditPage implements OnDestroy {
    * backend: evento guardado + banner + toda localidad seated con asientos.
    */
   protected readonly publishBlock = computed<string | null>(() => {
-    if (this.isNew() || !this.event()) return 'Guarda el evento antes de publicar.';
-    if (this.localities().length === 0) return 'Agrega al menos una localidad.';
-    if (!this.hasBanner()) return 'Agrega un banner (imagen) del evento.';
+    if (this.isNew() || !this.event()) return this.translate.instant('promoter.edit.pbSaveFirst');
+    if (this.localities().length === 0) return this.translate.instant('promoter.edit.pbAddLocality');
+    if (!this.hasBanner()) return this.translate.instant('promoter.edit.pbAddBanner');
     const emptySeated = this.localities().find(
       (l) => l.kind === 'seated' && (l.capacity ?? 0) === 0,
     );
-    if (emptySeated) return `La localidad "${emptySeated.name}" no tiene asientos colocados.`;
+    if (emptySeated)
+      return this.translate.instant('promoter.edit.pbSeatless', { name: emptySeated.name });
     return null;
   });
   protected readonly canPublish = computed(() => this.publishBlock() === null);
@@ -274,11 +280,11 @@ export class EventEditPage implements OnDestroy {
       next: () => {
         this.unlockSending.set(false);
         this.unlockSent.set(true);
-        this.toasts.info('Te enviamos un código al correo para desbloquear la edición.');
+        this.toasts.info(this.translate.instant('promoter.edit.toastUnlockSent'));
       },
       error: () => {
         this.unlockSending.set(false);
-        this.toasts.error('No se pudo enviar el código de desbloqueo.');
+        this.toasts.error(this.translate.instant('promoter.edit.toastUnlockSendError'));
       },
     });
   }
@@ -286,7 +292,7 @@ export class EventEditPage implements OnDestroy {
   protected verifyUnlock(): void {
     const code = this.unlockCode().trim();
     if (code.length !== 6) {
-      this.toasts.warning('Ingresa el código de 6 dígitos que recibiste.');
+      this.toasts.warning(this.translate.instant('promoter.edit.toastEnterCode'));
       return;
     }
     this.unlocking.set(true);
@@ -295,11 +301,11 @@ export class EventEditPage implements OnDestroy {
         this.unlocking.set(false);
         this.editUnlock.setUnlock(this.eventId(), res.token, res.expiresAt);
         this.showUnlockModal.set(false);
-        this.toasts.success('Edición desbloqueada por 5 minutos.');
+        this.toasts.success(this.translate.instant('promoter.edit.toastUnlocked'));
       },
       error: () => {
         this.unlocking.set(false);
-        this.toasts.error('Código inválido o expirado.');
+        this.toasts.error(this.translate.instant('promoter.edit.toastCodeInvalid'));
       },
     });
   }
@@ -307,7 +313,7 @@ export class EventEditPage implements OnDestroy {
   /** Si está bloqueado, avisa (sin perder los cambios del form) y devuelve true. */
   private blockedByLock(): boolean {
     if (this.locked()) {
-      this.toasts.warning('Desbloquea la edición para guardar los cambios.');
+      this.toasts.warning(this.translate.instant('promoter.edit.toastUnlockToSave'));
       this.openUnlock();
       return true;
     }
@@ -387,11 +393,11 @@ export class EventEditPage implements OnDestroy {
   protected saveData(): void {
     if (this.blockedByLock()) return;
     if (!this.d.name() || this.d.name().trim().length < 3) {
-      this.toasts.warning('El evento necesita un nombre (mínimo 3 caracteres).');
+      this.toasts.warning(this.translate.instant('promoter.edit.toastNameRequired'));
       return;
     }
     if (this.isNew() && !this.d.startsAt()) {
-      this.toasts.warning('Indica la fecha y hora de inicio.');
+      this.toasts.warning(this.translate.instant('promoter.edit.toastStartRequired'));
       return;
     }
     this.savingData.set(true);
@@ -412,7 +418,7 @@ export class EventEditPage implements OnDestroy {
         .subscribe({
           next: (ev) => {
             this.savingData.set(false);
-            this.toasts.success('Evento creado. Completa localidades, banner y publícalo.');
+            this.toasts.success(this.translate.instant('promoter.edit.toastCreated'));
             // Pasa a modo edición reemplazando la URL por la del evento real.
             void this.router.navigate(['/promotor/eventos', ev.id, 'editar'], {
               replaceUrl: true,
@@ -421,7 +427,7 @@ export class EventEditPage implements OnDestroy {
           },
           error: () => {
             this.savingData.set(false);
-            this.toasts.error('No se pudo crear el evento (revisa nombre y fecha de inicio).');
+            this.toasts.error(this.translate.instant('promoter.edit.toastCreateError'));
           },
         });
       return;
@@ -443,11 +449,11 @@ export class EventEditPage implements OnDestroy {
         next: (ev) => {
           this.savingData.set(false);
           this.event.set(ev);
-          this.toasts.success('Cambios guardados.');
+          this.toasts.success(this.translate.instant('promoter.edit.toastChangesSaved'));
         },
         error: () => {
           this.savingData.set(false);
-          this.toasts.error('No se pudieron guardar los datos (revisa la fecha de inicio).');
+          this.toasts.error(this.translate.instant('promoter.edit.toastSaveDataError'));
         },
       });
   }
@@ -466,11 +472,11 @@ export class EventEditPage implements OnDestroy {
         next: (ev) => {
           this.savingConfig.set(false);
           this.event.set(ev);
-          this.toasts.success('Configuración guardada.');
+          this.toasts.success(this.translate.instant('promoter.edit.toastConfigSaved'));
         },
         error: () => {
           this.savingConfig.set(false);
-          this.toasts.error('No se pudo guardar; el evento con compras congela pasarela e IVA.');
+          this.toasts.error(this.translate.instant('promoter.edit.toastConfigError'));
         },
       });
   }
@@ -523,7 +529,7 @@ export class EventEditPage implements OnDestroy {
   protected addLocality(): void {
     if (this.blockedByLock()) return;
     if (!this.locForm.name()) {
-      this.toasts.warning('La localidad necesita un nombre.');
+      this.toasts.warning(this.translate.instant('promoter.edit.toastLocalityNameRequired'));
       return;
     }
     const kind = this.locForm.kind();
@@ -541,10 +547,11 @@ export class EventEditPage implements OnDestroy {
           next: () => {
             this.resetLocForm();
             this.showLocForm.set(false);
-            this.toasts.success('Localidad actualizada.');
+            this.toasts.success(this.translate.instant('promoter.edit.toastLocalityUpdated'));
             this.loadLocalities();
           },
-          error: () => this.toasts.error('No se pudo actualizar la localidad (¿evento publicado?).'),
+          error: () =>
+            this.toasts.error(this.translate.instant('promoter.edit.toastLocalityUpdateError')),
         });
       return;
     }
@@ -559,18 +566,19 @@ export class EventEditPage implements OnDestroy {
         next: () => {
           this.resetLocForm();
           this.showLocForm.set(false);
-          this.toasts.success('Localidad agregada.');
+          this.toasts.success(this.translate.instant('promoter.edit.toastLocalityAdded'));
           this.loadLocalities();
         },
-        error: () => this.toasts.error('No se pudo agregar la localidad (¿evento publicado?).'),
+        error: () =>
+          this.toasts.error(this.translate.instant('promoter.edit.toastLocalityAddError')),
       });
   }
 
   protected askRemoveLocality(l: LocalityView): void {
     if (this.blockedByLock()) return;
     this.confirm.set({
-      title: 'Eliminar localidad',
-      message: `¿Seguro que deseas eliminar la localidad "${l.name}"? Esta acción no se puede deshacer.`,
+      title: this.translate.instant('promoter.edit.deleteLocalityTitle'),
+      message: this.translate.instant('promoter.edit.confirmDeleteLocalityMsg', { name: l.name }),
       onConfirm: () => this.removeLocality(l),
     });
   }
@@ -578,10 +586,10 @@ export class EventEditPage implements OnDestroy {
   protected removeLocality(l: LocalityView): void {
     this.api.removeLocality(l.id).subscribe({
       next: () => {
-        this.toasts.info('Localidad eliminada.');
+        this.toasts.info(this.translate.instant('promoter.edit.toastLocalityRemoved'));
         this.loadLocalities();
       },
-      error: () => this.toasts.error('No se pudo eliminar (¿evento publicado?).'),
+      error: () => this.toasts.error(this.translate.instant('promoter.edit.toastLocalityRemoveError')),
     });
   }
 
@@ -597,7 +605,7 @@ export class EventEditPage implements OnDestroy {
     const file = input.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      this.toasts.error('El banner debe ser una imagen.');
+      this.toasts.error(this.translate.instant('promoter.edit.toastBannerImage'));
       return;
     }
     this.uploadingBanner.set(true);
@@ -607,12 +615,12 @@ export class EventEditPage implements OnDestroy {
       next: () => {
         this.uploadingBanner.set(false);
         this.bannerUrl.set(localUrl);
-        this.toasts.success('Banner subido.');
+        this.toasts.success(this.translate.instant('promoter.edit.toastBannerUploaded'));
         this.reload();
       },
       error: () => {
         this.uploadingBanner.set(false);
-        this.toasts.error('No se pudo subir el banner.');
+        this.toasts.error(this.translate.instant('promoter.edit.toastBannerUploadError'));
       },
     });
     input.value = '';
@@ -640,11 +648,11 @@ export class EventEditPage implements OnDestroy {
         next: (b) => {
           this.generatingBanner.set(false);
           this.bannerUrl.set(b.url);
-          this.toasts.success('Banner generado.');
+          this.toasts.success(this.translate.instant('promoter.edit.toastBannerGenerated'));
         },
         error: () => {
           this.generatingBanner.set(false);
-          this.toasts.error('No se pudo generar el banner.');
+          this.toasts.error(this.translate.instant('promoter.edit.toastBannerGenerateError'));
         },
       });
   }
@@ -659,9 +667,11 @@ export class EventEditPage implements OnDestroy {
       return;
     }
     this.confirm.set({
-      title: 'Publicar evento',
-      message: `¿Publicar "${this.event()?.name ?? 'este evento'}"? Quedará visible para la venta y las localidades/pasarela se bloquearán.`,
-      confirmLabel: 'Publicar',
+      title: this.translate.instant('promoter.edit.publishEventTitle'),
+      message: this.translate.instant('promoter.edit.confirmPublishMsg', {
+        name: this.event()?.name ?? this.translate.instant('promoter.edit.thisEvent'),
+      }),
+      confirmLabel: this.translate.instant('promoter.edit.publish'),
       confirmIcon: 'publish',
       onConfirm: () => this.publish(),
     });
@@ -676,7 +686,7 @@ export class EventEditPage implements OnDestroy {
     this.api.publish(this.eventId()).subscribe({
       next: (ev) => {
         this.event.set(ev);
-        this.toasts.success('Evento publicado.');
+        this.toasts.success(this.translate.instant('promoter.edit.toastPublished'));
       },
       error: (err) => this.toasts.error(this.publishError(err)),
     });
@@ -687,14 +697,16 @@ export class EventEditPage implements OnDestroy {
     const msg = (err as { error?: { message?: string | string[] } })?.error?.message;
     if (Array.isArray(msg)) return msg.join(' ');
     if (typeof msg === 'string') return msg;
-    return 'No se pudo publicar el evento.';
+    return this.translate.instant('promoter.edit.toastPublishError');
   }
 
   protected askCancelEvent(): void {
     this.confirm.set({
-      title: 'Cancelar evento',
-      message: `¿Seguro que deseas cancelar "${this.event()?.name ?? 'este evento'}"? Dejará de venderse.`,
-      confirmLabel: 'Cancelar evento',
+      title: this.translate.instant('promoter.edit.cancelEvent'),
+      message: this.translate.instant('promoter.edit.confirmCancelMsg', {
+        name: this.event()?.name ?? this.translate.instant('promoter.edit.thisEvent'),
+      }),
+      confirmLabel: this.translate.instant('promoter.edit.cancelEvent'),
       confirmIcon: 'cancel',
       onConfirm: () => this.cancelEvent(),
     });
@@ -704,16 +716,18 @@ export class EventEditPage implements OnDestroy {
     this.api.cancel(this.eventId()).subscribe({
       next: (ev) => {
         this.event.set(ev);
-        this.toasts.info('Evento cancelado.');
+        this.toasts.info(this.translate.instant('promoter.edit.toastCancelled'));
       },
-      error: () => this.toasts.error('No se pudo cancelar el evento.'),
+      error: () => this.toasts.error(this.translate.instant('promoter.edit.toastCancelError')),
     });
   }
 
   protected askRemove(): void {
     this.confirm.set({
-      title: 'Eliminar evento',
-      message: `¿Seguro que deseas eliminar "${this.event()?.name ?? 'este evento'}"? Esta acción no se puede deshacer.`,
+      title: this.translate.instant('promoter.edit.deleteEventTitle'),
+      message: this.translate.instant('promoter.edit.confirmDeleteMsg', {
+        name: this.event()?.name ?? this.translate.instant('promoter.edit.thisEvent'),
+      }),
       onConfirm: () => this.remove(),
     });
   }
@@ -721,10 +735,10 @@ export class EventEditPage implements OnDestroy {
   protected remove(): void {
     this.api.remove(this.eventId()).subscribe({
       next: () => {
-        this.toasts.success('Evento eliminado.');
+        this.toasts.success(this.translate.instant('promoter.edit.toastRemoved'));
         void this.router.navigateByUrl(this.backLink());
       },
-      error: () => this.toasts.error('Solo puedes eliminar eventos en borrador.'),
+      error: () => this.toasts.error(this.translate.instant('promoter.edit.toastRemoveError')),
     });
   }
 }

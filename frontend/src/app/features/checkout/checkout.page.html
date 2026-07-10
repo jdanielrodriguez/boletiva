@@ -1,5 +1,5 @@
 <section class="checkout">
-  <h1>Pago</h1>
+  <h1>{{ 'checkout.title' | translate }}</h1>
 
   @if (order(); as ord) {
     @if (status() === 'paid') {
@@ -10,20 +10,20 @@
             <path d="M8 12.5l2.5 2.5L16 9" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </span>
-        <h2>¡Pago confirmado!</h2>
-        <p>Tus boletos se están emitiendo. Los verás en tu cuenta en segundos.</p>
+        <h2>{{ 'checkout.paidTitle' | translate }}</h2>
+        <p>{{ 'checkout.paidBody' | translate }}</p>
       </div>
     } @else if (status() === 'cancelled' || status() === 'expired') {
       <div class="failed" data-testid="status-failed">
-        <h2>El pago no se completó</h2>
-        <p>La orden fue {{ status() === 'expired' ? 'expirada' : 'cancelada' }}.</p>
+        <h2>{{ 'checkout.failedTitle' | translate }}</h2>
+        <p>{{ 'checkout.orderWas' | translate: { state: (status() === 'expired' ? ('checkout.expired' | translate) : ('checkout.cancelled' | translate)) } }}</p>
       </div>
     } @else {
       <div class="checkout-grid">
         <div class="checkout-main">
           <!-- MÉTODO DE PAGO: cómo paga el comprador -->
           <section class="pay-section">
-            <h2>Método de pago</h2>
+            <h2>{{ 'checkout.paymentMethod' | translate }}</h2>
             <div class="method-card selected">
               <span class="method-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9">
@@ -33,8 +33,8 @@
                 </svg>
               </span>
               <div>
-                <strong>Tarjeta de crédito o débito</strong>
-                <span class="method-sub">Visa, Mastercard, American Express</span>
+                <strong>{{ 'checkout.cardLabel' | translate }}</strong>
+                <span class="method-sub">{{ 'checkout.cardBrands' | translate }}</span>
               </div>
               <span class="method-check" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6">
@@ -45,40 +45,40 @@
 
             <div class="card-form">
               <div class="field">
-                <label for="cc-number">Número de tarjeta</label>
+                <label for="cc-number">{{ 'checkout.cardNumber' | translate }}</label>
                 <input id="cc-number" type="text" inputmode="numeric" autocomplete="cc-number"
                   placeholder="1234 5678 9012 3456" maxlength="19"
                   [ngModel]="cardNumber()" (ngModelChange)="cardNumber.set($event)" />
               </div>
               <div class="card-row">
                 <div class="field">
-                  <label for="cc-exp">Vencimiento</label>
-                  <input id="cc-exp" type="text" autocomplete="cc-exp" placeholder="MM/AA" maxlength="5"
+                  <label for="cc-exp">{{ 'checkout.cardExp' | translate }}</label>
+                  <input id="cc-exp" type="text" autocomplete="cc-exp" [attr.placeholder]="'checkout.cardExpPlaceholder' | translate" maxlength="5"
                     [ngModel]="cardExp()" (ngModelChange)="cardExp.set($event)" />
                 </div>
                 <div class="field">
-                  <label for="cc-cvv">CVV</label>
+                  <label for="cc-cvv">{{ 'checkout.cvv' | translate }}</label>
                   <input id="cc-cvv" type="text" inputmode="numeric" autocomplete="cc-csc" placeholder="123" maxlength="4"
                     [ngModel]="cardCvv()" (ngModelChange)="cardCvv.set($event)" />
                 </div>
               </div>
               <div class="field">
-                <label for="cc-name">Nombre en la tarjeta</label>
-                <input id="cc-name" type="text" autocomplete="cc-name" placeholder="Como aparece en la tarjeta"
+                <label for="cc-name">{{ 'checkout.cardName' | translate }}</label>
+                <input id="cc-name" type="text" autocomplete="cc-name" [attr.placeholder]="'checkout.cardNamePlaceholder' | translate"
                   [ngModel]="cardName()" (ngModelChange)="cardName.set($event)" />
               </div>
             </div>
 
             <button type="button" class="add-method" data-testid="add-method" (click)="addMethod()">
-              + Agregar método de pago
+              {{ 'checkout.addMethod' | translate }}
             </button>
             @if (addMethodNote()) {
-              <p class="hint" data-testid="add-method-note">Próximamente: guarda tus tarjetas para pagar más rápido.</p>
+              <p class="hint" data-testid="add-method-note">{{ 'checkout.addMethodNote' | translate }}</p>
             }
 
             <!-- PASARELA: dónde se procesa el pago -->
-            <h3 class="gateway-title">Procesado por</h3>
-            <div class="gateway-options" role="radiogroup" aria-label="Pasarela">
+            <h3 class="gateway-title">{{ 'checkout.processedBy' | translate }}</h3>
+            <div class="gateway-options" role="radiogroup" [attr.aria-label]="'checkout.gatewayGroup' | translate">
               @for (gw of gateways(); track gw.gatewayId) {
                 <button
                   type="button"
@@ -91,10 +91,10 @@
                   <span class="radio-dot" aria-hidden="true"></span>
                   <span class="gateway-name">{{ gw.name }}</span>
                   @if (gw.installmentOptions.length > 1) {
-                    <span class="gateway-badge">Cuotas</span>
+                    <span class="gateway-badge">{{ 'checkout.installmentsBadge' | translate }}</span>
                   }
                   @if (gw.isPlatformDefault) {
-                    <span class="gateway-badge default">Recomendada</span>
+                    <span class="gateway-badge default">{{ 'checkout.recommended' | translate }}</span>
                   }
                 </button>
               }
@@ -102,14 +102,14 @@
             @if (selectedGateway(); as gw) {
               @if (gw.installmentOptions.length > 1) {
                 <label class="installments">
-                  Número de cuotas
+                  {{ 'checkout.installmentsLabel' | translate }}
                   <select (change)="selectInstallments($any($event.target).value)">
                     @for (opt of gw.installmentOptions; track opt.installments) {
                       <option [value]="opt.installments" [selected]="opt.installments === installments()">
                         @if (opt.installments === 1) {
-                          1 pago de {{ opt.total | money }}
+                          {{ 'checkout.onePayment' | translate: { amount: (opt.total | money) } }}
                         } @else {
-                          {{ opt.installments }} cuotas de {{ perInstallment(opt.total, opt.installments) | money }}
+                          {{ 'checkout.installmentOption' | translate: { n: opt.installments, amount: (perInstallment(opt.total, opt.installments) | money) } }}
                         }
                       </option>
                     }
@@ -122,26 +122,26 @@
 
         <!-- RESUMEN con desglose transparente -->
         <aside class="checkout-summary">
-          <h2>Resumen</h2>
+          <h2>{{ 'checkout.summary' | translate }}</h2>
           @if (breakdown(); as b) {
             <div class="breakdown" data-testid="breakdown">
-              <div class="row"><span>Precio de boleto</span><span>{{ b.boleto | money }}</span></div>
-              <div class="row"><span>Cuota por servicio</span><span data-testid="service-fee">{{ b.serviceFee | money }}</span></div>
-              <div class="row"><span>IVA</span><span>{{ b.iva | money }}</span></div>
-              <div class="row total"><span>Total</span><span data-testid="total">{{ b.total | money }}</span></div>
+              <div class="row"><span>{{ 'checkout.ticketPrice' | translate }}</span><span>{{ b.boleto | money }}</span></div>
+              <div class="row"><span>{{ 'checkout.serviceFee' | translate }}</span><span data-testid="service-fee">{{ b.serviceFee | money }}</span></div>
+              <div class="row"><span>{{ 'checkout.iva' | translate }}</span><span>{{ b.iva | money }}</span></div>
+              <div class="row total"><span>{{ 'common.total' | translate }}</span><span data-testid="total">{{ b.total | money }}</span></div>
             </div>
-            <p class="note">La cuota por servicio varía según el método de pago.</p>
+            <p class="note">{{ 'checkout.serviceFeeNote' | translate }}</p>
           }
 
           @if (error()) {
             <p class="error" data-testid="checkout-error">{{ error() }}</p>
           }
           @if (status() === 'pending' && paying()) {
-            <p class="awaiting" data-testid="awaiting">Procesando el pago… esperando confirmación.</p>
+            <p class="awaiting" data-testid="awaiting">{{ 'checkout.awaiting' | translate }}</p>
           }
 
           <button type="button" class="primary btn-block" data-testid="pay-confirm" [disabled]="paying()" (click)="pay()">
-            @if (paying()) { Procesando… } @else { Pagar {{ breakdown()?.total | money }} }
+            @if (paying()) { {{ 'checkout.processing' | translate }} } @else { {{ 'checkout.payButton' | translate: { amount: (breakdown()?.total | money) } }} }
           </button>
           <p class="secure-note">
             <span class="lock-icon" aria-hidden="true">
@@ -150,12 +150,12 @@
                 <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke-linecap="round" />
               </svg>
             </span>
-            Pago seguro y cifrado. Tus datos de tarjeta se procesan de forma protegida; nunca guardamos el número completo.
+            {{ 'checkout.secureNote' | translate }}
           </p>
         </aside>
       </div>
     }
   } @else {
-    <p data-testid="checkout-loading">Cargando orden…</p>
+    <p data-testid="checkout-loading">{{ 'checkout.loading' | translate }}</p>
   }
 </section>

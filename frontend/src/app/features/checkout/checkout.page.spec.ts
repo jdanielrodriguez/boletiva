@@ -4,6 +4,8 @@ import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { Subject, of } from 'rxjs';
 import { OrderStreamEvent, OrderStreamService } from '../../core/api/order-stream.service';
 import { OrdersApi } from '../../core/api/orders.api';
+import { I18nService } from '../../core/i18n/i18n.service';
+import { initI18nTesting, provideI18nTesting } from '../../core/i18n/testing';
 import type {
   OrderResponseDto,
   PaymentOptionsResponseDto,
@@ -56,11 +58,13 @@ describe('CheckoutPage', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
+        ...provideI18nTesting(),
         { provide: OrdersApi, useValue: orders },
         { provide: OrderStreamService, useValue: { stream: () => sse.asObservable() } },
         { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ orderId: 'o1' })) } },
       ],
     });
+    initI18nTesting();
     fixture = TestBed.createComponent(CheckoutPage);
     fixture.detectChanges();
     await fixture.whenStable();
@@ -103,5 +107,14 @@ describe('CheckoutPage', () => {
     sse.next({ type: 'order', data: { status: 'paid' } });
     fixture.detectChanges();
     expect(el.querySelector('[data-testid="status-paid"]')).not.toBeNull();
+  });
+
+  it('traduce la interfaz al inglés al cambiar de idioma', async () => {
+    await setup();
+    expect(el.querySelector('h1')?.textContent).toContain('Pago');
+    TestBed.inject(I18nService).use('en');
+    fixture.detectChanges();
+    expect(el.querySelector('h1')?.textContent).toContain('Payment');
+    expect(el.querySelector('[data-testid="pay-confirm"]')?.textContent).toContain('Pay');
   });
 });

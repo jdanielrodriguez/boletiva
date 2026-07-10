@@ -1,7 +1,8 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { DatePipe } from '@angular/common';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { Router, RouterLink } from '@angular/router';
+import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
 import { ToastService } from '../../core/ui/toast.service';
 import {
@@ -22,13 +23,14 @@ const PAGE_SIZE = 9;
  */
 @Component({
   selector: 'app-promoter-panel',
-  imports: [FormsModule, DatePipe, RouterLink, IconComponent, ConfirmDialogComponent, PagerComponent],
+  imports: [FormsModule, LocalizedDatePipe, TranslatePipe, RouterLink, IconComponent, ConfirmDialogComponent, PagerComponent],
   templateUrl: './promoter-panel.html',
 })
 export class PromoterPanel {
   private readonly eventsApi = inject(PromoterEventsApi);
   private readonly toasts = inject(ToastService);
   private readonly router = inject(Router);
+  private readonly translate = inject(TranslateService);
 
   protected readonly events = signal<MyEventListItemDto[]>([]);
   protected readonly loading = signal(true);
@@ -80,7 +82,7 @@ export class PromoterPanel {
       error: () => {
         this.events.set([]);
         this.loading.set(false);
-        this.toasts.error('No se pudieron cargar tus eventos.');
+        this.toasts.error(this.translate.instant('promoter.panel.loadError'));
       },
     });
   }
@@ -97,9 +99,9 @@ export class PromoterPanel {
   /** Pide confirmación (modal) antes de publicar el evento. */
   protected askPublish(ev: MyEventListItemDto): void {
     this.confirm.set({
-      title: 'Publicar evento',
-      message: `¿Publicar "${ev.name}"? Quedará visible para la venta.`,
-      confirmLabel: 'Publicar',
+      title: this.translate.instant('promoter.panel.publish'),
+      message: this.translate.instant('promoter.panel.confirmPublishMsg', { name: ev.name }),
+      confirmLabel: this.translate.instant('promoter.panel.publishShort'),
       confirmIcon: 'publish',
       onConfirm: () => this.publish(ev),
     });
@@ -108,7 +110,7 @@ export class PromoterPanel {
   protected publish(ev: MyEventListItemDto): void {
     this.eventsApi.publish(ev.id).subscribe({
       next: () => {
-        this.toasts.success(`"${ev.name}" publicado.`);
+        this.toasts.success(this.translate.instant('promoter.panel.toastPublished', { name: ev.name }));
         this.loadEvents();
       },
       error: (err) => this.toasts.error(this.publishError(err)),
@@ -120,7 +122,7 @@ export class PromoterPanel {
     const msg = (err as { error?: { message?: string | string[] } })?.error?.message;
     if (Array.isArray(msg)) return msg.join(' ');
     if (typeof msg === 'string') return msg;
-    return 'No se pudo publicar. Abre el evento para ver qué falta (banner/asientos).';
+    return this.translate.instant('promoter.panel.publishErrorGeneric');
   }
 
   // --- Confirmación de acciones destructivas ---
@@ -136,9 +138,9 @@ export class PromoterPanel {
 
   protected askCancelEvent(ev: MyEventListItemDto): void {
     this.confirm.set({
-      title: 'Cancelar evento',
-      message: `¿Seguro que deseas cancelar "${ev.name}"? Dejará de venderse.`,
-      confirmLabel: 'Cancelar evento',
+      title: this.translate.instant('promoter.panel.cancelTitle'),
+      message: this.translate.instant('promoter.panel.confirmCancelMsg', { name: ev.name }),
+      confirmLabel: this.translate.instant('promoter.panel.cancelTitle'),
       confirmIcon: 'cancel',
       onConfirm: () => this.cancelEvent(ev),
     });
@@ -147,17 +149,17 @@ export class PromoterPanel {
   protected cancelEvent(ev: MyEventListItemDto): void {
     this.eventsApi.cancel(ev.id).subscribe({
       next: () => {
-        this.toasts.info(`"${ev.name}" cancelado.`);
+        this.toasts.info(this.translate.instant('promoter.panel.toastCancelled', { name: ev.name }));
         this.loadEvents();
       },
-      error: () => this.toasts.error('No se pudo cancelar el evento.'),
+      error: () => this.toasts.error(this.translate.instant('promoter.panel.cancelError')),
     });
   }
 
   protected askRemove(ev: MyEventListItemDto): void {
     this.confirm.set({
-      title: 'Eliminar evento',
-      message: `¿Seguro que deseas eliminar "${ev.name}"? Esta acción no se puede deshacer.`,
+      title: this.translate.instant('promoter.panel.deleteTitle'),
+      message: this.translate.instant('promoter.panel.confirmDeleteMsg', { name: ev.name }),
       onConfirm: () => this.remove(ev),
     });
   }
@@ -165,10 +167,10 @@ export class PromoterPanel {
   protected remove(ev: MyEventListItemDto): void {
     this.eventsApi.remove(ev.id).subscribe({
       next: () => {
-        this.toasts.success(`"${ev.name}" eliminado.`);
+        this.toasts.success(this.translate.instant('promoter.panel.toastRemoved', { name: ev.name }));
         this.loadEvents();
       },
-      error: () => this.toasts.error('Solo puedes eliminar eventos en borrador.'),
+      error: () => this.toasts.error(this.translate.instant('promoter.panel.removeError')),
     });
   }
 }

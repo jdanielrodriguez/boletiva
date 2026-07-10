@@ -8,6 +8,8 @@ import { HallsApi } from '../../core/api/halls.api';
 import { MediaApi } from '../../core/api/media.api';
 import { ToastService } from '../../core/ui/toast.service';
 import { SessionStore } from '../../core/auth/session.store';
+import { initI18nTesting, provideI18nTesting } from '../../core/i18n/testing';
+import { I18nService } from '../../core/i18n/i18n.service';
 import { EventEditPage } from './event-edit.page';
 
 /** Sesión de prueba: por defecto el promotor DUEÑO del evento (id 'owner-1'). */
@@ -55,6 +57,7 @@ describe('EventEditPage (v3)', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
+        ...provideI18nTesting(),
         provideRouter([]),
         ToastService,
         { provide: SessionStore, useValue: sessionMock(session) },
@@ -94,6 +97,7 @@ describe('EventEditPage (v3)', () => {
         },
       ],
     });
+    initI18nTesting();
     fixture = TestBed.createComponent(EventEditPage);
     toasts = TestBed.inject(ToastService);
     fixture.detectChanges();
@@ -471,5 +475,15 @@ describe('EventEditPage (v3)', () => {
     expect(fixture.componentInstance['editingLoc']()).not.toBeNull();
     fixture.componentInstance['addLocality']();
     expect(updateLocality).toHaveBeenCalledWith('l1', jasmine.objectContaining({ name: 'VIP' }));
+  });
+
+  // --- i18n: cambiar el idioma traduce los textos ---
+  it('traduce los textos al inglés al cambiar el idioma', async () => {
+    await setup();
+    TestBed.inject(I18nService).use('en');
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    // La pestaña "Datos" pasa a "Details".
+    expect(el.querySelector('[data-testid="tab-datos"]')?.textContent).toContain('Details');
   });
 });

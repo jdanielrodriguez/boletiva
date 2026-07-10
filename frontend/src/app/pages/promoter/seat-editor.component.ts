@@ -12,6 +12,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { DomSanitizer, type SafeHtml } from '@angular/platform-browser';
 import type Konva from 'konva';
 import { PromoterEventsApi, SeatView, BulkSeatInput } from '../../core/api/promoter-events.api';
@@ -60,13 +61,14 @@ type EditMode = 'move' | 'add' | 'delete' | 'line';
  */
 @Component({
   selector: 'app-seat-editor',
-  imports: [FormsModule, IconComponent, ConfirmDialogComponent],
+  imports: [FormsModule, IconComponent, ConfirmDialogComponent, TranslatePipe],
   templateUrl: './seat-editor.component.html',
 })
 export class SeatEditorComponent {
   private readonly api = inject(PromoterEventsApi);
   private readonly templatesApi = inject(SeatTemplatesApi);
   private readonly toasts = inject(ToastService);
+  private readonly translate = inject(TranslateService);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly elRef = inject(ElementRef<HTMLElement>);
 
@@ -204,19 +206,19 @@ export class SeatEditorComponent {
     switch (id) {
       case 'grid':
         seats = generateGrid(this.rows(), this.cols(), this.section());
-        msg = 'Cuadrícula generada.';
+        msg = this.translate.instant('promoter.seat.toastGrid');
         break;
       case 'curve':
         seats = generateCurve(this.rows(), this.cols(), this.section());
-        msg = 'Curva generada.';
+        msg = this.translate.instant('promoter.seat.toastCurve');
         break;
       case 'tables':
         seats = generateTables(this.rows(), this.perTable(), this.section());
-        msg = `Mesas generadas (${this.perTable()} asientos por mesa).`;
+        msg = this.translate.instant('promoter.seat.toastTables', { n: this.perTable() });
         break;
       case 'line':
         seats = generateLine(this.cols(), this.section());
-        msg = 'Línea generada.';
+        msg = this.translate.instant('promoter.seat.toastLine');
         break;
       default:
         return;
@@ -224,7 +226,7 @@ export class SeatEditorComponent {
     this.draft.set(seats.map((s) => ({ label: s.label, section: s.section, row: s.row, x: s.x as number, y: s.y as number })));
     this.dirty.set(true);
     this.showGenerator.set(false);
-    this.toasts.info(`${msg} Ajusta y guarda la disposición.`);
+    this.toasts.info(this.translate.instant('promoter.seat.adjustSave', { msg }));
   }
 
   // --- Plantillas (presets SVG) ---
@@ -234,7 +236,7 @@ export class SeatEditorComponent {
     this.draft.set(seats.map((s) => ({ label: s.label, section: s.section, row: s.row, x: s.x as number, y: s.y as number })));
     this.dirty.set(true);
     this.showGenerator.set(false);
-    this.toasts.info('Plantilla aplicada. Puedes editarla y luego guardar.');
+    this.toasts.info(this.translate.instant('promoter.seat.toastTemplateApplied'));
   }
 
   /**
@@ -270,7 +272,7 @@ export class SeatEditorComponent {
     this.draft.set(seats.map((s) => ({ label: s.label, section: s.section, row: s.row, x: s.x as number, y: s.y as number })));
     this.dirty.set(true);
     this.showGenerator.set(false);
-    this.toasts.info(`Plantilla "${t.name}" aplicada. Ajusta y guarda la disposición.`);
+    this.toasts.info(this.translate.instant('promoter.seat.toastBackendTemplate', { name: t.name }));
   }
 
   /** Etiqueta única para un asiento nuevo agregado a mano. */
@@ -302,7 +304,7 @@ export class SeatEditorComponent {
         this.saving.set(false);
         this.dirty.set(false);
         this.changed.emit(0);
-        this.toasts.info('Disposición vaciada.');
+        this.toasts.info(this.translate.instant('promoter.seat.toastCleared'));
         this.load(localityId);
         return;
       }
@@ -310,13 +312,13 @@ export class SeatEditorComponent {
         next: (res) => {
           this.saving.set(false);
           this.dirty.set(false);
-          this.toasts.success(`Disposición guardada (${res.capacity} asiento(s)).`);
+          this.toasts.success(this.translate.instant('promoter.seat.toastSaved', { n: res.capacity }));
           this.changed.emit(res.capacity);
           this.load(localityId);
         },
         error: () => {
           this.saving.set(false);
-          this.toasts.error('No se pudo guardar la disposición.');
+          this.toasts.error(this.translate.instant('promoter.seat.toastSaveError'));
         },
       });
     };
@@ -342,9 +344,9 @@ export class SeatEditorComponent {
   protected askClearAll(): void {
     if (this.readonly() || this.draft().length === 0) return;
     this.confirm.set({
-      title: 'Vaciar el mapa de asientos',
-      message: `¿Seguro que deseas eliminar los ${this.draft().length} asiento(s) de esta localidad? Deberás guardar para confirmar.`,
-      confirmLabel: 'Vaciar',
+      title: this.translate.instant('promoter.seat.confirmClearTitle'),
+      message: this.translate.instant('promoter.seat.confirmClearMsg', { n: this.draft().length }),
+      confirmLabel: this.translate.instant('promoter.seat.clear'),
       onConfirm: () => {
         this.draft.set([]);
         this.dirty.set(true);
@@ -437,7 +439,7 @@ export class SeatEditorComponent {
     if (this.readonly()) return;
     const placed = seatsAlongLine(from, to, this.draft());
     if (placed.length === 0) {
-      this.toasts.warning('No se colocó ningún asiento: el trazo choca con otros.');
+      this.toasts.warning(this.translate.instant('promoter.seat.toastLineNone'));
       return;
     }
     const used = new Set(this.draft().map((s) => s.label));
@@ -458,7 +460,7 @@ export class SeatEditorComponent {
     const x = snapToGrid(pos.x);
     const y = snapToGrid(pos.y);
     if (collides(this.draft(), x, y)) {
-      this.toasts.warning('Ahí ya hay un asiento; elige otro lugar.');
+      this.toasts.warning(this.translate.instant('promoter.seat.toastOccupied'));
       return;
     }
     const used = new Set(this.draft().map((s) => s.label));
@@ -477,7 +479,7 @@ export class SeatEditorComponent {
     const x = snapToGrid(group.x());
     const y = snapToGrid(group.y());
     if (collides(this.draft(), x, y, { skipIndex: index })) {
-      this.toasts.warning('No se puede soltar encima de otro asiento.');
+      this.toasts.warning(this.translate.instant('promoter.seat.toastDropCollide'));
       this.draw(); // revierte a la posición del modelo
       return;
     }

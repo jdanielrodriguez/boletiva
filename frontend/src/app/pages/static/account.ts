@@ -1,5 +1,7 @@
-import { DatePipe, UpperCasePipe } from '@angular/common';
+import { UpperCasePipe } from '@angular/common';
 import { Component, computed, effect, inject, signal } from '@angular/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { MoneyPipe } from '../../shared/money.pipe';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -89,7 +91,7 @@ function groupByEventOrder(tickets: TicketResponseDto[]): EventGroup[] {
  */
 @Component({
   selector: 'app-account',
-  imports: [FormsModule, DatePipe, UpperCasePipe, MoneyPipe, RouterLink, IconComponent, ConfirmDialogComponent, PagerComponent],
+  imports: [FormsModule, TranslatePipe, LocalizedDatePipe, UpperCasePipe, MoneyPipe, RouterLink, IconComponent, ConfirmDialogComponent, PagerComponent],
   templateUrl: './account.html',
 })
 export class Account {
@@ -103,6 +105,7 @@ export class Account {
   private readonly tokenizer = inject(CardTokenizerStub);
   private readonly auth = inject(AuthService);
   private readonly toasts = inject(ToastService);
+  private readonly translate = inject(TranslateService);
   private readonly router = inject(Router);
 
   private readonly route = inject(ActivatedRoute);
@@ -348,11 +351,11 @@ export class Account {
           this.cardExpYear.set('');
           this.cardCvc.set('');
           this.loadCards();
-          this.toasts.success('Tarjeta guardada de forma segura (tokenizada).');
+          this.toasts.success(this.translate.instant('account.toast.cardSaved'));
         },
         error: () => {
           this.savingCard.set(false);
-          this.toasts.error('No se pudo guardar la tarjeta. Intenta de nuevo.');
+          this.toasts.error(this.translate.instant('account.toast.cardSaveError'));
         },
       });
   }
@@ -361,9 +364,9 @@ export class Account {
     this.paymentMethodsApi.setDefault(id).subscribe({
       next: () => {
         this.loadCards();
-        this.toasts.info('Método predeterminado actualizado.');
+        this.toasts.info(this.translate.instant('account.toast.defaultUpdated'));
       },
-      error: () => this.toasts.error('No se pudo actualizar el método predeterminado.'),
+      error: () => this.toasts.error(this.translate.instant('account.toast.defaultError')),
     });
   }
 
@@ -380,8 +383,11 @@ export class Account {
 
   protected askRemoveCard(c: PaymentMethodResponseDto): void {
     this.confirm.set({
-      title: 'Eliminar tarjeta',
-      message: `¿Seguro que deseas eliminar la tarjeta ${c.brand.toUpperCase()} •••• ${c.last4}?`,
+      title: this.translate.instant('account.methods.removeCardTitle'),
+      message: this.translate.instant('account.confirm.removeCardMessage', {
+        brand: c.brand.toUpperCase(),
+        last4: c.last4,
+      }),
       onConfirm: () => this.removeCard(c.id),
     });
   }
@@ -390,9 +396,9 @@ export class Account {
     this.paymentMethodsApi.remove(id).subscribe({
       next: () => {
         this.loadCards();
-        this.toasts.info('Tarjeta eliminada.');
+        this.toasts.info(this.translate.instant('account.toast.cardRemoved'));
       },
-      error: () => this.toasts.error('No se pudo eliminar la tarjeta.'),
+      error: () => this.toasts.error(this.translate.instant('account.toast.cardRemoveError')),
     });
   }
 
@@ -409,11 +415,11 @@ export class Account {
         next: (user) => {
           this.session.setUser(user);
           this.savingProfile.set(false);
-          this.toasts.success('Perfil actualizado.');
+          this.toasts.success(this.translate.instant('account.toast.profileSaved'));
         },
         error: () => {
           this.savingProfile.set(false);
-          this.toasts.error('No se pudo guardar el perfil. Revisa los datos e intenta de nuevo.');
+          this.toasts.error(this.translate.instant('account.toast.profileError'));
         },
       });
   }
@@ -424,15 +430,15 @@ export class Account {
     const next = this.newPassword();
     const confirm = this.confirmPassword();
     if (!current || !next) {
-      this.toasts.warning('Completa la contraseña actual y la nueva.');
+      this.toasts.warning(this.translate.instant('account.toast.pwIncomplete'));
       return;
     }
     if (next.length < 8) {
-      this.toasts.warning('La nueva contraseña debe tener al menos 8 caracteres.');
+      this.toasts.warning(this.translate.instant('account.toast.pwTooShort'));
       return;
     }
     if (next !== confirm) {
-      this.toasts.warning('La confirmación no coincide con la nueva contraseña.');
+      this.toasts.warning(this.translate.instant('account.toast.pwMismatch'));
       return;
     }
     this.changingPassword.set(true);
@@ -442,11 +448,11 @@ export class Account {
         this.currentPassword.set('');
         this.newPassword.set('');
         this.confirmPassword.set('');
-        this.toasts.success('Contraseña actualizada.');
+        this.toasts.success(this.translate.instant('account.toast.pwChanged'));
       },
       error: () => {
         this.changingPassword.set(false);
-        this.toasts.error('No se pudo cambiar la contraseña. ¿La actual es correcta?');
+        this.toasts.error(this.translate.instant('account.toast.pwChangeError'));
       },
     });
   }
@@ -466,7 +472,7 @@ export class Account {
   protected requestWithdrawal(): void {
     const amount = this.withdrawAmount();
     if (!amount || amount <= 0) {
-      this.toasts.warning('Ingresa un monto válido para retirar.');
+      this.toasts.warning(this.translate.instant('account.toast.withdrawInvalid'));
       return;
     }
     this.withdrawing.set(true);
@@ -475,20 +481,20 @@ export class Account {
         this.withdrawing.set(false);
         this.withdrawAmount.set(null);
         this.loadWallet();
-        this.toasts.success('Retiro solicitado. Queda pendiente de aprobación.');
+        this.toasts.success(this.translate.instant('account.toast.withdrawRequested'));
       },
       error: () => {
         this.withdrawing.set(false);
-        this.toasts.error('No se pudo solicitar el retiro (¿saldo insuficiente?).');
+        this.toasts.error(this.translate.instant('account.toast.withdrawError'));
       },
     });
   }
 
   protected askCancelWithdrawal(w: WithdrawalResponseDto): void {
     this.confirm.set({
-      title: 'Cancelar retiro',
-      message: '¿Seguro que deseas cancelar este retiro? El saldo se reintegrará a tu wallet.',
-      confirmLabel: 'Cancelar retiro',
+      title: this.translate.instant('account.confirm.cancelWithdrawalTitle'),
+      message: this.translate.instant('account.confirm.cancelWithdrawalMessage'),
+      confirmLabel: this.translate.instant('account.wallet.cancelWithdrawalTitle'),
       confirmIcon: 'cancel',
       onConfirm: () => this.cancelWithdrawal(w.id),
     });
@@ -498,9 +504,9 @@ export class Account {
     this.walletApi.cancelWithdrawal(id).subscribe({
       next: () => {
         this.loadWallet();
-        this.toasts.info('Retiro cancelado. El saldo fue reintegrado.');
+        this.toasts.info(this.translate.instant('account.toast.withdrawCancelled'));
       },
-      error: () => this.toasts.error('No se pudo cancelar el retiro.'),
+      error: () => this.toasts.error(this.translate.instant('account.toast.withdrawCancelError')),
     });
   }
 
@@ -536,7 +542,7 @@ export class Account {
       },
       error: () => {
         this.loadingChain.set(null);
-        this.toasts.error('No se pudo cargar la cadena de la transacción.');
+        this.toasts.error(this.translate.instant('account.toast.chainError'));
       },
     });
   }
@@ -551,7 +557,7 @@ export class Account {
     this.ticketsApi.media(ticketId).subscribe({
       next: (m) => this.media.update((cur) => ({ ...cur, [ticketId]: m })),
       error: () =>
-        this.toasts.warning('La media del boleto aún no está lista. Intenta en unos segundos.'),
+        this.toasts.warning(this.translate.instant('account.toast.mediaNotReady')),
     });
   }
 
@@ -574,10 +580,10 @@ export class Account {
     this.ticketsApi.transfer(ticketId).subscribe({
       next: (t) => {
         this.transferCode.update((cur) => ({ ...cur, [ticketId]: t.code }));
-        this.toasts.success('Transferencia iniciada. Comparte el código con quien recibirá el boleto.');
+        this.toasts.success(this.translate.instant('account.toast.transferStarted'));
       },
       error: () =>
-        this.toasts.error('No se pudo iniciar la transferencia (¿ya hay una pendiente o alcanzaste el límite?).'),
+        this.toasts.error(this.translate.instant('account.toast.transferError')),
     });
   }
 }

@@ -1,17 +1,17 @@
 <div class="auth-wrap">
   <section class="auth-card">
-    <h1>Restablecer contraseña</h1>
-    <p class="auth-sub">Elige una nueva contraseña para tu cuenta.</p>
+    <h1>{{ 'auth.resetTitle' | translate }}</h1>
+    <p class="auth-sub">{{ 'auth.resetSubtitle' | translate }}</p>
 
     @if (!token()) {
       <p class="form-error" data-testid="reset-no-token">
-        Enlace inválido o incompleto. Solicita un nuevo enlace desde
-        <a routerLink="/recuperar">recuperar contraseña</a>.
+        {{ 'auth.resetNoToken1' | translate }}
+        <a routerLink="/recuperar">{{ 'auth.resetNoTokenLink' | translate }}</a>.
       </p>
     } @else {
       <form (ngSubmit)="submit()">
         <div class="field">
-          <label for="password">Nueva contraseña</label>
+          <label for="password">{{ 'auth.newPassword' | translate }}</label>
           <input
             id="password"
             type="password"
@@ -25,7 +25,7 @@
           />
         </div>
         <div class="field">
-          <label for="confirm">Confirmar contraseña</label>
+          <label for="confirm">{{ 'auth.confirmPassword' | translate }}</label>
           <input
             id="confirm"
             type="password"
@@ -39,10 +39,10 @@
           />
         </div>
         <button type="submit" class="primary btn-block" [disabled]="submitting()" data-testid="reset-submit">
-          {{ submitting() ? 'Guardando…' : 'Restablecer contraseña' }}
+          {{ submitting() ? ('auth.saving' | translate) : ('auth.resetSubmit' | translate) }}
         </button>
       </form>
-      <p class="auth-alt"><a routerLink="/login">Volver a iniciar sesión</a></p>
+      <p class="auth-alt"><a routerLink="/login">{{ 'auth.backToLogin' | translate }}</a></p>
     }
   </section>
 </div>

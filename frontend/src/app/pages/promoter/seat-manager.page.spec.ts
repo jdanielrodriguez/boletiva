@@ -5,6 +5,8 @@ import { of, throwError } from 'rxjs';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
 import { SeatTemplatesApi } from '../../core/api/seat-templates.api';
 import { SessionStore } from '../../core/auth/session.store';
+import { initI18nTesting, provideI18nTesting } from '../../core/i18n/testing';
+import { I18nService } from '../../core/i18n/i18n.service';
 import { SeatManagerPage } from './seat-manager.page';
 
 describe('SeatManagerPage (vista de asientos a página completa)', () => {
@@ -20,6 +22,7 @@ describe('SeatManagerPage (vista de asientos a página completa)', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
+        ...provideI18nTesting(),
         provideRouter([]),
         {
           provide: SessionStore,
@@ -52,6 +55,7 @@ describe('SeatManagerPage (vista de asientos a página completa)', () => {
         },
       ],
     });
+    initI18nTesting();
     fixture = TestBed.createComponent(SeatManagerPage);
     fixture.detectChanges();
     await fixture.whenStable();
@@ -101,5 +105,15 @@ describe('SeatManagerPage (vista de asientos a página completa)', () => {
     await setup({ get: () => throwError(() => new Error('404')) });
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('[data-testid="seat-notfound"]')).not.toBeNull();
+  });
+
+  // --- i18n: cambiar el idioma traduce los textos ---
+  it('traduce los textos al inglés al cambiar el idioma', async () => {
+    await setup();
+    TestBed.inject(I18nService).use('en');
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    // "Administrar asientos" pasa a "Manage seats".
+    expect(el.textContent).toContain('Manage seats');
   });
 });

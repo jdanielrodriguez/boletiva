@@ -1,61 +1,57 @@
 <div class="seat-editor" data-testid="seat-editor">
   @if (readonly()) {
-    <p class="muted small">El evento está publicado: el mapa de asientos está bloqueado.</p>
+    <p class="muted small">{{ 'promoter.seat.readonlyNote' | translate }}</p>
   } @else {
     <!-- Generación rápida por cuadrícula -->
     <div class="seat-editor-form">
       <label class="field inline">
-        <span>Filas</span>
+        <span>{{ 'promoter.seat.rows' | translate }}</span>
         <input type="number" min="1" max="500" [ngModel]="rows()" (ngModelChange)="rows.set($event)" name="rows" data-testid="se-rows" />
       </label>
       <label class="field inline">
-        <span>Asientos por fila</span>
+        <span>{{ 'promoter.seat.seatsPerRow' | translate }}</span>
         <input type="number" min="1" max="500" [ngModel]="cols()" (ngModelChange)="cols.set($event)" name="cols" data-testid="se-cols" />
       </label>
       <label class="field inline">
-        <span>Sección</span>
-        <input type="text" placeholder="Platea" [ngModel]="section()" (ngModelChange)="section.set($event)" name="section" />
+        <span>{{ 'promoter.seat.section' | translate }}</span>
+        <input type="text" [attr.placeholder]="'promoter.seat.sectionPlaceholder' | translate" [ngModel]="section()" (ngModelChange)="section.set($event)" name="section" />
       </label>
-      <button type="button" class="btn small" [disabled]="saving()" (click)="generate()" data-testid="se-generate" title="Generar cuadrícula">
-        <app-icon name="seats" /> Generar cuadrícula
+      <button type="button" class="btn small" [disabled]="saving()" (click)="generate()" data-testid="se-generate" [title]="'promoter.seat.generateGrid' | translate">
+        <app-icon name="seats" /> {{ 'promoter.seat.generateGrid' | translate }}
       </button>
       @if (seatCount() > 0) {
-        <button type="button" class="btn small danger" [disabled]="saving()" (click)="askClearAll()" data-testid="se-clear" title="Vaciar el mapa">
-          <app-icon name="delete" /> Vaciar
+        <button type="button" class="btn small danger" [disabled]="saving()" (click)="askClearAll()" data-testid="se-clear" [title]="'promoter.seat.clearTitle' | translate">
+          <app-icon name="delete" /> {{ 'promoter.seat.clear' | translate }}
         </button>
       }
     </div>
 
     <!-- Herramientas de canvas (DEBAJO del generador): mover / agregar / eliminar / línea -->
     <div class="seat-tools" data-testid="seat-tools">
-      <div class="seat-tool-group" role="group" aria-label="Herramienta de edición">
-        <button type="button" class="btn small" [class.primary]="mode() === 'move'" (click)="setMode('move')" data-testid="tool-move" title="Mover asientos (arrastrar)" aria-label="Mover asientos">
-          <app-icon name="edit" /> Mover
+      <div class="seat-tool-group" role="group" [attr.aria-label]="'promoter.seat.toolGroupAria' | translate">
+        <button type="button" class="btn small" [class.primary]="mode() === 'move'" (click)="setMode('move')" data-testid="tool-move" [title]="'promoter.seat.moveTitle' | translate" [attr.aria-label]="'promoter.seat.moveAria' | translate">
+          <app-icon name="edit" /> {{ 'promoter.seat.move' | translate }}
         </button>
-        <button type="button" class="btn small" [class.primary]="mode() === 'add'" (click)="setMode('add')" data-testid="tool-add" title="Agregar asiento (click en el lienzo)" aria-label="Agregar asiento">
-          <app-icon name="add" /> Agregar
+        <button type="button" class="btn small" [class.primary]="mode() === 'add'" (click)="setMode('add')" data-testid="tool-add" [title]="'promoter.seat.addTitle' | translate" [attr.aria-label]="'promoter.seat.addAria' | translate">
+          <app-icon name="add" /> {{ 'common.add' | translate }}
         </button>
-        <button type="button" class="btn small" [class.primary]="mode() === 'line'" (click)="setMode('line')" data-testid="tool-line" title="Dibujar una línea de asientos (click, arrastra y suelta)" aria-label="Dibujar línea de asientos">
-          <app-icon name="seats" /> Línea
+        <button type="button" class="btn small" [class.primary]="mode() === 'line'" (click)="setMode('line')" data-testid="tool-line" [title]="'promoter.seat.lineTitle' | translate" [attr.aria-label]="'promoter.seat.lineAria' | translate">
+          <app-icon name="seats" /> {{ 'promoter.seat.line' | translate }}
         </button>
-        <button type="button" class="btn small" [class.primary]="mode() === 'delete'" (click)="setMode('delete')" data-testid="tool-delete" title="Eliminar asiento (click en el asiento)" aria-label="Eliminar asiento">
-          <app-icon name="delete" /> Eliminar
+        <button type="button" class="btn small" [class.primary]="mode() === 'delete'" (click)="setMode('delete')" data-testid="tool-delete" [title]="'promoter.seat.deleteTitle' | translate" [attr.aria-label]="'promoter.seat.deleteAria' | translate">
+          <app-icon name="delete" /> {{ 'common.delete' | translate }}
         </button>
       </div>
     </div>
 
-    <p class="muted small">
-      Modo <strong>Mover</strong>: arrastra los asientos (se alinean a una cuadrícula de {{ gridSize }}px y no se pueden solapar).
-      Modo <strong>Agregar</strong>: click en un espacio libre. Modo <strong>Línea</strong>: click, arrastra y suelta para dibujar una fila
-      (los asientos que caen encima de otro no se colocan). Modo <strong>Eliminar</strong>: click en un asiento.
-    </p>
+    <p class="muted small" [innerHTML]="'promoter.seat.toolsHelp' | translate: { grid: gridSize }"></p>
   }
 
   <!-- Visor prominente del conteo de asientos -->
   <div class="seat-count-badge" data-testid="se-count" role="status" aria-live="polite">
     <app-icon name="seats" />
     <span class="seat-count-num">{{ seatCount() }}</span>
-    <span class="seat-count-label">asiento(s) en la disposición</span>
+    <span class="seat-count-label">{{ 'promoter.seat.countLabel' | translate }}</span>
   </div>
 
   <div #host class="seat-editor-canvas" data-testid="seat-canvas"></div>
@@ -63,34 +59,34 @@
   @if (!readonly()) {
     <!-- Menú general "Generar": generadores paramétricos + presets SVG, con buscador -->
     <div class="seat-generator" data-testid="gen-wrap">
-      <button type="button" class="btn small" (click)="toggleGenerator()" data-testid="gen-toggle" [attr.aria-expanded]="showGenerator()" title="Generar una disposición">
-        <app-icon name="add" /> {{ showGenerator() ? 'Ocultar generador' : 'Generar' }}
+      <button type="button" class="btn small" (click)="toggleGenerator()" data-testid="gen-toggle" [attr.aria-expanded]="showGenerator()" [title]="'promoter.seat.generateTitle' | translate">
+        <app-icon name="add" /> {{ showGenerator() ? ('promoter.seat.hideGenerator' | translate) : ('promoter.seat.generate' | translate) }}
       </button>
       @if (showGenerator()) {
         <div class="gen-menu" data-testid="gen-menu" role="menu">
           <input
             type="search"
             class="gen-search"
-            placeholder="Buscar generador o plantilla…"
+            [attr.placeholder]="'promoter.seat.genSearchPlaceholder' | translate"
             [ngModel]="generatorSearch()"
             (ngModelChange)="generatorSearch.set($event)"
             name="gensearch"
             data-testid="gen-search"
-            aria-label="Buscar generador o plantilla"
+            [attr.aria-label]="'promoter.seat.genSearchAria' | translate"
           />
 
-          <p class="gen-group-title muted small">Generadores</p>
+          <p class="gen-group-title muted small">{{ 'promoter.seat.generatorsGroup' | translate }}</p>
           @for (g of filteredGenerators(); track g.id) {
             <div class="gen-item" [attr.data-testid]="'gen-' + g.id">
-              <button type="button" class="gen-item-btn" (click)="applyGenerator(g.id)" role="menuitem" [title]="g.hint" [attr.aria-label]="g.name">
+              <button type="button" class="gen-item-btn" (click)="applyGenerator(g.id)" role="menuitem" [title]="'promoter.gen.' + g.id + '.hint' | translate" [attr.aria-label]="'promoter.gen.' + g.id + '.name' | translate">
                 <span class="gen-text">
-                  <strong>{{ g.name }}</strong>
-                  <small class="muted">{{ g.hint }}</small>
+                  <strong>{{ 'promoter.gen.' + g.id + '.name' | translate }}</strong>
+                  <small class="muted">{{ 'promoter.gen.' + g.id + '.hint' | translate }}</small>
                 </span>
               </button>
               @if (g.param) {
                 <label class="gen-param" (click)="$event.stopPropagation()">
-                  <span class="muted small">{{ g.param.label }}</span>
+                  <span class="muted small">{{ 'promoter.seat.perTableLabel' | translate }}</span>
                   <input
                     type="number"
                     [min]="g.param.min"
@@ -104,24 +100,24 @@
               }
             </div>
           } @empty {
-            <p class="muted small" data-testid="gen-empty">Ningún generador coincide.</p>
+            <p class="muted small" data-testid="gen-empty">{{ 'promoter.seat.noGenMatch' | translate }}</p>
           }
 
           @if (filteredTemplates().length > 0) {
-            <p class="gen-group-title muted small">Plantillas</p>
+            <p class="gen-group-title muted small">{{ 'promoter.seat.templatesGroup' | translate }}</p>
             @for (t of filteredTemplates(); track t.id) {
-              <button type="button" class="tpl-item" (click)="applyTemplate(t.id)" [attr.data-testid]="'tpl-' + t.id" role="menuitem" [title]="t.hint" [attr.aria-label]="t.name">
+              <button type="button" class="tpl-item" (click)="applyTemplate(t.id)" [attr.data-testid]="'tpl-' + t.id" role="menuitem" [title]="'promoter.tpl.' + t.id + '.hint' | translate" [attr.aria-label]="'promoter.tpl.' + t.id + '.name' | translate">
                 <span class="tpl-icon" [innerHTML]="t.safeIcon"></span>
                 <span class="tpl-text">
-                  <strong>{{ t.name }}</strong>
-                  <small class="muted">{{ t.hint }}</small>
+                  <strong>{{ 'promoter.tpl.' + t.id + '.name' | translate }}</strong>
+                  <small class="muted">{{ 'promoter.tpl.' + t.id + '.hint' | translate }}</small>
                 </span>
               </button>
             }
           }
 
           @if (filteredBackendTemplates().length > 0) {
-            <p class="gen-group-title muted small">Plantillas guardadas</p>
+            <p class="gen-group-title muted small">{{ 'promoter.seat.savedTemplatesGroup' | translate }}</p>
             @for (t of filteredBackendTemplates(); track t.id) {
               <button type="button" class="tpl-item" (click)="applyBackendTemplate(t)" [attr.data-testid]="'bpl-' + t.id" role="menuitem" [title]="t.kind" [attr.aria-label]="t.name">
                 <span class="tpl-text">
@@ -136,11 +132,11 @@
     </div>
 
     <div class="seat-save-bar">
-      <button type="button" class="btn small primary" [disabled]="saving() || !dirty()" (click)="save()" data-testid="se-save" title="Guardar la disposición de asientos">
-        <app-icon name="save" /> {{ saving() ? 'Guardando…' : 'Guardar disposición' }}
+      <button type="button" class="btn small primary" [disabled]="saving() || !dirty()" (click)="save()" data-testid="se-save" [title]="'promoter.seat.saveLayoutTitle' | translate">
+        <app-icon name="save" /> {{ saving() ? ('promoter.seat.saving' | translate) : ('promoter.seat.saveLayout' | translate) }}
       </button>
       @if (dirty()) {
-        <span class="muted small" data-testid="se-dirty">Tienes cambios sin guardar.</span>
+        <span class="muted small" data-testid="se-dirty">{{ 'promoter.seat.unsaved' | translate }}</span>
       }
     </div>
   }
@@ -149,7 +145,7 @@
     <app-confirm-dialog
       [title]="cf.title"
       [message]="cf.message"
-      [confirmLabel]="cf.confirmLabel ?? 'Eliminar'"
+      [confirmLabel]="cf.confirmLabel ?? ('common.delete' | translate)"
       [confirmIcon]="cf.confirmIcon ?? 'delete'"
       (accept)="onConfirmAccept()"
       (cancelled)="onConfirmCancel()"

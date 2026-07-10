@@ -2,69 +2,62 @@
   <section class="auth-card">
     @switch (mode()) {
       @case ('loading') {
-        <h1>Invitación</h1>
-        <p class="auth-sub" data-testid="inv-loading">Validando tu invitación…</p>
+        <h1>{{ 'auth.invitationTitle' | translate }}</h1>
+        <p class="auth-sub" data-testid="inv-loading">{{ 'auth.invitationValidating' | translate }}</p>
       }
 
       @case ('invalid') {
-        <h1>Invitación no válida</h1>
-        <p class="error" data-testid="inv-invalid">{{ error() ?? 'La invitación no es válida o venció.' }}</p>
-        <p class="auth-alt"><a routerLink="/login">Ir a iniciar sesión</a></p>
+        <h1>{{ 'auth.invitationInvalidTitle' | translate }}</h1>
+        <p class="error" data-testid="inv-invalid">{{ error() ?? ('auth.invitationInvalidBody' | translate) }}</p>
+        <p class="auth-alt"><a routerLink="/login">{{ 'auth.goToLogin' | translate }}</a></p>
       }
 
       @case ('activate') {
-        <h1>Activar cuenta de promotor</h1>
-        <p class="auth-sub" data-testid="activate-note">
-          Fuiste invitado como <strong>promotor</strong> con el correo
-          <strong>{{ invitedEmail() }}</strong>. Ya tienes una cuenta con ese correo.
-        </p>
+        <h1>{{ 'auth.activateTitle' | translate }}</h1>
+        <p class="auth-sub" data-testid="activate-note" [innerHTML]="'auth.activateNote' | translate: { email: invitedEmail() }"></p>
         @if (sameAccount()) {
           <button type="button" class="primary" [disabled]="working()" (click)="activate()" data-testid="activate-btn">
-            {{ working() ? 'Activando…' : 'Activar mi cuenta de promotor' }}
+            {{ working() ? ('auth.activating' | translate) : ('auth.activateBtn' | translate) }}
           </button>
         } @else {
-          <p class="auth-sub" data-testid="activate-login-note">
-            Inicia sesión con <strong>{{ invitedEmail() }}</strong> para activar tu rol de promotor.
-          </p>
+          <p class="auth-sub" data-testid="activate-login-note" [innerHTML]="'auth.activateLoginNote' | translate: { email: invitedEmail() }"></p>
           <a class="primary btn-link" [routerLink]="['/login']" [queryParams]="{ returnUrl: loginReturnUrl() }" data-testid="activate-login">
-            Iniciar sesión
+            {{ 'auth.signIn' | translate }}
           </a>
         }
       }
 
       @default {
-        <h1>Crear cuenta</h1>
+        <h1>{{ 'auth.registerTitle' | translate }}</h1>
         @if (mode() === 'register') {
-          <p class="auth-sub" data-testid="invited-note">
-            Fuiste invitado como <strong>promotor</strong>. Completa tus datos para activar tu cuenta.
-          </p>
+          <p class="auth-sub" data-testid="invited-note" [innerHTML]="'auth.invitedNote' | translate"></p>
         } @else {
-          <p class="auth-sub">Regístrate para comprar boletos y gestionar tu cuenta.</p>
+          <p class="auth-sub">{{ 'auth.registerSubtitle' | translate }}</p>
         }
 
         <form (ngSubmit)="submit()">
           <div class="field">
-            <label for="rg-first">Nombre</label>
+            <label for="rg-first">{{ 'auth.firstName' | translate }}</label>
             <input id="rg-first" type="text" [ngModel]="firstName()" (ngModelChange)="firstName.set($event)" name="firstName" autocomplete="given-name" />
           </div>
 
           <div class="field">
-            <label for="rg-last">Apellido</label>
+            <label for="rg-last">{{ 'auth.lastName' | translate }}</label>
             <input id="rg-last" type="text" [ngModel]="lastName()" (ngModelChange)="lastName.set($event)" name="lastName" autocomplete="family-name" />
           </div>
 
           <div class="field">
-            <label for="rg-email">Correo</label>
+            <label for="rg-email">{{ 'auth.email' | translate }}</label>
             <input id="rg-email" type="email" [ngModel]="email()" (ngModelChange)="email.set($event)" name="email" autocomplete="email" [readonly]="mode() === 'register'" data-testid="rg-email" />
           </div>
 
           <div class="field">
-            <label for="rg-pass">Contraseña</label>
+            <label for="rg-pass">{{ 'auth.password' | translate }}</label>
             <input id="rg-pass" type="password" [ngModel]="password()" (ngModelChange)="password.set($event)" name="password" autocomplete="new-password" />
           </div>
 
           <button type="submit" class="primary btn-block" [disabled]="working()" data-testid="rg-submit">
-            {{ working() ? 'Creando…' : 'Crear cuenta' }}
+            {{ working() ? ('auth.creating' | translate) : ('auth.createAccount' | translate) }}
           </button>
 
           @if (error(); as e) {
@@ -72,7 +65,7 @@
           }
         </form>
 
-        <p class="auth-alt">¿Ya tienes cuenta? <a routerLink="/login">Inicia sesión</a></p>
+        <p class="auth-alt">{{ 'auth.haveAccountQ' | translate }} <a routerLink="/login">{{ 'auth.loginLink' | translate }}</a></p>
       }
     }
   </section>

@@ -1,6 +1,7 @@
 import { DOCUMENT } from '@angular/common';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideI18nTesting } from '../../core/i18n/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { Observable, of, throwError } from 'rxjs';
 import { EventsApi } from '../../core/api/events.api';
@@ -26,6 +27,8 @@ const EVENT = {
 function setup(slug: string, getBySlug: () => Observable<unknown>): ComponentFixture<EventDetail> {
   TestBed.configureTestingModule({
     providers: [
+        ...provideI18nTesting(),
+        ...provideI18nTesting(),
       provideZonelessChangeDetection(),
       provideRouter([]),
       {

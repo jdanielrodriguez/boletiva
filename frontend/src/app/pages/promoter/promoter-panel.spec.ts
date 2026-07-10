@@ -3,6 +3,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { of } from 'rxjs';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
+import { initI18nTesting, provideI18nTesting } from '../../core/i18n/testing';
+import { I18nService } from '../../core/i18n/i18n.service';
 import { PromoterPanel } from './promoter-panel';
 
 const EVENTS = [
@@ -18,6 +20,7 @@ describe('PromoterPanel (v3 grid)', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
+        ...provideI18nTesting(),
         provideRouter([]),
         {
           provide: PromoterEventsApi,
@@ -32,6 +35,7 @@ describe('PromoterPanel (v3 grid)', () => {
         },
       ],
     });
+    initI18nTesting();
     fixture = TestBed.createComponent(PromoterPanel);
     fixture.detectChanges();
     await fixture.whenStable();
@@ -130,5 +134,14 @@ describe('PromoterPanel (v3 grid)', () => {
   it('muestra estado vacío cuando no hay eventos', async () => {
     await setup({ mine: () => of([]) });
     expect(el.querySelector('[data-testid="events-empty"]')).not.toBeNull();
+  });
+
+  // --- i18n: cambiar el idioma traduce los textos ---
+  it('traduce los textos al inglés al cambiar el idioma', async () => {
+    await setup();
+    TestBed.inject(I18nService).use('en');
+    fixture.detectChanges();
+    // El título "Mis eventos" pasa a "My events".
+    expect(el.querySelector('h1')?.textContent).toContain('My events');
   });
 });

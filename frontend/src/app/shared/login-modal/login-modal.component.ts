@@ -1,5 +1,6 @@
 import { Component, inject, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../core/auth/auth.service';
 
 /**
@@ -9,7 +10,7 @@ import { AuthService } from '../../core/auth/auth.service';
  */
 @Component({
   selector: 'app-login-modal',
-  imports: [FormsModule],
+  imports: [FormsModule, TranslatePipe],
   templateUrl: './login-modal.component.html',
 })
 export class LoginModal {
@@ -17,6 +18,7 @@ export class LoginModal {
   readonly dismiss = output<void>();
 
   private readonly auth = inject(AuthService);
+  private readonly translate = inject(TranslateService);
 
   protected readonly email = signal('');
   protected readonly password = signal('');
@@ -44,7 +46,7 @@ export class LoginModal {
       },
       error: () => {
         this.submitting.set(false);
-        this.error.set('Credenciales inválidas.');
+        this.error.set(this.translate.instant('auth.msgInvalidCredentials'));
       },
     });
   }
@@ -60,7 +62,7 @@ export class LoginModal {
       },
       error: () => {
         this.submitting.set(false);
-        this.error.set('Código inválido o expirado.');
+        this.error.set(this.translate.instant('auth.msgInvalidCode'));
       },
     });
   }

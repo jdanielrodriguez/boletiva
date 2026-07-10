@@ -1,5 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideI18nTesting } from '../../core/i18n/testing';
 import { ShareBox } from './share-box.component';
 
 describe('ShareBox', () => {
@@ -7,7 +8,9 @@ describe('ShareBox', () => {
   let el: HTMLElement;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [provideZonelessChangeDetection()] });
+    TestBed.configureTestingModule({ providers: [
+        ...provideI18nTesting(),
+        ...provideI18nTesting(),provideZonelessChangeDetection()] });
     fixture = TestBed.createComponent(ShareBox);
     fixture.componentRef.setInput('url', 'http://localhost:4200/reserva/tok-1');
     fixture.detectChanges();
