@@ -10,7 +10,11 @@
  */
 import puppeteer from 'puppeteer-core';
 
-const FE = process.env.E2E_FRONTEND_URL || 'http://pasaeventos_frontend:4200';
+// La página se sirve desde un origen `localhost` (mapeado al contenedor del
+// frontend vía host-resolver) para quedar SAME-SITE con el API en localhost:8080,
+// tal como el navegador real del usuario. Es requisito para que la cookie
+// httpOnly del refresh (SameSite=Lax) viaje entre navegaciones. Ver launch args.
+const FE = process.env.E2E_FRONTEND_URL || 'http://localhost:4200';
 const MAIL = process.env.E2E_MAILHOG_URL || 'http://pasaeventos_mailhog:8025';
 const BUYER = { email: 'cliente@pasaeventos.com', password: 'Password123' };
 const EVENT_SLUG = 'evento-demo-pasaeventos';
@@ -72,7 +76,14 @@ async function main() {
   const browser = await puppeteer.launch({
     executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser',
     headless: 'new',
-    args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage'],
+    args: [
+      '--no-sandbox',
+      '--disable-gpu',
+      '--disable-dev-shm-usage',
+      // localhost:4200 → contenedor del frontend; localhost:8080 sigue siendo el
+      // API local → mismo site (localhost) → la cookie SameSite=Lax viaja.
+      `--host-resolver-rules=MAP localhost:4200 ${process.env.E2E_FRONTEND_HOST || 'pasaeventos_frontend:4200'}`,
+    ],
   });
   const page = await browser.newPage();
   await page.setViewport({ width: 1280, height: 900 });
