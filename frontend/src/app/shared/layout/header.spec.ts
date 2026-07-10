@@ -46,6 +46,35 @@ describe('Header', () => {
     expect(comp['menuOpen']()).toBe(false);
   });
 
+  it('un click FUERA del menú lo cierra; DENTRO no', async () => {
+    await setup();
+    const el = fixture.nativeElement as HTMLElement;
+    comp.toggleMenu();
+    fixture.detectChanges();
+    // Click dentro del .user-menu (el trigger) NO cierra.
+    const trigger = el.querySelector('[data-testid="user-menu-trigger"]') as HTMLElement;
+    comp.onDocumentClick({ target: trigger } as unknown as MouseEvent);
+    expect(comp['menuOpen']()).toBe(true);
+    // Click en el document fuera del menú → cierra.
+    comp.onDocumentClick({ target: document.body } as unknown as MouseEvent);
+    expect(comp['menuOpen']()).toBe(false);
+  });
+
+  it('un click fuera con el menú cerrado no hace nada', async () => {
+    await setup();
+    expect(comp['menuOpen']()).toBe(false);
+    comp.onDocumentClick({ target: document.body } as unknown as MouseEvent);
+    expect(comp['menuOpen']()).toBe(false);
+  });
+
+  it('Escape cierra el menú abierto', async () => {
+    await setup();
+    comp.toggleMenu();
+    expect(comp['menuOpen']()).toBe(true);
+    comp.onEscape();
+    expect(comp['menuOpen']()).toBe(false);
+  });
+
   it('cliente ve accesos rápidos y NO ve panel/configuración', async () => {
     await setup({ roles: [] });
     comp.toggleMenu();

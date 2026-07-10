@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, HostListener, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { SessionStore } from '../../core/auth/session.store';
@@ -32,6 +32,25 @@ export class Header {
 
   closeMenu(): void {
     this.menuOpen.set(false);
+  }
+
+  /**
+   * Cierra el desplegable al hacer click FUERA del `.user-menu`. El click en el
+   * propio trigger burbujea aquí, pero como está DENTRO de `.user-menu` no lo
+   * cierra (el toggle ya lo abrió/cerró) → no hay abrir-y-cerrar en el mismo click.
+   */
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.menuOpen()) return;
+    const target = event.target as HTMLElement | null;
+    if (target && target.closest('.user-menu')) return;
+    this.closeMenu();
+  }
+
+  /** Escape cierra el desplegable. */
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.menuOpen()) this.closeMenu();
   }
 
   logout(): void {
