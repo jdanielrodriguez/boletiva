@@ -46,6 +46,17 @@ export class TransactionDetail {
   protected readonly order = computed<OrderResponseDto | null>(() => this.data() ?? null);
   protected readonly loading = computed(() => this.data() === undefined && !this.notFound());
 
+  /**
+   * Cuota de servicio que ve el COMPRADOR = plataforma + pasarela FUSIONADAS =
+   * total − neto − IVA. (No usar `gatewayFee` solo: omitía la comisión de
+   * plataforma y el recibo no cuadraba con el total ni con el checkout.)
+   */
+  protected readonly serviceFee = computed(() => {
+    const o = this.order();
+    if (!o) return '0.00';
+    return (parseFloat(o.total) - parseFloat(o.net) - parseFloat(o.iva)).toFixed(2);
+  });
+
   protected readonly chain = signal<OrderLedgerChainDto | null>(null);
   protected readonly loadingChain = signal(false);
 

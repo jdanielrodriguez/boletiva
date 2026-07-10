@@ -35,6 +35,25 @@
     </div>
   }
 
+  @if (!loading() && events().length > 0) {
+    <div class="list-filters" data-testid="panel-filters">
+      <input
+        type="search"
+        placeholder="Buscar evento…"
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event); onFilterChange()"
+        name="q"
+        data-testid="panel-search"
+      />
+      <select [ngModel]="filterStatus()" (ngModelChange)="filterStatus.set($event); onFilterChange()" name="status" data-testid="panel-filter-status">
+        <option value="">Todos los estados</option>
+        @for (s of statuses(); track s) {
+          <option [value]="s">{{ s }}</option>
+        }
+      </select>
+    </div>
+  }
+
   @if (loading()) {
     <p class="muted">Cargando eventos…</p>
   } @else if (events().length === 0) {
@@ -60,6 +79,8 @@
             }
           </div>
         </article>
+      } @empty {
+        <p class="muted" data-testid="events-no-match">Ningún evento coincide con la búsqueda.</p>
       }
     </div>
 

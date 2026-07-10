@@ -60,6 +60,32 @@ describe('TransactionDetail', () => {
     expect(el.querySelector('[data-testid="txn-total"]')?.textContent).toBe('Q129.68');
   });
 
+  it('la cuota por servicio reconcilia (boleto + servicio + IVA = total), no solo gatewayFee', async () => {
+    // net 150 + servicio 24.72 + IVA 19.80 = 194.52; gatewayFee (9.72) es SOLO una
+    // parte → mostrarla sola no cuadraba (bug QA). Debe mostrar el fusionado 24.72.
+    orders = jasmine.createSpyObj<OrdersApi>('OrdersApi', ['get', 'ledgerChain']);
+    orders.get.and.returnValue(
+      of({ ...ORDER, net: '150.00', iva: '19.80', gatewayFee: '9.72', total: '194.52' } as unknown as OrderResponseDto),
+    );
+    orders.ledgerChain.and.returnValue(of(CHAIN));
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        provideRouter([]),
+        { provide: OrdersApi, useValue: orders },
+        { provide: ToastService, useValue: { error: () => 0 } },
+        { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ orderId: 'o1' })) } },
+      ],
+    });
+    const fx = TestBed.createComponent(TransactionDetail);
+    fx.detectChanges();
+    await fx.whenStable();
+    fx.detectChanges();
+    const node = fx.nativeElement as HTMLElement;
+    expect(node.querySelector('[data-testid="txn-servicefee"]')?.textContent).toBe('Q24.72');
+    expect(node.querySelector('[data-testid="txn-total"]')?.textContent).toBe('Q194.52');
+  });
+
   it('carga y oculta la cadena blockchain bajo demanda', async () => {
     await setup();
     (el.querySelector('[data-testid="txn-toggle-chain"]') as HTMLButtonElement).click();

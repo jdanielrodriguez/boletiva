@@ -30,6 +30,9 @@ export class PromoterPanel {
   protected readonly showCreate = signal(false);
   protected readonly page = signal(1);
   protected readonly pageSize = PAGE_SIZE;
+  /** Búsqueda por nombre + filtro por estado (regla v3.2: toda lista los tiene). */
+  protected readonly search = signal('');
+  protected readonly filterStatus = signal('');
 
   // Crear = borrador mínimo (solo nombre + inicio); el resto se completa en el
   // editor (misma vista de alta/edición). El fin se autocalcula en el backend.
@@ -38,15 +41,32 @@ export class PromoterPanel {
     startsAt: signal(''),
   };
 
+  /** Estados presentes (para el selector de filtro). */
+  protected readonly statuses = computed(() => [...new Set(this.events().map((e) => e.status))]);
+  /** Eventos tras aplicar búsqueda (nombre) + filtro de estado. */
+  protected readonly filtered = computed(() => {
+    const q = this.search().trim().toLowerCase();
+    const st = this.filterStatus();
+    return this.events().filter((e) => {
+      if (st && e.status !== st) return false;
+      if (q && !e.name.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  });
   protected readonly totalPages = computed(() =>
-    Math.max(1, Math.ceil(this.events().length / PAGE_SIZE)),
+    Math.max(1, Math.ceil(this.filtered().length / PAGE_SIZE)),
   );
   protected readonly pageEvents = computed(() => {
-    const start = (this.page() - 1) * PAGE_SIZE;
-    return this.events().slice(start, start + PAGE_SIZE);
+    const start = (Math.min(this.page(), this.totalPages()) - 1) * PAGE_SIZE;
+    return this.filtered().slice(start, start + PAGE_SIZE);
   });
   protected readonly hasPrev = computed(() => this.page() > 1);
   protected readonly hasNext = computed(() => this.page() < this.totalPages());
+
+  /** Al cambiar búsqueda/filtro vuelve a la página 1. */
+  protected onFilterChange(): void {
+    this.page.set(1);
+  }
 
   constructor() {
     this.loadEvents();

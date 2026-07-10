@@ -56,6 +56,34 @@ describe('PromoterPanel (v3 grid)', () => {
     expect(el.querySelector('[data-testid="events-grid"]')?.textContent).toContain('Fiesta');
   });
 
+  it('la búsqueda filtra los eventos por nombre', async () => {
+    await setup();
+    (fixture.componentInstance as unknown as { search: { set: (v: string) => void } }).search.set('fiesta');
+    (fixture.componentInstance as unknown as { onFilterChange: () => void }).onFilterChange();
+    fixture.detectChanges();
+    const cards = el.querySelectorAll('[data-testid="ev-card"]');
+    expect(cards.length).toBe(1);
+    expect(cards[0].textContent).toContain('Fiesta');
+  });
+
+  it('el filtro por estado limita el grid', async () => {
+    await setup();
+    (fixture.componentInstance as unknown as { filterStatus: { set: (v: string) => void } }).filterStatus.set('published');
+    (fixture.componentInstance as unknown as { onFilterChange: () => void }).onFilterChange();
+    fixture.detectChanges();
+    const cards = el.querySelectorAll('[data-testid="ev-card"]');
+    expect(cards.length).toBe(1);
+    expect(cards[0].textContent).toContain('Show');
+  });
+
+  it('búsqueda sin coincidencias muestra el estado vacío', async () => {
+    await setup();
+    (fixture.componentInstance as unknown as { search: { set: (v: string) => void } }).search.set('zzz');
+    (fixture.componentInstance as unknown as { onFilterChange: () => void }).onFilterChange();
+    fixture.detectChanges();
+    expect(el.querySelector('[data-testid="events-no-match"]')).not.toBeNull();
+  });
+
   it('crear evento sin fechas no llama create', async () => {
     const create = jasmine.createSpy('create').and.returnValue(of(EVENTS[0]));
     await setup({ create });

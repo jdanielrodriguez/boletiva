@@ -44,7 +44,7 @@
 
       <div class="txn-totals">
         <div class="row"><span>Precio de boleto</span><span>{{ o.net | money }}</span></div>
-        <div class="row"><span>Cuota por servicio</span><span>{{ o.gatewayFee | money }}</span></div>
+        <div class="row"><span>Cuota por servicio</span><span data-testid="txn-servicefee">{{ serviceFee() | money }}</span></div>
         <div class="row"><span>IVA</span><span>{{ o.iva | money }}</span></div>
         <div class="row total"><span>Total</span><span data-testid="txn-total">{{ o.total | money }}</span></div>
       </div>
