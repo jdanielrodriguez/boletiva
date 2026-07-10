@@ -4,6 +4,7 @@ import {
   CreateBucketCommand,
   HeadBucketCommand,
   GetObjectCommand,
+  PutBucketCorsCommand,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
@@ -42,6 +43,15 @@ export class StorageService implements OnModuleInit {
       region: s3cfg.region,
       forcePathStyle: s3cfg.forcePathStyle,
       credentials: { accessKeyId: s3cfg.accessKeyId, secretAccessKey: s3cfg.secretAccessKey },
+      // AWS SDK v3 ≥ 3.729 inyecta por DEFAULT `x-amz-checksum-crc32` en la URL
+      // firmada (CRC32 del payload VACÍO, calculado al firmar) + el header
+      // `x-amz-sdk-checksum-algorithm`. Al subir el binario real desde el navegador
+      // el checksum no coincide → S3/LocalStack rechaza el PUT con 400
+      // "Value for x-amz-checksum-crc32 header is invalid". `WHEN_REQUIRED` evita
+      // firmar ese checksum salvo que la operación lo exija → el presign de subida
+      // vuelve a funcionar (banner upload).
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+      responseChecksumValidation: 'WHEN_REQUIRED',
     });
     await this.ensureBucket();
   }
@@ -58,6 +68,36 @@ export class StorageService implements OnModuleInit {
           `No se pudo asegurar el bucket "${this.bucket}": ${(err as Error).message}`,
         );
       }
+    }
+    await this.ensureCors();
+  }
+
+  /**
+   * CORS del bucket: el navegador sube el banner por PUT firmado directamente al
+   * storage (cross-origin). Sin una política CORS el preflight falla y la subida
+   * se cae silenciosamente. Se aplica permisiva en dev (LocalStack); en prod la
+   * política real va en la consola de GCS. Tolerante a fallos (no bloquea el arranque).
+   */
+  private async ensureCors(): Promise<void> {
+    try {
+      await this.s3.send(
+        new PutBucketCorsCommand({
+          Bucket: this.bucket,
+          CORSConfiguration: {
+            CORSRules: [
+              {
+                AllowedMethods: ['GET', 'PUT', 'HEAD'],
+                AllowedOrigins: ['*'],
+                AllowedHeaders: ['*'],
+                ExposeHeaders: ['ETag'],
+                MaxAgeSeconds: 3600,
+              },
+            ],
+          },
+        }),
+      );
+    } catch (err) {
+      this.logger.warn(`No se pudo aplicar CORS al bucket: ${(err as Error).message}`);
     }
   }
 
@@ -91,13 +131,19 @@ export class StorageService implements OnModuleInit {
       : url;
   }
 
-  /** URL firmada (V4) de SUBIDA (PUT directo del navegador a storage). */
+  /**
+   * URL firmada (V4) de SUBIDA (PUT directo del navegador a storage). Igual que la
+   * descarga, se reescribe el host interno por el público (dev/LocalStack) para que
+   * el navegador ALCANCE el endpoint (el interno `pasaeventos_localstack` no es
+   * resoluble desde el browser). Sin `publicEndpoint` (prod) devuelve la URL intacta.
+   */
   async signedPutUrl(key: string, contentType?: string, expiresInSeconds = 300): Promise<string> {
-    return getSignedUrl(
+    const url = await getSignedUrl(
       this.s3,
       new PutObjectCommand({ Bucket: this.bucket, Key: key, ContentType: contentType }),
       { expiresIn: expiresInSeconds },
     );
+    return this.toPublicUrl(url);
   }
 
   /** Verificación de conectividad para el health-check. */
