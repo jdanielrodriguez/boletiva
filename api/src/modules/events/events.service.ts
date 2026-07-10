@@ -17,6 +17,7 @@ import { PricingService } from '../pricing/pricing.service';
 import { PriceQuote } from '../pricing/pricing.engine';
 import { CostShareService } from '../cost-share/cost-share.service';
 import { PaymentGatewaysService } from '../payment-gateways/payment-gateways.service';
+import { EditUnlockService } from './edit-unlock.service';
 import { CreateEventDto, UpdateEventDto } from './dto/events.dto';
 
 /** URLs firmadas de media públicas: expiran holgadamente para sobrevivir al
@@ -33,7 +34,29 @@ export class EventsService {
     private readonly redis: RedisService,
     private readonly costShare: CostShareService,
     private readonly gateways: PaymentGatewaysService,
+    private readonly editUnlock: EditUnlockService,
   ) {}
+
+  /**
+   * Resuelve los datos de ubicación: si se indicó un salón, valida que exista y
+   * PREFIJA address/lat/lng que vengan vacíos con los del salón (el promotor puede
+   * sobrescribirlos). Devuelve los valores efectivos + el hallId a persistir.
+   */
+  private async resolveLocation(
+    dto: { hallId?: string; address?: string; lat?: number; lng?: number },
+  ): Promise<{ hallId?: string; address?: string; lat?: number; lng?: number }> {
+    if (!dto.hallId) {
+      return { hallId: dto.hallId, address: dto.address, lat: dto.lat, lng: dto.lng };
+    }
+    const hall = await this.prisma.hall.findUnique({ where: { id: dto.hallId } });
+    if (!hall) throw new BadRequestException('El salón indicado no existe');
+    return {
+      hallId: hall.id,
+      address: dto.address ?? hall.address ?? undefined,
+      lat: dto.lat ?? hall.lat ?? undefined,
+      lng: dto.lng ?? hall.lng ?? undefined,
+    };
+  }
 
   /** Añade una URL firmada a cada media (para catálogo/SEO/og:image). */
   private async signMedia<T extends { media: { key: string }[] }>(
@@ -280,6 +303,7 @@ export class EventsService {
     this.assertDates(dto.startsAt, dto.endsAt);
     const gatewayId = await this.anchorGatewayForTestUser(userId, dto.gatewayId);
     await this.assertGatewayActive(gatewayId, userId);
+    const loc = await this.resolveLocation(dto);
     const startsAt = new Date(dto.startsAt);
     return this.prisma.event.create({
       data: {
@@ -288,9 +312,10 @@ export class EventsService {
         name: dto.name,
         slug: await this.uniqueSlug(dto.name),
         description: dto.description,
-        address: dto.address,
-        lat: dto.lat,
-        lng: dto.lng,
+        hallId: loc.hallId,
+        address: loc.address,
+        lat: loc.lat,
+        lng: loc.lng,
         startsAt,
         endsAt: this.resolveEndsAt(startsAt, dto.endsAt),
         gatewayId,
@@ -313,8 +338,9 @@ export class EventsService {
     return Promise.all(events.map((e) => this.signMedia(e)));
   }
 
-  async update(id: string, dto: UpdateEventDto, user: AuthUser) {
+  async update(id: string, dto: UpdateEventDto, user: AuthUser, unlockToken?: string) {
     const event = await this.getManaged(id, user);
+    await this.editUnlock.assertCanMutate(user, event, unlockToken);
     // Si el promotor mueve el inicio (sin enviar fin, que ya no está en la UI) a un
     // punto que dejaría el fin anterior en el pasado, recalculamos el fin (+12h)
     // para no romper con un 400 confuso.
@@ -339,15 +365,17 @@ export class EventsService {
         ? await this.anchorGatewayForTestUser(event.promoterId, dto.gatewayId)
         : undefined;
     await this.assertGatewayActive(gatewayId, event.promoterId);
+    const loc = await this.resolveLocation(dto);
     return this.prisma.event.update({
       where: { id },
       data: {
         categoryId: dto.categoryId,
         name: dto.name,
         description: dto.description,
-        address: dto.address,
-        lat: dto.lat,
-        lng: dto.lng,
+        hallId: loc.hallId,
+        address: loc.address,
+        lat: loc.lat,
+        lng: loc.lng,
         startsAt: dto.startsAt ? new Date(dto.startsAt) : undefined,
         endsAt: effectiveEndsAt ? new Date(effectiveEndsAt) : undefined,
         gatewayId,
@@ -360,8 +388,14 @@ export class EventsService {
     });
   }
 
-  async setStatus(id: string, status: 'published' | 'cancelled', user: AuthUser) {
+  async setStatus(
+    id: string,
+    status: 'published' | 'cancelled',
+    user: AuthUser,
+    unlockToken?: string,
+  ) {
     const event = await this.getManaged(id, user);
+    await this.editUnlock.assertCanMutate(user, event, unlockToken);
     if (status === 'published') {
       // Publicar requiere estar autorizado como promotor (o ser admin).
       await this.promoters.assertCanOperate(user.userId);
@@ -406,8 +440,9 @@ export class EventsService {
     }
   }
 
-  async remove(id: string, user: AuthUser) {
+  async remove(id: string, user: AuthUser, unlockToken?: string) {
     const event = await this.getManaged(id, user);
+    await this.editUnlock.assertCanMutate(user, event, unlockToken);
     if (event.status === 'published') {
       throw new BadRequestException('No se puede eliminar un evento publicado; cancélalo primero');
     }

@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   HttpCode,
   Param,
   ParseUUIDPipe,
@@ -10,6 +11,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { ApiHeader } from '@nestjs/swagger';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -125,43 +127,60 @@ export class EventsController {
   @Patch(':id')
   @Roles(Role.promoter, Role.admin)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Actualiza un evento (owner/admin)' })
+  @ApiHeader({ name: 'x-edit-unlock', required: false, description: 'Token de desbloqueo (admin no-dueño)' })
+  @ApiOperation({ summary: 'Actualiza un evento (owner/admin; admin no-dueño requiere desbloqueo)' })
   @ApiOkResponse({ type: EventResponseDto })
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateEventDto,
     @CurrentUser() user: AuthUser,
+    @Headers('x-edit-unlock') unlockToken?: string,
   ) {
-    return this.events.update(id, dto, user);
+    return this.events.update(id, dto, user, unlockToken);
   }
 
   @Post(':id/publish')
   @Roles(Role.promoter, Role.admin)
   @HttpCode(200)
   @ApiBearerAuth()
+  @ApiHeader({ name: 'x-edit-unlock', required: false, description: 'Token de desbloqueo (admin no-dueño)' })
   @ApiOperation({ summary: 'Publica un evento' })
   @ApiOkResponse({ type: EventResponseDto })
-  publish(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
-    return this.events.setStatus(id, 'published', user);
+  publish(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthUser,
+    @Headers('x-edit-unlock') unlockToken?: string,
+  ) {
+    return this.events.setStatus(id, 'published', user, unlockToken);
   }
 
   @Post(':id/cancel')
   @Roles(Role.promoter, Role.admin)
   @HttpCode(200)
   @ApiBearerAuth()
+  @ApiHeader({ name: 'x-edit-unlock', required: false, description: 'Token de desbloqueo (admin no-dueño)' })
   @ApiOperation({ summary: 'Cancela un evento' })
   @ApiOkResponse({ type: EventResponseDto })
-  cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
-    return this.events.setStatus(id, 'cancelled', user);
+  cancel(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthUser,
+    @Headers('x-edit-unlock') unlockToken?: string,
+  ) {
+    return this.events.setStatus(id, 'cancelled', user, unlockToken);
   }
 
   @Delete(':id')
   @Roles(Role.promoter, Role.admin)
   @HttpCode(204)
   @ApiBearerAuth()
+  @ApiHeader({ name: 'x-edit-unlock', required: false, description: 'Token de desbloqueo (admin no-dueño)' })
   @ApiOperation({ summary: 'Elimina un evento (solo no publicado)' })
   @ApiNoContentResponse({ description: 'Evento eliminado' })
-  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
-    return this.events.remove(id, user);
+  remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthUser,
+    @Headers('x-edit-unlock') unlockToken?: string,
+  ) {
+    return this.events.remove(id, user, unlockToken);
   }
 }

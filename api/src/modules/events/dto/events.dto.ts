@@ -41,6 +41,14 @@ export class CreateEventDto {
   @IsUUID()
   categoryId?: string;
 
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Salón/venue reutilizable. Si se indica, prefija address/lat/lng vacíos.',
+  })
+  @IsOptional()
+  @IsUUID()
+  hallId?: string;
+
   @ApiPropertyOptional({ description: 'Dirección/lugar (máx 300)', example: 'Estadio Nacional, Ciudad de Guatemala' })
   @IsOptional()
   @IsString()
@@ -117,6 +125,14 @@ export class UpdateEventDto {
   @IsOptional()
   @IsUUID()
   categoryId?: string;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Salón/venue reutilizable. Si se indica, prefija address/lat/lng vacíos.',
+  })
+  @IsOptional()
+  @IsUUID()
+  hallId?: string;
 
   @ApiPropertyOptional({ description: 'Dirección/lugar (máx 300)', example: 'Estadio Nacional, Ciudad de Guatemala' })
   @IsOptional()

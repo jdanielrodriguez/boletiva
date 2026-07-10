@@ -37,6 +37,9 @@ import { PaymentMethodsModule } from './modules/payment-methods/payment-methods.
 import { RetentionModule } from './modules/retention/retention.module';
 import { StreamModule } from './modules/stream/stream.module';
 import { BannerModule } from './modules/banner/banner.module';
+import { HallsModule } from './modules/halls/halls.module';
+import { SeatTemplatesModule } from './modules/seat-templates/seat-templates.module';
+import { SettingsModule } from './modules/settings/settings.module';
 
 @Module({
   imports: [
@@ -99,6 +102,9 @@ import { BannerModule } from './modules/banner/banner.module';
     RetentionModule,
     StreamModule,
     BannerModule,
+    HallsModule,
+    SeatTemplatesModule,
+    SettingsModule,
   ],
   providers: [
     // Orden importa: autentica (JWT) → autoriza por rol → exige correo verificado.

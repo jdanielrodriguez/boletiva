@@ -43,6 +43,9 @@ export interface AppConfig {
   // SafeTix (Ola 6.5): TTL del token de puerta (corto/fresco) y del manifiesto
   // firmado (caduca offline; lleva secretos TOTP en claro), en segundos.
   safetix: { gateTokenTtl: number; manifestTtl: number };
+  // Desbloqueo de edición de evento por ADMIN (v3.5): TTL en segundos del token que
+  // devuelve la verificación del OTP (default 5 min).
+  editUnlock: { ttl: number };
   wallet: { provider: string };
   retention: { enabled: boolean; days: number };
   cors: { origins: string[] };
@@ -128,6 +131,9 @@ export const configuration = (): AppConfig => {
     safetix: {
       gateTokenTtl: parseInt(process.env.SAFETIX_GATE_TOKEN_TTL ?? '1800', 10), // 30 min
       manifestTtl: parseInt(process.env.SAFETIX_MANIFEST_TTL ?? '21600', 10), // 6 h
+    },
+    editUnlock: {
+      ttl: parseInt(process.env.EVENT_EDIT_UNLOCK_TTL ?? '300', 10), // 5 min
     },
     // Pases de wallet (Google/Apple). 'stub' = simulador sin certificados de
     // terceros (los E2E no dependen de Apple Developer / Google Wallet API).

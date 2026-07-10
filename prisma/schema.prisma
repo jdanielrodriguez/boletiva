@@ -67,6 +67,20 @@ enum ChallengePurpose {
   passwordless // inicio de sesión sin contraseña (magic link + código)
   twofa_email // segundo factor por correo
   gateway_unlock // desbloqueo por OTP para agregar una pasarela (acción sensible, admin)
+  event_edit_unlock // desbloqueo por OTP para que un ADMIN edite un evento ajeno (token 5 min)
+}
+
+/// Tipo/preset de una plantilla de disposición de asientos (v3.5). Los cuatro
+/// primeros replican las plantillas built-in del editor; `custom` = creada por admin.
+enum SeatTemplateKind {
+  rows // filas rectas
+  theater // filas curvadas hacia el escenario
+  stadium // gradas en los cuatro lados de la cancha
+  tables // mesas redondas
+  grid // cuadrícula genérica
+  curve // línea/arco curvo
+  line // línea recta
+  custom // definida a mano
 }
 
 /// Estado de un intento de pago.
@@ -398,6 +412,11 @@ model Event {
   frozenGatewayId String?  @map("frozen_gateway_id") @db.Uuid
   ivaOnNet        Boolean  @default(true) @map("iva_on_net")
 
+  // Salón/venue reutilizable (v3.5). Opcional: el promotor puede elegir un salón
+  // pre-registrado (con dirección/coordenadas y layout de asientos) o escribir la
+  // dirección a mano. Al asignarlo se pueden prefijar address/lat/lng si van vacíos.
+  hallId String? @map("hall_id") @db.Uuid
+
   // Cuotas (Ola 6.5): si el promotor ABSORBE el recargo por pago en cuotas
   // (descontándolo de su neto en el ledger) en lugar de pasárselo al comprador.
   // false (default) = el recargo lo paga el comprador (gross-up mayor).
@@ -416,6 +435,7 @@ model Event {
 
   promoter   User        @relation("EventPromoter", fields: [promoterId], references: [id])
   category   Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  hall       Hall?       @relation(fields: [hallId], references: [id], onDelete: SetNull)
   gateAssignments GateAssignment[]
   localities Locality[]
   media      EventMedia[]
@@ -989,4 +1009,51 @@ model PromoterStatusEvent {
 
   @@index([promoterId])
   @@map("promoter_status_events")
+}
+
+// ---------------------------------------------------------------------------
+// Salones y plantillas de asientos (v3.5)
+// ---------------------------------------------------------------------------
+
+/// Salón/venue reutilizable. Un admin lo gestiona; cualquier promotor lo elige al
+/// crear un evento para prefijar dirección/coordenadas y, opcionalmente, arrancar
+/// con un layout de asientos (`seatTemplateId`). No se materializan asientos aquí:
+/// solo referencia la geometría base que el editor del evento puede aplicar.
+model Hall {
+  id             String   @id @default(uuid()) @db.Uuid
+  name           String
+  address        String?
+  lat            Float?
+  lng            Float?
+  city           String?
+  notes          String?
+  seatTemplateId String?  @map("seat_template_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  seatTemplate SeatTemplate? @relation(fields: [seatTemplateId], references: [id], onDelete: SetNull)
+  events       Event[]
+
+  @@index([name])
+  @@map("halls")
+}
+
+/// Plantilla de disposición de asientos (v3.5). Registra los presets del editor
+/// (built-in) y las plantillas que el admin cree a mano. `layoutJson` guarda la
+/// metadata de presentación (icono/hint) o la geometría; `params` los parámetros
+/// de generación (filas, columnas, radio, etc.). Built-in = no borrable/editable.
+model SeatTemplate {
+  id         String           @id @default(uuid()) @db.Uuid
+  name       String
+  kind       SeatTemplateKind @default(custom)
+  layoutJson Json             @default("{}") @map("layout_json")
+  params     Json?
+  isBuiltIn  Boolean          @default(false) @map("is_built_in")
+  createdAt  DateTime         @default(now()) @map("created_at")
+  updatedAt  DateTime         @updatedAt @map("updated_at")
+
+  halls Hall[]
+
+  @@index([kind])
+  @@map("seat_templates")
 }

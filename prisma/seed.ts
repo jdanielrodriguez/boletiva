@@ -165,6 +165,120 @@ async function seedGateway(): Promise<void> {
   ]);
 }
 
+/**
+ * Plantillas de asientos BUILT-IN (v3.5): registra las 4 pre-configuraciones que
+ * hoy usa el editor (Filas rectas, Teatro curvo, Estadio, Mesas redondas) para que
+ * el frontend las lea del backend. `isBuiltIn=true` → no editables/borrables por el
+ * admin. Idempotente por nombre. `params` guarda los parámetros de generación.
+ */
+async function seedSeatTemplates(): Promise<Record<string, string>> {
+  const builtins: Array<{
+    name: string;
+    kind: 'rows' | 'theater' | 'stadium' | 'tables';
+    hint: string;
+    icon: string;
+    params: Record<string, number>;
+  }> = [
+    {
+      name: 'Filas rectas',
+      kind: 'rows',
+      hint: '8 filas × 12 asientos alineados',
+      icon: '<svg viewBox="0 0 40 40" width="40" height="40"><g fill="#7b5cff"><rect x="6" y="8" width="28" height="4" rx="2"/><rect x="6" y="18" width="28" height="4" rx="2"/><rect x="6" y="28" width="28" height="4" rx="2"/></g></svg>',
+      params: { rows: 8, cols: 12 },
+    },
+    {
+      name: 'Teatro (curvo)',
+      kind: 'theater',
+      hint: 'Filas curvadas hacia el escenario',
+      icon: '<svg viewBox="0 0 40 40" width="40" height="40"><g fill="none" stroke="#7b5cff" stroke-width="4" stroke-linecap="round"><path d="M6 14 Q20 8 34 14"/><path d="M6 24 Q20 18 34 24"/><path d="M6 34 Q20 28 34 34"/></g></svg>',
+      params: { rows: 8, cols: 14, curve: 0.5 },
+    },
+    {
+      name: 'Estadio',
+      kind: 'stadium',
+      hint: 'Gradas en los cuatro lados de la cancha',
+      icon: '<svg viewBox="0 0 40 40" width="40" height="40"><rect x="4" y="4" width="32" height="32" rx="6" fill="none" stroke="#7b5cff" stroke-width="4"/><rect x="14" y="14" width="12" height="12" rx="2" fill="#7b5cff" opacity="0.4"/></svg>',
+      params: { cols: 12, rowsPerBlock: 3 },
+    },
+    {
+      name: 'Mesas redondas',
+      kind: 'tables',
+      hint: '6 mesas de 8 asientos',
+      icon: '<svg viewBox="0 0 40 40" width="40" height="40"><g fill="#7b5cff"><circle cx="12" cy="12" r="5"/><circle cx="28" cy="12" r="5"/><circle cx="12" cy="28" r="5"/><circle cx="28" cy="28" r="5"/></g></svg>',
+      params: { tables: 6, perTable: 8, radius: 46 },
+    },
+  ];
+  const ids: Record<string, string> = {};
+  for (const b of builtins) {
+    const existing = await prisma.seatTemplate.findFirst({
+      where: { name: b.name, isBuiltIn: true },
+    });
+    const data = {
+      name: b.name,
+      kind: b.kind,
+      layoutJson: { hint: b.hint, icon: b.icon },
+      params: b.params,
+      isBuiltIn: true,
+    };
+    const tpl = existing
+      ? await prisma.seatTemplate.update({ where: { id: existing.id }, data })
+      : await prisma.seatTemplate.create({ data });
+    ids[b.kind] = tpl.id;
+  }
+  return ids;
+}
+
+/** Salones/venues demo con coordenadas reales de Guatemala. Idempotente por nombre. */
+async function seedHalls(seatTemplateId?: string): Promise<void> {
+  const halls: Array<{
+    name: string;
+    address: string;
+    lat: number;
+    lng: number;
+    city: string;
+    withTemplate?: boolean;
+  }> = [
+    {
+      name: 'Teatro Nacional Miguel Ángel Asturias',
+      address: '24 Calle 3-81, Zona 1',
+      lat: 14.6139,
+      lng: -90.5178,
+      city: 'Ciudad de Guatemala',
+      withTemplate: true,
+    },
+    {
+      name: 'Estadio Cementos Progreso',
+      address: 'Calzada José Milla y Vidaurre, Zona 6',
+      lat: 14.6469,
+      lng: -90.5389,
+      city: 'Ciudad de Guatemala',
+    },
+    {
+      name: 'Parque de la Industria — Gran Salón',
+      address: 'Calzada Atanasio Tzul, Zona 12',
+      lat: 14.6018,
+      lng: -90.5107,
+      city: 'Ciudad de Guatemala',
+    },
+  ];
+  for (const h of halls) {
+    const existing = await prisma.hall.findFirst({ where: { name: h.name } });
+    const data = {
+      name: h.name,
+      address: h.address,
+      lat: h.lat,
+      lng: h.lng,
+      city: h.city,
+      seatTemplateId: h.withTemplate ? seatTemplateId ?? null : null,
+    };
+    if (existing) {
+      await prisma.hall.update({ where: { id: existing.id }, data });
+    } else {
+      await prisma.hall.create({ data });
+    }
+  }
+}
+
 async function seedUsers() {
   const password = await bcrypt.hash('Password123', 12);
   const users: Array<{
@@ -303,18 +417,22 @@ async function main(): Promise<void> {
   await seedSettings();
   await seedFeeSchedule();
   await seedGateway();
+  const templates = await seedSeatTemplates();
+  await seedHalls(templates['rows']);
   const users = await seedUsers();
   const categories = await seedCategories(users['admin@pasaeventos.com']);
   await seedDemoEvent(users['promotor@pasaeventos.com'], categories['Concierto']);
 
-  const [settings, userCount, catCount, eventCount] = await Promise.all([
+  const [settings, userCount, catCount, eventCount, hallCount, tplCount] = await Promise.all([
     prisma.setting.count(),
     prisma.user.count(),
     prisma.category.count(),
     prisma.event.count(),
+    prisma.hall.count(),
+    prisma.seatTemplate.count(),
   ]);
   console.log(
-    `Seed OK → settings:${settings} users:${userCount} categories:${catCount} events:${eventCount}`,
+    `Seed OK → settings:${settings} users:${userCount} categories:${catCount} events:${eventCount} halls:${hallCount} seatTemplates:${tplCount}`,
   );
 }
 

@@ -10,6 +10,7 @@ const TTL_MS: Record<ChallengePurpose, number> = {
   passwordless: 15 * 60 * 1000, // 15 min
   twofa_email: 10 * 60 * 1000, // 10 min
   gateway_unlock: 10 * 60 * 1000, // 10 min (desbloqueo para agregar pasarela)
+  event_edit_unlock: 10 * 60 * 1000, // 10 min (OTP para desbloquear edición de evento, admin)
 };
 const MAX_ATTEMPTS = 5;
 
@@ -124,6 +125,11 @@ export class ChallengesService {
         subject: 'Código para agregar una pasarela — Pasa Eventos',
         intro: 'Confirma que autorizas agregar una nueva pasarela de pago.',
         path: '/configuracion',
+      },
+      event_edit_unlock: {
+        subject: 'Código para editar un evento — Pasa Eventos',
+        intro: 'Confirma que autorizas editar este evento como administrador.',
+        path: '/admin/eventos',
       },
     };
     const t = templates[purpose];

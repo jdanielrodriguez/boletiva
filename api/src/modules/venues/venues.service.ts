@@ -4,6 +4,7 @@ import { PrismaService } from '../../infra/prisma/prisma.service';
 import { AuthUser } from '../../common/decorators/current-user.decorator';
 import { slugify, slugWithSuffix } from '../../common/utils/slug';
 import { EventsService } from '../events/events.service';
+import { EditUnlockService } from '../events/edit-unlock.service';
 import {
   BulkSeatsDto,
   CreateLocalityDto,
@@ -15,16 +16,22 @@ import {
 
 @Injectable()
 export class VenuesService {
-  constructor(private readonly prisma: PrismaService, private readonly events: EventsService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly events: EventsService,
+    private readonly editUnlock: EditUnlockService,
+  ) {}
 
   /**
    * Un evento publicado (o cancelado) tiene su aforo/geometría CONGELADOS: no se
    * pueden crear/editar/borrar localidades ni asientos (alteraría lo que ya está a
    * la venta). Solo en `draft` se edita libremente. Devuelve el evento gestionable
-   * (reusa la autorización owner/admin de getManaged).
+   * (reusa la autorización owner/admin de getManaged). Un admin NO-dueño requiere
+   * token de desbloqueo (`x-edit-unlock`).
    */
-  private async assertEditable(eventId: string, user: AuthUser) {
+  private async assertEditable(eventId: string, user: AuthUser, unlockToken?: string) {
     const event = await this.events.getManaged(eventId, user);
+    await this.editUnlock.assertCanMutate(user, event, unlockToken);
     if (event.status !== 'draft') {
       throw new ConflictException(
         'El evento no está en borrador; su aforo y localidades están bloqueados',
@@ -44,8 +51,8 @@ export class VenuesService {
     });
   }
 
-  async addLocality(eventId: string, dto: CreateLocalityDto, user: AuthUser) {
-    await this.assertEditable(eventId, user);
+  async addLocality(eventId: string, dto: CreateLocalityDto, user: AuthUser, unlockToken?: string) {
+    await this.assertEditable(eventId, user, unlockToken);
     const base = slugify(dto.name);
     const exists = await this.prisma.locality.findFirst({ where: { eventId, slug: base } });
     const kind = dto.kind ?? 'general';
@@ -76,15 +83,20 @@ export class VenuesService {
   }
 
   /** Como getLocalityManaged pero exige que el evento esté en borrador (mutable). */
-  private async getLocalityEditable(localityId: string, user: AuthUser) {
+  private async getLocalityEditable(localityId: string, user: AuthUser, unlockToken?: string) {
     const locality = await this.prisma.locality.findUnique({ where: { id: localityId } });
     if (!locality) throw new NotFoundException('Localidad no encontrada');
-    await this.assertEditable(locality.eventId, user);
+    await this.assertEditable(locality.eventId, user, unlockToken);
     return locality;
   }
 
-  async updateLocality(localityId: string, dto: UpdateLocalityDto, user: AuthUser) {
-    const current = await this.getLocalityEditable(localityId, user);
+  async updateLocality(
+    localityId: string,
+    dto: UpdateLocalityDto,
+    user: AuthUser,
+    unlockToken?: string,
+  ) {
+    const current = await this.getLocalityEditable(localityId, user, unlockToken);
     const nextKind = dto.kind ?? current.kind;
     const isGa = nextKind === 'general';
     const updated = await this.prisma.locality.update({
@@ -153,8 +165,8 @@ export class VenuesService {
     await this.prisma.locality.update({ where: { id: localityId }, data: { capacity: target } });
   }
 
-  async removeLocality(localityId: string, user: AuthUser) {
-    await this.getLocalityEditable(localityId, user);
+  async removeLocality(localityId: string, user: AuthUser, unlockToken?: string) {
+    await this.getLocalityEditable(localityId, user, unlockToken);
     await this.prisma.locality.delete({ where: { id: localityId } });
   }
 
@@ -174,8 +186,13 @@ export class VenuesService {
     return count;
   }
 
-  async bulkCreateSeats(localityId: string, dto: BulkSeatsDto, user: AuthUser) {
-    await this.getLocalityEditable(localityId, user);
+  async bulkCreateSeats(
+    localityId: string,
+    dto: BulkSeatsDto,
+    user: AuthUser,
+    unlockToken?: string,
+  ) {
+    await this.getLocalityEditable(localityId, user, unlockToken);
     const result = await this.prisma.seat.createMany({
       data: dto.seats.map((s) => ({ localityId, ...s })),
       skipDuplicates: true,
@@ -184,8 +201,13 @@ export class VenuesService {
     return { created: result.count, capacity };
   }
 
-  async generateSeats(localityId: string, dto: GenerateSeatsDto, user: AuthUser) {
-    await this.getLocalityEditable(localityId, user);
+  async generateSeats(
+    localityId: string,
+    dto: GenerateSeatsDto,
+    user: AuthUser,
+    unlockToken?: string,
+  ) {
+    await this.getLocalityEditable(localityId, user, unlockToken);
     const prefix = dto.labelPrefix ?? '';
     const data = Array.from({ length: dto.count }, (_, i) => ({
       localityId,
@@ -197,8 +219,13 @@ export class VenuesService {
     return { created: result.count, capacity };
   }
 
-  async deleteSeats(localityId: string, dto: DeleteSeatsDto, user: AuthUser) {
-    await this.getLocalityEditable(localityId, user);
+  async deleteSeats(
+    localityId: string,
+    dto: DeleteSeatsDto,
+    user: AuthUser,
+    unlockToken?: string,
+  ) {
+    await this.getLocalityEditable(localityId, user, unlockToken);
     const result = await this.prisma.seat.deleteMany({
       where: { id: { in: dto.ids }, localityId },
     });
@@ -208,8 +235,9 @@ export class VenuesService {
 
   // ---- Mapas de asiento (versionados) -------------------------------------
 
-  async createSeatMap(eventId: string, dto: CreateSeatMapDto, user: AuthUser) {
-    await this.events.getManaged(eventId, user);
+  async createSeatMap(eventId: string, dto: CreateSeatMapDto, user: AuthUser, unlockToken?: string) {
+    const event = await this.events.getManaged(eventId, user);
+    await this.editUnlock.assertCanMutate(user, event, unlockToken);
     const last = await this.prisma.seatMap.findFirst({
       where: { eventId },
       orderBy: { version: 'desc' },
@@ -244,10 +272,11 @@ export class VenuesService {
     return map;
   }
 
-  async setActiveSeatMap(seatMapId: string, user: AuthUser) {
+  async setActiveSeatMap(seatMapId: string, user: AuthUser, unlockToken?: string) {
     const map = await this.prisma.seatMap.findUnique({ where: { id: seatMapId } });
     if (!map) throw new NotFoundException('Mapa no encontrado');
-    await this.events.getManaged(map.eventId, user);
+    const event = await this.events.getManaged(map.eventId, user);
+    await this.editUnlock.assertCanMutate(user, event, unlockToken);
     return this.prisma.$transaction(async (tx) => {
       await tx.seatMap.updateMany({ where: { eventId: map.eventId }, data: { active: false } });
       return tx.seatMap.update({ where: { id: seatMapId }, data: { active: true } });
