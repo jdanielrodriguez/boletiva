@@ -238,29 +238,40 @@ app-root {
   max-width: 1120px;
   margin: 0 auto;
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1.5rem;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  text-align: center;
 }
 
 .footer-menu {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.5rem;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
 }
 
-.footer-menu a {
+.footer-menu a,
+.footer-legal a {
   color: var(--pe-muted);
   font-size: 0.9rem;
 }
 
-.footer-menu a:hover {
+.footer-menu a:hover,
+.footer-legal a:hover {
   color: var(--pe-text);
 }
 
+.footer-legal {
+  order: 3;
+  font-size: 0.85rem;
+}
+
 .footer-copy {
+  order: 2;
+  text-align: center;
   color: var(--pe-muted);
   font-size: 0.82rem;
   margin: 0;
@@ -1831,6 +1842,16 @@ app-root {
 }
 
 /* --- Modal (login amigable) --- */
+@keyframes pe-modal-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pe-modal-card-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -1840,6 +1861,7 @@ app-root {
   display: grid;
   place-items: center;
   padding: 1rem;
+  animation: pe-modal-backdrop-in 0.18s ease-out both;
 }
 
 .modal-card {
@@ -1849,8 +1871,16 @@ app-root {
   background: var(--pe-surface);
   border: 1px solid var(--pe-border);
   border-radius: var(--pe-radius);
-  box-shadow: var(--pe-shadow);
+  box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.55), 0 4px 16px rgba(0, 0, 0, 0.35);
   padding: 2rem;
+  animation: pe-modal-card-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-backdrop,
+  .modal-card {
+    animation: none;
+  }
 }
 
 .modal-card h2 {
@@ -2305,9 +2335,29 @@ button.danger:hover:not(:disabled) { background: rgba(255, 107, 129, 0.12); bord
 .seat-editor-canvas > div { display: inline-block; }
 
 /* Editor de asientos: herramientas + plantillas */
-.seat-tools { margin-bottom: 0.6rem; }
+.seat-tools { margin: 0.6rem 0; }
 .seat-tool-group { display: inline-flex; gap: 0.3rem; flex-wrap: wrap; }
+
+/* Visor prominente del conteo de asientos */
+.seat-count-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0.8rem 0 0.2rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pe-primary) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pe-primary) 45%, transparent);
+  color: var(--pe-text);
+  font-weight: 600;
+}
+.seat-count-badge .seat-count-num { font-size: 1.6rem; font-weight: 800; line-height: 1; color: var(--pe-primary); }
+.seat-count-badge .seat-count-label { font-size: 0.9rem; color: var(--pe-muted); font-weight: 500; }
+
+/* Menú general "Generar" (generadores + presets) */
+.seat-generator,
 .seat-templates { position: relative; margin-top: 0.8rem; }
+.gen-menu,
 .tpl-menu {
   position: absolute;
   z-index: 20;
@@ -2337,8 +2387,38 @@ button.danger:hover:not(:disabled) { background: rgba(255, 107, 129, 0.12); bord
 .tpl-item:hover { background: var(--pe-surface-2); border-color: var(--pe-border); }
 .tpl-icon { flex: 0 0 auto; display: inline-flex; width: 40px; height: 40px; }
 .tpl-icon svg { width: 40px; height: 40px; }
-.tpl-text { display: flex; flex-direction: column; line-height: 1.2; }
-.tpl-text small { font-size: 0.78rem; }
+.tpl-text,
+.gen-text { display: flex; flex-direction: column; line-height: 1.2; }
+.tpl-text small,
+.gen-text small { font-size: 0.78rem; }
+
+/* Buscador + grupos del menú "Generar" */
+.gen-search {
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  margin-bottom: 0.3rem;
+  border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius-sm);
+  background: var(--pe-surface-2);
+  color: var(--pe-text);
+}
+.gen-group-title { margin: 0.35rem 0.3rem 0.1rem; text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.7rem; }
+.gen-item { display: flex; align-items: center; gap: 0.5rem; }
+.gen-item-btn {
+  flex: 1 1 auto;
+  display: flex;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--pe-radius-sm);
+  padding: 0.5rem 0.6rem;
+  cursor: pointer;
+  color: var(--pe-text);
+}
+.gen-item-btn:hover { background: var(--pe-surface-2); border-color: var(--pe-border); }
+.gen-param { flex: 0 0 auto; display: flex; flex-direction: column; gap: 0.15rem; padding-right: 0.4rem; }
+.gen-param input { width: 72px; padding: 0.3rem 0.4rem; border: 1px solid var(--pe-border); border-radius: var(--pe-radius-sm); background: var(--pe-surface-2); color: var(--pe-text); }
+
 .seat-save-bar { display: flex; align-items: center; gap: 0.8rem; margin-top: 0.9rem; flex-wrap: wrap; }
 
 /* Liquidación / cuentas */

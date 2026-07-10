@@ -24,6 +24,13 @@ describe('ConfirmDialogComponent', () => {
     expect(el.textContent).toContain('Fiesta');
   });
 
+  it('usa las clases animadas de modal (backdrop + card)', async () => {
+    await setup();
+    // .modal-backdrop y .modal-card reciben la animación de entrada + sombra global.
+    expect(el.querySelector('.modal-backdrop')).not.toBeNull();
+    expect(el.querySelector('.modal-card')).not.toBeNull();
+  });
+
   it('aceptar emite accept', async () => {
     await setup();
     const spy = jasmine.createSpy('accept');
