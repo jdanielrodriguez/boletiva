@@ -335,23 +335,38 @@ async function main() {
   console.log('\n▶ Panel del promotor (F4/v3)');
   const promoCtx = await browser.createBrowserContext();
   const promo = await promoCtx.newPage();
-  await step('el promotor crea un borrador (sin fecha fin) y aterriza en el editor', async () => {
+  await step('"Nuevo evento" abre la vista de edición en MODO NUEVO (form en blanco) y Guardar crea', async () => {
     await doLogin(promo, 'promotor@pasaeventos.com', 'Password123');
     await promo.goto(`${FE}/promotor`, { waitUntil: 'networkidle0' });
     await promo.waitForSelector('[data-testid="toggle-create"]', { timeout: 15000 });
+    // El botón navega a /promotor/eventos/nuevo (misma página de edición, en blanco).
     await promo.click('[data-testid="toggle-create"]');
-    await promo.waitForSelector('[data-testid="ev-name"]', { timeout: 8000 });
-    await promo.type('[data-testid="ev-name"]', `E2E Evento ${Date.now()}`);
-    await setReactiveValue(promo, '[data-testid="ev-start"]', '2028-08-15T20:00');
-    // No hay campo de fin: el backend autocalcula. Crear = navega al editor.
-    await promo.click('[data-testid="ev-create"]');
-    await promo.waitForSelector('[data-testid="save-draft-btn"]', { timeout: 12000 });
-    assert(/\/promotor\/eventos\/.+\/editar/.test(promo.url()), 'no navegó al editor');
+    await promo.waitForSelector('[data-testid="new-badge"]', { timeout: 12000 });
+    assert(/\/promotor\/eventos\/nuevo/.test(promo.url()), `no navegó a nuevo: ${promo.url()}`);
+    // Publicar aún no existe (evento sin crear).
+    assert((await promo.$('[data-testid="publish-btn"]')) === null, 'Publicar no debería existir en modo nuevo');
+    await promo.waitForSelector('[data-testid="ed-name"]', { timeout: 8000 });
+    await promo.type('[data-testid="ed-name"]', `E2E Evento ${Date.now()}`);
+    await setReactiveValue(promo, '[data-testid="ed-start"]', '2028-08-15T20:00');
+    // Guardar = crea y pasa a modo edición (URL con id real).
+    await promo.click('[data-testid="ed-save"]');
+    await promo.waitForFunction(() => /\/promotor\/eventos\/.+\/editar/.test(location.href), { timeout: 12000 });
+    await promo.waitForSelector('[data-testid="tab-localidades"]', { timeout: 8000 });
   });
 
-  await step('preview de precio por localidad: al teclear el neto muestra el desglose', async () => {
-    await promo.waitForSelector('[data-testid="tab-localidades"]', { timeout: 8000 });
+  await step('recién creado: Publicar está DESHABILITADO y explica qué falta', async () => {
+    await promo.waitForSelector('[data-testid="publish-btn"]', { timeout: 8000 });
+    const disabled = await promo.$eval('[data-testid="publish-btn"]', (b) => b.disabled);
+    assert(disabled === true, 'Publicar debería estar deshabilitado sin banner/localidades');
+    const block = await text(promo, '[data-testid="publish-block"]');
+    assert(block.length > 0, 'debería explicar qué falta para publicar');
+  });
+
+  await step('preview de precio por localidad: al abrir el form y teclear el neto muestra el desglose', async () => {
     await promo.click('[data-testid="tab-localidades"]');
+    // Patrón botón→form: el form de localidad está plegado; se abre con el botón.
+    await promo.waitForSelector('[data-testid="loc-add-toggle"]', { timeout: 8000 });
+    await promo.click('[data-testid="loc-add-toggle"]');
     await promo.waitForSelector('[data-testid="loc-net"]', { timeout: 8000 });
     await setReactiveValue(promo, '[data-testid="loc-net"]', '100');
     await promo.waitForSelector('[data-testid="price-preview"]', { timeout: 8000 });
@@ -359,36 +374,63 @@ async function main() {
     assert(txt.includes('Q'), 'el preview no muestra el precio');
   });
 
-  await step('administrar asientos abre una VISTA APARTE (ruta propia) y el back vuelve al evento', async () => {
-    // Crea una localidad "con asiento" para tener el botón de asientos.
+  await step('administrar asientos abre una VISTA APARTE con plantillas y guardado (cuadrícula 50x100)', async () => {
+    // Crea una localidad "con asiento" (form ya abierto del paso anterior).
     await promo.waitForSelector('[data-testid="loc-name"]', { timeout: 8000 });
     await promo.type('[data-testid="loc-name"]', `Platea ${Date.now()}`);
     await promo.select('select[name="lk"]', 'seated');
     await promo.click('[data-testid="loc-add"]');
     await promo.waitForSelector('[data-testid="loc-seats"]', { timeout: 8000 });
-    // "Administrar asientos" NAVEGA a la vista aparte (editor a página completa).
     await promo.click('[data-testid="loc-seats"]');
     await promo.waitForSelector('[data-testid="seat-editor"]', { timeout: 12000 });
     assert(/\/localidades\/.+\/asientos/.test(promo.url()), `no navegó a la vista de asientos: ${promo.url()}`);
-    // El "Volver" regresa al editor del evento (pestaña Localidades).
+    // Bug corregido: 50 filas × 100 asientos por fila (antes lo rechazaba por max chico).
+    await setReactiveValue(promo, '[data-testid="se-rows"]', '50');
+    await setReactiveValue(promo, '[data-testid="se-cols"]', '100');
+    await promo.click('[data-testid="se-generate"]');
+    await promo.waitForFunction(
+      () => /5000/.test(document.querySelector('[data-testid="se-count"]')?.textContent || ''),
+      { timeout: 8000 },
+    );
+    // El botón "Agregar plantilla" abre el desplegable de plantillas.
+    await promo.click('[data-testid="tpl-toggle"]');
+    await promo.waitForSelector('[data-testid="tpl-menu"]', { timeout: 6000 });
+    await promo.click('[data-testid="tpl-theater"]');
+    await promo.waitForFunction(
+      () => !/5000/.test(document.querySelector('[data-testid="se-count"]')?.textContent || ''),
+      { timeout: 6000 },
+    );
+    // Guarda la disposición (bulk) y vuelve al editor.
+    await promo.click('[data-testid="se-save"]');
+    await sleep(1200);
     await promo.click('[data-testid="seat-back"]');
     await promo.waitForSelector('[data-testid="tab-localidades"]', { timeout: 12000 });
     assert(/\/editar/.test(promo.url()), `el back no volvió al editor: ${promo.url()}`);
   });
 
-  await step('abre la edición del evento y genera el banner IA (vista aparte)', async () => {
-    // Recarga el panel (grid estable) y navega por SPA al hacer click en "Editar".
+  await step('banner: la IA está tras un desplegable y genera el banner del evento', async () => {
     await promo.goto(`${FE}/promotor`, { waitUntil: 'networkidle0' });
     await promo.waitForSelector('[data-testid="ev-edit"]', { timeout: 12000 });
     await sleep(400);
     await promo.click('[data-testid="ev-edit"]');
     await promo.waitForSelector('[data-testid="tab-banner"]', { timeout: 12000 });
     await promo.click('[data-testid="tab-banner"]');
+    // El form de IA NO está visible hasta abrir el desplegable.
+    await promo.waitForSelector('[data-testid="bn-ai-toggle"]', { timeout: 8000 });
+    assert((await promo.$('[data-testid="bn-generate"]')) === null, 'el form de IA no debería estar visible aún');
+    await promo.click('[data-testid="bn-ai-toggle"]');
     await promo.waitForSelector('[data-testid="bn-generate"]', { timeout: 8000 });
     await promo.click('[data-testid="bn-generate"]');
     await promo.waitForSelector('[data-testid="bn-preview"]', { timeout: 15000 });
     const src = await promo.$eval('[data-testid="bn-preview"]', (i) => i.getAttribute('src'));
     assert(src && src.includes('http'), 'el banner no tiene URL');
+  });
+
+  await step('publicar queda habilitado solo con banner + asientos (gate del backend)', async () => {
+    // Tras generar banner y guardar asientos, el gate se cumple → Publicar habilitado.
+    await promo.waitForSelector('[data-testid="publish-btn"]', { timeout: 8000 });
+    const disabled = await promo.$eval('[data-testid="publish-btn"]', (b) => b.disabled);
+    assert(disabled === false, 'Publicar debería estar habilitado con banner + asientos');
   });
 
   await step('eliminar un evento pide confirmación (modal); cancelar no borra', async () => {
@@ -427,11 +469,27 @@ async function main() {
     await adminPg.click('[data-testid="tab-invitaciones"]');
     await adminPg.waitForSelector('[data-testid="inv-emails"]', { timeout: 8000 });
     const invitee = `e2e_inv_${Date.now()}@test.com`;
+    await clearMail();
     await adminPg.type('[data-testid="inv-emails"]', invitee);
     await adminPg.click('[data-testid="inv-submit"]');
     await adminPg.waitForSelector('[data-testid="inv-created"] input', { timeout: 10000 });
     inviteLink = await adminPg.$eval('[data-testid="inv-created"] input', (i) => i.value);
     assert(inviteLink.includes('/registro?token='), `enlace inesperado: ${inviteLink}`);
+    // El correo de invitación DEBE llegar a MailHog con el enlace de registro.
+    let body = null;
+    for (let i = 0; i < 15 && !body; i++) {
+      const r = await fetch(`${MAIL}/api/v2/messages`).catch(() => null);
+      if (r && r.ok) {
+        const data = await r.json();
+        for (const m of data.items || []) {
+          const to = (m.Content?.Headers?.To || []).join(',');
+          if (to.includes(invitee)) body = String(m.Content?.Body || '').replace(/=\r?\n/g, '');
+        }
+      }
+      if (!body) await sleep(400);
+    }
+    assert(body, 'no llegó el correo de invitación a MailHog');
+    assert(body.includes('/registro?token='), 'el correo de invitación no trae el enlace de registro');
   });
 
   await step('admin: "Cuentas" abre el evento en el editor (tab cuentas, sin impersonar) y el back vuelve a la consola', async () => {
