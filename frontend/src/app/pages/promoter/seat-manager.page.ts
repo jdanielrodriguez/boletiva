@@ -2,6 +2,7 @@ import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
 import { EditUnlockStore } from '../../core/events/edit-unlock.store';
+import { SessionStore } from '../../core/auth/session.store';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { SeatEditorComponent } from './seat-editor.component';
 import type { LocalityView, ManagedEventDetailDto } from '../../core/api/types';
@@ -21,6 +22,7 @@ import type { LocalityView, ManagedEventDetailDto } from '../../core/api/types';
 export class SeatManagerPage implements OnDestroy {
   private readonly api = inject(PromoterEventsApi);
   private readonly editUnlock = inject(EditUnlockStore);
+  private readonly session = inject(SessionStore);
   private readonly route = inject(ActivatedRoute);
 
   protected readonly eventId = signal(this.route.snapshot.paramMap.get('eventId') ?? '');
@@ -32,10 +34,22 @@ export class SeatManagerPage implements OnDestroy {
   protected readonly loading = signal(true);
   protected readonly notFound = signal(false);
 
-  /** Bloqueado para admin no-dueño sin desbloqueo vigente (persiste entre vistas). */
-  protected readonly adminLocked = computed(
-    () => this.from() === 'admin' && !this.editUnlock.isUnlocked(this.eventId()),
-  );
+  /**
+   * Bloqueado cuando el usuario es ADMIN y NO es el dueño del evento, sin
+   * desbloqueo vigente (persiste entre vistas). Se determina por propiedad real,
+   * no por ?from=admin. El dueño (promotor o admin dueño) nunca se bloquea.
+   */
+  protected readonly adminLocked = computed(() => {
+    const ev = this.event();
+    const uid = this.session.user()?.id;
+    return (
+      this.session.hasRole('admin') &&
+      !!ev &&
+      !!uid &&
+      ev.promoterId !== uid &&
+      !this.editUnlock.isUnlocked(this.eventId())
+    );
+  });
   /** Publicado o bloqueado por admin → asientos solo lectura; el backend también valida. */
   protected readonly readonly = computed(
     () => (this.event()?.status ?? 'draft') !== 'draft' || this.adminLocked(),

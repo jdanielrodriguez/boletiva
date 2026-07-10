@@ -284,6 +284,8 @@
 
             @if (bannerUrl(); as url) {
               <img class="banner-preview" [src]="url" alt="Banner del evento" data-testid="bn-preview" />
+            } @else if (hasBanner()) {
+              <p class="muted small" data-testid="bn-present">Banner cargado. Ya puedes publicar el evento.</p>
             } @else {
               <p class="muted small" data-testid="bn-empty">Aún no hay banner. Súbelo o genéralo para poder publicar.</p>
             }

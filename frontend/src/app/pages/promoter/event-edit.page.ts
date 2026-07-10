@@ -8,6 +8,7 @@ import { PromoterEventsApi } from '../../core/api/promoter-events.api';
 import { HallsApi } from '../../core/api/halls.api';
 import { MediaApi } from '../../core/api/media.api';
 import { EditUnlockStore } from '../../core/events/edit-unlock.store';
+import { SessionStore } from '../../core/auth/session.store';
 import { ToastService } from '../../core/ui/toast.service';
 import {
   ConfirmDialogComponent,
@@ -62,6 +63,7 @@ export class EventEditPage implements OnDestroy {
   private readonly media = inject(MediaApi);
   private readonly categoriesApi = inject(CategoriesApi);
   private readonly editUnlock = inject(EditUnlockStore);
+  private readonly session = inject(SessionStore);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toasts = inject(ToastService);
@@ -87,10 +89,18 @@ export class EventEditPage implements OnDestroy {
   /** Origen de navegación: 'admin' vuelve a /configuracion; si no, a /promotor. */
   protected readonly from = signal<string>(this.route.snapshot.queryParamMap.get('from') ?? '');
 
-  // --- Desbloqueo de edición (admin no-dueño llega con ?from=admin) ---
-  /** true si esta sesión llegó como admin desde la consola (necesita desbloquear). */
-  protected readonly adminContext = computed(() => this.from() === 'admin');
-  /** Bloqueado mientras el admin no desbloquee (o expiró). El dueño nunca se bloquea. */
+  // --- Desbloqueo de edición: se activa por DUEÑO real, no por ?from=admin ---
+  /**
+   * true cuando el usuario actual es ADMIN y NO es el dueño del evento cargado.
+   * El promotor dueño (o el admin dueño) nunca requiere desbloqueo. Mientras el
+   * evento no se ha cargado, no se puede determinar la propiedad → no bloquea.
+   */
+  protected readonly adminContext = computed(() => {
+    const ev = this.event();
+    const uid = this.session.user()?.id;
+    return this.session.hasRole('admin') && !!ev && !!uid && ev.promoterId !== uid;
+  });
+  /** Bloqueado mientras el admin no-dueño no desbloquee (o expiró). El dueño nunca se bloquea. */
   protected readonly locked = computed(
     () => this.adminContext() && !this.isNew() && !this.editUnlock.isUnlocked(this.eventId()),
   );
@@ -166,8 +176,15 @@ export class EventEditPage implements OnDestroy {
   /** El form de IA no está siempre visible: se abre desde el desplegable. */
   protected readonly showAiForm = signal(false);
 
-  /** ¿Hay banner? (media cover o uno recién subido/generado). */
-  protected readonly hasBanner = computed(() => !!this.bannerUrl());
+  /**
+   * ¿Hay banner? Un cover en el media del evento (el detalle gestionable NO trae
+   * URL firmada, solo la key → NO basta con `bannerUrl`) o uno recién subido/
+   * generado (preview local). Así el gate de publicar refleja la realidad sin
+   * requerir recarga tras subir el banner.
+   */
+  protected readonly hasBanner = computed(
+    () => !!this.bannerUrl() || !!this.event()?.media?.some((m) => m.kind === 'cover'),
+  );
 
   /**
    * Motivo por el que NO se puede publicar (o null si sí). Refleja el gate del
@@ -355,7 +372,11 @@ export class EventEditPage implements OnDestroy {
     this.c.gatewayId.set(ev.gatewayId ?? '');
     this.c.ivaOnNet.set(ev.ivaOnNet);
     this.c.absorbInstallmentCost.set(ev.absorbInstallmentCost);
-    this.bannerUrl.set(ev.media?.find((m) => m.kind === 'cover')?.url ?? null);
+    // El detalle gestionable no trae URL firmada del cover; si ya tenemos un
+    // preview local (recién subido/generado) lo conservamos para no perderlo al
+    // recargar. Solo se limpia si el evento realmente no tiene cover.
+    const cover = ev.media?.find((m) => m.kind === 'cover');
+    this.bannerUrl.set(cover?.url ?? (cover ? this.bannerUrl() : null));
   }
 
   protected selectTab(t: Tab): void {

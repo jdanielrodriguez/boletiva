@@ -7,10 +7,20 @@ import { PromoterEventsApi } from '../../core/api/promoter-events.api';
 import { HallsApi } from '../../core/api/halls.api';
 import { MediaApi } from '../../core/api/media.api';
 import { ToastService } from '../../core/ui/toast.service';
+import { SessionStore } from '../../core/auth/session.store';
 import { EventEditPage } from './event-edit.page';
+
+/** Sesión de prueba: por defecto el promotor DUEÑO del evento (id 'owner-1'). */
+function sessionMock(user: { id: string; roles: string[] }): SessionStore {
+  return {
+    user: () => user,
+    hasRole: (r: string) => user.roles.includes(r),
+  } as unknown as SessionStore;
+}
 
 const EVENT = {
   id: 'e1',
+  promoterId: 'owner-1',
   name: 'Show',
   status: 'draft',
   description: 'desc',
@@ -39,6 +49,7 @@ describe('EventEditPage (v3)', () => {
     api: Record<string, unknown> = {},
     qp: Record<string, string> = {},
     paramId: string | null = 'e1',
+    session: { id: string; roles: string[] } = { id: 'owner-1', roles: ['promoter'] },
   ) {
     queryParams = qp;
     TestBed.configureTestingModule({
@@ -46,6 +57,7 @@ describe('EventEditPage (v3)', () => {
         provideZonelessChangeDetection(),
         provideRouter([]),
         ToastService,
+        { provide: SessionStore, useValue: sessionMock(session) },
         {
           provide: PromoterEventsApi,
           useValue: {
@@ -156,6 +168,25 @@ describe('EventEditPage (v3)', () => {
     await setup();
     expect(inst()['canPublish']()).toBe(true);
     expect(inst()['publishBlock']()).toBeNull();
+  });
+
+  it('publicar HABILITADO con cover SIN url firmada (detalle gestionable) — no requiere recarga', async () => {
+    // El detalle gestionable trae el cover por `key` pero SIN `url` firmada:
+    // el gate debe reconocer el banner igual (bug: quedaba bloqueado tras subir).
+    await setup({ get: () => of({ ...EVENT, media: [{ kind: 'cover', key: 'k1' }] }) });
+    expect(inst()['hasBanner']()).toBe(true);
+    expect(inst()['canPublish']()).toBe(true);
+    expect(inst()['publishBlock']()).toBeNull();
+  });
+
+  it('subir banner: askPublish abre la modal (no la bloquea el estado del gate)', async () => {
+    const publish = jasmine.createSpy('p').and.returnValue(of({ ...EVENT, status: 'published' }));
+    // Reload tras subir devuelve el cover sin url (como el backend real).
+    await setup({ publish, get: () => of({ ...EVENT, media: [{ kind: 'cover', key: 'k1' }] }) });
+    fixture.componentInstance['askPublish']();
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="confirm-dialog"]')).not.toBeNull();
+    expect(publish).not.toHaveBeenCalled();
   });
 
   it('publicar BLOQUEADO sin banner (mensaje pide agregar banner)', async () => {
@@ -380,24 +411,30 @@ describe('EventEditPage (v3)', () => {
     expect(publish).toHaveBeenCalled();
   });
 
-  // --- v3.5: desbloqueo de edición (admin no-dueño) ---
-  it('promotor dueño (sin from=admin): NO bloquea', async () => {
+  // --- v3.5: desbloqueo de edición por DUEÑO real (no por ?from=admin) ---
+  it('promotor dueño: NO bloquea', async () => {
     await setup();
     expect(fixture.componentInstance['locked']()).toBe(false);
     expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="lock-banner"]')).toBeNull();
   });
 
-  it('admin (from=admin): arranca bloqueado y muestra el botón desbloquear', async () => {
-    await setup({}, { from: 'admin' });
+  it('admin que ES el dueño: NO bloquea', async () => {
+    await setup({}, {}, 'e1', { id: 'owner-1', roles: ['admin'] });
+    expect(fixture.componentInstance['locked']()).toBe(false);
+    expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="lock-banner"]')).toBeNull();
+  });
+
+  it('admin NO dueño: arranca bloqueado y muestra el botón desbloquear', async () => {
+    await setup({}, {}, 'e1', { id: 'admin-9', roles: ['admin'] });
     expect(fixture.componentInstance['locked']()).toBe(true);
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('[data-testid="lock-banner"]')).not.toBeNull();
     expect(el.querySelector('[data-testid="unlock-btn"]')).not.toBeNull();
   });
 
-  it('guardar bloqueado avisa y NO llama update', async () => {
+  it('guardar bloqueado (admin no dueño) avisa y NO llama update', async () => {
     const update = jasmine.createSpy('u').and.returnValue(of(EVENT));
-    await setup({ update }, { from: 'admin' });
+    await setup({ update }, {}, 'e1', { id: 'admin-9', roles: ['admin'] });
     fixture.componentInstance['saveData']();
     expect(update).not.toHaveBeenCalled();
     expect(lastToast()?.kind).toBe('warning');
@@ -407,7 +444,7 @@ describe('EventEditPage (v3)', () => {
     const verifyEditUnlock = jasmine
       .createSpy('v')
       .and.returnValue(of({ token: 'tok', expiresAt: new Date(Date.now() + 300000).toISOString() }));
-    await setup({ verifyEditUnlock }, { from: 'admin' });
+    await setup({ verifyEditUnlock }, {}, 'e1', { id: 'admin-9', roles: ['admin'] });
     (fixture.componentInstance['unlockCode'] as unknown as { set: (v: string) => void }).set('123456');
     fixture.componentInstance['verifyUnlock']();
     fixture.detectChanges();
