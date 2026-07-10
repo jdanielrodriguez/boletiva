@@ -4,7 +4,10 @@
   <nav class="config-tabs" aria-label="Secciones de configuración">
     <button type="button" [class.active]="tab() === 'eventos'" (click)="selectTab('eventos')" data-testid="tab-eventos">Eventos</button>
     <button type="button" [class.active]="tab() === 'promotores'" (click)="selectTab('promotores')" data-testid="tab-promotores">Promotores</button>
+    <button type="button" [class.active]="tab() === 'salones'" (click)="selectTab('salones')" data-testid="tab-salones">Salones</button>
+    <button type="button" [class.active]="tab() === 'plantillas'" (click)="selectTab('plantillas')" data-testid="tab-plantillas">Plantillas</button>
     <button type="button" [class.active]="tab() === 'sistema'" (click)="selectTab('sistema')" data-testid="tab-sistema">Sistema</button>
+    <button type="button" [class.active]="tab() === 'ajustes'" (click)="selectTab('ajustes')" data-testid="tab-ajustes">Configuraciones</button>
     <button type="button" [class.active]="tab() === 'invitaciones'" (click)="selectTab('invitaciones')" data-testid="tab-invitaciones">Invitaciones</button>
   </nav>
 
@@ -21,6 +24,12 @@
             <option value="draft">Borrador</option>
             <option value="published">Publicado</option>
             <option value="cancelled">Cancelado</option>
+          </select>
+        </label>
+        <label class="field"><span>Promotor</span>
+          <select [ngModel]="eventPromoter()" (ngModelChange)="setEventPromoter($event)" name="epromoter" data-testid="event-promoter-filter">
+            <option value="">Todos</option>
+            @for (p of eventPromoters(); track p.id) { <option [value]="p.id">{{ p.name }}</option> }
           </select>
         </label>
       </div>
@@ -390,6 +399,180 @@
         <app-pager [page]="invPage()" [totalPages]="invTotalPages()" (pageChange)="goToInvPage($event)" data-testid="inv-pager" />
       } @else {
         <p class="muted">Aún no has enviado invitaciones.</p>
+      }
+    }
+
+    @case ('salones') {
+      <h2>Salones</h2>
+      <p class="muted">Lugares reutilizables con ubicación en el mapa. El promotor puede elegir uno al crear un evento (prefija dirección/ubicación).</p>
+
+      <div class="list-filters">
+        <input type="search" placeholder="Buscar salón por nombre o ciudad…" [ngModel]="hallSearch()" (ngModelChange)="setHallSearch($event)" name="hallq" data-testid="hall-search" />
+        @if (!hallDraft()) {
+          <button type="button" class="btn primary" (click)="newHall()" data-testid="hall-new" title="Crear salón">
+            <app-icon name="add" /> Nuevo salón
+          </button>
+        }
+      </div>
+
+      @if (hallDraft(); as d) {
+        <div class="card-block" data-testid="hall-form">
+          <h3>{{ d.id ? 'Editar salón' : 'Nuevo salón' }}</h3>
+          <div class="form-grid">
+            <label class="field"><span>Nombre</span>
+              <input type="text" [ngModel]="d.name" (ngModelChange)="patchHall('name', $event)" name="hn" data-testid="hall-name" />
+            </label>
+            <label class="field"><span>Ciudad</span>
+              <input type="text" [ngModel]="d.city" (ngModelChange)="patchHall('city', $event)" name="hc" />
+            </label>
+            <label class="field full"><span>Dirección</span>
+              <input type="text" [ngModel]="d.address" (ngModelChange)="patchHall('address', $event)" name="ha" data-testid="hall-address" />
+            </label>
+            <label class="field full"><span>Notas</span>
+              <textarea rows="2" [ngModel]="d.notes" (ngModelChange)="patchHall('notes', $event)" name="hnotes"></textarea>
+            </label>
+            <div class="field full">
+              <span>Ubicación</span>
+              <app-map-picker [lat]="d.lat" [lng]="d.lng" [address]="d.address" (locationChange)="onHallMap($event)" data-testid="hall-map" />
+            </div>
+          </div>
+          <div class="ev-card-actions">
+            <button type="button" class="btn primary" (click)="saveHall()" data-testid="hall-save" title="Guardar salón">
+              <app-icon name="save" /> Guardar
+            </button>
+            <button type="button" class="btn" (click)="cancelHallEdit()" title="Cancelar">
+              <app-icon name="cancel" /> Cancelar
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (filteredHalls().length > 0) {
+        <div class="admin-events-grid" data-testid="halls-list">
+          @for (h of pageHalls(); track h.id) {
+            <article class="ev-card" data-testid="hall-card">
+              <strong>{{ h.name }}</strong>
+              @if (h.city) { <span class="muted small">{{ h.city }}</span> }
+              @if (h.address) { <span class="muted small">{{ h.address }}</span> }
+              @if (h.lat != null && h.lng != null) { <span class="muted small">{{ h.lat }}, {{ h.lng }}</span> }
+              <div class="ev-card-actions">
+                <button type="button" class="btn small" (click)="editHall(h)" data-testid="hall-edit" title="Editar salón">
+                  <app-icon name="edit" /> Editar
+                </button>
+                <button type="button" class="btn small danger" (click)="askRemoveHall(h)" data-testid="hall-remove" title="Eliminar salón">
+                  <app-icon name="delete" /> Eliminar
+                </button>
+              </div>
+            </article>
+          }
+        </div>
+        <app-pager [page]="hallsPage()" [totalPages]="hallsTotalPages()" (pageChange)="goToHallsPage($event)" data-testid="halls-pager" />
+      } @else {
+        <p class="muted" data-testid="halls-empty">No hay salones. Crea el primero.</p>
+      }
+    }
+
+    @case ('plantillas') {
+      <h2>Plantillas de asientos</h2>
+      <p class="muted">Alimentan el desplegable "Generar" del editor de asientos. Las del sistema no se pueden editar/eliminar.</p>
+
+      <div class="list-filters">
+        <input type="search" placeholder="Buscar plantilla…" [ngModel]="templateSearch()" (ngModelChange)="templateSearch.set($event)" name="tplq" data-testid="tpl-search" />
+        @if (!templateDraft()) {
+          <button type="button" class="btn primary" (click)="newTemplate()" data-testid="tpl-new" title="Crear plantilla">
+            <app-icon name="add" /> Nueva plantilla
+          </button>
+        }
+      </div>
+
+      @if (templateDraft(); as d) {
+        <div class="card-block" data-testid="tpl-form">
+          <h3>{{ d.id ? 'Editar plantilla' : 'Nueva plantilla' }}</h3>
+          <div class="form-grid">
+            <label class="field"><span>Nombre</span>
+              <input type="text" [ngModel]="d.name" (ngModelChange)="patchTemplate('name', $event)" name="tn" data-testid="tpl-name" />
+            </label>
+            <label class="field"><span>Tipo</span>
+              <select [ngModel]="d.kind" (ngModelChange)="patchTemplate('kind', $event)" name="tk" data-testid="tpl-kind">
+                @for (k of templateKinds; track k) { <option [value]="k">{{ k }}</option> }
+              </select>
+            </label>
+            <label class="field full"><span>Parámetros (JSON)</span>
+              <input type="text" placeholder='{"rows":5,"cols":10}' [ngModel]="d.paramsJson" (ngModelChange)="patchTemplate('paramsJson', $event)" name="tp" data-testid="tpl-params" />
+            </label>
+          </div>
+          <div class="ev-card-actions">
+            <button type="button" class="btn primary" (click)="saveTemplate()" data-testid="tpl-save" title="Guardar plantilla">
+              <app-icon name="save" /> Guardar
+            </button>
+            <button type="button" class="btn" (click)="cancelTemplateEdit()" title="Cancelar">
+              <app-icon name="cancel" /> Cancelar
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (filteredTemplates().length > 0) {
+        <div class="admin-events-grid" data-testid="tpl-list">
+          @for (t of filteredTemplates(); track t.id) {
+            <article class="ev-card" data-testid="tpl-card">
+              <div class="ev-card-top">
+                <span class="badge">{{ t.kind }}</span>
+                @if (t.isBuiltIn) { <span class="badge badge-approved" data-testid="tpl-builtin">sistema</span> }
+              </div>
+              <strong>{{ t.name }}</strong>
+              <div class="ev-card-actions">
+                @if (!t.isBuiltIn) {
+                  <button type="button" class="btn small" (click)="editTemplate(t)" data-testid="tpl-edit" title="Editar plantilla">
+                    <app-icon name="edit" /> Editar
+                  </button>
+                  <button type="button" class="btn small danger" (click)="askRemoveTemplate(t)" data-testid="tpl-remove" title="Eliminar plantilla">
+                    <app-icon name="delete" /> Eliminar
+                  </button>
+                } @else {
+                  <span class="muted small">Plantilla del sistema (no editable)</span>
+                }
+              </div>
+            </article>
+          }
+        </div>
+      } @else {
+        <p class="muted" data-testid="tpl-empty">No hay plantillas.</p>
+      }
+    }
+
+    @case ('ajustes') {
+      <h2>Configuraciones</h2>
+      <p class="muted">Catálogo de knobs del sistema. Las de precios (fallback) son informativas: el motor usa el fee_schedule activo.</p>
+      @if (settings().length > 0) {
+        <div class="settings-list" data-testid="settings-list">
+          @for (s of settings(); track s.key) {
+            <div class="card-block setting-row" data-testid="setting-row">
+              <div class="setting-head">
+                <strong>{{ s.key }}</strong>
+                @if (s.fallbackOnly) { <span class="badge" data-testid="setting-fallback">informativo</span> }
+                <span class="badge">{{ s.type }}</span>
+              </div>
+              <p class="muted small">{{ s.description }}</p>
+              <div class="field inline">
+                @if (s.type === 'bool') {
+                  <label class="check-row">
+                    <input type="checkbox" [ngModel]="settingEdits()[s.key]" (ngModelChange)="setSettingValue(s.key, $event)" [name]="'set-' + s.key" [attr.data-testid]="'setting-input-' + s.key" />
+                    <span>{{ settingEdits()[s.key] ? 'Activado' : 'Desactivado' }}</span>
+                  </label>
+                } @else {
+                  <input type="number" step="0.01" [ngModel]="settingEdits()[s.key]" (ngModelChange)="setSettingValue(s.key, +$event)" [name]="'set-' + s.key" [attr.data-testid]="'setting-input-' + s.key" />
+                }
+                <button type="button" class="btn small primary" (click)="saveSetting(s)" [attr.data-testid]="'setting-save-' + s.key" title="Guardar configuración">
+                  <app-icon name="save" /> Guardar
+                </button>
+                <span class="muted small">default: {{ s.default }}</span>
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <p class="muted" data-testid="settings-empty">Cargando configuraciones…</p>
       }
     }
   }

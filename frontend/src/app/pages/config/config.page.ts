@@ -10,16 +10,52 @@ import {
   PromoterStatusEventDto,
 } from '../../core/api/admin.api';
 import { InvitationsApi } from '../../core/api/invitations.api';
+import { HallsApi } from '../../core/api/halls.api';
+import { SeatTemplatesApi } from '../../core/api/seat-templates.api';
+import { SettingsApi } from '../../core/api/settings.api';
 import { ToastService } from '../../core/ui/toast.service';
 import {
   ConfirmDialogComponent,
   type ConfirmRequest,
 } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
+import { MapPickerComponent, type MapLocation } from '../../shared/map/map-picker.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
-import type { CreatedInvitationDto, InvitationListItemDto } from '../../core/api/types';
+import type {
+  CreatedInvitationDto,
+  HallResponseDto,
+  InvitationListItemDto,
+  SeatTemplateResponseDto,
+  SettingViewDto,
+} from '../../core/api/types';
 
-type AdminTab = 'eventos' | 'promotores' | 'sistema' | 'invitaciones';
+type AdminTab =
+  | 'eventos'
+  | 'promotores'
+  | 'sistema'
+  | 'invitaciones'
+  | 'salones'
+  | 'plantillas'
+  | 'ajustes';
+
+/** Borrador editable de un salón (crear/editar con ubicación en mapa). */
+interface HallDraft {
+  id: string | null;
+  name: string;
+  address: string;
+  city: string;
+  notes: string;
+  lat: number | null;
+  lng: number | null;
+}
+
+/** Borrador editable de una plantilla de asientos. */
+interface TemplateDraft {
+  id: string | null;
+  name: string;
+  kind: string;
+  paramsJson: string;
+}
 
 /** Borrador de nueva pasarela (crear con OTP de desbloqueo). */
 interface NewGatewayDraft {
@@ -53,12 +89,22 @@ const INV_PAGE = 9;
  */
 @Component({
   selector: 'app-config-page',
-  imports: [FormsModule, DatePipe, IconComponent, ConfirmDialogComponent, PagerComponent],
+  imports: [
+    FormsModule,
+    DatePipe,
+    IconComponent,
+    ConfirmDialogComponent,
+    PagerComponent,
+    MapPickerComponent,
+  ],
   templateUrl: './config.page.html',
 })
 export class ConfigPage {
   private readonly admin = inject(AdminApi);
   private readonly invitationsApi = inject(InvitationsApi);
+  private readonly hallsApi = inject(HallsApi);
+  private readonly templatesApi = inject(SeatTemplatesApi);
+  private readonly settingsApi = inject(SettingsApi);
   private readonly toasts = inject(ToastService);
   private readonly router = inject(Router);
 
@@ -70,11 +116,23 @@ export class ConfigPage {
   protected readonly eventsPageSize = EVENTS_PAGE;
   protected readonly eventSearch = signal('');
   protected readonly eventStatus = signal('');
+  /** Filtro por promotor (point 8): id del promotor seleccionado ('' = todos). */
+  protected readonly eventPromoter = signal('');
+  /** Promotores presentes en los eventos (para el selector de filtro). */
+  protected readonly eventPromoters = computed(() => {
+    const map = new Map<string, string>();
+    for (const e of this.events()) {
+      map.set(e.promoter.id, `${e.promoter.firstName} ${e.promoter.lastName ?? ''}`.trim());
+    }
+    return [...map.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  });
   protected readonly filteredEvents = computed(() => {
     const q = this.eventSearch().trim().toLowerCase();
     const status = this.eventStatus();
+    const promoterId = this.eventPromoter();
     return this.events().filter((e) => {
       if (status && e.status !== status) return false;
+      if (promoterId && e.promoter.id !== promoterId) return false;
       if (!q) return true;
       const promoter = `${e.promoter.firstName} ${e.promoter.lastName ?? ''}`.toLowerCase();
       return e.name.toLowerCase().includes(q) || promoter.includes(q);
@@ -174,6 +232,9 @@ export class ConfigPage {
     if (t === 'promotores' && this.promoters().length === 0) this.loadPromoters();
     if (t === 'sistema' && this.requireApproval() === null) this.loadSystem();
     if (t === 'invitaciones' && this.invitations().length === 0) this.loadInvitations();
+    if (t === 'salones' && this.halls().length === 0) this.loadHalls();
+    if (t === 'plantillas' && this.templates().length === 0) this.loadTemplates();
+    if (t === 'ajustes' && this.settings().length === 0) this.loadSettings();
   }
 
   // --- Eventos ---
@@ -195,6 +256,10 @@ export class ConfigPage {
   }
   protected setEventStatus(v: string): void {
     this.eventStatus.set(v);
+    this.eventsPage.set(1);
+  }
+  protected setEventPromoter(v: string): void {
+    this.eventPromoter.set(v);
     this.eventsPage.set(1);
   }
 
@@ -490,6 +555,223 @@ export class ConfigPage {
       },
     });
   }
+  // --- Salones (admin) ---
+  protected readonly halls = signal<HallResponseDto[]>([]);
+  protected readonly hallSearch = signal('');
+  protected readonly hallDraft = signal<HallDraft | null>(null);
+  protected readonly filteredHalls = computed(() => {
+    const q = this.hallSearch().trim().toLowerCase();
+    if (!q) return this.halls();
+    return this.halls().filter(
+      (h) => h.name.toLowerCase().includes(q) || (h.city ?? '').toLowerCase().includes(q),
+    );
+  });
+  protected readonly hallsPage = signal(1);
+  protected readonly hallsPageSize = 9;
+  protected readonly hallsTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.filteredHalls().length / 9)),
+  );
+  protected readonly pageHalls = computed(() => {
+    const start = (this.hallsPage() - 1) * 9;
+    return this.filteredHalls().slice(start, start + 9);
+  });
+  protected goToHallsPage(p: number): void {
+    this.hallsPage.set(Math.min(Math.max(1, p), this.hallsTotalPages()));
+  }
+  protected setHallSearch(v: string): void {
+    this.hallSearch.set(v);
+    this.hallsPage.set(1);
+  }
+  private loadHalls(): void {
+    this.hallsApi.list().subscribe({
+      next: (h) => this.halls.set(h),
+      error: () => this.toasts.error('No se pudieron cargar los salones.'),
+    });
+  }
+  protected newHall(): void {
+    this.hallDraft.set({ id: null, name: '', address: '', city: '', notes: '', lat: null, lng: null });
+  }
+  protected editHall(h: HallResponseDto): void {
+    this.hallDraft.set({
+      id: h.id,
+      name: h.name,
+      address: h.address ?? '',
+      city: h.city ?? '',
+      notes: h.notes ?? '',
+      lat: h.lat ?? null,
+      lng: h.lng ?? null,
+    });
+  }
+  protected cancelHallEdit(): void {
+    this.hallDraft.set(null);
+  }
+  protected patchHall<K extends keyof HallDraft>(key: K, value: HallDraft[K]): void {
+    const d = this.hallDraft();
+    if (d) this.hallDraft.set({ ...d, [key]: value });
+  }
+  protected onHallMap(loc: MapLocation): void {
+    const d = this.hallDraft();
+    if (!d) return;
+    this.hallDraft.set({ ...d, lat: loc.lat, lng: loc.lng, address: loc.address || d.address });
+  }
+  protected saveHall(): void {
+    const d = this.hallDraft();
+    if (!d || d.name.trim().length < 2) {
+      this.toasts.warning('El salón necesita un nombre.');
+      return;
+    }
+    const body = {
+      name: d.name.trim(),
+      address: d.address.trim() || undefined,
+      city: d.city.trim() || undefined,
+      notes: d.notes.trim() || undefined,
+      lat: d.lat ?? undefined,
+      lng: d.lng ?? undefined,
+    };
+    const req = d.id ? this.hallsApi.update(d.id, body) : this.hallsApi.create(body);
+    req.subscribe({
+      next: () => {
+        this.toasts.success(d.id ? 'Salón actualizado.' : 'Salón creado.');
+        this.hallDraft.set(null);
+        this.loadHalls();
+      },
+      error: () => this.toasts.error('No se pudo guardar el salón.'),
+    });
+  }
+  protected askRemoveHall(h: HallResponseDto): void {
+    this.confirm.set({
+      title: 'Eliminar salón',
+      message: `¿Eliminar el salón "${h.name}"? Los eventos que lo usaban quedarán sin salón asociado.`,
+      confirmLabel: 'Eliminar',
+      confirmIcon: 'delete',
+      onConfirm: () =>
+        this.hallsApi.remove(h.id).subscribe({
+          next: () => {
+            this.toasts.info('Salón eliminado.');
+            this.loadHalls();
+          },
+          error: () => this.toasts.error('No se pudo eliminar el salón.'),
+        }),
+    });
+  }
+
+  // --- Plantillas de asientos (admin) ---
+  protected readonly templates = signal<SeatTemplateResponseDto[]>([]);
+  protected readonly templateSearch = signal('');
+  protected readonly templateDraft = signal<TemplateDraft | null>(null);
+  protected readonly templateKinds = ['rows', 'theater', 'stadium', 'tables', 'grid', 'curve', 'line', 'custom'];
+  protected readonly filteredTemplates = computed(() => {
+    const q = this.templateSearch().trim().toLowerCase();
+    if (!q) return this.templates();
+    return this.templates().filter((t) => t.name.toLowerCase().includes(q));
+  });
+  private loadTemplates(): void {
+    this.templatesApi.list().subscribe({
+      next: (t) => this.templates.set(t),
+      error: () => this.toasts.error('No se pudieron cargar las plantillas.'),
+    });
+  }
+  protected newTemplate(): void {
+    this.templateDraft.set({ id: null, name: '', kind: 'grid', paramsJson: '{"rows":5,"cols":10}' });
+  }
+  protected editTemplate(t: SeatTemplateResponseDto): void {
+    if (t.isBuiltIn) {
+      this.toasts.warning('Las plantillas del sistema no se pueden editar.');
+      return;
+    }
+    this.templateDraft.set({
+      id: t.id,
+      name: t.name,
+      kind: t.kind,
+      paramsJson: t.params ? JSON.stringify(t.params) : '',
+    });
+  }
+  protected cancelTemplateEdit(): void {
+    this.templateDraft.set(null);
+  }
+  protected patchTemplate<K extends keyof TemplateDraft>(key: K, value: TemplateDraft[K]): void {
+    const d = this.templateDraft();
+    if (d) this.templateDraft.set({ ...d, [key]: value });
+  }
+  protected saveTemplate(): void {
+    const d = this.templateDraft();
+    if (!d || d.name.trim().length < 2) {
+      this.toasts.warning('La plantilla necesita un nombre.');
+      return;
+    }
+    let params: Record<string, unknown> | undefined;
+    if (d.paramsJson.trim()) {
+      try {
+        params = JSON.parse(d.paramsJson) as Record<string, unknown>;
+      } catch {
+        this.toasts.warning('Los parámetros deben ser JSON válido (p.ej. {"rows":5,"cols":10}).');
+        return;
+      }
+    }
+    const body = { name: d.name.trim(), kind: d.kind as never, params };
+    const req = d.id ? this.templatesApi.update(d.id, body) : this.templatesApi.create(body);
+    req.subscribe({
+      next: () => {
+        this.toasts.success(d.id ? 'Plantilla actualizada.' : 'Plantilla creada.');
+        this.templateDraft.set(null);
+        this.loadTemplates();
+      },
+      error: (err: { status?: number }) =>
+        this.toasts.error(
+          err?.status === 409
+            ? 'Las plantillas del sistema no se pueden modificar.'
+            : 'No se pudo guardar la plantilla.',
+        ),
+    });
+  }
+  protected askRemoveTemplate(t: SeatTemplateResponseDto): void {
+    if (t.isBuiltIn) {
+      this.toasts.warning('Las plantillas del sistema no se pueden eliminar.');
+      return;
+    }
+    this.confirm.set({
+      title: 'Eliminar plantilla',
+      message: `¿Eliminar la plantilla "${t.name}"?`,
+      confirmLabel: 'Eliminar',
+      confirmIcon: 'delete',
+      onConfirm: () =>
+        this.templatesApi.remove(t.id).subscribe({
+          next: () => {
+            this.toasts.info('Plantilla eliminada.');
+            this.loadTemplates();
+          },
+          error: () => this.toasts.error('No se pudo eliminar (¿es del sistema?).'),
+        }),
+    });
+  }
+
+  // --- Configuraciones del sistema (catálogo) ---
+  protected readonly settings = signal<SettingViewDto[]>([]);
+  /** Valores en edición por clave (para no perder lo tecleado). */
+  protected readonly settingEdits = signal<Record<string, number | boolean>>({});
+  private loadSettings(): void {
+    this.settingsApi.list().subscribe({
+      next: (s) => {
+        this.settings.set(s);
+        this.settingEdits.set(Object.fromEntries(s.map((x) => [x.key, x.value])));
+      },
+      error: () => this.toasts.error('No se pudieron cargar las configuraciones.'),
+    });
+  }
+  protected setSettingValue(key: string, value: number | boolean): void {
+    this.settingEdits.update((e) => ({ ...e, [key]: value }));
+  }
+  protected saveSetting(s: SettingViewDto): void {
+    const value = this.settingEdits()[s.key];
+    this.settingsApi.update(s.key, value).subscribe({
+      next: (updated) => {
+        this.settings.update((list) => list.map((x) => (x.key === updated.key ? updated : x)));
+        this.toasts.success(`Configuración "${s.key}" guardada.`);
+      },
+      error: () => this.toasts.error('No se pudo guardar (revisa el tipo/rango del valor).'),
+    });
+  }
+
   // --- Confirmación de acciones destructivas ---
   protected readonly confirm = signal<ConfirmRequest | null>(null);
   protected onConfirmAccept(): void {

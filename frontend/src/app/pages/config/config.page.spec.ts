@@ -5,12 +5,15 @@ import { of, throwError } from 'rxjs';
 import { AdminApi } from '../../core/api/admin.api';
 import { InvitationsApi } from '../../core/api/invitations.api';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
+import { HallsApi } from '../../core/api/halls.api';
+import { SeatTemplatesApi } from '../../core/api/seat-templates.api';
+import { SettingsApi } from '../../core/api/settings.api';
 import { ToastService } from '../../core/ui/toast.service';
 import { ConfigPage } from './config.page';
 
 const EVENTS = [
-  { id: 'e1', name: 'Fiesta', status: 'published', startsAt: '2026-08-01T20:00:00Z', promoter: { firstName: 'Ana', lastName: 'P' }, _count: { localities: 2 } },
-  { id: 'e2', name: 'Feria', status: 'draft', startsAt: '2026-08-02T18:00:00Z', promoter: { firstName: 'Leo', lastName: 'G' }, _count: { localities: 1 } },
+  { id: 'e1', name: 'Fiesta', status: 'published', startsAt: '2026-08-01T20:00:00Z', promoter: { id: 'u1', firstName: 'Ana', lastName: 'P' }, _count: { localities: 2 } },
+  { id: 'e2', name: 'Feria', status: 'draft', startsAt: '2026-08-02T18:00:00Z', promoter: { id: 'u2', firstName: 'Leo', lastName: 'G' }, _count: { localities: 1 } },
 ];
 const PROMOTERS = [
   { id: 'u1', email: 'p@x.com', firstName: 'Pia', lastName: 'R', roles: ['buyer'], promoterStatus: 'pending' },
@@ -65,6 +68,31 @@ describe('ConfigPage (v3, admin console)', () => {
           } as unknown as InvitationsApi,
         },
         { provide: PromoterEventsApi, useValue: { settlement: () => of({ net: '0.00' }) } },
+        {
+          provide: HallsApi,
+          useValue: {
+            list: () => of([]),
+            create: () => of({ id: 'h1' }),
+            update: () => of({ id: 'h1' }),
+            remove: () => of({}),
+          } as unknown as HallsApi,
+        },
+        {
+          provide: SeatTemplatesApi,
+          useValue: {
+            list: () => of([]),
+            create: () => of({ id: 't1' }),
+            update: () => of({ id: 't1' }),
+            remove: () => of({}),
+          } as unknown as SeatTemplatesApi,
+        },
+        {
+          provide: SettingsApi,
+          useValue: {
+            list: () => of([]),
+            update: () => of({ key: 'k', value: 0, default: 0, type: 'pct', description: '', fallbackOnly: false }),
+          } as unknown as SettingsApi,
+        },
       ],
     });
     fixture = TestBed.createComponent(ConfigPage);
@@ -344,5 +372,79 @@ describe('ConfigPage (v3, admin console)', () => {
     expect(c.invPage()).toBe(2);
     c.setInvSearch('p1');
     expect(c.invPage()).toBe(1);
+  });
+
+  // --- v3.5: filtro de eventos por promotor ---
+  it('filtra eventos por promotor', async () => {
+    await setup();
+    const c = fixture.componentInstance as unknown as {
+      setEventPromoter: (v: string) => void;
+      filteredEvents: () => { id: string }[];
+      eventPromoters: () => { id: string; name: string }[];
+    };
+    expect(c.eventPromoters().length).toBe(2);
+    c.setEventPromoter('u2');
+    expect(c.filteredEvents().length).toBe(1);
+    expect(c.filteredEvents()[0].id).toBe('e2');
+  });
+
+  // --- v3.5: salones (admin) ---
+  it('salones: crea un salón vía HallsApi.create', async () => {
+    await setup();
+    const create = spyOn(TestBed.inject(HallsApi), 'create').and.returnValue(of({ id: 'h1' }) as never);
+    await selectTab('tab-salones');
+    const c = fixture.componentInstance as unknown as {
+      newHall: () => void;
+      patchHall: (k: string, v: unknown) => void;
+      saveHall: () => void;
+    };
+    c.newHall();
+    c.patchHall('name', 'Teatro Nuevo');
+    c.saveHall();
+    expect(create).toHaveBeenCalled();
+  });
+
+  // --- v3.5: plantillas (admin) ---
+  it('plantillas: crear plantilla llama a SeatTemplatesApi.create', async () => {
+    await setup();
+    const create = spyOn(TestBed.inject(SeatTemplatesApi), 'create').and.returnValue(of({ id: 't1' }) as never);
+    await selectTab('tab-plantillas');
+    const c = fixture.componentInstance as unknown as {
+      newTemplate: () => void;
+      patchTemplate: (k: string, v: unknown) => void;
+      saveTemplate: () => void;
+    };
+    c.newTemplate();
+    c.patchTemplate('name', 'Mi plantilla');
+    c.saveTemplate();
+    expect(create).toHaveBeenCalled();
+  });
+
+  it('plantillas: editar una built-in avisa y no abre el form', async () => {
+    await setup();
+    const c = fixture.componentInstance as unknown as {
+      editTemplate: (t: unknown) => void;
+      templateDraft: () => unknown;
+    };
+    c.editTemplate({ id: 't0', name: 'Filas', kind: 'rows', isBuiltIn: true });
+    expect(c.templateDraft()).toBeNull();
+    expect(lastToast()?.kind).toBe('warning');
+  });
+
+  // --- v3.5: configuraciones (settings) ---
+  it('ajustes: guarda una configuración vía SettingsApi.update', async () => {
+    const SETTINGS = [{ key: 'costshare.default_pct', value: 0, default: 0, type: 'pct', description: 'x', fallbackOnly: false }];
+    await setup();
+    const settingsApi = TestBed.inject(SettingsApi);
+    spyOn(settingsApi, 'list').and.returnValue(of(SETTINGS) as never);
+    const update = spyOn(settingsApi, 'update').and.returnValue(of(SETTINGS[0]) as never);
+    await selectTab('tab-ajustes');
+    const c = fixture.componentInstance as unknown as {
+      setSettingValue: (k: string, v: number | boolean) => void;
+      saveSetting: (s: unknown) => void;
+    };
+    c.setSettingValue('costshare.default_pct', 0.5);
+    c.saveSetting(SETTINGS[0]);
+    expect(update).toHaveBeenCalledWith('costshare.default_pct', 0.5);
   });
 });
