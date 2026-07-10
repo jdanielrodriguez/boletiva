@@ -6,6 +6,7 @@ import type { CreateGatewayDto, Schemas, UpdateGatewayDto } from './types';
 export type PromoterListItemDto = Schemas['PromoterListItemDto'];
 export type AdminEventListItemDto = Schemas['AdminEventListItemDto'];
 export type GatewayResponseDto = Schemas['GatewayResponseDto'];
+export type PromoterStatusEventDto = Schemas['PromoterStatusEventDto'];
 
 /**
  * El OpenAPI tipa `installmentRates` como objeto libre (Record<string, never>);
@@ -40,6 +41,10 @@ export class AdminApi {
   suspendPromoter(id: string, note?: string): Observable<unknown> {
     return this.api.post(`/promoters/${id}/suspend`, { note });
   }
+  /** Historial append-only de transiciones de estado de un promotor. */
+  promoterHistory(id: string): Observable<PromoterStatusEventDto[]> {
+    return this.api.get<PromoterStatusEventDto[]>(`/promoters/${id}/history`);
+  }
   getRequireApproval(): Observable<{ requireApproval: boolean }> {
     return this.api.get<{ requireApproval: boolean }>('/promoters/settings');
   }
@@ -61,6 +66,10 @@ export class AdminApi {
   // --- Pasarelas ---
   listGateways(): Observable<GatewayResponseDto[]> {
     return this.api.get<GatewayResponseDto[]>('/payment-gateways');
+  }
+  /** Envía un OTP al correo del admin para autorizar agregar una pasarela. */
+  unlockGateway(): Observable<{ sent: boolean }> {
+    return this.api.post<{ sent: boolean }>('/payment-gateways/unlock');
   }
   createGateway(dto: GatewayCreate): Observable<GatewayResponseDto> {
     return this.api.post<GatewayResponseDto>('/payment-gateways', dto);

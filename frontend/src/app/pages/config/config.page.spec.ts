@@ -49,6 +49,9 @@ describe('ConfigPage (v3, admin console)', () => {
             updateGateway: () => of(GATEWAYS[1]),
             setGatewayStatus: () => of(GATEWAYS[1]),
             makeGatewayDefault: () => of(GATEWAYS[1]),
+            unlockGateway: () => of({ sent: true }),
+            createGateway: () => of(GATEWAYS[1]),
+            promoterHistory: () => of([{ id: 'h1', promoterId: 'u2', adminId: 'a1', statusFrom: 'approved', statusTo: 'suspended', reason: 'motivo', createdAt: '2026-08-01T10:00:00Z' }]),
             ...admin,
           } as unknown as AdminApi,
         },
@@ -121,15 +124,37 @@ describe('ConfigPage (v3, admin console)', () => {
     expect(fixture.componentInstance['filteredPromoters']().length).toBe(1);
   });
 
-  it('promotores: rechazar/suspender llaman al API con nota', async () => {
+  it('promotores: rechazar con nota; suspender por MODAL con motivo', async () => {
     const rejectPromoter = jasmine.createSpy('r').and.returnValue(of({}));
     const suspendPromoter = jasmine.createSpy('s').and.returnValue(of({}));
     await setup({ rejectPromoter, suspendPromoter });
     fixture.componentInstance['setNote']('u1', 'motivo');
     fixture.componentInstance['reject'](PROMOTERS[0] as never);
-    fixture.componentInstance['suspend'](PROMOTERS[1] as never);
     expect(rejectPromoter).toHaveBeenCalledWith('u1', 'motivo');
-    expect(suspendPromoter).toHaveBeenCalledWith('u2', undefined);
+    // Suspender abre modal → escribe motivo → confirma.
+    fixture.componentInstance['openSuspend'](PROMOTERS[1] as never);
+    fixture.componentInstance['suspendReason'].set('incumplimiento');
+    fixture.componentInstance['confirmSuspend']();
+    expect(suspendPromoter).toHaveBeenCalledWith('u2', 'incumplimiento');
+  });
+
+  it('promotores: el modal de suspensión aparece solo al pulsar Suspender', async () => {
+    await setup({ listPromoters: () => of([PROMOTERS[1]]) });
+    await selectTab('tab-promotores');
+    expect(el.querySelector('[data-testid="suspend-modal"]')).toBeNull();
+    click('promoter-suspend');
+    expect(el.querySelector('[data-testid="suspend-modal"]')).not.toBeNull();
+  });
+
+  it('promotores: ver historial carga las transiciones', async () => {
+    const promoterHistory = jasmine.createSpy('ph').and.returnValue(
+      of([{ id: 'h1', promoterId: 'u2', adminId: 'a1', statusFrom: 'approved', statusTo: 'suspended', reason: 'x', createdAt: '2026-08-01T10:00:00Z' }]),
+    );
+    await setup({ promoterHistory, listPromoters: () => of([PROMOTERS[1]]) });
+    await selectTab('tab-promotores');
+    click('promoter-history');
+    expect(promoterHistory).toHaveBeenCalledWith('u2');
+    expect(el.querySelector('[data-testid="promoter-history-list"]')).not.toBeNull();
   });
 
   it('promotores: cost-share válido llama API; inválido → warning', async () => {
@@ -190,14 +215,39 @@ describe('ConfigPage (v3, admin console)', () => {
     expect(lastToast()?.kind).toBe('warning');
   });
 
-  it('invitaciones: parsea correos y llama create', async () => {
+  it('invitaciones: parsea correos y llama create (con flag de usuario de prueba)', async () => {
     const create = jasmine.createSpy('c').and.returnValue(of({ invitations: [{ id: 'i1', email: 'a@b.com', url: 'http://x/registro?token=t' }] }));
     await setup({}, { create });
     await selectTab('tab-invitaciones');
     fixture.componentInstance['emailsText'].set('a@b.com, c@d.com');
+    fixture.componentInstance['inviteTestUser'].set(true);
     click('inv-submit');
-    expect(create).toHaveBeenCalledWith(['a@b.com', 'c@d.com']);
+    expect(create).toHaveBeenCalledWith(['a@b.com', 'c@d.com'], true);
     expect((el.querySelector('[data-testid="inv-created"] input') as HTMLInputElement).value).toContain('registro?token=t');
+  });
+
+  it('sistema: agregar pasarela con desbloqueo por OTP', async () => {
+    const unlockGateway = jasmine.createSpy('u').and.returnValue(of({ sent: true }));
+    const createGateway = jasmine.createSpy('c').and.returnValue(of(GATEWAYS[1]));
+    await setup({ unlockGateway, createGateway });
+    await selectTab('tab-sistema');
+    click('gw-unlock');
+    expect(unlockGateway).toHaveBeenCalled();
+    fixture.componentInstance['unlockCode'].set('123456');
+    click('gw-unlock-confirm');
+    fixture.componentInstance['patchNewGateway']('name', 'PayPal');
+    click('gw-create');
+    expect(createGateway).toHaveBeenCalled();
+    expect(createGateway.calls.mostRecent().args[0].unlockCode).toBe('123456');
+  });
+
+  it('eventos: abrir un evento navega al editor como admin (?from=admin)', async () => {
+    await setup();
+    const nav = spyOn(fixture.componentInstance['router'], 'navigate').and.resolveTo(true);
+    fixture.componentInstance['openEvent']('e1', 'cuentas');
+    expect(nav).toHaveBeenCalledWith(['/promotor/eventos', 'e1', 'editar'], {
+      queryParams: { from: 'admin', tab: 'cuentas' },
+    });
   });
 
   it('invitaciones: revocar llama al API', async () => {

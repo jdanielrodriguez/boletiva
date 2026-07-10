@@ -11,7 +11,20 @@
   @switch (tab()) {
     @case ('eventos') {
       <h2>Todos los eventos</h2>
-      @if (events().length > 0) {
+      <div class="filters-row">
+        <label class="field"><span>Buscar</span>
+          <input type="text" placeholder="Evento o promotor" [ngModel]="eventSearch()" (ngModelChange)="setEventSearch($event)" name="esearch" data-testid="event-search" />
+        </label>
+        <label class="field"><span>Estado</span>
+          <select [ngModel]="eventStatus()" (ngModelChange)="setEventStatus($event)" name="estatus" data-testid="event-status-filter">
+            <option value="">Todos</option>
+            <option value="draft">Borrador</option>
+            <option value="published">Publicado</option>
+            <option value="cancelled">Cancelado</option>
+          </select>
+        </label>
+      </div>
+      @if (filteredEvents().length > 0) {
         <div class="admin-events-grid" data-testid="admin-events">
           @for (e of pageEvents(); track e.id) {
             <article class="ev-card" data-testid="ev-card">
@@ -19,18 +32,13 @@
                 <span class="badge badge-{{ e.status }}">{{ e.status }}</span>
                 <span class="muted small">{{ e._count.localities }} localidad(es)</span>
               </div>
-              <a class="ev-card-name" [routerLink]="['/promotor/eventos', e.id, 'editar']">{{ e.name }}</a>
+              <button type="button" class="ev-card-name link-btn" (click)="openEvent(e.id)" data-testid="ev-open">{{ e.name }}</button>
               <time class="muted small">{{ e.startsAt | date: 'EEE d MMM y' }}</time>
               <span class="muted small">{{ e.promoter.firstName }} {{ e.promoter.lastName }}</span>
               <div class="ev-card-actions">
-                <button type="button" class="btn small" (click)="toggleEvent(e.id)" data-testid="ev-accounts">
-                  {{ selectedEvent() === e.id ? 'Ocultar cuentas' : 'Ver cuentas' }}
-                </button>
-                <a class="btn small" [routerLink]="['/promotor/eventos', e.id, 'editar']">Ver evento</a>
+                <button type="button" class="btn small" (click)="openEvent(e.id, 'cuentas')" data-testid="ev-accounts">Cuentas</button>
+                <button type="button" class="btn small" (click)="openEvent(e.id)" data-testid="ev-open-btn">Ver evento</button>
               </div>
-              @if (selectedEvent() === e.id) {
-                <app-event-settlement [eventId]="e.id" [showSplit]="true" />
-              }
             </article>
           }
         </div>
@@ -42,7 +50,7 @@
           </div>
         }
       } @else {
-        <p class="muted">No hay eventos.</p>
+        <p class="muted">No hay eventos con ese filtro.</p>
       }
     }
 
@@ -64,7 +72,7 @@
       </div>
 
       @if (filteredPromoters().length > 0) {
-        <div data-testid="promoters-list">
+        <div class="promoters-grid" data-testid="promoters-list">
           @for (p of filteredPromoters(); track p.id) {
             <article class="promoter-card">
               <div class="promoter-card-head">
@@ -85,20 +93,57 @@
               </div>
               <div class="ev-card-actions">
                 @if (p.promoterStatus !== 'approved') {
-                  <button type="button" class="btn small primary" (click)="approve(p)" data-testid="promoter-approve">Aprobar</button>
+                  <button type="button" class="btn small primary" (click)="approve(p)" data-testid="promoter-approve">
+                    {{ p.promoterStatus === 'suspended' ? 'Reactivar' : 'Aprobar' }}
+                  </button>
                 }
                 @if (p.promoterStatus === 'pending') {
                   <button type="button" class="btn small danger" (click)="reject(p)" data-testid="promoter-reject">Rechazar</button>
                 }
                 @if (p.promoterStatus === 'approved') {
-                  <button type="button" class="btn small danger" (click)="suspend(p)" data-testid="promoter-suspend">Suspender</button>
+                  <button type="button" class="btn small danger" (click)="openSuspend(p)" data-testid="promoter-suspend">Suspender</button>
                 }
+                <button type="button" class="btn small" (click)="toggleHistory(p)" data-testid="promoter-history">
+                  {{ historyFor() === p.id ? 'Ocultar historial' : 'Historial' }}
+                </button>
               </div>
+              @if (historyFor() === p.id) {
+                <div class="promoter-history" data-testid="promoter-history-list">
+                  @if (history().length === 0) {
+                    <p class="muted small">Sin transiciones registradas.</p>
+                  } @else {
+                    <ul class="history-list">
+                      @for (h of history(); track h.id) {
+                        <li>
+                          <span class="badge badge-{{ h.statusTo }}">{{ h.statusTo }}</span>
+                          <span class="muted small">{{ h.createdAt | date: 'd MMM y, HH:mm' }}</span>
+                          @if (h.reason) { <span class="small">— {{ h.reason }}</span> }
+                        </li>
+                      }
+                    </ul>
+                  }
+                </div>
+              }
             </article>
           }
         </div>
       } @else {
         <p class="muted">No hay promotores con ese filtro.</p>
+      }
+
+      @if (suspendTarget(); as target) {
+        <div class="modal-backdrop" data-testid="suspend-modal">
+          <div class="modal-card">
+            <h3>Suspender a {{ target.firstName }}</h3>
+            <label class="field"><span>Motivo de la suspensión</span>
+              <textarea rows="3" [ngModel]="suspendReason()" (ngModelChange)="suspendReason.set($event)" name="susreason" data-testid="suspend-reason" placeholder="Explica por qué se suspende (queda en el historial)"></textarea>
+            </label>
+            <div class="ev-card-actions">
+              <button type="button" class="btn danger" (click)="confirmSuspend()" data-testid="suspend-confirm">Suspender</button>
+              <button type="button" class="btn" (click)="cancelSuspend()" data-testid="suspend-cancel">Cancelar</button>
+            </div>
+          </div>
+        </div>
       }
     }
 
@@ -128,6 +173,41 @@
 
       <div class="card-block">
         <h3>Pasarelas de pago</h3>
+
+        <div class="gateway-add" data-testid="gateway-add">
+          @if (!unlockSent()) {
+            <button type="button" class="btn" (click)="requestUnlock()" data-testid="gw-unlock">Desbloquear agregado</button>
+            <p class="muted small">Agregar una pasarela es una acción sensible: te enviaremos un código al correo.</p>
+          } @else if (!unlockUnlocked()) {
+            <div class="unlock-modal" data-testid="gw-unlock-modal">
+              <label class="field"><span>Código recibido por correo</span>
+                <input type="text" maxlength="6" [ngModel]="unlockCode()" (ngModelChange)="unlockCode.set($event)" name="unlockcode" data-testid="gw-unlock-code" />
+              </label>
+              <button type="button" class="btn primary" (click)="confirmUnlock()" data-testid="gw-unlock-confirm">Validar código</button>
+              <button type="button" class="btn" (click)="cancelUnlock()">Cancelar</button>
+            </div>
+          } @else {
+            <div class="gateway-edit-grid" data-testid="gw-create-form">
+              <label class="field"><span>Nombre</span>
+                <input type="text" [ngModel]="newGateway().name" (ngModelChange)="patchNewGateway('name', $event)" name="ngn" data-testid="gw-new-name" />
+              </label>
+              <label class="field"><span>Proveedor</span>
+                <input type="text" [ngModel]="newGateway().provider" (ngModelChange)="patchNewGateway('provider', $event)" name="ngp" placeholder="pagalo / recurrente / stripe" />
+              </label>
+              <label class="field"><span>Comisión % (0.03)</span>
+                <input type="number" step="0.001" min="0" max="0.99" [ngModel]="newGateway().feePct" (ngModelChange)="patchNewGateway('feePct', +$event)" name="ngf" />
+              </label>
+              <label class="field"><span>Fijo por transacción (Q)</span>
+                <input type="number" step="0.01" min="0" [ngModel]="newGateway().transactionFixedFee" (ngModelChange)="patchNewGateway('transactionFixedFee', +$event)" name="ngt" />
+              </label>
+            </div>
+            <div class="ev-card-actions">
+              <button type="button" class="btn primary" (click)="createGateway()" data-testid="gw-create">Agregar pasarela</button>
+              <button type="button" class="btn" (click)="cancelUnlock()">Cancelar</button>
+            </div>
+          }
+        </div>
+
         @if (gateways().length > 0) {
           <div data-testid="gateways-list">
             @for (g of gateways(); track g.id) {
@@ -196,6 +276,10 @@
       <p class="muted">Ingresa uno o varios correos (coma, espacio o salto de línea). Cada invitado recibe un enlace para registrarse ya aprobado como promotor.</p>
       <form (ngSubmit)="invite()">
         <textarea [ngModel]="emailsText()" (ngModelChange)="emailsText.set($event)" name="emails" rows="3" placeholder="correo1@dominio.com, correo2@dominio.com" data-testid="inv-emails"></textarea>
+        <label class="check-row">
+          <input type="checkbox" [ngModel]="inviteTestUser()" (ngModelChange)="inviteTestUser.set($event)" name="testuser" data-testid="inv-testuser" />
+          <span>Usuario de prueba (anclado a Sandbox; no usa pasarelas reales).</span>
+        </label>
         <button type="submit" class="btn primary" [disabled]="inviting()" data-testid="inv-submit">
           {{ inviting() ? 'Enviando…' : 'Invitar' }}
         </button>
@@ -219,6 +303,7 @@
             <li>
               <span>{{ i.email }}</span>
               <span class="badge badge-{{ i.status }}">{{ i.status }}</span>
+              @if (i.isTestUser) { <span class="badge">prueba</span> }
               @if (i.status === 'pending') {
                 <button type="button" class="btn small danger" (click)="revoke(i)" data-testid="inv-revoke">Revocar</button>
               }

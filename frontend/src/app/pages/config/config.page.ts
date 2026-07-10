@@ -1,19 +1,27 @@
 import { DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import {
   AdminApi,
   AdminEventListItemDto,
   GatewayResponseDto,
   PromoterListItemDto,
+  PromoterStatusEventDto,
 } from '../../core/api/admin.api';
 import { InvitationsApi } from '../../core/api/invitations.api';
 import { ToastService } from '../../core/ui/toast.service';
-import { EventSettlementComponent } from '../../shared/event-settlement/event-settlement.component';
 import type { CreatedInvitationDto, InvitationListItemDto } from '../../core/api/types';
 
 type AdminTab = 'eventos' | 'promotores' | 'sistema' | 'invitaciones';
+
+/** Borrador de nueva pasarela (crear con OTP de desbloqueo). */
+interface NewGatewayDraft {
+  name: string;
+  provider: string;
+  feePct: number;
+  transactionFixedFee: number;
+}
 
 /** Borrador editable de una pasarela (campos numéricos como number para el form). */
 interface GatewayDraft {
@@ -38,13 +46,14 @@ const EVENTS_PAGE = 12;
  */
 @Component({
   selector: 'app-config-page',
-  imports: [FormsModule, DatePipe, RouterLink, EventSettlementComponent],
+  imports: [FormsModule, DatePipe],
   templateUrl: './config.page.html',
 })
 export class ConfigPage {
   private readonly admin = inject(AdminApi);
   private readonly invitationsApi = inject(InvitationsApi);
   private readonly toasts = inject(ToastService);
+  private readonly router = inject(Router);
 
   protected readonly tab = signal<AdminTab>('eventos');
 
@@ -52,14 +61,32 @@ export class ConfigPage {
   protected readonly events = signal<AdminEventListItemDto[]>([]);
   protected readonly eventsPage = signal(1);
   protected readonly eventsPageSize = EVENTS_PAGE;
-  protected readonly selectedEvent = signal<string | null>(null);
+  protected readonly eventSearch = signal('');
+  protected readonly eventStatus = signal('');
+  protected readonly filteredEvents = computed(() => {
+    const q = this.eventSearch().trim().toLowerCase();
+    const status = this.eventStatus();
+    return this.events().filter((e) => {
+      if (status && e.status !== status) return false;
+      if (!q) return true;
+      const promoter = `${e.promoter.firstName} ${e.promoter.lastName ?? ''}`.toLowerCase();
+      return e.name.toLowerCase().includes(q) || promoter.includes(q);
+    });
+  });
   protected readonly eventsTotalPages = computed(() =>
-    Math.max(1, Math.ceil(this.events().length / EVENTS_PAGE)),
+    Math.max(1, Math.ceil(this.filteredEvents().length / EVENTS_PAGE)),
   );
   protected readonly pageEvents = computed(() => {
     const start = (this.eventsPage() - 1) * EVENTS_PAGE;
-    return this.events().slice(start, start + EVENTS_PAGE);
+    return this.filteredEvents().slice(start, start + EVENTS_PAGE);
   });
+
+  /** Abre el evento en la consola (vista de edición), como ADMIN (sin impersonar). */
+  protected openEvent(id: string, tab?: string): void {
+    void this.router.navigate(['/promotor/eventos', id, 'editar'], {
+      queryParams: { from: 'admin', ...(tab ? { tab } : {}) },
+    });
+  }
 
   // --- Promotores ---
   protected readonly promoters = signal<PromoterListItemDto[]>([]);
@@ -82,6 +109,7 @@ export class ConfigPage {
 
   // --- Invitaciones ---
   protected readonly emailsText = signal('');
+  protected readonly inviteTestUser = signal(false);
   protected readonly created = signal<CreatedInvitationDto[]>([]);
   protected readonly invitations = signal<InvitationListItemDto[]>([]);
   protected readonly inviting = signal(false);
@@ -111,8 +139,13 @@ export class ConfigPage {
   protected goToEventsPage(p: number): void {
     this.eventsPage.set(Math.min(Math.max(1, p), this.eventsTotalPages()));
   }
-  protected toggleEvent(id: string): void {
-    this.selectedEvent.set(this.selectedEvent() === id ? null : id);
+  protected setEventSearch(v: string): void {
+    this.eventSearch.set(v);
+    this.eventsPage.set(1);
+  }
+  protected setEventStatus(v: string): void {
+    this.eventStatus.set(v);
+    this.eventsPage.set(1);
   }
 
   // --- Promotores ---
@@ -146,13 +179,43 @@ export class ConfigPage {
       error: () => this.toasts.error('No se pudo rechazar.'),
     });
   }
-  protected suspend(p: PromoterListItemDto): void {
-    this.admin.suspendPromoter(p.id, this.noteFor(p.id)).subscribe({
+
+  // --- Suspensión con modal + motivo ---
+  protected readonly suspendTarget = signal<PromoterListItemDto | null>(null);
+  protected readonly suspendReason = signal('');
+  protected openSuspend(p: PromoterListItemDto): void {
+    this.suspendTarget.set(p);
+    this.suspendReason.set('');
+  }
+  protected cancelSuspend(): void {
+    this.suspendTarget.set(null);
+  }
+  protected confirmSuspend(): void {
+    const p = this.suspendTarget();
+    if (!p) return;
+    this.admin.suspendPromoter(p.id, this.suspendReason().trim() || undefined).subscribe({
       next: () => {
         this.toasts.info(`${p.firstName} suspendido.`);
+        this.suspendTarget.set(null);
         this.loadPromoters();
       },
       error: () => this.toasts.error('No se pudo suspender.'),
+    });
+  }
+
+  // --- Historial de estados (append-only) ---
+  protected readonly historyFor = signal<string | null>(null);
+  protected readonly history = signal<PromoterStatusEventDto[]>([]);
+  protected toggleHistory(p: PromoterListItemDto): void {
+    if (this.historyFor() === p.id) {
+      this.historyFor.set(null);
+      return;
+    }
+    this.historyFor.set(p.id);
+    this.history.set([]);
+    this.admin.promoterHistory(p.id).subscribe({
+      next: (h) => this.history.set(h),
+      error: () => this.toasts.error('No se pudo cargar el historial.'),
     });
   }
   protected setPromoterPct(p: PromoterListItemDto, value: string): void {
@@ -279,6 +342,69 @@ export class ConfigPage {
     });
   }
 
+  // --- Agregar pasarela (acción sensible: desbloqueo por OTP) ---
+  protected readonly unlockSent = signal(false); // true tras pedir el código
+  protected readonly unlockUnlocked = signal(false); // true tras ingresar un código
+  protected readonly unlockCode = signal('');
+  protected readonly newGateway = signal<NewGatewayDraft>({
+    name: '',
+    provider: 'pagalo',
+    feePct: 0.03,
+    transactionFixedFee: 0,
+  });
+  protected patchNewGateway<K extends keyof NewGatewayDraft>(key: K, value: NewGatewayDraft[K]): void {
+    this.newGateway.set({ ...this.newGateway(), [key]: value });
+  }
+  /** "Desbloquear agregado": pide el OTP al correo del admin. */
+  protected requestUnlock(): void {
+    this.admin.unlockGateway().subscribe({
+      next: () => {
+        this.unlockSent.set(true);
+        this.toasts.info('Te enviamos un código al correo para autorizar agregar la pasarela.');
+      },
+      error: () => this.toasts.error('No se pudo enviar el código de desbloqueo.'),
+    });
+  }
+  /** Confirma el código (habilita el formulario de creación). */
+  protected confirmUnlock(): void {
+    if (this.unlockCode().trim().length < 6) {
+      this.toasts.warning('Ingresa el código de 6 dígitos que recibiste.');
+      return;
+    }
+    this.unlockUnlocked.set(true);
+  }
+  protected cancelUnlock(): void {
+    this.unlockSent.set(false);
+    this.unlockUnlocked.set(false);
+    this.unlockCode.set('');
+  }
+  /** Crea la pasarela con el código OTP (el backend lo valida/consume). */
+  protected createGateway(): void {
+    const g = this.newGateway();
+    if (!g.name.trim()) {
+      this.toasts.warning('La pasarela necesita un nombre.');
+      return;
+    }
+    this.admin
+      .createGateway({
+        unlockCode: this.unlockCode().trim(),
+        name: g.name.trim(),
+        provider: g.provider.trim() || 'pagalo',
+        feePct: g.feePct,
+        transactionFixedFee: g.transactionFixedFee,
+        sandbox: false,
+      })
+      .subscribe({
+        next: () => {
+          this.toasts.success(`Pasarela "${g.name}" agregada.`);
+          this.cancelUnlock();
+          this.newGateway.set({ name: '', provider: 'pagalo', feePct: 0.03, transactionFixedFee: 0 });
+          this.loadGateways();
+        },
+        error: () => this.toasts.error('No se pudo agregar (¿código inválido o expirado?).'),
+      });
+  }
+
   // --- Invitaciones ---
   private loadInvitations(): void {
     this.invitationsApi.list().subscribe({
@@ -299,11 +425,12 @@ export class ConfigPage {
       return;
     }
     this.inviting.set(true);
-    this.invitationsApi.create(emails).subscribe({
+    this.invitationsApi.create(emails, this.inviteTestUser()).subscribe({
       next: (res) => {
         this.inviting.set(false);
         this.created.set(res.invitations);
         this.emailsText.set('');
+        this.inviteTestUser.set(false);
         this.toasts.success(`Se generaron ${res.invitations.length} invitación(es).`);
         this.loadInvitations();
       },

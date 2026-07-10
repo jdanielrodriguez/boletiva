@@ -12,9 +12,10 @@ import type {
 export class InvitationsApi {
   private readonly api = inject(ApiClient);
 
-  /** Invita a uno o varios correos (admin/promotor). Devuelve las URLs con token. */
-  create(emails: string[]): Observable<CreateInvitationsResponseDto> {
-    return this.api.post<CreateInvitationsResponseDto>('/promoters/invitations', { emails });
+  /** Invita a uno o varios correos (admin/promotor). Devuelve las URLs con token.
+   * `isTestUser` marca a los invitados como usuarios de prueba (anclados a Sandbox). */
+  create(emails: string[], isTestUser = false): Observable<CreateInvitationsResponseDto> {
+    return this.api.post<CreateInvitationsResponseDto>('/promoters/invitations', { emails, isTestUser });
   }
 
   /** Mis invitaciones (admin ve todas). */
