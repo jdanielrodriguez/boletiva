@@ -1,8 +1,10 @@
 import {
   Component,
+  DestroyRef,
   ElementRef,
   afterNextRender,
   effect,
+  inject,
   input,
   output,
   viewChild,
@@ -27,10 +29,10 @@ const PAD = 40;
   selector: 'app-seat-map',
   template: '<div #host class="seat-map-host"></div>',
   styles: [
-    // El lienzo se centra horizontalmente en su contenedor (antes quedaba pegado a
-    // la izquierda). El div contenedor es inline-block dentro de un host centrado.
-    ':host { display: block; text-align: center; }',
-    '.seat-map-host { display: inline-block; margin: 0 auto; }',
+    // El CANVAS ocupa el 100% del ancho del contenedor; el CONTENIDO (los asientos)
+    // se centra dentro del stage vía offset del layer (no con CSS del canvas).
+    ':host { display: block; width: 100%; }',
+    '.seat-map-host { display: block; width: 100%; }',
   ],
 })
 export class SeatMapComponent {
@@ -45,12 +47,19 @@ export class SeatMapComponent {
   private layer: Konva.Layer | null = null;
   private offsetX = 0;
   private offsetY = 0;
+  private resizeObserver: ResizeObserver | null = null;
 
   constructor() {
     afterNextRender(async () => {
       this.konva = (await import('konva')).default;
       this.build();
+      // Reajusta el ancho del stage al del contenedor cuando cambia (responsive).
+      if (typeof ResizeObserver !== 'undefined') {
+        this.resizeObserver = new ResizeObserver(() => this.rebuild());
+        this.resizeObserver.observe(this.host().nativeElement);
+      }
     });
+    inject(DestroyRef).onDestroy(() => this.resizeObserver?.disconnect());
     effect(() => {
       this.seats();
       this.selected();
@@ -79,25 +88,37 @@ export class SeatMapComponent {
     this.drawSeats();
   }
 
+  /** Ancho disponible del contenedor (para que el stage ocupe el 100%). */
+  private containerWidth(): number {
+    const el = this.host().nativeElement;
+    return el.clientWidth || el.parentElement?.clientWidth || 320;
+  }
+
   /**
-   * Ajusta el lienzo al contenido y calcula el OFFSET que normaliza el origen:
-   * traslada los asientos para que el bloque quede pegado a (PAD, PAD) sin margen
-   * muerto a la izquierda/arriba (antes el mapa "se iba" a la izquierda cuando las
-   * coordenadas no arrancaban en 0).
+   * El STAGE ocupa el ancho del contenedor (mínimo, el del contenido). El OFFSET
+   * normaliza el origen del contenido a (PAD, PAD) y además lo CENTRA
+   * horizontalmente dentro del stage (margen sobrante repartido a ambos lados) →
+   * el canvas llena el ancho y los asientos quedan centrados.
    */
   private extents(): { width: number; height: number; offsetX: number; offsetY: number } {
     const pts = this.seats().filter((s) => s.x != null && s.y != null);
-    if (pts.length === 0) return { width: 320, height: 160, offsetX: 0, offsetY: 0 };
+    const containerW = this.containerWidth();
+    if (pts.length === 0) {
+      return { width: containerW, height: 160, offsetX: 0, offsetY: 0 };
+    }
     const xs = pts.map((s) => s.x as number);
     const ys = pts.map((s) => s.y as number);
     const minX = Math.min(...xs);
     const minY = Math.min(...ys);
     const maxX = Math.max(...xs);
     const maxY = Math.max(...ys);
+    const contentWidth = maxX - minX + PAD * 2;
+    const stageWidth = Math.max(contentWidth, containerW);
+    const centerExtra = Math.max(0, (stageWidth - contentWidth) / 2);
     return {
-      width: maxX - minX + PAD * 2,
+      width: stageWidth,
       height: maxY - minY + PAD * 2,
-      offsetX: PAD - minX,
+      offsetX: PAD - minX + centerExtra,
       offsetY: PAD - minY,
     };
   }
