@@ -335,7 +335,7 @@ async function main() {
   console.log('\n▶ Panel del promotor (F4/v3)');
   const promoCtx = await browser.createBrowserContext();
   const promo = await promoCtx.newPage();
-  await step('el promotor entra al panel (grid) y crea un evento en borrador', async () => {
+  await step('el promotor crea un borrador (sin fecha fin) y aterriza en el editor', async () => {
     await doLogin(promo, 'promotor@pasaeventos.com', 'Password123');
     await promo.goto(`${FE}/promotor`, { waitUntil: 'networkidle0' });
     await promo.waitForSelector('[data-testid="toggle-create"]', { timeout: 15000 });
@@ -343,9 +343,20 @@ async function main() {
     await promo.waitForSelector('[data-testid="ev-name"]', { timeout: 8000 });
     await promo.type('[data-testid="ev-name"]', `E2E Evento ${Date.now()}`);
     await setReactiveValue(promo, '[data-testid="ev-start"]', '2028-08-15T20:00');
-    await setReactiveValue(promo, '[data-testid="ev-end"]', '2028-08-15T23:00');
+    // No hay campo de fin: el backend autocalcula. Crear = navega al editor.
     await promo.click('[data-testid="ev-create"]');
-    await promo.waitForSelector('[data-testid="ev-card"]', { timeout: 12000 });
+    await promo.waitForSelector('[data-testid="save-draft-btn"]', { timeout: 12000 });
+    assert(/\/promotor\/eventos\/.+\/editar/.test(promo.url()), 'no navegó al editor');
+  });
+
+  await step('preview de precio por localidad: al teclear el neto muestra el desglose', async () => {
+    await promo.waitForSelector('[data-testid="tab-localidades"]', { timeout: 8000 });
+    await promo.click('[data-testid="tab-localidades"]');
+    await promo.waitForSelector('[data-testid="loc-net"]', { timeout: 8000 });
+    await setReactiveValue(promo, '[data-testid="loc-net"]', '100');
+    await promo.waitForSelector('[data-testid="price-preview"]', { timeout: 8000 });
+    const txt = await promo.$eval('[data-testid="price-preview"]', (e) => e.textContent || '');
+    assert(txt.includes('Q'), 'el preview no muestra el precio');
   });
 
   await step('abre la edición del evento y genera el banner IA (vista aparte)', async () => {
@@ -394,13 +405,27 @@ async function main() {
     assert(inviteLink.includes('/registro?token='), `enlace inesperado: ${inviteLink}`);
   });
 
-  await step('el admin ve las cuentas de un evento (liquidación)', async () => {
+  await step('admin: "Cuentas" abre el evento en el editor (tab cuentas, sin impersonar) y el back vuelve a la consola', async () => {
     await adminPg.click('[data-testid="tab-eventos"]');
     await adminPg.waitForSelector('[data-testid="ev-accounts"]', { timeout: 10000 });
     await adminPg.click('[data-testid="ev-accounts"]');
-    await adminPg.waitForSelector('[data-testid="settlement"]', { timeout: 10000 });
-    const txt = await text(adminPg, '[data-testid="settlement"]');
-    assert(txt.includes('Neto') || txt.includes('cuentas'), 'no se muestran las cuentas del evento');
+    // Navega al editor con ?from=admin&tab=cuentas (no expande la card, no impersona /promotor).
+    await adminPg.waitForSelector('[data-testid="settlement"]', { timeout: 12000 });
+    assert(/\/promotor\/eventos\/.+\/editar\?/.test(adminPg.url()), `no navegó al editor: ${adminPg.url()}`);
+    assert(adminPg.url().includes('from=admin'), 'falta from=admin en la URL');
+    // El back-link vuelve a la CONSOLA del admin, no a /promotor.
+    await adminPg.waitForSelector('[data-testid="back-link"]', { timeout: 8000 });
+    await adminPg.click('[data-testid="back-link"]');
+    await adminPg.waitForSelector('[data-testid="tab-eventos"]', { timeout: 10000 });
+    assert(adminPg.url().endsWith('/configuracion'), `el back no volvió a la consola: ${adminPg.url()}`);
+  });
+
+  await step('admin: agregar pasarela exige desbloqueo por OTP (código al correo)', async () => {
+    await adminPg.click('[data-testid="tab-sistema"]');
+    await adminPg.waitForSelector('[data-testid="gw-unlock"]', { timeout: 10000 });
+    await adminPg.click('[data-testid="gw-unlock"]');
+    // Tras pedir el desbloqueo aparece el modal para ingresar el código.
+    await adminPg.waitForSelector('[data-testid="gw-unlock-code"]', { timeout: 10000 });
   });
 
   await step('abrir el enlace de invitación precarga el correo en el registro', async () => {
