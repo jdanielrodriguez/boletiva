@@ -18,6 +18,10 @@ export const account = {
     saveChanges: 'Save changes',
     saving: 'Saving…',
   },
+  language: {
+    title: 'Language',
+    hint: 'Choose the platform language. It is remembered on this device.',
+  },
   password: {
     title: 'Change password',
     hint: 'You need your current password to confirm the change.',

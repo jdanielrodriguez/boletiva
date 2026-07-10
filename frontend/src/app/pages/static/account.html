@@ -41,6 +41,12 @@
           </div>
 
           <div class="card-block">
+            <h3>{{ 'account.language.title' | translate }}</h3>
+            <p class="muted">{{ 'account.language.hint' | translate }}</p>
+            <app-lang-switcher data-testid="account-lang-switcher" />
+          </div>
+
+          <div class="card-block">
             <h3>{{ 'account.password.title' | translate }}</h3>
             <p class="muted">{{ 'account.password.hint' | translate }}</p>
             <form class="stacked-form" (ngSubmit)="changePassword()">

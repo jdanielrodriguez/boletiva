@@ -18,6 +18,10 @@ export const account = {
     saveChanges: 'Guardar cambios',
     saving: 'Guardando…',
   },
+  language: {
+    title: 'Idioma',
+    hint: 'Elige el idioma de la plataforma. Se recuerda en este dispositivo.',
+  },
   password: {
     title: 'Cambiar contraseña',
     hint: 'Necesitas tu contraseña actual para confirmar el cambio.',
