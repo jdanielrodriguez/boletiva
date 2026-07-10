@@ -56,7 +56,7 @@
             </div>
 
             @if (session.hasAnyRole(['promoter']) && !session.hasAnyRole(['admin'])) {
-              <a routerLink="/promotor" (click)="closeMenu()" data-testid="promoter-link">Panel del promotor</a>
+              <a routerLink="/promotor" (click)="closeMenu()" data-testid="promoter-link">Configuración</a>
             }
             @if (session.hasAnyRole(['admin'])) {
               <a routerLink="/configuracion" (click)="closeMenu()" data-testid="config-link">Configuración</a>

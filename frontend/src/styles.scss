@@ -2253,6 +2253,43 @@ button.danger:hover:not(:disabled) { background: rgba(255, 107, 129, 0.12); bord
 }
 .seat-editor-canvas > div { display: inline-block; }
 
+/* Editor de asientos: herramientas + plantillas */
+.seat-tools { margin-bottom: 0.6rem; }
+.seat-tool-group { display: inline-flex; gap: 0.3rem; flex-wrap: wrap; }
+.seat-templates { position: relative; margin-top: 0.8rem; }
+.tpl-menu {
+  position: absolute;
+  z-index: 20;
+  margin-top: 0.4rem;
+  background: var(--pe-surface);
+  border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  padding: 0.4rem;
+  display: grid;
+  gap: 0.25rem;
+  min-width: 260px;
+}
+.tpl-item {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--pe-radius-sm);
+  padding: 0.5rem 0.6rem;
+  cursor: pointer;
+  color: var(--pe-text);
+}
+.tpl-item:hover { background: var(--pe-surface-2); border-color: var(--pe-border); }
+.tpl-icon { flex: 0 0 auto; display: inline-flex; width: 40px; height: 40px; }
+.tpl-icon svg { width: 40px; height: 40px; }
+.tpl-text { display: flex; flex-direction: column; line-height: 1.2; }
+.tpl-text small { font-size: 0.78rem; }
+.seat-save-bar { display: flex; align-items: center; gap: 0.8rem; margin-top: 0.9rem; flex-wrap: wrap; }
+
 /* Liquidación / cuentas */
 .settlement-summary { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; }
 .settlement-metric {

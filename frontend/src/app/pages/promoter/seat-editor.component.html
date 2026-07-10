@@ -2,21 +2,37 @@
   @if (readonly()) {
     <p class="muted small">El evento está publicado: el mapa de asientos está bloqueado.</p>
   } @else {
+    <!-- Herramientas de canvas: mover / agregar / eliminar -->
+    <div class="seat-tools" data-testid="seat-tools">
+      <div class="seat-tool-group" role="group" aria-label="Herramienta de edición">
+        <button type="button" class="btn small" [class.primary]="mode() === 'move'" (click)="setMode('move')" data-testid="tool-move" title="Mover asientos (arrastrar)">
+          <app-icon name="edit" /> Mover
+        </button>
+        <button type="button" class="btn small" [class.primary]="mode() === 'add'" (click)="setMode('add')" data-testid="tool-add" title="Agregar asiento (click en el lienzo)">
+          <app-icon name="add" /> Agregar
+        </button>
+        <button type="button" class="btn small" [class.primary]="mode() === 'delete'" (click)="setMode('delete')" data-testid="tool-delete" title="Eliminar asiento (click en el asiento)">
+          <app-icon name="delete" /> Eliminar
+        </button>
+      </div>
+    </div>
+
+    <!-- Generación rápida por cuadrícula -->
     <div class="seat-editor-form">
       <label class="field inline">
         <span>Filas</span>
-        <input type="number" min="1" max="60" [ngModel]="rows()" (ngModelChange)="rows.set($event)" name="rows" data-testid="se-rows" />
+        <input type="number" min="1" max="500" [ngModel]="rows()" (ngModelChange)="rows.set($event)" name="rows" data-testid="se-rows" />
       </label>
       <label class="field inline">
         <span>Asientos por fila</span>
-        <input type="number" min="1" max="80" [ngModel]="cols()" (ngModelChange)="cols.set($event)" name="cols" data-testid="se-cols" />
+        <input type="number" min="1" max="500" [ngModel]="cols()" (ngModelChange)="cols.set($event)" name="cols" data-testid="se-cols" />
       </label>
       <label class="field inline">
         <span>Sección</span>
         <input type="text" placeholder="Platea" [ngModel]="section()" (ngModelChange)="section.set($event)" name="section" />
       </label>
-      <button type="button" class="btn small primary" [disabled]="saving()" (click)="generate()" data-testid="se-generate" title="Generar cuadrícula">
-        <app-icon name="seats" /> {{ saving() ? 'Guardando…' : 'Generar cuadrícula' }}
+      <button type="button" class="btn small" [disabled]="saving()" (click)="generate()" data-testid="se-generate" title="Generar cuadrícula">
+        <app-icon name="seats" /> Generar cuadrícula
       </button>
       @if (seatCount() > 0) {
         <button type="button" class="btn small danger" [disabled]="saving()" (click)="askClearAll()" data-testid="se-clear" title="Vaciar el mapa">
@@ -24,11 +40,45 @@
         </button>
       }
     </div>
-    <p class="muted small">Genera filas/asientos posicionados. "Generar" agrega a lo existente; "Vaciar" borra todo.</p>
+    <p class="muted small">
+      Modo <strong>Mover</strong>: arrastra los asientos (se alinean a una cuadrícula de {{ gridSize }}px y no se pueden solapar).
+      Modo <strong>Agregar</strong>: haz click en un espacio libre. Modo <strong>Eliminar</strong>: haz click en un asiento.
+    </p>
   }
 
-  <p class="muted small" data-testid="se-count">{{ seatCount() }} asiento(s) en el mapa.</p>
-  <div #host class="seat-editor-canvas"></div>
+  <p class="muted small" data-testid="se-count">{{ seatCount() }} asiento(s) en la disposición.</p>
+  <div #host class="seat-editor-canvas" data-testid="seat-canvas"></div>
+
+  @if (!readonly()) {
+    <!-- Plantillas: botón DEBAJO del canvas que abre un desplegable -->
+    <div class="seat-templates" data-testid="seat-templates">
+      <button type="button" class="btn small" (click)="toggleTemplates()" data-testid="tpl-toggle" [attr.aria-expanded]="showTemplates()" title="Agregar una plantilla preconfigurada">
+        <app-icon name="add" /> {{ showTemplates() ? 'Ocultar plantillas' : 'Agregar plantilla' }}
+      </button>
+      @if (showTemplates()) {
+        <div class="tpl-menu" data-testid="tpl-menu" role="menu">
+          @for (t of templates; track t.id) {
+            <button type="button" class="tpl-item" (click)="applyTemplate(t.id)" [attr.data-testid]="'tpl-' + t.id" role="menuitem">
+              <span class="tpl-icon" [innerHTML]="t.safeIcon"></span>
+              <span class="tpl-text">
+                <strong>{{ t.name }}</strong>
+                <small class="muted">{{ t.hint }}</small>
+              </span>
+            </button>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="seat-save-bar">
+      <button type="button" class="btn small primary" [disabled]="saving() || !dirty()" (click)="save()" data-testid="se-save" title="Guardar la disposición de asientos">
+        <app-icon name="save" /> {{ saving() ? 'Guardando…' : 'Guardar disposición' }}
+      </button>
+      @if (dirty()) {
+        <span class="muted small" data-testid="se-dirty">Tienes cambios sin guardar.</span>
+      }
+    </div>
+  }
 
   @if (confirm(); as cf) {
     <app-confirm-dialog
