@@ -191,7 +191,7 @@ export const promoter = {
 
   // --- Editor de asientos (Konva) ---
   seat: {
-    readonlyNote: 'El evento está publicado: el mapa de asientos está bloqueado.',
+    readonlyNote: 'El mapa de asientos está en modo solo lectura.',
     rows: 'Filas',
     seatsPerRow: 'Asientos por fila',
     section: 'Sección',

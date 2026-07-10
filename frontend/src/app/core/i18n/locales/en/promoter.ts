@@ -191,7 +191,7 @@ export const promoter = {
 
   // --- Seat editor (Konva) ---
   seat: {
-    readonlyNote: 'The event is published: the seat map is locked.',
+    readonlyNote: 'The seat map is in read-only mode.',
     rows: 'Rows',
     seatsPerRow: 'Seats per row',
     section: 'Section',
