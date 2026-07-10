@@ -43,19 +43,27 @@
         }
 
         <form (ngSubmit)="submit()">
-          <label for="rg-first">Nombre</label>
-          <input id="rg-first" type="text" [ngModel]="firstName()" (ngModelChange)="firstName.set($event)" name="firstName" autocomplete="given-name" />
+          <div class="field">
+            <label for="rg-first">Nombre</label>
+            <input id="rg-first" type="text" [ngModel]="firstName()" (ngModelChange)="firstName.set($event)" name="firstName" autocomplete="given-name" />
+          </div>
 
-          <label for="rg-last">Apellido</label>
-          <input id="rg-last" type="text" [ngModel]="lastName()" (ngModelChange)="lastName.set($event)" name="lastName" autocomplete="family-name" />
+          <div class="field">
+            <label for="rg-last">Apellido</label>
+            <input id="rg-last" type="text" [ngModel]="lastName()" (ngModelChange)="lastName.set($event)" name="lastName" autocomplete="family-name" />
+          </div>
 
-          <label for="rg-email">Correo</label>
-          <input id="rg-email" type="email" [ngModel]="email()" (ngModelChange)="email.set($event)" name="email" autocomplete="email" [readonly]="mode() === 'register'" data-testid="rg-email" />
+          <div class="field">
+            <label for="rg-email">Correo</label>
+            <input id="rg-email" type="email" [ngModel]="email()" (ngModelChange)="email.set($event)" name="email" autocomplete="email" [readonly]="mode() === 'register'" data-testid="rg-email" />
+          </div>
 
-          <label for="rg-pass">Contraseña</label>
-          <input id="rg-pass" type="password" [ngModel]="password()" (ngModelChange)="password.set($event)" name="password" autocomplete="new-password" />
+          <div class="field">
+            <label for="rg-pass">Contraseña</label>
+            <input id="rg-pass" type="password" [ngModel]="password()" (ngModelChange)="password.set($event)" name="password" autocomplete="new-password" />
+          </div>
 
-          <button type="submit" class="primary" [disabled]="working()" data-testid="rg-submit">
+          <button type="submit" class="primary btn-block" [disabled]="working()" data-testid="rg-submit">
             {{ working() ? 'Creando…' : 'Crear cuenta' }}
           </button>
 
