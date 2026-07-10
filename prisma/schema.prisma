@@ -66,6 +66,7 @@ enum ChallengePurpose {
   email_verify // verificar el correo
   passwordless // inicio de sesión sin contraseña (magic link + código)
   twofa_email // segundo factor por correo
+  gateway_unlock // desbloqueo por OTP para agregar una pasarela (acción sensible, admin)
 }
 
 /// Estado de un intento de pago.
@@ -215,6 +216,10 @@ model User {
   promoterAppliedAt DateTime?      @map("promoter_applied_at")
   promoterDecidedAt DateTime?      @map("promoter_decided_at")
   promoterNote      String?        @map("promoter_note") // motivo de rechazo/suspensión
+
+  // Usuario de PRUEBA (v3.2): promotores invitados marcados como test no pueden
+  // usar pasarelas reales (anclados a Sandbox) para no contaminar métricas de prod.
+  isTestUser Boolean @default(false) @map("is_test_user")
 
   // Privacidad/retención (Ola 6): sello de anonimización (seudonimización de PII
   // preservando el ledger). null = datos personales intactos.
@@ -953,6 +958,9 @@ model PromoterInvitation {
   email            String
   tokenHash        String                   @unique @map("token_hash")
   status           PromoterInvitationStatus @default(pending)
+  /// Marca al invitado como usuario de PRUEBA: al aceptar, su User queda con
+  /// isTestUser=true (anclado a Sandbox, no usa pasarelas reales).
+  isTestUser       Boolean                  @default(false) @map("is_test_user")
   invitedById      String                   @map("invited_by_id") @db.Uuid
   acceptedByUserId String?                  @map("accepted_by_user_id") @db.Uuid
   expiresAt        DateTime                 @map("expires_at")
@@ -965,4 +973,20 @@ model PromoterInvitation {
   @@index([email])
   @@index([invitedById])
   @@map("promoter_invitations")
+}
+
+/// Historial APPEND-ONLY de transiciones de estado de un promotor (v3.2). El
+/// estado actual sigue en User.promoterStatus; cada cambio (approve/reject/
+/// suspend/reactivar) se audita aquí con quién lo hizo y el motivo. Nunca se edita.
+model PromoterStatusEvent {
+  id         String         @id @default(uuid()) @db.Uuid
+  promoterId String         @map("promoter_id") @db.Uuid
+  adminId    String?        @map("admin_id") @db.Uuid // quién ejecutó (null = sistema)
+  statusFrom PromoterStatus @map("status_from")
+  statusTo   PromoterStatus @map("status_to")
+  reason     String?
+  createdAt  DateTime       @default(now()) @map("created_at")
+
+  @@index([promoterId])
+  @@map("promoter_status_events")
 }

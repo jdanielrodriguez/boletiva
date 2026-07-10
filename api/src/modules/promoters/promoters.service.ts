@@ -81,25 +81,60 @@ export class PromotersService {
     });
   }
 
-  async approve(id: string) {
+  async approve(id: string, adminId?: string) {
     const user = await this.getUser(id);
-    return this.summarize(await this.grant(user));
+    const updated = await this.grant(user);
+    await this.audit(user, PromoterStatus.approved, adminId, null);
+    return this.summarize(updated);
   }
 
   /** Auto-aprueba a un usuario que aceptó una invitación por token (F4). */
   async autoApprove(userId: string) {
     const user = await this.getUser(userId);
-    return this.summarize(await this.grant(user));
+    const updated = await this.grant(user);
+    await this.audit(user, PromoterStatus.approved, null, 'Invitación por token');
+    return this.summarize(updated);
   }
 
-  async reject(id: string, note?: string) {
+  async reject(id: string, note?: string, adminId?: string) {
     const user = await this.getUser(id);
-    return this.summarize(await this.revoke(user, PromoterStatus.rejected, note));
+    const updated = await this.revoke(user, PromoterStatus.rejected, note);
+    await this.audit(user, PromoterStatus.rejected, adminId, note);
+    return this.summarize(updated);
   }
 
-  async suspend(id: string, note?: string) {
+  async suspend(id: string, note?: string, adminId?: string) {
     const user = await this.getUser(id);
-    return this.summarize(await this.revoke(user, PromoterStatus.suspended, note));
+    const updated = await this.revoke(user, PromoterStatus.suspended, note);
+    await this.audit(user, PromoterStatus.suspended, adminId, note);
+    return this.summarize(updated);
+  }
+
+  /** Historial append-only de transiciones de estado de un promotor (admin). */
+  async history(id: string) {
+    await this.getUser(id); // 404 si no existe
+    return this.prisma.promoterStatusEvent.findMany({
+      where: { promoterId: id },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /** Asienta una transición en el historial append-only (nunca se edita/borra). */
+  private async audit(
+    user: { id: string; promoterStatus: PromoterStatus },
+    statusTo: PromoterStatus,
+    adminId?: string | null,
+    reason?: string | null,
+  ): Promise<void> {
+    await this.prisma.promoterStatusEvent.create({
+      data: {
+        promoterId: user.id,
+        adminId: adminId ?? null,
+        statusFrom: user.promoterStatus,
+        statusTo,
+        reason: reason ?? null,
+      },
+    });
   }
 
   /**

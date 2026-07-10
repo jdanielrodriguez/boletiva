@@ -28,6 +28,7 @@ describe('PaymentsService (ramas de borde, unit)', () => {
         update: jest.fn(),
       },
       paymentGateway: { findUnique: jest.fn() },
+      event: { findUnique: jest.fn().mockResolvedValue({ promoter: { isTestUser: false } }) },
       webhookEvent: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
       ledgerTransaction: { findFirst: jest.fn() },
       orderItem: { updateMany: jest.fn(), update: jest.fn() },
@@ -36,7 +37,12 @@ describe('PaymentsService (ramas de borde, unit)', () => {
     };
     const ledger = { walletBalance: jest.fn().mockResolvedValue(new Prisma.Decimal(0)), post: jest.fn() };
     const pricing = { paramsForRequote: jest.fn(), installmentRate: jest.fn() };
-    const gateways = { get: jest.fn(), platformDefault: jest.fn(), listActive: jest.fn() };
+    const gateways = {
+      get: jest.fn(),
+      platformDefault: jest.fn(),
+      listActive: jest.fn(),
+      sandboxGateway: jest.fn(),
+    };
     const costShare = {
       effectivePct: jest.fn(),
       installmentsMinPct: jest.fn(),
@@ -135,6 +141,67 @@ describe('PaymentsService (ramas de borde, unit)', () => {
       expect(res.paymentUrl).toBe('http://pay');
       expect(provider.createPayment).toHaveBeenCalled();
       expect((provider.scheduleAutoConfirm as jest.Mock)).toHaveBeenCalled();
+    });
+
+    it('promotor de PRUEBA: el cobro se ancla a Sandbox aunque el comprador elija otra pasarela', async () => {
+      const { prisma, gateways, pricing, costShare, service } = build();
+      prisma.event.findUnique.mockResolvedValue({ promoter: { isTestUser: true } });
+      gateways.sandboxGateway.mockResolvedValue({ id: 'SANDBOX', status: 'active' });
+      prisma.order.findUnique.mockResolvedValue({
+        id: 'o1',
+        buyerId: 'u1',
+        status: 'pending',
+        eventId: 'ev1',
+        feeGatewayId: 'GWDEF',
+        total: '129.68',
+        currency: 'GTQ',
+        feeScheduleVersion: 1,
+      });
+      prisma.payment.findFirst.mockResolvedValue(null);
+      prisma.order.findUniqueOrThrow.mockResolvedValue({
+        id: 'o1',
+        total: '129.68',
+        feeGatewayId: 'SANDBOX',
+        items: [],
+        event: { ivaOnNet: true, absorbInstallmentCost: false, promoterId: 'p1' },
+      });
+      // La pasarela elegida por el comprador ('gReal') se ignora: se resuelve la Sandbox.
+      gateways.get.mockResolvedValue({ id: 'SANDBOX', status: 'active', feePct: dec(0.05), transactionFixedFee: dec(0) });
+      pricing.paramsForRequote.mockResolvedValue({ platformFeePct: 0.1, gatewayFeePct: 0.05, ivaPct: 0.12 });
+      costShare.gatewayAllowed.mockReturnValue(true);
+      prisma.payment.create.mockResolvedValue({
+        id: 'p1',
+        providerRef: 'sim_r',
+        status: 'pending',
+        method: 'gateway',
+        amount: dec('129.68'),
+        walletAmount: dec(0),
+      });
+      await service.initiate('o1', 'u1', { gatewayId: 'gReal' });
+      // Se pidió la Sandbox, no la elegida por el comprador.
+      expect(gateways.get).toHaveBeenCalledWith('SANDBOX');
+    });
+
+    it('promotor de PRUEBA sin Sandbox activa → conserva la elección del comprador', async () => {
+      const { prisma, gateways, service } = build();
+      prisma.event.findUnique.mockResolvedValue({ promoter: { isTestUser: true } });
+      gateways.sandboxGateway.mockResolvedValue(null); // no hay sandbox
+      prisma.order.findUnique.mockResolvedValue({
+        id: 'o1',
+        buyerId: 'u1',
+        status: 'pending',
+        eventId: 'ev1',
+        feeGatewayId: 'gX',
+        total: '129.68',
+        currency: 'GTQ',
+      });
+      prisma.payment.findFirst.mockResolvedValue(null);
+      gateways.get.mockResolvedValue({ id: 'gX', status: 'inactive' });
+      // Sin sandbox, se usa la elegida ('gX'); al estar inactiva → 400 (prueba que NO se ancló).
+      await expect(service.initiate('o1', 'u1', { gatewayId: 'gX' })).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(gateways.get).toHaveBeenCalledWith('gX');
     });
 
     it('proveedor sin auto-confirm no rompe el flujo', async () => {

@@ -15,6 +15,7 @@ import { PromotersService } from '../promoters/promoters.service';
 import { PricingService } from '../pricing/pricing.service';
 import { PriceQuote } from '../pricing/pricing.engine';
 import { CostShareService } from '../cost-share/cost-share.service';
+import { PaymentGatewaysService } from '../payment-gateways/payment-gateways.service';
 import { CreateEventDto, UpdateEventDto } from './dto/events.dto';
 
 /** URLs firmadas de media públicas: expiran holgadamente para sobrevivir al
@@ -30,6 +31,7 @@ export class EventsService {
     private readonly pricing: PricingService,
     private readonly redis: RedisService,
     private readonly costShare: CostShareService,
+    private readonly gateways: PaymentGatewaysService,
   ) {}
 
   /** Añade una URL firmada a cada media (para catálogo/SEO/og:image). */
@@ -52,6 +54,16 @@ export class EventsService {
   }
 
   /**
+   * El promotor solo indica el INICIO; el fin es opcional en la UI. Si no viene,
+   * se autocalcula `startsAt + 12h` (decisión del arquitecto): la columna sigue
+   * NOT NULL y la retención/"eventos pasados" mantienen un fin coherente.
+   */
+  private resolveEndsAt(startsAt: Date, endsAt?: string): Date {
+    if (endsAt) return new Date(endsAt);
+    return new Date(startsAt.getTime() + 12 * 60 * 60 * 1000);
+  }
+
+  /**
    * La pasarela elegida debe existir, estar activa y el PROMOTOR debe calificar
    * para usarla (Ola 6.6: su cost-share ≥ `minCostSharePct` de la pasarela; la
    * default del sistema siempre está disponible).
@@ -70,6 +82,27 @@ export class EventsService {
         );
       }
     }
+  }
+
+  /**
+   * Ancla a los usuarios de PRUEBA (isTestUser) a la pasarela Sandbox: aunque
+   * elijan otra, sus eventos cobran por el simulador (no contaminan métricas de
+   * pasarelas reales). Devuelve el gatewayId efectivo. Requisito del arquitecto.
+   */
+  private async anchorGatewayForTestUser(
+    promoterId: string,
+    gatewayId?: string,
+  ): Promise<string | undefined> {
+    const promoter = await this.prisma.user.findUnique({
+      where: { id: promoterId },
+      select: { isTestUser: true },
+    });
+    if (!promoter?.isTestUser) return gatewayId;
+    const sandbox = await this.gateways.sandboxGateway();
+    if (!sandbox) {
+      throw new BadRequestException('No hay una pasarela Sandbox activa para usuarios de prueba');
+    }
+    return sandbox.id;
   }
 
   private canManage(event: Event, user: AuthUser): boolean {
@@ -243,7 +276,9 @@ export class EventsService {
     // Solo un promotor autorizado por un admin (o un admin) puede crear eventos.
     await this.promoters.assertCanOperate(userId);
     this.assertDates(dto.startsAt, dto.endsAt);
-    await this.assertGatewayActive(dto.gatewayId, userId);
+    const gatewayId = await this.anchorGatewayForTestUser(userId, dto.gatewayId);
+    await this.assertGatewayActive(gatewayId, userId);
+    const startsAt = new Date(dto.startsAt);
     return this.prisma.event.create({
       data: {
         promoterId: userId,
@@ -254,9 +289,9 @@ export class EventsService {
         address: dto.address,
         lat: dto.lat,
         lng: dto.lng,
-        startsAt: new Date(dto.startsAt),
-        endsAt: new Date(dto.endsAt),
-        gatewayId: dto.gatewayId,
+        startsAt,
+        endsAt: this.resolveEndsAt(startsAt, dto.endsAt),
+        gatewayId,
         ivaOnNet: dto.ivaOnNet,
         absorbInstallmentCost: dto.absorbInstallmentCost,
         promotedPriority: dto.promotedPriority,
@@ -278,9 +313,16 @@ export class EventsService {
 
   async update(id: string, dto: UpdateEventDto, user: AuthUser) {
     const event = await this.getManaged(id, user);
+    // Si el promotor mueve el inicio (sin enviar fin, que ya no está en la UI) a un
+    // punto que dejaría el fin anterior en el pasado, recalculamos el fin (+12h)
+    // para no romper con un 400 confuso.
+    let effectiveEndsAt = dto.endsAt;
+    if (dto.startsAt && !dto.endsAt && new Date(dto.startsAt) >= event.endsAt) {
+      effectiveEndsAt = this.resolveEndsAt(new Date(dto.startsAt)).toISOString();
+    }
     this.assertDates(
       dto.startsAt ?? event.startsAt.toISOString(),
-      dto.endsAt ?? event.endsAt.toISOString(),
+      effectiveEndsAt ?? event.endsAt.toISOString(),
     );
     // Con la pasarela ya congelada (evento con compras) no se puede cambiar la
     // pasarela ni el IVA: alteraría un precio que ya no debe cambiar.
@@ -290,7 +332,11 @@ export class EventsService {
         'El evento ya tiene compras; su pasarela e IVA quedaron congelados',
       );
     }
-    await this.assertGatewayActive(dto.gatewayId, event.promoterId);
+    const gatewayId =
+      dto.gatewayId !== undefined
+        ? await this.anchorGatewayForTestUser(event.promoterId, dto.gatewayId)
+        : undefined;
+    await this.assertGatewayActive(gatewayId, event.promoterId);
     return this.prisma.event.update({
       where: { id },
       data: {
@@ -301,8 +347,8 @@ export class EventsService {
         lat: dto.lat,
         lng: dto.lng,
         startsAt: dto.startsAt ? new Date(dto.startsAt) : undefined,
-        endsAt: dto.endsAt ? new Date(dto.endsAt) : undefined,
-        gatewayId: dto.gatewayId,
+        endsAt: effectiveEndsAt ? new Date(effectiveEndsAt) : undefined,
+        gatewayId,
         ivaOnNet: dto.ivaOnNet,
         // El flag de absorción de cuotas NO congela el precio base (el costo de
         // cuotas se resuelve al pagar): se puede ajustar aunque haya compras.

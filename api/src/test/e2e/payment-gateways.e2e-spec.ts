@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '../../infra/prisma/prisma.service';
-import { createTestApp, SEED } from './utils';
+import { clearMail, createTestApp, lastEmailCode, SEED } from './utils';
 import { sha256 } from '../../common/utils/crypto';
 
 /**
@@ -66,6 +66,13 @@ describe('Pasarelas de pago configurables (e2e)', () => {
   const http = () => request(app.getHttpServer());
   const bearer = (t: string) => ({ Authorization: `Bearer ${t}` });
 
+  /** Solicita el desbloqueo por OTP y devuelve el código enviado al correo del admin. */
+  async function unlockCode(): Promise<string> {
+    await clearMail();
+    await http().post('/api/v1/payment-gateways/unlock').set(bearer(adminToken)).expect(200);
+    return lastEmailCode(SEED.admin.toLowerCase().trim());
+  }
+
   it('listar es admin-only (buyer→403, admin→200 con Sandbox)', async () => {
     await http().get('/api/v1/payment-gateways').set(bearer(buyerToken)).expect(403);
     const res = await http().get('/api/v1/payment-gateways').set(bearer(adminToken)).expect(200);
@@ -80,16 +87,33 @@ describe('Pasarelas de pago configurables (e2e)', () => {
     expect(res.body.every((g: { status: string }) => g.status === 'active')).toBe(true);
   });
 
-  it('crear pasarela (admin) → 201; buyer → 403', async () => {
+  it('agregar pasarela exige desbloqueo por OTP: sin/ mal código → 400; con código → 201; buyer → 403', async () => {
+    // buyer: bloqueado por RBAC antes de la validación.
     await http()
       .post('/api/v1/payment-gateways')
       .set(bearer(buyerToken))
-      .send({ name: gwName, provider: 'pagalo', feePct: 0.03 })
+      .send({ name: gwName, provider: 'pagalo', feePct: 0.03, unlockCode: '000000' })
       .expect(403);
+    // admin sin código → 400 (validación de DTO).
+    await http()
+      .post('/api/v1/payment-gateways')
+      .set(bearer(adminToken))
+      .send({ name: gwName, provider: 'pagalo', feePct: 0.03 })
+      .expect(400);
+    // admin con código INVÁLIDO (nunca solicitado / erróneo) → 400.
+    await clearMail();
+    await http().post('/api/v1/payment-gateways/unlock').set(bearer(adminToken)).expect(200);
+    await http()
+      .post('/api/v1/payment-gateways')
+      .set(bearer(adminToken))
+      .send({ name: gwName, provider: 'pagalo', feePct: 0.03, unlockCode: '999999' })
+      .expect(400);
+    // admin con el código correcto → 201.
+    const code = await lastEmailCode(SEED.admin.toLowerCase().trim());
     const res = await http()
       .post('/api/v1/payment-gateways')
       .set(bearer(adminToken))
-      .send({ name: gwName, provider: 'pagalo', feePct: 0.03, credentialsRef: 'PAGALO_KEY' })
+      .send({ name: gwName, provider: 'pagalo', feePct: 0.03, credentialsRef: 'PAGALO_KEY', unlockCode: code })
       .expect(201);
     gwId = res.body.id;
     expect(res.body.isPlatformDefault).toBe(false);
@@ -100,12 +124,12 @@ describe('Pasarelas de pago configurables (e2e)', () => {
     await http()
       .post('/api/v1/payment-gateways')
       .set(bearer(adminToken))
-      .send({ name: gwName, provider: 'x', feePct: 0.03 })
+      .send({ name: gwName, provider: 'x', feePct: 0.03, unlockCode: await unlockCode() })
       .expect(409);
     await http()
       .post('/api/v1/payment-gateways')
       .set(bearer(adminToken))
-      .send({ name: `${gwName}_2`, provider: 'x', feePct: 1.5 })
+      .send({ name: `${gwName}_2`, provider: 'x', feePct: 1.5, unlockCode: await unlockCode() })
       .expect(400);
   });
 

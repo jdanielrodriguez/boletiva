@@ -109,6 +109,27 @@ describe('Invitación de promotores (e2e)', () => {
     expect(inv.acceptedByUserId).toBe(id);
   });
 
+  it('invitar como usuario de PRUEBA: se propaga a la invitación, al User al aceptar y aparece en el listado', async () => {
+    const email = `inv_${stamp}_test@test.com`;
+    const res = await http()
+      .post('/api/v1/promoters/invitations')
+      .set(bearer(adminToken))
+      .send({ emails: [email], isTestUser: true })
+      .expect(201);
+    const token = res.body.invitations[0].token;
+    const row = await prisma.promoterInvitation.findFirstOrThrow({ where: { email } });
+    expect(row.isTestUser).toBe(true);
+
+    // El listado del admin expone el flag.
+    const list = await http().get('/api/v1/promoters/invitations').set(bearer(adminToken)).expect(200);
+    expect(list.body.find((i: { email: string }) => i.email === email)?.isTestUser).toBe(true);
+
+    // Al aceptar, el User queda marcado como usuario de prueba.
+    const { id, token: userToken } = await registerAndLogin(email, 'inv-test');
+    await http().post('/api/v1/promoters/invitations/accept').set(bearer(userToken)).send({ token }).expect(200);
+    expect((await prisma.user.findUniqueOrThrow({ where: { id } })).isTestUser).toBe(true);
+  });
+
   it('aceptar con un correo que NO coincide → 403', async () => {
     const email = `inv_${stamp}_mismatch@test.com`;
     const { body } = await invite([email]).expect(201);

@@ -37,7 +37,7 @@ export class PromoterInvitationsController {
   @ApiOperation({ summary: 'Invita a uno o varios correos como promotor (genera URLs con token)' })
   @ApiOkResponse({ type: CreateInvitationsResponseDto })
   create(@Body() dto: CreateInvitationsDto, @CurrentUser('userId') userId: string) {
-    return this.invitations.create(dto.emails, userId);
+    return this.invitations.create(dto.emails, userId, dto.isTestUser ?? false);
   }
 
   @Get()

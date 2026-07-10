@@ -16,13 +16,16 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { ChallengePurpose, Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { ChallengesService } from '../auth/challenges.service';
 import { PaymentGatewaysService } from './payment-gateways.service';
 import {
   CreateGatewayDto,
   GatewayDeleteResponseDto,
   GatewayResponseDto,
+  GatewayUnlockResponseDto,
   UpdateGatewayDto,
   UpdateGatewayStatusDto,
 } from './dto/payment-gateways.dto';
@@ -31,7 +34,22 @@ import {
 @ApiBearerAuth()
 @Controller('payment-gateways')
 export class PaymentGatewaysController {
-  constructor(private readonly gateways: PaymentGatewaysService) {}
+  constructor(
+    private readonly gateways: PaymentGatewaysService,
+    private readonly challenges: ChallengesService,
+  ) {}
+
+  @Post('unlock')
+  @Roles(Role.admin)
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Envía un código OTP al correo del admin para autorizar agregar una pasarela',
+  })
+  @ApiOkResponse({ type: GatewayUnlockResponseDto })
+  async unlock(@CurrentUser() admin: { userId: string; email: string }) {
+    await this.challenges.issue(admin.userId, admin.email, ChallengePurpose.gateway_unlock);
+    return { sent: true };
+  }
 
   @Get()
   @Roles(Role.admin)
@@ -50,10 +68,12 @@ export class PaymentGatewaysController {
 
   @Post()
   @Roles(Role.admin)
-  @ApiOperation({ summary: 'Crea una pasarela (admin)' })
+  @ApiOperation({ summary: 'Crea una pasarela (admin) — exige código OTP de desbloqueo' })
   @ApiCreatedResponse({ type: GatewayResponseDto })
-  create(@Body() dto: CreateGatewayDto) {
-    return this.gateways.create(dto);
+  async create(@Body() dto: CreateGatewayDto, @CurrentUser('userId') adminId: string) {
+    // Acción sensible: validar (y consumir) el OTP antes de crear. 400 si inválido/expirado.
+    await this.challenges.consumeByCode(adminId, ChallengePurpose.gateway_unlock, dto.unlockCode);
+    return this.gateways.create(dto); // create() mapea campos explícitamente e ignora unlockCode
   }
 
   @Patch(':id')

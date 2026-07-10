@@ -817,7 +817,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Aprueba un promotor (admin) */
+        /** Aprueba (o reactiva) un promotor (admin) */
         post: operations["PromotersController_approve_v1"];
         delete?: never;
         options?: never;
@@ -853,6 +853,23 @@ export interface paths {
         put?: never;
         /** Suspende a un promotor (admin) */
         post: operations["PromotersController_suspend_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/promoters/{id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Historial append-only de estados de un promotor (admin) */
+        get: operations["PromotersController_history_v1"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1771,6 +1788,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/payment-gateways/unlock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Envía un código OTP al correo del admin para autorizar agregar una pasarela */
+        post: operations["PaymentGatewaysController_unlock_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/payment-gateways": {
         parameters: {
             query?: never;
@@ -1781,7 +1815,7 @@ export interface paths {
         /** Lista todas las pasarelas (admin) */
         get: operations["PaymentGatewaysController_list_v1"];
         put?: never;
-        /** Crea una pasarela (admin) */
+        /** Crea una pasarela (admin) — exige código OTP de desbloqueo */
         post: operations["PaymentGatewaysController_create_v1"];
         delete?: never;
         options?: never;
@@ -3321,10 +3355,10 @@ export interface components {
             startsAt: string;
             /**
              * Format: date-time
-             * @description Fin del evento (ISO 8601, posterior a startsAt)
+             * @description Fin del evento (ISO 8601, posterior a startsAt). Opcional: si se omite, el backend usa startsAt + 12h.
              * @example 2026-08-15T05:00:00.000Z
              */
-            endsAt: string;
+            endsAt?: string;
             /**
              * Format: uuid
              * @description Pasarela elegida por el promotor (omitir = hereda la default de plataforma)
@@ -3569,6 +3603,25 @@ export interface components {
             /** @description Motivo de rechazo/suspensión */
             note?: string;
         };
+        PromoterStatusEventDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            promoterId: string;
+            /**
+             * Format: uuid
+             * @description Admin que ejecutó (null = sistema)
+             */
+            adminId: string | null;
+            /** @enum {string} */
+            statusFrom: "none" | "pending" | "approved" | "rejected" | "suspended";
+            /** @enum {string} */
+            statusTo: "none" | "pending" | "approved" | "rejected" | "suspended";
+            /** @description Motivo de la transición */
+            reason: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
         CreateInvitationsDto: {
             /**
              * @description Correos a invitar como promotor (uno o varios)
@@ -3578,6 +3631,11 @@ export interface components {
              *     ]
              */
             emails: string[];
+            /**
+             * @description Marca a los invitados como usuarios de PRUEBA: al aceptar, quedan anclados a Sandbox (no pueden usar pasarelas reales). Útil para alpha/beta sin contaminar métricas de prod.
+             * @default false
+             */
+            isTestUser: boolean;
         };
         CreatedInvitationDto: {
             /** Format: uuid */
@@ -3607,6 +3665,8 @@ export interface components {
             email: string;
             /** @enum {string} */
             status: "pending" | "accepted" | "revoked" | "expired";
+            /** @description Invitado como usuario de prueba (anclado a Sandbox) */
+            isTestUser: boolean;
             /** Format: uuid */
             invitedById: string;
             /** Format: uuid */
@@ -5120,6 +5180,10 @@ export interface components {
             /** @description Motivo de rechazo o referencia de pago */
             note?: string;
         };
+        GatewayUnlockResponseDto: {
+            /** @description true = se envió el código al correo del admin */
+            sent: boolean;
+        };
         GatewayResponseDto: {
             /** Format: uuid */
             id: string;
@@ -5175,6 +5239,11 @@ export interface components {
             updatedAt: string;
         };
         CreateGatewayDto: {
+            /**
+             * @description Código OTP de 6 dígitos enviado al correo del admin por POST /payment-gateways/unlock. Agregar una pasarela es una acción sensible y exige este desbloqueo.
+             * @example 123456
+             */
+            unlockCode: string;
             /** @example Recurrente */
             name: string;
             /**
@@ -6597,6 +6666,27 @@ export interface operations {
             };
         };
     };
+    PromotersController_history_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromoterStatusEventDto"][];
+                };
+            };
+        };
+    };
     PromoterInvitationsController_list_v1: {
         parameters: {
             query?: never;
@@ -8007,6 +8097,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WithdrawalActionResponseDto"];
+                };
+            };
+        };
+    };
+    PaymentGatewaysController_unlock_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GatewayUnlockResponseDto"];
                 };
             };
         };

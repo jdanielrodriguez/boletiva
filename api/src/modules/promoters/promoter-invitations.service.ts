@@ -40,7 +40,7 @@ export class PromoterInvitationsService {
   }
 
   /** Crea invitaciones para uno o varios correos. Devuelve las URLs (token una vez). */
-  async create(rawEmails: string[], invitedById: string) {
+  async create(rawEmails: string[], invitedById: string, isTestUser = false) {
     const emails = Array.from(
       new Set((rawEmails ?? []).map((e) => e.trim().toLowerCase()).filter(Boolean)),
     );
@@ -57,7 +57,7 @@ export class PromoterInvitationsService {
       const token = randomToken(24);
       const expiresAt = this.expiry();
       const inv = await this.prisma.promoterInvitation.create({
-        data: { email, tokenHash: sha256(token), invitedById, expiresAt },
+        data: { email, tokenHash: sha256(token), invitedById, expiresAt, isTestUser },
       });
       invitations.push({
         id: inv.id,
@@ -78,6 +78,7 @@ export class PromoterInvitationsService {
         id: true,
         email: true,
         status: true,
+        isTestUser: true,
         invitedById: true,
         acceptedByUserId: true,
         expiresAt: true,
@@ -129,6 +130,10 @@ export class PromoterInvitationsService {
         acceptedAt: new Date(),
       },
     });
+    // Propaga la marca de usuario de prueba al User (anclaje a Sandbox).
+    if (inv.isTestUser) {
+      await this.prisma.user.update({ where: { id: userId }, data: { isTestUser: true } });
+    }
     const promoter = await this.promoters.autoApprove(userId);
     return { accepted: true, promoter };
   }

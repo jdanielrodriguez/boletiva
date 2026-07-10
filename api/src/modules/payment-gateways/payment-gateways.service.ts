@@ -56,6 +56,18 @@ export class PaymentGatewaysService {
     return this.prisma.paymentGateway.findFirst({ where: { isPlatformDefault: true } });
   }
 
+  /**
+   * Pasarela SANDBOX activa (simulador) a la que se anclan los usuarios de prueba
+   * (isTestUser) para no contaminar métricas de pasarelas reales. Prefiere la
+   * default si además es sandbox.
+   */
+  sandboxGateway() {
+    return this.prisma.paymentGateway.findFirst({
+      where: { sandbox: true, status: GatewayStatus.active },
+      orderBy: { isPlatformDefault: 'desc' },
+    });
+  }
+
   async get(id: string) {
     const gw = await this.prisma.paymentGateway.findUnique({ where: { id } });
     if (!gw) throw new NotFoundException('Pasarela no encontrada');

@@ -25,6 +25,7 @@ import {
   MyPromoterStatusResponseDto,
   PromoterDecisionDto,
   PromoterListItemDto,
+  PromoterStatusEventDto,
   PromoterStatusResponseDto,
   RequireApprovalResponseDto,
   SetRequireApprovalDto,
@@ -82,10 +83,10 @@ export class PromotersController {
   @Post(':id/approve')
   @Roles(Role.admin)
   @HttpCode(200)
-  @ApiOperation({ summary: 'Aprueba un promotor (admin)' })
+  @ApiOperation({ summary: 'Aprueba (o reactiva) un promotor (admin)' })
   @ApiOkResponse({ type: PromoterStatusResponseDto })
-  approve(@Param('id', ParseUUIDPipe) id: string) {
-    return this.promoters.approve(id);
+  approve(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('userId') adminId: string) {
+    return this.promoters.approve(id, adminId);
   }
 
   @Post(':id/reject')
@@ -93,8 +94,12 @@ export class PromotersController {
   @HttpCode(200)
   @ApiOperation({ summary: 'Rechaza una solicitud de promotor (admin)' })
   @ApiOkResponse({ type: PromoterStatusResponseDto })
-  reject(@Param('id', ParseUUIDPipe) id: string, @Body() dto: PromoterDecisionDto) {
-    return this.promoters.reject(id, dto.note);
+  reject(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: PromoterDecisionDto,
+    @CurrentUser('userId') adminId: string,
+  ) {
+    return this.promoters.reject(id, dto.note, adminId);
   }
 
   @Post(':id/suspend')
@@ -102,7 +107,19 @@ export class PromotersController {
   @HttpCode(200)
   @ApiOperation({ summary: 'Suspende a un promotor (admin)' })
   @ApiOkResponse({ type: PromoterStatusResponseDto })
-  suspend(@Param('id', ParseUUIDPipe) id: string, @Body() dto: PromoterDecisionDto) {
-    return this.promoters.suspend(id, dto.note);
+  suspend(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: PromoterDecisionDto,
+    @CurrentUser('userId') adminId: string,
+  ) {
+    return this.promoters.suspend(id, dto.note, adminId);
+  }
+
+  @Get(':id/history')
+  @Roles(Role.admin)
+  @ApiOperation({ summary: 'Historial append-only de estados de un promotor (admin)' })
+  @ApiOkResponse({ type: PromoterStatusEventDto, isArray: true })
+  history(@Param('id', ParseUUIDPipe) id: string) {
+    return this.promoters.history(id);
   }
 }

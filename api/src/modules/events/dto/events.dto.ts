@@ -61,9 +61,15 @@ export class CreateEventDto {
   @IsDateString()
   startsAt!: string;
 
-  @ApiProperty({ format: 'date-time', description: 'Fin del evento (ISO 8601, posterior a startsAt)', example: '2026-08-15T05:00:00.000Z' })
+  @ApiPropertyOptional({
+    format: 'date-time',
+    description:
+      'Fin del evento (ISO 8601, posterior a startsAt). Opcional: si se omite, el backend usa startsAt + 12h.',
+    example: '2026-08-15T05:00:00.000Z',
+  })
+  @IsOptional()
   @IsDateString()
-  endsAt!: string;
+  endsAt?: string;
 
   @ApiPropertyOptional({
     format: 'uuid',

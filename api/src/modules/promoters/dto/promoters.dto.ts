@@ -79,3 +79,27 @@ export class PromoterListItemDto {
   @ApiProperty({ type: String, nullable: true })
   promoterNote!: string | null;
 }
+
+/** Fila del historial append-only de estados de un promotor. */
+export class PromoterStatusEventDto {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty({ format: 'uuid' })
+  promoterId!: string;
+
+  @ApiProperty({ format: 'uuid', nullable: true, description: 'Admin que ejecutó (null = sistema)' })
+  adminId!: string | null;
+
+  @ApiProperty({ enum: PromoterStatus })
+  statusFrom!: PromoterStatus;
+
+  @ApiProperty({ enum: PromoterStatus })
+  statusTo!: PromoterStatus;
+
+  @ApiProperty({ type: String, nullable: true, description: 'Motivo de la transición' })
+  reason!: string | null;
+
+  @ApiProperty({ format: 'date-time' })
+  createdAt!: Date;
+}

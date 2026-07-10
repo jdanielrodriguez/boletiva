@@ -3,7 +3,7 @@ import request from 'supertest';
 import Decimal from 'decimal.js';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { LedgerService } from '../../modules/ledger/ledger.service';
-import { createTestApp, SEED } from './utils';
+import { clearMail, createTestApp, lastEmailCode, SEED } from './utils';
 import { hmacSha256, sha256 } from '../../common/utils/crypto';
 
 const money = (v: unknown) => new Decimal(v as string).toFixed(2);
@@ -240,11 +240,14 @@ describe('Ola 6.6 edge cases (e2e)', () => {
   });
 
   it('edge 5: la pasarela default no puede exigir cost-share (>0) → 409 al hacerla default y al subírselo', async () => {
-    // Crear una pasarela con umbral > 0 (no default) es válido.
+    // Crear una pasarela con umbral > 0 (no default) es válido (requiere desbloqueo OTP).
+    await clearMail();
+    await http().post('/api/v1/payment-gateways/unlock').set(bearer(adminToken)).expect(200);
+    const unlockCode = await lastEmailCode(SEED.admin.toLowerCase().trim());
     const gw = await http()
       .post('/api/v1/payment-gateways')
       .set(bearer(adminToken))
-      .send({ name: `E66_gated_${stamp}`, provider: 'simulator', feePct: 0.05, minCostSharePct: 0.5 })
+      .send({ name: `E66_gated_${stamp}`, provider: 'simulator', feePct: 0.05, minCostSharePct: 0.5, unlockCode })
       .expect(201);
     // Hacerla default → 409 (dejaría a promotores sin ninguna pasarela).
     await http()

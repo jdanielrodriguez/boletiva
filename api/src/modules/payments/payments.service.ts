@@ -89,6 +89,11 @@ export class PaymentsService {
     const existing = await this.prisma.payment.findFirst({ where: { orderId, status: 'pending' } });
     if (existing) return this.summarize(existing);
 
+    // Anclaje a Sandbox: si el promotor del evento es usuario de PRUEBA, el cobro
+    // se fuerza al simulador aunque el comprador elija otra pasarela (no contamina
+    // métricas de pasarelas reales). Requisito del arquitecto.
+    opts = { ...opts, gatewayId: await this.anchorGatewayForTestUser(order.eventId, opts.gatewayId) };
+
     // Método: pasarela elegida (o la de la orden / default de plataforma) si está
     // activa. Se RECOTIZA la orden cuando se cambia de pasarela O se elige pago en
     // cuotas (el catálogo/commit siempre cotiza en 1 pago). El comprador paga lo
@@ -313,6 +318,23 @@ export class PaymentsService {
    * orden si sigue activa, o la default de plataforma. null si no hay ninguna
    * activa (→ no se puede cobrar por pasarela).
    */
+  /**
+   * Si el promotor del evento es usuario de PRUEBA (isTestUser), fuerza la pasarela
+   * Sandbox (ignora la elección del comprador). Si no, devuelve la elección tal cual.
+   */
+  private async anchorGatewayForTestUser(
+    eventId: string,
+    gatewayId: string | undefined,
+  ): Promise<string | undefined> {
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      select: { promoter: { select: { isTestUser: true } } },
+    });
+    if (!event?.promoter?.isTestUser) return gatewayId;
+    const sandbox = await this.gateways.sandboxGateway();
+    return sandbox ? sandbox.id : gatewayId;
+  }
+
   private async resolveChosenGateway(
     gatewayId: string | undefined,
     orderGatewayId: string | null,

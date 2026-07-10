@@ -9,6 +9,7 @@ const TTL_MS: Record<ChallengePurpose, number> = {
   email_verify: 24 * 60 * 60 * 1000, // 24 h
   passwordless: 15 * 60 * 1000, // 15 min
   twofa_email: 10 * 60 * 1000, // 10 min
+  gateway_unlock: 10 * 60 * 1000, // 10 min (desbloqueo para agregar pasarela)
 };
 const MAX_ATTEMPTS = 5;
 
@@ -118,6 +119,11 @@ export class ChallengesService {
         subject: 'Tu código de verificación — Pasa Eventos',
         intro: 'Código de verificación en dos pasos.',
         path: '/2fa',
+      },
+      gateway_unlock: {
+        subject: 'Código para agregar una pasarela — Pasa Eventos',
+        intro: 'Confirma que autorizas agregar una nueva pasarela de pago.',
+        path: '/configuracion',
       },
     };
     const t = templates[purpose];

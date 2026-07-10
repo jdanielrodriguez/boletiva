@@ -1,6 +1,14 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PromoterInvitationStatus } from '@prisma/client';
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsEmail, IsString } from 'class-validator';
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsBoolean,
+  IsEmail,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class CreateInvitationsDto {
   @ApiProperty({
@@ -13,6 +21,16 @@ export class CreateInvitationsDto {
   @ArrayMaxSize(50)
   @IsEmail({}, { each: true })
   emails!: string[];
+
+  @ApiPropertyOptional({
+    default: false,
+    description:
+      'Marca a los invitados como usuarios de PRUEBA: al aceptar, quedan anclados a Sandbox ' +
+      '(no pueden usar pasarelas reales). Útil para alpha/beta sin contaminar métricas de prod.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  isTestUser?: boolean;
 }
 
 export class ClaimInvitationDto {
@@ -54,6 +72,9 @@ export class InvitationListItemDto {
 
   @ApiProperty({ enum: PromoterInvitationStatus })
   status!: PromoterInvitationStatus;
+
+  @ApiProperty({ description: 'Invitado como usuario de prueba (anclado a Sandbox)' })
+  isTestUser!: boolean;
 
   @ApiProperty({ format: 'uuid' })
   invitedById!: string;

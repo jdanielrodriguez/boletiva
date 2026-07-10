@@ -13,6 +13,16 @@ import {
 } from 'class-validator';
 
 export class CreateGatewayDto {
+  @ApiProperty({
+    description:
+      'Código OTP de 6 dígitos enviado al correo del admin por POST /payment-gateways/unlock. ' +
+      'Agregar una pasarela es una acción sensible y exige este desbloqueo.',
+    example: '123456',
+  })
+  @IsString()
+  @MaxLength(6)
+  unlockCode!: string;
+
   @ApiProperty({ example: 'Recurrente' })
   @IsString()
   @MaxLength(60)
@@ -222,6 +232,12 @@ export class GatewayResponseDto {
 
   @ApiProperty({ format: 'date-time' })
   updatedAt!: Date;
+}
+
+/** Resultado de solicitar el desbloqueo por OTP para agregar una pasarela. */
+export class GatewayUnlockResponseDto {
+  @ApiProperty({ description: 'true = se envió el código al correo del admin' })
+  sent!: boolean;
 }
 
 /** Resultado de eliminar una pasarela: id borrado y default a la que migraron los eventos. */

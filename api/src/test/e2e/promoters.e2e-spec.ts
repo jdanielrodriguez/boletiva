@@ -69,6 +69,7 @@ describe('Autorización de promotores (e2e)', () => {
     const users = await prisma.user.findMany({ where: { email: { contains: `_${stamp}@test.com` } } });
     const ids = users.map((u) => u.id);
     await prisma.event.deleteMany({ where: { promoterId: { in: ids } } });
+    await prisma.promoterStatusEvent.deleteMany({ where: { promoterId: { in: ids } } });
     await prisma.user.deleteMany({ where: { id: { in: ids } } });
     await app.close();
   });
@@ -249,6 +250,45 @@ describe('Autorización de promotores (e2e)', () => {
     await http().post(`/api/v1/promoters/${u.id}/suspend`).set(bearer(token)).send({}).expect(403);
     await http().post('/api/v1/promoters/apply').expect(401);
     await http().get('/api/v1/promoters/me').expect(401);
+  });
+
+  it('historial append-only: registra cada transición; reactivar deja traza; RBAC', async () => {
+    const u = await newVerifiedUser('hist');
+    const token = await loginTrusted(u.email, 'promo-hist');
+    await http().post('/api/v1/promoters/apply').set(bearer(token)).expect(200);
+    await http()
+      .post(`/api/v1/promoters/${u.id}/approve`)
+      .set(bearer(adminToken))
+      .expect(200);
+    await http()
+      .post(`/api/v1/promoters/${u.id}/suspend`)
+      .set(bearer(adminToken))
+      .send({ note: 'incumplimiento' })
+      .expect(200);
+    // Reactivar (aprobar de nuevo) conserva el historial.
+    await http()
+      .post(`/api/v1/promoters/${u.id}/approve`)
+      .set(bearer(adminToken))
+      .expect(200);
+
+    const hist = await http()
+      .get(`/api/v1/promoters/${u.id}/history`)
+      .set(bearer(adminToken))
+      .expect(200);
+    // 3 transiciones: approved, suspended (con motivo), approved (reactivación). DESC.
+    expect(hist.body.length).toBe(3);
+    expect(hist.body[0].statusTo).toBe('approved');
+    expect(hist.body[1]).toMatchObject({
+      statusFrom: 'approved',
+      statusTo: 'suspended',
+      reason: 'incumplimiento',
+    });
+    expect(hist.body[1].adminId).toBeTruthy();
+
+    // RBAC: no-admin no ve el historial; id inexistente → 404.
+    await http().get(`/api/v1/promoters/${u.id}/history`).set(bearer(token)).expect(403);
+    const ghost = '00000000-0000-0000-0000-000000000000';
+    await http().get(`/api/v1/promoters/${ghost}/history`).set(bearer(adminToken)).expect(404);
   });
 
   it('validación: settings no booleano → 400; note >500 chars → 400', async () => {

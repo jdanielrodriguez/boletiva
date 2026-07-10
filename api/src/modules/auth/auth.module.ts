@@ -22,6 +22,6 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     GoogleAuthService,
     JwtStrategy,
   ],
-  exports: [AuthService, TokensService, DevicesService, TwoFactorService],
+  exports: [AuthService, TokensService, DevicesService, TwoFactorService, ChallengesService],
 })
 export class AuthModule {}

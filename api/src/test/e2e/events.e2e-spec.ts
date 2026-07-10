@@ -113,6 +113,44 @@ describe('Eventos: gestión (e2e)', () => {
     await http().post(`/api/v1/events/${ev.id}/publish`).set(bearer(pendingPromoterToken)).expect(403);
   });
 
+  it('crear sin endsAt: el backend autocalcula startsAt + 12h', async () => {
+    const startsAt = new Date('2027-10-01T20:00:00-06:00');
+    const res = await http()
+      .post('/api/v1/events')
+      .set(bearer(promoterToken))
+      .send({ name: `Sin fin ${Date.now()}`, startsAt: startsAt.toISOString() })
+      .expect(201);
+    const ev = await prisma.event.findUniqueOrThrow({ where: { id: res.body.id } });
+    expect(ev.endsAt.getTime()).toBe(startsAt.getTime() + 12 * 60 * 60 * 1000);
+  });
+
+  it('usuario de PRUEBA: su evento queda anclado a Sandbox aunque elija otra pasarela', async () => {
+    // Marca al promotor semilla como usuario de prueba (solo para este caso).
+    const promoter = await prisma.user.findFirstOrThrow({ where: { email: SEED.promoter.toLowerCase().trim() } });
+    await prisma.user.update({ where: { id: promoter.id }, data: { isTestUser: true } });
+    try {
+      const real = await prisma.paymentGateway.create({
+        data: { name: `Real_${stamp}`, provider: 'pagalo', feePct: 0.03, status: 'active', sandbox: false },
+      });
+      const res = await http()
+        .post('/api/v1/events')
+        .set(bearer(promoterToken))
+        .send(body({ gatewayId: real.id }))
+        .expect(201);
+      const ev = await prisma.event.findUniqueOrThrow({ where: { id: res.body.id } });
+      // No quedó anclado a la pasarela REAL elegida: se forzó una Sandbox.
+      expect(ev.gatewayId).not.toBe(real.id);
+      const usedGw = await prisma.paymentGateway.findUniqueOrThrow({
+        where: { id: ev.gatewayId as string },
+      });
+      expect(usedGw.sandbox).toBe(true);
+      await prisma.event.delete({ where: { id: ev.id } });
+      await prisma.paymentGateway.delete({ where: { id: real.id } });
+    } finally {
+      await prisma.user.update({ where: { id: promoter.id }, data: { isTestUser: false } });
+    }
+  });
+
   it('detalle por slug: inexistente → 404; borrador no es visible → 404', async () => {
     await http().get('/api/v1/events/no-existe-slug').expect(404);
     const draft = await createEvent(promoterToken);
