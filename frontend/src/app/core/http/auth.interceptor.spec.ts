@@ -34,7 +34,7 @@ describe('authInterceptor', () => {
   });
 
   it('adjunta el Bearer a peticiones del API', () => {
-    tokens.setTokens('acc', 'ref');
+    tokens.setAccessToken('acc');
     http.get(`${BASE}/orders`).subscribe();
     const req = mock.expectOne(`${BASE}/orders`);
     expect(req.request.headers.get('Authorization')).toBe('Bearer acc');
@@ -42,7 +42,7 @@ describe('authInterceptor', () => {
   });
 
   it('NO adjunta el Bearer a hosts externos', () => {
-    tokens.setTokens('acc', 'ref');
+    tokens.setAccessToken('acc');
     http.get('http://tercero.test/x').subscribe();
     const req = mock.expectOne('http://tercero.test/x');
     expect(req.request.headers.has('Authorization')).toBe(false);
@@ -50,7 +50,7 @@ describe('authInterceptor', () => {
   });
 
   it('ante 401 refresca y reintenta con el token nuevo', (done) => {
-    tokens.setTokens('old', 'ref');
+    tokens.setAccessToken('old');
     http.get(`${BASE}/orders`).subscribe((res) => {
       expect(res).toEqual({ ok: true });
       done();
@@ -68,8 +68,8 @@ describe('authInterceptor', () => {
     retry.flush({ ok: true });
   });
 
-  it('ante 401 sin refresh token, propaga el error sin refrescar', (done) => {
-    // Sin tokens en absoluto.
+  it('ante 401 sin marca de sesión, propaga el error sin refrescar', (done) => {
+    // Sin sesión previa (ni access ni marca).
     http.get(`${BASE}/orders`).subscribe({
       error: (err) => {
         expect(err.status).toBe(401);
@@ -82,7 +82,7 @@ describe('authInterceptor', () => {
   });
 
   it('no intenta refrescar el propio 401 del refresh', (done) => {
-    tokens.setTokens('old', 'ref');
+    tokens.setAccessToken('old');
     http.post(`${BASE}/auth/refresh`, { refreshToken: 'ref' }).subscribe({
       error: (err) => {
         expect(err.status).toBe(401);

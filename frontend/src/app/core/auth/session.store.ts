@@ -1,7 +1,8 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable, catchError, of, tap } from 'rxjs';
+import { Observable, catchError, of, switchMap, tap } from 'rxjs';
 import { ApiClient } from '../http/api-client.service';
 import type { PublicUserResponseDto } from '../api/types';
+import { AuthRefreshService } from './auth-refresh.service';
 import { TokenStore } from './token-store.service';
 
 /**
@@ -18,6 +19,7 @@ export type SessionUser = PublicUserResponseDto;
 export class SessionStore {
   private readonly api = inject(ApiClient);
   private readonly tokens = inject(TokenStore);
+  private readonly refresher = inject(AuthRefreshService);
 
   private readonly _user = signal<SessionUser | null>(null);
   private readonly _loaded = signal(false);
@@ -49,16 +51,42 @@ export class SessionStore {
   }
 
   /**
-   * Resuelve la sesión una sola vez. Si ya está cargada, devuelve el usuario
-   * actual; si hay tokens pero no se ha cargado, llama a /auth/me (y limpia si
-   * falla). Sin tokens, marca cargado y devuelve null. La usan los guards.
+   * Resuelve la sesión una sola vez. Estrategia por escenario:
+   * - Ya cargada → devuelve el usuario actual.
+   * - Sin access token pero con marca de sesión (carga fría / F5): refresca
+   *   PRIMERO con la cookie httpOnly y solo entonces llama a /auth/me → evita el
+   *   401 visible de /auth/me sin token.
+   * - Con access token en memoria (misma pestaña) → /auth/me directo.
+   * - Sin nada → anónimo, sin tocar la red. La usan los guards.
    */
   ensureLoaded(): Observable<SessionUser | null> {
     if (this._loaded()) return of(this._user());
-    if (!this.tokens.getRefreshToken() && !this.tokens.getAccessToken()) {
+
+    const hasAccess = this.tokens.getAccessToken() !== null;
+    const hasHint = this.tokens.hasSessionHint();
+
+    if (!hasAccess && !hasHint) {
       this.setUser(null);
       return of(null);
     }
+
+    if (!hasAccess && hasHint) {
+      // Carga fría: refresh con cookie → me. Sin 401 de /auth/me.
+      return this.refresher.refresh().pipe(
+        switchMap((t) => {
+          if (!t) {
+            this.clear();
+            return of(null);
+          }
+          return this.loadMe();
+        }),
+        catchError(() => {
+          this.clear();
+          return of(null);
+        }),
+      );
+    }
+
     return this.loadMe().pipe(
       catchError(() => {
         this.clear();

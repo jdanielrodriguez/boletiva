@@ -9,6 +9,7 @@ import type {
   TokenPairResponseDto,
 } from '../api/types';
 import { ApiClient } from '../http/api-client.service';
+import { AuthRefreshService } from './auth-refresh.service';
 import { AuthService } from './auth.service';
 import { SessionStore } from './session.store';
 import { TokenStore } from './token-store.service';
@@ -49,6 +50,7 @@ describe('AuthService', () => {
         provideZonelessChangeDetection(),
         { provide: AuthApi, useValue: api },
         { provide: ApiClient, useValue: { get: () => of(null), post: () => of(null) } },
+        { provide: AuthRefreshService, useValue: { refresh: () => of(null) } },
       ],
     });
     auth = TestBed.inject(AuthService);
@@ -63,7 +65,7 @@ describe('AuthService', () => {
     api.login.and.returnValue(of(res));
     auth.login({ email: 'ana@correo.com', password: 'x' }).subscribe(() => {
       expect(tokens.getAccessToken()).toBe('acc');
-      expect(tokens.getRefreshToken()).toBe('ref');
+      expect(tokens.hasSessionHint()).toBe(true);
       expect(session.isAuthenticated()).toBe(true);
       done();
     });
@@ -84,27 +86,29 @@ describe('AuthService', () => {
     const res: SignupResponseDto = { user: USER, tokens: TOKENS };
     api.signup.and.returnValue(of(res));
     auth.signup({ email: 'ana@correo.com', password: 'x', firstName: 'Ana' }).subscribe(() => {
-      expect(tokens.getRefreshToken()).toBe('ref');
+      expect(tokens.getAccessToken()).toBe('acc');
+      expect(tokens.hasSessionHint()).toBe(true);
       expect(session.isAuthenticated()).toBe(true);
       done();
     });
   });
 
-  it('logout limpia la sesión y revoca el refresh en el backend', (done) => {
-    tokens.setTokens('acc', 'ref');
+  it('logout limpia la sesión y revoca la cookie en el backend', (done) => {
+    tokens.setAccessToken('acc');
     session.setUser(USER as never);
     api.logout.and.returnValue(of(void 0));
     auth.logout().subscribe({
       complete: () => {
-        expect(api.logout).toHaveBeenCalledWith('ref');
-        expect(tokens.getRefreshToken()).toBeNull();
+        expect(api.logout).toHaveBeenCalledWith(); // sin token: viaja en la cookie
+        expect(tokens.getAccessToken()).toBeNull();
+        expect(tokens.hasSessionHint()).toBe(false);
         expect(session.isAuthenticated()).toBe(false);
         done();
       },
     });
   });
 
-  it('logout sin refresh token no llama al backend', (done) => {
+  it('logout sin marca de sesión no llama al backend', (done) => {
     session.setUser(USER as never);
     auth.logout().subscribe({
       complete: () => {

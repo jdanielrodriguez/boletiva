@@ -46,12 +46,14 @@ export class AuthApi {
     return this.api.get<ProvidersResponseDto>('/auth/providers');
   }
 
-  refresh(refreshToken: string): Observable<TokenPairResponseDto> {
-    return this.api.post<TokenPairResponseDto>('/auth/refresh', { refreshToken });
+  /** Rota el refresh: el token viaja en la cookie httpOnly (no en el body). */
+  refresh(): Observable<TokenPairResponseDto> {
+    return this.api.post<TokenPairResponseDto>('/auth/refresh', {});
   }
 
-  logout(refreshToken: string): Observable<void> {
-    return this.api.post<void>('/auth/logout', { refreshToken });
+  /** Cierra la sesión: la cookie httpOnly identifica la familia a revocar. */
+  logout(): Observable<void> {
+    return this.api.post<void>('/auth/logout', {});
   }
 
   /** Cambia la contraseña del usuario autenticado (requiere la contraseña actual). */

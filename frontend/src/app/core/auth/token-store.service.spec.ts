@@ -13,38 +13,41 @@ describe('TokenStore', () => {
 
   afterEach(() => localStorage.clear());
 
-  it('arranca sin tokens', () => {
+  it('arranca sin access ni marca de sesión', () => {
     expect(store.getAccessToken()).toBeNull();
-    expect(store.getRefreshToken()).toBeNull();
+    expect(store.hasSessionHint()).toBe(false);
     expect(store.hasSession()).toBe(false);
   });
 
-  it('setTokens guarda access en memoria y refresh en localStorage', () => {
-    store.setTokens('acc', 'ref');
+  it('setAccessToken guarda access en memoria y marca la sesión (refresh en cookie)', () => {
+    store.setAccessToken('acc');
     expect(store.getAccessToken()).toBe('acc');
-    expect(store.getRefreshToken()).toBe('ref');
-    expect(localStorage.getItem('pe_refresh')).toBe('ref');
+    expect(store.hasSessionHint()).toBe(true);
+    expect(localStorage.getItem('pe_session')).toBe('1');
     expect(store.hasSession()).toBe(true);
-  });
-
-  it('setAccessToken solo cambia el access', () => {
-    store.setTokens('acc', 'ref');
-    store.setAccessToken('acc2');
-    expect(store.getAccessToken()).toBe('acc2');
-    expect(store.getRefreshToken()).toBe('ref');
-  });
-
-  it('clear borra todo, incluido localStorage', () => {
-    store.setTokens('acc', 'ref');
-    store.clear();
-    expect(store.getAccessToken()).toBeNull();
-    expect(store.getRefreshToken()).toBeNull();
+    // El refresh NUNCA se persiste en el cliente.
     expect(localStorage.getItem('pe_refresh')).toBeNull();
   });
 
-  it('rehidrata el refresh desde localStorage al construirse', () => {
-    localStorage.setItem('pe_refresh', 'persisted');
+  it('markSession marca la sesión sin fijar access', () => {
+    store.markSession();
+    expect(store.getAccessToken()).toBeNull();
+    expect(store.hasSessionHint()).toBe(true);
+    expect(store.hasSession()).toBe(true);
+  });
+
+  it('clear borra access y la marca de sesión', () => {
+    store.setAccessToken('acc');
+    store.clear();
+    expect(store.getAccessToken()).toBeNull();
+    expect(store.hasSessionHint()).toBe(false);
+    expect(localStorage.getItem('pe_session')).toBeNull();
+  });
+
+  it('rehidrata la marca de sesión desde localStorage al construirse', () => {
+    localStorage.setItem('pe_session', '1');
     const fresh = TestBed.runInInjectionContext(() => new TokenStore());
-    expect(fresh.getRefreshToken()).toBe('persisted');
+    expect(fresh.hasSessionHint()).toBe(true);
+    expect(fresh.getAccessToken()).toBeNull(); // el access nunca se persiste
   });
 });

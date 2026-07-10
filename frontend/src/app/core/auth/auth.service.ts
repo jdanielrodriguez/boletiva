@@ -45,7 +45,7 @@ export class AuthService {
   signup(dto: SignupDto): Observable<SignupResponseDto> {
     return this.authApi.signup(dto).pipe(
       tap((res) => {
-        this.tokens.setTokens(res.tokens.accessToken, res.tokens.refreshToken);
+        this.tokens.setAccessToken(res.tokens.accessToken);
         this.session.setUser(res.user);
       }),
     );
@@ -53,11 +53,12 @@ export class AuthService {
 
   /** Cierra la sesión: revoca el refresh en el backend y limpia el estado local. */
   logout(): Observable<void> {
-    const refreshToken = this.tokens.getRefreshToken();
+    const hadSession = this.tokens.hasSessionHint();
     this.session.clear();
-    if (!refreshToken) return EMPTY;
-    // El estado local ya está limpio; ignoramos errores de red del logout remoto.
-    return this.authApi.logout(refreshToken).pipe(catchError(() => EMPTY));
+    if (!hadSession) return EMPTY;
+    // El estado local ya está limpio; la cookie httpOnly identifica la sesión a
+    // revocar en el backend. Ignoramos errores de red del logout remoto.
+    return this.authApi.logout().pipe(catchError(() => EMPTY));
   }
 
   /** Cambia la contraseña estando autenticado (transporta al SDK). */
@@ -77,7 +78,7 @@ export class AuthService {
 
   private applyLogin(res: LoginResponseDto | AuthSessionResponseDto): void {
     if (res.status === 'ok' && res.tokens && res.user) {
-      this.tokens.setTokens(res.tokens.accessToken, res.tokens.refreshToken);
+      this.tokens.setAccessToken(res.tokens.accessToken);
       this.session.setUser(res.user);
     }
   }

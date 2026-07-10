@@ -50,7 +50,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   return next(authed).pipe(
     catchError((err: unknown) => {
       const is401 = err instanceof HttpErrorResponse && err.status === 401;
-      if (!is401 || isAuthFlow || !tokens.getRefreshToken()) {
+      if (!is401 || isAuthFlow || !tokens.hasSessionHint()) {
         return throwError(() => err);
       }
       return retryWithRefresh(req, next, refresher, err);

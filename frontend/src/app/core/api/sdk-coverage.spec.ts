@@ -54,9 +54,9 @@ describe('SDK — contrato de rutas', () => {
     hit('GET', '/auth/me');
     a.providers().subscribe();
     hit('GET', '/auth/providers');
-    a.refresh('r').subscribe();
+    a.refresh().subscribe();
     hit('POST', '/auth/refresh');
-    a.logout('r').subscribe();
+    a.logout().subscribe();
     hit('POST', '/auth/logout');
     a.changePassword({ currentPassword: 'a', newPassword: 'bbbbbbbb' }).subscribe();
     hit('POST', '/auth/change-password');
