@@ -16,7 +16,7 @@ import type {
   PriceQuoteResponseDto,
 } from '../../core/api/types';
 
-type Tab = 'datos' | 'localidades' | 'banner' | 'config' | 'cuentas';
+type Tab = 'datos' | 'localidades' | 'banner' | 'config' | 'cuentas' | 'dashboard';
 type BannerTemplate = 'aurora' | 'midnight' | 'sunset' | 'forest' | 'mono';
 
 /** Convierte ISO a valor de <input datetime-local> (YYYY-MM-DDTHH:mm, hora local). */
@@ -117,7 +117,7 @@ export class EventEditPage {
 
     // Tab inicial desde el query param (?tab=cuentas) — usado por la consola admin.
     const tab = this.route.snapshot.queryParamMap.get('tab');
-    if (tab && ['datos', 'localidades', 'banner', 'config', 'cuentas'].includes(tab)) {
+    if (tab && ['datos', 'localidades', 'banner', 'config', 'cuentas', 'dashboard'].includes(tab)) {
       this.tab.set(tab as Tab);
     }
 
