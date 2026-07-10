@@ -444,6 +444,79 @@ app-root {
   margin: 0 auto;
 }
 
+/* --- Página legal (Términos y Condiciones) --- */
+.legal-page {
+  max-width: 820px;
+  line-height: 1.65;
+}
+.legal-head h1 {
+  margin: 0 0 0.35rem;
+}
+.legal-updated {
+  color: var(--pe-muted);
+  font-size: 0.9rem;
+  margin: 0 0 1rem;
+}
+.legal-intro {
+  color: var(--pe-text);
+  font-size: 1.02rem;
+}
+.legal-toc {
+  background: var(--pe-surface);
+  border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius);
+  padding: 1rem 1.25rem;
+  margin: 1.5rem 0 2rem;
+}
+.legal-toc h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  color: var(--pe-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.legal-toc ol {
+  margin: 0;
+  padding-left: 0;
+  list-style: none; /* los encabezados ya llevan su número → sin doble numeración */
+  columns: 2;
+  column-gap: 2rem;
+}
+.legal-toc li {
+  margin-bottom: 0.35rem;
+  break-inside: avoid;
+}
+.legal-toc a {
+  color: var(--pe-text);
+}
+.legal-toc a:hover {
+  color: var(--pe-primary);
+}
+.legal-section {
+  margin-bottom: 1.75rem;
+  scroll-margin-top: 80px; /* el header sticky no tapa el ancla */
+}
+.legal-section h2 {
+  font-size: 1.2rem;
+  margin: 0 0 0.6rem;
+}
+.legal-section p {
+  margin: 0 0 0.7rem;
+  color: var(--pe-text);
+}
+.legal-section ul {
+  margin: 0.2rem 0 0.7rem;
+  padding-left: 1.25rem;
+}
+.legal-section li {
+  margin-bottom: 0.4rem;
+}
+@media (max-width: 640px) {
+  .legal-toc ol {
+    columns: 1;
+  }
+}
+
 .muted {
   color: var(--pe-muted);
 }
