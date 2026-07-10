@@ -71,13 +71,7 @@
       }
     </div>
 
-    @if (totalPages() > 1) {
-      <div class="catalog-pager" data-testid="panel-pager">
-        <button type="button" class="pager-arrow" [disabled]="!hasPrev()" (click)="goToPage(page() - 1)">‹</button>
-        <span class="pager-page is-current">{{ page() }} / {{ totalPages() }}</span>
-        <button type="button" class="pager-arrow" [disabled]="!hasNext()" (click)="goToPage(page() + 1)">›</button>
-      </div>
-    }
+    <app-pager [page]="page()" [totalPages]="totalPages()" (pageChange)="goToPage($event)" data-testid="panel-pager" />
   }
 
   @if (confirm(); as cf) {

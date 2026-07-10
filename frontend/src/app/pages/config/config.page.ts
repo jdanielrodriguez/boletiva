@@ -16,6 +16,7 @@ import {
   type ConfirmRequest,
 } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
+import { PagerComponent } from '../../shared/ui/pager.component';
 import type { CreatedInvitationDto, InvitationListItemDto } from '../../core/api/types';
 
 type AdminTab = 'eventos' | 'promotores' | 'sistema' | 'invitaciones';
@@ -52,7 +53,7 @@ const INV_PAGE = 9;
  */
 @Component({
   selector: 'app-config-page',
-  imports: [FormsModule, DatePipe, IconComponent, ConfirmDialogComponent],
+  imports: [FormsModule, DatePipe, IconComponent, ConfirmDialogComponent, PagerComponent],
   templateUrl: './config.page.html',
 })
 export class ConfigPage {

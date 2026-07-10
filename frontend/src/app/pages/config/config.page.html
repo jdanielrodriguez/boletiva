@@ -46,13 +46,7 @@
             </article>
           }
         </div>
-        @if (eventsTotalPages() > 1) {
-          <div class="catalog-pager">
-            <button type="button" class="pager-arrow" [disabled]="eventsPage() <= 1" (click)="goToEventsPage(eventsPage() - 1)">‹</button>
-            <span class="pager-page is-current">{{ eventsPage() }} / {{ eventsTotalPages() }}</span>
-            <button type="button" class="pager-arrow" [disabled]="eventsPage() >= eventsTotalPages()" (click)="goToEventsPage(eventsPage() + 1)">›</button>
-          </div>
-        }
+        <app-pager [page]="eventsPage()" [totalPages]="eventsTotalPages()" (pageChange)="goToEventsPage($event)" data-testid="events-pager" />
       } @else {
         <p class="muted">No hay eventos con ese filtro.</p>
       }
@@ -393,13 +387,7 @@
             <p class="muted" data-testid="inv-no-match">Ninguna invitación coincide con la búsqueda.</p>
           }
         </div>
-        @if (invTotalPages() > 1) {
-          <div class="catalog-pager" data-testid="inv-pager">
-            <button type="button" class="pager-arrow" [disabled]="invPage() <= 1" (click)="goToInvPage(invPage() - 1)" aria-label="Página anterior" title="Anterior">‹</button>
-            <span class="pager-page is-current">{{ invPage() }} / {{ invTotalPages() }}</span>
-            <button type="button" class="pager-arrow" [disabled]="invPage() >= invTotalPages()" (click)="goToInvPage(invPage() + 1)" aria-label="Página siguiente" title="Siguiente">›</button>
-          </div>
-        }
+        <app-pager [page]="invPage()" [totalPages]="invTotalPages()" (pageChange)="goToInvPage($event)" data-testid="inv-pager" />
       } @else {
         <p class="muted">Aún no has enviado invitaciones.</p>
       }

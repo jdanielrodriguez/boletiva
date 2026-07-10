@@ -236,13 +236,7 @@
                 </article>
               }
             </div>
-            @if (billingTotalPages() > 1) {
-              <div class="catalog-pager" data-testid="billing-pager">
-                <button type="button" class="pager-arrow" [disabled]="billingPage() <= 1" (click)="goToBillingPage(billingPage() - 1)" aria-label="Página anterior" title="Anterior">‹</button>
-                <span class="pager-page is-current">{{ billingPage() }} / {{ billingTotalPages() }}</span>
-                <button type="button" class="pager-arrow" [disabled]="billingPage() >= billingTotalPages()" (click)="goToBillingPage(billingPage() + 1)" aria-label="Página siguiente" title="Siguiente">›</button>
-              </div>
-            }
+            <app-pager [page]="billingPage()" [totalPages]="billingTotalPages()" (pageChange)="goToBillingPage($event)" data-testid="billing-pager" />
           }
         }
 
@@ -465,13 +459,7 @@
                 </article>
               }
             </div>
-            @if (activosTotalPages() > 1) {
-              <div class="catalog-pager" data-testid="activos-pager">
-                <button type="button" class="pager-arrow" [disabled]="activosPage() <= 1" (click)="goToActivosPage(activosPage() - 1)" aria-label="Página anterior" title="Anterior">‹</button>
-                <span class="pager-page is-current">{{ activosPage() }} / {{ activosTotalPages() }}</span>
-                <button type="button" class="pager-arrow" [disabled]="activosPage() >= activosTotalPages()" (click)="goToActivosPage(activosPage() + 1)" aria-label="Página siguiente" title="Siguiente">›</button>
-              </div>
-            }
+            <app-pager [page]="activosPage()" [totalPages]="activosTotalPages()" (pageChange)="goToActivosPage($event)" data-testid="activos-pager" />
           } @else {
             <p class="muted">No tienes boletos activos.</p>
           }

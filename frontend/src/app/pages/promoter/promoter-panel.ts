@@ -9,6 +9,7 @@ import {
   type ConfirmRequest,
 } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
+import { PagerComponent } from '../../shared/ui/pager.component';
 import type { MyEventListItemDto } from '../../core/api/types';
 
 const PAGE_SIZE = 9;
@@ -21,7 +22,7 @@ const PAGE_SIZE = 9;
  */
 @Component({
   selector: 'app-promoter-panel',
-  imports: [FormsModule, DatePipe, RouterLink, IconComponent, ConfirmDialogComponent],
+  imports: [FormsModule, DatePipe, RouterLink, IconComponent, ConfirmDialogComponent, PagerComponent],
   templateUrl: './promoter-panel.html',
 })
 export class PromoterPanel {
