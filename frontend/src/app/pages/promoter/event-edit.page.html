@@ -13,15 +13,21 @@
         <span class="badge badge-{{ ev.status }}">{{ ev.status }}</span>
       </div>
       <div class="ev-card-actions">
-        <button type="button" class="btn" [disabled]="savingData()" (click)="saveData()" data-testid="save-draft-btn">
-          {{ savingData() ? 'Guardando…' : 'Guardar' }}
+        <button type="button" class="btn" [disabled]="savingData()" (click)="saveData()" data-testid="save-draft-btn" title="Guardar borrador">
+          <app-icon name="save" /> {{ savingData() ? 'Guardando…' : 'Guardar' }}
         </button>
         @if (ev.status === 'draft') {
-          <button type="button" class="btn primary" (click)="publish()" data-testid="publish-btn">Publicar</button>
-          <button type="button" class="btn danger" (click)="remove()" data-testid="delete-btn">Eliminar</button>
+          <button type="button" class="btn primary" (click)="publish()" data-testid="publish-btn" title="Publicar evento">
+            <app-icon name="publish" /> Publicar
+          </button>
+          <button type="button" class="btn danger" (click)="remove()" data-testid="delete-btn" title="Eliminar evento">
+            <app-icon name="delete" /> Eliminar
+          </button>
         }
         @if (ev.status === 'published') {
-          <button type="button" class="btn danger" (click)="cancelEvent()" data-testid="cancel-btn">Cancelar evento</button>
+          <button type="button" class="btn danger" (click)="cancelEvent()" data-testid="cancel-btn" title="Cancelar evento">
+            <app-icon name="cancel" /> Cancelar evento
+          </button>
         }
       </div>
     </div>
@@ -64,8 +70,8 @@
               <textarea [ngModel]="d.description()" (ngModelChange)="d.description.set($event)" name="desc" rows="3"></textarea>
             </label>
           </div>
-          <button type="button" class="btn primary" [disabled]="savingData()" (click)="saveData()" data-testid="ed-save">
-            {{ savingData() ? 'Guardando…' : 'Guardar datos' }}
+          <button type="button" class="btn primary" [disabled]="savingData()" (click)="saveData()" data-testid="ed-save" title="Guardar datos">
+            <app-icon name="save" /> {{ savingData() ? 'Guardando…' : 'Guardar datos' }}
           </button>
         </div>
       }
@@ -73,22 +79,43 @@
       @case ('localidades') {
         <div class="card-block">
           @if (localities().length > 0) {
+            <div class="loc-toolbar">
+              <button type="button" class="btn small" (click)="toggleLocSearch()" data-testid="loc-search-toggle"
+                [title]="locSearchOpen() ? 'Ocultar buscador' : 'Buscar localidad'">
+                <app-icon name="search" /> {{ locSearchOpen() ? 'Ocultar buscador' : 'Buscar' }}
+              </button>
+              @if (locSearchOpen()) {
+                <input type="search" class="loc-search-input" placeholder="Buscar localidad por nombre…"
+                  [ngModel]="locSearch()" (ngModelChange)="locSearch.set($event)" name="locsearch" data-testid="loc-search-input" />
+              }
+            </div>
             <ul class="loc-manage-list" data-testid="loc-list">
-              @for (l of localities(); track l.id) {
+              @for (l of filteredLocalities(); track l.id) {
                 <li class="loc-manage-item">
                   <div class="loc-manage-head">
                     <span class="loc-name">{{ l.name }}</span>
-                    <span class="badge">{{ l.kind }}</span>
+                    <span class="badge">{{ l.kind === 'seated' ? 'con asiento' : 'general' }}</span>
                     @if (l.capacity != null) { <span class="muted small">aforo {{ l.capacity }}</span> }
                     @if (l.desiredNet != null) { <span class="muted small">neto Q{{ l.desiredNet }}</span> }
                     <span class="loc-manage-actions">
-                      @if (l.kind === 'seated' && !isPublished()) {
-                        <button type="button" class="btn small" (click)="toggleSeats(l)" data-testid="loc-seats">
-                          {{ editingSeatsFor() === l.id ? 'Cerrar asientos' : 'Administrar asientos' }}
-                        </button>
+                      @if (l.kind === 'seated') {
+                        @if (!isPublished()) {
+                          <button type="button" class="btn small primary" (click)="toggleSeats(l)" data-testid="loc-seats"
+                            [title]="editingSeatsFor() === l.id ? 'Cerrar el editor de asientos' : 'Abrir el editor de asientos'">
+                            <app-icon name="seats" /> {{ editingSeatsFor() === l.id ? 'Cerrar asientos' : 'Administrar asientos' }}
+                          </button>
+                        } @else {
+                          <button type="button" class="btn small" (click)="toggleSeats(l)" data-testid="loc-seats" title="Ver el mapa de asientos">
+                            <app-icon name="seats" /> {{ editingSeatsFor() === l.id ? 'Cerrar asientos' : 'Ver asientos' }}
+                          </button>
+                        }
+                      } @else {
+                        <span class="muted small loc-general-note" data-testid="loc-general-note">Se vende por aforo (sin mapa de asientos)</span>
                       }
                       @if (!isPublished()) {
-                        <button type="button" class="btn small danger" (click)="removeLocality(l)" data-testid="loc-remove">Eliminar</button>
+                        <button type="button" class="btn small danger" (click)="removeLocality(l)" data-testid="loc-remove" title="Eliminar localidad">
+                          <app-icon name="delete" /> Eliminar
+                        </button>
                       }
                     </span>
                   </div>
@@ -96,6 +123,8 @@
                     <app-seat-editor [localityId]="l.id" [readonly]="isPublished()" (changed)="loadLocalitiesPublic()" />
                   }
                 </li>
+              } @empty {
+                <p class="muted" data-testid="loc-search-empty">Ninguna localidad coincide con la búsqueda.</p>
               }
             </ul>
           } @else {
@@ -143,7 +172,9 @@
               }
 
               <div class="loc-form-actions">
-                <button type="button" class="btn primary" (click)="addLocality()" data-testid="loc-add">Agregar localidad</button>
+                <button type="button" class="btn primary" (click)="addLocality()" data-testid="loc-add" title="Agregar localidad">
+                  <app-icon name="add" /> Agregar localidad
+                </button>
               </div>
               <p class="muted small">Las localidades "con asiento" permiten dibujar el mapa; las "general" venden por cantidad (aforo).</p>
             </div>
@@ -166,8 +197,8 @@
               <input type="text" [ngModel]="banner.sampleImages()" (ngModelChange)="banner.sampleImages.set($event)" name="bi" />
             </label>
           </div>
-          <button type="button" class="btn primary" [disabled]="generatingBanner()" (click)="generateBanner()" data-testid="bn-generate">
-            {{ generatingBanner() ? 'Generando…' : 'Generar banner con IA' }}
+          <button type="button" class="btn primary" [disabled]="generatingBanner()" (click)="generateBanner()" data-testid="bn-generate" title="Generar banner con IA">
+            <app-icon name="banner" /> {{ generatingBanner() ? 'Generando…' : 'Generar banner con IA' }}
           </button>
           @if (bannerUrl(); as url) {
             <img class="banner-preview" [src]="url" alt="Banner del evento" data-testid="bn-preview" />
@@ -195,8 +226,8 @@
             <span>Absorbo el costo de las cuotas (Visacuotas/Mastercuotas). Si lo activas, el recargo por financiamiento se descuenta de tu neto; si no, lo cubre la plataforma. El comprador paga igual.</span>
           </label>
 
-          <button type="button" class="btn primary" [disabled]="savingConfig()" (click)="saveConfig()" data-testid="cfg-save">
-            {{ savingConfig() ? 'Guardando…' : 'Guardar configuración' }}
+          <button type="button" class="btn primary" [disabled]="savingConfig()" (click)="saveConfig()" data-testid="cfg-save" title="Guardar configuración">
+            <app-icon name="save" /> {{ savingConfig() ? 'Guardando…' : 'Guardar configuración' }}
           </button>
         </div>
       }

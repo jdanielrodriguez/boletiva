@@ -7,6 +7,7 @@ import { CategoriesApi } from '../../core/api/categories.api';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
 import { ToastService } from '../../core/ui/toast.service';
 import { EventSettlementComponent } from '../../shared/event-settlement/event-settlement.component';
+import { IconComponent } from '../../shared/icon/icon.component';
 import { SeatEditorComponent } from './seat-editor.component';
 import type {
   CategoryResponseDto,
@@ -36,7 +37,7 @@ function toLocalInput(iso: string | null | undefined): string {
  */
 @Component({
   selector: 'app-event-edit',
-  imports: [FormsModule, RouterLink, EventSettlementComponent, SeatEditorComponent],
+  imports: [FormsModule, RouterLink, EventSettlementComponent, SeatEditorComponent, IconComponent],
   templateUrl: './event-edit.page.html',
 })
 export class EventEditPage {
@@ -90,6 +91,14 @@ export class EventEditPage {
   // Localidades
   protected readonly localities = signal<LocalityView[]>([]);
   protected readonly editingSeatsFor = signal<string | null>(null);
+  // Buscador OPCIONAL de localidades (oculto por defecto; útil si hay muchas).
+  protected readonly locSearchOpen = signal(false);
+  protected readonly locSearch = signal('');
+  protected readonly filteredLocalities = computed(() => {
+    const q = this.locSearch().trim().toLowerCase();
+    if (!q) return this.localities();
+    return this.localities().filter((l) => l.name.toLowerCase().includes(q));
+  });
   protected readonly locForm = {
     name: signal(''),
     kind: signal<'seated' | 'general'>('general'),
@@ -291,6 +300,13 @@ export class EventEditPage {
 
   protected toggleSeats(l: LocalityView): void {
     this.editingSeatsFor.set(this.editingSeatsFor() === l.id ? null : l.id);
+  }
+
+  /** Muestra/oculta el buscador opcional de localidades. */
+  protected toggleLocSearch(): void {
+    const open = !this.locSearchOpen();
+    this.locSearchOpen.set(open);
+    if (!open) this.locSearch.set('');
   }
 
   // --- Banner ---

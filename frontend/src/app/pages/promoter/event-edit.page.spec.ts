@@ -173,4 +173,46 @@ describe('EventEditPage (v3)', () => {
     await setup({}, { tab: 'cuentas' });
     expect(fixture.componentInstance['tab']()).toBe('cuentas');
   });
+
+  it('localidades: el buscador es opcional (toggle) y filtra por nombre', async () => {
+    await setup({
+      localities: () =>
+        of([
+          { id: 'l1', name: 'VIP', kind: 'seated' },
+          { id: 'l2', name: 'General', kind: 'general' },
+        ]),
+    });
+    const c = fixture.componentInstance as unknown as {
+      locSearchOpen: () => boolean;
+      locSearch: { set: (v: string) => void };
+      filteredLocalities: () => { id: string }[];
+      toggleLocSearch: () => void;
+    };
+    // Oculto por defecto.
+    expect(c.locSearchOpen()).toBe(false);
+    c.toggleLocSearch();
+    expect(c.locSearchOpen()).toBe(true);
+    c.locSearch.set('vip');
+    fixture.detectChanges();
+    expect(c.filteredLocalities().length).toBe(1);
+    expect(c.filteredLocalities()[0].id).toBe('l1');
+    // Cerrar el buscador limpia el término.
+    c.toggleLocSearch();
+    expect(c.filteredLocalities().length).toBe(2);
+  });
+
+  it('localidades: seated muestra "Administrar asientos"; general muestra la nota de aforo', async () => {
+    await setup({
+      localities: () =>
+        of([
+          { id: 'l1', name: 'VIP', kind: 'seated' },
+          { id: 'l2', name: 'General', kind: 'general' },
+        ]),
+    });
+    fixture.componentInstance['selectTab']('localidades');
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="loc-seats"]')?.textContent).toContain('Administrar asientos');
+    expect(el.querySelector('[data-testid="loc-general-note"]')?.textContent).toContain('aforo');
+  });
 });

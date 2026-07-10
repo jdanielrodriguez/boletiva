@@ -2227,7 +2227,12 @@ button.danger:hover:not(:disabled) { background: rgba(255, 107, 129, 0.12); bord
 }
 .loc-manage-head { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
 .loc-manage-head .loc-name { font-weight: 600; }
-.loc-manage-actions { margin-left: auto; display: flex; gap: 0.4rem; }
+.loc-manage-actions { margin-left: auto; display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; }
+.loc-general-note { font-style: italic; }
+
+/* Barra de herramientas de localidades (buscador opcional) */
+.loc-toolbar { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.8rem; }
+.loc-search-input { flex: 1 1 220px; min-width: 180px; }
 
 /* Editor de asientos */
 .seat-editor { margin-top: 0.8rem; }
@@ -2318,6 +2323,18 @@ button.danger:hover:not(:disabled) { background: rgba(255, 107, 129, 0.12); bord
 .icon-btn:hover {
   background: var(--pe-primary);
   border-color: var(--pe-primary);
+}
+
+/* Iconos SVG inline dentro de botones de acción: alinean con el texto. */
+.app-icon { flex: 0 0 auto; }
+app-icon { display: inline-flex; align-items: center; }
+.btn,
+button.primary,
+button.danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
 }
 
 /* Banner informativo amigable (métodos de pago, etc.) */
@@ -2551,6 +2568,16 @@ button.danger:hover:not(:disabled) { background: rgba(255, 107, 129, 0.12); bord
   gap: 1rem;
   margin: 1rem 0;
 }
+
+/* Formulario de invitar (ancho completo, igual que el grid) */
+.inv-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.inv-form textarea { width: 100%; }
+.inv-form .btn { align-self: flex-start; }
 
 /* Grid de invitaciones (consola admin) */
 .inv-grid {
