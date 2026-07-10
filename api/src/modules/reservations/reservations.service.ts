@@ -7,9 +7,9 @@ import { CheckoutService, BillingInput } from '../orders/checkout.service';
 import { PricingService } from '../pricing/pricing.service';
 import { CreateReservationDto } from './dto/reservations.dto';
 
-/** TTL de una reserva compartible (más largo que un hold normal: hay que dar
- * tiempo a que otra persona la abra y pague). 30 min. */
-const RESERVATION_TTL = 1800;
+/** TTL de una reserva compartible: 10 min (igual que el hold), para que quede
+ * claro que la reserva se mantiene por 10 minutos. */
+const RESERVATION_TTL = 600;
 
 interface TokenPayload {
   rid: string;
