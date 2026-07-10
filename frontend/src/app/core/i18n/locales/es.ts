@@ -12,6 +12,7 @@ import { account } from './es/account';
 import { promoter } from './es/promoter';
 import { becomePromoter } from './es/become-promoter';
 import { config } from './es/config';
+import { promoterHistory } from './es/promoter-history';
 
 /** Diccionario ESPAÑOL (default, es-GT). Compuesto por namespaces. */
 export const es: TranslationObject = {
@@ -28,4 +29,5 @@ export const es: TranslationObject = {
   promoter,
   becomePromoter,
   config,
+  promoterHistory,
 };

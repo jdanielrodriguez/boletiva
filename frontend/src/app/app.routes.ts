@@ -135,6 +135,13 @@ export const routes: Routes = [
     title: 'Configuración — Pasa Eventos',
   },
   {
+    path: 'configuracion/promotores/:id/historial',
+    loadComponent: () =>
+      import('./pages/config/promoter-history.page').then((m) => m.PromoterHistoryPage),
+    canActivate: [roleGuard('admin')],
+    title: 'Historial del promotor — Pasa Eventos',
+  },
+  {
     path: 'cuenta/configuracion',
     loadComponent: () => import('./pages/static/account').then((m) => m.Account),
     canActivate: [authGuard],
