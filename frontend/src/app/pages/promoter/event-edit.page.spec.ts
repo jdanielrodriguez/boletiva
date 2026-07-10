@@ -215,4 +215,47 @@ describe('EventEditPage (v3)', () => {
     expect(el.querySelector('[data-testid="loc-seats"]')?.textContent).toContain('Administrar asientos');
     expect(el.querySelector('[data-testid="loc-general-note"]')?.textContent).toContain('aforo');
   });
+
+  it('localidades: "Administrar asientos" navega a la vista de asientos (no inline)', async () => {
+    await setup({ localities: () => of([{ id: 'l1', name: 'VIP', kind: 'seated' }]) });
+    const nav = spyOn(fixture.componentInstance['router'], 'navigate').and.resolveTo(true);
+    fixture.componentInstance['manageSeats']({ id: 'l1', name: 'VIP', kind: 'seated' } as never);
+    expect(nav).toHaveBeenCalledWith(
+      ['/promotor/eventos', 'e1', 'localidades', 'l1', 'asientos'],
+      { queryParams: {} },
+    );
+  });
+
+  it('localidades: como admin (?from=admin) la navegación a asientos preserva el origen', async () => {
+    await setup({ localities: () => of([{ id: 'l1', name: 'VIP', kind: 'seated' }]) }, { from: 'admin' });
+    const nav = spyOn(fixture.componentInstance['router'], 'navigate').and.resolveTo(true);
+    fixture.componentInstance['manageSeats']({ id: 'l1', name: 'VIP', kind: 'seated' } as never);
+    expect(nav).toHaveBeenCalledWith(
+      ['/promotor/eventos', 'e1', 'localidades', 'l1', 'asientos'],
+      { queryParams: { from: 'admin' } },
+    );
+  });
+
+  it('eliminar evento pide confirmación (modal) antes de borrar', async () => {
+    const remove = jasmine.createSpy('r').and.returnValue(of(undefined));
+    await setup({ remove });
+    // Al eliminar con éxito navega al listado; se espía para no chocar con las rutas vacías.
+    spyOn(fixture.componentInstance['router'], 'navigateByUrl').and.resolveTo(true);
+    fixture.componentInstance['askRemove']();
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="confirm-dialog"]')).not.toBeNull();
+    expect(remove).not.toHaveBeenCalled();
+    fixture.componentInstance['onConfirmAccept']();
+    expect(remove).toHaveBeenCalled();
+  });
+
+  it('eliminar localidad pide confirmación antes de borrar', async () => {
+    const removeLocality = jasmine.createSpy('rl').and.returnValue(of(undefined));
+    await setup({ removeLocality, localities: () => of([{ id: 'l1', name: 'VIP', kind: 'seated' }]) });
+    fixture.componentInstance['askRemoveLocality']({ id: 'l1', name: 'VIP', kind: 'seated' } as never);
+    expect(removeLocality).not.toHaveBeenCalled();
+    fixture.componentInstance['onConfirmAccept']();
+    expect(removeLocality).toHaveBeenCalledWith('l1');
+  });
 });

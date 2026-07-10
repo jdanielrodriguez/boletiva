@@ -94,6 +94,13 @@ export const routes: Routes = [
     title: 'Editar evento — Pasa Eventos',
   },
   {
+    path: 'promotor/eventos/:eventId/localidades/:localityId/asientos',
+    loadComponent: () =>
+      import('./pages/promoter/seat-manager.page').then((m) => m.SeatManagerPage),
+    canActivate: [roleGuard('promoter', 'admin')],
+    title: 'Administrar asientos — Pasa Eventos',
+  },
+  {
     path: 'cuenta',
     loadComponent: () => import('./pages/static/account').then((m) => m.Account),
     canActivate: [authGuard],

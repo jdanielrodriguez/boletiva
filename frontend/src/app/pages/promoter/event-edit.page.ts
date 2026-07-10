@@ -6,9 +6,12 @@ import { Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
 import { CategoriesApi } from '../../core/api/categories.api';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
 import { ToastService } from '../../core/ui/toast.service';
+import {
+  ConfirmDialogComponent,
+  type ConfirmRequest,
+} from '../../shared/confirm-dialog/confirm-dialog.component';
 import { EventSettlementComponent } from '../../shared/event-settlement/event-settlement.component';
 import { IconComponent } from '../../shared/icon/icon.component';
-import { SeatEditorComponent } from './seat-editor.component';
 import type {
   CategoryResponseDto,
   GatewayResponseDto,
@@ -37,7 +40,7 @@ function toLocalInput(iso: string | null | undefined): string {
  */
 @Component({
   selector: 'app-event-edit',
-  imports: [FormsModule, RouterLink, EventSettlementComponent, SeatEditorComponent, IconComponent],
+  imports: [FormsModule, RouterLink, EventSettlementComponent, IconComponent, ConfirmDialogComponent],
   templateUrl: './event-edit.page.html',
 })
 export class EventEditPage {
@@ -90,7 +93,6 @@ export class EventEditPage {
 
   // Localidades
   protected readonly localities = signal<LocalityView[]>([]);
-  protected readonly editingSeatsFor = signal<string | null>(null);
   // Buscador OPCIONAL de localidades (oculto por defecto; útil si hay muchas).
   protected readonly locSearchOpen = signal(false);
   protected readonly locSearch = signal('');
@@ -119,6 +121,17 @@ export class EventEditPage {
   };
   protected readonly bannerUrl = signal<string | null>(null);
   protected readonly generatingBanner = signal(false);
+
+  // Confirmación de acciones destructivas (modal reutilizable).
+  protected readonly confirm = signal<ConfirmRequest | null>(null);
+  protected onConfirmAccept(): void {
+    const c = this.confirm();
+    this.confirm.set(null);
+    c?.onConfirm();
+  }
+  protected onConfirmCancel(): void {
+    this.confirm.set(null);
+  }
 
   constructor() {
     this.categoriesApi.list().subscribe({ next: (c) => this.categories.set(c), error: () => undefined });
@@ -257,9 +270,15 @@ export class EventEditPage {
     });
   }
 
-  /** El editor de asientos cambió el aforo → refresca la lista de localidades. */
-  protected loadLocalitiesPublic(): void {
-    this.loadLocalities();
+  /**
+   * Navega al editor de asientos a PÁGINA COMPLETA de la localidad (vista aparte,
+   * no inline). Preserva `?from=admin` para que el "Volver" regrese bien.
+   */
+  protected manageSeats(l: LocalityView): void {
+    void this.router.navigate(
+      ['/promotor/eventos', this.eventId(), 'localidades', l.id, 'asientos'],
+      { queryParams: this.from() === 'admin' ? { from: 'admin' } : {} },
+    );
   }
 
   protected addLocality(): void {
@@ -288,6 +307,14 @@ export class EventEditPage {
       });
   }
 
+  protected askRemoveLocality(l: LocalityView): void {
+    this.confirm.set({
+      title: 'Eliminar localidad',
+      message: `¿Seguro que deseas eliminar la localidad "${l.name}"? Esta acción no se puede deshacer.`,
+      onConfirm: () => this.removeLocality(l),
+    });
+  }
+
   protected removeLocality(l: LocalityView): void {
     this.api.removeLocality(l.id).subscribe({
       next: () => {
@@ -296,10 +323,6 @@ export class EventEditPage {
       },
       error: () => this.toasts.error('No se pudo eliminar (¿evento publicado?).'),
     });
-  }
-
-  protected toggleSeats(l: LocalityView): void {
-    this.editingSeatsFor.set(this.editingSeatsFor() === l.id ? null : l.id);
   }
 
   /** Muestra/oculta el buscador opcional de localidades. */
@@ -347,6 +370,16 @@ export class EventEditPage {
     });
   }
 
+  protected askCancelEvent(): void {
+    this.confirm.set({
+      title: 'Cancelar evento',
+      message: `¿Seguro que deseas cancelar "${this.event()?.name ?? 'este evento'}"? Dejará de venderse.`,
+      confirmLabel: 'Cancelar evento',
+      confirmIcon: 'cancel',
+      onConfirm: () => this.cancelEvent(),
+    });
+  }
+
   protected cancelEvent(): void {
     this.api.cancel(this.eventId()).subscribe({
       next: (ev) => {
@@ -354,6 +387,14 @@ export class EventEditPage {
         this.toasts.info('Evento cancelado.');
       },
       error: () => this.toasts.error('No se pudo cancelar el evento.'),
+    });
+  }
+
+  protected askRemove(): void {
+    this.confirm.set({
+      title: 'Eliminar evento',
+      message: `¿Seguro que deseas eliminar "${this.event()?.name ?? 'este evento'}"? Esta acción no se puede deshacer.`,
+      onConfirm: () => this.remove(),
     });
   }
 

@@ -20,12 +20,12 @@
           <button type="button" class="btn primary" (click)="publish()" data-testid="publish-btn" title="Publicar evento">
             <app-icon name="publish" /> Publicar
           </button>
-          <button type="button" class="btn danger" (click)="remove()" data-testid="delete-btn" title="Eliminar evento">
+          <button type="button" class="btn danger" (click)="askRemove()" data-testid="delete-btn" title="Eliminar evento">
             <app-icon name="delete" /> Eliminar
           </button>
         }
         @if (ev.status === 'published') {
-          <button type="button" class="btn danger" (click)="cancelEvent()" data-testid="cancel-btn" title="Cancelar evento">
+          <button type="button" class="btn danger" (click)="askCancelEvent()" data-testid="cancel-btn" title="Cancelar evento">
             <app-icon name="cancel" /> Cancelar evento
           </button>
         }
@@ -99,29 +99,20 @@
                     @if (l.desiredNet != null) { <span class="muted small">neto Q{{ l.desiredNet }}</span> }
                     <span class="loc-manage-actions">
                       @if (l.kind === 'seated') {
-                        @if (!isPublished()) {
-                          <button type="button" class="btn small primary" (click)="toggleSeats(l)" data-testid="loc-seats"
-                            [title]="editingSeatsFor() === l.id ? 'Cerrar el editor de asientos' : 'Abrir el editor de asientos'">
-                            <app-icon name="seats" /> {{ editingSeatsFor() === l.id ? 'Cerrar asientos' : 'Administrar asientos' }}
-                          </button>
-                        } @else {
-                          <button type="button" class="btn small" (click)="toggleSeats(l)" data-testid="loc-seats" title="Ver el mapa de asientos">
-                            <app-icon name="seats" /> {{ editingSeatsFor() === l.id ? 'Cerrar asientos' : 'Ver asientos' }}
-                          </button>
-                        }
+                        <button type="button" class="btn small primary" (click)="manageSeats(l)" data-testid="loc-seats"
+                          [title]="isPublished() ? 'Ver el mapa de asientos' : 'Abrir el editor de asientos'">
+                          <app-icon name="seats" /> {{ isPublished() ? 'Ver asientos' : 'Administrar asientos' }}
+                        </button>
                       } @else {
                         <span class="muted small loc-general-note" data-testid="loc-general-note">Se vende por aforo (sin mapa de asientos)</span>
                       }
                       @if (!isPublished()) {
-                        <button type="button" class="btn small danger" (click)="removeLocality(l)" data-testid="loc-remove" title="Eliminar localidad">
+                        <button type="button" class="btn small danger" (click)="askRemoveLocality(l)" data-testid="loc-remove" title="Eliminar localidad">
                           <app-icon name="delete" /> Eliminar
                         </button>
                       }
                     </span>
                   </div>
-                  @if (editingSeatsFor() === l.id) {
-                    <app-seat-editor [localityId]="l.id" [readonly]="isPublished()" (changed)="loadLocalitiesPublic()" />
-                  }
                 </li>
               } @empty {
                 <p class="muted" data-testid="loc-search-empty">Ninguna localidad coincide con la búsqueda.</p>
@@ -246,5 +237,16 @@
         </div>
       }
     }
+  }
+
+  @if (confirm(); as cf) {
+    <app-confirm-dialog
+      [title]="cf.title"
+      [message]="cf.message"
+      [confirmLabel]="cf.confirmLabel ?? 'Eliminar'"
+      [confirmIcon]="cf.confirmIcon ?? 'delete'"
+      (accept)="onConfirmAccept()"
+      (cancelled)="onConfirmCancel()"
+    />
   }
 </section>

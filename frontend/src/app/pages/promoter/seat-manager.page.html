@@ -1,0 +1,34 @@
+<section class="seat-manager">
+  <a [routerLink]="backLink()" [queryParams]="backQuery()" class="link-btn" data-testid="seat-back">
+    ← Volver al evento
+  </a>
+
+  @if (loading()) {
+    <p class="muted">Cargando…</p>
+  } @else if (notFound()) {
+    <p class="error" data-testid="seat-notfound">Evento no encontrado o no tienes permiso.</p>
+  } @else {
+    <div class="panel-header">
+      <div>
+        <h1>
+          <app-icon name="seats" [size]="22" />
+          Administrar asientos
+        </h1>
+        <p class="muted">
+          {{ event()?.name }} · Localidad
+          <strong>{{ locality()?.name ?? localityId() }}</strong>
+        </p>
+      </div>
+    </div>
+
+    @if (readonly()) {
+      <p class="muted small" data-testid="seat-readonly-note">
+        El evento está publicado: el mapa de asientos está bloqueado (solo lectura).
+      </p>
+    }
+
+    <div class="card-block">
+      <app-seat-editor [localityId]="localityId()" [readonly]="readonly()" />
+    </div>
+  }
+</section>

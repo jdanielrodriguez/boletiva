@@ -359,6 +359,23 @@ async function main() {
     assert(txt.includes('Q'), 'el preview no muestra el precio');
   });
 
+  await step('administrar asientos abre una VISTA APARTE (ruta propia) y el back vuelve al evento', async () => {
+    // Crea una localidad "con asiento" para tener el botón de asientos.
+    await promo.waitForSelector('[data-testid="loc-name"]', { timeout: 8000 });
+    await promo.type('[data-testid="loc-name"]', `Platea ${Date.now()}`);
+    await promo.select('select[name="lk"]', 'seated');
+    await promo.click('[data-testid="loc-add"]');
+    await promo.waitForSelector('[data-testid="loc-seats"]', { timeout: 8000 });
+    // "Administrar asientos" NAVEGA a la vista aparte (editor a página completa).
+    await promo.click('[data-testid="loc-seats"]');
+    await promo.waitForSelector('[data-testid="seat-editor"]', { timeout: 12000 });
+    assert(/\/localidades\/.+\/asientos/.test(promo.url()), `no navegó a la vista de asientos: ${promo.url()}`);
+    // El "Volver" regresa al editor del evento (pestaña Localidades).
+    await promo.click('[data-testid="seat-back"]');
+    await promo.waitForSelector('[data-testid="tab-localidades"]', { timeout: 12000 });
+    assert(/\/editar/.test(promo.url()), `el back no volvió al editor: ${promo.url()}`);
+  });
+
   await step('abre la edición del evento y genera el banner IA (vista aparte)', async () => {
     // Recarga el panel (grid estable) y navega por SPA al hacer click en "Editar".
     await promo.goto(`${FE}/promotor`, { waitUntil: 'networkidle0' });
@@ -372,6 +389,18 @@ async function main() {
     await promo.waitForSelector('[data-testid="bn-preview"]', { timeout: 15000 });
     const src = await promo.$eval('[data-testid="bn-preview"]', (i) => i.getAttribute('src'));
     assert(src && src.includes('http'), 'el banner no tiene URL');
+  });
+
+  await step('eliminar un evento pide confirmación (modal); cancelar no borra', async () => {
+    await promo.goto(`${FE}/promotor`, { waitUntil: 'networkidle0' });
+    await promo.waitForSelector('[data-testid="ev-delete"]', { timeout: 12000 });
+    const before = (await promo.$$('[data-testid="ev-card"]')).length;
+    await promo.click('[data-testid="ev-delete"]');
+    await promo.waitForSelector('[data-testid="confirm-dialog"]', { timeout: 8000 });
+    await promo.click('[data-testid="confirm-cancel"]');
+    await sleep(300);
+    const after = (await promo.$$('[data-testid="ev-card"]')).length;
+    assert(after === before, 'cancelar la confirmación no debería borrar el evento');
   });
 
   await step('el promotor NO ve el enlace de invitaciones (exclusivo admin)', async () => {
