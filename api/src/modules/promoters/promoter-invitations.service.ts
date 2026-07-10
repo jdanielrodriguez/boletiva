@@ -134,6 +134,20 @@ export class PromoterInvitationsService {
   }
 
   /**
+   * Vista pública por token: además del correo, indica si YA existe una cuenta con
+   * ese correo. El frontend decide: si existe → pedir iniciar sesión y aceptar
+   * (activa el rol promotor sin registro); si no → mandar al registro precargado.
+   */
+  async peekByToken(token: string) {
+    const inv = await this.findUsable(token);
+    const user = await this.prisma.user.findUnique({
+      where: { email: inv.email.toLowerCase() },
+      select: { id: true },
+    });
+    return { email: inv.email, accountExists: !!user, valid: true };
+  }
+
+  /**
    * Acepta la invitación: el usuario autenticado (cuyo email debe coincidir) queda
    * AUTO-APROBADO como promotor. Marca la invitación como aceptada. Idempotente si
    * ya la aceptó el mismo usuario.

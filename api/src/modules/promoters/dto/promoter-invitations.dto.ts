@@ -100,6 +100,32 @@ export class InvitationPeekDto {
   valid!: boolean;
 }
 
+export class InvitationByTokenDto {
+  @ApiProperty({ example: 'nuevo@promotor.com', description: 'Correo al que se invitó' })
+  email!: string;
+
+  @ApiProperty({
+    example: true,
+    description: 'Si ya existe una cuenta con ese correo (→ iniciar sesión y aceptar, sin registro)',
+  })
+  accountExists!: boolean;
+
+  @ApiProperty({ example: true })
+  valid!: boolean;
+}
+
+export class InvitationAcceptedDto {
+  @ApiProperty({ example: true })
+  accepted!: boolean;
+
+  @ApiProperty({
+    type: 'object',
+    additionalProperties: true,
+    description: 'Estado de promotor resultante',
+  })
+  promoter!: Record<string, unknown>;
+}
+
 export class InvitationRevokedDto {
   @ApiProperty({ format: 'uuid' })
   id!: string;

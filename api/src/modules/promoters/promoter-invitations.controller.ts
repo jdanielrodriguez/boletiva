@@ -20,6 +20,8 @@ import {
   ClaimInvitationDto,
   CreateInvitationsDto,
   CreateInvitationsResponseDto,
+  InvitationAcceptedDto,
+  InvitationByTokenDto,
   InvitationListItemDto,
   InvitationPeekDto,
   InvitationRevokedDto,
@@ -56,11 +58,32 @@ export class PromoterInvitationsController {
     return this.invitations.peek(token);
   }
 
+  @Get('by-token/:token')
+  @Public()
+  @ApiOperation({
+    summary: 'Vista pública por token: correo invitado + si ya existe cuenta (login vs registro)',
+  })
+  @ApiOkResponse({ type: InvitationByTokenDto })
+  byToken(@Param('token') token: string) {
+    return this.invitations.peekByToken(token);
+  }
+
   @Post('accept')
   @HttpCode(200)
   @ApiOperation({ summary: 'Acepta la invitación: el usuario queda auto-aprobado como promotor' })
+  @ApiOkResponse({ type: InvitationAcceptedDto })
   accept(@Body() dto: ClaimInvitationDto, @CurrentUser('userId') userId: string) {
     return this.invitations.accept(dto.token, userId);
+  }
+
+  @Post('by-token/:token/accept')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Acepta por token en la URL (cuenta existente): activa el rol promotor sin registro',
+  })
+  @ApiOkResponse({ type: InvitationAcceptedDto })
+  acceptByToken(@Param('token') token: string, @CurrentUser('userId') userId: string) {
+    return this.invitations.accept(token, userId);
   }
 
   @Delete(':id')
