@@ -187,6 +187,7 @@ export class Account {
     const status = this.filterStatus();
     const eventQ = this.filterEvent().trim().toLowerCase();
     const date = this.filterDate();
+    // El backend ya devuelve las órdenes más recientes primero (keyset DESC).
     return this.orders().filter((o) => {
       if (of) return o.id === of;
       if (status && o.status !== status) return false;
