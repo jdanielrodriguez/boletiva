@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
+import { renderEmail, type RenderInput } from './email-template';
 
 /**
  * Servicio de correo (Nodemailer). MailHog en local; SMTP/SES/SendGrid en prod.
@@ -35,6 +36,15 @@ export class MailService implements OnModuleInit {
 
   async send(options: { to: string; subject: string; html: string; text?: string }): Promise<void> {
     await this.transporter.sendMail({ from: this.from, ...options });
+  }
+
+  /**
+   * Envía un correo usando la plantilla base profesional (marca + footer + CTA).
+   * Envuelve el contenido específico y produce multipart (HTML + texto plano).
+   */
+  async sendTemplated(to: string, subject: string, input: RenderInput): Promise<void> {
+    const { html, text } = renderEmail(input);
+    await this.send({ to, subject, html, text });
   }
 
   /** Verificación de conectividad SMTP para el health-check. */

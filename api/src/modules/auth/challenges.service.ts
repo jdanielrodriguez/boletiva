@@ -128,12 +128,19 @@ export class ChallengesService {
     };
     const t = templates[purpose];
     const link = token ? `${origin}${t.path}?token=${token}` : '';
-    const html = `
-      <p>${t.intro}</p>
-      <p>Tu código: <b style="font-size:20px;letter-spacing:3px">${code}</b> (válido por poco tiempo).</p>
-      ${link ? `<p>O haz clic: <a href="${link}">Continuar</a></p>` : ''}`;
+    const bodyHtml = `
+      <p style="margin:0 0 14px 0;">${t.intro}</p>
+      <p style="margin:0 0 6px 0;">Tu código de verificación:</p>
+      <p style="margin:0;font-size:30px;font-weight:700;letter-spacing:8px;color:#7c3aed;">${code}</p>
+      <p class="pe-muted" style="margin:14px 0 0 0;font-size:14px;color:#6b6b76;">Válido por poco tiempo. Si no lo solicitaste, ignora este correo.</p>`;
     try {
-      await this.mail.send({ to: email, subject: t.subject, html });
+      await this.mail.sendTemplated(email, t.subject, {
+        title: t.subject.replace(' — Pasa Eventos', ''),
+        preheader: t.intro,
+        bodyHtml,
+        bodyText: `${t.intro}\nTu código: ${code} (válido por poco tiempo).`,
+        cta: link ? { url: link, label: 'Continuar' } : undefined,
+      });
     } catch (err) {
       this.logger.warn(`No se pudo enviar (${purpose}) a ${email}: ${(err as Error).message}`);
     }

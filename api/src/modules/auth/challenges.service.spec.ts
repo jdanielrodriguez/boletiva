@@ -19,7 +19,7 @@ describe('ChallengesService (retos OTP + magic link, unit)', () => {
       },
       user: { findUnique: jest.fn() },
     };
-    const mail = { send: jest.fn().mockResolvedValue(undefined) };
+    const mail = { send: jest.fn().mockResolvedValue(undefined), sendTemplated: jest.fn().mockResolvedValue(undefined) };
     const config = { get: jest.fn(() => ['http://front.local']) };
     const service = new ChallengesService(prisma as never, mail as never, config as never);
     return { prisma, mail, service };
@@ -31,12 +31,12 @@ describe('ChallengesService (retos OTP + magic link, unit)', () => {
       await service.issue('u1', 'u1@x.com', 'email_verify', { withMagicLink: true });
       expect(prisma.authChallenge.updateMany).toHaveBeenCalled();
       expect(prisma.authChallenge.create).toHaveBeenCalled();
-      expect(mail.send).toHaveBeenCalled();
+      expect(mail.sendTemplated).toHaveBeenCalled();
     });
 
     it('tolera un fallo de envío de correo (no lanza)', async () => {
       const { mail, service } = build();
-      mail.send.mockRejectedValue(new Error('smtp caído'));
+      mail.sendTemplated.mockRejectedValue(new Error('smtp caído'));
       await expect(service.issue('u1', 'u1@x.com', 'passwordless')).resolves.toBeUndefined();
     });
 
@@ -50,11 +50,11 @@ describe('ChallengesService (retos OTP + magic link, unit)', () => {
         },
         user: { findUnique: jest.fn() },
       };
-      const mail = { send: jest.fn().mockResolvedValue(undefined) };
+      const mail = { send: jest.fn().mockResolvedValue(undefined), sendTemplated: jest.fn().mockResolvedValue(undefined) };
       const config = { get: jest.fn(() => undefined) }; // cors.origins ausente → ?? [] y ?? ''
       const service = new ChallengesService(prisma as never, mail as never, config as never);
       await service.issue('u1', 'u1@x.com', 'email_verify', { withMagicLink: true });
-      expect(mail.send).toHaveBeenCalled();
+      expect(mail.sendTemplated).toHaveBeenCalled();
     });
   });
 

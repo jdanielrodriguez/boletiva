@@ -11,6 +11,7 @@ import { User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { MailService } from '../../infra/mail/mail.service';
+import { escapeHtml, type RenderInput } from '../../infra/mail/email-template';
 import { sha256, randomToken } from '../../common/utils/crypto';
 import { TokensService, TokenPair } from './tokens.service';
 import { ChallengesService } from './challenges.service';
@@ -291,11 +292,13 @@ export class AuthService {
       },
     });
     const origin = (this.config.get<string[]>('cors.origins') ?? [])[0] ?? '';
-    await this.safeSend(
-      user.email,
-      'Recupera tu contraseña',
-      `<p>Restablece tu contraseña (válido 1 hora):</p><p><a href="${origin}/reset-password?token=${raw}">Restablecer</a></p>`,
-    );
+    await this.safeSend(user.email, 'Recupera tu contraseña — Pasa Eventos', {
+      title: 'Recupera tu contraseña',
+      preheader: 'Restablece la contraseña de tu cuenta en Pasa Eventos.',
+      bodyHtml: `<p style="margin:0 0 12px 0;">Recibimos una solicitud para restablecer tu contraseña. El enlace es válido por 1 hora.</p>
+        <p class="pe-muted" style="margin:0;font-size:14px;color:#6b6b76;">Si no fuiste tú, ignora este correo: tu contraseña no cambiará.</p>`,
+      cta: { url: `${origin}/reset-password?token=${raw}`, label: 'Restablecer contraseña' },
+    });
   }
 
   async resetPassword(dto: ResetPasswordDto): Promise<void> {
@@ -348,18 +351,21 @@ export class AuthService {
   }
 
   private async sendNewDeviceAlert(user: User, ctx: DeviceContext): Promise<void> {
-    await this.safeSend(
-      user.email,
-      'Nuevo inicio de sesión — Pasa Eventos',
-      `<p>Hola ${user.firstName}, detectamos un inicio de sesión desde un nuevo dispositivo.</p>
-       <p>IP: ${ctx.ip ?? 'desconocida'} · ${ctx.userAgent ?? ''}</p>
-       <p>Si no fuiste tú, cambia tu contraseña de inmediato.</p>`,
-    );
+    const ip = escapeHtml(ctx.ip ?? 'desconocida');
+    const ua = escapeHtml(ctx.userAgent ?? 'dispositivo desconocido');
+    await this.safeSend(user.email, 'Nuevo inicio de sesión — Pasa Eventos', {
+      title: 'Nuevo inicio de sesión',
+      preheader: 'Detectamos un acceso desde un nuevo dispositivo.',
+      bodyHtml: `<p style="margin:0 0 12px 0;">Hola ${escapeHtml(user.firstName)}, detectamos un inicio de sesión desde un nuevo dispositivo.</p>
+        <p style="margin:0 0 4px 0;"><strong>IP:</strong> ${ip}</p>
+        <p style="margin:0 0 12px 0;"><strong>Dispositivo:</strong> ${ua}</p>
+        <p class="pe-muted" style="margin:0;font-size:14px;color:#6b6b76;">Si no fuiste tú, cambia tu contraseña de inmediato.</p>`,
+    });
   }
 
-  private async safeSend(to: string, subject: string, html: string): Promise<void> {
+  private async safeSend(to: string, subject: string, input: RenderInput): Promise<void> {
     try {
-      await this.mail.send({ to, subject, html });
+      await this.mail.sendTemplated(to, subject, input);
     } catch (err) {
       this.logger.warn(`No se pudo enviar correo a ${to}: ${(err as Error).message}`);
     }

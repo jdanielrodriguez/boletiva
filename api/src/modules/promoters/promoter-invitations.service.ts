@@ -6,8 +6,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Logger } from '@nestjs/common';
 import { PromoterInvitationStatus } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { MailService } from '../../infra/mail/mail.service';
 import { randomToken, sha256 } from '../../common/utils/crypto';
 import { PromotersService } from './promoters.service';
 
@@ -25,10 +27,13 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  */
 @Injectable()
 export class PromoterInvitationsService {
+  private readonly logger = new Logger(PromoterInvitationsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly promoters: PromotersService,
+    private readonly mail: MailService,
   ) {}
 
   private origin(): string {
@@ -59,15 +64,32 @@ export class PromoterInvitationsService {
       const inv = await this.prisma.promoterInvitation.create({
         data: { email, tokenHash: sha256(token), invitedById, expiresAt, isTestUser },
       });
+      const url = `${this.origin()}/registro?token=${token}`;
+      await this.sendInvitationEmail(email, url);
       invitations.push({
         id: inv.id,
         email,
         token,
-        url: `${this.origin()}/registro?token=${token}`,
+        url,
         expiresAt: expiresAt.toISOString(),
       });
     }
     return { invitations };
+  }
+
+  /** Envía el correo de invitación con el enlace de registro (tolerante a fallos). */
+  private async sendInvitationEmail(email: string, url: string): Promise<void> {
+    try {
+      await this.mail.sendTemplated(email, 'Te invitaron a ser promotor — Pasa Eventos', {
+        title: 'Te invitaron a ser promotor',
+        preheader: 'Crea tu cuenta de promotor en Pasa Eventos y empieza a vender.',
+        bodyHtml: `<p style="margin:0 0 12px 0;">Te invitamos a unirte a <strong>Pasa Eventos</strong> como promotor. Al registrarte con este enlace, tu cuenta quedará <strong>aprobada automáticamente</strong> para crear y publicar eventos.</p>
+          <p class="pe-muted" style="margin:0;font-size:14px;color:#6b6b76;">El enlace vence en ${TTL_DAYS} días. Si no esperabas esta invitación, puedes ignorar este correo.</p>`,
+        cta: { url, label: 'Crear mi cuenta de promotor' },
+      });
+    } catch (err) {
+      this.logger.warn(`No se pudo enviar la invitación a ${email}: ${(err as Error).message}`);
+    }
   }
 
   /** Lista invitaciones: admin ve todas; un promotor ve solo las suyas. */

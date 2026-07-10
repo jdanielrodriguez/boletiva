@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '../../infra/prisma/prisma.service';
-import { createTestApp, SEED } from './utils';
+import { createTestApp, SEED, clearMail, lastEmailFor } from './utils';
 import { sha256 } from '../../common/utils/crypto';
 
 /**
@@ -81,6 +81,19 @@ describe('Invitación de promotores (e2e)', () => {
     expect(rows.every((r) => r.status === 'pending')).toBe(true);
     // El token se guarda hasheado, nunca en claro.
     expect(rows[0].tokenHash).not.toBe(res.body.invitations[0].token);
+  });
+
+  it('la invitación ENVÍA un correo con el enlace de registro (llega a MailHog, plantilla con marca)', async () => {
+    const email = `inv_${stamp}_mail@test.com`;
+    await clearMail();
+    const { body } = await invite([email]).expect(201);
+    const token = body.invitations[0].token;
+    const mail = await lastEmailFor(email);
+    expect(mail.subject).toMatch(/promotor/i);
+    // Lleva el enlace de registro con el token y la marca de la plantilla.
+    expect(mail.body).toContain(`/registro?token=${token}`);
+    expect(mail.body.toLowerCase()).toContain('pasa');
+    expect(mail.body.toLowerCase()).toContain('eventos');
   });
 
   it('peek público devuelve el correo del token (para precargar el registro)', async () => {

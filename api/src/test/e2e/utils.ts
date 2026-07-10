@@ -61,6 +61,25 @@ export async function clearMail(): Promise<void> {
   await axios.delete(`${MAILHOG}/api/v1/messages`).catch(() => undefined);
 }
 
+/** Devuelve el correo (subject + body decodificado) más reciente enviado a `email`. */
+export async function lastEmailFor(
+  email: string,
+): Promise<{ subject: string; body: string }> {
+  for (let i = 0; i < 12; i++) {
+    const { data } = await axios.get(`${MAILHOG}/api/v2/messages`);
+    for (const m of data.items ?? []) {
+      const to = (m.Content?.Headers?.To ?? []).join(',');
+      if (to.includes(email)) {
+        const subject = (m.Content?.Headers?.Subject ?? []).join(' ');
+        const body = String(m.Content?.Body ?? '').replace(/=\r?\n/g, '').replace(/=3D/g, '=');
+        return { subject, body };
+      }
+    }
+    await new Promise((r) => setTimeout(r, 300));
+  }
+  throw new Error(`No llegó correo para ${email}`);
+}
+
 /** Devuelve el código de 6 dígitos del correo más reciente enviado a `email`. */
 export async function lastEmailCode(email: string): Promise<string> {
   for (let i = 0; i < 10; i++) {
