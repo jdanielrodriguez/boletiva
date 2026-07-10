@@ -392,9 +392,9 @@ async function main() {
       () => /5000/.test(document.querySelector('[data-testid="se-count"]')?.textContent || ''),
       { timeout: 8000 },
     );
-    // El botón "Agregar plantilla" abre el desplegable de plantillas.
-    await promo.click('[data-testid="tpl-toggle"]');
-    await promo.waitForSelector('[data-testid="tpl-menu"]', { timeout: 6000 });
+    // El menú "Generar" abre el desplegable de generadores + plantillas (v3.5).
+    await promo.click('[data-testid="gen-toggle"]');
+    await promo.waitForSelector('[data-testid="gen-menu"]', { timeout: 6000 });
     await promo.click('[data-testid="tpl-theater"]');
     await promo.waitForFunction(
       () => !/5000/.test(document.querySelector('[data-testid="se-count"]')?.textContent || ''),
@@ -526,6 +526,72 @@ async function main() {
     assert(email.includes('e2e_inv_'), `correo no precargado: ${email}`);
     const ro = await guest.$eval('[data-testid="rg-email"]', (i) => i.readOnly);
     assert(ro === true, 'el correo de la invitación debería estar bloqueado');
+    await guestCtx.close();
+  });
+
+  await step('v3.5 admin: la consola tiene tabs Salones, Plantillas y Configuraciones', async () => {
+    await adminPg.goto(`${FE}/configuracion`, { waitUntil: 'networkidle0' });
+    await adminPg.waitForSelector('[data-testid="tab-salones"]', { timeout: 12000 });
+    assert((await adminPg.$('[data-testid="tab-plantillas"]')) !== null, 'falta la tab Plantillas');
+    assert((await adminPg.$('[data-testid="tab-ajustes"]')) !== null, 'falta la tab Configuraciones');
+  });
+
+  await step('v3.5 admin: crear un salón con el mapa (Nuevo salón → form + mapa)', async () => {
+    await adminPg.click('[data-testid="tab-salones"]');
+    await adminPg.waitForSelector('[data-testid="hall-new"]', { timeout: 10000 });
+    await adminPg.click('[data-testid="hall-new"]');
+    await adminPg.waitForSelector('[data-testid="hall-form"]', { timeout: 8000 });
+    await adminPg.waitForSelector('[data-testid="map-picker"]', { timeout: 8000 });
+    await adminPg.type('[data-testid="hall-name"]', `Salón E2E ${Date.now()}`);
+    await adminPg.click('[data-testid="hall-save"]');
+    await adminPg.waitForSelector('[data-testid="hall-card"]', { timeout: 10000 });
+  });
+
+  await step('v3.5 admin: configuraciones (settings) se listan y son editables', async () => {
+    // Navega fresco (evita interferir con el mapa/leaflet de la tab Salones).
+    await adminPg.goto(`${FE}/configuracion`, { waitUntil: 'networkidle0' });
+    await adminPg.waitForSelector('[data-testid="tab-ajustes"]', { timeout: 12000 });
+    await adminPg.click('[data-testid="tab-ajustes"]');
+    await adminPg.waitForSelector('[data-testid="settings-list"]', { timeout: 15000 });
+    const rows = (await adminPg.$$('[data-testid="setting-row"]')).length;
+    assert(rows >= 10, `se esperaban ≥10 configuraciones, hay ${rows}`);
+  });
+
+  await step('v3.5 admin: filtro de eventos por promotor', async () => {
+    await adminPg.click('[data-testid="tab-eventos"]');
+    await adminPg.waitForSelector('[data-testid="event-promoter-filter"]', { timeout: 10000 });
+    const opts = await adminPg.$$eval('[data-testid="event-promoter-filter"] option', (o) => o.length);
+    assert(opts >= 2, 'el filtro de promotor debería tener al menos "Todos" + un promotor');
+  });
+
+  await step('v3.5 admin: editar un evento desde la consola arranca BLOQUEADO (desbloqueo)', async () => {
+    await adminPg.click('[data-testid="tab-eventos"]');
+    await adminPg.waitForSelector('[data-testid="ev-open-btn"]', { timeout: 10000 });
+    await adminPg.click('[data-testid="ev-open-btn"]');
+    await adminPg.waitForSelector('[data-testid="lock-banner"]', { timeout: 12000 });
+    assert((await adminPg.$('[data-testid="unlock-btn"]')) !== null, 'falta el botón Desbloquear');
+    // Guardar bloqueado no persiste (solo avisa): el banner de bloqueo sigue visible.
+    await adminPg.click('[data-testid="save-draft-btn"]');
+    await sleep(300);
+    assert((await adminPg.$('[data-testid="lock-banner"]')) !== null, 'debería seguir bloqueado tras intentar guardar');
+  });
+
+  await step('v3.5 invitación a cuenta existente: el link ofrece iniciar sesión para activar', async () => {
+    // Invita al correo del cliente (ya existe) y abre el link como invitado.
+    await adminPg.goto(`${FE}/configuracion`, { waitUntil: 'networkidle0' });
+    await adminPg.waitForSelector('[data-testid="tab-invitaciones"]', { timeout: 12000 });
+    await adminPg.click('[data-testid="tab-invitaciones"]');
+    await adminPg.waitForSelector('[data-testid="inv-emails"]', { timeout: 8000 });
+    await adminPg.type('[data-testid="inv-emails"]', 'cliente@pasaeventos.com');
+    await adminPg.click('[data-testid="inv-submit"]');
+    await adminPg.waitForSelector('[data-testid="inv-created"] input', { timeout: 10000 });
+    const link = await adminPg.$eval('[data-testid="inv-created"] input', (i) => i.value);
+    const guestCtx = await browser.createBrowserContext();
+    const guest = await guestCtx.newPage();
+    await guest.goto(`${FE}${link.slice(link.indexOf('/registro'))}`, { waitUntil: 'networkidle0' });
+    // Cuenta existente sin sesión → CTA de iniciar sesión (no el form de registro).
+    await guest.waitForSelector('[data-testid="activate-login"]', { timeout: 12000 });
+    assert((await guest.$('[data-testid="rg-submit"]')) === null, 'no debería mostrar el form de registro');
     await guestCtx.close();
   });
 
