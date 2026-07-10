@@ -332,3 +332,59 @@ export class OrderPageResponseDto {
   })
   nextCursor!: string | null;
 }
+
+/**
+ * Una transacción (orden) del evento para la tabla de Cuentas del panel
+ * (promotor dueño / admin): comprador, fecha, estado, total y localidades.
+ */
+export class EventTransactionDto {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty({ type: String, nullable: true, description: 'Nombre del comprador' })
+  buyerName!: string | null;
+
+  @ApiProperty({ type: String, nullable: true, description: 'Correo del comprador' })
+  buyerEmail!: string | null;
+
+  @ApiProperty({
+    description: 'Estado de la orden',
+    enum: ['pending', 'paid', 'cancelled', 'expired', 'refunded'],
+    example: 'paid',
+  })
+  status!: string;
+
+  @ApiProperty({ type: String, description: 'Total all-in', example: '129.68' })
+  total!: string;
+
+  @ApiProperty({ example: 'GTQ' })
+  currency!: string;
+
+  @ApiProperty({ example: 2, description: 'Cantidad de ítems/boletos de la orden' })
+  itemCount!: number;
+
+  @ApiProperty({
+    type: String,
+    isArray: true,
+    description: 'Localidades distintas presentes en la orden',
+    example: ['VIP', 'General'],
+  })
+  localities!: string[];
+
+  @ApiProperty({ format: 'date-time' })
+  createdAt!: string;
+}
+
+/** Página keyset de transacciones del evento: `{ items, nextCursor }`. */
+export class EventTransactionPageDto {
+  @ApiProperty({ type: EventTransactionDto, isArray: true })
+  items!: EventTransactionDto[];
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Cursor para la siguiente página; null si no hay más',
+    example: null,
+  })
+  nextCursor!: string | null;
+}

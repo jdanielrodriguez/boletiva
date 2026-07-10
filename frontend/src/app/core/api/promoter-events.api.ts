@@ -7,6 +7,7 @@ import type {
   CreateLocalityInput,
   EditUnlockTokenDto,
   EventSettlementDto,
+  EventTransactionPageDto,
   GatewayResponseDto,
   GenerateBannerDto,
   LocalityView,
@@ -90,6 +91,14 @@ export class PromoterEventsApi {
   /** Liquidación (cuentas) del evento sobre sus órdenes pagadas. */
   settlement(id: string): Observable<EventSettlementDto> {
     return this.api.get<EventSettlementDto>(`/events/${id}/settlement`);
+  }
+
+  /** Transacciones (órdenes) del evento, paginadas por keyset (?cursor&limit). */
+  transactions(id: string, cursor?: string, limit = 20): Observable<EventTransactionPageDto> {
+    return this.api.get<EventTransactionPageDto>(`/events/${id}/transactions`, {
+      ...(cursor ? { cursor } : {}),
+      limit,
+    });
   }
 
   /** Pasarelas activas disponibles para asignar a un evento. */

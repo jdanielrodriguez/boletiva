@@ -106,6 +106,8 @@ export type GenerateBannerDto = Schemas['GenerateBannerDto'];
 
 // --- Liquidación (cuentas) por evento ---
 export type EventSettlementDto = Schemas['EventSettlementDto'];
+export type EventTransactionDto = Schemas['EventTransactionDto'];
+export type EventTransactionPageDto = Schemas['EventTransactionPageDto'];
 
 // --- Pasarelas de pago (admin) ---
 export type GatewayResponseDto = Schemas['GatewayResponseDto'];

@@ -1276,6 +1276,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{eventId}/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Transacciones (órdenes) del evento para el panel (owner/admin; keyset: ?cursor&limit) */
+        get: operations["OrdersController_eventTransactions_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{eventId}/orders": {
         parameters: {
             query?: never;
@@ -4339,6 +4356,50 @@ export interface components {
              * @example 4104.00
              */
             iva: string;
+        };
+        EventTransactionDto: {
+            /** Format: uuid */
+            id: string;
+            /** @description Nombre del comprador */
+            buyerName: string | null;
+            /** @description Correo del comprador */
+            buyerEmail: string | null;
+            /**
+             * @description Estado de la orden
+             * @example paid
+             * @enum {string}
+             */
+            status: "pending" | "paid" | "cancelled" | "expired" | "refunded";
+            /**
+             * @description Total all-in
+             * @example 129.68
+             */
+            total: string;
+            /** @example GTQ */
+            currency: string;
+            /**
+             * @description Cantidad de ítems/boletos de la orden
+             * @example 2
+             */
+            itemCount: number;
+            /**
+             * @description Localidades distintas presentes en la orden
+             * @example [
+             *       "VIP",
+             *       "General"
+             *     ]
+             */
+            localities: string[];
+            /** Format: date-time */
+            createdAt: string;
+        };
+        EventTransactionPageDto: {
+            items: components["schemas"]["EventTransactionDto"][];
+            /**
+             * @description Cursor para la siguiente página; null si no hay más
+             * @example null
+             */
+            nextCursor: string | null;
         };
         CheckoutDto: {
             /** @description IDs de los asientos a comprar (previamente reservados) */
@@ -7832,6 +7893,32 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EventSettlementDto"];
+                };
+            };
+        };
+    };
+    OrdersController_eventTransactions_v1: {
+        parameters: {
+            query?: {
+                /** @description Cursor: id de la última fila de la página previa */
+                cursor?: string;
+                /** @description Tamaño de página (1–100, default 20) */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventTransactionPageDto"];
                 };
             };
         };

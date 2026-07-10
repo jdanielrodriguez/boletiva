@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { LedgerAccountType, Role } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { AuthUser } from '../../common/decorators/current-user.decorator';
@@ -53,9 +53,11 @@ export class OrdersService {
     private readonly ledger: LedgerService,
   ) {}
 
-  /** Relaciones para una facturación rica: evento + nombre de localidad por ítem. */
+  /** Relaciones para una facturación rica: evento + nombre de localidad por ítem.
+   * `promoterId` se incluye para autorizar al PROMOTOR dueño del evento a ver el
+   * detalle de las órdenes de sus eventos (no solo el comprador/admin). */
   private static readonly DETAIL_INCLUDE = {
-    event: { select: { name: true, slug: true, startsAt: true } },
+    event: { select: { name: true, slug: true, startsAt: true, promoterId: true } },
     items: { include: { locality: { select: { name: true } } } },
   } as const;
 
@@ -159,17 +161,70 @@ export class OrdersService {
   }
 
   /**
-   * Detalle de una orden. Protección IDOR: solo el dueño o un admin la ven; para
-   * cualquier otro caso se responde 404 (no se filtra la existencia del recurso).
+   * Transacciones (órdenes) de un evento para la tabla de Cuentas del panel.
+   * Authz: admin o el promotor DUEÑO del evento (evento inexistente → 404; ajeno
+   * → 403). Paginado por keyset (más recientes primero). Server-authoritative:
+   * total/estado salen del snapshot inmutable de la orden.
+   */
+  async listForEvent(eventId: string, user: AuthUser, page: KeysetQuery = {}) {
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      select: { id: true, promoterId: true },
+    });
+    if (!event) throw new NotFoundException('Evento no encontrado');
+    const isAdmin = user.roles.includes(Role.admin);
+    const isOwner = event.promoterId === user.userId;
+    if (!isAdmin && !isOwner) throw new ForbiddenException('No es tu evento');
+
+    const rows = await this.prisma.order.findMany({
+      where: { eventId },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      include: {
+        buyer: { select: { firstName: true, lastName: true, email: true } },
+        items: { include: { locality: { select: { name: true } } } },
+      },
+      ...keysetTake(page),
+    });
+    const { items, nextCursor } = keysetResult(rows, page);
+    return {
+      items: items.map((o) => {
+        const buyerName =
+          [o.buyer?.firstName, o.buyer?.lastName].filter(Boolean).join(' ').trim() || null;
+        const localities = [
+          ...new Set(
+            o.items.map((i) => i.locality?.name).filter((n): n is string => !!n),
+          ),
+        ];
+        return {
+          id: o.id,
+          buyerName,
+          buyerEmail: o.buyer?.email ?? null,
+          status: o.status,
+          total: o.total.toFixed(2),
+          currency: o.currency,
+          itemCount: o.items.length,
+          localities,
+          createdAt: o.createdAt.toISOString(),
+        };
+      }),
+      nextCursor,
+    };
+  }
+
+  /**
+   * Detalle de una orden. Protección IDOR: la ven el COMPRADOR dueño, un ADMIN o el
+   * PROMOTOR dueño del evento (para la tabla de transacciones del panel); cualquier
+   * otro caso responde 404 (no se filtra la existencia del recurso).
    */
   async findOne(id: string, user: AuthUser) {
     const order = await this.prisma.order.findUnique({
       where: { id },
       include: OrdersService.DETAIL_INCLUDE,
     });
-    const isOwner = order?.buyerId === user.userId;
+    const isBuyer = order?.buyerId === user.userId;
     const isAdmin = user.roles.includes(Role.admin);
-    if (!order || (!isOwner && !isAdmin)) {
+    const isEventOwner = !!order && order.event?.promoterId === user.userId;
+    if (!order || (!isBuyer && !isAdmin && !isEventOwner)) {
       throw new NotFoundException('Orden no encontrada');
     }
     return order;

@@ -17,6 +17,7 @@ import { SettlementService } from './settlement.service';
 import {
   CheckoutDto,
   EventSettlementDto,
+  EventTransactionPageDto,
   MovementsResponseDto,
   OrderLedgerChainDto,
   OrderPageResponseDto,
@@ -42,6 +43,20 @@ export class OrdersController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.settlement.forEvent(eventId, user);
+  }
+
+  @Get('events/:eventId/transactions')
+  @Roles(Role.promoter, Role.admin)
+  @ApiOperation({
+    summary: 'Transacciones (órdenes) del evento para el panel (owner/admin; keyset: ?cursor&limit)',
+  })
+  @ApiOkResponse({ type: EventTransactionPageDto })
+  eventTransactions(
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+    @CurrentUser() user: AuthUser,
+    @Query() page: PageQueryDto,
+  ) {
+    return this.orders.listForEvent(eventId, user, page);
   }
 
   @Post('events/:eventId/orders')

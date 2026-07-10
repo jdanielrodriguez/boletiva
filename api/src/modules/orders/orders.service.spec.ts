@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { OrdersService } from './orders.service';
 import { AuthUser } from '../../common/decorators/current-user.decorator';
@@ -13,6 +13,7 @@ describe('OrdersService (IDOR + keyset, unit)', () => {
     const prisma = {
       order: { findMany: jest.fn(), findUnique: jest.fn() },
       ledgerEntry: { findMany: jest.fn() },
+      event: { findUnique: jest.fn() },
     };
     const ledger = { orderChain: jest.fn() };
     const service = new OrdersService(prisma as never, ledger as never);
@@ -42,6 +43,85 @@ describe('OrdersService (IDOR + keyset, unit)', () => {
     });
   });
 
+  describe('listForEvent (transacciones del evento)', () => {
+    const owner: AuthUser = { userId: 'promo', email: 'p@x.com', roles: [Role.promoter] };
+    const other: AuthUser = { userId: 'otro', email: 'o@x.com', roles: [Role.promoter] };
+    const dec = (v: string) => ({ toFixed: () => v });
+
+    it('evento inexistente → 404 (no consulta órdenes)', async () => {
+      const { prisma, service } = build();
+      prisma.event.findUnique.mockResolvedValue(null);
+      await expect(service.listForEvent('nope', admin)).rejects.toBeInstanceOf(NotFoundException);
+      expect(prisma.order.findMany).not.toHaveBeenCalled();
+    });
+
+    it('promotor que no es dueño ni admin → 403 (IDOR)', async () => {
+      const { prisma, service } = build();
+      prisma.event.findUnique.mockResolvedValue({ id: 'e1', promoterId: 'promo' });
+      await expect(service.listForEvent('e1', other)).rejects.toBeInstanceOf(ForbiddenException);
+      expect(prisma.order.findMany).not.toHaveBeenCalled();
+    });
+
+    it('el promotor dueño ve las transacciones mapeadas (comprador, localidades, conteo)', async () => {
+      const { prisma, service } = build();
+      prisma.event.findUnique.mockResolvedValue({ id: 'e1', promoterId: 'promo' });
+      prisma.order.findMany.mockResolvedValue([
+        {
+          id: 'o1',
+          status: 'paid',
+          total: dec('259.36'),
+          currency: 'GTQ',
+          createdAt: new Date('2026-07-01T10:00:00Z'),
+          buyer: { firstName: 'Ana', lastName: 'López', email: 'ana@x.com' },
+          items: [
+            { locality: { name: 'VIP' } },
+            { locality: { name: 'VIP' } },
+            { locality: { name: 'General' } },
+          ],
+        },
+      ]);
+      const res = await service.listForEvent('e1', owner, { limit: 10 });
+      expect(res.nextCursor).toBeNull();
+      expect(res.items[0]).toEqual({
+        id: 'o1',
+        buyerName: 'Ana López',
+        buyerEmail: 'ana@x.com',
+        status: 'paid',
+        total: '259.36',
+        currency: 'GTQ',
+        itemCount: 3,
+        localities: ['VIP', 'General'],
+        createdAt: '2026-07-01T10:00:00.000Z',
+      });
+      expect(prisma.order.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { eventId: 'e1' } }),
+      );
+    });
+
+    it('un admin ve las transacciones de un evento ajeno; comprador anónimo → null', async () => {
+      const { prisma, service } = build();
+      prisma.event.findUnique.mockResolvedValue({ id: 'e1', promoterId: 'promo' });
+      prisma.order.findMany.mockResolvedValue([
+        {
+          id: 'o2',
+          status: 'refunded',
+          total: dec('129.68'),
+          currency: 'GTQ',
+          createdAt: new Date('2026-07-02T10:00:00Z'),
+          buyer: { firstName: null, lastName: null, email: null },
+          items: [{ locality: null }],
+        },
+      ]);
+      const res = await service.listForEvent('e1', admin);
+      expect(res.items[0]).toMatchObject({
+        buyerName: null,
+        buyerEmail: null,
+        itemCount: 1,
+        localities: [],
+      });
+    });
+  });
+
   describe('findOne', () => {
     it('el dueño ve su orden', async () => {
       const { prisma, service } = build();
@@ -57,9 +137,22 @@ describe('OrdersService (IDOR + keyset, unit)', () => {
       await expect(service.findOne('o1', admin)).resolves.toEqual(order);
     });
 
+    it('el promotor dueño del evento ve la orden de un comprador (tabla de transacciones)', async () => {
+      const { prisma, service } = build();
+      const promoter: AuthUser = { userId: 'promo', email: 'p@x.com', roles: [Role.promoter] };
+      const order = { id: 'o1', buyerId: 'otro', items: [], event: { promoterId: 'promo' } };
+      prisma.order.findUnique.mockResolvedValue(order);
+      await expect(service.findOne('o1', promoter)).resolves.toEqual(order);
+    });
+
     it('un tercero no dueño ni admin recibe 404 (IDOR, no filtra existencia)', async () => {
       const { prisma, service } = build();
-      prisma.order.findUnique.mockResolvedValue({ id: 'o1', buyerId: 'otro', items: [] });
+      prisma.order.findUnique.mockResolvedValue({
+        id: 'o1',
+        buyerId: 'otro',
+        items: [],
+        event: { promoterId: 'alguien-mas' },
+      });
       await expect(service.findOne('o1', buyer)).rejects.toBeInstanceOf(NotFoundException);
     });
 
