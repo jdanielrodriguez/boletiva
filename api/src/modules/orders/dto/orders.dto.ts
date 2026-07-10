@@ -280,6 +280,45 @@ export class EventSettlementDto {
   iva!: string;
 }
 
+/** Un movimiento del feed de facturación (ingreso/egreso). */
+export class MovementResponseDto {
+  @ApiProperty({ description: 'id sintético estable', example: 'order:8f…' })
+  id!: string;
+
+  @ApiProperty({ enum: ['income', 'expense'], example: 'expense' })
+  direction!: string;
+
+  @ApiProperty({
+    description: 'purchase = compra (egreso); refund/resale/sale = ingreso',
+    example: 'purchase',
+  })
+  kind!: string;
+
+  @ApiProperty({ type: String, description: 'Monto absoluto', example: '129.68' })
+  amount!: string;
+
+  @ApiProperty({ example: 'GTQ' })
+  currency!: string;
+
+  @ApiProperty({ type: String, nullable: true, description: 'Estado de la orden (egresos)' })
+  status!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  eventName!: string | null;
+
+  @ApiProperty({ type: String, format: 'uuid', nullable: true, description: 'Orden para abrir su detalle' })
+  orderId!: string | null;
+
+  @ApiProperty({ format: 'date-time' })
+  createdAt!: string;
+}
+
+/** Feed unificado de movimientos (ingresos + egresos), más recientes primero. */
+export class MovementsResponseDto {
+  @ApiProperty({ type: MovementResponseDto, isArray: true })
+  items!: MovementResponseDto[];
+}
+
 /** Página keyset de órdenes: `{ items, nextCursor }`. */
 export class OrderPageResponseDto {
   @ApiProperty({ type: OrderResponseDto, isArray: true })

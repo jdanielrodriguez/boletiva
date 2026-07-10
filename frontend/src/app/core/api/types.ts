@@ -76,6 +76,8 @@ export type WithdrawalActionResponseDto = Schemas['WithdrawalActionResponseDto']
 
 // --- Órdenes (historial/facturación) ---
 export type OrderPageResponseDto = Schemas['OrderPageResponseDto'];
+export type MovementResponseDto = Schemas['MovementResponseDto'];
+export type MovementsResponseDto = Schemas['MovementsResponseDto'];
 export type OrderItemResponseDto = Schemas['OrderItemResponseDto'];
 export type OrderLedgerChainDto = Schemas['OrderLedgerChainDto'];
 export type OrderLedgerTxDto = Schemas['OrderLedgerTxDto'];

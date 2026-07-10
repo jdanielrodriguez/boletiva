@@ -17,6 +17,7 @@ import { SettlementService } from './settlement.service';
 import {
   CheckoutDto,
   EventSettlementDto,
+  MovementsResponseDto,
   OrderLedgerChainDto,
   OrderPageResponseDto,
   OrderResponseDto,
@@ -65,6 +66,15 @@ export class OrdersController {
   @ApiOkResponse({ type: OrderPageResponseDto })
   listMine(@CurrentUser('userId') userId: string, @Query() page: PageQueryDto) {
     return this.orders.listMine(userId, page);
+  }
+
+  @Get('orders/movements')
+  @ApiOperation({
+    summary: 'Feed de facturación: movimientos ingreso/egreso del usuario (compras + créditos)',
+  })
+  @ApiOkResponse({ type: MovementsResponseDto })
+  movements(@CurrentUser('userId') userId: string) {
+    return this.orders.listMovements(userId);
   }
 
   @Get('orders/:id')

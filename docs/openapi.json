@@ -3189,6 +3189,33 @@
                 ]
             }
         },
+        "/api/v1/orders/movements": {
+            "get": {
+                "operationId": "OrdersController_movements_v1",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MovementsResponseDto"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ],
+                "summary": "Feed de facturación: movimientos ingreso/egreso del usuario (compras + créditos)",
+                "tags": [
+                    "orders"
+                ]
+            }
+        },
         "/api/v1/orders/{id}": {
             "get": {
                 "operationId": "OrdersController_findOne_v1",
@@ -6194,13 +6221,10 @@
                 "properties": {
                     "refreshToken": {
                         "type": "string",
-                        "description": "Refresh token vigente a rotar/revocar",
+                        "description": "Refresh token vigente a rotar/revocar. Opcional: el flujo web lo transporta en la cookie httpOnly `refresh_token`; este campo es el fallback para clientes no-web.",
                         "example": "a3f1c9e2b47d8f0a1c2e3b4d5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a"
                     }
-                },
-                "required": [
-                    "refreshToken"
-                ]
+                }
             },
             "ForgotPasswordDto": {
                 "type": "object",
@@ -9576,6 +9600,82 @@
                 "required": [
                     "items",
                     "nextCursor"
+                ]
+            },
+            "MovementResponseDto": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "id sintético estable",
+                        "example": "order:8f…"
+                    },
+                    "direction": {
+                        "type": "string",
+                        "enum": [
+                            "income",
+                            "expense"
+                        ],
+                        "example": "expense"
+                    },
+                    "kind": {
+                        "type": "string",
+                        "description": "purchase = compra (egreso); refund/resale/sale = ingreso",
+                        "example": "purchase"
+                    },
+                    "amount": {
+                        "type": "string",
+                        "description": "Monto absoluto",
+                        "example": "129.68"
+                    },
+                    "currency": {
+                        "type": "string",
+                        "example": "GTQ"
+                    },
+                    "status": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Estado de la orden (egresos)"
+                    },
+                    "eventName": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "orderId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true,
+                        "description": "Orden para abrir su detalle"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "direction",
+                    "kind",
+                    "amount",
+                    "currency",
+                    "status",
+                    "eventName",
+                    "orderId",
+                    "createdAt"
+                ]
+            },
+            "MovementsResponseDto": {
+                "type": "object",
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/MovementResponseDto"
+                        }
+                    }
+                },
+                "required": [
+                    "items"
                 ]
             },
             "OrderLedgerTxDto": {

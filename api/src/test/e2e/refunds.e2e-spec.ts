@@ -183,6 +183,30 @@ describe('Reembolsos y contracargos (e2e)', () => {
     expect((await ledger.verifyChain()).ok).toBe(true);
   });
 
+  it('facturación (movimientos): requiere auth y separa ingreso (refund) de egreso (compra)', async () => {
+    // Sin token → 401 (guard global).
+    await http().get('/api/v1/orders/movements').expect(401);
+
+    // El comprador tokenR ya tiene: una compra reembolsada (egreso) + su refund
+    // acreditado al wallet (ingreso, 123.20).
+    const res = await http().get('/api/v1/orders/movements').set(bearer(tokenR)).expect(200);
+    const items = res.body.items as Array<{
+      direction: string;
+      kind: string;
+      amount: string;
+      orderId: string | null;
+      createdAt: string;
+    }>;
+    expect(items.some((i) => i.direction === 'expense' && i.kind === 'purchase')).toBe(true);
+    const refund = items.find((i) => i.direction === 'income' && i.kind === 'refund');
+    expect(refund).toBeDefined();
+    expect(refund?.amount).toBe('123.20');
+
+    // Ordenado por fecha DESC.
+    const dates = items.map((i) => i.createdAt);
+    expect([...dates].sort((a, b) => (a < b ? 1 : a > b ? -1 : 0))).toEqual(dates);
+  });
+
   it('no se puede reembolsar una orden no pagada (webhook ignorado, orden intacta)', async () => {
     const orderId = await order(tokenR, 2);
     const p = await http().post(`/api/v1/orders/${orderId}/pay`).set(bearer(tokenR)).expect(201);

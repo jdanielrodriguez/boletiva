@@ -1310,6 +1310,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/movements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Feed de facturación: movimientos ingreso/egreso del usuario (compras + créditos) */
+        get: operations["OrdersController_movements_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders/{id}": {
         parameters: {
             query?: never;
@@ -2479,10 +2496,10 @@ export interface components {
         };
         RefreshDto: {
             /**
-             * @description Refresh token vigente a rotar/revocar
+             * @description Refresh token vigente a rotar/revocar. Opcional: el flujo web lo transporta en la cookie httpOnly `refresh_token`; este campo es el fallback para clientes no-web.
              * @example a3f1c9e2b47d8f0a1c2e3b4d5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a
              */
-            refreshToken: string;
+            refreshToken?: string;
         };
         ForgotPasswordDto: {
             /**
@@ -4464,6 +4481,43 @@ export interface components {
              * @example null
              */
             nextCursor: string | null;
+        };
+        MovementResponseDto: {
+            /**
+             * @description id sintético estable
+             * @example order:8f…
+             */
+            id: string;
+            /**
+             * @example expense
+             * @enum {string}
+             */
+            direction: "income" | "expense";
+            /**
+             * @description purchase = compra (egreso); refund/resale/sale = ingreso
+             * @example purchase
+             */
+            kind: string;
+            /**
+             * @description Monto absoluto
+             * @example 129.68
+             */
+            amount: string;
+            /** @example GTQ */
+            currency: string;
+            /** @description Estado de la orden (egresos) */
+            status: string | null;
+            eventName: string | null;
+            /**
+             * Format: uuid
+             * @description Orden para abrir su detalle
+             */
+            orderId: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        MovementsResponseDto: {
+            items: components["schemas"]["MovementResponseDto"][];
         };
         OrderLedgerTxDto: {
             /**
@@ -7827,6 +7881,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrderPageResponseDto"];
+                };
+            };
+        };
+    };
+    OrdersController_movements_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MovementsResponseDto"];
                 };
             };
         };

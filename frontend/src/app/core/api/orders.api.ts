@@ -3,6 +3,7 @@ import { Observable } from 'rxjs';
 import { ApiClient } from '../http/api-client.service';
 import type {
   CheckoutDto,
+  MovementsResponseDto,
   OrderLedgerChainDto,
   OrderPageResponseDto,
   OrderResponseDto,
@@ -28,6 +29,11 @@ export class OrdersApi {
 
   get(orderId: string): Observable<OrderResponseDto> {
     return this.api.get<OrderResponseDto>(`/orders/${orderId}`);
+  }
+
+  /** Feed de facturación: movimientos ingreso/egreso del usuario (compras + créditos). */
+  movements(): Observable<MovementsResponseDto> {
+    return this.api.get<MovementsResponseDto>('/orders/movements');
   }
 
   /** Cadena contable (hash-chain) de la orden — vista blockchain de transparencia. */
