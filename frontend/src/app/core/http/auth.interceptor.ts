@@ -10,6 +10,7 @@ import { Observable, catchError, switchMap, throwError } from 'rxjs';
 import { API_BASE_URL } from '../config/api.tokens';
 import { AuthRefreshService } from '../auth/auth-refresh.service';
 import { TokenStore } from '../auth/token-store.service';
+import { EditUnlockStore } from '../events/edit-unlock.store';
 
 /** Adjunta el access token en el header Authorization. */
 function withBearer(req: HttpRequest<unknown>, token: string): HttpRequest<unknown> {
@@ -28,6 +29,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const baseUrl = inject(API_BASE_URL);
   const tokens = inject(TokenStore);
   const refresher = inject(AuthRefreshService);
+  const editUnlock = inject(EditUnlockStore);
 
   const isApiRequest = req.url.startsWith(baseUrl);
   if (!isApiRequest) return next(req);
@@ -35,7 +37,15 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const isAuthFlow = req.url === refresher.refreshUrl || req.url.endsWith('/auth/login');
 
   const access = tokens.getAccessToken();
-  const authed = access ? withBearer(req, access) : req;
+  let authed = access ? withBearer(req, access) : req;
+
+  // Desbloqueo de edición (admin no-dueño): adjunta el token del evento activo en
+  // las mutaciones. El promotor dueño nunca fija token → no se envía; backend lo
+  // ignora para el dueño. Solo métodos que mutan.
+  const unlockToken = editUnlock.headerToken();
+  if (unlockToken && req.method !== 'GET' && req.method !== 'HEAD') {
+    authed = authed.clone({ setHeaders: { 'x-edit-unlock': unlockToken } });
+  }
 
   return next(authed).pipe(
     catchError((err: unknown) => {

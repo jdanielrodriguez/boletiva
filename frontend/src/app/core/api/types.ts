@@ -86,6 +86,17 @@ export type CreateInvitationsResponseDto = Schemas['CreateInvitationsResponseDto
 export type CreatedInvitationDto = Schemas['CreatedInvitationDto'];
 export type InvitationListItemDto = Schemas['InvitationListItemDto'];
 export type InvitationPeekDto = Schemas['InvitationPeekDto'];
+export type InvitationByTokenDto = Schemas['InvitationByTokenDto'];
+
+// --- Salones / plantillas / settings / desbloqueo (v3.5) ---
+export type HallResponseDto = Schemas['HallResponseDto'];
+export type CreateHallDto = Schemas['CreateHallDto'];
+export type UpdateHallDto = Schemas['UpdateHallDto'];
+export type SeatTemplateResponseDto = Schemas['SeatTemplateResponseDto'];
+export type CreateSeatTemplateDto = Schemas['CreateSeatTemplateDto'];
+export type UpdateSeatTemplateDto = Schemas['UpdateSeatTemplateDto'];
+export type SettingViewDto = Schemas['SettingViewDto'];
+export type EditUnlockTokenDto = Schemas['EditUnlockTokenDto'];
 
 // --- Banner con IA (F4) ---
 export type BannerResponseDto = Schemas['BannerResponseDto'];

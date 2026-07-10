@@ -126,7 +126,8 @@ button.ghost {
 
 /* --- Inputs --- */
 input,
-select {
+select,
+textarea {
   font: inherit;
   color: var(--pe-text);
   background: var(--pe-bg-elev);
@@ -135,11 +136,30 @@ select {
   padding: 0.7rem 0.85rem;
 }
 
+textarea {
+  resize: vertical;
+  min-height: 2.6rem;
+  line-height: 1.4;
+}
+
 input:focus,
-select:focus {
+select:focus,
+textarea:focus {
   outline: none;
   border-color: var(--pe-primary);
   box-shadow: 0 0 0 3px rgba(123, 92, 255, 0.25);
+}
+
+/* Formularios más prolijos: separación clara de labels y campos. */
+.card-block .form-grid,
+.card-block .loc-form-grid {
+  margin-top: 0.4rem;
+}
+.field > span {
+  font-weight: 600;
+}
+.field.full {
+  grid-column: 1 / -1;
 }
 
 ::placeholder {
@@ -2778,4 +2798,92 @@ button.danger {
   background: rgba(245, 158, 11, 0.18);
   color: var(--pe-warn, #f59e0b);
   border-color: var(--pe-warn, #f59e0b);
+}
+
+/* ---- v3.5: mapa (Leaflet), desbloqueo admin, salones/plantillas/settings ---- */
+
+/* Selector de ubicación reutilizable (Leaflet + OSM). */
+.map-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+}
+.map-search-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+.map-search {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.7rem;
+  border-radius: 10px;
+  border: 1px solid var(--pe-border, rgba(148, 163, 184, 0.35));
+  background: var(--pe-surface, #12151c);
+  color: inherit;
+}
+.map-canvas {
+  width: 100%;
+  height: 320px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--pe-border, rgba(148, 163, 184, 0.35));
+  background: #0b0e14;
+}
+.map-canvas .leaflet-container {
+  height: 100%;
+  width: 100%;
+  font: inherit;
+}
+/* Marcador basado en DivIcon (sin depender de imágenes del paquete Leaflet). */
+.map-pin {
+  width: 22px;
+  height: 22px;
+  border-radius: 50% 50% 50% 0;
+  background: var(--pe-accent, #7b5cff);
+  border: 2px solid #fff;
+  transform: rotate(-45deg);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Banner de desbloqueo del admin (evento bloqueado). */
+.lock-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 12px;
+  margin: 0.6rem 0 0.4rem;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid var(--pe-warn, #f59e0b);
+  color: var(--pe-warn, #f59e0b);
+  font-size: 0.9rem;
+}
+/* Fieldset que agrupa el contenido bloqueable (sin estilos propios de fieldset). */
+.lock-fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.lock-fieldset:disabled {
+  opacity: 0.7;
+}
+
+/* Lista de configuraciones (settings). */
+.settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+.setting-row .setting-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.setting-row .field.inline {
+  margin-top: 0.5rem;
+  align-items: center;
 }

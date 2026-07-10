@@ -5,6 +5,7 @@ import type {
   BannerResponseDto,
   CreateEventDto,
   CreateLocalityInput,
+  EditUnlockTokenDto,
   EventSettlementDto,
   GatewayResponseDto,
   GenerateBannerDto,
@@ -69,6 +70,16 @@ export class PromoterEventsApi {
 
   remove(id: string): Observable<void> {
     return this.api.delete<void>(`/events/${id}`);
+  }
+
+  // --- Desbloqueo de edición para ADMIN no-dueño (OTP al correo) ---
+  /** Envía un OTP al correo del admin para desbloquear la edición del evento. */
+  requestEditUnlock(id: string): Observable<{ sent: boolean }> {
+    return this.api.post<{ sent: boolean }>(`/events/${id}/edit-unlock/request`);
+  }
+  /** Verifica el OTP → token de desbloqueo (5 min) que viaja como `x-edit-unlock`. */
+  verifyEditUnlock(id: string, code: string): Observable<EditUnlockTokenDto> {
+    return this.api.post<EditUnlockTokenDto>(`/events/${id}/edit-unlock/verify`, { code });
   }
 
   /** Genera (o regenera) el banner del evento con IA (prompt/plantilla/imágenes). */

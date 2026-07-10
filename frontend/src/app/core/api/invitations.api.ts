@@ -3,6 +3,7 @@ import { Observable } from 'rxjs';
 import { ApiClient } from '../http/api-client.service';
 import type {
   CreateInvitationsResponseDto,
+  InvitationByTokenDto,
   InvitationListItemDto,
   InvitationPeekDto,
 } from './types';
@@ -36,5 +37,20 @@ export class InvitationsApi {
   /** Acepta la invitación: el usuario autenticado queda auto-aprobado como promotor. */
   accept(token: string): Observable<{ accepted: boolean }> {
     return this.api.post<{ accepted: boolean }>('/promoters/invitations/accept', { token });
+  }
+
+  /** Vista pública por token en la URL: correo invitado + si YA existe una cuenta
+   * (→ activar rol iniciando sesión, sin registro) o no (→ registro precargado). */
+  byToken(token: string): Observable<InvitationByTokenDto> {
+    return this.api.get<InvitationByTokenDto>(
+      `/promoters/invitations/by-token/${encodeURIComponent(token)}`,
+    );
+  }
+
+  /** Acepta por token en la URL (cuenta existente): activa el rol promotor de un click. */
+  acceptByToken(token: string): Observable<{ accepted: boolean }> {
+    return this.api.post<{ accepted: boolean }>(
+      `/promoters/invitations/by-token/${encodeURIComponent(token)}/accept`,
+    );
   }
 }

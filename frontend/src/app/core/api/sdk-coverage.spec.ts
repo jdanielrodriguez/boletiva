@@ -12,6 +12,9 @@ import { OrdersApi } from './orders.api';
 import { PaymentMethodsApi } from './payment-methods.api';
 import { PromoterEventsApi } from './promoter-events.api';
 import { ReservationsApi } from './reservations.api';
+import { HallsApi } from './halls.api';
+import { SeatTemplatesApi } from './seat-templates.api';
+import { SettingsApi } from './settings.api';
 
 const BASE = 'http://api.test/api/v1';
 
@@ -148,7 +151,7 @@ describe('SDK — contrato de rutas', () => {
     hit('POST', '/reservations/tok/checkout');
   });
 
-  it('InvitationsApi cubre create/list/revoke/peek/accept', () => {
+  it('InvitationsApi cubre create/list/revoke/peek/accept/byToken/acceptByToken', () => {
     const inv = TestBed.inject(InvitationsApi);
     inv.create(['a@x.com']).subscribe();
     hit('POST', '/promoters/invitations');
@@ -160,6 +163,56 @@ describe('SDK — contrato de rutas', () => {
     on((r) => r.url === `${BASE}/promoters/invitations/peek`).flush({});
     inv.accept('tok').subscribe();
     hit('POST', '/promoters/invitations/accept');
+    inv.byToken('tok').subscribe();
+    hit('GET', '/promoters/invitations/by-token/tok');
+    inv.acceptByToken('tok').subscribe();
+    hit('POST', '/promoters/invitations/by-token/tok/accept');
+  });
+
+  it('HallsApi cubre list/get/create/update/remove', () => {
+    const h = TestBed.inject(HallsApi);
+    h.list().subscribe();
+    on((r) => r.url === `${BASE}/halls`).flush([]);
+    h.get('h1').subscribe();
+    hit('GET', '/halls/h1');
+    h.create({ name: 'X' } as never).subscribe();
+    on((r) => r.url === `${BASE}/halls` && r.method === 'POST').flush({});
+    h.update('h1', {} as never).subscribe();
+    hit('PATCH', '/halls/h1');
+    h.remove('h1').subscribe();
+    hit('DELETE', '/halls/h1');
+  });
+
+  it('SeatTemplatesApi cubre list/get/create/update/remove', () => {
+    const t = TestBed.inject(SeatTemplatesApi);
+    t.list().subscribe();
+    on((r) => r.url === `${BASE}/seat-templates`).flush([]);
+    t.get('t1').subscribe();
+    hit('GET', '/seat-templates/t1');
+    t.create({ name: 'X' } as never).subscribe();
+    on((r) => r.url === `${BASE}/seat-templates` && r.method === 'POST').flush({});
+    t.update('t1', {} as never).subscribe();
+    hit('PATCH', '/seat-templates/t1');
+    t.remove('t1').subscribe();
+    hit('DELETE', '/seat-templates/t1');
+  });
+
+  it('SettingsApi cubre list/get/update', () => {
+    const s = TestBed.inject(SettingsApi);
+    s.list().subscribe();
+    on((r) => r.url === `${BASE}/settings`).flush([]);
+    s.get('k').subscribe();
+    hit('GET', '/settings/k');
+    s.update('k', 0.5).subscribe();
+    hit('PATCH', '/settings/k');
+  });
+
+  it('PromoterEventsApi cubre edit-unlock request/verify', () => {
+    const p = TestBed.inject(PromoterEventsApi);
+    p.requestEditUnlock('e1').subscribe();
+    hit('POST', '/events/e1/edit-unlock/request');
+    p.verifyEditUnlock('e1', '123456').subscribe();
+    hit('POST', '/events/e1/edit-unlock/verify');
   });
 
   it('PromoterEventsApi cubre CRUD + banner + localidades', () => {
