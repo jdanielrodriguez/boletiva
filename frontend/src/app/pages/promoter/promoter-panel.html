@@ -12,6 +12,11 @@
   @if (showCreate()) {
     <div class="card-block panel-create" data-testid="create-form">
       <h2>Crear evento</h2>
+      <p class="muted small">
+        Crea un borrador con lo mínimo; en el editor completas categoría, descripción,
+        localidades, banner y configuración. La fecha de fin se calcula automáticamente
+        (puedes ajustarla luego).
+      </p>
       <form (ngSubmit)="createEvent()">
         <div class="form-grid">
           <label class="field">
@@ -19,29 +24,12 @@
             <input type="text" [ngModel]="form.name()" (ngModelChange)="form.name.set($event)" name="name" data-testid="ev-name" />
           </label>
           <label class="field">
-            <span>Categoría</span>
-            <select [ngModel]="form.categoryId()" (ngModelChange)="form.categoryId.set($event)" name="categoryId">
-              <option value="">— Sin categoría —</option>
-              @for (c of categories(); track c.id) {
-                <option [value]="c.id">{{ c.name }}</option>
-              }
-            </select>
-          </label>
-          <label class="field">
             <span>Inicio</span>
             <input type="datetime-local" [ngModel]="form.startsAt()" (ngModelChange)="form.startsAt.set($event)" name="startsAt" data-testid="ev-start" />
           </label>
-          <label class="field">
-            <span>Fin</span>
-            <input type="datetime-local" [ngModel]="form.endsAt()" (ngModelChange)="form.endsAt.set($event)" name="endsAt" data-testid="ev-end" />
-          </label>
-          <label class="field full">
-            <span>Descripción</span>
-            <textarea [ngModel]="form.description()" (ngModelChange)="form.description.set($event)" name="description" rows="2"></textarea>
-          </label>
         </div>
         <button type="submit" class="btn primary" [disabled]="creating()" data-testid="ev-create">
-          {{ creating() ? 'Creando…' : 'Crear en borrador' }}
+          {{ creating() ? 'Creando…' : 'Crear y editar' }}
         </button>
       </form>
     </div>

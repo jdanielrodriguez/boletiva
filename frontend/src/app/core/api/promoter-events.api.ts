@@ -11,6 +11,7 @@ import type {
   LocalityView,
   ManagedEventDetailDto,
   MyEventListItemDto,
+  QuoteResponseDto,
   UpdateEventDto,
 } from './types';
 
@@ -83,6 +84,11 @@ export class PromoterEventsApi {
   /** Pasarelas activas disponibles para asignar a un evento. */
   activeGateways(): Observable<GatewayResponseDto[]> {
     return this.api.get<GatewayResponseDto[]>('/payment-gateways/active');
+  }
+
+  /** Cotización server-authoritative de un neto (preview del precio por localidad). */
+  quote(net: number): Observable<QuoteResponseDto> {
+    return this.api.get<QuoteResponseDto>(`/pricing/quote?net=${encodeURIComponent(net)}`);
   }
 
   // --- Localidades ---

@@ -28,7 +28,10 @@ describe('EventEditPage (v3)', () => {
   let fixture: ComponentFixture<EventEditPage>;
   let toasts: ToastService;
 
-  async function setup(api: Record<string, unknown> = {}) {
+  let queryParams: Record<string, string> = {};
+
+  async function setup(api: Record<string, unknown> = {}, qp: Record<string, string> = {}) {
+    queryParams = qp;
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
@@ -48,11 +51,20 @@ describe('EventEditPage (v3)', () => {
             generateBanner: () => of({ url: 'http://x/b.svg' }),
             activeGateways: () => of([{ id: 'g1', name: 'Sandbox' }]),
             settlement: () => of({ net: '0.00' }),
+            quote: () => of({ quote: { net: '100.00', platformFee: '10.00', gatewayFee: '6.48', iva: '13.20', serviceFee: '29.68', total: '129.68' } }),
             ...api,
           } as unknown as PromoterEventsApi,
         },
         { provide: CategoriesApi, useValue: { list: () => of([]) } },
-        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => 'e1' } } } },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              paramMap: { get: () => 'e1' },
+              queryParamMap: { get: (k: string) => queryParams[k] ?? null },
+            },
+          },
+        },
       ],
     });
     fixture = TestBed.createComponent(EventEditPage);
@@ -126,5 +138,39 @@ describe('EventEditPage (v3)', () => {
     expect(fixture.componentInstance['event']()?.status).toBe('published');
     fixture.componentInstance['cancelEvent']();
     expect(fixture.componentInstance['event']()?.status).toBe('cancelled');
+  });
+
+  it('guardar datos NO envía endsAt (se autocalcula en backend)', async () => {
+    const update = jasmine.createSpy('u').and.returnValue(of(EVENT));
+    await setup({ update });
+    fixture.componentInstance['saveData']();
+    const arg = update.calls.mostRecent().args[1] as Record<string, unknown>;
+    expect('endsAt' in arg).toBe(false);
+  });
+
+  it('preview de precio: teclear el neto cotiza con DEBOUNCE (~300ms) y muestra el desglose', async () => {
+    const quote = jasmine
+      .createSpy('q')
+      .and.returnValue(of({ quote: { net: '100.00', platformFee: '10.00', gatewayFee: '6.48', iva: '13.20', serviceFee: '29.68', total: '129.68' } }));
+    await setup({ quote });
+    const c = fixture.componentInstance as unknown as { onNetChange: (v: number) => void };
+    c.onNetChange(100);
+    expect(quote).not.toHaveBeenCalled(); // aún no: espera el debounce
+    await new Promise((r) => setTimeout(r, 400)); // supera los 300ms del debounce
+    expect(quote).toHaveBeenCalledWith(100);
+    fixture.detectChanges();
+    expect(fixture.componentInstance['pricePreview']()?.total).toBe('129.68');
+  });
+
+  it('back-link vuelve a la consola cuando el origen es admin (?from=admin)', async () => {
+    await setup({}, { from: 'admin' });
+    expect(fixture.componentInstance['backLink']()).toBe('/configuracion');
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="back-link"]')?.getAttribute('href')).toBe('/configuracion');
+  });
+
+  it('abre el tab indicado por ?tab=cuentas', async () => {
+    await setup({}, { tab: 'cuentas' });
+    expect(fixture.componentInstance['tab']()).toBe('cuentas');
   });
 });

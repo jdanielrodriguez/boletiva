@@ -1,6 +1,8 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
 import { CategoriesApi } from '../../core/api/categories.api';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
 import { ToastService } from '../../core/ui/toast.service';
@@ -11,6 +13,7 @@ import type {
   GatewayResponseDto,
   LocalityView,
   ManagedEventDetailDto,
+  PriceQuoteResponseDto,
 } from '../../core/api/types';
 
 type Tab = 'datos' | 'localidades' | 'banner' | 'config' | 'cuentas';
@@ -42,6 +45,7 @@ export class EventEditPage {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toasts = inject(ToastService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly templates: BannerTemplate[] = ['aurora', 'midnight', 'sunset', 'forest', 'mono'];
 
@@ -58,14 +62,23 @@ export class EventEditPage {
   protected readonly isPublished = computed(() => (this.event()?.status ?? 'draft') !== 'draft');
   protected readonly isFrozen = computed(() => !!this.event()?.frozenGatewayId);
 
-  // Datos
+  /** Origen de navegación: 'admin' vuelve a /configuracion; si no, a /promotor. */
+  protected readonly from = signal<string>(this.route.snapshot.queryParamMap.get('from') ?? '');
+  protected readonly backLink = computed(() =>
+    this.from() === 'admin' ? '/configuracion' : '/promotor',
+  );
+  protected readonly backLabel = computed(() =>
+    this.from() === 'admin' ? '← Volver a la consola' : '← Volver a mis eventos',
+  );
+
+  // Datos (sin fin: el backend lo autocalcula = inicio + 12h; se puede ajustar
+  // vía API pero la UI del promotor solo pide el inicio).
   protected readonly d = {
     name: signal(''),
     description: signal(''),
     categoryId: signal(''),
     address: signal(''),
     startsAt: signal(''),
-    endsAt: signal(''),
   };
   // Config
   protected readonly c = {
@@ -84,6 +97,11 @@ export class EventEditPage {
     desiredNet: signal<number | null>(null),
   };
 
+  // Preview de precio (debounced 300ms) al teclear el neto de una localidad.
+  private readonly netInput$ = new Subject<number>();
+  protected readonly pricePreview = signal<PriceQuoteResponseDto | null>(null);
+  protected readonly previewLoading = signal(false);
+
   // Banner
   protected readonly banner = {
     template: signal<BannerTemplate>('aurora'),
@@ -96,7 +114,47 @@ export class EventEditPage {
   constructor() {
     this.categoriesApi.list().subscribe({ next: (c) => this.categories.set(c), error: () => undefined });
     this.api.activeGateways().subscribe({ next: (g) => this.gateways.set(g), error: () => undefined });
+
+    // Tab inicial desde el query param (?tab=cuentas) — usado por la consola admin.
+    const tab = this.route.snapshot.queryParamMap.get('tab');
+    if (tab && ['datos', 'localidades', 'banner', 'config', 'cuentas'].includes(tab)) {
+      this.tab.set(tab as Tab);
+    }
+
+    // Preview de precio server-authoritative con DEBOUNCE (evita DDoS del endpoint
+    // de cotización al teclear). Cada neto válido cotiza y muestra el desglose.
+    this.netInput$
+      .pipe(
+        debounceTime(300),
+        distinctUntilChanged(),
+        switchMap((net) => {
+          this.previewLoading.set(true);
+          return this.api.quote(net);
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (res) => {
+          this.pricePreview.set(res.quote);
+          this.previewLoading.set(false);
+        },
+        error: () => {
+          this.pricePreview.set(null);
+          this.previewLoading.set(false);
+        },
+      });
+
     this.reload();
+  }
+
+  /** Al teclear el neto de una localidad: actualiza el modelo y dispara el preview. */
+  protected onNetChange(value: number | null): void {
+    this.locForm.desiredNet.set(value);
+    if (value != null && value > 0) {
+      this.netInput$.next(value);
+    } else {
+      this.pricePreview.set(null);
+    }
   }
 
   private reload(): void {
@@ -121,7 +179,6 @@ export class EventEditPage {
     this.d.categoryId.set(ev.categoryId ?? '');
     this.d.address.set(ev.address ?? '');
     this.d.startsAt.set(toLocalInput(ev.startsAt));
-    this.d.endsAt.set(toLocalInput(ev.endsAt));
     this.c.gatewayId.set(ev.gatewayId ?? '');
     this.c.ivaOnNet.set(ev.ivaOnNet);
     this.c.absorbInstallmentCost.set(ev.absorbInstallmentCost);
@@ -132,7 +189,9 @@ export class EventEditPage {
     this.tab.set(t);
   }
 
-  // --- Datos ---
+  // --- Datos / Guardar borrador ---
+  // El fin se OMITE (endsAt opcional): el backend conserva/autocalcula. Sirve como
+  // "Guardar borrador": persiste los cambios del draft sin publicar.
   protected saveData(): void {
     this.savingData.set(true);
     this.api
@@ -142,7 +201,6 @@ export class EventEditPage {
         categoryId: this.d.categoryId() || undefined,
         address: this.d.address() || undefined,
         startsAt: this.d.startsAt() ? new Date(this.d.startsAt()).toISOString() : undefined,
-        endsAt: this.d.endsAt() ? new Date(this.d.endsAt()).toISOString() : undefined,
         // Preserva la config actual (el contrato UpdateEventDto los exige).
         ivaOnNet: this.c.ivaOnNet(),
         absorbInstallmentCost: this.c.absorbInstallmentCost(),
@@ -151,11 +209,11 @@ export class EventEditPage {
         next: (ev) => {
           this.savingData.set(false);
           this.event.set(ev);
-          this.toasts.success('Datos del evento guardados.');
+          this.toasts.success('Borrador guardado.');
         },
         error: () => {
           this.savingData.set(false);
-          this.toasts.error('No se pudieron guardar los datos (revisa las fechas).');
+          this.toasts.error('No se pudieron guardar los datos (revisa la fecha de inicio).');
         },
       });
   }
@@ -213,6 +271,7 @@ export class EventEditPage {
           this.locForm.name.set('');
           this.locForm.capacity.set(null);
           this.locForm.desiredNet.set(null);
+          this.pricePreview.set(null);
           this.toasts.success('Localidad agregada.');
           this.loadLocalities();
         },
@@ -286,7 +345,7 @@ export class EventEditPage {
     this.api.remove(this.eventId()).subscribe({
       next: () => {
         this.toasts.success('Evento eliminado.');
-        void this.router.navigateByUrl('/promotor');
+        void this.router.navigateByUrl(this.backLink());
       },
       error: () => this.toasts.error('Solo puedes eliminar eventos en borrador.'),
     });

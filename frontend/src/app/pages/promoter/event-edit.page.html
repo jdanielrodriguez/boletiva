@@ -1,5 +1,5 @@
 <section class="event-edit">
-  <a routerLink="/promotor" class="link-btn" data-testid="back-link">← Volver a mis eventos</a>
+  <a [routerLink]="backLink()" class="link-btn" data-testid="back-link">{{ backLabel() }}</a>
 
   @if (loading()) {
     <p class="muted">Cargando evento…</p>
@@ -13,6 +13,9 @@
         <span class="badge badge-{{ ev.status }}">{{ ev.status }}</span>
       </div>
       <div class="ev-card-actions">
+        <button type="button" class="btn" [disabled]="savingData()" (click)="saveData()" data-testid="save-draft-btn">
+          {{ savingData() ? 'Guardando…' : 'Guardar' }}
+        </button>
         @if (ev.status === 'draft') {
           <button type="button" class="btn primary" (click)="publish()" data-testid="publish-btn">Publicar</button>
           <button type="button" class="btn danger" (click)="remove()" data-testid="delete-btn">Eliminar</button>
@@ -53,9 +56,6 @@
             <label class="field"><span>Inicio</span>
               <input type="datetime-local" [ngModel]="d.startsAt()" (ngModelChange)="d.startsAt.set($event)" name="starts" />
             </label>
-            <label class="field"><span>Fin</span>
-              <input type="datetime-local" [ngModel]="d.endsAt()" (ngModelChange)="d.endsAt.set($event)" name="ends" />
-            </label>
             <label class="field full"><span>Dirección / lugar</span>
               <input type="text" [ngModel]="d.address()" (ngModelChange)="d.address.set($event)" name="addr" />
             </label>
@@ -83,7 +83,7 @@
                     <span class="loc-manage-actions">
                       @if (l.kind === 'seated' && !isPublished()) {
                         <button type="button" class="btn small" (click)="toggleSeats(l)" data-testid="loc-seats">
-                          {{ editingSeatsFor() === l.id ? 'Cerrar asientos' : 'Editar asientos' }}
+                          {{ editingSeatsFor() === l.id ? 'Cerrar asientos' : 'Administrar asientos' }}
                         </button>
                       }
                       @if (!isPublished()) {
@@ -102,19 +102,50 @@
           }
 
           @if (!isPublished()) {
-            <div class="loc-form" data-testid="loc-add-form">
-              <input type="text" placeholder="Nombre" [ngModel]="locForm.name()" (ngModelChange)="locForm.name.set($event)" name="ln" data-testid="loc-name" />
-              <select [ngModel]="locForm.kind()" (ngModelChange)="locForm.kind.set($event)" name="lk">
-                <option value="general">General</option>
-                <option value="seated">Con asiento</option>
-              </select>
-              @if (locForm.kind() === 'general') {
-                <input type="number" placeholder="Aforo" min="1" [ngModel]="locForm.capacity()" (ngModelChange)="locForm.capacity.set($event)" name="lc" />
+            <div class="card-block loc-add-block" data-testid="loc-add-form">
+              <h3>Agregar localidad</h3>
+              <div class="loc-form-grid">
+                <label class="field"><span>Nombre</span>
+                  <input type="text" placeholder="p. ej. General, VIP…" [ngModel]="locForm.name()" (ngModelChange)="locForm.name.set($event)" name="ln" data-testid="loc-name" />
+                </label>
+                <label class="field"><span>Tipo</span>
+                  <select [ngModel]="locForm.kind()" (ngModelChange)="locForm.kind.set($event)" name="lk">
+                    <option value="general">General (por cantidad)</option>
+                    <option value="seated">Con asiento (mapa)</option>
+                  </select>
+                </label>
+                @if (locForm.kind() === 'general') {
+                  <label class="field"><span>Aforo</span>
+                    <input type="number" placeholder="Aforo" min="1" [ngModel]="locForm.capacity()" (ngModelChange)="locForm.capacity.set($event)" name="lc" />
+                  </label>
+                }
+                <label class="field"><span>Neto por boleto (Q)</span>
+                  <input type="number" placeholder="Neto (Q)" min="0" step="0.01" [ngModel]="locForm.desiredNet()" (ngModelChange)="onNetChange($event)" name="ln2" data-testid="loc-net" />
+                </label>
+              </div>
+
+              @if (previewLoading()) {
+                <p class="muted small" data-testid="price-preview-loading">Calculando precio…</p>
+              } @else {
+                @if (pricePreview(); as q) {
+                  <div class="price-preview" data-testid="price-preview">
+                    <span class="pp-total">El comprador paga <strong>Q{{ q.total }}</strong></span>
+                    <ul class="pp-breakdown">
+                      <li>Tu neto: <strong>Q{{ q.net }}</strong></li>
+                      <li>Comisión plataforma: Q{{ q.platformFee }}</li>
+                      <li>Comisión pasarela: Q{{ q.gatewayFee }}</li>
+                      <li>IVA: Q{{ q.iva }}</li>
+                      <li class="pp-service">Cuota de servicio (comprador): Q{{ q.serviceFee }}</li>
+                    </ul>
+                  </div>
+                }
               }
-              <input type="number" placeholder="Neto (Q)" min="0" step="0.01" [ngModel]="locForm.desiredNet()" (ngModelChange)="locForm.desiredNet.set($event)" name="ln2" />
-              <button type="button" class="btn small primary" (click)="addLocality()" data-testid="loc-add">Agregar</button>
+
+              <div class="loc-form-actions">
+                <button type="button" class="btn primary" (click)="addLocality()" data-testid="loc-add">Agregar localidad</button>
+              </div>
+              <p class="muted small">Las localidades "con asiento" permiten dibujar el mapa; las "general" venden por cantidad (aforo).</p>
             </div>
-            <p class="muted small">Las localidades "con asiento" permiten dibujar el mapa; las "general" venden por cantidad (aforo).</p>
           }
         </div>
       }

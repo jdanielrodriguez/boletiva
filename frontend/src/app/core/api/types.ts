@@ -99,9 +99,15 @@ export type GatewayResponseDto = Schemas['GatewayResponseDto'];
 export type CreateGatewayDto = Schemas['CreateGatewayDto'];
 export type UpdateGatewayDto = Schemas['UpdateGatewayDto'];
 export type UpdateGatewayStatusDto = Schemas['UpdateGatewayStatusDto'];
+export type GatewayUnlockResponseDto = Schemas['GatewayUnlockResponseDto'];
+
+// --- Cotización (preview de precio por localidad) ---
+export type QuoteResponseDto = Schemas['QuoteResponseDto'];
+export type PriceQuoteResponseDto = Schemas['PriceQuoteResponseDto'];
 
 // --- Promotores (admin) ---
 export type PromoterListItemDto = Schemas['PromoterListItemDto'];
+export type PromoterStatusEventDto = Schemas['PromoterStatusEventDto'];
 
 // --- Gestión de eventos (panel promotor, F4) ---
 export type CreateEventDto = Schemas['CreateEventDto'];

@@ -1,11 +1,10 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
-import { CategoriesApi } from '../../core/api/categories.api';
+import { Router, RouterLink } from '@angular/router';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
 import { ToastService } from '../../core/ui/toast.service';
-import type { CategoryResponseDto, MyEventListItemDto } from '../../core/api/types';
+import type { MyEventListItemDto } from '../../core/api/types';
 
 const PAGE_SIZE = 9;
 
@@ -22,23 +21,21 @@ const PAGE_SIZE = 9;
 })
 export class PromoterPanel {
   private readonly eventsApi = inject(PromoterEventsApi);
-  private readonly categoriesApi = inject(CategoriesApi);
   private readonly toasts = inject(ToastService);
+  private readonly router = inject(Router);
 
   protected readonly events = signal<MyEventListItemDto[]>([]);
-  protected readonly categories = signal<CategoryResponseDto[]>([]);
   protected readonly loading = signal(true);
   protected readonly creating = signal(false);
   protected readonly showCreate = signal(false);
   protected readonly page = signal(1);
   protected readonly pageSize = PAGE_SIZE;
 
+  // Crear = borrador mínimo (solo nombre + inicio); el resto se completa en el
+  // editor (misma vista de alta/edición). El fin se autocalcula en el backend.
   protected readonly form = {
     name: signal(''),
-    categoryId: signal(''),
     startsAt: signal(''),
-    endsAt: signal(''),
-    description: signal(''),
   };
 
   protected readonly totalPages = computed(() =>
@@ -53,7 +50,6 @@ export class PromoterPanel {
 
   constructor() {
     this.loadEvents();
-    this.categoriesApi.list().subscribe({ next: (c) => this.categories.set(c), error: () => undefined });
   }
 
   private loadEvents(): void {
@@ -80,9 +76,13 @@ export class PromoterPanel {
     this.page.set(Math.min(Math.max(1, p), this.totalPages()));
   }
 
+  /**
+   * Crea un BORRADOR mínimo y navega a la vista de edición (única vista de
+   * alta/edición). El fin es opcional: el backend lo autocalcula (inicio + 12h).
+   */
   protected createEvent(): void {
-    if (!this.form.name() || !this.form.startsAt() || !this.form.endsAt()) {
-      this.toasts.warning('Completa nombre y fechas del evento.');
+    if (!this.form.name() || !this.form.startsAt()) {
+      this.toasts.warning('Completa el nombre y la fecha de inicio del evento.');
       return;
     }
     this.creating.set(true);
@@ -90,26 +90,21 @@ export class PromoterPanel {
       .create({
         name: this.form.name(),
         startsAt: new Date(this.form.startsAt()).toISOString(),
-        endsAt: new Date(this.form.endsAt()).toISOString(),
-        categoryId: this.form.categoryId() || undefined,
-        description: this.form.description() || undefined,
         ivaOnNet: true,
         absorbInstallmentCost: false,
       })
       .subscribe({
-        next: () => {
+        next: (ev) => {
           this.creating.set(false);
           this.form.name.set('');
-          this.form.description.set('');
           this.form.startsAt.set('');
-          this.form.endsAt.set('');
           this.showCreate.set(false);
-          this.toasts.success('Evento creado en borrador. Configúralo y publícalo.');
-          this.loadEvents();
+          this.toasts.success('Borrador creado. Completa los datos y publícalo.');
+          void this.router.navigate(['/promotor/eventos', ev.id, 'editar']);
         },
         error: () => {
           this.creating.set(false);
-          this.toasts.error('No se pudo crear el evento. Revisa las fechas.');
+          this.toasts.error('No se pudo crear el evento. Revisa la fecha de inicio.');
         },
       });
   }

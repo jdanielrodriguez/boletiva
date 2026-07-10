@@ -1,8 +1,7 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { of } from 'rxjs';
-import { CategoriesApi } from '../../core/api/categories.api';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
 import { PromoterPanel } from './promoter-panel';
 
@@ -31,7 +30,6 @@ describe('PromoterPanel (v3 grid)', () => {
             ...events,
           } as unknown as PromoterEventsApi,
         },
-        { provide: CategoriesApi, useValue: { list: () => of([{ id: 'c1', name: 'Conciertos', slug: 'c' }]) } },
       ],
     });
     fixture = TestBed.createComponent(PromoterPanel);
@@ -67,15 +65,17 @@ describe('PromoterPanel (v3 grid)', () => {
     expect(create).not.toHaveBeenCalled();
   });
 
-  it('crear evento válido llama create', async () => {
+  it('crear borrador válido llama create (sin endsAt) y navega al editor', async () => {
     const create = jasmine.createSpy('create').and.returnValue(of(EVENTS[0]));
     await setup({ create });
+    const nav = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
     click('toggle-create');
     setSig('form.name', 'Nuevo');
     setSig('form.startsAt', '2028-08-15T20:00');
-    setSig('form.endsAt', '2028-08-15T23:00');
     click('ev-create');
     expect(create).toHaveBeenCalled();
+    expect(create.calls.mostRecent().args[0].endsAt).toBeUndefined();
+    expect(nav).toHaveBeenCalledWith(['/promotor/eventos', 'e1', 'editar']);
   });
 
   it('publicar un evento draft llama publish', async () => {
