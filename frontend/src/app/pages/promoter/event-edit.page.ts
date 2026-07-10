@@ -18,8 +18,13 @@ import {
 import { EventSettlementComponent } from '../../shared/event-settlement/event-settlement.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { MapPickerComponent, type MapLocation } from '../../shared/map/map-picker.component';
+import { PagerComponent } from '../../shared/ui/pager.component';
+import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
+import { MoneyPipe } from '../../shared/money.pipe';
+import { EventSeatMapComponent } from './event-seat-map.component';
 import type {
   CategoryResponseDto,
+  EventTransactionDto,
   GatewayResponseDto,
   HallResponseDto,
   LocalityView,
@@ -52,9 +57,13 @@ function toLocalInput(iso: string | null | undefined): string {
     FormsModule,
     RouterLink,
     EventSettlementComponent,
+    EventSeatMapComponent,
     IconComponent,
     ConfirmDialogComponent,
     MapPickerComponent,
+    PagerComponent,
+    LocalizedDatePipe,
+    MoneyPipe,
     TranslatePipe,
   ],
   templateUrl: './event-edit.page.html',
@@ -163,6 +172,26 @@ export class EventEditPage implements OnDestroy {
   };
   /** Localidad en edición (PATCH) o null cuando se está creando una nueva. */
   protected readonly editingLoc = signal<LocalityView | null>(null);
+  /** Mapa combinado (solo lectura) bajo la lista: visible por defecto. */
+  protected readonly showCombinedMap = signal(true);
+  /** Localidades con asientos (seated) → alimentan el mapa combinado. */
+  protected readonly seatedLocalities = computed(() =>
+    this.localities().filter((l) => l.kind === 'seated'),
+  );
+
+  // --- Transacciones del evento (tab Cuentas) ---
+  private static readonly TX_PAGE = 10;
+  protected readonly txAll = signal<EventTransactionDto[]>([]);
+  protected readonly txLoading = signal(false);
+  protected readonly txLoaded = signal(false);
+  protected readonly txPage = signal(1);
+  protected readonly txTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.txAll().length / EventEditPage.TX_PAGE)),
+  );
+  protected readonly pageTransactions = computed(() => {
+    const start = (this.txPage() - 1) * EventEditPage.TX_PAGE;
+    return this.txAll().slice(start, start + EventEditPage.TX_PAGE);
+  });
 
   // Preview de precio (debounced 300ms) al teclear el neto de una localidad.
   private readonly netInput$ = new Subject<number>();
@@ -229,6 +258,7 @@ export class EventEditPage implements OnDestroy {
     const tab = this.route.snapshot.queryParamMap.get('tab');
     if (tab && ['datos', 'localidades', 'banner', 'config', 'cuentas', 'dashboard'].includes(tab)) {
       this.tab.set(tab as Tab);
+      if (tab === 'cuentas' && !this.isNew()) this.loadTransactions();
     }
 
     this.netInput$
@@ -387,6 +417,46 @@ export class EventEditPage implements OnDestroy {
 
   protected selectTab(t: Tab): void {
     this.tab.set(t);
+    if (t === 'cuentas' && !this.txLoaded()) this.loadTransactions();
+  }
+
+  protected toggleCombinedMap(): void {
+    this.showCombinedMap.update((v) => !v);
+  }
+
+  protected setTxPage(p: number): void {
+    this.txPage.set(p);
+  }
+
+  /** Abre el detalle de una transacción (dueño/admin). */
+  protected openTx(orderId: string): void {
+    void this.router.navigate(['/cuenta/transaccion', orderId]);
+  }
+
+  /**
+   * Carga TODAS las transacciones del evento siguiendo el cursor keyset (páginas de
+   * 100) y las acumula; luego se pagina en cliente con el pager compartido. Igual
+   * patrón que la facturación de la cuenta (lista completa → paginación local).
+   */
+  private loadTransactions(cursor?: string, acc: EventTransactionDto[] = []): void {
+    this.txLoading.set(true);
+    this.api.transactions(this.eventId(), cursor, 100).subscribe({
+      next: (p) => {
+        const items = [...acc, ...(p.items ?? [])];
+        if (p.nextCursor) {
+          this.loadTransactions(p.nextCursor, items);
+        } else {
+          this.txAll.set(items);
+          this.txLoading.set(false);
+          this.txLoaded.set(true);
+        }
+      },
+      error: () => {
+        this.txAll.set(acc);
+        this.txLoading.set(false);
+        this.txLoaded.set(true);
+      },
+    });
   }
 
   // --- Datos / Guardar (crea en modo nuevo; actualiza en edición) ---
@@ -519,12 +589,15 @@ export class EventEditPage implements OnDestroy {
     if (net != null && net > 0) this.onNetChange(net);
   }
 
-  protected manageSeats(l: LocalityView): void {
-    void this.router.navigate(
-      ['/promotor/eventos', this.eventId(), 'localidades', l.id, 'asientos'],
-      { queryParams: this.from() === 'admin' ? { from: 'admin' } : {} },
-    );
+  /** Ruta a la vista de asientos de una localidad (RouterLink → sigue accesible
+   * aunque el evento esté bloqueado por admin: solo se ve en modo lectura). */
+  protected seatsLink(l: LocalityView): (string | number)[] {
+    return ['/promotor/eventos', this.eventId(), 'localidades', l.id, 'asientos'];
   }
+  /** QueryParams del enlace a asientos (preserva `?from=admin`). */
+  protected readonly seatsQuery = computed(() =>
+    this.from() === 'admin' ? { from: 'admin' } : {},
+  );
 
   protected addLocality(): void {
     if (this.blockedByLock()) return;

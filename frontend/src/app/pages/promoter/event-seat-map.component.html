@@ -1,0 +1,29 @@
+<div class="event-seat-map" data-testid="event-seat-map">
+  @if (loading()) {
+    <p class="muted small">{{ 'common.loading' | translate }}</p>
+  } @else if (clusters().length === 0) {
+    <p class="muted small" data-testid="esm-empty">{{ 'promoter.seatMap.empty' | translate }}</p>
+  } @else {
+    <div class="esm-header">
+      <span class="seat-count-badge" data-testid="esm-total" role="status">
+        <app-icon name="seats" />
+        <span class="seat-count-num">{{ totalSeats() }}</span>
+        <span class="seat-count-label">{{ 'promoter.seatMap.totalSeats' | translate }}</span>
+      </span>
+      <ul class="esm-legend" data-testid="esm-legend">
+        @for (l of legend(); track l.name) {
+          <li class="esm-legend-item">
+            <span class="esm-swatch" [style.background]="l.color"></span>
+            <span>{{ l.name }}</span>
+            <span class="muted small">({{ l.count }})</span>
+          </li>
+        }
+      </ul>
+    </div>
+  }
+  <!-- El host SIEMPRE está en el DOM (aunque oculto): así `afterNextRender` puede
+       crear el stage de Konva y los efectos posteriores redibujan al llegar datos. -->
+  <div class="esm-scroll" [hidden]="loading() || clusters().length === 0">
+    <div #host class="esm-canvas" data-testid="esm-canvas"></div>
+  </div>
+</div>

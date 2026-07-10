@@ -148,17 +148,24 @@
                       @if (l.desiredNet != null) { <span class="muted small">{{ 'promoter.edit.netLabel' | translate: { n: l.desiredNet } }}</span> }
                       <span class="loc-manage-actions">
                         @if (l.kind === 'seated') {
-                          <button type="button" class="btn small primary" (click)="manageSeats(l)" data-testid="loc-seats"
-                            [title]="isPublished() ? ('promoter.edit.viewSeatMap' | translate) : ('promoter.edit.openSeatEditor' | translate)">
-                            <app-icon name="seats" /> {{ isPublished() ? ('promoter.edit.viewSeats' | translate) : ('promoter.edit.manageSeats' | translate) }}
-                          </button>
+                          <!-- Enlace (no botón): sigue accesible aunque el evento esté
+                               bloqueado por admin → abre el mapa en modo lectura.
+                               Se oculta mientras ESA localidad está en edición. -->
+                          @if (editingLoc()?.id !== l.id) {
+                            <a class="btn small primary" [routerLink]="seatsLink(l)" [queryParams]="seatsQuery()" data-testid="loc-seats"
+                              [title]="(isPublished() || locked()) ? ('promoter.edit.viewSeatMap' | translate) : ('promoter.edit.openSeatEditor' | translate)">
+                              <app-icon name="seats" /> {{ (isPublished() || locked()) ? ('promoter.edit.viewSeats' | translate) : ('promoter.edit.manageSeats' | translate) }}
+                            </a>
+                          }
                         } @else {
                           <span class="muted small loc-general-note" data-testid="loc-general-note">{{ 'promoter.edit.soldByCapacity' | translate }}</span>
                         }
                         @if (!isPublished()) {
-                          <button type="button" class="btn small" (click)="startEditLocality(l)" data-testid="loc-edit" [title]="'promoter.edit.editLocalityTitle' | translate">
-                            <app-icon name="edit" /> {{ 'common.edit' | translate }}
-                          </button>
+                          @if (editingLoc()?.id !== l.id) {
+                            <button type="button" class="btn small" (click)="startEditLocality(l)" data-testid="loc-edit" [title]="'promoter.edit.editLocalityTitle' | translate">
+                              <app-icon name="edit" /> {{ 'common.edit' | translate }}
+                            </button>
+                          }
                           <button type="button" class="btn small danger" (click)="askRemoveLocality(l)" data-testid="loc-remove" [title]="'promoter.edit.deleteLocalityTitle' | translate">
                             <app-icon name="delete" /> {{ 'common.delete' | translate }}
                           </button>
@@ -318,6 +325,53 @@
             <h2>{{ 'promoter.edit.accountsTitle' | translate }}</h2>
             <app-event-settlement [eventId]="eventId()" [showSplit]="false" />
           </div>
+
+          <div class="card-block" data-testid="tx-block">
+            <h3>{{ 'promoter.tx.title' | translate }}</h3>
+            @if (txLoading() && txAll().length === 0) {
+              <p class="muted small">{{ 'common.loading' | translate }}</p>
+            } @else if (txAll().length === 0) {
+              <p class="muted" data-testid="tx-empty">{{ 'promoter.tx.empty' | translate }}</p>
+            } @else {
+              <div class="tx-table-scroll">
+                <table class="tx-table" data-testid="tx-table">
+                  <thead>
+                    <tr>
+                      <th>{{ 'promoter.tx.colBuyer' | translate }}</th>
+                      <th>{{ 'promoter.tx.colDate' | translate }}</th>
+                      <th>{{ 'promoter.tx.colLocalities' | translate }}</th>
+                      <th class="tx-num">{{ 'promoter.tx.colItems' | translate }}</th>
+                      <th>{{ 'promoter.tx.colStatus' | translate }}</th>
+                      <th class="tx-num">{{ 'promoter.tx.colTotal' | translate }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (t of pageTransactions(); track t.id) {
+                      <tr class="tx-row" (click)="openTx(t.id)" (keydown.enter)="openTx(t.id)"
+                        tabindex="0" role="button" data-testid="tx-row"
+                        [title]="'promoter.tx.openDetail' | translate">
+                        <td>
+                          <span class="tx-buyer-name">{{ t.buyerName || ('promoter.tx.anonymous' | translate) }}</span>
+                          @if (t.buyerEmail) { <span class="muted small tx-buyer-email">{{ t.buyerEmail }}</span> }
+                        </td>
+                        <td>{{ t.createdAt | localizedDate: 'medium' }}</td>
+                        <td>{{ t.localities.length ? t.localities.join(', ') : '—' }}</td>
+                        <td class="tx-num">{{ t.itemCount }}</td>
+                        <td><span class="badge badge-{{ t.status }}">{{ t.status }}</span></td>
+                        <td class="tx-num">{{ t.total | money }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+              <app-pager
+                [page]="txPage()"
+                [totalPages]="txTotalPages()"
+                [label]="'promoter.tx.pagerLabel' | translate"
+                (pageChange)="setTxPage($event)"
+              />
+            }
+          </div>
         }
 
         @case ('dashboard') {
@@ -329,6 +383,26 @@
       }
     }
     </fieldset>
+
+    <!-- Mapa combinado (solo lectura) de TODAS las localidades con asientos.
+         Fuera del fieldset bloqueable: se puede ver/plegar aunque el evento esté
+         bloqueado por admin. Solo en el tab Localidades. -->
+    @if (!isNew() && tab() === 'localidades' && seatedLocalities().length > 0) {
+      <div class="card-block combined-map-block" data-testid="combined-map-block">
+        <div class="combined-map-head">
+          <h3>{{ 'promoter.seatMap.title' | translate }}</h3>
+          <button type="button" class="btn small" (click)="toggleCombinedMap()" data-testid="combined-map-toggle"
+            [attr.aria-expanded]="showCombinedMap()" [title]="'promoter.seatMap.toggleTitle' | translate">
+            <app-icon name="seats" />
+            {{ showCombinedMap() ? ('promoter.seatMap.hide' | translate) : ('promoter.seatMap.show' | translate) }}
+          </button>
+        </div>
+        <p class="muted small">{{ 'promoter.seatMap.hint' | translate }}</p>
+        @if (showCombinedMap()) {
+          <app-event-seat-map [eventId]="eventId()" [localities]="seatedLocalities()" data-testid="combined-map" />
+        }
+      </div>
+    }
   }
 
   @if (showUnlockModal()) {

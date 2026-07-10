@@ -312,4 +312,30 @@ export const promoter = {
     iva: 'IVA recaudado',
     note: 'Recibes el <strong>neto</strong>; la cuota por servicio (plataforma + pasarela) y el IVA los cobra la plataforma y el fisco. El total cobrado al público es la suma de todo.',
   },
+
+  // --- Mapa combinado (solo lectura) del evento ---
+  seatMap: {
+    title: 'Mapa de asientos del evento',
+    hint: 'Vista de solo lectura que junta los asientos de todas las localidades con mapa.',
+    hide: 'Ocultar mapa',
+    show: 'Mostrar mapa',
+    toggleTitle: 'Mostrar u ocultar el mapa combinado',
+    totalSeats: 'asientos',
+    empty: 'Aún no hay localidades con asientos en este evento.',
+  },
+
+  // --- Tabla de transacciones del evento (tab Cuentas) ---
+  tx: {
+    title: 'Transacciones',
+    empty: 'Este evento aún no tiene transacciones.',
+    colBuyer: 'Comprador',
+    colDate: 'Fecha',
+    colLocalities: 'Localidades',
+    colItems: 'Boletos',
+    colStatus: 'Estado',
+    colTotal: 'Total',
+    anonymous: 'Anónimo',
+    openDetail: 'Ver detalle de la transacción',
+    pagerLabel: 'Paginación de transacciones',
+  },
 };

@@ -76,6 +76,9 @@ describe('EventEditPage (v3)', () => {
             generateBanner: () => of({ url: 'http://x/b.svg' }),
             activeGateways: () => of([{ id: 'g1', name: 'Sandbox' }]),
             settlement: () => of({ net: '0.00' }),
+            seats: () => of([]),
+            transactions: () => of({ items: [], nextCursor: null }),
+            updateLocality: () => of({ id: 'l1' }),
             quote: () => of({ quote: { net: '100.00', platformFee: '10.00', gatewayFee: '6.48', iva: '13.20', serviceFee: '29.68', total: '129.68' } }),
             ...api,
           } as unknown as PromoterEventsApi,
@@ -360,24 +363,132 @@ describe('EventEditPage (v3)', () => {
     expect(el.querySelector('[data-testid="loc-general-note"]')?.textContent).toContain('aforo');
   });
 
-  it('localidades: "Administrar asientos" navega a la vista de asientos (no inline)', async () => {
+  it('localidades: "Administrar asientos" es un enlace a la vista de asientos (no inline)', async () => {
     await setup({ localities: () => of([{ id: 'l1', name: 'VIP', kind: 'seated', capacity: 5 }]) });
-    const nav = spyOn(fixture.componentInstance['router'], 'navigate').and.resolveTo(true);
-    fixture.componentInstance['manageSeats']({ id: 'l1', name: 'VIP', kind: 'seated' } as never);
-    expect(nav).toHaveBeenCalledWith(
-      ['/promotor/eventos', 'e1', 'localidades', 'l1', 'asientos'],
-      { queryParams: {} },
-    );
+    fixture.componentInstance['selectTab']('localidades');
+    fixture.detectChanges();
+    const link = (fixture.nativeElement as HTMLElement).querySelector('[data-testid="loc-seats"]');
+    expect(link?.tagName.toLowerCase()).toBe('a');
+    expect(link?.getAttribute('href')).toBe('/promotor/eventos/e1/localidades/l1/asientos');
+    expect(fixture.componentInstance['seatsLink']({ id: 'l1' } as never)).toEqual([
+      '/promotor/eventos',
+      'e1',
+      'localidades',
+      'l1',
+      'asientos',
+    ]);
   });
 
-  it('localidades: como admin (?from=admin) la navegación a asientos preserva el origen', async () => {
-    await setup({ localities: () => of([{ id: 'l1', name: 'VIP', kind: 'seated', capacity: 5 }]) }, { from: 'admin' });
-    const nav = spyOn(fixture.componentInstance['router'], 'navigate').and.resolveTo(true);
-    fixture.componentInstance['manageSeats']({ id: 'l1', name: 'VIP', kind: 'seated' } as never);
-    expect(nav).toHaveBeenCalledWith(
-      ['/promotor/eventos', 'e1', 'localidades', 'l1', 'asientos'],
-      { queryParams: { from: 'admin' } },
+  it('localidades: como admin (?from=admin) el enlace a asientos preserva el origen', async () => {
+    await setup(
+      { localities: () => of([{ id: 'l1', name: 'VIP', kind: 'seated', capacity: 5 }]) },
+      { from: 'admin' },
     );
+    expect(fixture.componentInstance['seatsQuery']()).toEqual({ from: 'admin' });
+  });
+
+  // --- v3.6: admin bloqueado puede VER el mapa (enlace habilitado) ---
+  it('admin NO dueño (bloqueado): el enlace a asientos sigue presente (ver mapa)', async () => {
+    await setup(
+      { localities: () => of([{ id: 'l1', name: 'VIP', kind: 'seated', capacity: 5 }]) },
+      {},
+      'e1',
+      { id: 'admin-9', roles: ['admin'] },
+    );
+    fixture.componentInstance['selectTab']('localidades');
+    fixture.detectChanges();
+    expect(fixture.componentInstance['locked']()).toBe(true);
+    const link = (fixture.nativeElement as HTMLElement).querySelector('[data-testid="loc-seats"]');
+    // Es un <a> (no un <button> deshabilitado por el fieldset) → clickable.
+    expect(link?.tagName.toLowerCase()).toBe('a');
+    expect(link?.getAttribute('href')).toBe('/promotor/eventos/e1/localidades/l1/asientos');
+  });
+
+  // --- v3.6: editar localidad oculta sus botones Editar / Administrar asientos ---
+  it('editar una localidad oculta su enlace de asientos y su botón Editar', async () => {
+    await setup({ localities: () => of([{ id: 'l1', name: 'VIP', kind: 'seated', capacity: 5 }]) });
+    fixture.componentInstance['selectTab']('localidades');
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="loc-seats"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="loc-edit"]')).not.toBeNull();
+    fixture.componentInstance['startEditLocality']({
+      id: 'l1',
+      name: 'VIP',
+      kind: 'seated',
+      capacity: 5,
+    } as never);
+    fixture.detectChanges();
+    expect(el.querySelector('[data-testid="loc-seats"]')).toBeNull();
+    expect(el.querySelector('[data-testid="loc-edit"]')).toBeNull();
+    // Al cancelar el form, los botones regresan.
+    fixture.componentInstance['toggleLocForm']();
+    fixture.detectChanges();
+    expect(el.querySelector('[data-testid="loc-seats"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="loc-edit"]')).not.toBeNull();
+  });
+
+  // --- v3.6: mapa combinado (solo lectura) bajo las localidades ---
+  it('localidades con asientos: muestra el bloque del mapa combinado con su toggle', async () => {
+    await setup({ localities: () => of([{ id: 'l1', name: 'VIP', kind: 'seated', capacity: 5 }]) });
+    fixture.componentInstance['selectTab']('localidades');
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="combined-map-block"]')).not.toBeNull();
+    // Visible por defecto.
+    expect(fixture.componentInstance['showCombinedMap']()).toBe(true);
+    expect(el.querySelector('[data-testid="combined-map"]')).not.toBeNull();
+    fixture.componentInstance['toggleCombinedMap']();
+    fixture.detectChanges();
+    expect(fixture.componentInstance['showCombinedMap']()).toBe(false);
+    expect(el.querySelector('[data-testid="combined-map"]')).toBeNull();
+  });
+
+  it('sin localidades seated: no se muestra el bloque del mapa combinado', async () => {
+    await setup({ localities: () => of([{ id: 'l1', name: 'General', kind: 'general', capacity: 10 }]) });
+    fixture.componentInstance['selectTab']('localidades');
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="combined-map-block"]')).toBeNull();
+  });
+
+  // --- v3.6: tab Cuentas con tabla de transacciones ---
+  it('tab Cuentas: carga y muestra la tabla de transacciones, con enlace al detalle', async () => {
+    const transactions = jasmine.createSpy('tx').and.returnValue(
+      of({
+        items: [
+          {
+            id: 'o1',
+            buyerName: 'Ana López',
+            buyerEmail: 'ana@x.com',
+            status: 'paid',
+            total: '129.68',
+            currency: 'GTQ',
+            itemCount: 2,
+            localities: ['VIP'],
+            createdAt: '2026-07-01T10:00:00.000Z',
+          },
+        ],
+        nextCursor: null,
+      }),
+    );
+    await setup({ transactions });
+    const nav = spyOn(fixture.componentInstance['router'], 'navigate').and.resolveTo(true);
+    fixture.componentInstance['selectTab']('cuentas');
+    fixture.detectChanges();
+    expect(transactions).toHaveBeenCalledWith('e1', undefined, 100);
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="tx-table"]')).not.toBeNull();
+    const row = el.querySelector('[data-testid="tx-row"]') as HTMLElement;
+    expect(row?.textContent).toContain('Ana López');
+    row.click();
+    expect(nav).toHaveBeenCalledWith(['/cuenta/transaccion', 'o1']);
+  });
+
+  it('tab Cuentas sin transacciones muestra el estado vacío', async () => {
+    await setup({ transactions: () => of({ items: [], nextCursor: null }) });
+    fixture.componentInstance['selectTab']('cuentas');
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="tx-empty"]')).not.toBeNull();
   });
 
   it('eliminar evento pide confirmación (modal) antes de borrar', async () => {

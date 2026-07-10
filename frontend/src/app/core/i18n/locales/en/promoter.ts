@@ -312,4 +312,30 @@ export const promoter = {
     iva: 'VAT collected',
     note: 'You receive the <strong>net</strong>; the service fee (platform + gateway) and VAT are collected by the platform and the tax authority. The total charged to the public is the sum of everything.',
   },
+
+  // --- Combined (read-only) event seat map ---
+  seatMap: {
+    title: 'Event seat map',
+    hint: 'Read-only view combining the seats of every locality that has a map.',
+    hide: 'Hide map',
+    show: 'Show map',
+    toggleTitle: 'Show or hide the combined map',
+    totalSeats: 'seats',
+    empty: 'This event has no localities with seats yet.',
+  },
+
+  // --- Event transactions table (Accounts tab) ---
+  tx: {
+    title: 'Transactions',
+    empty: 'This event has no transactions yet.',
+    colBuyer: 'Buyer',
+    colDate: 'Date',
+    colLocalities: 'Localities',
+    colItems: 'Tickets',
+    colStatus: 'Status',
+    colTotal: 'Total',
+    anonymous: 'Anonymous',
+    openDetail: 'View transaction detail',
+    pagerLabel: 'Transactions pagination',
+  },
 };
