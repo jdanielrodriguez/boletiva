@@ -42,12 +42,20 @@ describe('SeatEditorComponent (editor de asientos)', () => {
     dirty: () => boolean;
     seatCount: () => number;
     applyTemplate: (id: string) => void;
+    applyGenerator: (id: string) => void;
     generate: () => void;
     rows: { set: (n: number) => void };
     cols: { set: (n: number) => void };
+    perTable: { set: (n: number) => void };
     save: () => void;
     mode: () => string;
     setMode: (m: string) => void;
+    showGenerator: { set: (v: boolean) => void } & (() => boolean);
+    toggleGenerator: () => void;
+    generatorSearch: { set: (v: string) => void };
+    filteredGenerators: () => { id: string }[];
+    filteredTemplates: () => { id: string }[];
+    onDocumentClick: (ev: Event) => void;
   };
 
   it('aplica una plantilla → llena el borrador y marca cambios sin guardar', async () => {
@@ -73,12 +81,50 @@ describe('SeatEditorComponent (editor de asientos)', () => {
     expect(bulkSeats.calls.mostRecent().args[1].length).toBe(96);
   });
 
-  it('cambia de herramienta (mover/agregar/eliminar)', async () => {
+  it('cambia de herramienta (mover/agregar/línea/eliminar)', async () => {
     await setup();
     expect(inst().mode()).toBe('move');
     inst().setMode('add');
     expect(inst().mode()).toBe('add');
+    inst().setMode('line');
+    expect(inst().mode()).toBe('line');
     inst().setMode('delete');
     expect(inst().mode()).toBe('delete');
+  });
+
+  it('genera mesas con asientos-por-mesa configurable', async () => {
+    await setup();
+    inst().rows.set(3); // 3 mesas
+    inst().perTable.set(6);
+    inst().applyGenerator('tables');
+    expect(inst().seatCount()).toBe(18);
+    expect(inst().dirty()).toBe(true);
+  });
+
+  it('genera línea (cols asientos en una fila)', async () => {
+    await setup();
+    inst().cols.set(12);
+    inst().applyGenerator('line');
+    expect(inst().seatCount()).toBe(12);
+  });
+
+  it('el buscador filtra generadores y plantillas del menú', async () => {
+    await setup();
+    inst().generatorSearch.set('mesa');
+    expect(inst().filteredGenerators().some((g) => g.id === 'tables')).toBe(true);
+    expect(inst().filteredGenerators().some((g) => g.id === 'grid')).toBe(false);
+    inst().generatorSearch.set('teatro');
+    expect(inst().filteredTemplates().some((t) => t.id === 'theater')).toBe(true);
+  });
+
+  it('el menú "Generar" se cierra al hacer click fuera del contenedor', async () => {
+    await setup();
+    inst().showGenerator.set(true);
+    // Click fuera (un nodo suelto no contenido en el wrap del editor).
+    const outside = document.createElement('div');
+    document.body.appendChild(outside);
+    inst().onDocumentClick({ target: outside } as unknown as Event);
+    expect(inst().showGenerator()).toBe(false);
+    outside.remove();
   });
 });

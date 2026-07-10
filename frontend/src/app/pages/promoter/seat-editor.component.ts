@@ -1,7 +1,9 @@
 import {
   Component,
   ElementRef,
+  HostListener,
   afterNextRender,
+  computed,
   effect,
   inject,
   input,
@@ -19,9 +21,17 @@ import {
   type ConfirmRequest,
 } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
-import { buildGrid } from './seat-grid';
 import { collides, snapToGrid, SEAT_GRID } from './seat-collision';
 import { buildTemplate, SEAT_TEMPLATES, type SeatTemplateId } from './seat-templates';
+import {
+  SEAT_GENERATORS,
+  generateGrid,
+  generateCurve,
+  generateTables,
+  generateLine,
+  seatsAlongLine,
+  type GeneratorId,
+} from './seat-generators';
 
 const PAD = 30;
 
@@ -34,15 +44,17 @@ interface DraftSeat {
   y: number;
 }
 
-type EditMode = 'move' | 'add' | 'delete';
+type EditMode = 'move' | 'add' | 'delete' | 'line';
 
 /**
  * Editor de mapa de asientos (promotor): trabaja sobre un BORRADOR local editable
- * y lo persiste (bulk) al guardar. Ofrece (a) generar por filas×asientos, (b)
- * aplicar una PLANTILLA (Teatro/Estadio/Mesas/Filas) desde el desplegable "Agregar
- * plantilla", y (c) controles de canvas: mover (arrastrar con snap a cuadrícula),
- * agregar (click en vacío) y eliminar (click en asiento), SIEMPRE evitando
- * solapamientos (colisión). Render con Konva (browser-only). Bloqueado si `readonly`.
+ * y lo persiste (bulk) al guardar. Ofrece (a) el generador de cuadrícula (filas ×
+ * asientos), (b) herramientas de canvas DEBAJO del generador — mover (arrastrar con
+ * snap), agregar (click), eliminar (click) y **Línea (click-arrastrar-soltar)** que
+ * dibuja una fila de asientos siguiendo el trazo (los que caen encima de otro NO se
+ * colocan; los demás sí), y (c) un menú general "Generar" (cuadrícula/mesas/curva/
+ * línea + presets SVG) con BUSCADOR que se cierra al hacer click afuera. Un VISOR
+ * prominente muestra el conteo. Render con Konva (browser-only). Bloqueado si `readonly`.
  */
 @Component({
   selector: 'app-seat-editor',
@@ -53,15 +65,19 @@ export class SeatEditorComponent {
   private readonly api = inject(PromoterEventsApi);
   private readonly toasts = inject(ToastService);
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly elRef = inject(ElementRef<HTMLElement>);
 
   readonly localityId = input.required<string>();
   readonly readonly = input(false);
   /** Notifica al padre cuando cambió el aforo (para refrescar la localidad). */
   readonly changed = output<number>();
 
-  /** Plantillas con su icono SVG ya saneado (contenido estático y seguro). */
+  /** Plantillas (presets SVG) con su icono ya saneado (contenido estático y seguro). */
   protected readonly templates: { id: SeatTemplateId; name: string; hint: string; safeIcon: SafeHtml }[] =
     SEAT_TEMPLATES.map((t) => ({ id: t.id, name: t.name, hint: t.hint, safeIcon: this.sanitizer.bypassSecurityTrustHtml(t.icon) }));
+
+  /** Generadores paramétricos del menú "Generar". */
+  protected readonly generators = SEAT_GENERATORS;
 
   /** Asientos ya persistidos en el servidor (para saber qué borrar al guardar). */
   private readonly persisted = signal<SeatView[]>([]);
@@ -73,12 +89,31 @@ export class SeatEditorComponent {
   protected readonly saving = signal(false);
   protected readonly dirty = signal(false);
   protected readonly mode = signal<EditMode>('move');
-  protected readonly showTemplates = signal(false);
+  protected readonly showGenerator = signal(false);
+  protected readonly generatorSearch = signal('');
+  /** Asientos por mesa (parámetro del generador "Mesas"). */
+  protected readonly perTable = signal(8);
+
+  /** Generadores filtrados por el buscador del menú. */
+  protected readonly filteredGenerators = computed(() => {
+    const q = this.generatorSearch().trim().toLowerCase();
+    if (!q) return this.generators;
+    return this.generators.filter((g) => `${g.name} ${g.hint}`.toLowerCase().includes(q));
+  });
+  /** Presets SVG filtrados por el buscador del menú. */
+  protected readonly filteredTemplates = computed(() => {
+    const q = this.generatorSearch().trim().toLowerCase();
+    if (!q) return this.templates;
+    return this.templates.filter((t) => `${t.name} ${t.hint}`.toLowerCase().includes(q));
+  });
 
   private readonly host = viewChild<ElementRef<HTMLDivElement>>('host');
   private konva: typeof Konva | null = null;
   private stage: Konva.Stage | null = null;
   private layer: Konva.Layer | null = null;
+  /** Estado del trazo de la herramienta "Línea". */
+  private lineStart: { x: number; y: number } | null = null;
+  private previewLine: Konva.Line | null = null;
 
   constructor() {
     effect(() => {
@@ -94,6 +129,14 @@ export class SeatEditorComponent {
       this.mode();
       if (this.stage) this.draw();
     });
+  }
+
+  /** Cierra el menú "Generar" al hacer click fuera de su contenedor. */
+  @HostListener('document:click', ['$event'])
+  protected onDocumentClick(ev: Event): void {
+    if (!this.showGenerator()) return;
+    const wrap = this.elRef.nativeElement.querySelector('[data-testid="gen-wrap"]');
+    if (wrap && !wrap.contains(ev.target as Node)) this.showGenerator.set(false);
   }
 
   private load(id: string): void {
@@ -128,36 +171,64 @@ export class SeatEditorComponent {
     this.mode.set(m);
   }
 
-  protected toggleTemplates(): void {
-    this.showTemplates.update((v) => !v);
+  protected toggleGenerator(): void {
+    this.showGenerator.update((v) => !v);
   }
 
-  // --- Generación por cuadrícula ---
+  // --- Generación por cuadrícula (botón directo del formulario) ---
   protected generate(): void {
     if (this.readonly()) return;
-    const grid = buildGrid({ rows: this.rows(), cols: this.cols(), section: this.section() });
-    this.draft.set(grid.map((g) => ({ label: g.label, section: g.section, row: g.row, x: g.x as number, y: g.y as number })));
-    this.dirty.set(true);
-    this.toasts.info('Cuadrícula generada. Ajusta y guarda la disposición.');
+    this.applyGenerator('grid');
   }
 
-  // --- Plantillas ---
+  /** Aplica un generador paramétrico usando los campos del formulario. */
+  protected applyGenerator(id: GeneratorId): void {
+    if (this.readonly()) return;
+    let seats: BulkSeatInput[];
+    let msg: string;
+    switch (id) {
+      case 'grid':
+        seats = generateGrid(this.rows(), this.cols(), this.section());
+        msg = 'Cuadrícula generada.';
+        break;
+      case 'curve':
+        seats = generateCurve(this.rows(), this.cols(), this.section());
+        msg = 'Curva generada.';
+        break;
+      case 'tables':
+        seats = generateTables(this.rows(), this.perTable(), this.section());
+        msg = `Mesas generadas (${this.perTable()} asientos por mesa).`;
+        break;
+      case 'line':
+        seats = generateLine(this.cols(), this.section());
+        msg = 'Línea generada.';
+        break;
+      default:
+        return;
+    }
+    this.draft.set(seats.map((s) => ({ label: s.label, section: s.section, row: s.row, x: s.x as number, y: s.y as number })));
+    this.dirty.set(true);
+    this.showGenerator.set(false);
+    this.toasts.info(`${msg} Ajusta y guarda la disposición.`);
+  }
+
+  // --- Plantillas (presets SVG) ---
   protected applyTemplate(id: SeatTemplateId): void {
     if (this.readonly()) return;
     const seats = buildTemplate(id, this.section());
     this.draft.set(seats.map((s) => ({ label: s.label, section: s.section, row: s.row, x: s.x as number, y: s.y as number })));
     this.dirty.set(true);
-    this.showTemplates.set(false);
+    this.showGenerator.set(false);
     this.toasts.info('Plantilla aplicada. Puedes editarla y luego guardar.');
   }
 
   /** Etiqueta única para un asiento nuevo agregado a mano. */
-  private nextLabel(): string {
-    const used = new Set(this.draft().map((s) => s.label));
-    let n = this.draft().length + 1;
+  private nextLabel(used: Set<string>, from: number): { label: string; n: number } {
+    let n = from;
     let label = `L-${n}`;
     while (used.has(label)) label = `L-${++n}`;
-    return label;
+    used.add(label);
+    return { label, n };
   }
 
   // --- Persistencia (bulk) ---
@@ -252,9 +323,11 @@ export class SeatEditorComponent {
       this.stage.on('click tap', (e) => {
         if (this.mode() === 'add' && e.target === this.stage) this.onCanvasAdd();
       });
+      this.bindLineDrag();
     } else {
       this.stage.size({ width, height });
       this.layer?.destroyChildren();
+      this.previewLine = null;
     }
     if (!this.layer) return;
     const editable = !this.readonly();
@@ -279,6 +352,54 @@ export class SeatEditorComponent {
     this.layer.draw();
   }
 
+  /** Herramienta "Línea": click-arrastrar-soltar dibuja una fila de asientos. */
+  private bindLineDrag(): void {
+    if (!this.stage) return;
+    this.stage.on('mousedown touchstart', () => {
+      if (this.readonly() || this.mode() !== 'line') return;
+      const pos = this.stage?.getPointerPosition();
+      if (pos) this.lineStart = { x: pos.x, y: pos.y };
+    });
+    this.stage.on('mousemove touchmove', () => {
+      if (this.mode() !== 'line' || !this.lineStart || !this.layer || !this.konva) return;
+      const pos = this.stage?.getPointerPosition();
+      if (!pos) return;
+      if (!this.previewLine) {
+        this.previewLine = new this.konva.Line({ stroke: '#7b5cff', strokeWidth: 2, dash: [6, 4], listening: false });
+        this.layer.add(this.previewLine);
+      }
+      this.previewLine.points([this.lineStart.x, this.lineStart.y, pos.x, pos.y]);
+      this.layer.batchDraw();
+    });
+    this.stage.on('mouseup touchend', () => {
+      if (this.mode() !== 'line' || !this.lineStart) return;
+      const pos = this.stage?.getPointerPosition() ?? this.lineStart;
+      this.onLineDraw(this.lineStart, { x: pos.x, y: pos.y });
+      this.lineStart = null;
+      this.previewLine?.destroy();
+      this.previewLine = null;
+    });
+  }
+
+  /** Coloca los asientos del trazo (los que colisionan se omiten uno a uno). */
+  private onLineDraw(from: { x: number; y: number }, to: { x: number; y: number }): void {
+    if (this.readonly()) return;
+    const placed = seatsAlongLine(from, to, this.draft());
+    if (placed.length === 0) {
+      this.toasts.warning('No se colocó ningún asiento: el trazo choca con otros.');
+      return;
+    }
+    const used = new Set(this.draft().map((s) => s.label));
+    let n = this.draft().length;
+    const newSeats: DraftSeat[] = placed.map((p) => {
+      const { label, n: nn } = this.nextLabel(used, n + 1);
+      n = nn;
+      return { label, section: this.section() || undefined, x: p.x, y: p.y };
+    });
+    this.draft.update((list) => [...list, ...newSeats]);
+    this.dirty.set(true);
+  }
+
   /** Agrega un asiento en la posición del cursor (snap a cuadrícula, sin solaparse). */
   private onCanvasAdd(): void {
     const pos = this.stage?.getPointerPosition();
@@ -289,10 +410,9 @@ export class SeatEditorComponent {
       this.toasts.warning('Ahí ya hay un asiento; elige otro lugar.');
       return;
     }
-    this.draft.update((list) => [
-      ...list,
-      { label: this.nextLabel(), section: this.section() || undefined, x, y },
-    ]);
+    const used = new Set(this.draft().map((s) => s.label));
+    const { label } = this.nextLabel(used, this.draft().length + 1);
+    this.draft.update((list) => [...list, { label, section: this.section() || undefined, x, y }]);
     this.dirty.set(true);
   }
 

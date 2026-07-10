@@ -2,21 +2,6 @@
   @if (readonly()) {
     <p class="muted small">El evento está publicado: el mapa de asientos está bloqueado.</p>
   } @else {
-    <!-- Herramientas de canvas: mover / agregar / eliminar -->
-    <div class="seat-tools" data-testid="seat-tools">
-      <div class="seat-tool-group" role="group" aria-label="Herramienta de edición">
-        <button type="button" class="btn small" [class.primary]="mode() === 'move'" (click)="setMode('move')" data-testid="tool-move" title="Mover asientos (arrastrar)">
-          <app-icon name="edit" /> Mover
-        </button>
-        <button type="button" class="btn small" [class.primary]="mode() === 'add'" (click)="setMode('add')" data-testid="tool-add" title="Agregar asiento (click en el lienzo)">
-          <app-icon name="add" /> Agregar
-        </button>
-        <button type="button" class="btn small" [class.primary]="mode() === 'delete'" (click)="setMode('delete')" data-testid="tool-delete" title="Eliminar asiento (click en el asiento)">
-          <app-icon name="delete" /> Eliminar
-        </button>
-      </div>
-    </div>
-
     <!-- Generación rápida por cuadrícula -->
     <div class="seat-editor-form">
       <label class="field inline">
@@ -40,31 +25,99 @@
         </button>
       }
     </div>
+
+    <!-- Herramientas de canvas (DEBAJO del generador): mover / agregar / eliminar / línea -->
+    <div class="seat-tools" data-testid="seat-tools">
+      <div class="seat-tool-group" role="group" aria-label="Herramienta de edición">
+        <button type="button" class="btn small" [class.primary]="mode() === 'move'" (click)="setMode('move')" data-testid="tool-move" title="Mover asientos (arrastrar)" aria-label="Mover asientos">
+          <app-icon name="edit" /> Mover
+        </button>
+        <button type="button" class="btn small" [class.primary]="mode() === 'add'" (click)="setMode('add')" data-testid="tool-add" title="Agregar asiento (click en el lienzo)" aria-label="Agregar asiento">
+          <app-icon name="add" /> Agregar
+        </button>
+        <button type="button" class="btn small" [class.primary]="mode() === 'line'" (click)="setMode('line')" data-testid="tool-line" title="Dibujar una línea de asientos (click, arrastra y suelta)" aria-label="Dibujar línea de asientos">
+          <app-icon name="seats" /> Línea
+        </button>
+        <button type="button" class="btn small" [class.primary]="mode() === 'delete'" (click)="setMode('delete')" data-testid="tool-delete" title="Eliminar asiento (click en el asiento)" aria-label="Eliminar asiento">
+          <app-icon name="delete" /> Eliminar
+        </button>
+      </div>
+    </div>
+
     <p class="muted small">
       Modo <strong>Mover</strong>: arrastra los asientos (se alinean a una cuadrícula de {{ gridSize }}px y no se pueden solapar).
-      Modo <strong>Agregar</strong>: haz click en un espacio libre. Modo <strong>Eliminar</strong>: haz click en un asiento.
+      Modo <strong>Agregar</strong>: click en un espacio libre. Modo <strong>Línea</strong>: click, arrastra y suelta para dibujar una fila
+      (los asientos que caen encima de otro no se colocan). Modo <strong>Eliminar</strong>: click en un asiento.
     </p>
   }
 
-  <p class="muted small" data-testid="se-count">{{ seatCount() }} asiento(s) en la disposición.</p>
+  <!-- Visor prominente del conteo de asientos -->
+  <div class="seat-count-badge" data-testid="se-count" role="status" aria-live="polite">
+    <app-icon name="seats" />
+    <span class="seat-count-num">{{ seatCount() }}</span>
+    <span class="seat-count-label">asiento(s) en la disposición</span>
+  </div>
+
   <div #host class="seat-editor-canvas" data-testid="seat-canvas"></div>
 
   @if (!readonly()) {
-    <!-- Plantillas: botón DEBAJO del canvas que abre un desplegable -->
-    <div class="seat-templates" data-testid="seat-templates">
-      <button type="button" class="btn small" (click)="toggleTemplates()" data-testid="tpl-toggle" [attr.aria-expanded]="showTemplates()" title="Agregar una plantilla preconfigurada">
-        <app-icon name="add" /> {{ showTemplates() ? 'Ocultar plantillas' : 'Agregar plantilla' }}
+    <!-- Menú general "Generar": generadores paramétricos + presets SVG, con buscador -->
+    <div class="seat-generator" data-testid="gen-wrap">
+      <button type="button" class="btn small" (click)="toggleGenerator()" data-testid="gen-toggle" [attr.aria-expanded]="showGenerator()" title="Generar una disposición">
+        <app-icon name="add" /> {{ showGenerator() ? 'Ocultar generador' : 'Generar' }}
       </button>
-      @if (showTemplates()) {
-        <div class="tpl-menu" data-testid="tpl-menu" role="menu">
-          @for (t of templates; track t.id) {
-            <button type="button" class="tpl-item" (click)="applyTemplate(t.id)" [attr.data-testid]="'tpl-' + t.id" role="menuitem">
-              <span class="tpl-icon" [innerHTML]="t.safeIcon"></span>
-              <span class="tpl-text">
-                <strong>{{ t.name }}</strong>
-                <small class="muted">{{ t.hint }}</small>
-              </span>
-            </button>
+      @if (showGenerator()) {
+        <div class="gen-menu" data-testid="gen-menu" role="menu">
+          <input
+            type="search"
+            class="gen-search"
+            placeholder="Buscar generador o plantilla…"
+            [ngModel]="generatorSearch()"
+            (ngModelChange)="generatorSearch.set($event)"
+            name="gensearch"
+            data-testid="gen-search"
+            aria-label="Buscar generador o plantilla"
+          />
+
+          <p class="gen-group-title muted small">Generadores</p>
+          @for (g of filteredGenerators(); track g.id) {
+            <div class="gen-item" [attr.data-testid]="'gen-' + g.id">
+              <button type="button" class="gen-item-btn" (click)="applyGenerator(g.id)" role="menuitem" [title]="g.hint" [attr.aria-label]="g.name">
+                <span class="gen-text">
+                  <strong>{{ g.name }}</strong>
+                  <small class="muted">{{ g.hint }}</small>
+                </span>
+              </button>
+              @if (g.param) {
+                <label class="gen-param" (click)="$event.stopPropagation()">
+                  <span class="muted small">{{ g.param.label }}</span>
+                  <input
+                    type="number"
+                    [min]="g.param.min"
+                    [max]="g.param.max"
+                    [ngModel]="perTable()"
+                    (ngModelChange)="perTable.set($event)"
+                    name="pertable"
+                    data-testid="gen-per-table"
+                  />
+                </label>
+              }
+            </div>
+          } @empty {
+            <p class="muted small" data-testid="gen-empty">Ningún generador coincide.</p>
+          }
+
+          @if (filteredTemplates().length > 0) {
+            <p class="gen-group-title muted small">Plantillas</p>
+            @for (t of filteredTemplates(); track t.id) {
+              <button type="button" class="tpl-item" (click)="applyTemplate(t.id)" [attr.data-testid]="'tpl-' + t.id" role="menuitem" [title]="t.hint" [attr.aria-label]="t.name">
+                <span class="tpl-icon" [innerHTML]="t.safeIcon"></span>
+                <span class="tpl-text">
+                  <strong>{{ t.name }}</strong>
+                  <small class="muted">{{ t.hint }}</small>
+                </span>
+              </button>
+            }
           }
         </div>
       }
