@@ -220,6 +220,10 @@ model User {
   status       UserStatus @default(active)
   roles        Role[]     @default([buyer])
 
+  // Preferencia de idioma del usuario (v3.7): 'es' | 'en'. Se persiste desde el
+  // perfil y se aplica en el frontend por encima de la preferencia de localStorage.
+  language     String     @default("es")
+
   // Verificación de correo (null = no verificado).
   emailVerifiedAt DateTime? @map("email_verified_at")
 

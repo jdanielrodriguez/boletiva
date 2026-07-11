@@ -75,6 +75,13 @@ export class PublicUserResponseDto {
     example: 'email',
   })
   twoFactorMethod!: string;
+
+  @ApiProperty({
+    description: 'Preferencia de idioma de la interfaz',
+    enum: ['es', 'en'],
+    example: 'es',
+  })
+  language!: string;
 }
 
 /** Resultado de `signup`: usuario recién creado + par de tokens (sin `status`). */

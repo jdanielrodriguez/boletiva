@@ -62,6 +62,34 @@ describe('Users + Categories (e2e)', () => {
     expect(res.body.firstName).toBe('ClienteEditado');
   });
 
+  it('PATCH /users/me persiste la preferencia de idioma y se refleja en /auth/me', async () => {
+    const upd = await http()
+      .patch('/api/v1/users/me')
+      .set(bearer(buyerToken))
+      .send({ language: 'en' })
+      .expect(200);
+    expect(upd.body.language).toBe('en');
+
+    const me = await http().get('/api/v1/auth/me').set(bearer(buyerToken)).expect(200);
+    expect(me.body.language).toBe('en');
+
+    // Restaura el default para no afectar a otros specs seriales.
+    const back = await http()
+      .patch('/api/v1/users/me')
+      .set(bearer(buyerToken))
+      .send({ language: 'es' })
+      .expect(200);
+    expect(back.body.language).toBe('es');
+  });
+
+  it('PATCH /users/me con idioma no soportado → 400', async () => {
+    await http()
+      .patch('/api/v1/users/me')
+      .set(bearer(buyerToken))
+      .send({ language: 'fr' })
+      .expect(400);
+  });
+
   it('GET /users (admin) lista y busca; no-admin → 403', async () => {
     const list = await http().get('/api/v1/users?search=admin').set(bearer(adminToken)).expect(200);
     expect(Array.isArray(list.body.items ?? list.body)).toBe(true);

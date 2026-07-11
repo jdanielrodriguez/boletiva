@@ -15,6 +15,7 @@ const USER: SessionUser = {
   status: 'active',
   emailVerified: true,
   twoFactorMethod: 'email',
+  language: 'es',
 } as SessionUser;
 
 describe('SessionStore', () => {

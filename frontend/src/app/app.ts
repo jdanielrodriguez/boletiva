@@ -22,7 +22,12 @@ export class App {
     // Hidrata la sesión SOLO en el navegador: en SSR no hay tokens (localStorage)
     // y no queremos pegar a /auth/me en el servidor (rompería el cache público).
     if (isPlatformBrowser(this.platformId)) {
-      this.session.ensureLoaded().subscribe();
+      this.session.ensureLoaded().subscribe((user) => {
+        // La preferencia de idioma GUARDADA del usuario manda sobre la de
+        // localStorage: al resolver la sesión aplicamos su idioma de BD (v3.7).
+        const lang = user?.language;
+        if (lang === 'es' || lang === 'en') this.i18n.use(lang);
+      });
     }
     // Aplica la preferencia de idioma DESPUÉS de la hidratación: el SSR y el
     // primer render del cliente van en español (calce exacto, sin warning); si

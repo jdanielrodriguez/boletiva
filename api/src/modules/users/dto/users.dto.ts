@@ -4,11 +4,16 @@ import {
   ArrayNotEmpty,
   IsArray,
   IsEnum,
+  IsIn,
   IsOptional,
   IsString,
   IsUrl,
   MaxLength,
 } from 'class-validator';
+
+/** Idiomas soportados por la UI (preferencia persistida del usuario). */
+export const SUPPORTED_LANGUAGES = ['es', 'en'] as const;
+export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 import { PageQueryDto } from '../../../common/dto/page-query.dto';
 
 /** Query admin de usuarios: paginación keyset + búsqueda. */
@@ -50,6 +55,15 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsUrl()
   avatarUrl?: string;
+
+  @ApiPropertyOptional({
+    description: 'Preferencia de idioma de la interfaz',
+    enum: SUPPORTED_LANGUAGES,
+    example: 'es',
+  })
+  @IsOptional()
+  @IsIn(SUPPORTED_LANGUAGES)
+  language?: SupportedLanguage;
 }
 
 export class UpdateUserRolesDto {

@@ -6345,6 +6345,15 @@
               "totp"
             ],
             "example": "email"
+          },
+          "language": {
+            "type": "string",
+            "description": "Preferencia de idioma de la interfaz",
+            "enum": [
+              "es",
+              "en"
+            ],
+            "example": "es"
           }
         },
         "required": [
@@ -6354,7 +6363,8 @@
           "roles",
           "status",
           "emailVerified",
-          "twoFactorMethod"
+          "twoFactorMethod",
+          "language"
         ]
       },
       "TokenPairResponseDto": {
@@ -6843,6 +6853,15 @@
             "type": "string",
             "description": "URL del avatar",
             "example": "https://cdn.pasaeventos.com/avatars/juan.png"
+          },
+          "language": {
+            "type": "string",
+            "description": "Preferencia de idioma de la interfaz",
+            "enum": [
+              "es",
+              "en"
+            ],
+            "example": "es"
           }
         }
       },
@@ -6910,6 +6929,15 @@
             "description": "Estado de la cuenta",
             "example": "active"
           },
+          "language": {
+            "type": "string",
+            "description": "Preferencia de idioma de la interfaz",
+            "enum": [
+              "es",
+              "en"
+            ],
+            "example": "es"
+          },
           "lastLoginAt": {
             "type": "string",
             "format": "date-time",
@@ -6930,6 +6958,7 @@
           "firstName",
           "roles",
           "status",
+          "language",
           "createdAt"
         ]
       },
@@ -10189,7 +10218,7 @@
           "status": {
             "type": "string",
             "nullable": true,
-            "description": "Estado de la orden (egresos)"
+            "description": "Estado: egresos = estado de la orden; ingresos = refunded/paid"
           },
           "eventName": {
             "type": "string",

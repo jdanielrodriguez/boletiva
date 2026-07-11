@@ -2534,6 +2534,12 @@ export interface components {
              * @enum {string}
              */
             twoFactorMethod: "email" | "totp";
+            /**
+             * @description Preferencia de idioma de la interfaz
+             * @example es
+             * @enum {string}
+             */
+            language: "es" | "en";
         };
         TokenPairResponseDto: {
             /**
@@ -2817,6 +2823,12 @@ export interface components {
              * @example https://cdn.pasaeventos.com/avatars/juan.png
              */
             avatarUrl?: string;
+            /**
+             * @description Preferencia de idioma de la interfaz
+             * @example es
+             * @enum {string}
+             */
+            language?: "es" | "en";
         };
         UserResponseDto: {
             /**
@@ -2863,6 +2875,12 @@ export interface components {
              * @enum {string}
              */
             status: "active" | "inactive" | "pending";
+            /**
+             * @description Preferencia de idioma de la interfaz
+             * @example es
+             * @enum {string}
+             */
+            language: "es" | "en";
             /**
              * Format: date-time
              * @description Fecha del último inicio de sesión
@@ -4758,7 +4776,7 @@ export interface components {
             amount: string;
             /** @example GTQ */
             currency: string;
-            /** @description Estado de la orden (egresos) */
+            /** @description Estado: egresos = estado de la orden; ingresos = refunded/paid */
             status: string | null;
             eventName: string | null;
             /**

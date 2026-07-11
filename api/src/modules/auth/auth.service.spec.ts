@@ -29,6 +29,7 @@ describe('AuthService (ramas de borde, unit)', () => {
     status: 'active',
     emailVerifiedAt: new Date(),
     twoFactorMethod: 'email',
+    language: 'es',
     passwordHash: 'HASH',
     ...over,
   });

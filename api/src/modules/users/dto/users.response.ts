@@ -63,6 +63,13 @@ export class UserResponseDto {
   })
   status!: UserStatus;
 
+  @ApiProperty({
+    description: 'Preferencia de idioma de la interfaz',
+    enum: ['es', 'en'],
+    example: 'es',
+  })
+  language!: string;
+
   @ApiPropertyOptional({
     type: String,
     format: 'date-time',
