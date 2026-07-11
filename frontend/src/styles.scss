@@ -3540,6 +3540,27 @@ button.danger {
 }
 .lock-btn.icon-only:hover { border-color: var(--pe-primary); color: var(--pe-primary); }
 
+/* Candado ABIERTO (v3.9 · A2): pastilla con cuenta regresiva del desbloqueo por
+   tiempo (editor de evento como admin). Mismo lenguaje visual que el candado
+   cerrado de Pasarelas, pero en estado autorizado (borde/acento de plataforma). */
+.lock-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.lock-chip-open {
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--pe-primary);
+  color: var(--pe-primary);
+  background: color-mix(in srgb, var(--pe-primary) 10%, transparent);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.lock-chip-open .lock-countdown {
+  font-variant-numeric: tabular-nums;
+}
+
 /* Acciones de modal centradas (v3.7) */
 .modal-actions {
   justify-content: center;

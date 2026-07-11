@@ -15,17 +15,20 @@
       </div>
       <div class="ev-card-actions header-actions">
         @if (locked()) {
-          <!-- Candado CERRADO: admin no-dueño sin desbloqueo vigente. -->
-          <button type="button" class="btn primary lock-chip lock-chip-closed" (click)="openUnlock()" data-testid="unlock-btn"
-            [title]="'promoter.edit.lockedClosedTitle' | translate">
-            <app-icon name="lock" /> {{ 'promoter.edit.unlockEdit' | translate }}
-          </button>
+          <!-- Candado CERRADO: admin no-dueño sin desbloqueo vigente (mismo candado que Pasarelas). -->
+          <app-lock-chip
+            closedTestid="unlock-btn"
+            [closedTitle]="'promoter.edit.lockedClosedTitle' | translate"
+            (unlock)="openUnlock()"
+          />
         } @else if (unlockActive()) {
           <!-- Candado ABIERTO + cuenta regresiva (mm:ss) del desbloqueo, estilo pasarelas. -->
-          <span class="lock-chip lock-chip-open" data-testid="unlock-timer" [title]="'promoter.edit.unlockedOpenTitle' | translate">
-            <app-icon name="unlock" />
-            <span class="lock-countdown">{{ 'promoter.edit.lockCountdown' | translate: { time: unlockRemaining() } }}</span>
-          </span>
+          <app-lock-chip
+            [open]="true"
+            openTestid="unlock-timer"
+            [openTitle]="'promoter.edit.unlockedOpenTitle' | translate"
+            [countdown]="'promoter.edit.lockCountdown' | translate: { time: unlockRemaining() }"
+          />
         }
         <button type="button" class="btn primary" [disabled]="savingData() || locked()" (click)="saveData()" data-testid="save-draft-btn"
           [title]="locked() ? ('promoter.edit.unlockToSaveTooltip' | translate) : ('common.save' | translate)">

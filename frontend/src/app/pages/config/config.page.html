@@ -236,9 +236,7 @@
               <app-icon name="add" /> {{ 'config.system.addGateway' | translate }}
             </button>
             @if (!unlockUnlocked()) {
-              <button type="button" class="btn icon-only lock-btn" (click)="openLockModal()" data-testid="gw-lock" [title]="'config.system.lockTitle' | translate" [attr.aria-label]="'config.system.lockTitle' | translate">
-                <app-icon name="lock" />
-              </button>
+              <app-lock-chip closedTestid="gw-lock" [closedTitle]="'config.system.lockTitle' | translate" (unlock)="openLockModal()" />
             }
           </div>
           @if (!unlockUnlocked()) {

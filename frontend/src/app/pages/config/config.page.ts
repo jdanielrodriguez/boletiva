@@ -24,6 +24,7 @@ import { PagerComponent } from '../../shared/ui/pager.component';
 import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { InfoTooltipComponent } from '../../shared/ui/info-tooltip.component';
+import { LockChipComponent } from '../../shared/ui/lock-chip.component';
 import type {
   CreatedInvitationDto,
   InvitationListItemDto,
@@ -74,6 +75,7 @@ const INV_PAGE = 9;
     PagerComponent,
     EmptyStateComponent,
     InfoTooltipComponent,
+    LockChipComponent,
   ],
   templateUrl: './config.page.html',
 })
