@@ -368,6 +368,8 @@ async function seedDemoEvent(promoterId: string, categoryId: string): Promise<vo
       startsAt: new Date('2026-12-04T20:00:00-06:00'),
       endsAt: new Date('2026-12-04T23:00:00-06:00'),
       status: 'published',
+      // Destacado en el slider del inicio (GET /events/promoted).
+      promotedPriority: 1,
     },
   });
 

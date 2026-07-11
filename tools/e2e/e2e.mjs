@@ -212,6 +212,13 @@ async function main() {
   });
 
   await step('paga y el estado pasa a pagado por SSE', async () => {
+    // v3.8: si el cliente tiene una tarjeta guardada, el checkout arranca en modo
+    // 'saved' y exige CVV para habilitar el pago; llénalo si el campo está presente
+    // (con tarjeta nueva no aparece → el paso sigue funcionando).
+    const cvv = await page.$('[data-testid="saved-cvv"]');
+    if (cvv) {
+      await cvv.type('123');
+    }
     await page.click('[data-testid="pay-confirm"]');
     await waitSel(page, '[data-testid="status-paid"]', 20000);
   });
@@ -333,7 +340,11 @@ async function main() {
     // Puede aparecer el form (primera vez) o ya el estado pendiente (corridas previas).
     await waitSel(page, '[data-testid="bp-submit"], [data-testid="bp-pending"]', 12000);
     if (await page.$('[data-testid="bp-submit"]')) {
+      // v3.8: ya no es one-click → abre la modal de instrucciones y hay que
+      // confirmar dentro (bp-info-confirm) para enviar la solicitud.
       await page.click('[data-testid="bp-submit"]');
+      await waitSel(page, '[data-testid="bp-info-confirm"]', 12000);
+      await page.click('[data-testid="bp-info-confirm"]');
     }
     await waitSel(page, '[data-testid="bp-pending"]', 12000);
   });
