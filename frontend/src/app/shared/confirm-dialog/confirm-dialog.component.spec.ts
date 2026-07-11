@@ -49,4 +49,29 @@ describe('ConfirmDialogComponent', () => {
     (el.querySelector('[data-testid="confirm-cancel"]') as HTMLButtonElement).click();
     expect(spy).toHaveBeenCalled();
   });
+
+  it('muestra un icono en el título y centra las acciones (v3.7)', async () => {
+    await setup();
+    // Encabezado con icono grande (app-icon dentro de .confirm-icon).
+    expect(el.querySelector('.confirm-head .confirm-icon app-icon')).not.toBeNull();
+    // Mensaje llamativo con su propia clase (no el gris tenue anterior).
+    expect(el.querySelector('.confirm-message')).not.toBeNull();
+    // Fila de acciones centrada.
+    expect(el.querySelector('.confirm-actions')).not.toBeNull();
+  });
+
+  it('por defecto es destructiva (icono de alerta y botón danger)', async () => {
+    await setup();
+    expect(el.querySelector('.confirm-head.is-danger')).not.toBeNull();
+    expect(el.querySelector('[data-testid="confirm-accept"].danger')).not.toBeNull();
+  });
+
+  it('no destructiva usa botón primario y icono de ayuda', async () => {
+    await setup();
+    fixture.componentRef.setInput('danger', false);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(el.querySelector('[data-testid="confirm-accept"].primary')).not.toBeNull();
+    expect(el.querySelector('.confirm-head.is-danger')).toBeNull();
+  });
 });
