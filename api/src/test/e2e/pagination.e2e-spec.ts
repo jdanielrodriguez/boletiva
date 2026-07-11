@@ -7,18 +7,40 @@ import { sha256 } from '../../common/utils/crypto';
 /**
  * Ola 6.5 · Ticket 2 — Paginación KEYSET (cursor).
  * Verifica la mecánica compartida (common/utils/pagination) sobre el listado admin
- * de usuarios (el seed crea >100): páginas sin solape ni saltos, `nextCursor`
- * correcto, fin de listado (null), clamp/validación de `limit` y cursor inválido.
+ * de usuarios: páginas sin solape ni saltos, `nextCursor` correcto, fin de listado
+ * (null), clamp/validación de `limit` y cursor inválido. v3.8: el test SIEMBRA sus
+ * propios usuarios (≥ límite de página) y los BORRA al terminar → es autosuficiente
+ * y NO depende de datos residuales de otras corridas (BD compartida idempotente).
  */
+const SEEDED_USERS = 30;
+
 describe('Paginación keyset (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let adminToken: string;
+  let seededIds: string[] = [];
 
   beforeAll(async () => {
     app = await createTestApp();
     prisma = app.get(PrismaService);
     adminToken = await loginTrusted(SEED.admin, 'pg-admin');
+    // Siembra usuarios de prueba para tener suficientes filas que paginar.
+    const stamp = Date.now();
+    const created = await Promise.all(
+      Array.from({ length: SEEDED_USERS }, (_, i) =>
+        prisma.user.create({
+          data: {
+            email: `pg-user-${stamp}-${i}@test.local`,
+            firstName: `PgUser${i}`,
+            passwordHash: 'x',
+            roles: ['buyer'],
+            emailVerifiedAt: new Date(),
+          },
+          select: { id: true },
+        }),
+      ),
+    );
+    seededIds = created.map((u) => u.id);
   });
 
   async function loginTrusted(rawEmail: string, deviceId: string): Promise<string> {
@@ -38,6 +60,8 @@ describe('Paginación keyset (e2e)', () => {
   }
 
   afterAll(async () => {
+    // Limpia los usuarios sembrados (no dejar residuo en la BD compartida).
+    await prisma.user.deleteMany({ where: { id: { in: seededIds } } });
     await app.close();
   });
 

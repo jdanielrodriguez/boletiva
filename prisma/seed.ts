@@ -4,8 +4,13 @@ import * as bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 /**
- * Seed base: configuración del sistema, roles/usuarios por defecto, categorías
- * y un evento demo publicado con localidades y asientos. Idempotente.
+ * Seed base (BASELINE MÍNIMA v3.8): SOLO los datos funcionales imprescindibles para
+ * validar la plataforma — configuración del sistema, fee_schedule v1, pasarelas
+ * (Sandbox default), plantillas y salones demo, los 3 usuarios semilla
+ * (admin/promotor aprobado/cliente), categorías y UN evento demo publicado con
+ * localidades y asientos. Idempotente. Es la baseline a la que el globalTeardown de
+ * los e2e re-siembra la BD al terminar cada corrida (staging/prod no guardan data de
+ * test). NO agregar aquí data de prueba masiva; eso vive en seed-stadium (load test).
  */
 async function seedSettings(): Promise<void> {
   const defaults: Array<{ key: string; value: unknown; description: string }> = [

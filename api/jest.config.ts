@@ -8,6 +8,9 @@ export default {
   moduleFileExtensions: ['ts', 'js', 'html'],
   // Fuerza QUEUE_INLINE en tests (jobs síncronos, sin workers dejando handles abiertos).
   setupFiles: ['<rootDir>/src/test/jest.env.ts'],
+  // v3.8: al terminar TODO el run, trunca la BD compartida y re-siembra la baseline
+  // mínima → la suite queda idempotente y no deja residuos (staging/prod-safe).
+  globalTeardown: '<rootDir>/src/test/global-teardown.js',
   coverageDirectory: '../coverage/api',
   testMatch: ['<rootDir>/src/**/*.spec.ts', '<rootDir>/src/**/*.e2e-spec.ts'],
   testTimeout: 30000,
