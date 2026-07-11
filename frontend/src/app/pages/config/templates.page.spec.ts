@@ -1,6 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { SeatTemplatesApi } from '../../core/api/seat-templates.api';
 import { ToastService } from '../../core/ui/toast.service';
@@ -15,7 +15,7 @@ const TEMPLATES = [
   { id: 't4', name: 'Custom disabled', kind: 'grid', isBuiltIn: false, status: 'published', hidden: false, disabled: true, ...base },
 ];
 
-describe('TemplatesPage (v3.7)', () => {
+describe('TemplatesPage (v3.8)', () => {
   let fixture: ComponentFixture<TemplatesPage>;
   let el: HTMLElement;
   let toasts: ToastService;
@@ -25,14 +25,12 @@ describe('TemplatesPage (v3.7)', () => {
       providers: [
         ...provideI18nTesting(),
         provideZonelessChangeDetection(),
-        provideRouter([]),
+        provideRouter([{ path: '**', children: [] }]),
         ToastService,
         {
           provide: SeatTemplatesApi,
           useValue: {
             listAll: () => of(TEMPLATES),
-            create: () => of(TEMPLATES[1]),
-            update: () => of(TEMPLATES[1]),
             remove: () => of({}),
             publish: () => of(TEMPLATES[1]),
             unpublish: () => of(TEMPLATES[1]),
@@ -59,13 +57,15 @@ describe('TemplatesPage (v3.7)', () => {
     displayState: (t: unknown) => string;
     canDelete: (t: unknown) => boolean;
     setStatus: (v: string) => void;
+    setTab: (t: 'list' | 'dashboard') => void;
+    tab: () => string;
+    hasFilter: () => boolean;
     filtered: () => { id: string }[];
     publish: (t: unknown) => void;
     hide: (t: unknown) => void;
     disable: (t: unknown) => void;
+    newTemplate: () => void;
     editTemplate: (t: unknown) => void;
-    templateDraft: () => unknown;
-    draft: () => unknown;
     askRemove: (t: unknown) => void;
     onConfirmAccept: () => void;
     openPreview: (t: unknown) => void;
@@ -99,6 +99,16 @@ describe('TemplatesPage (v3.7)', () => {
     expect(inst().filtered()[0].id).toBe('t4');
   });
 
+  it('cambiar de pestaña resetea los filtros', async () => {
+    await setup();
+    inst().setStatus('disabled');
+    inst().setTab('dashboard');
+    expect(inst().tab()).toBe('dashboard');
+    inst().setTab('list');
+    expect(inst().hasFilter()).toBe(false);
+    expect(inst().filtered().length).toBe(TEMPLATES.length);
+  });
+
   it('canDelete: solo deshabilitada y no built-in', async () => {
     await setup();
     expect(inst().canDelete(TEMPLATES[0])).toBe(false); // built-in
@@ -123,11 +133,26 @@ describe('TemplatesPage (v3.7)', () => {
     expect(remove).toHaveBeenCalledWith('t4');
   });
 
-  it('editar built-in avisa y no abre el form', async () => {
+  it('nueva plantilla navega a la página de creación', async () => {
     await setup();
+    const nav = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    inst().newTemplate();
+    expect(nav).toHaveBeenCalledWith(['/configuracion/plantillas/nuevo']);
+  });
+
+  it('editar built-in avisa y NO navega', async () => {
+    await setup();
+    const nav = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
     inst().editTemplate(TEMPLATES[0]);
-    expect(inst().draft()).toBeNull();
+    expect(nav).not.toHaveBeenCalled();
     expect(lastToast()?.kind).toBe('warning');
+  });
+
+  it('editar custom draft navega a la página de edición', async () => {
+    await setup();
+    const nav = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    inst().editTemplate(TEMPLATES[1]);
+    expect(nav).toHaveBeenCalledWith(['/configuracion/plantillas', 't2', 'editar']);
   });
 
   it('publish/hide/disable llaman al API', async () => {

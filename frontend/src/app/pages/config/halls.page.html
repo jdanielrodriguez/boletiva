@@ -5,89 +5,83 @@
   <h1>{{ 'config.halls.heading' | translate }}</h1>
   <p class="muted">{{ 'config.halls.intro' | translate }}</p>
 
-  <div class="list-filters">
-    <input type="search" [attr.placeholder]="'config.halls.searchPlaceholder' | translate" [ngModel]="search()" (ngModelChange)="setSearch($event)" name="hallq" data-testid="hall-search" />
-    <select [ngModel]="statusFilter()" (ngModelChange)="setStatus($event)" name="hallstatus" data-testid="hall-status-filter">
-      <option value="">{{ 'common.statuses.all' | translate }}</option>
-      @for (s of statusOptions; track s) { <option [value]="s">{{ s | statusLabel }}</option> }
-    </select>
-    @if (!draft()) {
+  <nav class="config-tabs" [attr.aria-label]="'config.halls.heading' | translate">
+    <button type="button" [class.active]="tab() === 'list'" (click)="setTab('list')" data-testid="halls-tab-list">{{ 'config.halls.tabList' | translate }}</button>
+    <button type="button" [class.active]="tab() === 'dashboard'" (click)="setTab('dashboard')" data-testid="halls-tab-dashboard">{{ 'config.halls.tabDashboard' | translate }}</button>
+  </nav>
+
+  @if (tab() === 'list') {
+    <div class="list-filters">
+      <input type="search" [attr.placeholder]="'config.halls.searchPlaceholder' | translate" [ngModel]="search()" (ngModelChange)="setSearch($event)" name="hallq" data-testid="hall-search" />
+      <select [ngModel]="statusFilter()" (ngModelChange)="setStatus($event)" name="hallstatus" data-testid="hall-status-filter">
+        <option value="">{{ 'common.statuses.all' | translate }}</option>
+        @for (s of statusOptions; track s) { <option [value]="s">{{ s | statusLabel }}</option> }
+      </select>
       <button type="button" class="btn primary" (click)="newHall()" data-testid="hall-new" [title]="'config.halls.newHallTitle' | translate">
         <app-icon name="add" /> {{ 'config.halls.newHall' | translate }}
       </button>
+    </div>
+
+    @if (filtered().length > 0) {
+      <div class="admin-events-grid" data-testid="halls-list">
+        @for (h of pageItems(); track h.id) {
+          <article class="ev-card" data-testid="hall-card">
+            <div class="ev-card-top">
+              <span class="badge badge-{{ h.status }}" data-testid="hall-status">{{ h.status | statusLabel }}</span>
+              <span class="ev-card-top-spacer"></span>
+              @if (h.status === 'draft') {
+                <button type="button" class="btn small icon-only primary" (click)="publish(h)" data-testid="hall-publish" [title]="'config.halls.publishTitle' | translate" [attr.aria-label]="'config.halls.publish' | translate">
+                  <app-icon name="publish" />
+                </button>
+              } @else {
+                <button type="button" class="btn small icon-only" (click)="unpublish(h)" data-testid="hall-unpublish" [title]="'config.halls.unpublishTitle' | translate" [attr.aria-label]="'config.halls.unpublish' | translate">
+                  <app-icon name="hide" />
+                </button>
+              }
+            </div>
+            <strong>{{ h.name }}</strong>
+            @if (h.city) { <span class="muted small">{{ h.city }}</span> }
+            @if (h.address) { <span class="muted small">{{ h.address }}</span> }
+            @if (h.lat != null && h.lng != null) { <span class="muted small">{{ h.lat }}, {{ h.lng }}</span> }
+            <div class="ev-card-actions">
+              @if (h.status === 'draft') {
+                <button type="button" class="btn small" (click)="editHall(h)" data-testid="hall-edit" [title]="'config.halls.editTitle' | translate">
+                  <app-icon name="edit" /> {{ 'common.edit' | translate }}
+                </button>
+                <button type="button" class="btn small danger" (click)="askRemove(h)" data-testid="hall-remove" [title]="'config.halls.removeTitle' | translate">
+                  <app-icon name="delete" /> {{ 'common.delete' | translate }}
+                </button>
+              }
+            </div>
+          </article>
+        }
+      </div>
+      <app-pager [page]="page()" [totalPages]="totalPages()" (pageChange)="goToPage($event)" data-testid="halls-pager" />
+    } @else if (hasFilter()) {
+      <app-empty-state
+        variant="generic"
+        [title]="'config.halls.noResults' | translate"
+        [subtitle]="'config.halls.searchPlaceholder' | translate"
+        data-testid="halls-no-results"
+      />
+    } @else {
+      <app-empty-state
+        variant="generic"
+        [title]="'config.halls.emptyTitle' | translate"
+        [subtitle]="'config.halls.emptySubtitle' | translate"
+        [ctaLabel]="'config.halls.newHall' | translate"
+        ctaLink="/configuracion/salones/nuevo"
+        data-testid="halls-empty"
+      />
     }
-  </div>
-
-  @if (draft(); as d) {
-    <div class="card-block" data-testid="hall-form">
-      <h3>{{ (d.id ? 'config.halls.editHallHeading' : 'config.halls.newHall') | translate }}</h3>
-      <div class="form-grid">
-        <label class="field"><span>{{ 'common.name' | translate }}</span>
-          <input type="text" [ngModel]="d.name" (ngModelChange)="patch('name', $event)" name="hn" data-testid="hall-name" />
-        </label>
-        <label class="field"><span>{{ 'config.halls.city' | translate }}</span>
-          <input type="text" [ngModel]="d.city" (ngModelChange)="patch('city', $event)" name="hc" />
-        </label>
-        <label class="field full"><span>{{ 'config.halls.address' | translate }}</span>
-          <input type="text" [ngModel]="d.address" (ngModelChange)="patch('address', $event)" name="ha" data-testid="hall-address" />
-        </label>
-        <label class="field full"><span>{{ 'config.halls.notes' | translate }}</span>
-          <textarea rows="2" [ngModel]="d.notes" (ngModelChange)="patch('notes', $event)" name="hnotes"></textarea>
-        </label>
-        <div class="field full">
-          <span>{{ 'config.halls.location' | translate }}</span>
-          <app-map-picker [lat]="d.lat" [lng]="d.lng" [address]="d.address" (locationChange)="onMap($event)" data-testid="hall-map" />
-        </div>
-      </div>
-      <div class="ev-card-actions">
-        <button type="button" class="btn" (click)="save(false)" data-testid="hall-save-draft" [title]="'config.halls.saveDraftTitle' | translate">
-          <app-icon name="save" /> {{ 'config.halls.saveDraft' | translate }}
-        </button>
-        <button type="button" class="btn primary" (click)="save(true)" data-testid="hall-save-publish" [title]="'config.halls.savePublishTitle' | translate">
-          <app-icon name="default" /> {{ 'config.halls.savePublish' | translate }}
-        </button>
-        <button type="button" class="btn" (click)="cancelEdit()" [title]="'common.cancel' | translate">
-          <app-icon name="cancel" /> {{ 'common.cancel' | translate }}
-        </button>
-      </div>
-    </div>
-  }
-
-  @if (filtered().length > 0) {
-    <div class="admin-events-grid" data-testid="halls-list">
-      @for (h of pageItems(); track h.id) {
-        <article class="ev-card" data-testid="hall-card">
-          <div class="ev-card-top">
-            <span class="badge badge-{{ h.status }}" data-testid="hall-status">{{ h.status | statusLabel }}</span>
-            <span class="ev-card-top-spacer"></span>
-          </div>
-          <strong>{{ h.name }}</strong>
-          @if (h.city) { <span class="muted small">{{ h.city }}</span> }
-          @if (h.address) { <span class="muted small">{{ h.address }}</span> }
-          @if (h.lat != null && h.lng != null) { <span class="muted small">{{ h.lat }}, {{ h.lng }}</span> }
-          <div class="ev-card-actions">
-            @if (h.status === 'draft') {
-              <button type="button" class="btn small primary" (click)="publish(h)" data-testid="hall-publish" [title]="'config.halls.publishTitle' | translate">
-                <app-icon name="default" /> {{ 'config.halls.publish' | translate }}
-              </button>
-            } @else {
-              <button type="button" class="btn small" (click)="unpublish(h)" data-testid="hall-unpublish" [title]="'config.halls.unpublishTitle' | translate">
-                <app-icon name="hide" /> {{ 'config.halls.unpublish' | translate }}
-              </button>
-            }
-            <button type="button" class="btn small" (click)="editHall(h)" data-testid="hall-edit" [title]="'config.halls.editTitle' | translate">
-              <app-icon name="edit" /> {{ 'common.edit' | translate }}
-            </button>
-            <button type="button" class="btn small danger" (click)="askRemove(h)" data-testid="hall-remove" [title]="'config.halls.removeTitle' | translate">
-              <app-icon name="delete" /> {{ 'common.delete' | translate }}
-            </button>
-          </div>
-        </article>
-      }
-    </div>
-    <app-pager [page]="page()" [totalPages]="totalPages()" (pageChange)="goToPage($event)" data-testid="halls-pager" />
   } @else {
-    <p class="muted" data-testid="halls-empty">{{ 'config.halls.empty' | translate }}</p>
+    <app-empty-state
+      variant="generic"
+      [title]="'config.halls.dashboardTitle' | translate"
+      [subtitle]="'config.halls.dashboardSubtitle' | translate"
+      [skeleton]="true"
+      data-testid="halls-dashboard"
+    />
   }
 
   @if (confirm(); as cf) {

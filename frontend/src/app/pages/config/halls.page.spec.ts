@@ -1,6 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { HallsApi } from '../../core/api/halls.api';
 import { ToastService } from '../../core/ui/toast.service';
@@ -12,7 +12,7 @@ const HALLS = [
   { id: 'h2', name: 'Salón Draft', city: 'Antigua', address: null, lat: null, lng: null, notes: null, seatTemplateId: null, status: 'draft', createdAt: '', updatedAt: '' },
 ];
 
-describe('HallsPage (v3.7)', () => {
+describe('HallsPage (v3.8)', () => {
   let fixture: ComponentFixture<HallsPage>;
   let el: HTMLElement;
   let toasts: ToastService;
@@ -22,14 +22,12 @@ describe('HallsPage (v3.7)', () => {
       providers: [
         ...provideI18nTesting(),
         provideZonelessChangeDetection(),
-        provideRouter([]),
+        provideRouter([{ path: '**', children: [] }]),
         ToastService,
         {
           provide: HallsApi,
           useValue: {
             listAll: () => of(HALLS),
-            create: () => of(HALLS[0]),
-            update: () => of(HALLS[0]),
             remove: () => of({}),
             publish: () => of({ ...HALLS[1], status: 'published' }),
             unpublish: () => of({ ...HALLS[0], status: 'draft' }),
@@ -48,6 +46,20 @@ describe('HallsPage (v3.7)', () => {
   }
 
   const lastToast = () => toasts.toasts().at(-1);
+  const inst = () => fixture.componentInstance as unknown as {
+    setStatus: (v: string) => void;
+    setSearch: (v: string) => void;
+    setTab: (t: 'list' | 'dashboard') => void;
+    tab: () => string;
+    filtered: () => { id: string }[];
+    hasFilter: () => boolean;
+    newHall: () => void;
+    editHall: (h: unknown) => void;
+    publish: (h: unknown) => void;
+    unpublish: (h: unknown) => void;
+    askRemove: (h: unknown) => void;
+    onConfirmAccept: () => void;
+  };
 
   it('lista todos los salones (draft + publicados)', async () => {
     await setup();
@@ -62,74 +74,67 @@ describe('HallsPage (v3.7)', () => {
 
   it('filtra por estado (solo borradores)', async () => {
     await setup();
-    const inst = fixture.componentInstance as unknown as { setStatus: (v: string) => void; filtered: () => { id: string }[] };
-    inst.setStatus('draft');
-    expect(inst.filtered().length).toBe(1);
-    expect(inst.filtered()[0].id).toBe('h2');
+    inst().setStatus('draft');
+    expect(inst().filtered().length).toBe(1);
+    expect(inst().filtered()[0].id).toBe('h2');
   });
 
   it('busca por nombre/ciudad', async () => {
     await setup();
-    const inst = fixture.componentInstance as unknown as { setSearch: (v: string) => void; filtered: () => { id: string }[] };
-    inst.setSearch('antigua');
-    expect(inst.filtered().length).toBe(1);
-    expect(inst.filtered()[0].id).toBe('h2');
+    inst().setSearch('antigua');
+    expect(inst().filtered().length).toBe(1);
+    expect(inst().filtered()[0].id).toBe('h2');
   });
 
-  it('guardar como borrador llama create con status draft', async () => {
-    const create = jasmine.createSpy('cr').and.returnValue(of(HALLS[0]));
-    await setup({ create });
-    const inst = fixture.componentInstance as unknown as {
-      newHall: () => void; patch: (k: string, v: unknown) => void; save: (p?: boolean) => void;
-    };
-    inst.newHall();
-    inst.patch('name', 'Nuevo Salón');
-    inst.save(false);
-    expect(create).toHaveBeenCalled();
-    expect((create.calls.mostRecent().args[0] as { status: string }).status).toBe('draft');
+  it('cambiar de pestaña resetea los filtros', async () => {
+    await setup();
+    inst().setSearch('antigua');
+    inst().setStatus('draft');
+    inst().setTab('dashboard');
+    expect(inst().tab()).toBe('dashboard');
+    inst().setTab('list');
+    expect(inst().hasFilter()).toBe(false);
+    expect(inst().filtered().length).toBe(2);
   });
 
-  it('guardar y publicar llama create con status published', async () => {
-    const create = jasmine.createSpy('cr').and.returnValue(of(HALLS[0]));
-    await setup({ create });
-    const inst = fixture.componentInstance as unknown as {
-      newHall: () => void; patch: (k: string, v: unknown) => void; save: (p?: boolean) => void;
-    };
-    inst.newHall();
-    inst.patch('name', 'Nuevo Salón');
-    inst.save(true);
-    expect((create.calls.mostRecent().args[0] as { status: string }).status).toBe('published');
+  it('nuevo salón navega a la página de creación', async () => {
+    await setup();
+    const nav = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    inst().newHall();
+    expect(nav).toHaveBeenCalledWith(['/configuracion/salones/nuevo']);
+  });
+
+  it('editar salón navega a la página de edición', async () => {
+    await setup();
+    const nav = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    inst().editHall(HALLS[1]);
+    expect(nav).toHaveBeenCalledWith(['/configuracion/salones', 'h2', 'editar']);
   });
 
   it('publicar/despublicar llaman al API', async () => {
     const publish = jasmine.createSpy('p').and.returnValue(of(HALLS[1]));
     const unpublish = jasmine.createSpy('u').and.returnValue(of(HALLS[0]));
     await setup({ publish, unpublish });
-    const inst = fixture.componentInstance as unknown as { publish: (h: unknown) => void; unpublish: (h: unknown) => void };
-    inst.publish(HALLS[1]);
+    inst().publish(HALLS[1]);
     expect(publish).toHaveBeenCalledWith('h2');
-    inst.unpublish(HALLS[0]);
+    inst().unpublish(HALLS[0]);
     expect(unpublish).toHaveBeenCalledWith('h1');
   });
 
   it('eliminar pide confirmación y llama remove', async () => {
     const remove = jasmine.createSpy('r').and.returnValue(of({}));
     await setup({ remove });
-    const inst = fixture.componentInstance as unknown as {
-      askRemove: (h: unknown) => void; onConfirmAccept: () => void;
-    };
-    inst.askRemove(HALLS[0]);
-    inst.onConfirmAccept();
+    inst().askRemove(HALLS[0]);
+    inst().onConfirmAccept();
     expect(remove).toHaveBeenCalledWith('h1');
   });
 
-  it('guardar sin nombre → warning y no llama create', async () => {
-    const create = jasmine.createSpy('cr').and.returnValue(of(HALLS[0]));
-    await setup({ create });
-    const inst = fixture.componentInstance as unknown as { newHall: () => void; save: (p?: boolean) => void };
-    inst.newHall();
-    inst.save(false);
-    expect(create).not.toHaveBeenCalled();
-    expect(lastToast()?.kind).toBe('warning');
+  it('empty-state cuando no hay resultados de filtro', async () => {
+    await setup();
+    inst().setSearch('zzz-inexistente');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(el.querySelector('[data-testid="halls-no-results"]')).not.toBeNull();
   });
 });

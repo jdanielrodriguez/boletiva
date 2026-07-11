@@ -141,10 +141,34 @@ export const routes: Routes = [
     title: 'Salones — Pasa Eventos',
   },
   {
+    path: 'configuracion/salones/nuevo',
+    loadComponent: () => import('./pages/config/hall-edit.page').then((m) => m.HallEditPage),
+    canActivate: [roleGuard('admin')],
+    title: 'Nuevo salón — Pasa Eventos',
+  },
+  {
+    path: 'configuracion/salones/:id/editar',
+    loadComponent: () => import('./pages/config/hall-edit.page').then((m) => m.HallEditPage),
+    canActivate: [roleGuard('admin')],
+    title: 'Editar salón — Pasa Eventos',
+  },
+  {
     path: 'configuracion/plantillas',
     loadComponent: () => import('./pages/config/templates.page').then((m) => m.TemplatesPage),
     canActivate: [roleGuard('admin')],
     title: 'Plantillas — Pasa Eventos',
+  },
+  {
+    path: 'configuracion/plantillas/nuevo',
+    loadComponent: () => import('./pages/config/template-edit.page').then((m) => m.TemplateEditPage),
+    canActivate: [roleGuard('admin')],
+    title: 'Nueva plantilla — Pasa Eventos',
+  },
+  {
+    path: 'configuracion/plantillas/:id/editar',
+    loadComponent: () => import('./pages/config/template-edit.page').then((m) => m.TemplateEditPage),
+    canActivate: [roleGuard('admin')],
+    title: 'Editar plantilla — Pasa Eventos',
   },
   {
     path: 'configuracion/promotores/:id/historial',

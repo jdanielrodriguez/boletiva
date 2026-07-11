@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { DomSanitizer, type SafeHtml } from '@angular/platform-browser';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { SeatTemplatesApi } from '../../core/api/seat-templates.api';
@@ -10,26 +11,22 @@ import {
 } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { BackLinkComponent } from '../../shared/ui/back-link.component';
+import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
 import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
 import type { SeatTemplateResponseDto } from '../../core/api/types';
 
-/** Borrador editable de una plantilla de asientos. */
-interface TemplateDraft {
-  id: string | null;
-  name: string;
-  kind: string;
-  paramsJson: string;
-}
-
 const PAGE = 9;
 
+type TemplatesTab = 'list' | 'dashboard';
+
 /**
- * Página dedicada de gestión de PLANTILLAS de asientos (v3.7, solo admin). Filtros
- * por estado (todos/publicadas/borrador/ocultas/deshabilitadas) + buscador +
- * paginación. Botones: Ver (preview, solo publicadas), Publicar/Despublicar,
- * Ocultar/Mostrar, Deshabilitar/Habilitar, Eliminar (solo deshabilitadas). Las
- * built-in del sistema no se editan/eliminan pero SÍ se ocultan/deshabilitan.
+ * Página de gestión de PLANTILLAS de asientos (v3.8 · G2, solo admin). SOLO la lista
+ * con filtros (buscador + estado) y paginación; la creación/edición vive en una
+ * página aparte (`template-edit.page`). Dos pestañas: Lista y Dashboard (placeholder).
+ * Al cambiar de pestaña se resetean los filtros. Botones: Ver (preview, solo
+ * publicadas), Publicar/Despublicar, Ocultar/Mostrar, Deshabilitar/Habilitar,
+ * Editar (solo draft no-built-in → navega), Eliminar (solo deshabilitada no-built-in).
  */
 @Component({
   selector: 'app-templates-page',
@@ -41,6 +38,7 @@ const PAGE = 9;
     ConfirmDialogComponent,
     PagerComponent,
     BackLinkComponent,
+    EmptyStateComponent,
   ],
   templateUrl: './templates.page.html',
 })
@@ -49,14 +47,14 @@ export class TemplatesPage {
   private readonly toasts = inject(ToastService);
   private readonly translate = inject(TranslateService);
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly router = inject(Router);
 
   protected readonly templates = signal<SeatTemplateResponseDto[]>([]);
   protected readonly search = signal('');
   protected readonly statusFilter = signal<string>('');
-  protected readonly draft = signal<TemplateDraft | null>(null);
   protected readonly preview = signal<SeatTemplateResponseDto | null>(null);
   protected readonly page = signal(1);
-  protected readonly templateKinds = ['rows', 'theater', 'stadium', 'tables', 'grid', 'curve', 'line', 'custom'];
+  protected readonly tab = signal<TemplatesTab>('list');
 
   /** Estados para el filtro (value interno; label capitalizado en la UI). */
   protected readonly statusOptions = ['published', 'draft', 'hidden', 'disabled'];
@@ -82,6 +80,8 @@ export class TemplatesPage {
     const start = (this.page() - 1) * PAGE;
     return this.filtered().slice(start, start + PAGE);
   });
+  /** True cuando hay un filtro/búsqueda activo (para distinguir vacío-total de sin-resultados). */
+  protected readonly hasFilter = computed(() => this.search().trim().length > 0 || this.statusFilter() !== '');
 
   constructor() {
     this.load();
@@ -92,6 +92,14 @@ export class TemplatesPage {
       next: (t) => this.templates.set(t),
       error: () => this.toasts.error(this.translate.instant('config.templates.loadError')),
     });
+  }
+
+  protected setTab(t: TemplatesTab): void {
+    this.tab.set(t);
+    // Regla transversal v3.8: al cambiar de pestaña se resetean los filtros.
+    this.search.set('');
+    this.statusFilter.set('');
+    this.page.set(1);
   }
 
   protected goToPage(p: number): void {
@@ -123,59 +131,16 @@ export class TemplatesPage {
     this.preview.set(null);
   }
 
-  // --- Crear / editar ---
+  // --- Crear / editar (navegan a la página aparte) ---
   protected newTemplate(): void {
-    this.draft.set({ id: null, name: '', kind: 'grid', paramsJson: '{"rows":5,"cols":10}' });
+    void this.router.navigate(['/configuracion/plantillas/nuevo']);
   }
   protected editTemplate(t: SeatTemplateResponseDto): void {
     if (t.isBuiltIn) {
       this.toasts.warning(this.translate.instant('config.templates.builtInEditWarn'));
       return;
     }
-    this.draft.set({
-      id: t.id,
-      name: t.name,
-      kind: t.kind,
-      paramsJson: t.params ? JSON.stringify(t.params) : '',
-    });
-  }
-  protected cancelEdit(): void {
-    this.draft.set(null);
-  }
-  protected patch<K extends keyof TemplateDraft>(key: K, value: TemplateDraft[K]): void {
-    const d = this.draft();
-    if (d) this.draft.set({ ...d, [key]: value });
-  }
-  protected save(): void {
-    const d = this.draft();
-    if (!d || d.name.trim().length < 2) {
-      this.toasts.warning(this.translate.instant('config.templates.nameRequired'));
-      return;
-    }
-    let params: Record<string, unknown> | undefined;
-    if (d.paramsJson.trim()) {
-      try {
-        params = JSON.parse(d.paramsJson) as Record<string, unknown>;
-      } catch {
-        this.toasts.warning(this.translate.instant('config.templates.paramsJsonInvalid'));
-        return;
-      }
-    }
-    const body = { name: d.name.trim(), kind: d.kind as never, params };
-    const req = d.id ? this.templatesApi.update(d.id, body) : this.templatesApi.create(body);
-    req.subscribe({
-      next: () => {
-        this.toasts.success(this.translate.instant(d.id ? 'config.templates.updated' : 'config.templates.created'));
-        this.draft.set(null);
-        this.load();
-      },
-      error: (err: { status?: number }) =>
-        this.toasts.error(
-          this.translate.instant(
-            err?.status === 409 ? 'config.templates.builtInSaveError' : 'config.templates.saveError',
-          ),
-        ),
-    });
+    void this.router.navigate(['/configuracion/plantillas', t.id, 'editar']);
   }
 
   // --- Transiciones de estado ---

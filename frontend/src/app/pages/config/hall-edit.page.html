@@ -1,0 +1,46 @@
+<section class="config-page">
+  <div class="page-head-row">
+    <app-back-link link="/configuracion/salones" testId="back-halls" [label]="'config.halls.backToHalls' | translate" />
+  </div>
+  <h1>{{ heading() | translate }}</h1>
+
+  @if (loading()) {
+    <p class="muted" data-testid="hall-edit-loading">{{ 'common.loading' | translate }}</p>
+  } @else if (loadError()) {
+    <p class="muted" data-testid="hall-edit-error">{{ 'config.halls.loadError' | translate }}</p>
+  } @else if (draft()) {
+    @if (draft(); as d) {
+    <div class="card-block" data-testid="hall-form">
+      <div class="form-grid">
+        <label class="field"><span>{{ 'common.name' | translate }}</span>
+          <input type="text" [ngModel]="d.name" (ngModelChange)="patch('name', $event)" name="hn" data-testid="hall-name" />
+        </label>
+        <label class="field"><span>{{ 'config.halls.city' | translate }}</span>
+          <input type="text" [ngModel]="d.city" (ngModelChange)="patch('city', $event)" name="hc" />
+        </label>
+        <label class="field full"><span>{{ 'config.halls.address' | translate }}</span>
+          <input type="text" [ngModel]="d.address" (ngModelChange)="patch('address', $event)" name="ha" data-testid="hall-address" />
+        </label>
+        <label class="field full"><span>{{ 'config.halls.notes' | translate }}</span>
+          <textarea rows="2" [ngModel]="d.notes" (ngModelChange)="patch('notes', $event)" name="hnotes"></textarea>
+        </label>
+        <div class="field full">
+          <span>{{ 'config.halls.location' | translate }}</span>
+          <app-map-picker [lat]="d.lat" [lng]="d.lng" [address]="d.address" (locationChange)="onMap($event)" data-testid="hall-map" />
+        </div>
+      </div>
+      <div class="ev-card-actions">
+        <button type="button" class="btn" (click)="save(false)" [disabled]="saving()" data-testid="hall-save-draft" [title]="'config.halls.saveDraftTitle' | translate">
+          <app-icon name="save" /> {{ 'config.halls.saveDraft' | translate }}
+        </button>
+        <button type="button" class="btn primary" (click)="save(true)" [disabled]="saving()" data-testid="hall-save-publish" [title]="'config.halls.savePublishTitle' | translate">
+          <app-icon name="publish" /> {{ 'config.halls.savePublish' | translate }}
+        </button>
+        <button type="button" class="btn" (click)="cancel()" [title]="'common.cancel' | translate">
+          <app-icon name="cancel" /> {{ 'common.cancel' | translate }}
+        </button>
+      </div>
+    </div>
+    }
+  }
+</section>

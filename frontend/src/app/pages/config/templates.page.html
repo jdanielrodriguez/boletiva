@@ -5,109 +5,110 @@
   <h1>{{ 'config.templates.heading' | translate }}</h1>
   <p class="muted">{{ 'config.templates.intro' | translate }}</p>
 
-  <div class="list-filters">
-    <input type="search" [attr.placeholder]="'config.templates.searchPlaceholder' | translate" [ngModel]="search()" (ngModelChange)="setSearch($event)" name="tplq" data-testid="tpl-search" />
-    <select [ngModel]="statusFilter()" (ngModelChange)="setStatus($event)" name="tplstatus" data-testid="tpl-status-filter">
-      <option value="">{{ 'common.statuses.all' | translate }}</option>
-      @for (s of statusOptions; track s) { <option [value]="s">{{ s | statusLabel }}</option> }
-    </select>
-    @if (!draft()) {
+  <nav class="config-tabs" [attr.aria-label]="'config.templates.heading' | translate">
+    <button type="button" [class.active]="tab() === 'list'" (click)="setTab('list')" data-testid="tpl-tab-list">{{ 'config.templates.tabList' | translate }}</button>
+    <button type="button" [class.active]="tab() === 'dashboard'" (click)="setTab('dashboard')" data-testid="tpl-tab-dashboard">{{ 'config.templates.tabDashboard' | translate }}</button>
+  </nav>
+
+  @if (tab() === 'list') {
+    <div class="list-filters">
+      <input type="search" [attr.placeholder]="'config.templates.searchPlaceholder' | translate" [ngModel]="search()" (ngModelChange)="setSearch($event)" name="tplq" data-testid="tpl-search" />
+      <select [ngModel]="statusFilter()" (ngModelChange)="setStatus($event)" name="tplstatus" data-testid="tpl-status-filter">
+        <option value="">{{ 'common.statuses.all' | translate }}</option>
+        @for (s of statusOptions; track s) { <option [value]="s">{{ s | statusLabel }}</option> }
+      </select>
       <button type="button" class="btn primary" (click)="newTemplate()" data-testid="tpl-new" [title]="'config.templates.newTemplateTitle' | translate">
         <app-icon name="add" /> {{ 'config.templates.newTemplate' | translate }}
       </button>
+    </div>
+
+    @if (filtered().length > 0) {
+      <div class="admin-events-grid" data-testid="tpl-list">
+        @for (t of pageItems(); track t.id) {
+          <article class="ev-card" data-testid="tpl-card">
+            <div class="ev-card-top">
+              <span class="badge badge-{{ displayState(t) }}" data-testid="tpl-state">{{ displayState(t) | statusLabel }}</span>
+              <span class="ev-card-top-spacer"></span>
+              @if (t.isBuiltIn) { <span class="badge badge-approved" data-testid="tpl-builtin">{{ 'config.templates.builtInBadge' | translate }}</span> }
+              @if (t.status === 'draft') {
+                <button type="button" class="btn small icon-only primary" (click)="publish(t)" data-testid="tpl-publish" [title]="'config.templates.publishTitle' | translate" [attr.aria-label]="'config.templates.publish' | translate">
+                  <app-icon name="publish" />
+                </button>
+              } @else {
+                <button type="button" class="btn small icon-only" (click)="unpublish(t)" data-testid="tpl-unpublish" [title]="'config.templates.unpublishTitle' | translate" [attr.aria-label]="'config.templates.unpublish' | translate">
+                  <app-icon name="hide" />
+                </button>
+              }
+            </div>
+            <strong>{{ t.name }}</strong>
+            <span class="muted small">{{ t.kind }}</span>
+            <div class="ev-card-actions">
+              @if (t.status === 'published' && !t.disabled) {
+                <button type="button" class="btn small" (click)="openPreview(t)" data-testid="tpl-view" [title]="'config.templates.viewTitle' | translate">
+                  <app-icon name="view" /> {{ 'config.templates.view' | translate }}
+                </button>
+              }
+              @if (!t.hidden) {
+                <button type="button" class="btn small" (click)="hide(t)" data-testid="tpl-hide" [title]="'config.templates.hideTitle' | translate">
+                  <app-icon name="hide" /> {{ 'common.hide' | translate }}
+                </button>
+              } @else {
+                <button type="button" class="btn small" (click)="unhide(t)" data-testid="tpl-unhide" [title]="'config.templates.showTitle' | translate">
+                  <app-icon name="view" /> {{ 'common.show' | translate }}
+                </button>
+              }
+              @if (!t.disabled) {
+                <button type="button" class="btn small" (click)="disable(t)" data-testid="tpl-disable" [title]="'config.templates.disableTitle' | translate">
+                  <app-icon name="cancel" /> {{ 'config.templates.disable' | translate }}
+                </button>
+              } @else {
+                <button type="button" class="btn small" (click)="enable(t)" data-testid="tpl-enable" [title]="'config.templates.enableTitle' | translate">
+                  <app-icon name="activate" /> {{ 'config.templates.enable' | translate }}
+                </button>
+              }
+              @if (!t.isBuiltIn) {
+                @if (t.status === 'draft') {
+                  <button type="button" class="btn small" (click)="editTemplate(t)" data-testid="tpl-edit" [title]="'config.templates.editTitle' | translate">
+                    <app-icon name="edit" /> {{ 'common.edit' | translate }}
+                  </button>
+                }
+                <button type="button" class="btn small danger" (click)="askRemove(t)" [disabled]="!canDelete(t)" data-testid="tpl-remove"
+                  [title]="(canDelete(t) ? 'config.templates.removeTitle' : 'config.templates.deleteBlocked') | translate">
+                  <app-icon name="delete" /> {{ 'common.delete' | translate }}
+                </button>
+              } @else {
+                <span class="muted small" data-testid="tpl-builtin-note">{{ 'config.templates.builtInNote' | translate }}</span>
+              }
+            </div>
+          </article>
+        }
+      </div>
+      <app-pager [page]="page()" [totalPages]="totalPages()" (pageChange)="goToPage($event)" data-testid="tpl-pager" />
+    } @else if (hasFilter()) {
+      <app-empty-state
+        variant="generic"
+        [title]="'config.templates.noResults' | translate"
+        [subtitle]="'config.templates.searchPlaceholder' | translate"
+        data-testid="tpl-no-results"
+      />
+    } @else {
+      <app-empty-state
+        variant="generic"
+        [title]="'config.templates.emptyTitle' | translate"
+        [subtitle]="'config.templates.emptySubtitle' | translate"
+        [ctaLabel]="'config.templates.newTemplate' | translate"
+        ctaLink="/configuracion/plantillas/nuevo"
+        data-testid="tpl-empty"
+      />
     }
-  </div>
-
-  @if (draft(); as d) {
-    <div class="card-block" data-testid="tpl-form">
-      <h3>{{ (d.id ? 'config.templates.editTemplateHeading' : 'config.templates.newTemplate') | translate }}</h3>
-      <div class="form-grid">
-        <label class="field"><span>{{ 'common.name' | translate }}</span>
-          <input type="text" [ngModel]="d.name" (ngModelChange)="patch('name', $event)" name="tn" data-testid="tpl-name" />
-        </label>
-        <label class="field"><span>{{ 'config.templates.kind' | translate }}</span>
-          <select [ngModel]="d.kind" (ngModelChange)="patch('kind', $event)" name="tk" data-testid="tpl-kind">
-            @for (k of templateKinds; track k) { <option [value]="k">{{ k }}</option> }
-          </select>
-        </label>
-        <label class="field full"><span>{{ 'config.templates.paramsJson' | translate }}</span>
-          <input type="text" placeholder='{"rows":5,"cols":10}' [ngModel]="d.paramsJson" (ngModelChange)="patch('paramsJson', $event)" name="tp" data-testid="tpl-params" />
-        </label>
-      </div>
-      <div class="ev-card-actions">
-        <button type="button" class="btn primary" (click)="save()" data-testid="tpl-save" [title]="'config.templates.saveTitle' | translate">
-          <app-icon name="save" /> {{ 'common.save' | translate }}
-        </button>
-        <button type="button" class="btn" (click)="cancelEdit()" [title]="'common.cancel' | translate">
-          <app-icon name="cancel" /> {{ 'common.cancel' | translate }}
-        </button>
-      </div>
-      <p class="muted small">{{ 'config.templates.draftHint' | translate }}</p>
-    </div>
-  }
-
-  @if (filtered().length > 0) {
-    <div class="admin-events-grid" data-testid="tpl-list">
-      @for (t of pageItems(); track t.id) {
-        <article class="ev-card" data-testid="tpl-card">
-          <div class="ev-card-top">
-            <span class="badge badge-{{ displayState(t) }}" data-testid="tpl-state">{{ displayState(t) | statusLabel }}</span>
-            <span class="ev-card-top-spacer"></span>
-            @if (t.isBuiltIn) { <span class="badge badge-approved" data-testid="tpl-builtin">{{ 'config.templates.builtInBadge' | translate }}</span> }
-          </div>
-          <strong>{{ t.name }}</strong>
-          <span class="muted small">{{ t.kind }}</span>
-          <div class="ev-card-actions">
-            @if (t.status === 'published' && !t.disabled) {
-              <button type="button" class="btn small" (click)="openPreview(t)" data-testid="tpl-view" [title]="'config.templates.viewTitle' | translate">
-                <app-icon name="view" /> {{ 'config.templates.view' | translate }}
-              </button>
-            }
-            @if (t.status === 'draft') {
-              <button type="button" class="btn small primary" (click)="publish(t)" data-testid="tpl-publish" [title]="'config.templates.publishTitle' | translate">
-                <app-icon name="default" /> {{ 'config.templates.publish' | translate }}
-              </button>
-            } @else {
-              <button type="button" class="btn small" (click)="unpublish(t)" data-testid="tpl-unpublish" [title]="'config.templates.unpublishTitle' | translate">
-                <app-icon name="hide" /> {{ 'config.templates.unpublish' | translate }}
-              </button>
-            }
-            @if (!t.hidden) {
-              <button type="button" class="btn small" (click)="hide(t)" data-testid="tpl-hide" [title]="'config.templates.hideTitle' | translate">
-                <app-icon name="hide" /> {{ 'common.hide' | translate }}
-              </button>
-            } @else {
-              <button type="button" class="btn small" (click)="unhide(t)" data-testid="tpl-unhide" [title]="'config.templates.showTitle' | translate">
-                <app-icon name="view" /> {{ 'common.show' | translate }}
-              </button>
-            }
-            @if (!t.disabled) {
-              <button type="button" class="btn small" (click)="disable(t)" data-testid="tpl-disable" [title]="'config.templates.disableTitle' | translate">
-                <app-icon name="cancel" /> {{ 'config.templates.disable' | translate }}
-              </button>
-            } @else {
-              <button type="button" class="btn small" (click)="enable(t)" data-testid="tpl-enable" [title]="'config.templates.enableTitle' | translate">
-                <app-icon name="activate" /> {{ 'config.templates.enable' | translate }}
-              </button>
-            }
-            @if (!t.isBuiltIn) {
-              <button type="button" class="btn small" (click)="editTemplate(t)" data-testid="tpl-edit" [title]="'config.templates.editTitle' | translate">
-                <app-icon name="edit" /> {{ 'common.edit' | translate }}
-              </button>
-              <button type="button" class="btn small danger" (click)="askRemove(t)" [disabled]="!canDelete(t)" data-testid="tpl-remove"
-                [title]="(canDelete(t) ? 'config.templates.removeTitle' : 'config.templates.deleteBlocked') | translate">
-                <app-icon name="delete" /> {{ 'common.delete' | translate }}
-              </button>
-            } @else {
-              <span class="muted small" data-testid="tpl-builtin-note">{{ 'config.templates.builtInNote' | translate }}</span>
-            }
-          </div>
-        </article>
-      }
-    </div>
-    <app-pager [page]="page()" [totalPages]="totalPages()" (pageChange)="goToPage($event)" data-testid="tpl-pager" />
   } @else {
-    <p class="muted" data-testid="tpl-empty">{{ 'config.templates.empty' | translate }}</p>
+    <app-empty-state
+      variant="generic"
+      [title]="'config.templates.dashboardTitle' | translate"
+      [subtitle]="'config.templates.dashboardSubtitle' | translate"
+      [skeleton]="true"
+      data-testid="tpl-dashboard"
+    />
   }
 
   @if (preview(); as p) {

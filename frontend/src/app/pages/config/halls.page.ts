@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { HallsApi } from '../../core/api/halls.api';
 import { ToastService } from '../../core/ui/toast.service';
@@ -8,31 +9,23 @@ import {
   type ConfirmRequest,
 } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
-import { MapPickerComponent, type MapLocation } from '../../shared/map/map-picker.component';
 import { BackLinkComponent } from '../../shared/ui/back-link.component';
+import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
 import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
 import type { HallResponseDto } from '../../core/api/types';
 
-/** Borrador editable de un salón (crear/editar con ubicación en mapa). */
-interface HallDraft {
-  id: string | null;
-  name: string;
-  address: string;
-  city: string;
-  notes: string;
-  lat: number | null;
-  lng: number | null;
-  status: string;
-}
-
 const PAGE = 9;
 
+type HallsTab = 'list' | 'dashboard';
+
 /**
- * Página dedicada de gestión de SALONES (v3.7, solo admin). Antes vivía como tab de
- * la consola; ahora es página aparte para crecer. Filtros por estado (todos/
- * publicado/borrador) + buscador + paginación. Estados draft/published con botones
- * Publicar/Despublicar. Guardar como borrador (default).
+ * Página de gestión de SALONES (v3.8 · G2, solo admin). SOLO la lista con filtros
+ * (buscador + estado) y paginación; la creación/edición vive en una página aparte
+ * (`hall-edit.page`) a la que navegan los botones "Nuevo salón"/"Editar". Dos
+ * pestañas: Lista (contenido actual) y Dashboard (placeholder "próximamente"). Al
+ * cambiar de pestaña se resetean los filtros. Estados: los PUBLICADOS solo se
+ * despublican; los BORRADORES se publican, editan y eliminan.
  */
 @Component({
   selector: 'app-halls-page',
@@ -42,9 +35,9 @@ const PAGE = 9;
     StatusLabelPipe,
     IconComponent,
     ConfirmDialogComponent,
-    MapPickerComponent,
     PagerComponent,
     BackLinkComponent,
+    EmptyStateComponent,
   ],
   templateUrl: './halls.page.html',
 })
@@ -52,12 +45,13 @@ export class HallsPage {
   private readonly hallsApi = inject(HallsApi);
   private readonly toasts = inject(ToastService);
   private readonly translate = inject(TranslateService);
+  private readonly router = inject(Router);
 
   protected readonly halls = signal<HallResponseDto[]>([]);
   protected readonly search = signal('');
   protected readonly statusFilter = signal<string>('');
-  protected readonly draft = signal<HallDraft | null>(null);
   protected readonly page = signal(1);
+  protected readonly tab = signal<HallsTab>('list');
 
   /** Estados disponibles para el filtro (value interno → label capitalizado en UI). */
   protected readonly statusOptions = ['published', 'draft'];
@@ -76,6 +70,8 @@ export class HallsPage {
     const start = (this.page() - 1) * PAGE;
     return this.filtered().slice(start, start + PAGE);
   });
+  /** True cuando hay un filtro/búsqueda activo (para distinguir vacío-total de sin-resultados). */
+  protected readonly hasFilter = computed(() => this.search().trim().length > 0 || this.statusFilter() !== '');
 
   constructor() {
     this.load();
@@ -86,6 +82,14 @@ export class HallsPage {
       next: (h) => this.halls.set(h),
       error: () => this.toasts.error(this.translate.instant('config.halls.loadError')),
     });
+  }
+
+  protected setTab(t: HallsTab): void {
+    this.tab.set(t);
+    // Regla transversal v3.8: al cambiar de pestaña se resetean los filtros.
+    this.search.set('');
+    this.statusFilter.set('');
+    this.page.set(1);
   }
 
   protected goToPage(p: number): void {
@@ -101,57 +105,10 @@ export class HallsPage {
   }
 
   protected newHall(): void {
-    this.draft.set({ id: null, name: '', address: '', city: '', notes: '', lat: null, lng: null, status: 'draft' });
+    void this.router.navigate(['/configuracion/salones/nuevo']);
   }
   protected editHall(h: HallResponseDto): void {
-    this.draft.set({
-      id: h.id,
-      name: h.name,
-      address: h.address ?? '',
-      city: h.city ?? '',
-      notes: h.notes ?? '',
-      lat: h.lat ?? null,
-      lng: h.lng ?? null,
-      status: h.status,
-    });
-  }
-  protected cancelEdit(): void {
-    this.draft.set(null);
-  }
-  protected patch<K extends keyof HallDraft>(key: K, value: HallDraft[K]): void {
-    const d = this.draft();
-    if (d) this.draft.set({ ...d, [key]: value });
-  }
-  protected onMap(loc: MapLocation): void {
-    const d = this.draft();
-    if (!d) return;
-    this.draft.set({ ...d, lat: loc.lat, lng: loc.lng, address: loc.address || d.address });
-  }
-  /** Guarda el salón; `publish` fuerza estado publicado, si no conserva su estado (default draft). */
-  protected save(publish = false): void {
-    const d = this.draft();
-    if (!d || d.name.trim().length < 2) {
-      this.toasts.warning(this.translate.instant('config.halls.nameRequired'));
-      return;
-    }
-    const body = {
-      name: d.name.trim(),
-      address: d.address.trim() || undefined,
-      city: d.city.trim() || undefined,
-      notes: d.notes.trim() || undefined,
-      lat: d.lat ?? undefined,
-      lng: d.lng ?? undefined,
-      status: (publish ? 'published' : d.status) as 'draft' | 'published',
-    };
-    const req = d.id ? this.hallsApi.update(d.id, body) : this.hallsApi.create(body);
-    req.subscribe({
-      next: () => {
-        this.toasts.success(this.translate.instant(d.id ? 'config.halls.updated' : 'config.halls.created'));
-        this.draft.set(null);
-        this.load();
-      },
-      error: () => this.toasts.error(this.translate.instant('config.halls.saveError')),
-    });
+    void this.router.navigate(['/configuracion/salones', h.id, 'editar']);
   }
 
   protected publish(h: HallResponseDto): void {

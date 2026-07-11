@@ -1,0 +1,42 @@
+<section class="config-page">
+  <div class="page-head-row">
+    <app-back-link link="/configuracion/plantillas" testId="back-templates" [label]="'config.templates.backToTemplates' | translate" />
+  </div>
+  <h1>{{ heading() | translate }}</h1>
+
+  @if (loading()) {
+    <p class="muted" data-testid="tpl-edit-loading">{{ 'common.loading' | translate }}</p>
+  } @else if (loadError()) {
+    <p class="muted" data-testid="tpl-edit-error">{{ 'config.templates.loadError' | translate }}</p>
+  } @else if (draft()) {
+    @if (draft(); as d) {
+    <div class="card-block" data-testid="tpl-form">
+      @if (builtIn()) {
+        <p class="muted" data-testid="tpl-builtin-warn">{{ 'config.templates.builtInEditWarn' | translate }}</p>
+      }
+      <div class="form-grid">
+        <label class="field"><span>{{ 'common.name' | translate }}</span>
+          <input type="text" [ngModel]="d.name" (ngModelChange)="patch('name', $event)" name="tn" [disabled]="builtIn()" data-testid="tpl-name" />
+        </label>
+        <label class="field"><span>{{ 'config.templates.kind' | translate }}</span>
+          <select [ngModel]="d.kind" (ngModelChange)="patch('kind', $event)" name="tk" [disabled]="builtIn()" data-testid="tpl-kind">
+            @for (k of templateKinds; track k) { <option [value]="k">{{ k }}</option> }
+          </select>
+        </label>
+        <label class="field full"><span>{{ 'config.templates.paramsJson' | translate }}</span>
+          <input type="text" placeholder='{"rows":5,"cols":10}' [ngModel]="d.paramsJson" (ngModelChange)="patch('paramsJson', $event)" name="tp" [disabled]="builtIn()" data-testid="tpl-params" />
+        </label>
+      </div>
+      <div class="ev-card-actions">
+        <button type="button" class="btn primary" (click)="save()" [disabled]="saving() || builtIn()" data-testid="tpl-save" [title]="'config.templates.saveTitle' | translate">
+          <app-icon name="save" /> {{ 'common.save' | translate }}
+        </button>
+        <button type="button" class="btn" (click)="cancel()" [title]="'common.cancel' | translate">
+          <app-icon name="cancel" /> {{ 'common.cancel' | translate }}
+        </button>
+      </div>
+      <p class="muted small">{{ 'config.templates.draftHint' | translate }}</p>
+    </div>
+    }
+  }
+</section>
