@@ -25,7 +25,8 @@ export const shell = {
   langEsShort: 'ES',
   langEnShort: 'EN',
   verifyTitle: 'Verifica tu correo',
-  verifyBody: 'Necesitas confirmar tu correo para comprar, crear o transferir boletos.',
+  verifyBody: 'Te enviamos un enlace de confirmación. Necesitas verificar tu correo para comprar, crear o transferir boletos.',
+  verifyRedirecting: 'Te llevamos al inicio…',
   verifyBackHome: 'Volver al inicio',
   termsIntro:
     'Al usar Pasa Eventos aceptas nuestras condiciones de compra, la política de reembolsos según cada evento y el tratamiento de tus datos conforme a la ley aplicable en Guatemala.',

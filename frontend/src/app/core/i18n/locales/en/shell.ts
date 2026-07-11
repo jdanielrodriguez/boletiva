@@ -25,7 +25,8 @@ export const shell = {
   langEsShort: 'ES',
   langEnShort: 'EN',
   verifyTitle: 'Verify your email',
-  verifyBody: 'You need to confirm your email to buy, create or transfer tickets.',
+  verifyBody: 'We sent you a confirmation link. You need to verify your email to buy, create or transfer tickets.',
+  verifyRedirecting: 'Taking you home…',
   verifyBackHome: 'Back to home',
   termsIntro:
     'By using Pasa Eventos you accept our purchase conditions, the refund policy for each event and the processing of your data under the applicable law in Guatemala.',
