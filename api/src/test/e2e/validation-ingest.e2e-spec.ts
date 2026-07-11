@@ -210,6 +210,15 @@ describe('Ingest de validación offline (e2e)', () => {
     expect(Number.isNaN(usedAt.getTime())).toBe(false); // fecha válida, no "Invalid Date"
   });
 
+  it('checkedInAt VÁLIDO se persiste como usedAt del check-in', async () => {
+    const s = await issue(9); // asiento fresco
+    const when = '2028-04-01T21:30:00.000Z';
+    const res = await batch([{ serial: s, checkedInAt: when }]).expect(200);
+    expect(res.body.checkedIn).toBe(1);
+    const t = await prisma.ticket.findUniqueOrThrow({ where: { serial: s } });
+    expect((t.usedAt as Date).toISOString()).toBe(when); // usa la fecha offline provista
+  });
+
   it('validación: item sin serial → 400; lote >5000 → 400; conflicts sin token → 401', async () => {
     await batch([{ checkedInAt: '2028-01-01' } as unknown]).expect(400); // falta serial
     const tooMany = Array.from({ length: 5001 }, (_, i) => ({ serial: `S${i}` }));
