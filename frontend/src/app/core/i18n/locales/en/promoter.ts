@@ -172,8 +172,8 @@ export const promoter = {
     promoterRequired: 'Choose the promoter on whose behalf the event is created.',
     createdBySupport: 'Created by support',
     // Navigation
-    backToConsole: '← Back to console',
-    backToMyEvents: '← Back to my events',
+    backToConsole: 'Back to console',
+    backToMyEvents: 'Back to my events',
     thisEvent: 'this event',
     // Publication gate (messages)
     pbSaveFirst: 'Save the event before publishing.',
@@ -321,7 +321,7 @@ export const promoter = {
 
   // --- Full-page seat editor ---
   seatMgr: {
-    back: '← Back to the event',
+    back: 'Back to the event',
     notFound: 'Event not found or you do not have permission.',
     title: 'Manage seats',
     locality: 'Locality',

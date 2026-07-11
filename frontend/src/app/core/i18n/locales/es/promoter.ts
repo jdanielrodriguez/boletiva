@@ -171,8 +171,8 @@ export const promoter = {
     promoterRequired: 'Elige el promotor a nombre de quien se crea el evento.',
     createdBySupport: 'Creado por soporte',
     // Navegación
-    backToConsole: '← Volver a la consola',
-    backToMyEvents: '← Volver a mis eventos',
+    backToConsole: 'Volver a la consola',
+    backToMyEvents: 'Volver a mis eventos',
     thisEvent: 'este evento',
     // Gate de publicación (mensajes)
     pbSaveFirst: 'Guarda el evento antes de publicar.',
@@ -320,7 +320,7 @@ export const promoter = {
 
   // --- Editor de asientos a página completa ---
   seatMgr: {
-    back: '← Volver al evento',
+    back: 'Volver al evento',
     notFound: 'Evento no encontrado o no tienes permiso.',
     title: 'Administrar asientos',
     locality: 'Localidad',

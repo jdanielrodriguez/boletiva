@@ -1,6 +1,6 @@
 /** Detalle de un evento. Español. */
 export const eventDetail = {
-  backToEvents: '← Eventos',
+  backToEvents: 'Eventos',
   category: 'Categoría',
   cancelled: 'Este evento fue cancelado.',
   localities: 'Localidades',
