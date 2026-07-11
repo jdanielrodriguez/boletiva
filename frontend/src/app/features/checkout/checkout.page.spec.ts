@@ -183,7 +183,7 @@ describe('CheckoutPage', () => {
     await setup({ cards: CARDS });
     sse.next({ type: 'order', data: { status: 'paid' } });
     fixture.detectChanges();
-    expect(el.querySelector('[data-testid="paid-redirect"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="splash-redirect"]')).not.toBeNull();
     const link = el.querySelector('[data-testid="go-to-tickets"]') as HTMLAnchorElement;
     expect(link).not.toBeNull();
     expect(link.getAttribute('href')).toContain('/cuenta');

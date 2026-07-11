@@ -3,20 +3,17 @@
 
   @if (order(); as ord) {
     @if (status() === 'paid') {
-      <div class="paid" data-testid="status-paid">
-        <span class="paid-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2.2">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M8 12.5l2.5 2.5L16 9" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-        </span>
-        <h2>{{ 'checkout.paidTitle' | translate }}</h2>
-        <p data-testid="paid-redirect">{{ 'checkout.redirectingToTickets' | translate }}</p>
-        <span class="redirect-spinner" aria-hidden="true"></span>
+      <app-confirmation-splash
+        data-testid="status-paid"
+        icon="check"
+        [title]="'checkout.paidTitle' | translate"
+        [message]="'checkout.paidBody' | translate"
+        [redirectLabel]="'checkout.redirectingToTickets' | translate"
+      >
         <a class="btn primary" [routerLink]="['/cuenta']" [queryParams]="{ s: 'activos', order: orderId() }" data-testid="go-to-tickets">
           {{ 'checkout.goToTicketsNow' | translate }}
         </a>
-      </div>
+      </app-confirmation-splash>
     } @else if (status() === 'cancelled' || status() === 'expired') {
       <div class="failed" data-testid="status-failed">
         <h2>{{ 'checkout.failedTitle' | translate }}</h2>

@@ -3,7 +3,7 @@ export const checkout = {
   title: 'Pago',
   paidTitle: '¡Pago confirmado!',
   paidBody: 'Tus boletos se están emitiendo. Los verás en tu cuenta en segundos.',
-  redirectingToTickets: 'Pago confirmado. Te llevaremos a tus boletos en un momento…',
+  redirectingToTickets: 'Te llevamos a tus boletos…',
   goToTicketsNow: 'Ver mis boletos ahora',
   failedTitle: 'El pago no se completó',
   orderWas: 'La orden fue {{state}}.',

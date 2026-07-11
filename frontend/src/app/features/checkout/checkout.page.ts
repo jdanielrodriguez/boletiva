@@ -6,6 +6,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { catchError, forkJoin, of, startWith, switchMap } from 'rxjs';
 import { MoneyPipe } from '../../shared/money.pipe';
+import { ConfirmationSplashComponent } from '../../shared/ui/confirmation-splash.component';
 import { OrderStreamService } from '../../core/api/order-stream.service';
 import { OrdersApi } from '../../core/api/orders.api';
 import { PaymentMethodsApi } from '../../core/api/payment-methods.api';
@@ -36,7 +37,7 @@ type PayMode = 'saved' | 'wallet' | 'new';
  */
 @Component({
   selector: 'app-checkout',
-  imports: [FormsModule, MoneyPipe, TranslatePipe, UpperCasePipe, RouterLink],
+  imports: [FormsModule, MoneyPipe, TranslatePipe, UpperCasePipe, RouterLink, ConfirmationSplashComponent],
   templateUrl: './checkout.page.html',
 })
 export class CheckoutPage implements OnDestroy {
