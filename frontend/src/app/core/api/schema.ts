@@ -334,7 +334,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Perfil del usuario autenticado */
+        /** Perfil del usuario autenticado (expone impersonatedBy si es una sesión de soporte) */
         get: operations["AuthController_me_v1"];
         put?: never;
         post?: never;
@@ -577,7 +577,7 @@ export interface paths {
         /** Lista eventos publicados */
         get: operations["EventsController_listPublic_v1"];
         put?: never;
-        /** Crea un evento (promotor, requiere correo verificado) */
+        /** Crea un evento (promotor, requiere correo verificado). Un admin puede crearlo a nombre de un promotor aprobado enviando promoterId. */
         post: operations["EventsController_create_v1"];
         delete?: never;
         options?: never;
@@ -925,6 +925,23 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/promoters/{id}/note": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Fija/borra la nota interna del admin sobre un promotor (admin) */
+        patch: operations["PromotersController_setNote_v1"];
         trace?: never;
     };
     "/api/v1/promoters/invitations": {
@@ -2036,7 +2053,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Reparto efectivo de un promotor (admin) */
+        /** Reparto de un promotor: override crudo + efectivo (admin) */
         get: operations["CostShareController_getPromoter_v1"];
         put?: never;
         post?: never;
@@ -2532,6 +2549,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/impersonate/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Termina la impersonación (deja rastro en la bitácora). Se llama con el token impersonado. */
+        post: operations["AdminController_stop_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/impersonate/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Emite un token de vida corta para actuar como un promotor (soporte). Solo admin; no impersona a otros admins; auditado. */
+        post: operations["AdminController_start_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2625,6 +2676,11 @@ export interface components {
              * @enum {string}
              */
             language: "es" | "en";
+            /**
+             * Format: uuid
+             * @description Solo en /auth/me bajo un token de IMPERSONACIÓN (v3.8): id del admin que actúa como este usuario. El frontend lo usa para el banner "estás viendo como X".
+             */
+            impersonatedBy?: string;
         };
         TokenPairResponseDto: {
             /**
@@ -3087,6 +3143,16 @@ export interface components {
              */
             active?: boolean;
         };
+        AdminEventPromoterDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example Ana */
+            firstName: string;
+            /** @example Pérez */
+            lastName: string | null;
+            /** @example promotor@pasaeventos.com */
+            email: string;
+        };
         EventCategoryDto: {
             /**
              * Format: uuid
@@ -3240,6 +3306,13 @@ export interface components {
              */
             promotedPriority?: number | null;
             /**
+             * Format: uuid
+             * @description Admin que creó el evento a nombre del promotor (null = lo creó el propio promotor)
+             */
+            createdByAdminId?: string | null;
+            /** @description Promotor dueño (incluido al crear el evento) */
+            promoter?: components["schemas"]["AdminEventPromoterDto"];
+            /**
              * Format: date-time
              * @example 2026-07-01T18:30:00.000Z
              */
@@ -3360,6 +3433,13 @@ export interface components {
              */
             promotedPriority?: number | null;
             /**
+             * Format: uuid
+             * @description Admin que creó el evento a nombre del promotor (null = lo creó el propio promotor)
+             */
+            createdByAdminId?: string | null;
+            /** @description Promotor dueño (incluido al crear el evento) */
+            promoter?: components["schemas"]["AdminEventPromoterDto"];
+            /**
              * Format: date-time
              * @example 2026-07-01T18:30:00.000Z
              */
@@ -3371,16 +3451,6 @@ export interface components {
             updatedAt: string;
             category?: components["schemas"]["EventCategoryDto"] | null;
             _count: components["schemas"]["EventCountDto"];
-        };
-        AdminEventPromoterDto: {
-            /** Format: uuid */
-            id: string;
-            /** @example Ana */
-            firstName: string;
-            /** @example Pérez */
-            lastName: string | null;
-            /** @example promotor@pasaeventos.com */
-            email: string;
         };
         AdminEventListItemDto: {
             /**
@@ -3465,6 +3535,13 @@ export interface components {
              */
             promotedPriority?: number | null;
             /**
+             * Format: uuid
+             * @description Admin que creó el evento a nombre del promotor (null = lo creó el propio promotor)
+             */
+            createdByAdminId?: string | null;
+            /** @description Promotor dueño (incluido al crear el evento) */
+            promoter?: components["schemas"]["AdminEventPromoterDto"];
+            /**
              * Format: date-time
              * @example 2026-07-01T18:30:00.000Z
              */
@@ -3476,7 +3553,6 @@ export interface components {
             updatedAt: string;
             category?: components["schemas"]["EventCategoryDto"] | null;
             _count: components["schemas"]["EventCountDto"];
-            promoter: components["schemas"]["AdminEventPromoterDto"];
         };
         EventLocalityDto: {
             /**
@@ -3601,6 +3677,13 @@ export interface components {
              * @example 1
              */
             promotedPriority?: number | null;
+            /**
+             * Format: uuid
+             * @description Admin que creó el evento a nombre del promotor (null = lo creó el propio promotor)
+             */
+            createdByAdminId?: string | null;
+            /** @description Promotor dueño (incluido al crear el evento) */
+            promoter?: components["schemas"]["AdminEventPromoterDto"];
             /**
              * Format: date-time
              * @example 2026-07-01T18:30:00.000Z
@@ -3809,6 +3892,13 @@ export interface components {
              */
             promotedPriority?: number | null;
             /**
+             * Format: uuid
+             * @description Admin que creó el evento a nombre del promotor (null = lo creó el propio promotor)
+             */
+            createdByAdminId?: string | null;
+            /** @description Promotor dueño (incluido al crear el evento) */
+            promoter?: components["schemas"]["AdminEventPromoterDto"];
+            /**
              * Format: date-time
              * @example 2026-07-01T18:30:00.000Z
              */
@@ -3843,6 +3933,11 @@ export interface components {
              * @description Salón/venue reutilizable. Si se indica, prefija address/lat/lng vacíos.
              */
             hallId?: string;
+            /**
+             * Format: uuid
+             * @description Promotor dueño del evento. SOLO tiene efecto si el caller es ADMIN (crea el evento a nombre de ese promotor, que debe estar APROBADO). Un promotor no-admin lo ignora y crea el evento a su propio nombre.
+             */
+            promoterId?: string;
             /**
              * @description Dirección/lugar (máx 300)
              * @example Estadio Nacional, Ciudad de Guatemala
@@ -3973,6 +4068,13 @@ export interface components {
              * @example 1
              */
             promotedPriority?: number | null;
+            /**
+             * Format: uuid
+             * @description Admin que creó el evento a nombre del promotor (null = lo creó el propio promotor)
+             */
+            createdByAdminId?: string | null;
+            /** @description Promotor dueño (incluido al crear el evento) */
+            promoter?: components["schemas"]["AdminEventPromoterDto"];
             /**
              * Format: date-time
              * @example 2026-07-01T18:30:00.000Z
@@ -4134,6 +4236,8 @@ export interface components {
             /** Format: date-time */
             promoterDecidedAt: string | null;
             promoterNote: string | null;
+            /** @description Nota interna del admin */
+            promoterInternalNote: string | null;
         };
         PromoterDecisionDto: {
             /** @description Motivo de rechazo/suspensión */
@@ -4157,6 +4261,16 @@ export interface components {
             reason: string | null;
             /** Format: date-time */
             createdAt: string;
+        };
+        SetPromoterNoteDto: {
+            /** @description Nota interna del admin (máx 2000). null/omitir = borra la nota. */
+            note?: string | null;
+        };
+        PromoterInternalNoteResponseDto: {
+            /** Format: uuid */
+            id: string;
+            /** @description Nota interna del admin */
+            promoterInternalNote: string | null;
         };
         CreateInvitationsDto: {
             /**
@@ -5981,19 +6095,6 @@ export interface components {
             /** @description Reparto por defecto (0.5 = 50%; 0 = plataforma cubre todo) */
             pct: number;
         };
-        PromoterEffectivePctResponseDto: {
-            /** Format: uuid */
-            promoterId: string;
-            /**
-             * @description % efectivo que asume el promotor (0..1)
-             * @example 0.5
-             */
-            effectivePct: number;
-        };
-        SetPromoterPctDto: {
-            /** @description % que asume el promotor (0..1) */
-            pct: number;
-        };
         PromoterCostSharePctResponseDto: {
             /** Format: uuid */
             promoterId: string;
@@ -6007,6 +6108,10 @@ export interface components {
              * @example 0.5
              */
             effectivePct: number;
+        };
+        SetPromoterPctDto: {
+            /** @description % que asume el promotor (0..1) */
+            pct: number;
         };
         PaymentMethodResponseDto: {
             /** Format: uuid */
@@ -6327,6 +6432,31 @@ export interface components {
             ok: boolean;
             /** @description seq del primer registro corrupto (si ok=false) */
             brokenAt?: string;
+        };
+        ImpersonationUserDto: {
+            /** Format: uuid */
+            id: string;
+            /**
+             * Format: email
+             * @example promotor@pasaeventos.com
+             */
+            email: string;
+            roles: ("admin" | "promoter" | "promoter_staff" | "gate_operator" | "buyer")[];
+        };
+        ImpersonationResponseDto: {
+            /** @description Access token de vida corta que actúa como el promotor */
+            accessToken: string;
+            /**
+             * @description Vigencia del token en segundos
+             * @example 1800
+             */
+            expiresIn: number;
+            /**
+             * Format: uuid
+             * @description Admin que inició la impersonación
+             */
+            impersonatedBy: string;
+            user: components["schemas"]["ImpersonationUserDto"];
         };
     };
     responses: never;
@@ -7623,6 +7753,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PromoterStatusEventDto"][];
+                };
+            };
+        };
+    };
+    PromotersController_setNote_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetPromoterNoteDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromoterInternalNoteResponseDto"];
                 };
             };
         };
@@ -9376,7 +9531,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PromoterEffectivePctResponseDto"];
+                    "application/json": components["schemas"]["PromoterCostSharePctResponseDto"];
                 };
             };
         };
@@ -10189,6 +10344,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuditVerifyDto"];
+                };
+            };
+        };
+    };
+    AdminController_stop_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponseDto"];
+                };
+            };
+        };
+    };
+    AdminController_start_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImpersonationResponseDto"];
                 };
             };
         };
