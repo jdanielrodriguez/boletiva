@@ -21,7 +21,7 @@ export const checkout = {
   cvvHint: 'For your security, confirm the card CVV to authorize the payment.',
   cvvRequired: 'Enter the CVV (3 or 4 digits) to continue.',
   noMethodsHint: 'You don’t have saved methods yet. Enter a card to pay.',
-  saveCardHint: 'We’ll securely save this card for your next purchases.',
+  saveCardHint: 'Your payment details are processed securely and encrypted.',
   cardLabel: 'Credit or debit card',
   cardBrands: 'Visa, Mastercard, American Express',
   cardNumber: 'Card number',

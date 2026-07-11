@@ -212,8 +212,8 @@
         <p class="muted">{{ 'config.system.defaultShareHint' | translate }}</p>
         <div class="field inline">
           <input type="number" min="0" max="1" step="0.05" [ngModel]="defaultPct()" (ngModelChange)="defaultPct.set($event)" name="defpct" #dp data-testid="default-pct" />
-          <button type="button" class="btn primary" (click)="saveDefaultPct(dp.value)" data-testid="save-default-pct" [title]="'config.system.saveDefaultShareTitle' | translate">
-            <app-icon name="save" /> {{ 'common.save' | translate }}
+          <button type="button" class="btn small primary icon-only" (click)="saveDefaultPct(dp.value)" data-testid="save-default-pct" [title]="'config.system.saveDefaultShareTitle' | translate" [attr.aria-label]="'config.system.saveDefaultShareTitle' | translate">
+            <app-icon name="disk" />
           </button>
         </div>
       </div>

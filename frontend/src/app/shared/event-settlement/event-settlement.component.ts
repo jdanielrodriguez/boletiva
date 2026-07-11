@@ -41,10 +41,17 @@ export class EventSettlementComponent {
     return !this.loading() && !this.error() && !!d && d.paidOrders > 0;
   });
 
+  /** Último id ya solicitado (campo NO reactivo): evita re-fetch si el effect
+   *  se re-ejecuta por cambios de detección → un solo fetch por evento. */
+  private loadedId: string | null = null;
+
   constructor() {
     effect(() => {
       const id = this.eventId();
-      this.load(id);
+      if (id && id !== this.loadedId) {
+        this.loadedId = id;
+        this.load(id);
+      }
     });
   }
 
