@@ -544,11 +544,18 @@ async function main() {
     assert(adminPg.url().endsWith('/configuracion'), `el back no volvió a la consola: ${adminPg.url()}`);
   });
 
-  await step('admin: agregar pasarela exige desbloqueo por OTP (código al correo)', async () => {
+  await step('admin: "Agregar pasarela" nace bloqueado; el candado abre el modal con OTP', async () => {
     await adminPg.click('[data-testid="tab-sistema"]');
-    await adminPg.waitForSelector('[data-testid="gw-unlock"]', { timeout: 10000 });
-    await adminPg.click('[data-testid="gw-unlock"]');
-    // Tras pedir el desbloqueo aparece el modal para ingresar el código.
+    // El botón "Agregar pasarela" está deshabilitado y hay un candado al lado (v3.7).
+    await adminPg.waitForSelector('[data-testid="gw-add"]', { timeout: 10000 });
+    const disabled = await adminPg.$eval('[data-testid="gw-add"]', (b) => b.disabled);
+    assert(disabled === true, 'el botón Agregar pasarela debería nacer deshabilitado');
+    await adminPg.waitForSelector('[data-testid="gw-lock"]', { timeout: 8000 });
+    await adminPg.click('[data-testid="gw-lock"]');
+    // El modal explica la acción y permite enviar el código al correo.
+    await adminPg.waitForSelector('[data-testid="gw-unlock-modal"]', { timeout: 10000 });
+    await adminPg.click('[data-testid="gw-send-code"]');
+    // Tras enviar aparece el input del código.
     await adminPg.waitForSelector('[data-testid="gw-unlock-code"]', { timeout: 10000 });
   });
 
@@ -566,29 +573,42 @@ async function main() {
     await guestCtx.close();
   });
 
-  await step('v3.5 admin: la consola tiene tabs Salones, Plantillas y Configuraciones', async () => {
+  await step('v3.7 admin: Salones/Plantillas enlazan a su página; Configuraciones va bajo Sistema', async () => {
     await adminPg.goto(`${FE}/configuracion`, { waitUntil: 'networkidle0' });
     await adminPg.waitForSelector('[data-testid="tab-salones"]', { timeout: 12000 });
     assert((await adminPg.$('[data-testid="tab-plantillas"]')) !== null, 'falta la tab Plantillas');
-    assert((await adminPg.$('[data-testid="tab-ajustes"]')) !== null, 'falta la tab Configuraciones');
+    // Ya NO hay tab Configuraciones separada (se integró en Sistema).
+    assert((await adminPg.$('[data-testid="tab-ajustes"]')) === null, 'la tab Configuraciones ya no debería existir');
+    await adminPg.click('[data-testid="tab-salones"]');
+    await adminPg.waitForSelector('[data-testid="halls-manage"]', { timeout: 8000 });
   });
 
-  await step('v3.5 admin: crear un salón con el mapa (Nuevo salón → form + mapa)', async () => {
-    await adminPg.click('[data-testid="tab-salones"]');
+  await step('v3.7 admin: página de Salones (crear borrador → publicar)', async () => {
+    await adminPg.goto(`${FE}/configuracion/salones`, { waitUntil: 'networkidle0' });
     await adminPg.waitForSelector('[data-testid="hall-new"]', { timeout: 10000 });
+    await adminPg.waitForSelector('[data-testid="hall-status-filter"]', { timeout: 8000 });
     await adminPg.click('[data-testid="hall-new"]');
     await adminPg.waitForSelector('[data-testid="hall-form"]', { timeout: 8000 });
-    await adminPg.waitForSelector('[data-testid="map-picker"]', { timeout: 8000 });
     await adminPg.type('[data-testid="hall-name"]', `Salón E2E ${Date.now()}`);
-    await adminPg.click('[data-testid="hall-save"]');
+    await adminPg.click('[data-testid="hall-save-draft"]');
     await adminPg.waitForSelector('[data-testid="hall-card"]', { timeout: 10000 });
+    // El borrador ofrece el botón Publicar.
+    assert((await adminPg.$('[data-testid="hall-publish"]')) !== null, 'falta el botón Publicar del salón borrador');
   });
 
-  await step('v3.5 admin: configuraciones (settings) se listan y son editables', async () => {
-    // Navega fresco (evita interferir con el mapa/leaflet de la tab Salones).
-    await adminPg.goto(`${FE}/configuracion`, { waitUntil: 'networkidle0' });
-    await adminPg.waitForSelector('[data-testid="tab-ajustes"]', { timeout: 12000 });
-    await adminPg.click('[data-testid="tab-ajustes"]');
+  await step('v3.7 admin: página de Plantillas (filtros + botones por estado)', async () => {
+    await adminPg.goto(`${FE}/configuracion/plantillas`, { waitUntil: 'networkidle0' });
+    await adminPg.waitForSelector('[data-testid="tpl-list"]', { timeout: 12000 });
+    await adminPg.waitForSelector('[data-testid="tpl-status-filter"]', { timeout: 8000 });
+    // Las built-in (publicadas) ofrecen "Ver" y NO se pueden eliminar (sin botón de borrado habilitado).
+    assert((await adminPg.$('[data-testid="tpl-view"]')) !== null, 'una plantilla publicada debería tener botón Ver');
+    await adminPg.click('[data-testid="tpl-view"]');
+    await adminPg.waitForSelector('[data-testid="tpl-preview-modal"]', { timeout: 8000 });
+    await adminPg.click('[data-testid="tpl-preview-close"]');
+  });
+
+  await step('v3.7 admin: configuraciones (settings) bajo Sistema, editables', async () => {
+    await adminPg.goto(`${FE}/configuracion?tab=sistema`, { waitUntil: 'networkidle0' });
     await adminPg.waitForSelector('[data-testid="settings-list"]', { timeout: 15000 });
     const rows = (await adminPg.$$('[data-testid="setting-row"]')).length;
     assert(rows >= 10, `se esperaban ≥10 configuraciones, hay ${rows}`);
@@ -597,6 +617,12 @@ async function main() {
   await step('v3.5 admin: filtro de eventos por promotor', async () => {
     await adminPg.click('[data-testid="tab-eventos"]');
     await adminPg.waitForSelector('[data-testid="event-promoter-filter"]', { timeout: 10000 });
+    // El grid de eventos se carga async (muchos eventos): espera a que el <select>
+    // tenga las opciones ("Todos" + ≥1 promotor) antes de contar.
+    await adminPg.waitForFunction(
+      () => (document.querySelectorAll('[data-testid="event-promoter-filter"] option') || []).length >= 2,
+      { timeout: 12000 },
+    );
     const opts = await adminPg.$$eval('[data-testid="event-promoter-filter"] option', (o) => o.length);
     assert(opts >= 2, 'el filtro de promotor debería tener al menos "Todos" + un promotor');
   });
