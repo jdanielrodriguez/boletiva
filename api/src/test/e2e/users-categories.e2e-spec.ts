@@ -151,6 +151,51 @@ describe('Users + Categories (e2e)', () => {
     await http().patch(`/api/v1/categories/${id}`).set(bearer(buyerToken)).send({ name: 'y' }).expect(403);
   });
 
+  it('GET /categories?all=true incluye inactivas; el listado por defecto solo activas', async () => {
+    const created = await http()
+      .post('/api/v1/categories')
+      .set(bearer(adminToken))
+      .send({ name: `UC ${stamp} Inactiva`, active: false })
+      .expect(201);
+    expect(created.body.active).toBe(false); // rama `dto.active ?? true` con active explícito
+
+    const all = await http().get('/api/v1/categories?all=true').expect(200);
+    expect(all.body.some((c: { id: string }) => c.id === created.body.id)).toBe(true);
+
+    const activeOnly = await http().get('/api/v1/categories').expect(200);
+    expect(activeOnly.body.some((c: { id: string }) => c.id === created.body.id)).toBe(false);
+  });
+
+  it('nombre duplicado → el slug se desambigua con sufijo (uniqueSlug)', async () => {
+    const first = await http()
+      .post('/api/v1/categories')
+      .set(bearer(adminToken))
+      .send({ name: `UC ${stamp} Dup` })
+      .expect(201);
+    const second = await http()
+      .post('/api/v1/categories')
+      .set(bearer(adminToken))
+      .send({ name: `UC ${stamp} Dup` })
+      .expect(201);
+    expect(second.body.slug).not.toBe(first.body.slug);
+    expect(second.body.slug.startsWith(first.body.slug)).toBe(true); // base + sufijo
+  });
+
+  it('actualizar categoría inexistente → 404', async () => {
+    await http()
+      .patch('/api/v1/categories/00000000-0000-0000-0000-000000000000')
+      .set(bearer(adminToken))
+      .send({ description: 'x' })
+      .expect(404);
+  });
+
+  it('borrar categoría inexistente → 404', async () => {
+    await http()
+      .delete('/api/v1/categories/00000000-0000-0000-0000-000000000000')
+      .set(bearer(adminToken))
+      .expect(404);
+  });
+
   it('borrar categoría con eventos asociados → 409; sin eventos → 204', async () => {
     const cat = await http()
       .post('/api/v1/categories')

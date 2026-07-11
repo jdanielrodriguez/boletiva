@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { RedisService } from '../../infra/redis/redis.service';
 import { createTestApp, SEED } from './utils';
 import { sha256 } from '../../common/utils/crypto';
 
@@ -13,6 +14,7 @@ import { sha256 } from '../../common/utils/crypto';
 describe('Eventos: gestión (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
+  let redis: RedisService;
   let promoterToken: string; // seed (aprobado)
   let promoterId: string;
   let promoterBToken: string; // segundo promotor aprobado
@@ -34,6 +36,7 @@ describe('Eventos: gestión (e2e)', () => {
   beforeAll(async () => {
     app = await createTestApp();
     prisma = app.get(PrismaService);
+    redis = app.get(RedisService);
     stamp = Date.now();
 
     const promoter = await prisma.user.findUniqueOrThrow({ where: { email: SEED.promoter } });
@@ -85,8 +88,11 @@ describe('Eventos: gestión (e2e)', () => {
     const ids = [promoterBId, pendingPromoterId];
     await prisma.event.deleteMany({ where: { promoterId: { in: [promoterId, ...ids] }, slug: { contains: String(stamp) } } });
     await prisma.event.deleteMany({ where: { name: { startsWith: 'Ev ' }, promoterId: { in: ids } } });
+    await prisma.paymentGateway.deleteMany({ where: { name: { contains: String(stamp) } } });
     await prisma.paymentGateway.deleteMany({ where: { id: inactiveGatewayId } });
     await prisma.hall.deleteMany({ where: { name: { contains: `Salón ${stamp}` } } });
+    await prisma.hall.deleteMany({ where: { name: { contains: `Hall ${stamp}` } } });
+    await prisma.category.deleteMany({ where: { slug: { contains: `ev-cat-${stamp}` } } });
     await prisma.user.deleteMany({ where: { email: { contains: `_${stamp}@test.com` } } });
     await app.close();
   });
@@ -521,6 +527,177 @@ describe('Eventos: gestión (e2e)', () => {
         .get('/api/v1/events/00000000-0000-0000-0000-000000000000/settlement')
         .set(bearer(adminToken))
         .expect(404);
+    });
+  });
+
+  describe('Disponibilidad, destacados y ubicación (cobertura de negocio)', () => {
+    /** Crea un evento PUBLICADO directamente (evita el gate de publicar) para
+     * ejercer los endpoints públicos de solo-lectura. Slug con `stamp` → limpiado. */
+    const mkPublished = (over: Record<string, unknown> = {}) =>
+      prisma.event.create({
+        data: {
+          promoterId,
+          name: `Ev Pub ${stamp}-${Math.random().toString(36).slice(2, 7)}`,
+          slug: `ev-pub-${stamp}-${Math.random().toString(36).slice(2, 7)}`,
+          startsAt: new Date('2028-01-01T20:00:00-06:00'),
+          endsAt: new Date('2028-01-01T23:00:00-06:00'),
+          status: 'published',
+          ...over,
+        },
+      });
+
+    it('availability: precio all-in por localidad, asientos con coordenadas y marca held (hold Redis)', async () => {
+      const ev = await mkPublished();
+      const seated = await prisma.locality.create({
+        data: { eventId: ev.id, name: 'Platea', slug: `platea-av-${stamp}`, kind: 'seated', capacity: 2, desiredNet: 100 },
+      });
+      const s1 = await prisma.seat.create({
+        data: { localityId: seated.id, label: `AV-A1-${stamp}`, section: 'Platea', row: 'A', x: 10, y: 10, status: 'available' },
+      });
+      const s2 = await prisma.seat.create({
+        data: { localityId: seated.id, label: `AV-A2-${stamp}`, section: 'Platea', row: 'A', x: 20, y: 10, status: 'available' },
+      });
+      // Localidad general SIN precio (desiredNet null) → price null en la respuesta.
+      await prisma.locality.create({
+        data: { eventId: ev.id, name: 'GA', slug: `ga-av-${stamp}`, kind: 'general', capacity: 5 },
+      });
+
+      // Otro usuario reserva s2 en Redis: para el comprador s2 aparece como 'held'.
+      await redis.getClient().set(`hold:${ev.id}:${s2.id}`, 'otro-holder', 'EX', 60);
+
+      const res = await http().get(`/api/v1/events/${ev.id}/availability`).expect(200);
+
+      const plat = res.body.localities.find((l: { id: string }) => l.id === seated.id);
+      expect(plat.price.net).toBe('100.00');
+      expect(plat.price.total).toBe('129.68'); // server-authoritative
+      expect(plat.price).toHaveProperty('serviceFee');
+      expect(plat.available).toBe(1); // s1 libre; s2 reservado en Redis no cuenta
+
+      const ga = res.body.localities.find((l: { name: string }) => l.name === 'GA');
+      expect(ga.price).toBeNull();
+
+      const seat1 = res.body.seats.find((s: { id: string }) => s.id === s1.id);
+      const seat2 = res.body.seats.find((s: { id: string }) => s.id === s2.id);
+      expect(seat1.status).toBe('available');
+      expect(seat1.x).toBe(10);
+      expect(seat2.status).toBe('held'); // remapeado por el hold ajeno
+
+      await redis.getClient().del(`hold:${ev.id}:${s2.id}`);
+    });
+
+    it('availability sin asientos disponibles: seats vacío y available 0 (heldSet corta en []).', async () => {
+      const ev = await mkPublished();
+      await prisma.locality.create({
+        data: { eventId: ev.id, name: 'GA', slug: `ga-empty-${stamp}`, kind: 'general', capacity: 3, desiredNet: 50 },
+      });
+      const res = await http().get(`/api/v1/events/${ev.id}/availability`).expect(200);
+      expect(res.body.seats).toEqual([]);
+      const ga = res.body.localities.find((l: { name: string }) => l.name === 'GA');
+      expect(ga.available).toBe(0);
+      expect(ga.price.total).toBeDefined();
+    });
+
+    it('availability de un borrador o inexistente → 404', async () => {
+      const draft = await createEvent(promoterToken);
+      await http().get(`/api/v1/events/${draft.id}/availability`).expect(404);
+      await http().get('/api/v1/events/00000000-0000-0000-0000-000000000000/availability').expect(404);
+    });
+
+    it('GET /events/promoted: solo publicados con prioridad, ordenados ascendente', async () => {
+      const a = await mkPublished({ promotedPriority: 2 });
+      const b = await mkPublished({ promotedPriority: 1 });
+      await mkPublished(); // sin prioridad → no aparece
+      const res = await http().get('/api/v1/events/promoted').expect(200);
+      const ids = res.body.map((e: { id: string }) => e.id);
+      const ia = ids.indexOf(a.id);
+      const ib = ids.indexOf(b.id);
+      expect(ia).toBeGreaterThanOrEqual(0);
+      expect(ib).toBeGreaterThanOrEqual(0);
+      expect(ib).toBeLessThan(ia); // prioridad 1 va antes que 2
+    });
+
+    it('GET /events?category=<slug>: filtra por categoría', async () => {
+      const cat = await prisma.category.create({
+        data: { name: `Ev Cat ${stamp}`, slug: `ev-cat-${stamp}`, createdById: promoterId },
+      });
+      const ev = await mkPublished({ categoryId: cat.id });
+      const res = await http().get(`/api/v1/events?category=ev-cat-${stamp}`).expect(200);
+      expect(res.body.items.length).toBeGreaterThan(0);
+      expect(res.body.items.every((e: { category?: { slug: string } }) => e.category?.slug === `ev-cat-${stamp}`)).toBe(true);
+      expect(res.body.items.some((e: { id: string }) => e.id === ev.id)).toBe(true);
+    });
+
+    it('crear con hallId (sin address): prefija address/lat/lng del salón', async () => {
+      const hall = await prisma.hall.create({
+        data: { name: `Hall ${stamp}`, address: 'Av. Reforma 1-23', lat: 14.6, lng: -90.5 },
+      });
+      const res = await http()
+        .post('/api/v1/events')
+        .set(bearer(promoterToken))
+        .send(body({ hallId: hall.id }))
+        .expect(201);
+      const ev = await prisma.event.findUniqueOrThrow({ where: { id: res.body.id } });
+      expect(ev.hallId).toBe(hall.id);
+      expect(ev.address).toBe('Av. Reforma 1-23'); // heredado del salón
+      expect(ev.lat).toBe(14.6);
+      expect(ev.lng).toBe(-90.5);
+    });
+
+    it('crear con hallId inexistente → 400', async () => {
+      await http()
+        .post('/api/v1/events')
+        .set(bearer(promoterToken))
+        .send(body({ hallId: '00000000-0000-0000-0000-000000000000' }))
+        .expect(400);
+    });
+
+    it('crear con pasarela que exige más colaboración de la del promotor → 400', async () => {
+      const gw = await prisma.paymentGateway.create({
+        data: {
+          name: `Premium ${stamp}`,
+          provider: 'pagalo',
+          feePct: '0.03000',
+          status: 'active',
+          sandbox: false,
+          minCostSharePct: '0.90000', // el promotor semilla (0.5) no califica
+        },
+      });
+      await http()
+        .post('/api/v1/events')
+        .set(bearer(promoterToken))
+        .send(body({ gatewayId: gw.id }))
+        .expect(400);
+    });
+
+    it('nombre duplicado al crear → slug desambiguado con sufijo (uniqueSlug)', async () => {
+      const name = `Ev Dup ${stamp}`;
+      const a = await http().post('/api/v1/events').set(bearer(promoterToken)).send(body({ name })).expect(201);
+      const b = await http().post('/api/v1/events').set(bearer(promoterToken)).send(body({ name })).expect(201);
+      expect(b.body.slug).not.toBe(a.body.slug);
+      expect(b.body.slug.startsWith(a.body.slug)).toBe(true);
+    });
+
+    it('PATCH mueve startsAt más allá del fin actual: recalcula endsAt (+12h) sin 400', async () => {
+      const ev = await createEvent(promoterToken);
+      const newStart = new Date('2028-06-01T20:00:00-06:00');
+      const res = await http()
+        .patch(`/api/v1/events/${ev.id}`)
+        .set(bearer(promoterToken))
+        .send({ startsAt: newStart.toISOString() })
+        .expect(200);
+      const updated = await prisma.event.findUniqueOrThrow({ where: { id: res.body.id } });
+      expect(updated.endsAt.getTime()).toBe(newStart.getTime() + 12 * 60 * 60 * 1000);
+    });
+
+    it('PATCH gatewayId válido en evento no congelado → 200 (resuelve la pasarela)', async () => {
+      const ev = await createEvent(promoterToken);
+      const gw = await prisma.paymentGateway.findFirstOrThrow({ where: { isPlatformDefault: true } });
+      const res = await http()
+        .patch(`/api/v1/events/${ev.id}`)
+        .set(bearer(promoterToken))
+        .send({ gatewayId: gw.id })
+        .expect(200);
+      expect(res.body.gatewayId).toBe(gw.id);
     });
   });
 });
