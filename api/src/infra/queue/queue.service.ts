@@ -28,7 +28,10 @@ export class QueueService implements OnApplicationBootstrap, OnModuleDestroy {
   private readonly inline: boolean;
   private readonly prefix: string;
   private readonly connection: RedisOptions;
-  private readonly handlers = new Map<string, JobHandler>();
+  // Varios handlers por cola: cada job se despacha a TODOS los handlers de su cola;
+  // cada handler procesa los `name` que reconoce e IGNORA en silencio el resto
+  // (p.ej. la cola MAIL la comparten confirmación de compra y avisos de promotor).
+  private readonly handlers = new Map<string, JobHandler[]>();
   private readonly queues = new Map<string, Queue>();
   private readonly workers = new Map<string, Worker>();
 
@@ -50,9 +53,11 @@ export class QueueService implements OnApplicationBootstrap, OnModuleDestroy {
     };
   }
 
-  /** Registra el handler de una cola. Lo llaman los servicios de features en su init. */
+  /** Registra un handler de una cola (se acumulan). Lo llaman los servicios en su init. */
   registerHandler(queue: string, handler: JobHandler): void {
-    this.handlers.set(queue, handler);
+    const list = this.handlers.get(queue) ?? [];
+    list.push(handler);
+    this.handlers.set(queue, list);
     if (!this.inline && !this.queues.has(queue)) {
       this.queues.set(
         queue,
@@ -66,8 +71,8 @@ export class QueueService implements OnApplicationBootstrap, OnModuleDestroy {
       this.logger.log('Colas en modo INLINE (ejecución síncrona; sin workers)');
       return;
     }
-    for (const [queue, handler] of this.handlers) {
-      const worker = new Worker(queue, (job) => handler(job.name, job.data), {
+    for (const [queue, list] of this.handlers) {
+      const worker = new Worker(queue, (job) => this.dispatch(list, job.name, job.data), {
         connection: this.connection,
         prefix: this.prefix,
         concurrency: 5,
@@ -84,12 +89,12 @@ export class QueueService implements OnApplicationBootstrap, OnModuleDestroy {
   async enqueue(queue: string, name: string, data: unknown, opts?: JobsOptions): Promise<void> {
     try {
       if (this.inline) {
-        const handler = this.handlers.get(queue);
-        if (!handler) {
+        const list = this.handlers.get(queue);
+        if (!list?.length) {
           this.logger.warn(`Sin handler para la cola ${queue} (job ${name}); se ignora`);
           return;
         }
-        await handler(name, data);
+        await this.dispatch(list, name, data);
         return;
       }
       const q = this.queues.get(queue);
@@ -110,6 +115,13 @@ export class QueueService implements OnApplicationBootstrap, OnModuleDestroy {
       const msg = (err as Error).stack ?? (err as Error).message;
       this.logger.error(`Fallo procesando ${queue}/${name}: ${msg}`);
       if (this.inline) console.error(`[queue:inline] ${queue}/${name} falló:`, err);
+    }
+  }
+
+  /** Ejecuta secuencialmente todos los handlers de una cola para un job. */
+  private async dispatch(list: JobHandler[], name: string, data: unknown): Promise<void> {
+    for (const handler of list) {
+      await handler(name, data);
     }
   }
 

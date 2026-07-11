@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { MailService } from '../../infra/mail/mail.service';
 import { createTestApp, SEED } from './utils';
 import { sha256 } from '../../common/utils/crypto';
 
@@ -292,6 +293,72 @@ describe('Autorización de promotores (e2e)', () => {
     await http().get(`/api/v1/promoters/${u.id}/history`).set(bearer(token)).expect(403);
     const ghost = '00000000-0000-0000-0000-000000000000';
     await http().get(`/api/v1/promoters/${ghost}/history`).set(bearer(adminToken)).expect(404);
+  });
+
+  // ---- Correos del ciclo de promotor (cola MAIL, v3.8) ----
+
+  it('aplicar dispara el correo "recibimos tu solicitud"', async () => {
+    const mail = app.get(MailService);
+    const spy = jest.spyOn(mail, 'sendTemplated').mockResolvedValue(undefined);
+    try {
+      await ensureRequireApproval(true);
+      const u = await newVerifiedUser('mail-apply');
+      const token = await loginTrusted(u.email, 'promo-mailapply');
+      spy.mockClear();
+      await http().post('/api/v1/promoters/apply').set(bearer(token)).expect(200);
+
+      const call = spy.mock.calls.find((c) => c[0] === u.email);
+      expect(call).toBeTruthy();
+      expect(call?.[1]).toMatch(/solicitud/i); // asunto
+      expect(call?.[2].title).toMatch(/Recibimos tu solicitud/i);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('aprobar/rechazar/suspender disparan el correo con el estado correcto (+ nota)', async () => {
+    const mail = app.get(MailService);
+    const spy = jest.spyOn(mail, 'sendTemplated').mockResolvedValue(undefined);
+    try {
+      await ensureRequireApproval(true);
+      const u = await newVerifiedUser('mail-decide');
+      const token = await loginTrusted(u.email, 'promo-maildecide');
+      await http().post('/api/v1/promoters/apply').set(bearer(token)).expect(200);
+
+      spy.mockClear();
+      await http().post(`/api/v1/promoters/${u.id}/approve`).set(bearer(adminToken)).expect(200);
+      expect(spy.mock.calls.find((c) => c[0] === u.email && /aprobada/i.test(c[1]))).toBeTruthy();
+
+      spy.mockClear();
+      await http()
+        .post(`/api/v1/promoters/${u.id}/suspend`)
+        .set(bearer(adminToken))
+        .send({ note: 'motivo-de-prueba' })
+        .expect(200);
+      const sus = spy.mock.calls.find((c) => c[0] === u.email);
+      expect(sus).toBeTruthy();
+      expect(sus?.[1]).toMatch(/suspendida/i);
+      expect(sus?.[2].bodyHtml).toContain('motivo-de-prueba'); // la nota viaja en el correo
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('modo pruebas: aplicar auto-aprueba y envía el correo de aprobación', async () => {
+    const mail = app.get(MailService);
+    const spy = jest.spyOn(mail, 'sendTemplated').mockResolvedValue(undefined);
+    try {
+      await ensureRequireApproval(false);
+      const u = await newVerifiedUser('mail-testmode');
+      const token = await loginTrusted(u.email, 'promo-mailtestmode');
+      spy.mockClear();
+      const applied = await http().post('/api/v1/promoters/apply').set(bearer(token)).expect(200);
+      expect(applied.body.promoterStatus).toBe('approved');
+      expect(spy.mock.calls.find((c) => c[0] === u.email && /aprobada/i.test(c[1]))).toBeTruthy();
+    } finally {
+      spy.mockRestore();
+      await ensureRequireApproval(true);
+    }
   });
 
   it('validación: settings no booleano → 400; note >500 chars → 400', async () => {

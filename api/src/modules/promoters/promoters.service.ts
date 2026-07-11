@@ -1,6 +1,9 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PromoterStatus, Role, User } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { QueueService } from '../../infra/queue/queue.service';
+import { QUEUES } from '../../infra/queue/queue.constants';
+import type { PromoterMailStatus } from './promoter-mail.service';
 
 const REQUIRE_KEY = 'promoters.require_approval';
 
@@ -12,7 +15,15 @@ const REQUIRE_KEY = 'promoters.require_approval';
  */
 @Injectable()
 export class PromotersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly queue: QueueService,
+  ) {}
+
+  /** Encola (cola MAIL) el correo del estado de promotor. Nunca bloquea/lanza. */
+  private async notify(userId: string, status: PromoterMailStatus, note?: string | null) {
+    await this.queue.enqueue(QUEUES.MAIL, 'promoter-status', { userId, status, note: note ?? null });
+  }
 
   /** ¿Se exige autorización del admin? (true por defecto; false = modo pruebas). */
   async requireApproval(): Promise<boolean> {
@@ -42,6 +53,7 @@ export class PromotersService {
 
     if (!(await this.requireApproval())) {
       const updated = await this.grant(user); // modo pruebas → aprobado al instante
+      await this.notify(userId, 'approved');
       return this.summarize(updated);
     }
     const updated = await this.prisma.user.update({
@@ -53,6 +65,7 @@ export class PromotersService {
         promoterNote: null,
       },
     });
+    await this.notify(userId, 'pending'); // "recibimos tu solicitud, pronto te contactarán"
     return this.summarize(updated);
   }
 
@@ -85,6 +98,7 @@ export class PromotersService {
     const user = await this.getUser(id);
     const updated = await this.grant(user);
     await this.audit(user, PromoterStatus.approved, adminId, null);
+    await this.notify(user.id, 'approved');
     return this.summarize(updated);
   }
 
@@ -100,6 +114,7 @@ export class PromotersService {
     const user = await this.getUser(id);
     const updated = await this.revoke(user, PromoterStatus.rejected, note);
     await this.audit(user, PromoterStatus.rejected, adminId, note);
+    await this.notify(user.id, 'rejected', note);
     return this.summarize(updated);
   }
 
@@ -107,6 +122,7 @@ export class PromotersService {
     const user = await this.getUser(id);
     const updated = await this.revoke(user, PromoterStatus.suspended, note);
     await this.audit(user, PromoterStatus.suspended, adminId, note);
+    await this.notify(user.id, 'suspended', note);
     return this.summarize(updated);
   }
 

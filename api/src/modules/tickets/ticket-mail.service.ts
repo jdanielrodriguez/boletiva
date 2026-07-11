@@ -26,10 +26,9 @@ export class TicketMailService implements OnModuleInit {
 
   private async handle(name: string, data: unknown): Promise<void> {
     const payload = data as { orderId?: string };
+    // La cola MAIL la comparten varios emisores; ignora en silencio lo que no sea suyo.
     if (name === 'order-confirmation' && payload.orderId) {
       await this.sendOrderConfirmation(payload.orderId);
-    } else {
-      this.logger.warn(`Job de correo no reconocido: ${name}`);
     }
   }
 
