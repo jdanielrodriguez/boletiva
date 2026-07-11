@@ -135,6 +135,18 @@ export const routes: Routes = [
     title: 'Configuración — Pasa Eventos',
   },
   {
+    path: 'configuracion/salones',
+    loadComponent: () => import('./pages/config/halls.page').then((m) => m.HallsPage),
+    canActivate: [roleGuard('admin')],
+    title: 'Salones — Pasa Eventos',
+  },
+  {
+    path: 'configuracion/plantillas',
+    loadComponent: () => import('./pages/config/templates.page').then((m) => m.TemplatesPage),
+    canActivate: [roleGuard('admin')],
+    title: 'Plantillas — Pasa Eventos',
+  },
+  {
     path: 'configuracion/promotores/:id/historial',
     loadComponent: () =>
       import('./pages/config/promoter-history.page').then((m) => m.PromoterHistoryPage),
