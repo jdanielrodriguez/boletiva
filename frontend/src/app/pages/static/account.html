@@ -401,7 +401,13 @@
 
         @case ('activos') {
           <h2>{{ 'account.nav.activeTickets' | translate }}</h2>
-          @if (activos().length > 0) {
+          @if (orderFilter()) {
+            <p class="filter-pill" data-testid="tickets-order-pill">
+              {{ 'account.tickets.orderFilterPill' | translate }}
+              <button type="button" class="link-btn" (click)="clearOrderFilter()" data-testid="clear-tickets-order-filter">{{ 'account.tickets.viewAllTickets' | translate }}</button>
+            </p>
+          }
+          @if (activosGrouped().length > 0) {
             <div class="ticket-groups" data-testid="tickets-activos">
               @for (eg of pageEvents('activos'); track eg.eventId) {
                 <article class="event-card">
@@ -485,7 +491,7 @@
                                 <button
                                   type="button"
                                   class="icon-btn"
-                                  (click)="startTransfer(t.id)"
+                                  (click)="openTransfer(t)"
                                   data-testid="ticket-transfer"
                                   [attr.aria-label]="'account.tickets.shareTicketAria' | translate"
                                   [title]="'account.tickets.share' | translate"
@@ -493,13 +499,6 @@
                                   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.7l6.8-4M8.6 13.3l6.8 4" stroke-linecap="round"/></svg>
                                 </button>
                               </div>
-
-                              @if (transferCode()[t.id]; as code) {
-                                <p class="transfer-code" data-testid="transfer-code">
-                                  {{ 'account.tickets.transferCodeHint' | translate }}
-                                  <strong>{{ code }}</strong>
-                                </p>
-                              }
                             </div>
                           </div>
                         }
@@ -577,6 +576,14 @@
       }
     </div>
   </div>
+
+  @if (transferTicket(); as tt) {
+    <app-ticket-transfer-modal
+      [ticketId]="tt.id"
+      [serial]="tt.serial"
+      (closed)="closeTransfer()"
+    />
+  }
 
   @if (confirm(); as cf) {
     <app-confirm-dialog

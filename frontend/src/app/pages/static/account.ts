@@ -34,6 +34,7 @@ import {
   type ConfirmRequest,
 } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
+import { TicketTransferModal } from '../../shared/ticket-transfer-modal/ticket-transfer-modal.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
 import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
@@ -99,7 +100,7 @@ function groupByEventOrder(tickets: TicketResponseDto[]): EventGroup[] {
  */
 @Component({
   selector: 'app-account',
-  imports: [FormsModule, TranslatePipe, LocalizedDatePipe, UpperCasePipe, MoneyPipe, RouterLink, IconComponent, ConfirmDialogComponent, PagerComponent, EmptyStateComponent, StatusLabelPipe],
+  imports: [FormsModule, TranslatePipe, LocalizedDatePipe, UpperCasePipe, MoneyPipe, RouterLink, IconComponent, ConfirmDialogComponent, PagerComponent, EmptyStateComponent, StatusLabelPipe, TicketTransferModal],
   templateUrl: './account.html',
 })
 export class Account {
@@ -319,9 +320,21 @@ export class Account {
   protected readonly pasados = computed(() =>
     (this.ticketsData().items ?? []).filter((t: TicketResponseDto) => t.status === 'used'),
   );
+  /**
+   * Filtra por una compra concreta cuando llega `?order=` (deep-link tras pagar
+   * en el checkout → "a la compra específica"). Sin el parámetro, todos.
+   */
+  private filterByOrder(list: TicketResponseDto[]): TicketResponseDto[] {
+    const only = this.orderFilter();
+    return only ? list.filter((t) => t.orderId === only) : list;
+  }
   /** Boletos activos y pasados agrupados por evento → compra (para las cards). */
-  protected readonly activosGrouped = computed(() => groupByEventOrder(this.activos()));
-  protected readonly pasadosGrouped = computed(() => groupByEventOrder(this.pasados()));
+  protected readonly activosGrouped = computed(() =>
+    groupByEventOrder(this.filterByOrder(this.activos())),
+  );
+  protected readonly pasadosGrouped = computed(() =>
+    groupByEventOrder(this.filterByOrder(this.pasados())),
+  );
 
   // --- Boletos: paginación en 3 NIVELES ---
   // Nivel 1: por EVENTO (paginado). Nivel 2: por COMPRA dentro del evento
@@ -398,8 +411,8 @@ export class Account {
   protected readonly qrHidden = signal<Record<string, boolean>>({});
   /** Boletos cuya media ya se pidió (evita recargas al reejecutarse el efecto). */
   private readonly mediaRequested = new Set<string>();
-  /** Código de transferencia por boleto (se muestra una sola vez). */
-  protected readonly transferCode = signal<Record<string, string>>({});
+  /** Boleto en proceso de transferencia (abre el modal-asistente). null = cerrado. */
+  protected readonly transferTicket = signal<{ id: string; serial: string } | null>(null);
 
   constructor() {
     this.loadWallet();
@@ -731,14 +744,12 @@ export class Account {
     return !this.qrHidden()[ticketId];
   }
 
-  protected startTransfer(ticketId: string): void {
-    this.ticketsApi.transfer(ticketId).subscribe({
-      next: (t) => {
-        this.transferCode.update((cur) => ({ ...cur, [ticketId]: t.code }));
-        this.toasts.success(this.translate.instant('account.toast.transferStarted'));
-      },
-      error: () =>
-        this.toasts.error(this.translate.instant('account.toast.transferError')),
-    });
+  /** Abre el asistente de transferencia (modal de 2 pasos) para un boleto. */
+  protected openTransfer(t: TicketResponseDto): void {
+    this.transferTicket.set({ id: t.id, serial: t.serial });
+  }
+
+  protected closeTransfer(): void {
+    this.transferTicket.set(null);
   }
 }

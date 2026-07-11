@@ -246,13 +246,28 @@ describe('Account (mi cuenta)', () => {
     expect(nav).toHaveBeenCalledWith(['/cuenta/transaccion', 'o1']);
   });
 
-  it('transferir un boleto muestra el código a compartir', async () => {
+  it('transferir un boleto abre el asistente (info → confirmar → código a compartir)', async () => {
+    const transfer = jasmine.createSpy('transfer').and.returnValue(of({ code: 'K7MNPQ23' }));
+    await setup({ tickets: { list: () => of(TICKETS), media: () => of({}), transfer } });
+    go('menu-activos');
+    // 1) Abre el modal de instrucciones; aún NO transfiere.
+    go('ticket-transfer');
+    expect(el.querySelector('[data-testid="transfer-modal"]')).not.toBeNull();
+    expect(transfer).not.toHaveBeenCalled();
+    // 2) Confirmar → transfiere y muestra el código.
+    go('transfer-confirm');
+    expect(transfer).toHaveBeenCalledWith('t1');
+    expect(el.querySelector('[data-testid="transfer-code"]')?.textContent).toContain('K7MNPQ23');
+  });
+
+  it('cancelar el asistente de transferencia no transfiere', async () => {
     const transfer = jasmine.createSpy('transfer').and.returnValue(of({ code: 'K7MNPQ23' }));
     await setup({ tickets: { list: () => of(TICKETS), media: () => of({}), transfer } });
     go('menu-activos');
     go('ticket-transfer');
-    expect(transfer).toHaveBeenCalledWith('t1');
-    expect(el.querySelector('[data-testid="transfer-code"]')?.textContent).toContain('K7MNPQ23');
+    go('transfer-cancel');
+    expect(el.querySelector('[data-testid="transfer-modal"]')).toBeNull();
+    expect(transfer).not.toHaveBeenCalled();
   });
 
   it('el QR se muestra por defecto (auto-carga la media al abrir activos)', async () => {

@@ -130,6 +130,8 @@ export const account = {
     downloadPdf: 'Download PDF',
     shareTicketAria: 'Share ticket',
     share: 'Share',
+    orderFilterPill: 'Showing the tickets from a specific purchase.',
+    viewAllTickets: 'View all my tickets',
     transferCodeHint:
       'Share this code with whoever will receive the ticket (shown only once):',
     noActive: 'You have no active tickets.',

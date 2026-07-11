@@ -130,6 +130,8 @@ export const account = {
     downloadPdf: 'Descargar PDF',
     shareTicketAria: 'Compartir boleto',
     share: 'Compartir',
+    orderFilterPill: 'Mostrando los boletos de una compra específica.',
+    viewAllTickets: 'Ver todos mis boletos',
     transferCodeHint:
       'Comparte este código con quien recibirá el boleto (se muestra una sola vez):',
     noActive: 'No tienes boletos activos.',
