@@ -9,6 +9,7 @@ import type {
   TokenPairResponseDto,
 } from '../api/types';
 import { ApiClient } from '../http/api-client.service';
+import { I18nService } from '../i18n/i18n.service';
 import { AuthRefreshService } from './auth-refresh.service';
 import { AuthService } from './auth.service';
 import { SessionStore } from './session.store';
@@ -52,6 +53,7 @@ describe('AuthService', () => {
         { provide: AuthApi, useValue: api },
         { provide: ApiClient, useValue: { get: () => of(null), post: () => of(null) } },
         { provide: AuthRefreshService, useValue: { refresh: () => of(null) } },
+        { provide: I18nService, useValue: { use: () => undefined } },
       ],
     });
     auth = TestBed.inject(AuthService);

@@ -13,8 +13,9 @@ import type {
   SignupResponseDto,
   TwoFactorVerifyDto,
 } from '../api/types';
-import { SessionStore } from './session.store';
+import { SessionStore, type SessionUser } from './session.store';
 import { TokenStore } from './token-store.service';
+import { I18nService } from '../i18n/i18n.service';
 
 /**
  * Orquesta la autenticación: enlaza el SDK (AuthApi) con el estado local (tokens
@@ -26,6 +27,7 @@ export class AuthService {
   private readonly authApi = inject(AuthApi);
   private readonly tokens = inject(TokenStore);
   private readonly session = inject(SessionStore);
+  private readonly i18n = inject(I18nService);
 
   /**
    * Login por contraseña. Si el backend responde `ok` con tokens, arranca la
@@ -47,6 +49,7 @@ export class AuthService {
       tap((res) => {
         this.tokens.setAccessToken(res.tokens.accessToken);
         this.session.setUser(res.user);
+        this.applyUserLanguage(res.user);
       }),
     );
   }
@@ -80,6 +83,17 @@ export class AuthService {
     if (res.status === 'ok' && res.tokens && res.user) {
       this.tokens.setAccessToken(res.tokens.accessToken);
       this.session.setUser(res.user);
+      this.applyUserLanguage(res.user);
     }
+  }
+
+  /**
+   * Aplica el idioma GUARDADO del usuario al iniciar sesión (v3.9 · E3): así, si
+   * su preferencia en BD es inglés, la UI cambia de una vez sin re-seleccionar la
+   * bandera. `i18n.use` persiste la preferencia y es no-op en SSR.
+   */
+  private applyUserLanguage(user: SessionUser): void {
+    const lang = user.language;
+    if (lang === 'es' || lang === 'en') this.i18n.use(lang);
   }
 }
