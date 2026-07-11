@@ -6,6 +6,7 @@ export type IconName =
   | 'delete'
   | 'publish'
   | 'save'
+  | 'disk'
   | 'cancel'
   | 'suspend'
   | 'history'
@@ -65,6 +66,11 @@ export type IconName =
       }
       @case ('save') {
         <path d="M20 6L9 17l-5-5" />
+      }
+      @case ('disk') {
+        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+        <path d="M17 21v-8H7v8" />
+        <path d="M7 3v5h8" />
       }
       @case ('cancel') {
         <path d="M18 6L6 18" />

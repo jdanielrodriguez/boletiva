@@ -422,8 +422,8 @@
                   } @else {
                     <input type="number" step="0.01" [ngModel]="settingEdits()[s.key]" (ngModelChange)="setSettingValue(s.key, +$event)" [name]="'set-' + s.key" [attr.data-testid]="'setting-input-' + s.key" />
                   }
-                  <button type="button" class="btn small primary" (click)="saveSetting(s)" [attr.data-testid]="'setting-save-' + s.key" [title]="'config.settings.saveTitle' | translate">
-                    <app-icon name="save" /> {{ 'common.save' | translate }}
+                  <button type="button" class="btn small primary icon-only" (click)="saveSetting(s)" [attr.data-testid]="'setting-save-' + s.key" [title]="'config.settings.saveTitle' | translate" [attr.aria-label]="'config.settings.saveTitle' | translate">
+                    <app-icon name="disk" />
                   </button>
                   <span class="muted small setting-default">{{ 'config.settings.defaultLabel' | translate: { value: s.default } }}</span>
                 </div>
