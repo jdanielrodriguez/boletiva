@@ -22,6 +22,9 @@ export type IconName =
   | 'maintenance'
   | 'activate'
   | 'close'
+  | 'back'
+  | 'hide'
+  | 'lock'
   | 'banner';
 
 /**
@@ -134,6 +137,20 @@ export type IconName =
         <rect x="3" y="4" width="18" height="14" rx="2" />
         <circle cx="9" cy="10" r="2" />
         <path d="M21 15l-5-4-4 3-2-1.5L3 17" />
+      }
+      @case ('back') {
+        <path d="M19 12H5" />
+        <path d="M12 19l-7-7 7-7" />
+      }
+      @case ('hide') {
+        <path d="M17.9 17.9A10.4 10.4 0 0 1 12 19C5.5 19 2 12 2 12a18.5 18.5 0 0 1 5.1-5.9" />
+        <path d="M9.9 4.2A10.4 10.4 0 0 1 12 4c6.5 0 10 7 10 7a18.5 18.5 0 0 1-2.2 3.2" />
+        <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+        <path d="M2 2l20 20" />
+      }
+      @case ('lock') {
+        <rect x="4" y="11" width="16" height="10" rx="2" />
+        <path d="M8 11V7a4 4 0 0 1 8 0v4" />
       }
     }
   </svg>`,

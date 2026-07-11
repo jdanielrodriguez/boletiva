@@ -7,7 +7,6 @@
     <button type="button" [class.active]="tab() === 'salones'" (click)="selectTab('salones')" data-testid="tab-salones">{{ 'config.tabs.halls' | translate }}</button>
     <button type="button" [class.active]="tab() === 'plantillas'" (click)="selectTab('plantillas')" data-testid="tab-plantillas">{{ 'config.tabs.templates' | translate }}</button>
     <button type="button" [class.active]="tab() === 'sistema'" (click)="selectTab('sistema')" data-testid="tab-sistema">{{ 'config.tabs.system' | translate }}</button>
-    <button type="button" [class.active]="tab() === 'ajustes'" (click)="selectTab('ajustes')" data-testid="tab-ajustes">{{ 'config.tabs.settings' | translate }}</button>
     <button type="button" [class.active]="tab() === 'invitaciones'" (click)="selectTab('invitaciones')" data-testid="tab-invitaciones">{{ 'config.tabs.invitations' | translate }}</button>
   </nav>
 
@@ -38,7 +37,7 @@
           @for (e of pageEvents(); track e.id) {
             <article class="ev-card" data-testid="ev-card">
               <div class="ev-card-top">
-                <span class="badge badge-{{ e.status }}">{{ e.status }}</span>
+                <span class="badge badge-{{ e.status }}">{{ e.status | statusLabel }}</span>
                 <span class="muted small">{{ 'config.events.localitiesCount' | translate: { n: e._count.localities } }}</span>
               </div>
               <button type="button" class="ev-card-name link-btn" (click)="openEvent(e.id)" data-testid="ev-open">{{ e.name }}</button>
@@ -87,7 +86,7 @@
                   <strong>{{ p.firstName }} {{ p.lastName }}</strong>
                   <span class="muted small">{{ p.email }}</span>
                 </div>
-                <span class="badge badge-{{ p.promoterStatus }}">{{ p.promoterStatus }}</span>
+                <span class="badge badge-{{ p.promoterStatus }}">{{ p.promoterStatus | statusLabel }}</span>
               </div>
               <div class="promoter-card-body">
                 <label class="field"><span>{{ 'config.promoters.noteLabel' | translate }}</span>
@@ -137,7 +136,7 @@
             <label class="field"><span>{{ 'config.promoters.suspendReasonLabel' | translate }}</span>
               <textarea rows="3" [ngModel]="suspendReason()" (ngModelChange)="suspendReason.set($event)" name="susreason" data-testid="suspend-reason" [attr.placeholder]="'config.promoters.suspendReasonPlaceholder' | translate"></textarea>
             </label>
-            <div class="ev-card-actions">
+            <div class="ev-card-actions modal-actions">
               <button type="button" class="btn danger" (click)="confirmSuspend()" data-testid="suspend-confirm" [title]="'config.promoters.confirmSuspendTitle' | translate">
                 <app-icon name="suspend" /> {{ 'config.promoters.suspend' | translate }}
               </button>
@@ -148,6 +147,26 @@
           </div>
         </div>
       }
+    }
+
+    @case ('salones') {
+      <h2>{{ 'config.tabs.halls' | translate }}</h2>
+      <div class="card-block manage-summary" data-testid="halls-summary">
+        <p class="muted">{{ 'config.hallsSummary' | translate }}</p>
+        <a class="btn primary" routerLink="/configuracion/salones" data-testid="halls-manage">
+          <app-icon name="view" /> {{ 'config.manage' | translate }}
+        </a>
+      </div>
+    }
+
+    @case ('plantillas') {
+      <h2>{{ 'config.tabs.templates' | translate }}</h2>
+      <div class="card-block manage-summary" data-testid="templates-summary">
+        <p class="muted">{{ 'config.templatesSummary' | translate }}</p>
+        <a class="btn primary" routerLink="/configuracion/plantillas" data-testid="templates-manage">
+          <app-icon name="view" /> {{ 'config.manage' | translate }}
+        </a>
+      </div>
     }
 
     @case ('sistema') {
@@ -179,17 +198,23 @@
       <div class="card-block">
         <h3>{{ 'config.system.gatewaysHeading' | translate }}</h3>
 
+        <!-- Punto 8: "Agregar pasarela" deshabilitado hasta autorizar + candado -->
         <div class="gateway-add" data-testid="gateway-add">
-          @if (!unlockUnlocked()) {
-            @if (!unlockSent()) {
-              <button type="button" class="btn" (click)="requestUnlock()" data-testid="gw-unlock" [title]="'config.system.unlockTitle' | translate">
-                <app-icon name="unlock" /> {{ 'config.system.unlock' | translate }}
+          <div class="gateway-add-row">
+            <button type="button" class="btn primary" [disabled]="!unlockUnlocked()" (click)="openCreateForm()" data-testid="gw-add" [title]="'config.system.addGatewayTitle' | translate">
+              <app-icon name="add" /> {{ 'config.system.addGateway' | translate }}
+            </button>
+            @if (!unlockUnlocked()) {
+              <button type="button" class="btn icon-only lock-btn" (click)="openLockModal()" data-testid="gw-lock" [title]="'config.system.lockTitle' | translate" [attr.aria-label]="'config.system.lockTitle' | translate">
+                <app-icon name="lock" />
               </button>
-              <p class="muted small">{{ 'config.system.unlockHint' | translate }}</p>
-            } @else {
-              <p class="muted small">{{ 'config.system.unlockSentHint' | translate }}</p>
             }
-          } @else {
+          </div>
+          @if (!unlockUnlocked()) {
+            <p class="muted small">{{ 'config.system.addLockedHint' | translate }}</p>
+          }
+
+          @if (unlockUnlocked() && showCreateForm()) {
             <div class="gateway-edit-grid" data-testid="gw-create-form">
               <label class="field"><span>{{ 'config.system.gwName' | translate }}</span>
                 <input type="text" [ngModel]="newGateway().name" (ngModelChange)="patchNewGateway('name', $event)" name="ngn" data-testid="gw-new-name" />
@@ -204,6 +229,8 @@
                 <input type="number" step="0.01" min="0" [ngModel]="newGateway().transactionFixedFee" (ngModelChange)="patchNewGateway('transactionFixedFee', +$event)" name="ngt" />
               </label>
             </div>
+          }
+          @if (unlockUnlocked() && showCreateForm()) {
             <div class="ev-card-actions">
               <button type="button" class="btn primary" (click)="createGateway()" data-testid="gw-create" [title]="'config.system.addGatewayTitle' | translate">
                 <app-icon name="add" /> {{ 'config.system.addGateway' | translate }}
@@ -215,23 +242,34 @@
           }
         </div>
 
-        <!-- Modal centrado de desbloqueo por código (acción sensible). -->
-        @if (unlockSent() && !unlockUnlocked()) {
+        <!-- Modal del candado: explica qué es/para qué + envía y valida el OTP. -->
+        @if (lockModalOpen()) {
           <div class="modal-backdrop" data-testid="gw-unlock-modal">
             <div class="modal-card">
-              <h3>{{ 'config.system.unlockModalTitle' | translate }}</h3>
-              <p class="muted small">{{ 'config.system.unlockModalHint' | translate }}</p>
-              <label class="field"><span>{{ 'config.system.unlockCodeLabel' | translate }}</span>
-                <input type="text" maxlength="6" inputmode="numeric" [ngModel]="unlockCode()" (ngModelChange)="unlockCode.set($event)" name="unlockcode" data-testid="gw-unlock-code" />
-              </label>
-              <div class="ev-card-actions">
-                <button type="button" class="btn primary" (click)="confirmUnlock()" data-testid="gw-unlock-confirm" [title]="'config.system.validateCode' | translate">
-                  <app-icon name="save" /> {{ 'config.system.validateCode' | translate }}
-                </button>
-                <button type="button" class="btn" (click)="cancelUnlock()" [title]="'common.cancel' | translate">
-                  <app-icon name="cancel" /> {{ 'common.cancel' | translate }}
-                </button>
-              </div>
+              <h3><app-icon name="lock" /> {{ 'config.system.lockModalTitle' | translate }}</h3>
+              <p class="muted">{{ 'config.system.lockModalWhat' | translate }}</p>
+              @if (!unlockSent()) {
+                <div class="ev-card-actions modal-actions">
+                  <button type="button" class="btn primary" (click)="requestUnlock()" data-testid="gw-send-code" [title]="'config.system.sendUnlockCode' | translate">
+                    <app-icon name="invite" /> {{ 'config.system.sendUnlockCode' | translate }}
+                  </button>
+                  <button type="button" class="btn" (click)="closeLockModal()" [title]="'common.cancel' | translate">
+                    <app-icon name="cancel" /> {{ 'common.cancel' | translate }}
+                  </button>
+                </div>
+              } @else {
+                <label class="field"><span>{{ 'config.system.unlockCodeLabel' | translate }}</span>
+                  <input type="text" maxlength="6" inputmode="numeric" [ngModel]="unlockCode()" (ngModelChange)="unlockCode.set($event)" name="unlockcode" data-testid="gw-unlock-code" />
+                </label>
+                <div class="ev-card-actions modal-actions">
+                  <button type="button" class="btn primary" (click)="confirmUnlock()" data-testid="gw-unlock-confirm" [title]="'config.system.validateCode' | translate">
+                    <app-icon name="save" /> {{ 'config.system.validateCode' | translate }}
+                  </button>
+                  <button type="button" class="btn" (click)="cancelUnlock()" [title]="'common.cancel' | translate">
+                    <app-icon name="cancel" /> {{ 'common.cancel' | translate }}
+                  </button>
+                </div>
+              }
             </div>
           </div>
         }
@@ -245,7 +283,7 @@
               <div class="gateway-edit">
                 <div class="gateway-edit-head">
                   <strong>{{ g.name }}</strong>
-                  <span class="badge badge-{{ g.status }}">{{ g.status }}</span>
+                  <span class="badge badge-{{ g.status }}">{{ g.status | statusLabel }}</span>
                   @if (g.isPlatformDefault) { <span class="badge badge-approved">{{ 'config.system.defaultBadge' | translate }}</span> }
                   <span class="muted small">{{ g.provider }} · {{ g.feePct }} + Q{{ g.transactionFixedFee }}</span>
                   <span class="gateway-edit-actions" style="margin-left:auto; display:flex; gap:0.4rem;">
@@ -259,6 +297,10 @@
                         <app-icon name="edit" /> {{ 'common.edit' | translate }}
                       </button>
                     }
+                    <button type="button" class="btn small danger" (click)="askRemoveGateway(g)" [disabled]="!canDeleteGateway(g)" data-testid="gw-delete"
+                      [title]="(canDeleteGateway(g) ? 'config.system.deleteGatewayTitle' : 'config.system.deleteGatewayBlockedTitle') | translate">
+                      <app-icon name="delete" /> {{ 'config.system.deleteGateway' | translate }}
+                    </button>
                   </span>
                 </div>
 
@@ -305,6 +347,11 @@
                             <app-icon name="cancel" /> {{ 'config.system.deactivate' | translate }}
                           </button>
                         }
+                        @if (g.status === 'maintenance') {
+                          <button type="button" class="btn small danger" (click)="setGatewayStatus(g, 'inactive')" [title]="'config.system.deactivateTitle' | translate">
+                            <app-icon name="cancel" /> {{ 'config.system.deactivate' | translate }}
+                          </button>
+                        }
                       }
                     </div>
                   }
@@ -316,6 +363,44 @@
           </div>
         } @else {
           <p class="muted">{{ 'config.system.noGateways' | translate }}</p>
+        }
+      </div>
+
+      <!-- Punto 10: Configuraciones ABAJO de las pasarelas, en grid. -->
+      <div class="card-block">
+        <h3>{{ 'config.settings.heading' | translate }}</h3>
+        <p class="muted">{{ 'config.settings.intro' | translate }}</p>
+        @if (settings().length > 0) {
+          <div class="settings-grid" data-testid="settings-list">
+            @for (s of settings(); track s.key) {
+              <div class="setting-card" data-testid="setting-row">
+                <div class="setting-head">
+                  <strong>{{ settingLabel(s.key) }}</strong>
+                  <span class="setting-badges">
+                    @if (s.fallbackOnly) { <span class="badge" data-testid="setting-fallback">{{ 'config.settings.informativeBadge' | translate }}</span> }
+                    <span class="badge">{{ s.type }}</span>
+                  </span>
+                </div>
+                <p class="muted small setting-desc">{{ settingDescription(s.key) }}</p>
+                <div class="setting-foot">
+                  @if (s.type === 'bool') {
+                    <label class="check-row">
+                      <input type="checkbox" [ngModel]="settingEdits()[s.key]" (ngModelChange)="setSettingValue(s.key, $event)" [name]="'set-' + s.key" [attr.data-testid]="'setting-input-' + s.key" />
+                      <span>{{ (settingEdits()[s.key] ? 'config.settings.enabled' : 'config.settings.disabled') | translate }}</span>
+                    </label>
+                  } @else {
+                    <input type="number" step="0.01" [ngModel]="settingEdits()[s.key]" (ngModelChange)="setSettingValue(s.key, +$event)" [name]="'set-' + s.key" [attr.data-testid]="'setting-input-' + s.key" />
+                  }
+                  <button type="button" class="btn small primary" (click)="saveSetting(s)" [attr.data-testid]="'setting-save-' + s.key" [title]="'config.settings.saveTitle' | translate">
+                    <app-icon name="save" /> {{ 'common.save' | translate }}
+                  </button>
+                  <span class="muted small setting-default">{{ 'config.settings.defaultLabel' | translate: { value: s.default } }}</span>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <p class="muted" data-testid="settings-empty">{{ 'config.settings.loading' | translate }}</p>
         }
       </div>
     }
@@ -370,7 +455,7 @@
           <select [ngModel]="invFilterStatus()" (ngModelChange)="setInvFilter($event)" name="invstatus" data-testid="inv-filter">
             <option value="">{{ 'config.invitations.allStatuses' | translate }}</option>
             @for (s of invStatuses(); track s) {
-              <option [value]="s">{{ s }}</option>
+              <option [value]="s">{{ s | statusLabel }}</option>
             }
           </select>
         </div>
@@ -378,7 +463,7 @@
           @for (i of pageInvitations(); track i.id) {
             <article class="inv-card" data-testid="inv-card">
               <div class="inv-card-top">
-                <span class="badge badge-{{ i.status }}">{{ i.status }}</span>
+                <span class="badge badge-{{ i.status }}">{{ i.status | statusLabel }}</span>
                 @if (i.isTestUser) { <span class="badge badge-test" data-testid="inv-badge-test">{{ 'config.invitations.testBadge' | translate }}</span> }
               </div>
               <span class="inv-email">{{ i.email }}</span>
@@ -395,182 +480,6 @@
         <app-pager [page]="invPage()" [totalPages]="invTotalPages()" (pageChange)="goToInvPage($event)" data-testid="inv-pager" />
       } @else {
         <p class="muted">{{ 'config.invitations.empty' | translate }}</p>
-      }
-    }
-
-    @case ('salones') {
-      <h2>{{ 'config.halls.heading' | translate }}</h2>
-      <p class="muted">{{ 'config.halls.intro' | translate }}</p>
-
-      <div class="list-filters">
-        <input type="search" [attr.placeholder]="'config.halls.searchPlaceholder' | translate" [ngModel]="hallSearch()" (ngModelChange)="setHallSearch($event)" name="hallq" data-testid="hall-search" />
-        @if (!hallDraft()) {
-          <button type="button" class="btn primary" (click)="newHall()" data-testid="hall-new" [title]="'config.halls.newHallTitle' | translate">
-            <app-icon name="add" /> {{ 'config.halls.newHall' | translate }}
-          </button>
-        }
-      </div>
-
-      @if (hallDraft(); as d) {
-        <div class="card-block" data-testid="hall-form">
-          <h3>{{ (d.id ? 'config.halls.editHallHeading' : 'config.halls.newHall') | translate }}</h3>
-          <div class="form-grid">
-            <label class="field"><span>{{ 'config.system.gwName' | translate }}</span>
-              <input type="text" [ngModel]="d.name" (ngModelChange)="patchHall('name', $event)" name="hn" data-testid="hall-name" />
-            </label>
-            <label class="field"><span>{{ 'config.halls.city' | translate }}</span>
-              <input type="text" [ngModel]="d.city" (ngModelChange)="patchHall('city', $event)" name="hc" />
-            </label>
-            <label class="field full"><span>{{ 'config.halls.address' | translate }}</span>
-              <input type="text" [ngModel]="d.address" (ngModelChange)="patchHall('address', $event)" name="ha" data-testid="hall-address" />
-            </label>
-            <label class="field full"><span>{{ 'config.halls.notes' | translate }}</span>
-              <textarea rows="2" [ngModel]="d.notes" (ngModelChange)="patchHall('notes', $event)" name="hnotes"></textarea>
-            </label>
-            <div class="field full">
-              <span>{{ 'config.halls.location' | translate }}</span>
-              <app-map-picker [lat]="d.lat" [lng]="d.lng" [address]="d.address" (locationChange)="onHallMap($event)" data-testid="hall-map" />
-            </div>
-          </div>
-          <div class="ev-card-actions">
-            <button type="button" class="btn primary" (click)="saveHall()" data-testid="hall-save" [title]="'config.halls.saveTitle' | translate">
-              <app-icon name="save" /> {{ 'common.save' | translate }}
-            </button>
-            <button type="button" class="btn" (click)="cancelHallEdit()" [title]="'common.cancel' | translate">
-              <app-icon name="cancel" /> {{ 'common.cancel' | translate }}
-            </button>
-          </div>
-        </div>
-      }
-
-      @if (filteredHalls().length > 0) {
-        <div class="admin-events-grid" data-testid="halls-list">
-          @for (h of pageHalls(); track h.id) {
-            <article class="ev-card" data-testid="hall-card">
-              <strong>{{ h.name }}</strong>
-              @if (h.city) { <span class="muted small">{{ h.city }}</span> }
-              @if (h.address) { <span class="muted small">{{ h.address }}</span> }
-              @if (h.lat != null && h.lng != null) { <span class="muted small">{{ h.lat }}, {{ h.lng }}</span> }
-              <div class="ev-card-actions">
-                <button type="button" class="btn small" (click)="editHall(h)" data-testid="hall-edit" [title]="'config.halls.editTitle' | translate">
-                  <app-icon name="edit" /> {{ 'common.edit' | translate }}
-                </button>
-                <button type="button" class="btn small danger" (click)="askRemoveHall(h)" data-testid="hall-remove" [title]="'config.halls.removeTitle' | translate">
-                  <app-icon name="delete" /> {{ 'common.delete' | translate }}
-                </button>
-              </div>
-            </article>
-          }
-        </div>
-        <app-pager [page]="hallsPage()" [totalPages]="hallsTotalPages()" (pageChange)="goToHallsPage($event)" data-testid="halls-pager" />
-      } @else {
-        <p class="muted" data-testid="halls-empty">{{ 'config.halls.empty' | translate }}</p>
-      }
-    }
-
-    @case ('plantillas') {
-      <h2>{{ 'config.templates.heading' | translate }}</h2>
-      <p class="muted">{{ 'config.templates.intro' | translate }}</p>
-
-      <div class="list-filters">
-        <input type="search" [attr.placeholder]="'config.templates.searchPlaceholder' | translate" [ngModel]="templateSearch()" (ngModelChange)="templateSearch.set($event)" name="tplq" data-testid="tpl-search" />
-        @if (!templateDraft()) {
-          <button type="button" class="btn primary" (click)="newTemplate()" data-testid="tpl-new" [title]="'config.templates.newTemplateTitle' | translate">
-            <app-icon name="add" /> {{ 'config.templates.newTemplate' | translate }}
-          </button>
-        }
-      </div>
-
-      @if (templateDraft(); as d) {
-        <div class="card-block" data-testid="tpl-form">
-          <h3>{{ (d.id ? 'config.templates.editTemplateHeading' : 'config.templates.newTemplate') | translate }}</h3>
-          <div class="form-grid">
-            <label class="field"><span>{{ 'config.system.gwName' | translate }}</span>
-              <input type="text" [ngModel]="d.name" (ngModelChange)="patchTemplate('name', $event)" name="tn" data-testid="tpl-name" />
-            </label>
-            <label class="field"><span>{{ 'config.templates.kind' | translate }}</span>
-              <select [ngModel]="d.kind" (ngModelChange)="patchTemplate('kind', $event)" name="tk" data-testid="tpl-kind">
-                @for (k of templateKinds; track k) { <option [value]="k">{{ k }}</option> }
-              </select>
-            </label>
-            <label class="field full"><span>{{ 'config.templates.paramsJson' | translate }}</span>
-              <input type="text" placeholder='{"rows":5,"cols":10}' [ngModel]="d.paramsJson" (ngModelChange)="patchTemplate('paramsJson', $event)" name="tp" data-testid="tpl-params" />
-            </label>
-          </div>
-          <div class="ev-card-actions">
-            <button type="button" class="btn primary" (click)="saveTemplate()" data-testid="tpl-save" [title]="'config.templates.saveTitle' | translate">
-              <app-icon name="save" /> {{ 'common.save' | translate }}
-            </button>
-            <button type="button" class="btn" (click)="cancelTemplateEdit()" [title]="'common.cancel' | translate">
-              <app-icon name="cancel" /> {{ 'common.cancel' | translate }}
-            </button>
-          </div>
-        </div>
-      }
-
-      @if (filteredTemplates().length > 0) {
-        <div class="admin-events-grid" data-testid="tpl-list">
-          @for (t of filteredTemplates(); track t.id) {
-            <article class="ev-card" data-testid="tpl-card">
-              <div class="ev-card-top">
-                <span class="badge">{{ t.kind }}</span>
-                @if (t.isBuiltIn) { <span class="badge badge-approved" data-testid="tpl-builtin">{{ 'config.templates.builtInBadge' | translate }}</span> }
-              </div>
-              <strong>{{ t.name }}</strong>
-              <div class="ev-card-actions">
-                @if (!t.isBuiltIn) {
-                  <button type="button" class="btn small" (click)="editTemplate(t)" data-testid="tpl-edit" [title]="'config.templates.editTitle' | translate">
-                    <app-icon name="edit" /> {{ 'common.edit' | translate }}
-                  </button>
-                  <button type="button" class="btn small danger" (click)="askRemoveTemplate(t)" data-testid="tpl-remove" [title]="'config.templates.removeTitle' | translate">
-                    <app-icon name="delete" /> {{ 'common.delete' | translate }}
-                  </button>
-                } @else {
-                  <span class="muted small">{{ 'config.templates.builtInNote' | translate }}</span>
-                }
-              </div>
-            </article>
-          }
-        </div>
-      } @else {
-        <p class="muted" data-testid="tpl-empty">{{ 'config.templates.empty' | translate }}</p>
-      }
-    }
-
-    @case ('ajustes') {
-      <h2>{{ 'config.settings.heading' | translate }}</h2>
-      <p class="muted">{{ 'config.settings.intro' | translate }}</p>
-      @if (settings().length > 0) {
-        <div class="settings-grid" data-testid="settings-list">
-          @for (s of settings(); track s.key) {
-            <div class="card-block setting-card" data-testid="setting-row">
-              <div class="setting-head">
-                <strong>{{ settingLabel(s.key) }}</strong>
-                <span class="setting-badges">
-                  @if (s.fallbackOnly) { <span class="badge" data-testid="setting-fallback">{{ 'config.settings.informativeBadge' | translate }}</span> }
-                  <span class="badge">{{ s.type }}</span>
-                </span>
-              </div>
-              <p class="muted small setting-desc">{{ settingDescription(s.key) }}</p>
-              <div class="setting-foot">
-                @if (s.type === 'bool') {
-                  <label class="check-row">
-                    <input type="checkbox" [ngModel]="settingEdits()[s.key]" (ngModelChange)="setSettingValue(s.key, $event)" [name]="'set-' + s.key" [attr.data-testid]="'setting-input-' + s.key" />
-                    <span>{{ (settingEdits()[s.key] ? 'config.settings.enabled' : 'config.settings.disabled') | translate }}</span>
-                  </label>
-                } @else {
-                  <input type="number" step="0.01" [ngModel]="settingEdits()[s.key]" (ngModelChange)="setSettingValue(s.key, +$event)" [name]="'set-' + s.key" [attr.data-testid]="'setting-input-' + s.key" />
-                }
-                <button type="button" class="btn small primary" (click)="saveSetting(s)" [attr.data-testid]="'setting-save-' + s.key" [title]="'config.settings.saveTitle' | translate">
-                  <app-icon name="save" /> {{ 'common.save' | translate }}
-                </button>
-                <span class="muted small setting-default">{{ 'config.settings.defaultLabel' | translate: { value: s.default } }}</span>
-              </div>
-            </div>
-          }
-        </div>
-      } @else {
-        <p class="muted" data-testid="settings-empty">{{ 'config.settings.loading' | translate }}</p>
       }
     }
   }

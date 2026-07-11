@@ -3217,3 +3217,74 @@ button.danger {
 .ph-arrow {
   opacity: 0.6;
 }
+
+/* --- Consola admin v3.7: páginas dedicadas, candado, estados --- */
+.page-head-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--pe-muted);
+  font-size: 0.9rem;
+}
+.back-link:hover { color: var(--pe-primary); }
+
+.manage-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.gateway-add-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.4rem;
+}
+.lock-btn.icon-only {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem;
+  border: 1px solid var(--pe-border);
+  color: var(--pe-warn, #c98a00);
+}
+.lock-btn.icon-only:hover { border-color: var(--pe-primary); color: var(--pe-primary); }
+
+/* Acciones de modal centradas (v3.7) */
+.modal-actions {
+  justify-content: center;
+}
+
+/* Preview de plantilla */
+.tpl-preview-icon {
+  display: flex;
+  justify-content: center;
+  margin: 0.75rem 0;
+}
+.tpl-preview-icon svg { width: 80px; height: 80px; }
+.tpl-preview-params {
+  background: rgba(127, 127, 127, 0.08);
+  border: 1px solid var(--pe-border);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.85rem;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+/* Badges de estado adicionales (v3.7) */
+.badge-published,
+.badge-active,
+.badge-visible { background: rgba(46, 160, 67, 0.16); color: #2ea043; }
+.badge-draft { background: rgba(127, 127, 127, 0.16); color: var(--pe-muted); }
+.badge-inactive,
+.badge-disabled { background: rgba(200, 60, 60, 0.14); color: #c83c3c; }
+.badge-hidden { background: rgba(180, 140, 0, 0.16); color: #b48c00; }
+.badge-maintenance { background: rgba(180, 140, 0, 0.16); color: #b48c00; }
+.badge-suspended { background: rgba(200, 60, 60, 0.14); color: #c83c3c; }

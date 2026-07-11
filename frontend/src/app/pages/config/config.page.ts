@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import {
@@ -11,8 +11,6 @@ import {
   PromoterListItemDto,
 } from '../../core/api/admin.api';
 import { InvitationsApi } from '../../core/api/invitations.api';
-import { HallsApi } from '../../core/api/halls.api';
-import { SeatTemplatesApi } from '../../core/api/seat-templates.api';
 import { SettingsApi } from '../../core/api/settings.api';
 import { ToastService } from '../../core/ui/toast.service';
 import {
@@ -20,43 +18,15 @@ import {
   type ConfirmRequest,
 } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
-import { MapPickerComponent, type MapLocation } from '../../shared/map/map-picker.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
+import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
 import type {
   CreatedInvitationDto,
-  HallResponseDto,
   InvitationListItemDto,
-  SeatTemplateResponseDto,
   SettingViewDto,
 } from '../../core/api/types';
 
-type AdminTab =
-  | 'eventos'
-  | 'promotores'
-  | 'sistema'
-  | 'invitaciones'
-  | 'salones'
-  | 'plantillas'
-  | 'ajustes';
-
-/** Borrador editable de un salón (crear/editar con ubicación en mapa). */
-interface HallDraft {
-  id: string | null;
-  name: string;
-  address: string;
-  city: string;
-  notes: string;
-  lat: number | null;
-  lng: number | null;
-}
-
-/** Borrador editable de una plantilla de asientos. */
-interface TemplateDraft {
-  id: string | null;
-  name: string;
-  kind: string;
-  paramsJson: string;
-}
+type AdminTab = 'eventos' | 'promotores' | 'sistema' | 'invitaciones' | 'salones' | 'plantillas';
 
 /** Borrador de nueva pasarela (crear con OTP de desbloqueo). */
 interface NewGatewayDraft {
@@ -82,30 +52,28 @@ const EVENTS_PAGE = 12;
 const INV_PAGE = 9;
 
 /**
- * Consola de administración (F-v3, SOLO admin — roleGuard admin). Tabs: Eventos
- * (todos, grid + cuentas por evento), Promotores (búsqueda/filtro + edición
- * contextual con nota y cost-share), Sistema (pasarelas editables + default +
- * cost-share default + modo pruebas) e Invitaciones (invitar promotores, exclusivo
- * admin). El panel del promotor vive en /promotor (separado de verdad).
+ * Consola de administración (F-v3, SOLO admin — roleGuard admin). Tabs: Eventos,
+ * Promotores, Sistema (pasarelas + configuraciones abajo en grid) e Invitaciones.
+ * Salones y Plantillas viven en páginas dedicadas (/configuracion/salones y
+ * /configuracion/plantillas); desde aquí se enlazan (resumen + "Gestionar").
  */
 @Component({
   selector: 'app-config-page',
   imports: [
     FormsModule,
+    RouterLink,
     TranslatePipe,
     LocalizedDatePipe,
+    StatusLabelPipe,
     IconComponent,
     ConfirmDialogComponent,
     PagerComponent,
-    MapPickerComponent,
   ],
   templateUrl: './config.page.html',
 })
 export class ConfigPage {
   private readonly admin = inject(AdminApi);
   private readonly invitationsApi = inject(InvitationsApi);
-  private readonly hallsApi = inject(HallsApi);
-  private readonly templatesApi = inject(SeatTemplatesApi);
   private readonly settingsApi = inject(SettingsApi);
   private readonly toasts = inject(ToastService);
   private readonly router = inject(Router);
@@ -121,7 +89,6 @@ export class ConfigPage {
     'salones',
     'plantillas',
     'sistema',
-    'ajustes',
     'invitaciones',
   ];
 
@@ -140,9 +107,8 @@ export class ConfigPage {
   protected readonly eventsPageSize = EVENTS_PAGE;
   protected readonly eventSearch = signal('');
   protected readonly eventStatus = signal('');
-  /** Filtro por promotor (point 8): id del promotor seleccionado ('' = todos). */
+  /** Filtro por promotor (id del promotor seleccionado; '' = todos). */
   protected readonly eventPromoter = signal('');
-  /** Promotores presentes en los eventos (para el selector de filtro). */
   protected readonly eventPromoters = computed(() => {
     const map = new Map<string, string>();
     for (const e of this.events()) {
@@ -195,7 +161,7 @@ export class ConfigPage {
   protected readonly defaultPct = signal<number | null>(null);
   protected readonly gateways = signal<GatewayResponseDto[]>([]);
   protected readonly gatewayDraft = signal<GatewayDraft | null>(null);
-  /** Buscador de pasarelas (regla v3.2: filtro por nombre). */
+  /** Buscador de pasarelas (filtro por nombre). */
   protected readonly gatewaySearch = signal('');
   protected readonly filteredGateways = computed(() => {
     const q = this.gatewaySearch().trim().toLowerCase();
@@ -206,14 +172,12 @@ export class ConfigPage {
   });
 
   // --- Invitaciones ---
-  /** El formulario de invitar está OCULTO por defecto; el botón "Invitar" lo alterna. */
   protected readonly showInviteForm = signal(false);
   protected readonly emailsText = signal('');
   protected readonly inviteTestUser = signal(false);
   protected readonly created = signal<CreatedInvitationDto[]>([]);
   protected readonly invitations = signal<InvitationListItemDto[]>([]);
   protected readonly inviting = signal(false);
-  /** Búsqueda + filtro de estado de invitaciones (regla v3.2). */
   protected readonly invSearch = signal('');
   protected readonly invFilterStatus = signal('');
   protected readonly invStatuses = computed(() => [...new Set(this.invitations().map((i) => i.status))]);
@@ -226,7 +190,6 @@ export class ConfigPage {
       return true;
     });
   });
-  /** Paginación del grid de invitaciones (regla v3.2). */
   protected readonly invPage = signal(1);
   protected readonly invPageSize = INV_PAGE;
   protected readonly invTotalPages = computed(() =>
@@ -249,8 +212,7 @@ export class ConfigPage {
   }
 
   constructor() {
-    // Deep-link REACTIVO a `?tab=`: al recargar (o al navegar cambiando el query)
-    // se restaura el tab activo. Es la única fuente de la carga inicial.
+    // Deep-link REACTIVO a `?tab=`: al recargar se restaura el tab activo.
     this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((pm) => {
       const t = pm.get('tab') as AdminTab | null;
       this.applyTab(t && ConfigPage.TABS.includes(t) ? t : 'eventos');
@@ -259,20 +221,17 @@ export class ConfigPage {
 
   /** Fija el tab y hace la carga perezosa de sus datos (sin tocar la URL). */
   private applyTab(t: AdminTab): void {
+    // Punto 9: cambiar de tab CIERRA cualquier form de pasarela (crear/editar).
+    this.closeGatewayForms();
     this.tab.set(t);
     if (t === 'eventos' && this.events().length === 0) this.loadEvents();
     if (t === 'promotores' && this.promoters().length === 0) this.loadPromoters();
     if (t === 'sistema' && this.requireApproval() === null) this.loadSystem();
     if (t === 'invitaciones' && this.invitations().length === 0) this.loadInvitations();
-    if (t === 'salones' && this.halls().length === 0) this.loadHalls();
-    if (t === 'plantillas' && this.templates().length === 0) this.loadTemplates();
-    if (t === 'ajustes' && this.settings().length === 0) this.loadSettings();
   }
 
   protected selectTab(t: AdminTab): void {
-    this.applyTab(t); // respuesta inmediata del tab (y para tests)
-    // Refleja el tab en la URL (`?tab=`) para que sobreviva a la recarga. La
-    // suscripción de arriba re-aplica (idempotente). 'eventos' = sin query (limpio).
+    this.applyTab(t);
     void this.router
       .navigate([], {
         relativeTo: this.route,
@@ -363,7 +322,7 @@ export class ConfigPage {
     });
   }
 
-  // --- Historial de estados (append-only) → PÁGINA dedicada (filtrar/buscar). ---
+  // --- Historial de estados → PÁGINA dedicada. ---
   protected openHistory(p: PromoterListItemDto): void {
     void this.router.navigate(['/configuracion/promotores', p.id, 'historial'], {
       queryParams: { name: `${p.firstName} ${p.lastName ?? ''}`.trim() },
@@ -392,6 +351,7 @@ export class ConfigPage {
       error: () => this.defaultPct.set(null),
     });
     this.loadGateways();
+    this.loadSettings(); // punto 10: configuraciones bajo pasarelas (mismo tab)
   }
   private loadGateways(): void {
     this.admin.listGateways().subscribe({
@@ -426,7 +386,7 @@ export class ConfigPage {
     });
   }
 
-  // Pasarelas
+  // Pasarelas — edición
   protected editGateway(g: GatewayResponseDto): void {
     this.gatewayDraft.set({
       id: g.id,
@@ -494,10 +454,37 @@ export class ConfigPage {
       error: () => this.toasts.error(this.translate.instant('config.system.gatewayDefaultError')),
     });
   }
+  /** Solo se elimina una pasarela INACTIVA no-default (el backend lo valida). */
+  protected canDeleteGateway(g: GatewayResponseDto): boolean {
+    return g.status === 'inactive' && !g.isPlatformDefault;
+  }
+  protected askRemoveGateway(g: GatewayResponseDto): void {
+    if (!this.canDeleteGateway(g)) {
+      this.toasts.warning(this.translate.instant('config.system.deleteGatewayBlockedTitle'));
+      return;
+    }
+    this.confirm.set({
+      title: this.translate.instant('config.system.gwRemoveConfirmTitle'),
+      message: this.translate.instant('config.system.gwRemoveConfirmMessage', { name: g.name }),
+      confirmLabel: this.translate.instant('common.delete'),
+      confirmIcon: 'delete',
+      onConfirm: () =>
+        this.admin.deleteGateway(g.id).subscribe({
+          next: () => {
+            this.toasts.info(this.translate.instant('config.system.gatewayRemoved'));
+            this.gatewayDraft.set(null);
+            this.loadGateways();
+          },
+          error: () => this.toasts.error(this.translate.instant('config.system.gatewayRemoveError')),
+        }),
+    });
+  }
 
-  // --- Agregar pasarela (acción sensible: desbloqueo por OTP) ---
-  protected readonly unlockSent = signal(false); // true tras pedir el código
-  protected readonly unlockUnlocked = signal(false); // true tras ingresar un código
+  // --- Agregar pasarela (acción sensible: candado + modal + OTP) ---
+  protected readonly lockModalOpen = signal(false); // modal explicativo del candado
+  protected readonly unlockSent = signal(false); // OTP enviado al correo
+  protected readonly unlockUnlocked = signal(false); // autorizado → botón "Agregar" habilitado
+  protected readonly showCreateForm = signal(false); // form de creación visible
   protected readonly unlockCode = signal('');
   protected readonly newGateway = signal<NewGatewayDraft>({
     name: '',
@@ -508,7 +495,20 @@ export class ConfigPage {
   protected patchNewGateway<K extends keyof NewGatewayDraft>(key: K, value: NewGatewayDraft[K]): void {
     this.newGateway.set({ ...this.newGateway(), [key]: value });
   }
-  /** "Desbloquear agregado": pide el OTP al correo del admin. */
+  /** Cierra todos los estados de forms de pasarela (al cambiar de tab, punto 9). */
+  private closeGatewayForms(): void {
+    this.gatewayDraft.set(null);
+    this.showCreateForm.set(false);
+    this.lockModalOpen.set(false);
+  }
+  /** Abre el modal explicativo del candado (acción sensible). */
+  protected openLockModal(): void {
+    this.lockModalOpen.set(true);
+  }
+  protected closeLockModal(): void {
+    this.lockModalOpen.set(false);
+  }
+  /** Dentro del modal: pide el OTP al correo del admin. */
   protected requestUnlock(): void {
     this.admin.unlockGateway().subscribe({
       next: () => {
@@ -518,18 +518,27 @@ export class ConfigPage {
       error: () => this.toasts.error(this.translate.instant('config.system.unlockSendError')),
     });
   }
-  /** Confirma el código (habilita el formulario de creación). */
+  /** Confirma el código: autoriza (candado desaparece, botón "Agregar" habilitado). */
   protected confirmUnlock(): void {
     if (this.unlockCode().trim().length < 6) {
       this.toasts.warning(this.translate.instant('config.system.unlockCodeRequired'));
       return;
     }
     this.unlockUnlocked.set(true);
+    this.lockModalOpen.set(false);
   }
+  /** Cancela/limpia todo el flujo de desbloqueo. */
   protected cancelUnlock(): void {
+    this.lockModalOpen.set(false);
     this.unlockSent.set(false);
     this.unlockUnlocked.set(false);
+    this.showCreateForm.set(false);
     this.unlockCode.set('');
+  }
+  /** Ya autorizado: abre el formulario de creación. */
+  protected openCreateForm(): void {
+    if (!this.unlockUnlocked()) return;
+    this.showCreateForm.set(true);
   }
   /** Crea la pasarela con el código OTP (el backend lo valida/consume). */
   protected createGateway(): void {
@@ -571,16 +580,10 @@ export class ConfigPage {
       .map((e) => e.trim())
       .filter(Boolean),
   );
-  /** Regex simple de formato de correo (validación client-side previa al backend). */
   private static readonly EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  /** Correos con formato inválido dentro de lo tecleado (para bloquear el envío). */
   protected readonly invalidEmails = computed(() =>
     this.parsedEmails().filter((e) => !ConfigPage.EMAIL_RE.test(e)),
   );
-  /**
-   * Botón "Invitar" (toggle): si el form está CERRADO lo abre; si está ABIERTO
-   * envía (con la validación de correos existente).
-   */
   protected onInviteButton(): void {
     if (!this.showInviteForm()) {
       this.showInviteForm.set(true);
@@ -588,7 +591,6 @@ export class ConfigPage {
     }
     this.invite();
   }
-  /** "Cancelar": oculta el form y limpia lo tecleado. */
   protected cancelInvite(): void {
     this.showInviteForm.set(false);
     this.emailsText.set('');
@@ -600,8 +602,6 @@ export class ConfigPage {
       this.toasts.warning(this.translate.instant('config.invitations.atLeastOneEmail'));
       return;
     }
-    // Validación de formato client-side: si algún correo está mal formado, NO
-    // llamamos al backend (evita el 400) y avisamos exactamente cuáles fallan.
     const invalid = this.invalidEmails();
     if (invalid.length > 0) {
       this.toasts.warning(
@@ -626,201 +626,9 @@ export class ConfigPage {
       },
     });
   }
-  // --- Salones (admin) ---
-  protected readonly halls = signal<HallResponseDto[]>([]);
-  protected readonly hallSearch = signal('');
-  protected readonly hallDraft = signal<HallDraft | null>(null);
-  protected readonly filteredHalls = computed(() => {
-    const q = this.hallSearch().trim().toLowerCase();
-    if (!q) return this.halls();
-    return this.halls().filter(
-      (h) => h.name.toLowerCase().includes(q) || (h.city ?? '').toLowerCase().includes(q),
-    );
-  });
-  protected readonly hallsPage = signal(1);
-  protected readonly hallsPageSize = 9;
-  protected readonly hallsTotalPages = computed(() =>
-    Math.max(1, Math.ceil(this.filteredHalls().length / 9)),
-  );
-  protected readonly pageHalls = computed(() => {
-    const start = (this.hallsPage() - 1) * 9;
-    return this.filteredHalls().slice(start, start + 9);
-  });
-  protected goToHallsPage(p: number): void {
-    this.hallsPage.set(Math.min(Math.max(1, p), this.hallsTotalPages()));
-  }
-  protected setHallSearch(v: string): void {
-    this.hallSearch.set(v);
-    this.hallsPage.set(1);
-  }
-  private loadHalls(): void {
-    this.hallsApi.list().subscribe({
-      next: (h) => this.halls.set(h),
-      error: () => this.toasts.error(this.translate.instant('config.halls.loadError')),
-    });
-  }
-  protected newHall(): void {
-    this.hallDraft.set({ id: null, name: '', address: '', city: '', notes: '', lat: null, lng: null });
-  }
-  protected editHall(h: HallResponseDto): void {
-    this.hallDraft.set({
-      id: h.id,
-      name: h.name,
-      address: h.address ?? '',
-      city: h.city ?? '',
-      notes: h.notes ?? '',
-      lat: h.lat ?? null,
-      lng: h.lng ?? null,
-    });
-  }
-  protected cancelHallEdit(): void {
-    this.hallDraft.set(null);
-  }
-  protected patchHall<K extends keyof HallDraft>(key: K, value: HallDraft[K]): void {
-    const d = this.hallDraft();
-    if (d) this.hallDraft.set({ ...d, [key]: value });
-  }
-  protected onHallMap(loc: MapLocation): void {
-    const d = this.hallDraft();
-    if (!d) return;
-    this.hallDraft.set({ ...d, lat: loc.lat, lng: loc.lng, address: loc.address || d.address });
-  }
-  protected saveHall(): void {
-    const d = this.hallDraft();
-    if (!d || d.name.trim().length < 2) {
-      this.toasts.warning(this.translate.instant('config.halls.nameRequired'));
-      return;
-    }
-    const body = {
-      name: d.name.trim(),
-      address: d.address.trim() || undefined,
-      city: d.city.trim() || undefined,
-      notes: d.notes.trim() || undefined,
-      lat: d.lat ?? undefined,
-      lng: d.lng ?? undefined,
-    };
-    const req = d.id ? this.hallsApi.update(d.id, body) : this.hallsApi.create(body);
-    req.subscribe({
-      next: () => {
-        this.toasts.success(this.translate.instant(d.id ? 'config.halls.updated' : 'config.halls.created'));
-        this.hallDraft.set(null);
-        this.loadHalls();
-      },
-      error: () => this.toasts.error(this.translate.instant('config.halls.saveError')),
-    });
-  }
-  protected askRemoveHall(h: HallResponseDto): void {
-    this.confirm.set({
-      title: this.translate.instant('config.halls.removeConfirmTitle'),
-      message: this.translate.instant('config.halls.removeConfirmMessage', { name: h.name }),
-      confirmLabel: this.translate.instant('common.delete'),
-      confirmIcon: 'delete',
-      onConfirm: () =>
-        this.hallsApi.remove(h.id).subscribe({
-          next: () => {
-            this.toasts.info(this.translate.instant('config.halls.removed'));
-            this.loadHalls();
-          },
-          error: () => this.toasts.error(this.translate.instant('config.halls.removeError')),
-        }),
-    });
-  }
 
-  // --- Plantillas de asientos (admin) ---
-  protected readonly templates = signal<SeatTemplateResponseDto[]>([]);
-  protected readonly templateSearch = signal('');
-  protected readonly templateDraft = signal<TemplateDraft | null>(null);
-  protected readonly templateKinds = ['rows', 'theater', 'stadium', 'tables', 'grid', 'curve', 'line', 'custom'];
-  protected readonly filteredTemplates = computed(() => {
-    const q = this.templateSearch().trim().toLowerCase();
-    if (!q) return this.templates();
-    return this.templates().filter((t) => t.name.toLowerCase().includes(q));
-  });
-  private loadTemplates(): void {
-    this.templatesApi.list().subscribe({
-      next: (t) => this.templates.set(t),
-      error: () => this.toasts.error(this.translate.instant('config.templates.loadError')),
-    });
-  }
-  protected newTemplate(): void {
-    this.templateDraft.set({ id: null, name: '', kind: 'grid', paramsJson: '{"rows":5,"cols":10}' });
-  }
-  protected editTemplate(t: SeatTemplateResponseDto): void {
-    if (t.isBuiltIn) {
-      this.toasts.warning(this.translate.instant('config.templates.builtInEditWarn'));
-      return;
-    }
-    this.templateDraft.set({
-      id: t.id,
-      name: t.name,
-      kind: t.kind,
-      paramsJson: t.params ? JSON.stringify(t.params) : '',
-    });
-  }
-  protected cancelTemplateEdit(): void {
-    this.templateDraft.set(null);
-  }
-  protected patchTemplate<K extends keyof TemplateDraft>(key: K, value: TemplateDraft[K]): void {
-    const d = this.templateDraft();
-    if (d) this.templateDraft.set({ ...d, [key]: value });
-  }
-  protected saveTemplate(): void {
-    const d = this.templateDraft();
-    if (!d || d.name.trim().length < 2) {
-      this.toasts.warning(this.translate.instant('config.templates.nameRequired'));
-      return;
-    }
-    let params: Record<string, unknown> | undefined;
-    if (d.paramsJson.trim()) {
-      try {
-        params = JSON.parse(d.paramsJson) as Record<string, unknown>;
-      } catch {
-        this.toasts.warning(this.translate.instant('config.templates.paramsJsonInvalid'));
-        return;
-      }
-    }
-    const body = { name: d.name.trim(), kind: d.kind as never, params };
-    const req = d.id ? this.templatesApi.update(d.id, body) : this.templatesApi.create(body);
-    req.subscribe({
-      next: () => {
-        this.toasts.success(this.translate.instant(d.id ? 'config.templates.updated' : 'config.templates.created'));
-        this.templateDraft.set(null);
-        this.loadTemplates();
-      },
-      error: (err: { status?: number }) =>
-        this.toasts.error(
-          this.translate.instant(
-            err?.status === 409
-              ? 'config.templates.builtInSaveError'
-              : 'config.templates.saveError',
-          ),
-        ),
-    });
-  }
-  protected askRemoveTemplate(t: SeatTemplateResponseDto): void {
-    if (t.isBuiltIn) {
-      this.toasts.warning(this.translate.instant('config.templates.builtInRemoveWarn'));
-      return;
-    }
-    this.confirm.set({
-      title: this.translate.instant('config.templates.removeConfirmTitle'),
-      message: this.translate.instant('config.templates.removeConfirmMessage', { name: t.name }),
-      confirmLabel: this.translate.instant('common.delete'),
-      confirmIcon: 'delete',
-      onConfirm: () =>
-        this.templatesApi.remove(t.id).subscribe({
-          next: () => {
-            this.toasts.info(this.translate.instant('config.templates.removed'));
-            this.loadTemplates();
-          },
-          error: () => this.toasts.error(this.translate.instant('config.templates.removeError')),
-        }),
-    });
-  }
-
-  // --- Configuraciones del sistema (catálogo) ---
+  // --- Configuraciones del sistema (catálogo) — dentro del tab Sistema ---
   protected readonly settings = signal<SettingViewDto[]>([]);
-  /** Valores en edición por clave (para no perder lo tecleado). */
   protected readonly settingEdits = signal<Record<string, number | boolean>>({});
   private loadSettings(): void {
     this.settingsApi.list().subscribe({

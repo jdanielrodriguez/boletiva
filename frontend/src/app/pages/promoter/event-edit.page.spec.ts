@@ -571,7 +571,7 @@ describe('EventEditPage (v3)', () => {
   it('elegir salón prefija dirección y coordenadas', async () => {
     await setup();
     fixture.componentInstance['halls'].set([
-      { id: 'h1', name: 'Teatro', address: 'Zona 1', lat: 14.6, lng: -90.5, city: 'GT', notes: null, seatTemplateId: null, createdAt: '', updatedAt: '' },
+      { id: 'h1', name: 'Teatro', address: 'Zona 1', lat: 14.6, lng: -90.5, city: 'GT', notes: null, seatTemplateId: null, status: 'published', createdAt: '', updatedAt: '' },
     ]);
     fixture.componentInstance['onHallChange']('h1');
     expect(fixture.componentInstance['d'].address()).toBe('Zona 1');

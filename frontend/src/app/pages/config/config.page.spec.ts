@@ -5,8 +5,6 @@ import { of, throwError } from 'rxjs';
 import { AdminApi } from '../../core/api/admin.api';
 import { InvitationsApi } from '../../core/api/invitations.api';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
-import { HallsApi } from '../../core/api/halls.api';
-import { SeatTemplatesApi } from '../../core/api/seat-templates.api';
 import { SettingsApi } from '../../core/api/settings.api';
 import { ToastService } from '../../core/ui/toast.service';
 import { I18nService } from '../../core/i18n/i18n.service';
@@ -55,6 +53,7 @@ describe('ConfigPage (v3, admin console)', () => {
             updateGateway: () => of(GATEWAYS[1]),
             setGatewayStatus: () => of(GATEWAYS[1]),
             makeGatewayDefault: () => of(GATEWAYS[1]),
+            deleteGateway: () => of({}),
             unlockGateway: () => of({ sent: true }),
             createGateway: () => of(GATEWAYS[1]),
             promoterHistory: () => of([{ id: 'h1', promoterId: 'u2', adminId: 'a1', statusFrom: 'approved', statusTo: 'suspended', reason: 'motivo', createdAt: '2026-08-01T10:00:00Z' }]),
@@ -71,24 +70,6 @@ describe('ConfigPage (v3, admin console)', () => {
           } as unknown as InvitationsApi,
         },
         { provide: PromoterEventsApi, useValue: { settlement: () => of({ net: '0.00' }) } },
-        {
-          provide: HallsApi,
-          useValue: {
-            list: () => of([]),
-            create: () => of({ id: 'h1' }),
-            update: () => of({ id: 'h1' }),
-            remove: () => of({}),
-          } as unknown as HallsApi,
-        },
-        {
-          provide: SeatTemplatesApi,
-          useValue: {
-            list: () => of([]),
-            create: () => of({ id: 't1' }),
-            update: () => of({ id: 't1' }),
-            remove: () => of({}),
-          } as unknown as SeatTemplatesApi,
-        },
         {
           provide: SettingsApi,
           useValue: {
@@ -280,19 +261,70 @@ describe('ConfigPage (v3, admin console)', () => {
     expect(create).toHaveBeenCalledWith(['a@b.com', 'c@d.com'], false);
   });
 
-  it('sistema: agregar pasarela con desbloqueo por OTP', async () => {
+  it('sistema: candado → modal → OTP → habilita "Agregar" y crea la pasarela', async () => {
     const unlockGateway = jasmine.createSpy('u').and.returnValue(of({ sent: true }));
     const createGateway = jasmine.createSpy('c').and.returnValue(of(GATEWAYS[1]));
     await setup({ unlockGateway, createGateway });
     await selectTab('tab-sistema');
-    click('gw-unlock');
+    // "Agregar pasarela" nace deshabilitado + candado visible.
+    expect((el.querySelector('[data-testid="gw-add"]') as HTMLButtonElement).disabled).toBe(true);
+    expect(el.querySelector('[data-testid="gw-lock"]')).not.toBeNull();
+    // Candado → modal → enviar código.
+    click('gw-lock');
+    expect(el.querySelector('[data-testid="gw-unlock-modal"]')).not.toBeNull();
+    click('gw-send-code');
     expect(unlockGateway).toHaveBeenCalled();
+    // Valida el código → autoriza (candado desaparece, botón habilitado).
     fixture.componentInstance['unlockCode'].set('123456');
     click('gw-unlock-confirm');
+    expect(el.querySelector('[data-testid="gw-lock"]')).toBeNull();
+    expect((el.querySelector('[data-testid="gw-add"]') as HTMLButtonElement).disabled).toBe(false);
+    // Abre el form de creación y crea.
+    click('gw-add');
     fixture.componentInstance['patchNewGateway']('name', 'PayPal');
     click('gw-create');
     expect(createGateway).toHaveBeenCalled();
     expect(createGateway.calls.mostRecent().args[0].unlockCode).toBe('123456');
+  });
+
+  it('sistema: eliminar pasarela solo cuando está INACTIVA (guard + tooltip)', async () => {
+    const deleteGateway = jasmine.createSpy('d').and.returnValue(of({}));
+    const INACTIVE = [
+      GATEWAYS[0],
+      { ...GATEWAYS[1], status: 'inactive' },
+    ];
+    await setup({ deleteGateway, listGateways: () => of(INACTIVE) });
+    await selectTab('tab-sistema');
+    const c = fixture.componentInstance as unknown as {
+      canDeleteGateway: (g: { status: string; isPlatformDefault: boolean }) => boolean;
+      askRemoveGateway: (g: unknown) => void;
+      onConfirmAccept: () => void;
+    };
+    // Activa/default → NO borrable; inactiva no-default → borrable.
+    expect(c.canDeleteGateway(INACTIVE[0] as never)).toBe(false);
+    expect(c.canDeleteGateway(INACTIVE[1] as never)).toBe(true);
+    c.askRemoveGateway(INACTIVE[1] as never);
+    c.onConfirmAccept();
+    expect(deleteGateway).toHaveBeenCalledWith('g2');
+  });
+
+  it('sistema: intentar borrar una pasarela activa avisa y NO llama al API', async () => {
+    const deleteGateway = jasmine.createSpy('d').and.returnValue(of({}));
+    await setup({ deleteGateway });
+    await selectTab('tab-sistema');
+    const c = fixture.componentInstance as unknown as { askRemoveGateway: (g: unknown) => void };
+    c.askRemoveGateway(GATEWAYS[1] as never); // activa
+    expect(deleteGateway).not.toHaveBeenCalled();
+    expect(lastToast()?.kind).toBe('warning');
+  });
+
+  it('sistema: cambiar de tab CIERRA el form de edición de pasarela (punto 9)', async () => {
+    await setup();
+    await selectTab('tab-sistema');
+    fixture.componentInstance['editGateway'](GATEWAYS[1] as never);
+    expect(fixture.componentInstance['gatewayDraft']()).not.toBeNull();
+    await selectTab('tab-eventos');
+    expect(fixture.componentInstance['gatewayDraft']()).toBeNull();
   });
 
   it('eventos: abrir un evento navega al editor como admin (?from=admin)', async () => {
@@ -347,12 +379,11 @@ describe('ConfigPage (v3, admin console)', () => {
     expect(buttons.length).toBe(GATEWAYS.length - 1);
   });
 
-  it('sistema: el desbloqueo por código aparece en un MODAL centrado', async () => {
-    const unlockGateway = jasmine.createSpy('u').and.returnValue(of({ sent: true }));
-    await setup({ unlockGateway });
+  it('sistema: el candado abre un MODAL centrado que explica la acción', async () => {
+    await setup();
     await selectTab('tab-sistema');
     expect(el.querySelector('[data-testid="gw-unlock-modal"]')).toBeNull();
-    click('gw-unlock');
+    click('gw-lock');
     const modal = el.querySelector('[data-testid="gw-unlock-modal"]');
     expect(modal).not.toBeNull();
     expect(modal?.classList.contains('modal-backdrop')).toBe(true);
@@ -414,57 +445,31 @@ describe('ConfigPage (v3, admin console)', () => {
     expect(c.filteredEvents()[0].id).toBe('e2');
   });
 
-  // --- v3.5: salones (admin) ---
-  it('salones: crea un salón vía HallsApi.create', async () => {
+  // --- v3.7: salones/plantillas pasan a página aparte (enlace + resumen) ---
+  it('salones: el tab muestra un resumen con enlace a la página dedicada', async () => {
     await setup();
-    const create = spyOn(TestBed.inject(HallsApi), 'create').and.returnValue(of({ id: 'h1' }) as never);
     await selectTab('tab-salones');
-    const c = fixture.componentInstance as unknown as {
-      newHall: () => void;
-      patchHall: (k: string, v: unknown) => void;
-      saveHall: () => void;
-    };
-    c.newHall();
-    c.patchHall('name', 'Teatro Nuevo');
-    c.saveHall();
-    expect(create).toHaveBeenCalled();
+    expect(el.querySelector('[data-testid="halls-summary"]')).not.toBeNull();
+    const link = el.querySelector('[data-testid="halls-manage"]') as HTMLAnchorElement;
+    expect(link.getAttribute('href')).toContain('/configuracion/salones');
   });
 
-  // --- v3.5: plantillas (admin) ---
-  it('plantillas: crear plantilla llama a SeatTemplatesApi.create', async () => {
+  it('plantillas: el tab muestra un resumen con enlace a la página dedicada', async () => {
     await setup();
-    const create = spyOn(TestBed.inject(SeatTemplatesApi), 'create').and.returnValue(of({ id: 't1' }) as never);
     await selectTab('tab-plantillas');
-    const c = fixture.componentInstance as unknown as {
-      newTemplate: () => void;
-      patchTemplate: (k: string, v: unknown) => void;
-      saveTemplate: () => void;
-    };
-    c.newTemplate();
-    c.patchTemplate('name', 'Mi plantilla');
-    c.saveTemplate();
-    expect(create).toHaveBeenCalled();
+    expect(el.querySelector('[data-testid="templates-summary"]')).not.toBeNull();
+    const link = el.querySelector('[data-testid="templates-manage"]') as HTMLAnchorElement;
+    expect(link.getAttribute('href')).toContain('/configuracion/plantillas');
   });
 
-  it('plantillas: editar una built-in avisa y no abre el form', async () => {
-    await setup();
-    const c = fixture.componentInstance as unknown as {
-      editTemplate: (t: unknown) => void;
-      templateDraft: () => unknown;
-    };
-    c.editTemplate({ id: 't0', name: 'Filas', kind: 'rows', isBuiltIn: true });
-    expect(c.templateDraft()).toBeNull();
-    expect(lastToast()?.kind).toBe('warning');
-  });
-
-  // --- v3.5: configuraciones (settings) ---
-  it('ajustes: guarda una configuración vía SettingsApi.update', async () => {
+  // --- v3.7: configuraciones ahora viven bajo el tab Sistema (grid) ---
+  it('sistema: guarda una configuración vía SettingsApi.update (bajo Sistema)', async () => {
     const SETTINGS = [{ key: 'costshare.default_pct', value: 0, default: 0, type: 'pct', description: 'x', fallbackOnly: false }];
     await setup();
     const settingsApi = TestBed.inject(SettingsApi);
     spyOn(settingsApi, 'list').and.returnValue(of(SETTINGS) as never);
     const update = spyOn(settingsApi, 'update').and.returnValue(of(SETTINGS[0]) as never);
-    await selectTab('tab-ajustes');
+    await selectTab('tab-sistema');
     const c = fixture.componentInstance as unknown as {
       setSettingValue: (k: string, v: number | boolean) => void;
       saveSetting: (s: unknown) => void;
@@ -531,13 +536,13 @@ describe('ConfigPage (v3, admin console)', () => {
   });
 
   // --- i18n: los settings muestran un label amigable (no la key cruda) ---
-  it('ajustes: muestra el label amigable del setting en es y en (no la key cruda)', async () => {
+  it('sistema: muestra el label amigable del setting en es y en (no la key cruda)', async () => {
     const SETTINGS = [
       { key: 'pricing.platform_fee_pct', value: 0.1, default: 0.1, type: 'pct', description: 'x', fallbackOnly: false },
     ];
     await setup();
     spyOn(TestBed.inject(SettingsApi), 'list').and.returnValue(of(SETTINGS) as never);
-    await selectTab('tab-ajustes');
+    await selectTab('tab-sistema');
     const list = () => el.querySelector('[data-testid="settings-list"]');
     // Español (default): label humano, sin la key cruda con puntos.
     expect(list()?.textContent).toContain('Comisión de plataforma');
