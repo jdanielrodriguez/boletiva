@@ -16,9 +16,10 @@ export interface MaintenanceStatus {
 export class MaintenanceApi {
   private readonly api = inject(ApiClient);
 
-  /** Estado público: ¿está la plataforma en mantenimiento? + mensaje. */
+  /** Estado público: ¿está la plataforma en mantenimiento? + mensaje. Silencioso:
+   * es un sondeo de fondo al arrancar, no debe oscurecer la pantalla (v3.9 · C1). */
   status(): Observable<MaintenanceStatus> {
-    return this.api.get<MaintenanceStatus>('/maintenance');
+    return this.api.get<MaintenanceStatus>('/maintenance', undefined, { silent: true });
   }
 
   /** Desactiva el mantenimiento (solo admin; el backend valida el rol). */

@@ -2,8 +2,15 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { API_BASE_URL } from '../config/api.tokens';
+import { silentContext } from './http-context';
 
 type QueryParams = Record<string, string | number | boolean | undefined | null>;
+
+/** Opciones por petición (p.ej. marcarla como silenciosa: sin overlay global). */
+interface RequestOptions {
+  /** No oscurecer la pantalla con el overlay de carga global (sondeo de fondo). */
+  silent?: boolean;
+}
 
 /**
  * Cliente HTTP tipado sobre HttpClient. Prefija la URL base del API (resuelta por
@@ -16,14 +23,19 @@ export class ApiClient {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
 
-  get<T>(path: string, query?: QueryParams): Observable<T> {
-    return this.http.get<T>(this.url(path), { params: this.params(query), withCredentials: true });
+  get<T>(path: string, query?: QueryParams, opts?: RequestOptions): Observable<T> {
+    return this.http.get<T>(this.url(path), {
+      params: this.params(query),
+      withCredentials: true,
+      context: opts?.silent ? silentContext() : undefined,
+    });
   }
 
-  post<T>(path: string, body?: unknown, query?: QueryParams): Observable<T> {
+  post<T>(path: string, body?: unknown, query?: QueryParams, opts?: RequestOptions): Observable<T> {
     return this.http.post<T>(this.url(path), body ?? {}, {
       params: this.params(query),
       withCredentials: true,
+      context: opts?.silent ? silentContext() : undefined,
     });
   }
 

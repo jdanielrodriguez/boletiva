@@ -12,6 +12,7 @@ import { ImpersonationBannerComponent } from './shared/layout/impersonation-bann
 import { SessionStore } from './core/auth/session.store';
 import { TokenStore } from './core/auth/token-store.service';
 import { MaintenanceStore } from './core/maintenance/maintenance.store';
+import { LoadingStore } from './core/ui/loading.store';
 import { I18nService } from './core/i18n/i18n.service';
 
 @Component({
@@ -35,10 +36,20 @@ export class App {
   private readonly session = inject(SessionStore);
   private readonly tokens = inject(TokenStore);
   private readonly maintenance = inject(MaintenanceStore);
+  private readonly loading = inject(LoadingStore);
   private readonly i18n = inject(I18nService);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
 
   protected readonly maintMessage = this.maintenance.message;
+
+  /**
+   * Overlay de carga GLOBAL oscurecido: peticiones HTTP en vuelo (tras el debounce
+   * del LoadingStore). Se suprime durante el arranque (`booting`) para no apilar dos
+   * overlays a la vez con el de hidratación (v3.9 · C1).
+   */
+  protected readonly globalLoading = computed(
+    () => this.isBrowser && !this.booting() && this.loading.visible(),
+  );
 
   /** ¿El usuario resuelto es admin? (para el bypass del mantenimiento). */
   private readonly isAdmin = computed(() => this.session.roles().includes('admin'));

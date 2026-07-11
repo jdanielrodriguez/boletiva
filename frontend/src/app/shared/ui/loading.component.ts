@@ -18,6 +18,7 @@ export type LoadingVariant = 'spinner' | 'skeleton';
     <div
       class="pe-loading"
       [class.pe-loading--fullscreen]="fullscreen()"
+      [class.pe-loading--dim]="fullscreen() && dim()"
       [class.pe-loading--block]="!fullscreen()"
       role="status"
       aria-live="polite"
@@ -59,6 +60,15 @@ export type LoadingVariant = 'spinner' | 'skeleton';
         background: var(--pe-bg);
         background-image: radial-gradient(900px 460px at 80% -10%, rgba(123, 92, 255, 0.14), transparent 70%),
           radial-gradient(760px 420px at -10% 0%, rgba(225, 78, 202, 0.1), transparent 70%);
+      }
+      /* Overlay OSCURECIDO sobre el contenido (peticiones en vuelo): scrim
+         translúcido + desenfoque, el loader queda por encima (v3.9 · C1). */
+      .pe-loading--dim {
+        z-index: 1200;
+        background: rgba(6, 8, 18, 0.55);
+        background-image: none;
+        backdrop-filter: blur(2px);
+        -webkit-backdrop-filter: blur(2px);
       }
       .pe-spinner {
         width: 42px;
@@ -117,6 +127,9 @@ export class LoadingComponent {
   readonly variant = input<LoadingVariant>('spinner');
   /** Overlay a pantalla completa (tapa el contenido de debajo). */
   readonly fullscreen = input(false);
+  /** Con `fullscreen`: oscurece el contenido (scrim translúcido) en vez de taparlo
+   * opaco. Para el overlay de peticiones en vuelo (v3.9 · C1). */
+  readonly dim = input(false);
   /** Texto ya traducido; opcional. */
   readonly label = input<string>('');
   /** Anchos (%) de las líneas del skeleton. */
