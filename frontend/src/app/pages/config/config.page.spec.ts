@@ -6,6 +6,8 @@ import { AdminApi } from '../../core/api/admin.api';
 import { InvitationsApi } from '../../core/api/invitations.api';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
 import { SettingsApi } from '../../core/api/settings.api';
+import { AuditApi } from '../../core/api/audit.api';
+import { ImpersonationService } from '../../core/auth/impersonation.service';
 import { ToastService } from '../../core/ui/toast.service';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { initI18nTesting, provideI18nTesting } from '../../core/i18n/testing';
@@ -49,6 +51,9 @@ describe('ConfigPage (v3, admin console)', () => {
             getDefaultPct: () => of({ defaultPct: 0.5 }),
             setDefaultPct: () => of({}),
             setPromoterPct: () => of({}),
+            getPromoterCostShare: (id: string) => of({ promoterId: id, override: null, effectivePct: 0.5 }),
+            resetPromoterCostShare: () => of({}),
+            setPromoterNote: (id: string) => of({ id, promoterInternalNote: '' }),
             listGateways: () => of(GATEWAYS),
             updateGateway: () => of(GATEWAYS[1]),
             setGatewayStatus: () => of(GATEWAYS[1]),
@@ -70,6 +75,8 @@ describe('ConfigPage (v3, admin console)', () => {
           } as unknown as InvitationsApi,
         },
         { provide: PromoterEventsApi, useValue: { settlement: () => of({ net: '0.00' }) } },
+        { provide: AuditApi, useValue: { confirm: () => of({ ok: true }) } },
+        { provide: ImpersonationService, useValue: { start: () => of(null), active: () => false, asUser: () => null } },
         {
           provide: SettingsApi,
           useValue: {
@@ -117,7 +124,9 @@ describe('ConfigPage (v3, admin console)', () => {
     await setup({ approvePromoter });
     await selectTab('tab-promotores');
     expect(el.querySelector('[data-testid="promoters-list"]')?.textContent).toContain('p@x.com');
-    click('promoter-approve');
+    click('promoter-approve'); // abre el modal de confirmación
+    expect(el.querySelector('[data-testid="confirm-dialog"]')).not.toBeNull();
+    click('confirm-accept'); // confirma
     expect(approvePromoter).toHaveBeenCalledWith('u1');
     expect(lastToast()?.kind).toBe('success');
   });
@@ -173,10 +182,66 @@ describe('ConfigPage (v3, admin console)', () => {
   it('promotores: cost-share válido llama API; inválido → warning', async () => {
     const setPromoterPct = jasmine.createSpy('sp').and.returnValue(of({}));
     await setup({ setPromoterPct });
-    fixture.componentInstance['setPromoterPct'](PROMOTERS[0] as never, '0.3');
+    fixture.componentInstance['setPctEdit']('u1', '0.3');
+    fixture.componentInstance['setPromoterPct'](PROMOTERS[0] as never);
     expect(setPromoterPct).toHaveBeenCalledWith('u1', 0.3);
-    fixture.componentInstance['setPromoterPct'](PROMOTERS[0] as never, '5');
+    fixture.componentInstance['setPctEdit']('u1', '5');
+    fixture.componentInstance['setPromoterPct'](PROMOTERS[0] as never);
     expect(lastToast()?.kind).toBe('warning');
+  });
+
+  // --- v3.8 · G2-9: nota interna persiste + reset de cost-share ---
+  it('promotores: guardar nota interna llama setPromoterNote con el texto', async () => {
+    const setPromoterNote = jasmine.createSpy('spn').and.returnValue(of({ id: 'u1', promoterInternalNote: 'hola' }));
+    await setup({ setPromoterNote });
+    fixture.componentInstance['setNote']('u1', 'hola');
+    fixture.componentInstance['saveNote'](PROMOTERS[0] as never);
+    expect(setPromoterNote).toHaveBeenCalledWith('u1', 'hola');
+    expect(lastToast()?.kind).toBe('success');
+  });
+
+  it('promotores: cost-share con override → reset llama DELETE', async () => {
+    const resetPromoterCostShare = jasmine.createSpy('rcs').and.returnValue(of({}));
+    await setup({
+      resetPromoterCostShare,
+      getPromoterCostShare: (id: string) => of({ promoterId: id, override: 0.3, effectivePct: 0.3 }),
+    });
+    await selectTab('tab-promotores');
+    expect(fixture.componentInstance['hasOverride']('u1')).toBe(true);
+    fixture.componentInstance['resetPromoterPct'](PROMOTERS[0] as never);
+    expect(resetPromoterCostShare).toHaveBeenCalledWith('u1');
+  });
+
+  // --- v3.8 · G2-4: impersonación de soporte ---
+  it('promotores: "Ver como" pide confirmación e inicia la impersonación (aprobado)', async () => {
+    await setup({ listPromoters: () => of([PROMOTERS[1]]) });
+    await selectTab('tab-promotores');
+    const start = spyOn(TestBed.inject(ImpersonationService), 'start').and.returnValue(of(null) as never);
+    const nav = spyOn(fixture.componentInstance['router'], 'navigateByUrl').and.resolveTo(true);
+    click('promoter-impersonate');
+    expect(el.querySelector('[data-testid="confirm-dialog"]')).not.toBeNull();
+    click('confirm-accept');
+    expect(start).toHaveBeenCalledWith('u2');
+    expect(nav).toHaveBeenCalledWith('/promotor');
+  });
+
+  // --- v3.8 · G2-3: cambiar de tab resetea los filtros ---
+  it('cambia de tab y resetea los filtros (búsqueda de eventos vuelve a vacío)', async () => {
+    await setup();
+    fixture.componentInstance['setEventSearch']('algo');
+    expect(fixture.componentInstance['eventSearch']()).toBe('algo');
+    await selectTab('tab-promotores');
+    await selectTab('tab-eventos');
+    expect(fixture.componentInstance['eventSearch']()).toBe('');
+  });
+
+  // --- v3.8 · G2-6: invitaciones abren con el filtro "Pendientes" por defecto ---
+  it('invitaciones: el filtro por defecto es "pending"', async () => {
+    await setup();
+    await selectTab('tab-invitaciones');
+    expect(fixture.componentInstance['invFilterStatus']()).toBe('pending');
+    const filter = el.querySelector('[data-testid="inv-filter"]') as HTMLSelectElement;
+    expect(filter.value).toBe('pending');
   });
 
   it('sistema: carga pasarelas y alterna require-approval', async () => {

@@ -12,6 +12,8 @@ import {
 } from '../../core/api/admin.api';
 import { InvitationsApi } from '../../core/api/invitations.api';
 import { SettingsApi } from '../../core/api/settings.api';
+import { AuditApi } from '../../core/api/audit.api';
+import { ImpersonationService } from '../../core/auth/impersonation.service';
 import { ToastService } from '../../core/ui/toast.service';
 import {
   ConfirmDialogComponent,
@@ -20,6 +22,8 @@ import {
 import { IconComponent } from '../../shared/icon/icon.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
 import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
+import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
+import { InfoTooltipComponent } from '../../shared/ui/info-tooltip.component';
 import type {
   CreatedInvitationDto,
   InvitationListItemDto,
@@ -68,6 +72,8 @@ const INV_PAGE = 9;
     IconComponent,
     ConfirmDialogComponent,
     PagerComponent,
+    EmptyStateComponent,
+    InfoTooltipComponent,
   ],
   templateUrl: './config.page.html',
 })
@@ -75,6 +81,8 @@ export class ConfigPage {
   private readonly admin = inject(AdminApi);
   private readonly invitationsApi = inject(InvitationsApi);
   private readonly settingsApi = inject(SettingsApi);
+  private readonly audit = inject(AuditApi);
+  private readonly impersonation = inject(ImpersonationService);
   private readonly toasts = inject(ToastService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -112,6 +120,7 @@ export class ConfigPage {
   protected readonly eventPromoters = computed(() => {
     const map = new Map<string, string>();
     for (const e of this.events()) {
+      if (!e.promoter) continue;
       map.set(e.promoter.id, `${e.promoter.firstName} ${e.promoter.lastName ?? ''}`.trim());
     }
     return [...map.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
@@ -122,9 +131,11 @@ export class ConfigPage {
     const promoterId = this.eventPromoter();
     return this.events().filter((e) => {
       if (status && e.status !== status) return false;
-      if (promoterId && e.promoter.id !== promoterId) return false;
+      if (promoterId && e.promoter?.id !== promoterId) return false;
       if (!q) return true;
-      const promoter = `${e.promoter.firstName} ${e.promoter.lastName ?? ''}`.toLowerCase();
+      const promoter = e.promoter
+        ? `${e.promoter.firstName} ${e.promoter.lastName ?? ''}`.toLowerCase()
+        : '';
       return e.name.toLowerCase().includes(q) || promoter.includes(q);
     });
   });
@@ -179,8 +190,15 @@ export class ConfigPage {
   protected readonly invitations = signal<InvitationListItemDto[]>([]);
   protected readonly inviting = signal(false);
   protected readonly invSearch = signal('');
-  protected readonly invFilterStatus = signal('');
-  protected readonly invStatuses = computed(() => [...new Set(this.invitations().map((i) => i.status))]);
+  /** Filtro por estado; default = Pendientes (v3.8 · G2-6). '' = Todos. */
+  protected readonly invFilterStatus = signal('pending');
+  /** Opciones FIJAS del filtro (label capitalizado vía i18n). */
+  protected readonly invFilterOptions: { value: string; key: string }[] = [
+    { value: 'pending', key: 'config.invitations.filterPending' },
+    { value: 'accepted', key: 'config.invitations.filterAuthorized' },
+    { value: 'revoked', key: 'config.invitations.filterRejected' },
+    { value: '', key: 'config.invitations.filterAll' },
+  ];
   protected readonly filteredInvitations = computed(() => {
     const q = this.invSearch().trim().toLowerCase();
     const st = this.invFilterStatus();
@@ -223,11 +241,27 @@ export class ConfigPage {
   private applyTab(t: AdminTab): void {
     // Punto 9: cambiar de tab CIERRA cualquier form de pasarela (crear/editar).
     this.closeGatewayForms();
+    // v3.8 · G2-3: cambiar de tab RESETEA los filtros a su vista por defecto.
+    this.resetFilters();
     this.tab.set(t);
     if (t === 'eventos' && this.events().length === 0) this.loadEvents();
-    if (t === 'promotores' && this.promoters().length === 0) this.loadPromoters();
+    if (t === 'promotores') this.loadPromoters();
     if (t === 'sistema' && this.requireApproval() === null) this.loadSystem();
     if (t === 'invitaciones' && this.invitations().length === 0) this.loadInvitations();
+  }
+
+  /** Restaura TODOS los filtros/buscadores a su estado inicial (al cambiar de tab). */
+  private resetFilters(): void {
+    this.eventSearch.set('');
+    this.eventStatus.set('');
+    this.eventPromoter.set('');
+    this.eventsPage.set(1);
+    this.promoterSearch.set('');
+    this.promoterStatus.set('');
+    this.gatewaySearch.set('');
+    this.invSearch.set('');
+    this.invFilterStatus.set('pending');
+    this.invPage.set(1);
   }
 
   protected selectTab(t: AdminTab): void {
@@ -268,17 +302,71 @@ export class ConfigPage {
   }
 
   // --- Promotores ---
+  /** Reparto (cost-share) por promotor: override crudo + % efectivo. */
+  protected readonly costShareMap = signal<Record<string, { override: number | null; effectivePct: number }>>({});
+  /** Borrador editable del reparto por promotor (string del input). */
+  protected readonly pctEdits = signal<Record<string, string>>({});
+
   protected loadPromoters(): void {
     this.admin.listPromoters(this.promoterStatus() || undefined).subscribe({
-      next: (p) => this.promoters.set(p),
+      next: (p) => {
+        this.promoters.set(p);
+        // Prefija las notas internas persistidas (v3.8 · G2-9).
+        this.notes.set(Object.fromEntries(p.map((x) => [x.id, x.promoterInternalNote ?? ''])));
+        this.loadCostShares(p);
+      },
       error: () => this.toasts.error(this.translate.instant('config.promoters.loadError')),
     });
+  }
+  /** Carga el reparto efectivo de cada promotor listado (para prefijar el input). */
+  private loadCostShares(promoters: PromoterListItemDto[]): void {
+    for (const p of promoters) {
+      this.admin.getPromoterCostShare(p.id).subscribe({
+        next: (cs) => {
+          this.costShareMap.update((m) => ({ ...m, [p.id]: { override: cs.override, effectivePct: cs.effectivePct } }));
+          this.pctEdits.update((e) => ({ ...e, [p.id]: cs.override != null ? String(cs.override) : '' }));
+        },
+        error: () => undefined,
+      });
+    }
   }
   protected setNote(id: string, value: string): void {
     this.notes.update((n) => ({ ...n, [id]: value }));
   }
   private noteFor(id: string): string | undefined {
     return this.notes()[id]?.trim() || undefined;
+  }
+  /** Guarda la nota interna del promotor (persiste en BD, v3.8 · G2-9). */
+  protected saveNote(p: PromoterListItemDto): void {
+    this.admin.setPromoterNote(p.id, this.notes()[p.id]?.trim() ?? '').subscribe({
+      next: () => this.toasts.success(this.translate.instant('config.promoters.noteSaved')),
+      error: () => this.toasts.error(this.translate.instant('config.promoters.noteError')),
+    });
+  }
+  protected setPctEdit(id: string, value: string): void {
+    this.pctEdits.update((e) => ({ ...e, [id]: value }));
+  }
+  protected effectivePct(id: string): number | null {
+    return this.costShareMap()[id]?.effectivePct ?? null;
+  }
+  protected hasOverride(id: string): boolean {
+    return this.costShareMap()[id]?.override != null;
+  }
+
+  // --- Aprobar / reactivar / rechazar con confirmación (v3.8 · G2-5) ---
+  protected askApprove(p: PromoterListItemDto): void {
+    const reactivate = p.promoterStatus === 'suspended';
+    this.confirm.set({
+      title: this.translate.instant(reactivate ? 'config.promoters.reactivateConfirmTitle' : 'config.promoters.approveConfirmTitle', { name: p.firstName }),
+      message: this.translate.instant(reactivate ? 'config.promoters.reactivateConfirmMsg' : 'config.promoters.approveConfirmMsg', { name: p.firstName }),
+      confirmLabel: this.translate.instant(reactivate ? 'config.promoters.reactivate' : 'config.promoters.approve'),
+      confirmIcon: reactivate ? 'reactivate' : 'save',
+      titleIcon: reactivate ? 'reactivate' : 'save',
+      danger: false,
+      auditAction: reactivate ? 'promoter.reactivate' : 'promoter.approve',
+      auditResource: p.id,
+      onConfirm: () => this.approve(p),
+    });
   }
   protected approve(p: PromoterListItemDto): void {
     this.admin.approvePromoter(p.id).subscribe({
@@ -289,6 +377,18 @@ export class ConfigPage {
       error: () => this.toasts.error(this.translate.instant('config.promoters.approveError')),
     });
   }
+  protected askReject(p: PromoterListItemDto): void {
+    this.confirm.set({
+      title: this.translate.instant('config.promoters.rejectConfirmTitle', { name: p.firstName }),
+      message: this.translate.instant('config.promoters.rejectConfirmMsg', { name: p.firstName }),
+      confirmLabel: this.translate.instant('config.promoters.reject'),
+      confirmIcon: 'cancel',
+      danger: true,
+      auditAction: 'promoter.reject',
+      auditResource: p.id,
+      onConfirm: () => this.reject(p),
+    });
+  }
   protected reject(p: PromoterListItemDto): void {
     this.admin.rejectPromoter(p.id, this.noteFor(p.id)).subscribe({
       next: () => {
@@ -296,6 +396,34 @@ export class ConfigPage {
         this.loadPromoters();
       },
       error: () => this.toasts.error(this.translate.instant('config.promoters.rejectError')),
+    });
+  }
+
+  // --- Impersonación de soporte (v3.8 · G2-4) ---
+  protected askImpersonate(p: PromoterListItemDto): void {
+    if (p.promoterStatus !== 'approved') {
+      this.toasts.warning(this.translate.instant('config.promoters.impersonateOnlyApproved'));
+      return;
+    }
+    this.confirm.set({
+      title: this.translate.instant('config.promoters.impersonateConfirmTitle', { name: p.firstName }),
+      message: this.translate.instant('config.promoters.impersonateConfirmMsg', { name: p.firstName }),
+      confirmLabel: this.translate.instant('config.promoters.impersonateStart'),
+      confirmIcon: 'view',
+      titleIcon: 'view',
+      danger: false,
+      auditAction: 'admin.impersonate',
+      auditResource: p.id,
+      onConfirm: () => this.impersonate(p),
+    });
+  }
+  protected impersonate(p: PromoterListItemDto): void {
+    this.impersonation.start(p.id).subscribe({
+      next: () => {
+        this.toasts.info(this.translate.instant('config.promoters.impersonateStarted', { name: p.firstName }));
+        void this.router.navigateByUrl('/promotor');
+      },
+      error: () => this.toasts.error(this.translate.instant('config.promoters.impersonateError')),
     });
   }
 
@@ -312,6 +440,9 @@ export class ConfigPage {
   protected confirmSuspend(): void {
     const p = this.suspendTarget();
     if (!p) return;
+    // Bitácora de no-repudio (v3.8 · G4): el modal de suspender no usa el
+    // confirm-dialog (lleva motivo), así que registramos el click a mano.
+    this.audit.confirm('promoter.suspend', p.id).subscribe({ error: () => undefined });
     this.admin.suspendPromoter(p.id, this.suspendReason().trim() || undefined).subscribe({
       next: () => {
         this.toasts.info(this.translate.instant('config.promoters.suspended', { name: p.firstName }));
@@ -328,15 +459,38 @@ export class ConfigPage {
       queryParams: { name: `${p.firstName} ${p.lastName ?? ''}`.trim() },
     });
   }
-  protected setPromoterPct(p: PromoterListItemDto, value: string): void {
-    const pct = Number(value);
-    if (Number.isNaN(pct) || pct < 0 || pct > 1) {
+  protected setPromoterPct(p: PromoterListItemDto): void {
+    const raw = this.pctEdits()[p.id] ?? '';
+    const pct = Number(raw);
+    if (raw.trim() === '' || Number.isNaN(pct) || pct < 0 || pct > 1) {
       this.toasts.warning(this.translate.instant('config.promoters.shareRange'));
       return;
     }
     this.admin.setPromoterPct(p.id, pct).subscribe({
-      next: () => this.toasts.success(this.translate.instant('config.promoters.shareUpdated')),
+      next: () => {
+        this.toasts.success(this.translate.instant('config.promoters.shareUpdated'));
+        this.refreshCostShare(p.id);
+      },
       error: () => this.toasts.error(this.translate.instant('config.promoters.shareError')),
+    });
+  }
+  /** Restablece el reparto del promotor al default global (DELETE del override). */
+  protected resetPromoterPct(p: PromoterListItemDto): void {
+    this.admin.resetPromoterCostShare(p.id).subscribe({
+      next: () => {
+        this.toasts.info(this.translate.instant('config.promoters.shareResetDone'));
+        this.refreshCostShare(p.id);
+      },
+      error: () => this.toasts.error(this.translate.instant('config.promoters.shareError')),
+    });
+  }
+  private refreshCostShare(id: string): void {
+    this.admin.getPromoterCostShare(id).subscribe({
+      next: (cs) => {
+        this.costShareMap.update((m) => ({ ...m, [id]: { override: cs.override, effectivePct: cs.effectivePct } }));
+        this.pctEdits.update((e) => ({ ...e, [id]: cs.override != null ? String(cs.override) : '' }));
+      },
+      error: () => undefined,
     });
   }
 

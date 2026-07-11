@@ -31,6 +31,10 @@ export const config = {
     viewEventTitle: 'Open the event',
     empty: 'No events match that filter.',
     loadError: 'Could not load the events.',
+    emptyTitle: 'No events yet',
+    emptySubtitle: 'Events created by promoters will appear here.',
+    noResultsTitle: 'No matches',
+    noResultsSubtitle: 'No event matches the current filters.',
   },
 
   promoters: {
@@ -74,6 +78,32 @@ export const config = {
     shareUpdated: 'Promoter cost-share updated.',
     shareError: 'Could not update the cost-share.',
     loadError: 'Could not load the promoters.',
+    noteSaveTitle: 'Save internal note',
+    noteSaved: 'Note saved.',
+    noteError: 'Could not save the note.',
+    shareEffective: 'Effective cost-share: {{pct}}',
+    shareReset: 'Reset',
+    shareResetTitle: 'Back to the default cost-share',
+    shareResetDone: 'Cost-share reset to the default value.',
+    approveConfirmTitle: 'Approve {{name}}',
+    approveConfirmMsg: 'Approve {{name}} as a promoter? They will be able to create and publish events.',
+    reactivateConfirmTitle: 'Reactivate {{name}}',
+    reactivateConfirmMsg: 'Reactivate {{name}} as a promoter? They will regain access to operate.',
+    rejectConfirmTitle: 'Reject {{name}}',
+    rejectConfirmMsg: 'Reject {{name}}’s request? The reason written in the note will be recorded.',
+    impersonate: 'View as',
+    impersonateTitle: 'View the platform as this promoter (support)',
+    impersonateConfirmTitle: 'View as {{name}}',
+    impersonateConfirmMsg:
+      'You will enter the platform with {{name}}’s view to provide support. Their credentials are not changed and you can return to your admin session with the "Exit view" button.',
+    impersonateStart: 'View as promoter',
+    impersonateStarted: 'You are now viewing the platform as {{name}}.',
+    impersonateError: 'Could not start the support view.',
+    impersonateOnlyApproved: 'You can only view as an approved promoter.',
+    emptyTitle: 'No promoters yet',
+    emptySubtitle: 'When someone applies to be a promoter or you invite one, they will appear here.',
+    noResultsTitle: 'No matches',
+    noResultsSubtitle: 'No promoter matches the current filter or search.',
   },
 
   system: {
@@ -156,6 +186,8 @@ export const config = {
     gatewayNameRequired: 'The gateway needs a name.',
     gatewayAdded: 'Gateway "{{name}}" added.',
     gatewayAddError: 'Could not add (invalid or expired code?).',
+    gwEmptyTitle: 'No gateways',
+    gwNoResultsTitle: 'No matches',
   },
 
   invitations: {
@@ -187,6 +219,14 @@ export const config = {
       'Are you sure you want to revoke the invitation for {{email}}? The link will stop working.',
     revoked: 'Invitation revoked.',
     revokeError: 'Could not revoke the invitation.',
+    filterPending: 'Pending',
+    filterAuthorized: 'Authorized',
+    filterRejected: 'Rejected',
+    filterAll: 'All',
+    emptyTitle: 'No invitations',
+    emptySubtitle: 'You have not sent any promoter invitations yet.',
+    noMatchTitle: 'No matches',
+    noMatchSubtitle: 'No invitation matches the current filter or search.',
   },
 
   halls: {
@@ -226,6 +266,16 @@ export const config = {
       'Delete the venue "{{name}}"? Events that used it will be left without an associated venue.',
     removed: 'Venue deleted.',
     removeError: 'Could not delete the venue.',
+    tabList: 'List',
+    tabDashboard: 'Dashboard',
+    dashboardTitle: 'Venues dashboard',
+    dashboardSubtitle: 'Coming soon: popularity and venue usage charts.',
+    noResults: 'No venue matches the current filter or search.',
+    emptyTitle: 'No venues',
+    emptySubtitle: 'Create the first reusable venue with its location on the map.',
+    backToHalls: 'Back to venues',
+    editPageTitle: 'Edit venue',
+    newPageTitle: 'New venue',
   },
 
   templates: {
@@ -278,6 +328,16 @@ export const config = {
     removeConfirmMessage: 'Delete the template "{{name}}"?',
     removed: 'Template deleted.',
     removeError: 'Could not delete (is it a system one?).',
+    tabList: 'List',
+    tabDashboard: 'Dashboard',
+    dashboardTitle: 'Templates dashboard',
+    dashboardSubtitle: 'Coming soon: charts of the most used templates.',
+    noResults: 'No template matches the current filter or search.',
+    emptyTitle: 'No templates',
+    emptySubtitle: 'Create a seat template to feed the editor.',
+    backToTemplates: 'Back to templates',
+    editPageTitle: 'Edit template',
+    newPageTitle: 'New template',
   },
 
   settings: {
@@ -293,6 +353,8 @@ export const config = {
     loadError: 'Could not load the settings.',
     saved: 'Setting "{{key}}" saved.',
     saveError: 'Could not save (check the value type/range).',
+    typeLabel: 'Type: {{type}}',
+    infoAria: 'Information about {{name}}',
   },
 
   /** Friendly labels per setting (leaf = key with dots → underscores). */

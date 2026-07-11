@@ -43,7 +43,7 @@
               </div>
               <button type="button" class="ev-card-name link-btn" (click)="openEvent(e.id)" data-testid="ev-open">{{ e.name }}</button>
               <time class="muted small">{{ e.startsAt | localizedDate: 'EEE d MMM y' }}</time>
-              <span class="muted small">{{ e.promoter.firstName }} {{ e.promoter.lastName }}</span>
+              @if (e.promoter) { <span class="muted small">{{ e.promoter.firstName }} {{ e.promoter.lastName }}</span> }
               <div class="ev-card-actions">
                 <button type="button" class="btn small" (click)="openEvent(e.id, 'cuentas')" data-testid="ev-accounts" [title]="'config.events.accountsTitle' | translate">
                   <app-icon name="accounts" /> {{ 'config.events.accounts' | translate }}
@@ -56,8 +56,14 @@
           }
         </div>
         <app-pager [page]="eventsPage()" [totalPages]="eventsTotalPages()" (pageChange)="goToEventsPage($event)" data-testid="events-pager" />
+      } @else if (events().length > 0) {
+        <app-empty-state variant="generic" data-testid="events-no-results"
+          [title]="'config.events.noResultsTitle' | translate"
+          [subtitle]="'config.events.noResultsSubtitle' | translate" />
       } @else {
-        <p class="muted">{{ 'config.events.empty' | translate }}</p>
+        <app-empty-state variant="generic" data-testid="events-empty"
+          [title]="'config.events.emptyTitle' | translate"
+          [subtitle]="'config.events.emptySubtitle' | translate" />
       }
     }
 
@@ -91,29 +97,47 @@
               </div>
               <div class="promoter-card-body">
                 <label class="field"><span>{{ 'config.promoters.noteLabel' | translate }}</span>
-                  <input type="text" [attr.placeholder]="'config.promoters.notePlaceholder' | translate" [ngModel]="notes()[p.id]" (ngModelChange)="setNote(p.id, $event)" [name]="'note-' + p.id" />
+                  <div class="field inline">
+                    <input type="text" [attr.placeholder]="'config.promoters.notePlaceholder' | translate" [ngModel]="notes()[p.id]" (ngModelChange)="setNote(p.id, $event)" [name]="'note-' + p.id" />
+                    <button type="button" class="btn small" (click)="saveNote(p)" data-testid="promoter-note-save" [title]="'config.promoters.noteSaveTitle' | translate">
+                      <app-icon name="save" /> {{ 'common.save' | translate }}
+                    </button>
+                  </div>
                 </label>
-                <label class="field inline"><span>{{ 'config.promoters.costShareLabel' | translate }}</span>
-                  <input type="number" min="0" max="1" step="0.05" #pct [attr.placeholder]="'config.promoters.costSharePlaceholder' | translate" />
-                  <button type="button" class="btn small" (click)="setPromoterPct(p, pct.value)" data-testid="promoter-pct-save" [title]="'config.promoters.saveShareTitle' | translate">
-                    <app-icon name="save" /> {{ 'common.save' | translate }}
-                  </button>
+                <label class="field"><span>{{ 'config.promoters.costShareLabel' | translate }}</span>
+                  <div class="field inline">
+                    <input type="number" min="0" max="1" step="0.05" [ngModel]="pctEdits()[p.id]" (ngModelChange)="setPctEdit(p.id, $event)" [name]="'pct-' + p.id" [attr.placeholder]="'config.promoters.costSharePlaceholder' | translate" />
+                    <button type="button" class="btn small" (click)="setPromoterPct(p)" data-testid="promoter-pct-save" [title]="'config.promoters.saveShareTitle' | translate">
+                      <app-icon name="save" /> {{ 'common.save' | translate }}
+                    </button>
+                    @if (hasOverride(p.id)) {
+                      <button type="button" class="btn small ghost" (click)="resetPromoterPct(p)" data-testid="promoter-pct-reset" [title]="'config.promoters.shareResetTitle' | translate">
+                        <app-icon name="reactivate" /> {{ 'config.promoters.shareReset' | translate }}
+                      </button>
+                    }
+                  </div>
+                  @if (effectivePct(p.id) !== null) {
+                    <span class="muted small" data-testid="promoter-pct-effective">{{ 'config.promoters.shareEffective' | translate: { pct: effectivePct(p.id) } }}</span>
+                  }
                 </label>
               </div>
               <div class="ev-card-actions">
                 @if (p.promoterStatus !== 'approved') {
-                  <button type="button" class="btn small primary" (click)="approve(p)" data-testid="promoter-approve"
+                  <button type="button" class="btn small primary" (click)="askApprove(p)" data-testid="promoter-approve"
                     [title]="(p.promoterStatus === 'suspended' ? 'config.promoters.reactivateTitle' : 'config.promoters.approveTitle') | translate">
                     <app-icon [name]="p.promoterStatus === 'suspended' ? 'reactivate' : 'save'" />
                     {{ (p.promoterStatus === 'suspended' ? 'config.promoters.reactivate' : 'config.promoters.approve') | translate }}
                   </button>
                 }
                 @if (p.promoterStatus === 'pending') {
-                  <button type="button" class="btn small danger" (click)="reject(p)" data-testid="promoter-reject" [title]="'config.promoters.rejectTitle' | translate">
+                  <button type="button" class="btn small danger" (click)="askReject(p)" data-testid="promoter-reject" [title]="'config.promoters.rejectTitle' | translate">
                     <app-icon name="cancel" /> {{ 'config.promoters.reject' | translate }}
                   </button>
                 }
                 @if (p.promoterStatus === 'approved') {
+                  <button type="button" class="btn small" (click)="askImpersonate(p)" data-testid="promoter-impersonate" [title]="'config.promoters.impersonateTitle' | translate">
+                    <app-icon name="view" /> {{ 'config.promoters.impersonate' | translate }}
+                  </button>
                   <button type="button" class="btn small danger" (click)="openSuspend(p)" data-testid="promoter-suspend" [title]="'config.promoters.suspendTitle' | translate">
                     <app-icon name="suspend" /> {{ 'config.promoters.suspend' | translate }}
                   </button>
@@ -126,8 +150,14 @@
             </article>
           }
         </div>
+      } @else if (promoters().length > 0) {
+        <app-empty-state variant="generic" data-testid="promoters-no-results"
+          [title]="'config.promoters.noResultsTitle' | translate"
+          [subtitle]="'config.promoters.noResultsSubtitle' | translate" />
       } @else {
-        <p class="muted">{{ 'config.promoters.empty' | translate }}</p>
+        <app-empty-state variant="generic" data-testid="promoters-empty"
+          [title]="'config.promoters.emptyTitle' | translate"
+          [subtitle]="'config.promoters.emptySubtitle' | translate" />
       }
 
       @if (suspendTarget(); as target) {
@@ -359,11 +389,15 @@
                 }
               </div>
             } @empty {
-              <p class="muted" data-testid="gw-search-empty">{{ 'config.system.gwSearchEmpty' | translate }}</p>
+              <app-empty-state variant="generic" data-testid="gw-search-empty"
+                [title]="'config.system.gwNoResultsTitle' | translate"
+                [subtitle]="'config.system.gwSearchEmpty' | translate" />
             }
           </div>
         } @else {
-          <p class="muted">{{ 'config.system.noGateways' | translate }}</p>
+          <app-empty-state variant="generic" data-testid="gw-empty"
+            [title]="'config.system.gwEmptyTitle' | translate"
+            [subtitle]="'config.system.noGateways' | translate" />
         }
       </div>
 
@@ -378,6 +412,12 @@
                 <div class="setting-head">
                   <strong>{{ settingLabel(s.key) }}</strong>
                   <span class="setting-badges">
+                    <app-info-tooltip
+                      [heading]="settingLabel(s.key)"
+                      [detail]="settingDescription(s.key)"
+                      [meta]="('config.settings.typeLabel' | translate: { type: s.type }) + ' · ' + ('config.settings.defaultLabel' | translate: { value: s.default })"
+                      [ariaLabel]="'config.settings.infoAria' | translate: { name: settingLabel(s.key) }"
+                      [attr.data-testid]="'setting-info-' + s.key" />
                     @if (s.fallbackOnly) { <span class="badge" data-testid="setting-fallback">{{ 'config.settings.informativeBadge' | translate }}</span> }
                     <span class="badge">{{ s.type }}</span>
                   </span>
@@ -454,9 +494,8 @@
         <div class="list-filters">
           <input type="search" [attr.placeholder]="'config.invitations.searchPlaceholder' | translate" [ngModel]="invSearch()" (ngModelChange)="setInvSearch($event)" name="invq" data-testid="inv-search" />
           <select [ngModel]="invFilterStatus()" (ngModelChange)="setInvFilter($event)" name="invstatus" data-testid="inv-filter">
-            <option value="">{{ 'config.invitations.allStatuses' | translate }}</option>
-            @for (s of invStatuses(); track s) {
-              <option [value]="s">{{ s | statusLabel }}</option>
+            @for (o of invFilterOptions; track o.value) {
+              <option [value]="o.value">{{ o.key | translate }}</option>
             }
           </select>
         </div>
@@ -475,12 +514,18 @@
               }
             </article>
           } @empty {
-            <p class="muted" data-testid="inv-no-match">{{ 'config.invitations.noMatch' | translate }}</p>
+            <app-empty-state variant="generic" data-testid="inv-no-match"
+              [title]="'config.invitations.noMatchTitle' | translate"
+              [subtitle]="'config.invitations.noMatchSubtitle' | translate" />
           }
         </div>
-        <app-pager [page]="invPage()" [totalPages]="invTotalPages()" (pageChange)="goToInvPage($event)" data-testid="inv-pager" />
+        @if (filteredInvitations().length > 0) {
+          <app-pager [page]="invPage()" [totalPages]="invTotalPages()" (pageChange)="goToInvPage($event)" data-testid="inv-pager" />
+        }
       } @else {
-        <p class="muted">{{ 'config.invitations.empty' | translate }}</p>
+        <app-empty-state variant="generic" data-testid="inv-empty"
+          [title]="'config.invitations.emptyTitle' | translate"
+          [subtitle]="'config.invitations.emptySubtitle' | translate" />
       }
     }
   }
@@ -491,6 +536,10 @@
       [message]="cf.message"
       [confirmLabel]="cf.confirmLabel ?? ('common.delete' | translate)"
       [confirmIcon]="cf.confirmIcon ?? 'delete'"
+      [danger]="cf.danger ?? true"
+      [titleIcon]="cf.titleIcon"
+      [auditAction]="cf.auditAction"
+      [auditResource]="cf.auditResource"
       (accept)="onConfirmAccept()"
       (cancelled)="onConfirmCancel()"
     />

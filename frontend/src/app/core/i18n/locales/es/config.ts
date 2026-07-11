@@ -31,6 +31,10 @@ export const config = {
     viewEventTitle: 'Abrir el evento',
     empty: 'No hay eventos con ese filtro.',
     loadError: 'No se pudieron cargar los eventos.',
+    emptyTitle: 'Sin eventos todavía',
+    emptySubtitle: 'Los eventos que creen los promotores aparecerán aquí.',
+    noResultsTitle: 'Sin coincidencias',
+    noResultsSubtitle: 'Ningún evento coincide con los filtros actuales.',
   },
 
   promoters: {
@@ -74,6 +78,32 @@ export const config = {
     shareUpdated: 'Reparto del promotor actualizado.',
     shareError: 'No se pudo actualizar el reparto.',
     loadError: 'No se pudieron cargar los promotores.',
+    noteSaveTitle: 'Guardar nota interna',
+    noteSaved: 'Nota guardada.',
+    noteError: 'No se pudo guardar la nota.',
+    shareEffective: 'Reparto efectivo: {{pct}}',
+    shareReset: 'Restablecer',
+    shareResetTitle: 'Volver al reparto por defecto',
+    shareResetDone: 'Reparto restablecido al valor por defecto.',
+    approveConfirmTitle: 'Aprobar a {{name}}',
+    approveConfirmMsg: '¿Aprobar a {{name}} como promotor? Podrá crear y publicar eventos.',
+    reactivateConfirmTitle: 'Reactivar a {{name}}',
+    reactivateConfirmMsg: '¿Reactivar a {{name}} como promotor? Recuperará el acceso para operar.',
+    rejectConfirmTitle: 'Rechazar a {{name}}',
+    rejectConfirmMsg: '¿Rechazar la solicitud de {{name}}? Se registrará el motivo escrito en la nota.',
+    impersonate: 'Ver como',
+    impersonateTitle: 'Ver la plataforma como este promotor (soporte)',
+    impersonateConfirmTitle: 'Ver como {{name}}',
+    impersonateConfirmMsg:
+      'Entrarás a la plataforma con la vista de {{name}} para dar soporte. No se modifican sus credenciales y podrás volver a tu sesión de administrador con el botón "Salir de la vista".',
+    impersonateStart: 'Ver como promotor',
+    impersonateStarted: 'Ahora ves la plataforma como {{name}}.',
+    impersonateError: 'No se pudo iniciar la vista de soporte.',
+    impersonateOnlyApproved: 'Solo puedes ver como un promotor aprobado.',
+    emptyTitle: 'Sin promotores todavía',
+    emptySubtitle: 'Cuando alguien solicite ser promotor o invites a uno, aparecerá aquí.',
+    noResultsTitle: 'Sin coincidencias',
+    noResultsSubtitle: 'Ningún promotor coincide con el filtro o la búsqueda actual.',
   },
 
   system: {
@@ -156,6 +186,8 @@ export const config = {
     gatewayNameRequired: 'La pasarela necesita un nombre.',
     gatewayAdded: 'Pasarela "{{name}}" agregada.',
     gatewayAddError: 'No se pudo agregar (¿código inválido o expirado?).',
+    gwEmptyTitle: 'Sin pasarelas',
+    gwNoResultsTitle: 'Sin coincidencias',
   },
 
   invitations: {
@@ -187,6 +219,14 @@ export const config = {
       '¿Seguro que deseas revocar la invitación de {{email}}? El enlace dejará de funcionar.',
     revoked: 'Invitación revocada.',
     revokeError: 'No se pudo revocar la invitación.',
+    filterPending: 'Pendientes',
+    filterAuthorized: 'Autorizados',
+    filterRejected: 'Rechazados',
+    filterAll: 'Todos',
+    emptyTitle: 'Sin invitaciones',
+    emptySubtitle: 'Aún no has enviado invitaciones a promotores.',
+    noMatchTitle: 'Sin coincidencias',
+    noMatchSubtitle: 'Ninguna invitación coincide con el filtro o la búsqueda.',
   },
 
   halls: {
@@ -226,6 +266,16 @@ export const config = {
       '¿Eliminar el salón "{{name}}"? Los eventos que lo usaban quedarán sin salón asociado.',
     removed: 'Salón eliminado.',
     removeError: 'No se pudo eliminar el salón.',
+    tabList: 'Lista',
+    tabDashboard: 'Dashboard',
+    dashboardTitle: 'Panel de salones',
+    dashboardSubtitle: 'Próximamente: gráficas de popularidad y uso de salones.',
+    noResults: 'Ningún salón coincide con el filtro o la búsqueda.',
+    emptyTitle: 'Sin salones',
+    emptySubtitle: 'Crea el primer salón reutilizable con su ubicación en el mapa.',
+    backToHalls: 'Volver a salones',
+    editPageTitle: 'Editar salón',
+    newPageTitle: 'Nuevo salón',
   },
 
   templates: {
@@ -278,6 +328,16 @@ export const config = {
     removeConfirmMessage: '¿Eliminar la plantilla "{{name}}"?',
     removed: 'Plantilla eliminada.',
     removeError: 'No se pudo eliminar (¿es del sistema?).',
+    tabList: 'Lista',
+    tabDashboard: 'Dashboard',
+    dashboardTitle: 'Panel de plantillas',
+    dashboardSubtitle: 'Próximamente: gráficas de las plantillas más usadas.',
+    noResults: 'Ninguna plantilla coincide con el filtro o la búsqueda.',
+    emptyTitle: 'Sin plantillas',
+    emptySubtitle: 'Crea una plantilla de asientos para alimentar el editor.',
+    backToTemplates: 'Volver a plantillas',
+    editPageTitle: 'Editar plantilla',
+    newPageTitle: 'Nueva plantilla',
   },
 
   settings: {
@@ -293,6 +353,8 @@ export const config = {
     loadError: 'No se pudieron cargar las configuraciones.',
     saved: 'Configuración "{{key}}" guardada.',
     saveError: 'No se pudo guardar (revisa el tipo/rango del valor).',
+    typeLabel: 'Tipo: {{type}}',
+    infoAria: 'Información sobre {{name}}',
   },
 
   /** Etiquetas amigables de cada setting (hoja = key con puntos → guion bajo). */

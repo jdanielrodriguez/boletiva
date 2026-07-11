@@ -14,6 +14,10 @@ export interface ConfirmRequest {
   titleIcon?: IconName;
   /** false = acción NO destructiva (encabezado neutro y botón primario). */
   danger?: boolean;
+  /** Etiqueta de auditoría (no-repudio): al confirmar registra el click. */
+  auditAction?: string;
+  /** Referencia del recurso afectado (acompaña a `auditAction`). */
+  auditResource?: string;
   onConfirm: () => void;
 }
 

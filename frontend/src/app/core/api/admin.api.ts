@@ -7,6 +7,8 @@ export type PromoterListItemDto = Schemas['PromoterListItemDto'];
 export type AdminEventListItemDto = Schemas['AdminEventListItemDto'];
 export type GatewayResponseDto = Schemas['GatewayResponseDto'];
 export type PromoterStatusEventDto = Schemas['PromoterStatusEventDto'];
+export type PromoterCostShareDto = Schemas['PromoterCostSharePctResponseDto'];
+export type PromoterInternalNoteDto = Schemas['PromoterInternalNoteResponseDto'];
 
 /**
  * El OpenAPI tipa `installmentRates` como objeto libre (Record<string, never>);
@@ -59,8 +61,21 @@ export class AdminApi {
   setDefaultPct(pct: number): Observable<unknown> {
     return this.api.patch('/cost-share/default', { pct });
   }
+  /** Reparto efectivo de un promotor: `override` crudo (null = usa default) + `effectivePct`. */
+  getPromoterCostShare(id: string): Observable<PromoterCostShareDto> {
+    return this.api.get<PromoterCostShareDto>(`/cost-share/promoter/${id}`);
+  }
   setPromoterPct(id: string, pct: number): Observable<unknown> {
     return this.api.patch(`/cost-share/promoter/${id}`, { pct });
+  }
+  /** Borra el override del promotor → vuelve al reparto default global. */
+  resetPromoterCostShare(id: string): Observable<unknown> {
+    return this.api.delete(`/cost-share/promoter/${id}`);
+  }
+
+  // --- Nota interna del promotor (soporte) ---
+  setPromoterNote(id: string, note: string): Observable<PromoterInternalNoteDto> {
+    return this.api.patch<PromoterInternalNoteDto>(`/promoters/${id}/note`, { note });
   }
 
   // --- Pasarelas ---
