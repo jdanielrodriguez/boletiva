@@ -8,6 +8,7 @@ import { ToastContainer } from './shared/ui/toast-container';
 import { LoadingComponent } from './shared/ui/loading.component';
 import { MaintenancePageComponent } from './shared/maintenance/maintenance-page.component';
 import { MaintenanceBannerComponent } from './shared/maintenance/maintenance-banner.component';
+import { ImpersonationBannerComponent } from './shared/layout/impersonation-banner.component';
 import { SessionStore } from './core/auth/session.store';
 import { TokenStore } from './core/auth/token-store.service';
 import { MaintenanceStore } from './core/maintenance/maintenance.store';
@@ -23,6 +24,7 @@ import { I18nService } from './core/i18n/i18n.service';
     LoadingComponent,
     MaintenancePageComponent,
     MaintenanceBannerComponent,
+    ImpersonationBannerComponent,
     TranslatePipe,
   ],
   templateUrl: './app.html',

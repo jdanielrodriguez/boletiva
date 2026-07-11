@@ -40,4 +40,10 @@ export const shell = {
   termsComingSoon: 'El contenido legal completo se publicará próximamente.',
   forbiddenTitle: '403 — Sin permiso',
   forbiddenBody: 'Tu cuenta no tiene acceso a esta sección.',
+  impersonation: {
+    viewingAs: 'Estás viendo la plataforma como {{name}}',
+    exit: 'Salir de la vista',
+    exited: 'Volviste a tu sesión de administrador.',
+    exitError: 'No se pudo salir de la vista. Intenta de nuevo.',
+  },
 };

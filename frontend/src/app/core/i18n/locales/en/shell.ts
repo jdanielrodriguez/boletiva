@@ -40,4 +40,10 @@ export const shell = {
   termsComingSoon: 'The full legal content will be published soon.',
   forbiddenTitle: '403 — Forbidden',
   forbiddenBody: 'Your account does not have access to this section.',
+  impersonation: {
+    viewingAs: 'You are viewing the platform as {{name}}',
+    exit: 'Exit view',
+    exited: 'You are back in your admin session.',
+    exitError: 'Could not exit the view. Try again.',
+  },
 };
