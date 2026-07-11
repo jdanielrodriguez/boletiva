@@ -3,6 +3,8 @@ export const purchase = {
   title: 'Buy — {{name}}',
   loading: 'Loading availability…',
   countdown: 'Reservation active — expires in {{mm}}:{{ss}}',
+  countdownAria: 'Reservation time remaining',
+  reservedBadge: 'Tickets reserved',
   yourTickets: 'Your tickets',
   reservedTotal: '{{n}} ticket(s) · Total Q{{total}}',
   processing: 'Processing…',

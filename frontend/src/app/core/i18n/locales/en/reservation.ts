@@ -15,6 +15,7 @@ export const reservation = {
   subtotal: 'Subtotal {{name}}: Q{{amount}}',
   rowLabel: 'Row {{n}}',
   seatLabel: 'Seat {{n}}',
+  ticketsPager: 'Ticket pages',
   // Share
   shareLabel: 'Share reservation',
   shareWhatsapp: 'Share via WhatsApp',

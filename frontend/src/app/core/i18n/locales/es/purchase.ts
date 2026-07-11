@@ -3,6 +3,8 @@ export const purchase = {
   title: 'Comprar — {{name}}',
   loading: 'Cargando disponibilidad…',
   countdown: 'Reserva activa — expira en {{mm}}:{{ss}}',
+  countdownAria: 'Tiempo restante de la reserva',
+  reservedBadge: 'Boletos reservados',
   yourTickets: 'Tus boletos',
   reservedTotal: '{{n}} boleto(s) · Total Q{{total}}',
   processing: 'Procesando…',

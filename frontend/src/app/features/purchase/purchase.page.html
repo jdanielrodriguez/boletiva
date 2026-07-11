@@ -4,15 +4,22 @@
   @if (!loaded()) {
     <p data-testid="purchase-loading">{{ 'purchase.loading' | translate }}</p>
   } @else if (phase() === 'reserved') {
-    <section class="reserved" data-testid="reserved">
-      <p class="countdown" data-testid="countdown">
-        {{ 'purchase.countdown' | translate: { mm: mm(), ss: (ss() | number: '2.0-0') } }}
-      </p>
+    <section class="reserved reserved-airy" data-testid="reserved">
+      <div class="reserved-topbar">
+        <span class="reserved-badge">
+          <span class="reserved-badge-dot" aria-hidden="true"></span>
+          {{ 'purchase.reservedBadge' | translate }}
+        </span>
+        <span class="countdown reserved-countdown" data-testid="countdown" [attr.aria-label]="'purchase.countdownAria' | translate">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6" stroke-linecap="round"/></svg>
+          {{ 'purchase.countdown' | translate: { mm: mm(), ss: (ss() | number: '2.0-0') } }}
+        </span>
+      </div>
 
       @if (store.reservation(); as r) {
         <h2>{{ 'purchase.yourTickets' | translate }}</h2>
         <app-reservation-items [items]="r.items" />
-        <p class="total">{{ 'purchase.reservedTotal' | translate: { n: r.items.length, total: r.total } }}</p>
+        <p class="total reserved-total">{{ 'purchase.reservedTotal' | translate: { n: r.items.length, total: r.total } }}</p>
       }
 
       <app-share-box [url]="shareUrl()" />
@@ -22,10 +29,27 @@
       }
 
       <div class="actions">
-        <button type="button" class="primary" data-testid="pay-btn" [disabled]="working()" (click)="continueToPay()">
+        <button
+          type="button"
+          class="btn primary"
+          data-testid="pay-btn"
+          [disabled]="working()"
+          [attr.aria-label]="'purchase.continueToPay' | translate"
+          [title]="'purchase.continueToPay' | translate"
+          (click)="continueToPay()"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 9.5h19" stroke-width="2.4"/></svg>
           {{ working() ? ('purchase.processing' | translate) : ('purchase.continueToPay' | translate) }}
         </button>
-        <button type="button" class="ghost" [disabled]="working()" (click)="backToSelect()">
+        <button
+          type="button"
+          class="btn ghost"
+          [disabled]="working()"
+          [attr.aria-label]="'purchase.backToSelect' | translate"
+          [title]="'purchase.backToSelect' | translate"
+          (click)="backToSelect()"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
           {{ 'purchase.backToSelect' | translate }}
         </button>
       </div>
