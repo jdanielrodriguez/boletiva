@@ -29,6 +29,7 @@ export const common = {
   copy: 'Copiar',
   copied: 'Copiado',
   continue: 'Continuar',
+  understood: 'Entendido',
   retry: 'Reintentar',
   page: 'Página',
   of: 'de',

@@ -71,8 +71,15 @@ describe('BecomePromoterPage (v3.6)', () => {
     el = fixture.nativeElement as HTMLElement;
   }
 
-  const submit = () => {
+  /** Abre la modal de instrucciones (el envío ya no es one-click). */
+  const openInfo = () => {
     (el.querySelector('[data-testid="bp-submit"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+  };
+  /** Flujo completo: abrir modal + confirmar → dispara apply(). */
+  const submit = () => {
+    openInfo();
+    (el.querySelector('[data-testid="bp-info-confirm"]') as HTMLButtonElement).click();
     fixture.detectChanges();
   };
 
@@ -107,12 +114,32 @@ describe('BecomePromoterPage (v3.6)', () => {
     expect(navSpy).toHaveBeenCalledWith(['/promotor']);
   });
 
-  it('enviar y requiere aprobación: pasa a estado pendiente', async () => {
+  it('pulsar el botón NO envía: abre la modal de instrucciones', async () => {
+    await setup({ status: 'none' });
+    openInfo();
+    expect(el.querySelector('[data-testid="bp-info-modal"]')).not.toBeNull();
+    expect(apply).not.toHaveBeenCalled();
+  });
+
+  it('cancelar en la modal de instrucciones no envía la solicitud', async () => {
+    await setup({ status: 'none' });
+    openInfo();
+    (el.querySelector('[data-testid="bp-info-cancel"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(el.querySelector('[data-testid="bp-info-modal"]')).toBeNull();
+    expect(apply).not.toHaveBeenCalled();
+  });
+
+  it('enviar y requiere aprobación: modal de "proceso iniciado" + estado pendiente', async () => {
     await setup({ status: 'none', applyStatus: 'pending' });
     submit();
     expect(apply).toHaveBeenCalled();
     expect(navSpy).not.toHaveBeenCalledWith(['/promotor']);
+    expect(el.querySelector('[data-testid="bp-started-modal"]')).not.toBeNull();
     expect(el.querySelector('[data-testid="bp-pending"]')).not.toBeNull();
+    (el.querySelector('[data-testid="bp-started-close"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(el.querySelector('[data-testid="bp-started-modal"]')).toBeNull();
   });
 
   it('error al enviar → muestra error y no navega', async () => {
