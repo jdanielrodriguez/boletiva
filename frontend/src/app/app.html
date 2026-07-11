@@ -4,3 +4,6 @@
 </main>
 <app-footer />
 <app-toast-container />
+@if (hydrating()) {
+  <app-loading [fullscreen]="true" [label]="'common.loading' | translate" data-testid="hydration-loader" />
+}
