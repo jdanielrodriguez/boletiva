@@ -3,9 +3,11 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { HealthService } from './health.service';
 import { Public } from '../common/decorators/public.decorator';
+import { AllowDuringMaintenance } from '../common/decorators/maintenance.decorator';
 
 @ApiTags('health')
 @Public()
+@AllowDuringMaintenance()
 @Controller('health')
 export class HealthController {
   constructor(private readonly health: HealthService) {}

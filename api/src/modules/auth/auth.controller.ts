@@ -22,6 +22,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
 import { Public } from '../../common/decorators/public.decorator';
+import { AllowDuringMaintenance } from '../../common/decorators/maintenance.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { MessageResponseDto } from '../../common/dto/response.dto';
 import { AuthService } from './auth.service';
@@ -56,6 +57,7 @@ import {
 } from './dto/auth.response';
 
 @ApiTags('auth')
+@AllowDuringMaintenance()
 @Controller('auth')
 export class AuthController {
   constructor(
