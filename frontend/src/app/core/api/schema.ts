@@ -2447,6 +2447,91 @@ export interface paths {
         patch: operations["SettingsController_update_v1"];
         trace?: never;
     };
+    "/api/v1/maintenance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Estado del modo mantenimiento (público) */
+        get: operations["MaintenanceController_status_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/maintenance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Activa/desactiva el modo mantenimiento (admin) */
+        patch: operations["MaintenanceController_update_v1"];
+        trace?: never;
+    };
+    "/api/v1/audit/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Registra un click de confirmación (no-repudio). IP y user-agent se capturan server-side */
+        post: operations["AuditController_confirm_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lista la bitácora de auditoría (admin, keyset) */
+        get: operations["AuditController_list_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Verifica la integridad de la cadena de auditoría (admin) */
+        get: operations["AuditController_verify_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -6190,6 +6275,58 @@ export interface components {
              * @example 0.1
              */
             value: number | boolean;
+        };
+        MaintenanceStatusDto: {
+            /** @description true si la plataforma está en mantenimiento */
+            enabled: boolean;
+            /** @description Mensaje a mostrar (null si no hay) */
+            message: string | null;
+        };
+        UpdateMaintenanceDto: {
+            /** @description true = activa el mantenimiento; false = lo desactiva */
+            enabled: boolean;
+            /** @description Mensaje opcional para el usuario mientras dure el mantenimiento */
+            message?: string;
+        };
+        ConfirmAuditDto: {
+            /** @description Acción confirmada (p.ej. "promoter.approve", "event.publish") */
+            action: string;
+            /** @description Recurso afectado (id o referencia legible) */
+            resource?: string;
+            /** @description Contexto adicional (jsonb). NO se confía en él para IP/UA (esos van server-side) */
+            payload?: {
+                [key: string]: unknown;
+            };
+        };
+        AuditEventDto: {
+            /** Format: uuid */
+            id: string;
+            /** @description Secuencia monótona (string por ser BigInt) */
+            seq: string;
+            /** @description Usuario que ejecutó la acción */
+            userId: string | null;
+            action: string;
+            resource: string | null;
+            /** @description IP capturada server-side */
+            ip: string | null;
+            /** @description User-agent capturado server-side */
+            userAgent: string | null;
+            payload: Record<string, never> | null;
+            prevHash: string;
+            hash: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        AuditPageDto: {
+            items: components["schemas"]["AuditEventDto"][];
+            /** @description Cursor para la siguiente página */
+            nextCursor: string | null;
+        };
+        AuditVerifyDto: {
+            /** @description true si la cadena está íntegra */
+            ok: boolean;
+            /** @description seq del primer registro corrupto (si ok=false) */
+            brokenAt?: string;
         };
     };
     responses: never;
@@ -9944,6 +10081,114 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SettingViewDto"];
+                };
+            };
+        };
+    };
+    MaintenanceController_status_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaintenanceStatusDto"];
+                };
+            };
+        };
+    };
+    MaintenanceController_update_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateMaintenanceDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaintenanceStatusDto"];
+                };
+            };
+        };
+    };
+    AuditController_confirm_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmAuditDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponseDto"];
+                };
+            };
+        };
+    };
+    AuditController_list_v1: {
+        parameters: {
+            query?: {
+                /** @description Cursor: id de la última fila de la página previa */
+                cursor?: string;
+                /** @description Tamaño de página (1–100, default 20) */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditPageDto"];
+                };
+            };
+        };
+    };
+    AuditController_verify_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditVerifyDto"];
                 };
             };
         };
