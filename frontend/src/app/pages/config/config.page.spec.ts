@@ -6,6 +6,8 @@ import { AdminApi } from '../../core/api/admin.api';
 import { InvitationsApi } from '../../core/api/invitations.api';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
 import { SettingsApi } from '../../core/api/settings.api';
+import { HallsApi } from '../../core/api/halls.api';
+import { SeatTemplatesApi } from '../../core/api/seat-templates.api';
 import { AuditApi } from '../../core/api/audit.api';
 import { ImpersonationService } from '../../core/auth/impersonation.service';
 import { ToastService } from '../../core/ui/toast.service';
@@ -83,6 +85,19 @@ describe('ConfigPage (v3, admin console)', () => {
             list: () => of([]),
             update: () => of({ key: 'k', value: 0, default: 0, type: 'pct', description: '', fallbackOnly: false }),
           } as unknown as SettingsApi,
+        },
+        // v3.9 · B1: los tabs Salones/Plantillas embeben app-halls-list/app-templates-list.
+        {
+          provide: HallsApi,
+          useValue: {
+            listAll: () => of([{ id: 'h1', name: 'Teatro', city: 'GT', address: null, lat: null, lng: null, notes: null, seatTemplateId: null, status: 'published', createdAt: '', updatedAt: '' }]),
+          } as unknown as HallsApi,
+        },
+        {
+          provide: SeatTemplatesApi,
+          useValue: {
+            listAll: () => of([{ id: 't1', name: 'Filas', kind: 'rows', isBuiltIn: true, status: 'published', hidden: false, disabled: false, layoutJson: {}, params: {}, createdAt: '', updatedAt: '' }]),
+          } as unknown as SeatTemplatesApi,
         },
       ],
     });
@@ -510,21 +525,19 @@ describe('ConfigPage (v3, admin console)', () => {
     expect(c.filteredEvents()[0].id).toBe('e2');
   });
 
-  // --- v3.7: salones/plantillas pasan a página aparte (enlace + resumen) ---
-  it('salones: el tab muestra un resumen con enlace a la página dedicada', async () => {
+  // --- v3.9 · B1: salones/plantillas muestran su LISTA dentro del tab ---
+  it('salones: el tab embebe la lista de salones (app-halls-list)', async () => {
     await setup();
     await selectTab('tab-salones');
-    expect(el.querySelector('[data-testid="halls-summary"]')).not.toBeNull();
-    const link = el.querySelector('[data-testid="halls-manage"]') as HTMLAnchorElement;
-    expect(link.getAttribute('href')).toContain('/configuracion/salones');
+    expect(el.querySelector('app-halls-list')).not.toBeNull();
+    expect(el.querySelector('[data-testid="halls-list"]')?.textContent).toContain('Teatro');
   });
 
-  it('plantillas: el tab muestra un resumen con enlace a la página dedicada', async () => {
+  it('plantillas: el tab embebe la lista de plantillas (app-templates-list)', async () => {
     await setup();
     await selectTab('tab-plantillas');
-    expect(el.querySelector('[data-testid="templates-summary"]')).not.toBeNull();
-    const link = el.querySelector('[data-testid="templates-manage"]') as HTMLAnchorElement;
-    expect(link.getAttribute('href')).toContain('/configuracion/plantillas');
+    expect(el.querySelector('app-templates-list')).not.toBeNull();
+    expect(el.querySelector('[data-testid="tpl-list"]')?.textContent).toContain('Filas');
   });
 
   // --- v3.7: configuraciones ahora viven bajo el tab Sistema (grid) ---

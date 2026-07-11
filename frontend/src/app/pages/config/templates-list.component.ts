@@ -10,7 +10,6 @@ import {
   type ConfirmRequest,
 } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
-import { BackLinkComponent } from '../../shared/ui/back-link.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
 import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
@@ -18,18 +17,17 @@ import type { SeatTemplateResponseDto } from '../../core/api/types';
 
 const PAGE = 9;
 
-type TemplatesTab = 'list' | 'dashboard';
-
 /**
- * Página de gestión de PLANTILLAS de asientos (v3.8 · G2, solo admin). SOLO la lista
- * con filtros (buscador + estado) y paginación; la creación/edición vive en una
- * página aparte (`template-edit.page`). Dos pestañas: Lista y Dashboard (placeholder).
- * Al cambiar de pestaña se resetean los filtros. Botones: Ver (preview, solo
- * publicadas), Publicar/Despublicar, Ocultar/Mostrar, Deshabilitar/Habilitar,
- * Editar (solo draft no-built-in → navega), Eliminar (solo deshabilitada no-built-in).
+ * Lista de PLANTILLAS de asientos embebida en el tab `?tab=plantillas` de la
+ * consola (v3.9 · B1). SOLO la lista con filtros (buscador + estado) y paginación;
+ * la creación/edición vive en una página aparte (`template-edit.page`). Al cambiar
+ * de tab en la consola el `@switch` destruye/recrea este componente → los filtros
+ * vuelven a su estado inicial. Botones: Ver (preview, solo publicadas),
+ * Publicar/Regresar-a-borrador, Ocultar/Mostrar, Deshabilitar/Habilitar, Editar
+ * (solo draft no-built-in → navega), Eliminar (solo deshabilitada no-built-in).
  */
 @Component({
-  selector: 'app-templates-page',
+  selector: 'app-templates-list',
   imports: [
     FormsModule,
     TranslatePipe,
@@ -37,12 +35,11 @@ type TemplatesTab = 'list' | 'dashboard';
     IconComponent,
     ConfirmDialogComponent,
     PagerComponent,
-    BackLinkComponent,
     EmptyStateComponent,
   ],
-  templateUrl: './templates.page.html',
+  templateUrl: './templates-list.component.html',
 })
-export class TemplatesPage {
+export class TemplatesListComponent {
   private readonly templatesApi = inject(SeatTemplatesApi);
   private readonly toasts = inject(ToastService);
   private readonly translate = inject(TranslateService);
@@ -54,7 +51,6 @@ export class TemplatesPage {
   protected readonly statusFilter = signal<string>('');
   protected readonly preview = signal<SeatTemplateResponseDto | null>(null);
   protected readonly page = signal(1);
-  protected readonly tab = signal<TemplatesTab>('list');
 
   /** Estados para el filtro (value interno; label capitalizado en la UI). */
   protected readonly statusOptions = ['published', 'draft', 'hidden', 'disabled'];
@@ -92,14 +88,6 @@ export class TemplatesPage {
       next: (t) => this.templates.set(t),
       error: () => this.toasts.error(this.translate.instant('config.templates.loadError')),
     });
-  }
-
-  protected setTab(t: TemplatesTab): void {
-    this.tab.set(t);
-    // Regla transversal v3.8: al cambiar de pestaña se resetean los filtros.
-    this.search.set('');
-    this.statusFilter.set('');
-    this.page.set(1);
   }
 
   protected goToPage(p: number): void {

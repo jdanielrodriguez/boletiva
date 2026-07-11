@@ -88,7 +88,7 @@ describe('TemplateEditPage (v3.8)', () => {
     inst().patch('name', 'Nueva plantilla');
     inst().save();
     expect(create).toHaveBeenCalled();
-    expect(nav).toHaveBeenCalledWith(['/configuracion/plantillas']);
+    expect(nav).toHaveBeenCalledWith(['/configuracion'], { queryParams: { tab: 'plantillas' } });
   });
 
   it('JSON inválido → warning, no llama create', async () => {

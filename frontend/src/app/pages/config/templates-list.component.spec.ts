@@ -5,7 +5,7 @@ import { of, throwError } from 'rxjs';
 import { SeatTemplatesApi } from '../../core/api/seat-templates.api';
 import { ToastService } from '../../core/ui/toast.service';
 import { provideI18nTesting, initI18nTesting } from '../../core/i18n/testing';
-import { TemplatesPage } from './templates.page';
+import { TemplatesListComponent } from './templates-list.component';
 
 const base = { layoutJson: {}, params: { rows: 5, cols: 10 }, createdAt: '', updatedAt: '' };
 const TEMPLATES = [
@@ -15,8 +15,8 @@ const TEMPLATES = [
   { id: 't4', name: 'Custom disabled', kind: 'grid', isBuiltIn: false, status: 'published', hidden: false, disabled: true, ...base },
 ];
 
-describe('TemplatesPage (v3.8)', () => {
-  let fixture: ComponentFixture<TemplatesPage>;
+describe('TemplatesListComponent (v3.9 · B1)', () => {
+  let fixture: ComponentFixture<TemplatesListComponent>;
   let el: HTMLElement;
   let toasts: ToastService;
 
@@ -44,7 +44,7 @@ describe('TemplatesPage (v3.8)', () => {
       ],
     });
     initI18nTesting();
-    fixture = TestBed.createComponent(TemplatesPage);
+    fixture = TestBed.createComponent(TemplatesListComponent);
     toasts = TestBed.inject(ToastService);
     fixture.detectChanges();
     await fixture.whenStable();
@@ -57,8 +57,6 @@ describe('TemplatesPage (v3.8)', () => {
     displayState: (t: unknown) => string;
     canDelete: (t: unknown) => boolean;
     setStatus: (v: string) => void;
-    setTab: (t: 'list' | 'dashboard') => void;
-    tab: () => string;
     hasFilter: () => boolean;
     filtered: () => { id: string }[];
     publish: (t: unknown) => void;
@@ -99,16 +97,6 @@ describe('TemplatesPage (v3.8)', () => {
     expect(inst().filtered()[0].id).toBe('t4');
   });
 
-  it('cambiar de pestaña resetea los filtros', async () => {
-    await setup();
-    inst().setStatus('disabled');
-    inst().setTab('dashboard');
-    expect(inst().tab()).toBe('dashboard');
-    inst().setTab('list');
-    expect(inst().hasFilter()).toBe(false);
-    expect(inst().filtered().length).toBe(TEMPLATES.length);
-  });
-
   it('canDelete: solo deshabilitada y no built-in', async () => {
     await setup();
     expect(inst().canDelete(TEMPLATES[0])).toBe(false); // built-in
@@ -131,6 +119,17 @@ describe('TemplatesPage (v3.8)', () => {
     inst().askRemove(TEMPLATES[3]);
     inst().onConfirmAccept();
     expect(remove).toHaveBeenCalledWith('t4');
+  });
+
+  it('el botón Eliminar se muestra habilitado para una plantilla deshabilitada', async () => {
+    await setup();
+    inst().setStatus('disabled');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const del = el.querySelector('[data-testid="tpl-remove"]') as HTMLButtonElement | null;
+    expect(del).not.toBeNull();
+    expect(del?.disabled).toBe(false);
   });
 
   it('nueva plantilla navega a la página de creación', async () => {

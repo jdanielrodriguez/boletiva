@@ -9,7 +9,6 @@ import {
   type ConfirmRequest,
 } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
-import { BackLinkComponent } from '../../shared/ui/back-link.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
 import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
@@ -17,18 +16,16 @@ import type { HallResponseDto } from '../../core/api/types';
 
 const PAGE = 9;
 
-type HallsTab = 'list' | 'dashboard';
-
 /**
- * Página de gestión de SALONES (v3.8 · G2, solo admin). SOLO la lista con filtros
- * (buscador + estado) y paginación; la creación/edición vive en una página aparte
- * (`hall-edit.page`) a la que navegan los botones "Nuevo salón"/"Editar". Dos
- * pestañas: Lista (contenido actual) y Dashboard (placeholder "próximamente"). Al
- * cambiar de pestaña se resetean los filtros. Estados: los PUBLICADOS solo se
- * despublican; los BORRADORES se publican, editan y eliminan.
+ * Lista de SALONES embebida en el tab `?tab=salones` de la consola (v3.9 · B1).
+ * SOLO la lista con filtros (buscador + estado) y paginación; la creación/edición
+ * vive en una página aparte (`hall-edit.page`) a la que navegan "Nuevo salón" y
+ * "Editar". Al cambiar de tab en la consola el `@switch` destruye/recrea este
+ * componente → los filtros vuelven a su estado inicial. Estados: los PUBLICADOS
+ * solo se regresan a borrador; los BORRADORES se publican, editan y eliminan.
  */
 @Component({
-  selector: 'app-halls-page',
+  selector: 'app-halls-list',
   imports: [
     FormsModule,
     TranslatePipe,
@@ -36,12 +33,11 @@ type HallsTab = 'list' | 'dashboard';
     IconComponent,
     ConfirmDialogComponent,
     PagerComponent,
-    BackLinkComponent,
     EmptyStateComponent,
   ],
-  templateUrl: './halls.page.html',
+  templateUrl: './halls-list.component.html',
 })
-export class HallsPage {
+export class HallsListComponent {
   private readonly hallsApi = inject(HallsApi);
   private readonly toasts = inject(ToastService);
   private readonly translate = inject(TranslateService);
@@ -51,7 +47,6 @@ export class HallsPage {
   protected readonly search = signal('');
   protected readonly statusFilter = signal<string>('');
   protected readonly page = signal(1);
-  protected readonly tab = signal<HallsTab>('list');
 
   /** Estados disponibles para el filtro (value interno → label capitalizado en UI). */
   protected readonly statusOptions = ['published', 'draft'];
@@ -82,14 +77,6 @@ export class HallsPage {
       next: (h) => this.halls.set(h),
       error: () => this.toasts.error(this.translate.instant('config.halls.loadError')),
     });
-  }
-
-  protected setTab(t: HallsTab): void {
-    this.tab.set(t);
-    // Regla transversal v3.8: al cambiar de pestaña se resetean los filtros.
-    this.search.set('');
-    this.statusFilter.set('');
-    this.page.set(1);
   }
 
   protected goToPage(p: number): void {

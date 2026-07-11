@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import {
@@ -25,6 +25,8 @@ import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { InfoTooltipComponent } from '../../shared/ui/info-tooltip.component';
 import { LockChipComponent } from '../../shared/ui/lock-chip.component';
+import { HallsListComponent } from './halls-list.component';
+import { TemplatesListComponent } from './templates-list.component';
 import type {
   CreatedInvitationDto,
   InvitationListItemDto,
@@ -58,15 +60,15 @@ const INV_PAGE = 9;
 
 /**
  * Consola de administración (F-v3, SOLO admin — roleGuard admin). Tabs: Eventos,
- * Promotores, Sistema (pasarelas + configuraciones abajo en grid) e Invitaciones.
- * Salones y Plantillas viven en páginas dedicadas (/configuracion/salones y
- * /configuracion/plantillas); desde aquí se enlazan (resumen + "Gestionar").
+ * Promotores, Salones, Plantillas, Sistema (pasarelas + configuraciones abajo en
+ * grid) e Invitaciones. Salones y Plantillas muestran su LISTA con filtros dentro
+ * del tab (v3.9 · B1, componentes `app-halls-list`/`app-templates-list`); la
+ * creación/edición sigue en páginas aparte (hall-edit/template-edit).
  */
 @Component({
   selector: 'app-config-page',
   imports: [
     FormsModule,
-    RouterLink,
     TranslatePipe,
     LocalizedDatePipe,
     StatusLabelPipe,
@@ -76,6 +78,8 @@ const INV_PAGE = 9;
     EmptyStateComponent,
     InfoTooltipComponent,
     LockChipComponent,
+    HallsListComponent,
+    TemplatesListComponent,
   ],
   templateUrl: './config.page.html',
 })

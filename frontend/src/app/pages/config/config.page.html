@@ -182,22 +182,14 @@
 
     @case ('salones') {
       <h2>{{ 'config.tabs.halls' | translate }}</h2>
-      <div class="card-block manage-summary" data-testid="halls-summary">
-        <p class="muted">{{ 'config.hallsSummary' | translate }}</p>
-        <a class="btn primary" routerLink="/configuracion/salones" data-testid="halls-manage">
-          <app-icon name="view" /> {{ 'config.manage' | translate }}
-        </a>
-      </div>
+      <p class="muted">{{ 'config.halls.intro' | translate }}</p>
+      <app-halls-list />
     }
 
     @case ('plantillas') {
       <h2>{{ 'config.tabs.templates' | translate }}</h2>
-      <div class="card-block manage-summary" data-testid="templates-summary">
-        <p class="muted">{{ 'config.templatesSummary' | translate }}</p>
-        <a class="btn primary" routerLink="/configuracion/plantillas" data-testid="templates-manage">
-          <app-icon name="view" /> {{ 'config.manage' | translate }}
-        </a>
-      </div>
+      <p class="muted">{{ 'config.templates.intro' | translate }}</p>
+      <app-templates-list />
     }
 
     @case ('sistema') {

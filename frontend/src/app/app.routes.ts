@@ -135,12 +135,8 @@ export const routes: Routes = [
     title: 'Configuración — Pasa Eventos',
   },
   {
-    path: 'configuracion/salones',
-    loadComponent: () => import('./pages/config/halls.page').then((m) => m.HallsPage),
-    canActivate: [roleGuard('admin')],
-    title: 'Salones — Pasa Eventos',
-  },
-  {
+    // La LISTA de salones vive en `/configuracion?tab=salones` (v3.9 · B1). Aquí
+    // solo quedan las páginas de creación/edición.
     path: 'configuracion/salones/nuevo',
     loadComponent: () => import('./pages/config/hall-edit.page').then((m) => m.HallEditPage),
     canActivate: [roleGuard('admin')],
@@ -153,12 +149,8 @@ export const routes: Routes = [
     title: 'Editar salón — Pasa Eventos',
   },
   {
-    path: 'configuracion/plantillas',
-    loadComponent: () => import('./pages/config/templates.page').then((m) => m.TemplatesPage),
-    canActivate: [roleGuard('admin')],
-    title: 'Plantillas — Pasa Eventos',
-  },
-  {
+    // La LISTA de plantillas vive en `/configuracion?tab=plantillas` (v3.9 · B1).
+    // Aquí solo quedan las páginas de creación/edición.
     path: 'configuracion/plantillas/nuevo',
     loadComponent: () => import('./pages/config/template-edit.page').then((m) => m.TemplateEditPage),
     canActivate: [roleGuard('admin')],

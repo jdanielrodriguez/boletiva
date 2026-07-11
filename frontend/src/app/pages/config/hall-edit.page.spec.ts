@@ -86,7 +86,7 @@ describe('HallEditPage (v3.8)', () => {
     inst().patch('name', 'Nuevo Salón');
     inst().save(false);
     expect((create.calls.mostRecent().args[0] as { status: string }).status).toBe('draft');
-    expect(nav).toHaveBeenCalledWith(['/configuracion/salones']);
+    expect(nav).toHaveBeenCalledWith(['/configuracion'], { queryParams: { tab: 'salones' } });
   });
 
   it('guardar y publicar llama create con status published', async () => {

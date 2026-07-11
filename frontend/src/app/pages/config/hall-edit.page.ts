@@ -118,7 +118,7 @@ export class HallEditPage {
       next: () => {
         this.saving.set(false);
         this.toasts.success(this.translate.instant(d.id ? 'config.halls.updated' : 'config.halls.created'));
-        void this.router.navigate(['/configuracion/salones']);
+        void this.router.navigate(['/configuracion'], { queryParams: { tab: 'salones' } });
       },
       error: () => {
         this.saving.set(false);
@@ -128,6 +128,6 @@ export class HallEditPage {
   }
 
   protected cancel(): void {
-    void this.router.navigate(['/configuracion/salones']);
+    void this.router.navigate(['/configuracion'], { queryParams: { tab: 'salones' } });
   }
 }

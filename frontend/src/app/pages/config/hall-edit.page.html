@@ -1,6 +1,6 @@
 <section class="config-page">
   <div class="page-head-row">
-    <app-back-link link="/configuracion/salones" testId="back-halls" [label]="'config.halls.backToHalls' | translate" />
+    <app-back-link link="/configuracion" [queryParams]="{ tab: 'salones' }" testId="back-halls" [label]="'config.halls.backToHalls' | translate" />
   </div>
   <h1>{{ heading() | translate }}</h1>
 

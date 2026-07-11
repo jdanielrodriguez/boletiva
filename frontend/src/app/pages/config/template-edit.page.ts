@@ -111,7 +111,7 @@ export class TemplateEditPage {
       next: () => {
         this.saving.set(false);
         this.toasts.success(this.translate.instant(d.id ? 'config.templates.updated' : 'config.templates.created'));
-        void this.router.navigate(['/configuracion/plantillas']);
+        void this.router.navigate(['/configuracion'], { queryParams: { tab: 'plantillas' } });
       },
       error: (err: { status?: number }) => {
         this.saving.set(false);
@@ -125,6 +125,6 @@ export class TemplateEditPage {
   }
 
   protected cancel(): void {
-    void this.router.navigate(['/configuracion/plantillas']);
+    void this.router.navigate(['/configuracion'], { queryParams: { tab: 'plantillas' } });
   }
 }

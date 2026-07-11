@@ -1,0 +1,78 @@
+<div class="list-filters">
+  <input type="search" [attr.placeholder]="'config.halls.searchPlaceholder' | translate" [ngModel]="search()" (ngModelChange)="setSearch($event)" name="hallq" data-testid="hall-search" />
+  <select [ngModel]="statusFilter()" (ngModelChange)="setStatus($event)" name="hallstatus" data-testid="hall-status-filter">
+    <option value="">{{ 'common.statuses.all' | translate }}</option>
+    @for (s of statusOptions; track s) { <option [value]="s">{{ s | statusLabel }}</option> }
+  </select>
+  <button type="button" class="btn primary" (click)="newHall()" data-testid="hall-new" [title]="'config.halls.newHallTitle' | translate">
+    <app-icon name="add" /> {{ 'config.halls.newHall' | translate }}
+  </button>
+</div>
+
+@if (filtered().length > 0) {
+  <div class="admin-events-grid" data-testid="halls-list">
+    @for (h of pageItems(); track h.id) {
+      <article class="ev-card" data-testid="hall-card">
+        <div class="ev-card-top">
+          <span class="badge badge-{{ h.status }}" data-testid="hall-status">{{ h.status | statusLabel }}</span>
+          <span class="ev-card-top-spacer"></span>
+          @if (h.status === 'draft') {
+            <button type="button" class="btn small icon-only primary" (click)="publish(h)" data-testid="hall-publish" [title]="'config.halls.publishTitle' | translate" [attr.aria-label]="'config.halls.publish' | translate">
+              <app-icon name="publish" />
+            </button>
+          } @else {
+            <button type="button" class="btn small icon-only" (click)="unpublish(h)" data-testid="hall-unpublish" [title]="'config.halls.unpublishTitle' | translate" [attr.aria-label]="'config.halls.unpublish' | translate">
+              <app-icon name="hide" />
+            </button>
+          }
+        </div>
+        <strong>{{ h.name }}</strong>
+        @if (h.city) { <span class="muted small">{{ h.city }}</span> }
+        @if (h.address) { <span class="muted small">{{ h.address }}</span> }
+        @if (h.lat != null && h.lng != null) { <span class="muted small">{{ h.lat }}, {{ h.lng }}</span> }
+        <div class="ev-card-actions">
+          @if (h.status === 'draft') {
+            <button type="button" class="btn small" (click)="editHall(h)" data-testid="hall-edit" [title]="'config.halls.editTitle' | translate">
+              <app-icon name="edit" /> {{ 'common.edit' | translate }}
+            </button>
+            <button type="button" class="btn small danger" (click)="askRemove(h)" data-testid="hall-remove" [title]="'config.halls.removeTitle' | translate">
+              <app-icon name="delete" /> {{ 'common.delete' | translate }}
+            </button>
+          }
+        </div>
+      </article>
+    }
+  </div>
+  <app-pager [page]="page()" [totalPages]="totalPages()" (pageChange)="goToPage($event)" data-testid="halls-pager" />
+} @else if (hasFilter()) {
+  <app-empty-state
+    variant="generic"
+    [title]="'config.halls.noResults' | translate"
+    [subtitle]="'config.halls.searchPlaceholder' | translate"
+    data-testid="halls-no-results"
+  />
+} @else {
+  <app-empty-state
+    variant="generic"
+    [title]="'config.halls.emptyTitle' | translate"
+    [subtitle]="'config.halls.emptySubtitle' | translate"
+    [ctaLabel]="'config.halls.newHall' | translate"
+    ctaLink="/configuracion/salones/nuevo"
+    data-testid="halls-empty"
+  />
+}
+
+@if (confirm(); as cf) {
+  <app-confirm-dialog
+    [title]="cf.title"
+    [message]="cf.message"
+    [confirmLabel]="cf.confirmLabel ?? ('common.delete' | translate)"
+    [confirmIcon]="cf.confirmIcon ?? 'delete'"
+    [danger]="cf.danger ?? true"
+    [titleIcon]="cf.titleIcon"
+    [auditAction]="cf.auditAction"
+    [auditResource]="cf.auditResource"
+    (accept)="onConfirmAccept()"
+    (cancelled)="onConfirmCancel()"
+  />
+}

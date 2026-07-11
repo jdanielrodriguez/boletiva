@@ -1,6 +1,6 @@
 <section class="config-page">
   <div class="page-head-row">
-    <app-back-link link="/configuracion/plantillas" testId="back-templates" [label]="'config.templates.backToTemplates' | translate" />
+    <app-back-link link="/configuracion" [queryParams]="{ tab: 'plantillas' }" testId="back-templates" [label]="'config.templates.backToTemplates' | translate" />
   </div>
   <h1>{{ heading() | translate }}</h1>
 

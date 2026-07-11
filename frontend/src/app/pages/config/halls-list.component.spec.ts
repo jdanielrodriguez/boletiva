@@ -5,15 +5,15 @@ import { of, throwError } from 'rxjs';
 import { HallsApi } from '../../core/api/halls.api';
 import { ToastService } from '../../core/ui/toast.service';
 import { provideI18nTesting, initI18nTesting } from '../../core/i18n/testing';
-import { HallsPage } from './halls.page';
+import { HallsListComponent } from './halls-list.component';
 
 const HALLS = [
   { id: 'h1', name: 'Teatro', city: 'Guatemala', address: 'Zona 1', lat: 14.6, lng: -90.5, notes: null, seatTemplateId: null, status: 'published', createdAt: '', updatedAt: '' },
   { id: 'h2', name: 'Salón Draft', city: 'Antigua', address: null, lat: null, lng: null, notes: null, seatTemplateId: null, status: 'draft', createdAt: '', updatedAt: '' },
 ];
 
-describe('HallsPage (v3.8)', () => {
-  let fixture: ComponentFixture<HallsPage>;
+describe('HallsListComponent (v3.9 · B1)', () => {
+  let fixture: ComponentFixture<HallsListComponent>;
   let el: HTMLElement;
   let toasts: ToastService;
 
@@ -37,7 +37,7 @@ describe('HallsPage (v3.8)', () => {
       ],
     });
     initI18nTesting();
-    fixture = TestBed.createComponent(HallsPage);
+    fixture = TestBed.createComponent(HallsListComponent);
     toasts = TestBed.inject(ToastService);
     fixture.detectChanges();
     await fixture.whenStable();
@@ -49,8 +49,6 @@ describe('HallsPage (v3.8)', () => {
   const inst = () => fixture.componentInstance as unknown as {
     setStatus: (v: string) => void;
     setSearch: (v: string) => void;
-    setTab: (t: 'list' | 'dashboard') => void;
-    tab: () => string;
     filtered: () => { id: string }[];
     hasFilter: () => boolean;
     newHall: () => void;
@@ -84,17 +82,6 @@ describe('HallsPage (v3.8)', () => {
     inst().setSearch('antigua');
     expect(inst().filtered().length).toBe(1);
     expect(inst().filtered()[0].id).toBe('h2');
-  });
-
-  it('cambiar de pestaña resetea los filtros', async () => {
-    await setup();
-    inst().setSearch('antigua');
-    inst().setStatus('draft');
-    inst().setTab('dashboard');
-    expect(inst().tab()).toBe('dashboard');
-    inst().setTab('list');
-    expect(inst().hasFilter()).toBe(false);
-    expect(inst().filtered().length).toBe(2);
   });
 
   it('nuevo salón navega a la página de creación', async () => {
