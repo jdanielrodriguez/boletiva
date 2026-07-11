@@ -101,6 +101,13 @@ describe('SeatManagerPage (vista de asientos a página completa)', () => {
     expect(fixture.componentInstance['readonly']()).toBe(false);
   });
 
+  it('admin IMPERSONANDO al dueño → edita libre (session.user() es el promotor)', async () => {
+    // Impersonación: /auth/me resuelve al promotor dueño → nunca bloqueado.
+    await setup({}, {}, { id: 'owner-1', roles: ['promoter'] });
+    expect(fixture.componentInstance['adminLocked']()).toBe(false);
+    expect(fixture.componentInstance['readonly']()).toBe(false);
+  });
+
   it('evento inexistente muestra el estado not-found', async () => {
     await setup({ get: () => throwError(() => new Error('404')) });
     const el = fixture.nativeElement as HTMLElement;

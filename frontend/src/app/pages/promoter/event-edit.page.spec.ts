@@ -586,6 +586,31 @@ describe('EventEditPage (v3)', () => {
     expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="lock-banner"]')).toBeNull();
   });
 
+  it('admin IMPERSONANDO al dueño: NO bloquea (session.user() es el promotor dueño)', async () => {
+    // Durante la impersonación el backend resuelve /auth/me como el promotor:
+    // session.user().id === event.promoterId → tratado como dueño, edita libre.
+    await setup({}, {}, 'e1', { id: 'owner-1', roles: ['promoter'] });
+    expect(fixture.componentInstance['locked']()).toBe(false);
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="lock-banner"]')).toBeNull();
+    expect(el.querySelector('[data-testid="unlock-btn"]')).toBeNull();
+  });
+
+  it('impersonación aunque el token conserve el rol admin: el id de dueño manda (NO bloquea)', async () => {
+    await setup({}, {}, 'e1', { id: 'owner-1', roles: ['admin', 'promoter'] });
+    expect(fixture.componentInstance['locked']()).toBe(false);
+  });
+
+  it('promotor dueño: ve el botón de crear/agregar localidad (sin candado)', async () => {
+    await setup();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(fixture.componentInstance['locked']()).toBe(false);
+    // La barra de localidades (con el botón crear) solo aparece si canEditLayout y no bloqueado.
+    fixture.componentInstance['selectTab']('localidades');
+    fixture.detectChanges();
+    expect(el.querySelector('[data-testid="loc-add-toggle"]')).not.toBeNull();
+  });
+
   it('admin NO dueño: arranca bloqueado y muestra el botón desbloquear', async () => {
     await setup({}, {}, 'e1', { id: 'admin-9', roles: ['admin'] });
     expect(fixture.componentInstance['locked']()).toBe(true);
