@@ -55,6 +55,7 @@ describe('HallsListComponent (v3.9 · B1)', () => {
     editHall: (h: unknown) => void;
     publish: (h: unknown) => void;
     unpublish: (h: unknown) => void;
+    askPublish: (h: unknown) => void;
     askRemove: (h: unknown) => void;
     onConfirmAccept: () => void;
   };
@@ -106,6 +107,17 @@ describe('HallsListComponent (v3.9 · B1)', () => {
     expect(publish).toHaveBeenCalledWith('h2');
     inst().unpublish(HALLS[0]);
     expect(unpublish).toHaveBeenCalledWith('h1');
+  });
+
+  it('publicar pide confirmación y solo publica al aceptar (B3)', async () => {
+    const publish = jasmine.createSpy('p').and.returnValue(of(HALLS[1]));
+    await setup({ publish });
+    inst().askPublish(HALLS[1]);
+    fixture.detectChanges();
+    expect(el.querySelector('[data-testid="confirm-dialog"]')).not.toBeNull();
+    expect(publish).not.toHaveBeenCalled();
+    inst().onConfirmAccept();
+    expect(publish).toHaveBeenCalledWith('h2');
   });
 
   it('eliminar pide confirmación y llama remove', async () => {

@@ -17,7 +17,7 @@
           <span class="badge badge-{{ h.status }}" data-testid="hall-status">{{ h.status | statusLabel }}</span>
           <span class="ev-card-top-spacer"></span>
           @if (h.status === 'draft') {
-            <button type="button" class="btn small icon-only primary" (click)="publish(h)" data-testid="hall-publish" [title]="'config.halls.publishTitle' | translate" [attr.aria-label]="'config.halls.publish' | translate">
+            <button type="button" class="btn small icon-only primary" (click)="askPublish(h)" data-testid="hall-publish" [title]="'config.halls.publishTitle' | translate" [attr.aria-label]="'config.halls.publish' | translate">
               <app-icon name="publish" />
             </button>
           } @else {

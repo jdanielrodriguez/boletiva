@@ -248,6 +248,9 @@ export const config = {
     savePublishTitle: 'Save and publish (visible to promoters)',
     publish: 'Publish',
     publishTitle: 'Publish venue (visible to promoters)',
+    publishConfirmTitle: 'Publish venue',
+    publishConfirmMessage:
+      'Publish venue "{{name}}"? Promoters will be able to pick it when creating events.',
     unpublish: 'Unpublish',
     unpublishTitle: 'Back to draft (hidden from the selector)',
     published: 'Venue published.',
@@ -298,6 +301,9 @@ export const config = {
     viewTitle: 'View template (preview)',
     publish: 'Publish',
     publishTitle: 'Publish (visible in the promoter editor)',
+    publishConfirmTitle: 'Publish template',
+    publishConfirmMessage:
+      'Publish template "{{name}}"? It will show up in the "Generate" dropdown of the seat editor.',
     unpublish: 'Unpublish',
     unpublishTitle: 'Back to draft',
     disable: 'Disable',

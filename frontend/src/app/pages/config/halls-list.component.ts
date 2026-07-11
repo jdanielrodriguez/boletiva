@@ -98,6 +98,20 @@ export class HallsListComponent {
     void this.router.navigate(['/configuracion/salones', h.id, 'editar']);
   }
 
+  // --- Publicar (con modal de confirmación, v3.9 · B3) ---
+  protected askPublish(h: HallResponseDto): void {
+    this.confirm.set({
+      title: this.translate.instant('config.halls.publishConfirmTitle'),
+      message: this.translate.instant('config.halls.publishConfirmMessage', { name: h.name }),
+      confirmLabel: this.translate.instant('config.halls.publish'),
+      confirmIcon: 'publish',
+      titleIcon: 'publish',
+      danger: false,
+      auditAction: 'hall.publish',
+      auditResource: h.id,
+      onConfirm: () => this.publish(h),
+    });
+  }
   protected publish(h: HallResponseDto): void {
     this.hallsApi.publish(h.id).subscribe({
       next: () => {

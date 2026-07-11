@@ -248,6 +248,9 @@ export const config = {
     savePublishTitle: 'Guardar y publicar (visible para promotores)',
     publish: 'Publicar',
     publishTitle: 'Publicar salón (visible para promotores)',
+    publishConfirmTitle: 'Publicar salón',
+    publishConfirmMessage:
+      '¿Publicar el salón "{{name}}"? Quedará disponible para que los promotores lo elijan al crear eventos.',
     unpublish: 'Despublicar',
     unpublishTitle: 'Regresar a borrador (oculto del selector)',
     published: 'Salón publicado.',
@@ -298,6 +301,9 @@ export const config = {
     viewTitle: 'Ver plantilla (previsualizar)',
     publish: 'Publicar',
     publishTitle: 'Publicar (visible en el editor del promotor)',
+    publishConfirmTitle: 'Publicar plantilla',
+    publishConfirmMessage:
+      '¿Publicar la plantilla "{{name}}"? Aparecerá en el desplegable "Generar" del editor de asientos.',
     unpublish: 'Despublicar',
     unpublishTitle: 'Regresar a borrador',
     disable: 'Deshabilitar',

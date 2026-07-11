@@ -141,6 +141,20 @@ export class TemplatesListComponent {
       error: () => this.toasts.error(this.translate.instant('config.templates.stateError')),
     });
   }
+  // --- Publicar (con modal de confirmación, v3.9 · B3) ---
+  protected askPublish(t: SeatTemplateResponseDto): void {
+    this.confirm.set({
+      title: this.translate.instant('config.templates.publishConfirmTitle'),
+      message: this.translate.instant('config.templates.publishConfirmMessage', { name: t.name }),
+      confirmLabel: this.translate.instant('config.templates.publish'),
+      confirmIcon: 'publish',
+      titleIcon: 'publish',
+      danger: false,
+      auditAction: 'template.publish',
+      auditResource: t.id,
+      onConfirm: () => this.publish(t),
+    });
+  }
   protected publish(t: SeatTemplateResponseDto): void {
     this.transition(this.templatesApi.publish(t.id), 'config.templates.published');
   }

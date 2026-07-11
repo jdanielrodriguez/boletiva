@@ -60,6 +60,7 @@ describe('TemplatesListComponent (v3.9 · B1)', () => {
     hasFilter: () => boolean;
     filtered: () => { id: string }[];
     publish: (t: unknown) => void;
+    askPublish: (t: unknown) => void;
     hide: (t: unknown) => void;
     disable: (t: unknown) => void;
     newTemplate: () => void;
@@ -165,6 +166,17 @@ describe('TemplatesListComponent (v3.9 · B1)', () => {
     expect(hide).toHaveBeenCalledWith('t2');
     inst().disable(TEMPLATES[1]);
     expect(disable).toHaveBeenCalledWith('t2');
+  });
+
+  it('publicar pide confirmación y solo publica al aceptar (B3)', async () => {
+    const publish = jasmine.createSpy('p').and.returnValue(of(TEMPLATES[1]));
+    await setup({ publish });
+    inst().askPublish(TEMPLATES[1]);
+    fixture.detectChanges();
+    expect(el.querySelector('[data-testid="confirm-dialog"]')).not.toBeNull();
+    expect(publish).not.toHaveBeenCalled();
+    inst().onConfirmAccept();
+    expect(publish).toHaveBeenCalledWith('t2');
   });
 
   it('preview de una plantilla publicada abre el modal', async () => {
