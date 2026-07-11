@@ -460,9 +460,9 @@ export class ConfigPage {
     });
   }
   protected setPromoterPct(p: PromoterListItemDto): void {
-    const raw = this.pctEdits()[p.id] ?? '';
+    const raw = String(this.pctEdits()[p.id] ?? '').trim();
     const pct = Number(raw);
-    if (raw.trim() === '' || Number.isNaN(pct) || pct < 0 || pct > 1) {
+    if (raw === '' || Number.isNaN(pct) || pct < 0 || pct > 1) {
       this.toasts.warning(this.translate.instant('config.promoters.shareRange'));
       return;
     }

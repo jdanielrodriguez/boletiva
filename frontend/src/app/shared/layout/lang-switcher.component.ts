@@ -1,5 +1,7 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Injector, inject } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
+import { UsersApi } from '../../core/api/users.api';
+import { SessionStore } from '../../core/auth/session.store';
 import { I18nService } from '../../core/i18n/i18n.service';
 import type { Lang } from '../../core/i18n/i18n.types';
 
@@ -109,8 +111,24 @@ import type { Lang } from '../../core/i18n/i18n.types';
 })
 export class LangSwitcherComponent {
   protected readonly i18n = inject(I18nService);
+  private readonly session = inject(SessionStore);
+  private readonly injector = inject(Injector);
 
   setLang(lang: Lang): void {
     this.i18n.use(lang);
+    // Si hay sesión, persiste también en BD: de lo contrario, al recargar,
+    // `ensureLoaded()` reaplicaría el idioma guardado del usuario y revertiría
+    // el toggle. Anónimos: basta con localStorage (lo hace `i18n.use`).
+    // `UsersApi` se resuelve DIFERIDO (solo con sesión) para no exigir HttpClient
+    // en los specs que montan el header sin proveerlo. Fire-and-forget.
+    const user = this.session.user();
+    if (user && user.language !== lang) {
+      this.injector.get(UsersApi).updateMe({ language: lang }).subscribe({
+        next: (updated) => this.session.setUser(updated),
+        error: () => {
+          /* sin persistencia en BD → el toggle igual aplicó en esta sesión */
+        },
+      });
+    }
   }
 }

@@ -1,5 +1,9 @@
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { SessionStore } from '../../core/auth/session.store';
+import { API_BASE_URL } from '../../core/config/api.tokens';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { provideI18nTesting } from '../../core/i18n/testing';
 import { LangSwitcherComponent } from './lang-switcher.component';
@@ -10,7 +14,13 @@ describe('LangSwitcherComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideZonelessChangeDetection(), ...provideI18nTesting()],
+      providers: [
+        provideZonelessChangeDetection(),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: API_BASE_URL, useValue: 'http://test.local/api/v1' },
+        ...provideI18nTesting(),
+      ],
     });
     i18n = TestBed.inject(I18nService);
     i18n.init();
@@ -46,5 +56,17 @@ describe('LangSwitcherComponent', () => {
     (el.querySelector('[data-testid="lang-es"]') as HTMLButtonElement).click();
     fixture.detectChanges();
     expect(i18n.lang()).toBe('es');
+  });
+
+  it('con sesión iniciada persiste el idioma en BD (PATCH /users/me)', () => {
+    const http = TestBed.inject(HttpTestingController);
+    const session = TestBed.inject(SessionStore);
+    session.setUser({ id: 'u1', email: 'x@y.z', roles: ['buyer'], language: 'es' } as never);
+    const el = fixture.nativeElement as HTMLElement;
+    (el.querySelector('[data-testid="lang-en"]') as HTMLButtonElement).click();
+    const req = http.expectOne((r) => r.url.endsWith('/users/me') && r.method === 'PATCH');
+    expect(req.request.body).toEqual({ language: 'en' });
+    req.flush({ id: 'u1', email: 'x@y.z', roles: ['buyer'], language: 'en' });
+    http.verify();
   });
 });
