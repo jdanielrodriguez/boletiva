@@ -154,12 +154,29 @@ export class EventsController {
     return this.events.setStatus(id, 'published', user, unlockToken);
   }
 
+  @Post(':id/suspend')
+  @Roles(Role.promoter, Role.admin)
+  @HttpCode(200)
+  @ApiBearerAuth()
+  @ApiHeader({ name: 'x-edit-unlock', required: false, description: 'Token de desbloqueo (admin no-dueño)' })
+  @ApiOperation({
+    summary: 'Suspende un evento publicado (lo despublica y lo pone en reconfiguración; re-publicable)',
+  })
+  @ApiOkResponse({ type: EventResponseDto })
+  suspend(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthUser,
+    @Headers('x-edit-unlock') unlockToken?: string,
+  ) {
+    return this.events.suspend(id, user, unlockToken);
+  }
+
   @Post(':id/cancel')
   @Roles(Role.promoter, Role.admin)
   @HttpCode(200)
   @ApiBearerAuth()
   @ApiHeader({ name: 'x-edit-unlock', required: false, description: 'Token de desbloqueo (admin no-dueño)' })
-  @ApiOperation({ summary: 'Cancela un evento' })
+  @ApiOperation({ summary: 'Cancela un evento (terminal)' })
   @ApiOkResponse({ type: EventResponseDto })
   cancel(
     @Param('id', ParseUUIDPipe) id: string,

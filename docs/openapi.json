@@ -1533,6 +1533,51 @@
         ]
       }
     },
+    "/api/v1/events/{id}/suspend": {
+      "post": {
+        "operationId": "EventsController_suspend_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-edit-unlock",
+            "required": false,
+            "in": "header",
+            "description": "Token de desbloqueo (admin no-dueño)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Suspende un evento publicado (lo despublica y lo pone en reconfiguración; re-publicable)",
+        "tags": [
+          "events"
+        ]
+      }
+    },
     "/api/v1/events/{id}/cancel": {
       "post": {
         "operationId": "EventsController_cancel_v1",
@@ -1572,7 +1617,7 @@
             "bearer": []
           }
         ],
-        "summary": "Cancela un evento",
+        "summary": "Cancela un evento (terminal)",
         "tags": [
           "events"
         ]
@@ -7230,6 +7275,7 @@
             "enum": [
               "draft",
               "published",
+              "suspended",
               "cancelled",
               "finished"
             ],
@@ -7419,6 +7465,7 @@
             "enum": [
               "draft",
               "published",
+              "suspended",
               "cancelled",
               "finished"
             ],
@@ -7588,6 +7635,7 @@
             "enum": [
               "draft",
               "published",
+              "suspended",
               "cancelled",
               "finished"
             ],
@@ -7795,6 +7843,7 @@
             "enum": [
               "draft",
               "published",
+              "suspended",
               "cancelled",
               "finished"
             ],
@@ -7863,6 +7912,11 @@
             "items": {
               "$ref": "#/components/schemas/EventLocalityDto"
             }
+          },
+          "soldTicketsCount": {
+            "type": "number",
+            "example": 0,
+            "description": "Boletos vendidos (ítems activos de órdenes pagadas). Server-authoritative; alimenta el aviso de devoluciones al reconfigurar un evento suspendido."
           }
         },
         "required": [
@@ -7878,7 +7932,8 @@
           "createdAt",
           "updatedAt",
           "media",
-          "localities"
+          "localities",
+          "soldTicketsCount"
         ]
       },
       "SeatMapDto": {
@@ -8176,6 +8231,7 @@
             "enum": [
               "draft",
               "published",
+              "suspended",
               "cancelled",
               "finished"
             ],
@@ -8404,6 +8460,7 @@
             "enum": [
               "draft",
               "published",
+              "suspended",
               "cancelled",
               "finished"
             ],

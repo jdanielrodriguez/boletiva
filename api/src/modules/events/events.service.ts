@@ -294,7 +294,18 @@ export class EventsService {
     if (!event) throw new NotFoundException('Evento no encontrado');
     if (!this.canManage(event, user)) throw new ForbiddenException('No es tu evento');
     // Firma la media (banner/galería) para que el editor pueda previsualizarla.
-    return this.signMedia(event);
+    const signed = await this.signMedia(event);
+    // Boletos vendidos (server-authoritative): ítems activos de órdenes pagadas.
+    // Alimenta el aviso del editor ("hay boletos vendidos → ejecutar devoluciones").
+    const soldTicketsCount = await this.soldTicketsCount(id);
+    return { ...signed, soldTicketsCount };
+  }
+
+  /** Boletos vendidos de un evento: ítems ACTIVOS de órdenes PAGADAS (== ticketsSold). */
+  private soldTicketsCount(eventId: string): Promise<number> {
+    return this.prisma.orderItem.count({
+      where: { order: { eventId, status: 'paid' }, active: true },
+    });
   }
 
   async create(dto: CreateEventDto, userId: string) {
@@ -360,6 +371,15 @@ export class EventsService {
         'El evento ya tiene compras; su pasarela e IVA quedaron congelados',
       );
     }
+    // Cambiar el SALÓN altera la ubicación/layout: solo se permite mientras el
+    // evento es reconfigurable (draft o suspendido). En un evento PUBLICADO hay
+    // que suspenderlo primero (así deja de venderse mientras se reorganiza).
+    const changesHall = dto.hallId !== undefined && dto.hallId !== event.hallId;
+    if (changesHall && event.status === 'published') {
+      throw new ConflictException(
+        'No puedes cambiar el salón de un evento publicado; suspéndelo para reconfigurarlo',
+      );
+    }
     const gatewayId =
       dto.gatewayId !== undefined
         ? await this.anchorGatewayForTestUser(event.promoterId, dto.gatewayId)
@@ -397,6 +417,11 @@ export class EventsService {
     const event = await this.getManaged(id, user);
     await this.editUnlock.assertCanMutate(user, event, unlockToken);
     if (status === 'published') {
+      // Un evento cancelado/finalizado es terminal: no se re-publica. Un evento
+      // SUSPENDIDO sí (estaba en reconfiguración) → pasa el mismo gate de publicar.
+      if (event.status === 'cancelled' || event.status === 'finished') {
+        throw new ConflictException('Un evento cancelado o finalizado no puede publicarse');
+      }
       // Publicar requiere estar autorizado como promotor (o ser admin).
       await this.promoters.assertCanOperate(user.userId);
       if (event.localities.length === 0) {
@@ -405,6 +430,22 @@ export class EventsService {
       await this.assertPublishable(event);
     }
     return this.prisma.event.update({ where: { id }, data: { status } });
+  }
+
+  /**
+   * SUSPENDE un evento publicado (v3.7): lo DESPUBLICA (deja de estar visible/
+   * vendible en los listados y la disponibilidad públicos) y lo pone en modo
+   * RECONFIGURACIÓN — a diferencia de `cancel` (terminal), un suspendido puede
+   * volver a editarse (salón/plantilla/localidades/asientos) y RE-PUBLICARSE.
+   * Solo aplica desde `published`. Admin no-dueño requiere token de desbloqueo.
+   */
+  async suspend(id: string, user: AuthUser, unlockToken?: string) {
+    const event = await this.getManaged(id, user);
+    await this.editUnlock.assertCanMutate(user, event, unlockToken);
+    if (event.status !== 'published') {
+      throw new ConflictException('Solo un evento publicado puede suspenderse');
+    }
+    return this.prisma.event.update({ where: { id }, data: { status: 'suspended' } });
   }
 
   /**

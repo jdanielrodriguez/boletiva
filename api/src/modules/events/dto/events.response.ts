@@ -212,6 +212,13 @@ export class ManagedEventDetailDto extends EventResponseDto {
 
   @ApiProperty({ type: () => EventLocalityDto, isArray: true })
   localities!: EventLocalityDto[];
+
+  @ApiProperty({
+    example: 0,
+    description:
+      'Boletos vendidos (ítems activos de órdenes pagadas). Server-authoritative; alimenta el aviso de devoluciones al reconfigurar un evento suspendido.',
+  })
+  soldTicketsCount!: number;
 }
 
 /** Ítem del listado público: evento + categoría + media. */

@@ -86,6 +86,7 @@ describe('Eventos: gestión (e2e)', () => {
     await prisma.event.deleteMany({ where: { promoterId: { in: [promoterId, ...ids] }, slug: { contains: String(stamp) } } });
     await prisma.event.deleteMany({ where: { name: { startsWith: 'Ev ' }, promoterId: { in: ids } } });
     await prisma.paymentGateway.deleteMany({ where: { id: inactiveGatewayId } });
+    await prisma.hall.deleteMany({ where: { name: { contains: `Salón ${stamp}` } } });
     await prisma.user.deleteMany({ where: { email: { contains: `_${stamp}@test.com` } } });
     await app.close();
   });
@@ -299,6 +300,122 @@ describe('Eventos: gestión (e2e)', () => {
       .send({ name: 'Nuevo nombre' })
       .expect(409);
     await http().delete(`/api/v1/localities/${loc.body.id}`).set(bearer(promoterToken)).expect(409);
+  });
+
+  describe('Suspensión de evento (v3.7)', () => {
+    /** Publica un evento con banner + 1 localidad GA para poder suspenderlo. */
+    const publishReady = async () => {
+      const ev = await createEvent(promoterToken);
+      await prisma.locality.create({
+        data: { eventId: ev.id, name: 'GA', slug: `ga-sus-${ev.id.slice(0, 8)}`, kind: 'general', capacity: 5 },
+      });
+      await addBanner(ev.id);
+      await http().post(`/api/v1/events/${ev.id}/publish`).set(bearer(promoterToken)).expect(200);
+      return ev;
+    };
+
+    it('suspender despublica: desaparece de listados y detalle públicos', async () => {
+      const ev = await publishReady();
+      const before = await http().get(`/api/v1/events/${ev.slug}`).expect(200);
+      expect(before.body.status).toBe('published');
+
+      const res = await http().post(`/api/v1/events/${ev.id}/suspend`).set(bearer(promoterToken)).expect(200);
+      expect(res.body.status).toBe('suspended');
+
+      // Ya no es visible públicamente (ni por slug ni en disponibilidad).
+      await http().get(`/api/v1/events/${ev.slug}`).expect(404);
+      await http().get(`/api/v1/events/${ev.id}/availability`).expect(404);
+    });
+
+    it('suspendido es reconfigurable: permite crear localidades (published NO); luego re-publica', async () => {
+      const ev = await publishReady();
+      // Publicado: bloqueado.
+      await http()
+        .post(`/api/v1/events/${ev.id}/localities`)
+        .set(bearer(promoterToken))
+        .send({ name: 'Extra', kind: 'general', capacity: 3 })
+        .expect(409);
+      // Suspendido: permitido.
+      await http().post(`/api/v1/events/${ev.id}/suspend`).set(bearer(promoterToken)).expect(200);
+      await http()
+        .post(`/api/v1/events/${ev.id}/localities`)
+        .set(bearer(promoterToken))
+        .send({ name: 'Extra', kind: 'general', capacity: 3 })
+        .expect(201);
+      // Re-publicable (pasa el gate: banner + localidades).
+      const re = await http().post(`/api/v1/events/${ev.id}/publish`).set(bearer(promoterToken)).expect(200);
+      expect(re.body.status).toBe('published');
+    });
+
+    it('cambiar salón: bloqueado en publicado (409), permitido en suspendido', async () => {
+      const hall = await prisma.hall.create({
+        data: { name: `Salón ${stamp}-${Math.random().toString(36).slice(2, 6)}`, address: 'Zona 1' },
+      });
+      const ev = await publishReady();
+      await http()
+        .patch(`/api/v1/events/${ev.id}`)
+        .set(bearer(promoterToken))
+        .send({ hallId: hall.id })
+        .expect(409);
+      await http().post(`/api/v1/events/${ev.id}/suspend`).set(bearer(promoterToken)).expect(200);
+      const ok = await http()
+        .patch(`/api/v1/events/${ev.id}`)
+        .set(bearer(promoterToken))
+        .send({ hallId: hall.id })
+        .expect(200);
+      expect(ok.body.hallId).toBe(hall.id);
+    });
+
+    it('cancelar es terminal: un cancelado no se suspende ni re-publica → 409', async () => {
+      const ev = await publishReady();
+      await http().post(`/api/v1/events/${ev.id}/cancel`).set(bearer(promoterToken)).expect(200);
+      await http().post(`/api/v1/events/${ev.id}/suspend`).set(bearer(promoterToken)).expect(409);
+      await http().post(`/api/v1/events/${ev.id}/publish`).set(bearer(promoterToken)).expect(409);
+    });
+
+    it('suspender un borrador → 409 (solo aplica a publicados)', async () => {
+      const draft = await createEvent(promoterToken);
+      await http().post(`/api/v1/events/${draft.id}/suspend`).set(bearer(promoterToken)).expect(409);
+    });
+
+    it('RBAC/ownership: ajeno → 403; sin token → 401', async () => {
+      const ev = await publishReady();
+      await http().post(`/api/v1/events/${ev.id}/suspend`).set(bearer(promoterBToken)).expect(403);
+      await http().post(`/api/v1/events/${ev.id}/suspend`).expect(401);
+    });
+
+    it('GET /manage expone soldTicketsCount server-authoritative', async () => {
+      const ev = await createEvent(promoterToken);
+      const loc = await prisma.locality.create({
+        data: { eventId: ev.id, name: 'GA', slug: `ga-sold-${ev.id.slice(0, 8)}`, kind: 'general', capacity: 10, desiredNet: 100 },
+      });
+      const seat = await prisma.seat.create({
+        data: { localityId: loc.id, label: 'GA-0000001', section: 'GA', status: 'sold' },
+      });
+      const zero = await http().get(`/api/v1/events/${ev.id}/manage`).set(bearer(promoterToken)).expect(200);
+      expect(zero.body.soldTicketsCount).toBe(0);
+      await prisma.order.create({
+        data: {
+          buyerId: promoterId,
+          eventId: ev.id,
+          status: 'paid',
+          net: '100.00',
+          fixedFees: '0.00',
+          platformFee: '10.00',
+          taxableBase: '110.00',
+          iva: '13.20',
+          gatewayFee: '6.48',
+          total: '129.68',
+          items: {
+            create: [
+              { localityId: loc.id, seatId: seat.id, label: 'GA-0000001', net: '100.00', total: '129.68', quote: {}, quoteHash: 'h', active: true },
+            ],
+          },
+        },
+      });
+      const one = await http().get(`/api/v1/events/${ev.id}/manage`).set(bearer(promoterToken)).expect(200);
+      expect(one.body.soldTicketsCount).toBe(1);
+    });
   });
 
   describe('GET /events/:id/settlement (liquidación)', () => {

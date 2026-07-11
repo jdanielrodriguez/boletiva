@@ -722,6 +722,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suspende un evento publicado (lo despublica y lo pone en reconfiguración; re-publicable) */
+        post: operations["EventsController_suspend_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{id}/cancel": {
         parameters: {
             query?: never;
@@ -731,7 +748,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Cancela un evento */
+        /** Cancela un evento (terminal) */
         post: operations["EventsController_cancel_v1"];
         delete?: never;
         options?: never;
@@ -3088,7 +3105,7 @@ export interface components {
              * @example draft
              * @enum {string}
              */
-            status: "draft" | "published" | "cancelled" | "finished";
+            status: "draft" | "published" | "suspended" | "cancelled" | "finished";
             /**
              * Format: uuid
              * @description Pasarela elegida por el promotor (null = hereda la default de plataforma)
@@ -3208,7 +3225,7 @@ export interface components {
              * @example draft
              * @enum {string}
              */
-            status: "draft" | "published" | "cancelled" | "finished";
+            status: "draft" | "published" | "suspended" | "cancelled" | "finished";
             /**
              * Format: uuid
              * @description Pasarela elegida por el promotor (null = hereda la default de plataforma)
@@ -3313,7 +3330,7 @@ export interface components {
              * @example draft
              * @enum {string}
              */
-            status: "draft" | "published" | "cancelled" | "finished";
+            status: "draft" | "published" | "suspended" | "cancelled" | "finished";
             /**
              * Format: uuid
              * @description Pasarela elegida por el promotor (null = hereda la default de plataforma)
@@ -3450,7 +3467,7 @@ export interface components {
              * @example draft
              * @enum {string}
              */
-            status: "draft" | "published" | "cancelled" | "finished";
+            status: "draft" | "published" | "suspended" | "cancelled" | "finished";
             /**
              * Format: uuid
              * @description Pasarela elegida por el promotor (null = hereda la default de plataforma)
@@ -3494,6 +3511,11 @@ export interface components {
             category?: components["schemas"]["EventCategoryDto"] | null;
             media: components["schemas"]["EventMediaItemDto"][];
             localities: components["schemas"]["EventLocalityDto"][];
+            /**
+             * @description Boletos vendidos (ítems activos de órdenes pagadas). Server-authoritative; alimenta el aviso de devoluciones al reconfigurar un evento suspendido.
+             * @example 0
+             */
+            soldTicketsCount: number;
         };
         SeatMapDto: {
             /** Format: uuid */
@@ -3652,7 +3674,7 @@ export interface components {
              * @example draft
              * @enum {string}
              */
-            status: "draft" | "published" | "cancelled" | "finished";
+            status: "draft" | "published" | "suspended" | "cancelled" | "finished";
             /**
              * Format: uuid
              * @description Pasarela elegida por el promotor (null = hereda la default de plataforma)
@@ -3817,7 +3839,7 @@ export interface components {
              * @example draft
              * @enum {string}
              */
-            status: "draft" | "published" | "cancelled" | "finished";
+            status: "draft" | "published" | "suspended" | "cancelled" | "finished";
             /**
              * Format: uuid
              * @description Pasarela elegida por el promotor (null = hereda la default de plataforma)
@@ -7140,6 +7162,30 @@ export interface operations {
         };
     };
     EventsController_publish_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Token de desbloqueo (admin no-dueño) */
+                "x-edit-unlock"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventResponseDto"];
+                };
+            };
+        };
+    };
+    EventsController_suspend_v1: {
         parameters: {
             query?: never;
             header?: {

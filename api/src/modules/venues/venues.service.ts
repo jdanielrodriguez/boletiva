@@ -23,18 +23,19 @@ export class VenuesService {
   ) {}
 
   /**
-   * Un evento publicado (o cancelado) tiene su aforo/geometría CONGELADOS: no se
-   * pueden crear/editar/borrar localidades ni asientos (alteraría lo que ya está a
-   * la venta). Solo en `draft` se edita libremente. Devuelve el evento gestionable
-   * (reusa la autorización owner/admin de getManaged). Un admin NO-dueño requiere
-   * token de desbloqueo (`x-edit-unlock`).
+   * Aforo/geometría editables solo cuando el evento es RECONFIGURABLE: `draft`
+   * (nunca publicado) o `suspended` (v3.7: despublicado a propósito para cambiar
+   * salón/plantilla/localidades). Un evento `published`/`cancelled`/`finished`
+   * tiene su aforo CONGELADO (no alterar lo que está a la venta). Devuelve el
+   * evento gestionable (reusa la autorización owner/admin de getManaged). Un admin
+   * NO-dueño requiere token de desbloqueo (`x-edit-unlock`).
    */
   private async assertEditable(eventId: string, user: AuthUser, unlockToken?: string) {
     const event = await this.events.getManaged(eventId, user);
     await this.editUnlock.assertCanMutate(user, event, unlockToken);
-    if (event.status !== 'draft') {
+    if (event.status !== 'draft' && event.status !== 'suspended') {
       throw new ConflictException(
-        'El evento no está en borrador; su aforo y localidades están bloqueados',
+        'El evento no es editable en su estado actual; suspéndelo para reconfigurar su aforo y localidades',
       );
     }
     return event;
@@ -226,8 +227,12 @@ export class VenuesService {
     unlockToken?: string,
   ) {
     await this.getLocalityEditable(localityId, user, unlockToken);
+    // Seguridad de reconfiguración (v3.7): SOLO se borran cupos `available`. Al
+    // reconfigurar un evento suspendido con ventas, un asiento VENDIDO nunca se
+    // elimina (dejaría un boleto huérfano / abriría la puerta a doble venta); esos
+    // asientos se preservan y su devolución debe ejecutarse aparte.
     const result = await this.prisma.seat.deleteMany({
-      where: { id: { in: dto.ids }, localityId },
+      where: { id: { in: dto.ids }, localityId, status: 'available' },
     });
     const capacity = await this.syncCapacity(localityId);
     return { deleted: result.count, capacity };
