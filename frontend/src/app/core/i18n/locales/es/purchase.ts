@@ -27,4 +27,8 @@ export const purchase = {
   expiredWarn: 'Tu reserva expiró. Vuelve a seleccionar tus boletos.',
   reserveError: 'No se pudieron reservar los boletos (alguien más los tomó). Intenta de nuevo.',
   checkoutError: 'No se pudo continuar al pago. Intenta de nuevo.',
+  loadErrorTitle: 'No se pudo cargar la disponibilidad',
+  loadErrorBody: 'Ocurrió un problema al cargar el mapa de asientos. Recarga la página e intenta de nuevo.',
+  emptyTitle: 'Sin boletos disponibles',
+  emptyBody: 'Este evento aún no tiene localidades a la venta. Vuelve más tarde.',
 };

@@ -3,7 +3,7 @@ import { Component, OnDestroy, afterNextRender, computed, inject, signal } from 
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import { switchMap, tap } from 'rxjs';
+import { catchError, of, switchMap, tap } from 'rxjs';
 import { EventsApi } from '../../core/api/events.api';
 import { SessionStore } from '../../core/auth/session.store';
 import { SITE_URL } from '../../core/config/api.tokens';
@@ -11,6 +11,8 @@ import type { LocalityAvailabilityDto } from '../../core/api/types';
 import { LoginModal } from '../../shared/login-modal/login-modal.component';
 import { ShareBox } from '../../shared/share-box/share-box.component';
 import { ReservationItems } from '../../shared/reservation-items/reservation-items.component';
+import { LoadingComponent } from '../../shared/ui/loading.component';
+import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { SeatMapComponent } from './seat-map.component';
 import { PurchaseService } from './purchase.service';
 
@@ -24,7 +26,16 @@ type Phase = 'select' | 'reserved' | 'expired';
  */
 @Component({
   selector: 'app-purchase',
-  imports: [SeatMapComponent, DecimalPipe, ShareBox, LoginModal, ReservationItems, TranslatePipe],
+  imports: [
+    SeatMapComponent,
+    DecimalPipe,
+    ShareBox,
+    LoginModal,
+    ReservationItems,
+    LoadingComponent,
+    EmptyStateComponent,
+    TranslatePipe,
+  ],
   templateUrl: './purchase.page.html',
   providers: [PurchaseService],
 })
@@ -44,6 +55,8 @@ export class PurchasePage implements OnDestroy {
   protected readonly showLogin = signal(false);
   protected readonly eventName = signal('');
   protected readonly loaded = signal(false);
+  /** Falló la carga de la disponibilidad/mapa → vista de error (C2). */
+  protected readonly loadError = signal(false);
 
   private ticker: ReturnType<typeof setInterval> | null = null;
 
@@ -65,8 +78,19 @@ export class PurchasePage implements OnDestroy {
         }
         this.loaded.set(true);
       }),
+      catchError(() => {
+        // No rompemos el stream: marcamos error y la vista muestra el estado.
+        this.loadError.set(true);
+        this.loaded.set(true);
+        return of(null);
+      }),
     ),
     { initialValue: null },
+  );
+
+  /** No hay localidades disponibles para comprar (evento sin inventario). */
+  protected readonly noLocalities = computed(
+    () => this.loaded() && !this.loadError() && this.store.localities().length === 0,
   );
 
   protected readonly shareUrl = computed(

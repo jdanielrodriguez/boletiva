@@ -2,7 +2,21 @@
   <h1>{{ 'purchase.title' | translate: { name: eventName() } }}</h1>
 
   @if (!loaded()) {
-    <p data-testid="purchase-loading">{{ 'purchase.loading' | translate }}</p>
+    <app-loading data-testid="purchase-loading" [label]="'purchase.loading' | translate" />
+  } @else if (loadError()) {
+    <app-empty-state
+      variant="tickets"
+      data-testid="purchase-load-error"
+      [title]="'purchase.loadErrorTitle' | translate"
+      [subtitle]="'purchase.loadErrorBody' | translate"
+    />
+  } @else if (noLocalities()) {
+    <app-empty-state
+      variant="tickets"
+      data-testid="purchase-empty"
+      [title]="'purchase.emptyTitle' | translate"
+      [subtitle]="'purchase.emptyBody' | translate"
+    />
   } @else if (phase() === 'reserved') {
     <section class="reserved reserved-airy" data-testid="reserved">
       <div class="reserved-topbar">

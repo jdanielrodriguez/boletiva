@@ -27,4 +27,8 @@ export const purchase = {
   expiredWarn: 'Your reservation expired. Please select your tickets again.',
   reserveError: 'We couldn’t reserve the tickets (someone else took them). Please try again.',
   checkoutError: 'We couldn’t continue to payment. Please try again.',
+  loadErrorTitle: 'Couldn’t load availability',
+  loadErrorBody: 'Something went wrong loading the seat map. Reload the page and try again.',
+  emptyTitle: 'No tickets available',
+  emptyBody: 'This event has no localities on sale yet. Check back later.',
 };
