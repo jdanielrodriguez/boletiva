@@ -108,6 +108,19 @@ export class StorageService implements OnModuleInit {
     return key;
   }
 
+  /**
+   * Descarga un objeto del bucket como Buffer (p.ej. incrustar el banner del
+   * evento en el PDF del boleto). Lanza si el objeto no existe; el llamador debe
+   * degradar con elegancia (banner opcional).
+   */
+  async getObject(key: string): Promise<Buffer> {
+    const res = await this.s3.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+    const body = res.Body;
+    if (!body) throw new Error(`Objeto vacío: ${key}`);
+    const bytes = await body.transformToByteArray();
+    return Buffer.from(bytes);
+  }
+
   /** URL firmada (V4) de descarga, con expiración corta. */
   async signedGetUrl(key: string, expiresInSeconds = 300): Promise<string> {
     const url = await getSignedUrl(
