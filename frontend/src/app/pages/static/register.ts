@@ -2,7 +2,9 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { catchError, of, switchMap } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
+import { AuthRefreshService } from '../../core/auth/auth-refresh.service';
 import { SessionStore } from '../../core/auth/session.store';
 import { InvitationsApi } from '../../core/api/invitations.api';
 import { ToastService } from '../../core/ui/toast.service';
@@ -28,6 +30,7 @@ type Mode = 'loading' | 'register' | 'activate' | 'normal' | 'invalid';
 })
 export class Register {
   private readonly auth = inject(AuthService);
+  private readonly refresher = inject(AuthRefreshService);
   private readonly session = inject(SessionStore);
   private readonly invitations = inject(InvitationsApi);
   private readonly route = inject(ActivatedRoute);
@@ -114,24 +117,43 @@ export class Register {
   protected activate(): void {
     if (!this.token) return;
     this.working.set(true);
-    this.invitations.acceptByToken(this.token).subscribe({
-      next: () => {
-        this.working.set(false);
-        this.toasts.success(this.translate.instant('auth.msgActivateOk'));
-        void this.router.navigate(['/promotor']);
-      },
-      error: () => {
-        this.working.set(false);
-        this.toasts.error(this.translate.instant('auth.msgActivateFailed'));
-      },
-    });
+    this.invitations
+      .acceptByToken(this.token)
+      // Tras aceptar, el rol `promoter` ya está en BD pero el token vigente sigue
+      // con [buyer]: refrescamos (relee roles) y recargamos la sesión (E4).
+      .pipe(switchMap(() => this.refreshRole()))
+      .subscribe({
+        next: () => {
+          this.working.set(false);
+          this.toasts.success(this.translate.instant('auth.msgActivateOk'));
+          void this.router.navigate(['/promotor']);
+        },
+        error: () => {
+          this.working.set(false);
+          this.toasts.error(this.translate.instant('auth.msgActivateFailed'));
+        },
+      });
   }
 
   private acceptThenGo(token: string): void {
-    this.invitations.accept(token).subscribe({
-      next: () => this.done(),
-      error: () => this.done(),
-    });
+    this.invitations
+      .accept(token)
+      // Refresca el token + la sesión para que el rol promotor se refleje ya
+      // (si no, al reingresar aparecería como cliente). Un fallo aquí no bloquea
+      // el flujo: igual va a "verifica tu correo".
+      .pipe(switchMap(() => this.refreshRole()))
+      .subscribe({
+        next: () => this.done(),
+        error: () => this.done(),
+      });
+  }
+
+  /** Refresca el access token (relee roles de BD) y recarga /auth/me. */
+  private refreshRole() {
+    return this.refresher.refresh().pipe(
+      switchMap((t) => (t ? this.session.loadMe() : of(null))),
+      catchError(() => of(null)),
+    );
   }
 
   private done(): void {

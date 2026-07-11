@@ -4,10 +4,14 @@ import { provideI18nTesting } from '../../core/i18n/testing';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
+import { AuthRefreshService } from '../../core/auth/auth-refresh.service';
 import { InvitationsApi } from '../../core/api/invitations.api';
 import { SessionStore } from '../../core/auth/session.store';
 import { ToastService } from '../../core/ui/toast.service';
 import { Register } from './register';
+
+/** Refresh falso: devuelve un token nuevo (relee roles tras aceptar invitación). */
+const refresherStub = { refresh: () => of({ accessToken: 'new' }) } as unknown as AuthRefreshService;
 
 /** Sesión falsa configurable (autenticada o no, con un correo dado). */
 function sessionStub(opts: { authed?: boolean; email?: string } = {}) {
@@ -15,6 +19,7 @@ function sessionStub(opts: { authed?: boolean; email?: string } = {}) {
   return {
     isAuthenticated: () => authed(),
     user: () => (opts.authed ? { email: opts.email ?? 'x@x.com' } : null),
+    loadMe: () => of(null),
   } as unknown as SessionStore;
 }
 
@@ -52,6 +57,7 @@ describe('Register (F4/v3.5)', () => {
         provideRouter([]),
         ToastService,
         { provide: AuthService, useValue: { signup } },
+        { provide: AuthRefreshService, useValue: refresherStub },
         { provide: InvitationsApi, useValue: { byToken, accept, acceptByToken } },
         { provide: SessionStore, useValue: opts.session ?? sessionStub() },
         {
@@ -168,6 +174,7 @@ describe('Register (F4/v3.5)', () => {
         provideRouter([]),
         ToastService,
         { provide: AuthService, useValue: { signup } },
+        { provide: AuthRefreshService, useValue: refresherStub },
         { provide: InvitationsApi, useValue: { byToken: byTokenSpy, accept, acceptByToken } },
         { provide: SessionStore, useValue: sessionStub() },
         {
