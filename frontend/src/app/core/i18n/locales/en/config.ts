@@ -160,6 +160,7 @@ export const config = {
     noMatch: 'No invitation matches the search.',
     empty: 'You have not sent any invitations yet.',
     atLeastOneEmail: 'Enter at least one email.',
+    invalidEmail: 'Fix the format of these emails: {{emails}}',
     generated: '{{n}} invitation(s) generated.',
     createError: 'Could not create the invitations (check the emails).',
     revokeConfirmTitle: 'Revoke invitation',

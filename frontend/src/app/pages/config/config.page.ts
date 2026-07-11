@@ -571,6 +571,12 @@ export class ConfigPage {
       .map((e) => e.trim())
       .filter(Boolean),
   );
+  /** Regex simple de formato de correo (validación client-side previa al backend). */
+  private static readonly EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  /** Correos con formato inválido dentro de lo tecleado (para bloquear el envío). */
+  protected readonly invalidEmails = computed(() =>
+    this.parsedEmails().filter((e) => !ConfigPage.EMAIL_RE.test(e)),
+  );
   /**
    * Botón "Invitar" (toggle): si el form está CERRADO lo abre; si está ABIERTO
    * envía (con la validación de correos existente).
@@ -592,6 +598,15 @@ export class ConfigPage {
     const emails = this.parsedEmails();
     if (emails.length === 0) {
       this.toasts.warning(this.translate.instant('config.invitations.atLeastOneEmail'));
+      return;
+    }
+    // Validación de formato client-side: si algún correo está mal formado, NO
+    // llamamos al backend (evita el 400) y avisamos exactamente cuáles fallan.
+    const invalid = this.invalidEmails();
+    if (invalid.length > 0) {
+      this.toasts.warning(
+        this.translate.instant('config.invitations.invalidEmail', { emails: invalid.join(', ') }),
+      );
       return;
     }
     this.inviting.set(true);

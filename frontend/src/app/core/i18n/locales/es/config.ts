@@ -160,6 +160,7 @@ export const config = {
     noMatch: 'Ninguna invitación coincide con la búsqueda.',
     empty: 'Aún no has enviado invitaciones.',
     atLeastOneEmail: 'Ingresa al menos un correo.',
+    invalidEmail: 'Corrige el formato de estos correos: {{emails}}',
     generated: 'Se generaron {{n}} invitación(es).',
     createError: 'No se pudieron crear las invitaciones (revisa los correos).',
     revokeConfirmTitle: 'Revocar invitación',

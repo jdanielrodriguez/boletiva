@@ -259,6 +259,27 @@ describe('ConfigPage (v3, admin console)', () => {
     expect((el.querySelector('[data-testid="inv-created"] input') as HTMLInputElement).value).toContain('registro?token=t');
   });
 
+  it('invitaciones: correo con formato inválido NO llama al backend y avisa', async () => {
+    const create = jasmine.createSpy('c').and.returnValue(of({ invitations: [] }));
+    await setup({}, { create });
+    await selectTab('tab-invitaciones');
+    click('inv-toggle'); // abre el form
+    fixture.componentInstance['emailsText'].set('a@b.com, no-es-correo');
+    click('inv-toggle'); // abierto → intenta enviar
+    expect(create).not.toHaveBeenCalled();
+    expect(lastToast()?.kind).toBe('warning');
+  });
+
+  it('invitaciones: todos los correos válidos → SÍ llama al backend', async () => {
+    const create = jasmine.createSpy('c').and.returnValue(of({ invitations: [{ id: 'i1', email: 'a@b.com', url: 'http://x/registro?token=t' }] }));
+    await setup({}, { create });
+    await selectTab('tab-invitaciones');
+    click('inv-toggle');
+    fixture.componentInstance['emailsText'].set('a@b.com c@d.com');
+    click('inv-toggle');
+    expect(create).toHaveBeenCalledWith(['a@b.com', 'c@d.com'], false);
+  });
+
   it('sistema: agregar pasarela con desbloqueo por OTP', async () => {
     const unlockGateway = jasmine.createSpy('u').and.returnValue(of({ sent: true }));
     const createGateway = jasmine.createSpy('c').and.returnValue(of(GATEWAYS[1]));
