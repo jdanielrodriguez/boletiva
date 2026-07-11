@@ -7,7 +7,7 @@ import { MoneyPipe } from '../../shared/money.pipe';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { catchError, of } from 'rxjs';
+import { EMPTY, catchError, expand, of, reduce } from 'rxjs';
 import { OrdersApi } from '../../core/api/orders.api';
 import { PaymentMethodsApi } from '../../core/api/payment-methods.api';
 import { TicketsApi } from '../../core/api/tickets.api';
@@ -243,8 +243,18 @@ export class Account {
   protected readonly loadingChain = signal<string | null>(null);
 
   // --- Boletos ---
+  // Trae TODOS los boletos siguiendo el cursor keyset (no solo la 1.ª página de
+  // 100), para que la paginación por evento/compra cuente y muestre todo aunque
+  // el usuario tenga cientos de boletos.
   private readonly ticketsData = toSignal(
-    this.ticketsApi.list().pipe(catchError(() => of({ items: [] } as TicketPageResponseDto))),
+    this.ticketsApi.list().pipe(
+      expand((page) => (page.nextCursor ? this.ticketsApi.list(page.nextCursor) : EMPTY)),
+      reduce(
+        (acc, page) => ({ items: [...(acc.items ?? []), ...(page.items ?? [])], nextCursor: null }),
+        { items: [] } as TicketPageResponseDto,
+      ),
+      catchError(() => of({ items: [] } as TicketPageResponseDto)),
+    ),
     { initialValue: { items: [] } as TicketPageResponseDto },
   );
   protected readonly activos = computed(() =>
