@@ -38,6 +38,9 @@ export const account = {
     makeDefault: 'Hacer predeterminada',
     removeCardTitle: 'Eliminar tarjeta',
     empty: 'Aún no tienes métodos de pago guardados.',
+    emptyTitle: 'Aún no tienes tarjetas guardadas',
+    emptySubtitle:
+      'Agrega una tarjeta para pagar en segundos la próxima vez. Ciframos tus datos y nunca guardamos el número completo.',
     addCard: 'Agregar tarjeta',
     newCard: 'Nueva tarjeta',
     cardNumber: 'Número de tarjeta',
@@ -94,11 +97,17 @@ export const account = {
     recentMovements: 'Movimientos recientes',
     viewTransaction: 'Ver transacción',
     noOrders: 'Aún no tienes compras registradas.',
+    noOrdersTitle: 'Aún no tienes compras',
+    noOrdersSubtitle:
+      'Cuando compres boletos, tus movimientos aparecerán aquí junto con tu saldo.',
     myWithdrawals: 'Mis retiros',
     net: 'neto',
     cancelWithdrawalTitle: 'Cancelar retiro',
     withdrawalsFilteredEmpty: 'Ningún retiro coincide con los filtros.',
     noWithdrawals: 'Aún no has solicitado retiros.',
+    noWithdrawalsTitle: 'Aún no has solicitado retiros',
+    noWithdrawalsSubtitle:
+      'Cuando tengas saldo disponible, podrás retirarlo a tu cuenta y verás aquí el estado de cada solicitud.',
     requestWithdrawal: 'Solicitar retiro',
     amountToWithdraw: 'Monto a retirar (Q)',
     previewLead: 'Comisión estimada ({{pct}}%): se te acreditará aprox.',

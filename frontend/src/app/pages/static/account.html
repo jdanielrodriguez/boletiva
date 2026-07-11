@@ -100,7 +100,12 @@
               }
             </ul>
           } @else {
-            <p class="muted" data-testid="cards-empty">{{ 'account.methods.empty' | translate }}</p>
+            <app-empty-state
+              variant="card"
+              data-testid="cards-empty"
+              [title]="'account.methods.emptyTitle' | translate"
+              [subtitle]="'account.methods.emptySubtitle' | translate"
+            />
           }
 
           @if (!showCardForm()) {
@@ -291,7 +296,14 @@
                 }
               </ul>
             } @else {
-              <p class="muted">{{ 'account.wallet.noOrders' | translate }}</p>
+              <app-empty-state
+                variant="billing"
+                data-testid="wallet-orders-empty"
+                [title]="'account.wallet.noOrdersTitle' | translate"
+                [subtitle]="'account.wallet.noOrdersSubtitle' | translate"
+                [ctaLabel]="'account.billing.exploreEvents' | translate"
+                ctaLink="/"
+              />
             }
           </div>
 
@@ -333,7 +345,12 @@
                 <p class="muted" data-testid="withdrawals-filtered-empty">{{ 'account.wallet.withdrawalsFilteredEmpty' | translate }}</p>
               }
             } @else {
-              <p class="muted">{{ 'account.wallet.noWithdrawals' | translate }}</p>
+              <app-empty-state
+                variant="wallet"
+                data-testid="withdrawals-empty"
+                [title]="'account.wallet.noWithdrawalsTitle' | translate"
+                [subtitle]="'account.wallet.noWithdrawalsSubtitle' | translate"
+              />
             }
           </div>
 

@@ -38,6 +38,9 @@ export const account = {
     makeDefault: 'Make default',
     removeCardTitle: 'Remove card',
     empty: 'You have no saved payment methods yet.',
+    emptyTitle: 'No saved cards yet',
+    emptySubtitle:
+      'Add a card to pay in seconds next time. We encrypt your data and never store your full card number.',
     addCard: 'Add card',
     newCard: 'New card',
     cardNumber: 'Card number',
@@ -94,11 +97,17 @@ export const account = {
     recentMovements: 'Recent movements',
     viewTransaction: 'View transaction',
     noOrders: 'You have no purchases recorded yet.',
+    noOrdersTitle: 'No purchases yet',
+    noOrdersSubtitle:
+      'Once you buy tickets, your movements will appear here alongside your balance.',
     myWithdrawals: 'My withdrawals',
     net: 'net',
     cancelWithdrawalTitle: 'Cancel withdrawal',
     withdrawalsFilteredEmpty: 'No withdrawal matches the filters.',
     noWithdrawals: 'You have not requested any withdrawals yet.',
+    noWithdrawalsTitle: 'No withdrawals requested yet',
+    noWithdrawalsSubtitle:
+      'When you have an available balance, you can withdraw it to your account and track each request here.',
     requestWithdrawal: 'Request withdrawal',
     amountToWithdraw: 'Amount to withdraw (Q)',
     previewLead: 'Estimated fee ({{pct}}%): you will be credited approx.',

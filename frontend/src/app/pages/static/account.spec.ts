@@ -290,11 +290,24 @@ describe('Account (mi cuenta)', () => {
     expect(lastToast()?.kind).toBe('warning');
   });
 
-  it('métodos: sin tarjetas muestra estado vacío y botón agregar', async () => {
+  it('métodos: sin tarjetas muestra estado vacío BONITO (empty-state) y botón agregar', async () => {
     await setup();
     go('menu-metodos');
-    expect(el.querySelector('[data-testid="cards-empty"]')).not.toBeNull();
+    const empty = el.querySelector('[data-testid="cards-empty"]');
+    expect(empty).not.toBeNull();
+    // Es el componente empty-state (ilustración + título), no una sola línea gris.
+    expect(empty?.querySelector('.empty-illustration')).not.toBeNull();
+    expect(empty?.querySelector('.empty-title')).not.toBeNull();
     expect(el.querySelector('[data-testid="add-method"]')).not.toBeNull();
+  });
+
+  it('wallet: sin retiros muestra estado vacío BONITO (empty-state)', async () => {
+    await setup();
+    go('menu-wallet');
+    const empty = el.querySelector('[data-testid="withdrawals-empty"]');
+    expect(empty).not.toBeNull();
+    expect(empty?.querySelector('.empty-illustration')).not.toBeNull();
+    expect(empty?.querySelector('.empty-title')).not.toBeNull();
   });
 
   it('métodos: lista las tarjetas guardadas (sin datos sensibles)', async () => {

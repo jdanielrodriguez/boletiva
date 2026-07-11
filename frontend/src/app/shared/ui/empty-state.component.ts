@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 /** Ilustración según el contexto del vacío. */
-export type EmptyVariant = 'tickets' | 'billing' | 'generic';
+export type EmptyVariant = 'tickets' | 'billing' | 'wallet' | 'card' | 'generic';
 
 /**
  * Estado vacío BONITO y reutilizable: en vez de una sola línea de texto muestra un
@@ -30,6 +30,20 @@ export type EmptyVariant = 'tickets' | 'billing' | 'generic';
             <svg viewBox="0 0 64 64" width="72" height="72" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M14 6h28l8 8v44l-6-4-6 4-6-4-6 4-6-4-6 4V6z" />
               <path d="M22 22h20M22 32h20M22 42h12" />
+            </svg>
+          }
+          @case ('wallet') {
+            <svg viewBox="0 0 64 64" width="72" height="72" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 18a4 4 0 0 1 4-4h34a2 2 0 0 1 2 2v6" />
+              <path d="M8 18v28a4 4 0 0 0 4 4h40a4 4 0 0 0 4-4V28a4 4 0 0 0-4-4H12a4 4 0 0 1-4-4z" />
+              <circle cx="44" cy="36" r="3" />
+            </svg>
+          }
+          @case ('card') {
+            <svg viewBox="0 0 64 64" width="72" height="72" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="6" y="14" width="52" height="36" rx="4" />
+              <path d="M6 26h52" />
+              <path d="M14 40h10" stroke-dasharray="2 3" />
             </svg>
           }
           @default {
