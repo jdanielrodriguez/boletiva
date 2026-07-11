@@ -27,6 +27,7 @@ import { AuthUser, CurrentUser } from '../../common/decorators/current-user.deco
 import { MessageResponseDto } from '../../common/dto/response.dto';
 import { AuthService } from './auth.service';
 import { clearRefreshCookie, readRefreshCookie, setRefreshCookie } from './refresh-cookie';
+import { newDeviceId, readDeviceCookie, setDeviceCookie } from './device-cookie';
 import { TwoFactorService } from './twofactor.service';
 import { DevicesService, DeviceContext } from './devices.service';
 import {
@@ -67,12 +68,33 @@ export class AuthController {
     private readonly config: ConfigService,
   ) {}
 
+  /**
+   * Contexto de dispositivo SOLO para metadatos de sesión (refresh/logout): no
+   * resuelve ni persiste la identidad estable del dispositivo.
+   */
   private ctx(req: Request): DeviceContext {
     return {
       deviceId: req.headers['x-device-id'] as string | undefined,
       userAgent: req.headers['user-agent'],
       ip: req.ip,
     };
+  }
+
+  /**
+   * Contexto de dispositivo para los flujos de acceso (signup/login/2fa/passwordless/
+   * google). Resuelve una identidad ESTABLE: header `X-Device-Id` (cliente que la
+   * gestiona) → cookie `device_id` (navegador) → una nueva generada. Si no vino por
+   * header, persiste/refresca la cookie httpOnly para que el mismo navegador se
+   * reconozca en los siguientes logins y no repita 2FA.
+   */
+  private deviceCtx(req: Request, res: Response): DeviceContext {
+    const header = (req.headers['x-device-id'] as string | undefined)?.trim();
+    let deviceId = header;
+    if (!deviceId) {
+      deviceId = readDeviceCookie(req) ?? newDeviceId();
+      setDeviceCookie(res, this.config, deviceId);
+    }
+    return { deviceId, userAgent: req.headers['user-agent'], ip: req.ip };
   }
 
   /**
@@ -98,7 +120,7 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    return this.issueCookie(res, await this.auth.signup(dto, this.ctx(req)));
+    return this.issueCookie(res, await this.auth.signup(dto, this.deviceCtx(req, res)));
   }
 
   @Public()
@@ -111,7 +133,7 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    return this.issueCookie(res, await this.auth.login(dto, this.ctx(req)));
+    return this.issueCookie(res, await this.auth.login(dto, this.deviceCtx(req, res)));
   }
 
   @Public()
@@ -126,7 +148,7 @@ export class AuthController {
   ) {
     return this.issueCookie(
       res,
-      await this.auth.verifyTwoFactor(dto.preauthToken, dto.code, this.ctx(req)),
+      await this.auth.verifyTwoFactor(dto.preauthToken, dto.code, this.deviceCtx(req, res)),
     );
   }
 
@@ -184,7 +206,7 @@ export class AuthController {
   ) {
     return this.issueCookie(
       res,
-      await this.auth.passwordlessVerifyCode(dto.email, dto.code, this.ctx(req)),
+      await this.auth.passwordlessVerifyCode(dto.email, dto.code, this.deviceCtx(req, res)),
     );
   }
 
@@ -200,7 +222,7 @@ export class AuthController {
   ) {
     return this.issueCookie(
       res,
-      await this.auth.passwordlessVerifyToken(dto.token, this.ctx(req)),
+      await this.auth.passwordlessVerifyToken(dto.token, this.deviceCtx(req, res)),
     );
   }
 
@@ -216,7 +238,7 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    return this.issueCookie(res, await this.auth.googleLogin(dto.idToken, this.ctx(req)));
+    return this.issueCookie(res, await this.auth.googleLogin(dto.idToken, this.deviceCtx(req, res)));
   }
 
   @Public()

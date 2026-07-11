@@ -205,9 +205,9 @@ describe('Auth avanzado (e2e)', () => {
       expect(res.body[0]).toHaveProperty('lastSeenAt');
     });
 
-    it('login SIN X-Device-Id resuelve la huella por UA+IP (fallback de hash)', async () => {
-      // Sin header X-Device-Id el hash del dispositivo cae al fallback userAgent|ip;
-      // el login se procesa igual (registra/actualiza ese dispositivo).
+    it('login SIN X-Device-Id resuelve la huella por cookie/UA (fallback de hash)', async () => {
+      // Sin header X-Device-Id el backend fija una cookie `device_id` estable (o cae
+      // al fallback solo-UA); el login se procesa igual (registra/actualiza el dispositivo).
       const before = (await http().get('/api/v1/auth/devices').set(auth()).expect(200)).body.length;
       const res = await http().post('/api/v1/auth/login').send({ email, password }).expect(200);
       expect(['ok', '2fa_required']).toContain(res.body.status);

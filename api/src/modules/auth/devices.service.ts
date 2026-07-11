@@ -13,9 +13,15 @@ export interface DeviceContext {
 export class DevicesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Identidad estable del dispositivo: header X-Device-Id o, en su defecto, UA+IP. */
+  /**
+   * Identidad estable del dispositivo. Prioriza el id explícito (`deviceId` =
+   * header X-Device-Id o cookie estable `device_id`). El fallback usa SOLO el
+   * User-Agent: la IP se excluye a propósito por ser volátil (proxies, Cloud Run,
+   * redes móviles) — incluirla hacía que el mismo navegador se viera como nuevo y
+   * se pidiera 2FA en cada login.
+   */
   hash(ctx: DeviceContext): string {
-    return sha256(ctx.deviceId?.trim() || `${ctx.userAgent ?? ''}|${ctx.ip ?? ''}`);
+    return sha256(ctx.deviceId?.trim() || `ua:${ctx.userAgent ?? ''}`);
   }
 
   /** Registra/actualiza el dispositivo; indica si es nuevo (nunca visto). */
@@ -39,6 +45,14 @@ export class DevicesService {
 
   isTrusted(device: Device): boolean {
     return device.trustedAt != null;
+  }
+
+  /** ¿El dispositivo de este contexto ya estaba marcado confiable en BD? */
+  async isKnownTrusted(userId: string, ctx: DeviceContext): Promise<boolean> {
+    const device = await this.prisma.device.findUnique({
+      where: { userId_deviceHash: { userId, deviceHash: this.hash(ctx) } },
+    });
+    return device?.trustedAt != null;
   }
 
   /** Marca el dispositivo como confiable (tras pasar 2FA). */
