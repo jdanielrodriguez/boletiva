@@ -20,7 +20,9 @@ export const account = {
   },
   language: {
     title: 'Idioma',
-    hint: 'Elige el idioma de la plataforma. Se recuerda en este dispositivo.',
+    hint: 'Elige el idioma de la plataforma. Se guarda en tu cuenta y se aplica al iniciar sesión.',
+    saved: 'Idioma actualizado.',
+    saveError: 'No se pudo guardar el idioma.',
   },
   password: {
     title: 'Cambiar contraseña',
@@ -65,6 +67,7 @@ export const account = {
     showChain: 'Ver cadena de la transacción',
     hideChain: 'Ocultar cadena de la transacción',
     movementType: 'Tipo de movimiento',
+    statusFilter: 'Estado',
     income: 'Ingresos',
     expense: 'Egresos',
     movement: 'Movimiento',

@@ -2,7 +2,8 @@ import { UpperCasePipe } from '@angular/common';
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
-import { LangSwitcherComponent } from '../../shared/layout/lang-switcher.component';
+import { I18nService } from '../../core/i18n/i18n.service';
+import type { Lang } from '../../core/i18n/i18n.types';
 import { MoneyPipe } from '../../shared/money.pipe';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -35,6 +36,7 @@ import {
 import { IconComponent } from '../../shared/icon/icon.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
+import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
 
 type Section = 'perfil' | 'metodos' | 'facturacion' | 'wallet' | 'activos' | 'pasados';
 type TicketKind = 'activos' | 'pasados';
@@ -97,7 +99,7 @@ function groupByEventOrder(tickets: TicketResponseDto[]): EventGroup[] {
  */
 @Component({
   selector: 'app-account',
-  imports: [FormsModule, TranslatePipe, LocalizedDatePipe, UpperCasePipe, MoneyPipe, RouterLink, IconComponent, ConfirmDialogComponent, PagerComponent, EmptyStateComponent, LangSwitcherComponent],
+  imports: [FormsModule, TranslatePipe, LocalizedDatePipe, UpperCasePipe, MoneyPipe, RouterLink, IconComponent, ConfirmDialogComponent, PagerComponent, EmptyStateComponent, StatusLabelPipe],
   templateUrl: './account.html',
 })
 export class Account {
@@ -112,6 +114,7 @@ export class Account {
   private readonly auth = inject(AuthService);
   private readonly toasts = inject(ToastService);
   private readonly translate = inject(TranslateService);
+  private readonly i18n = inject(I18nService);
   private readonly router = inject(Router);
 
   private readonly route = inject(ActivatedRoute);
@@ -132,6 +135,38 @@ export class Account {
   protected readonly lastName = signal(this.session.user()?.lastName ?? '');
   protected readonly phone = signal((this.session.user() as { phone?: string })?.phone ?? '');
   protected readonly savingProfile = signal(false);
+
+  // --- Preferencia de idioma persistente en BD (v3.7) ---
+  /** Idioma persistido del usuario (o el idioma activo si aún no tiene). */
+  protected readonly persistedLang = computed<Lang>(() => {
+    const saved = (this.session.user()?.language ?? '') as Lang;
+    return saved === 'es' || saved === 'en' ? saved : this.i18n.lang();
+  });
+  /** Idioma seleccionado en el perfil (sin aplicar hasta Guardar). */
+  protected readonly profileLang = signal<Lang>(this.persistedLang());
+  /** ¿Cambió respecto al persistido? → muestra el botón Guardar. */
+  protected readonly languageDirty = computed(() => this.profileLang() !== this.persistedLang());
+  protected readonly savingLanguage = signal(false);
+  protected setProfileLang(lang: Lang): void {
+    this.profileLang.set(lang);
+  }
+  /** Persiste la preferencia en BD (PATCH /users/me), actualiza sesión y aplica. */
+  protected saveLanguage(): void {
+    const lang = this.profileLang();
+    this.savingLanguage.set(true);
+    this.usersApi.updateMe({ language: lang }).subscribe({
+      next: (user) => {
+        this.session.setUser(user);
+        this.i18n.use(lang);
+        this.savingLanguage.set(false);
+        this.toasts.success(this.translate.instant('account.language.saved'));
+      },
+      error: () => {
+        this.savingLanguage.set(false);
+        this.toasts.error(this.translate.instant('account.language.saveError'));
+      },
+    });
+  }
 
   // --- Métodos de pago (tarjetas tokenizadas, PCI) ---
   protected readonly cards = signal<PaymentMethodResponseDto[]>([]);
@@ -191,19 +226,36 @@ export class Account {
   protected readonly orderFilter = signal<string | null>(null);
   /** Filtro de dirección: '' = todos | 'income' = ingresos | 'expense' = egresos. */
   protected readonly movementDir = signal<'' | 'income' | 'expense'>('');
+  /** Filtro por ESTADO de la transacción ('' = todos; p.ej. paid/pending/refunded). */
+  protected readonly movementStatus = signal<string>('');
   /** Filtros de facturación. */
   protected readonly filterEvent = signal<string>('');
   protected readonly filterDate = signal<string>('');
-  /** Movimientos tras aplicar dirección/evento/fecha y el deep-link por orden. */
+  /** Estados presentes en los movimientos (para poblar el filtro). Orden estable. */
+  protected readonly movementStatuses = computed(() => {
+    const present = new Set(
+      this.movements()
+        .map((m) => m.status)
+        .filter((s): s is string => !!s),
+    );
+    // Orden preferido; los desconocidos van al final por si el backend crece.
+    const preferred = ['paid', 'pending', 'cancelled', 'expired', 'refunded'];
+    const ordered = preferred.filter((s) => present.has(s));
+    const extra = [...present].filter((s) => !preferred.includes(s));
+    return [...ordered, ...extra];
+  });
+  /** Movimientos tras aplicar dirección/estado/evento/fecha y el deep-link por orden. */
   protected readonly filteredMovements = computed(() => {
     const only = this.orderFilter();
     const dir = this.movementDir();
+    const status = this.movementStatus();
     const eventQ = this.filterEvent().trim().toLowerCase();
     const date = this.filterDate();
     // El backend ya devuelve los movimientos más recientes primero.
     return this.movements().filter((m) => {
       if (only) return m.orderId === only;
       if (dir && m.direction !== dir) return false;
+      if (status && m.status !== status) return false;
       if (eventQ && !(m.eventName ?? '').toLowerCase().includes(eventQ)) return false;
       if (date && !(m.createdAt ?? '').startsWith(date)) return false;
       return true;
@@ -228,6 +280,10 @@ export class Account {
   /** Setters de filtro que reinician la página (facturación). */
   protected setMovementDir(v: '' | 'income' | 'expense'): void {
     this.movementDir.set(v);
+    this.billingPage.set(1);
+  }
+  protected setMovementStatus(v: string): void {
+    this.movementStatus.set(v);
     this.billingPage.set(1);
   }
   protected setFilterEvent(v: string): void {
@@ -347,6 +403,15 @@ export class Account {
 
   constructor() {
     this.loadWallet();
+
+    // Sincroniza la selección del perfil con el idioma persistido del usuario: al
+    // resolver la sesión (o tras Guardar) el selector refleja el valor real de BD y
+    // el botón Guardar desaparece (dirty=false). No pisa una edición en curso porque
+    // solo reacciona a cambios del valor PERSISTIDO, no de la selección local.
+    effect(() => {
+      const persisted = this.persistedLang();
+      this.profileLang.set(persisted);
+    });
 
     // Deep-link REACTIVO a `?s=` y `?order=`: nos suscribimos a queryParamMap (no
     // snapshot). Así, al navegar dentro de /cuenta cambiando el query param (accesos

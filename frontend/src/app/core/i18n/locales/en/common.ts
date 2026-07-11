@@ -51,6 +51,8 @@ export const common = {
     cancelled: 'Cancelled',
     canceled: 'Cancelled',
     pending: 'Pending',
+    paid: 'Paid',
+    refunded: 'Refunded',
     approved: 'Approved',
     rejected: 'Rejected',
     suspended: 'Suspended',

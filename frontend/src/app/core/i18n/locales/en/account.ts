@@ -20,7 +20,9 @@ export const account = {
   },
   language: {
     title: 'Language',
-    hint: 'Choose the platform language. It is remembered on this device.',
+    hint: 'Choose the platform language. It is saved to your account and applied on sign-in.',
+    saved: 'Language updated.',
+    saveError: 'Could not save the language.',
   },
   password: {
     title: 'Change password',
@@ -65,6 +67,7 @@ export const account = {
     showChain: 'View transaction chain',
     hideChain: 'Hide transaction chain',
     movementType: 'Movement type',
+    statusFilter: 'Status',
     income: 'Income',
     expense: 'Expenses',
     movement: 'Movement',

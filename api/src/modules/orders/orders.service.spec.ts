@@ -218,7 +218,8 @@ describe('OrdersService (IDOR + keyset, unit)', () => {
         amount: '123.20',
         orderId: 'o9',
         eventName: 'Show',
-        status: null,
+        // v3.7: los ingresos llevan un estado coherente para filtrar la facturación.
+        status: 'refunded',
       });
     });
 

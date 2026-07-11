@@ -641,6 +641,67 @@ describe('Account (mi cuenta)', () => {
     expect(el.querySelector('[data-testid="pasados-pager"]')).not.toBeNull();
   });
 
+  it('facturación filtra por ESTADO de la transacción (v3.7)', async () => {
+    const data = [
+      { id: 'ledger:e1', direction: 'income', kind: 'refund', amount: '25.00', currency: 'GTQ', status: 'refunded', eventName: 'Concierto', orderId: 'o2', createdAt: '2026-07-05T10:00:00Z' },
+      { id: 'order:o1', direction: 'expense', kind: 'purchase', amount: '129.68', currency: 'GTQ', status: 'paid', eventName: 'Fiesta', orderId: 'o1', createdAt: '2026-07-01T10:00:00Z' },
+      { id: 'order:o3', direction: 'expense', kind: 'purchase', amount: '50.00', currency: 'GTQ', status: 'pending', eventName: 'Feria', orderId: 'o3', createdAt: '2026-06-01T10:00:00Z' },
+    ];
+    await setup({ orders: { movements: () => of({ items: data }) } });
+    go('menu-facturacion');
+    // El filtro por estado existe y ofrece los estados presentes.
+    expect(el.querySelector('[data-testid="filter-status"]')).not.toBeNull();
+    const c = fixture.componentInstance as unknown as {
+      movementStatuses: () => string[];
+      setMovementStatus: (v: string) => void;
+    };
+    expect(c.movementStatuses()).toEqual(['paid', 'pending', 'refunded']);
+    // Filtra a 'refunded' → solo el ingreso devuelto.
+    c.setMovementStatus('refunded');
+    fixture.detectChanges();
+    let list = el.querySelector('[data-testid="orders-list"]');
+    expect(list?.textContent).toContain('Concierto');
+    expect(list?.textContent).not.toContain('Fiesta');
+    expect(list?.textContent).not.toContain('Feria');
+    // Filtra a 'pending' → solo esa compra.
+    c.setMovementStatus('pending');
+    fixture.detectChanges();
+    list = el.querySelector('[data-testid="orders-list"]');
+    expect(list?.textContent).toContain('Feria');
+    expect(list?.textContent).not.toContain('Fiesta');
+  });
+
+  it('perfil: el botón Guardar idioma aparece al cambiar y desaparece al volver al actual', async () => {
+    await setup();
+    // Perfil es la sección por defecto; idioma activo = es → sin botón Guardar.
+    expect(el.querySelector('[data-testid="save-language"]')).toBeNull();
+    const c = fixture.componentInstance as unknown as { setProfileLang: (l: string) => void };
+    c.setProfileLang('en');
+    fixture.detectChanges();
+    expect(el.querySelector('[data-testid="save-language"]')).not.toBeNull();
+    // Volver al idioma actual → el botón desaparece.
+    c.setProfileLang('es');
+    fixture.detectChanges();
+    expect(el.querySelector('[data-testid="save-language"]')).toBeNull();
+  });
+
+  it('perfil: guardar idioma llama al API, refresca la sesión y aplica el idioma', async () => {
+    const updateMe = jasmine.createSpy('updateMe').and.returnValue(
+      of({ firstName: 'Ana', language: 'en' }),
+    );
+    await setup({ users: { updateMe } });
+    const c = fixture.componentInstance as unknown as { setProfileLang: (l: string) => void };
+    c.setProfileLang('en');
+    fixture.detectChanges();
+    (el.querySelector('[data-testid="save-language"]') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(updateMe).toHaveBeenCalledWith({ language: 'en' });
+    expect(setUser).toHaveBeenCalled();
+    expect(TestBed.inject(I18nService).lang()).toBe('en');
+    expect(lastToast()?.kind).toBe('success');
+  });
+
   it('traduce los textos al cambiar el idioma a inglés', async () => {
     await setup();
     // Español por defecto.

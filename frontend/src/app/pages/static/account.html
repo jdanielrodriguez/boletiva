@@ -43,7 +43,19 @@
           <div class="card-block">
             <h3>{{ 'account.language.title' | translate }}</h3>
             <p class="muted">{{ 'account.language.hint' | translate }}</p>
-            <app-lang-switcher data-testid="account-lang-switcher" />
+            <div class="lang-choice" role="group" [attr.aria-label]="'account.language.title' | translate" data-testid="account-lang-switcher">
+              <button type="button" class="lang-opt" [class.active]="profileLang() === 'es'" [attr.aria-pressed]="profileLang() === 'es'" (click)="setProfileLang('es')" data-testid="account-lang-es">
+                <span class="lang-code">{{ 'shell.langEsShort' | translate }}</span> {{ 'shell.langEs' | translate }}
+              </button>
+              <button type="button" class="lang-opt" [class.active]="profileLang() === 'en'" [attr.aria-pressed]="profileLang() === 'en'" (click)="setProfileLang('en')" data-testid="account-lang-en">
+                <span class="lang-code">{{ 'shell.langEnShort' | translate }}</span> {{ 'shell.langEn' | translate }}
+              </button>
+            </div>
+            @if (languageDirty()) {
+              <button type="button" class="primary lang-save" [disabled]="savingLanguage()" (click)="saveLanguage()" data-testid="save-language">
+                <app-icon name="save" /> {{ (savingLanguage() ? 'account.profile.saving' : 'common.save') | translate }}
+              </button>
+            }
           </div>
 
           <div class="card-block">
@@ -165,6 +177,17 @@
                   <button type="button" [class.active]="movementDir() === 'expense'" (click)="setMovementDir('expense')" data-testid="dir-expense">{{ 'account.billing.expense' | translate }}</button>
                 </div>
               </div>
+              @if (movementStatuses().length > 0) {
+                <div class="field">
+                  <label for="f-status">{{ 'account.billing.statusFilter' | translate }}</label>
+                  <select id="f-status" [ngModel]="movementStatus()" (ngModelChange)="setMovementStatus($event)" name="fstatus" data-testid="filter-status">
+                    <option value="">{{ 'common.statuses.all' | translate }}</option>
+                    @for (st of movementStatuses(); track st) {
+                      <option [value]="st">{{ st | statusLabel }}</option>
+                    }
+                  </select>
+                </div>
+              }
               <div class="field">
                 <label for="f-event">{{ 'account.billing.event' | translate }}</label>
                 <input id="f-event" type="text" [ngModel]="filterEvent()" (ngModelChange)="setFilterEvent($event)" name="fevent" [attr.placeholder]="'account.billing.searchEvent' | translate" data-testid="filter-event" />
@@ -215,7 +238,7 @@
                   <div class="invoice-meta">
                     <span class="muted movement-kind">{{ ('account.billing.kind.' + m.kind) | translate }}</span>
                     @if (m.status) {
-                      <span class="badge badge-{{ m.status }}">{{ m.status }}</span>
+                      <span class="badge badge-{{ m.status }}" data-testid="movement-status">{{ m.status | statusLabel }}</span>
                     }
                     @if (m.orderId) {
                       <button type="button" class="link-btn" (click)="verCompra(m.orderId)" data-testid="ver-detalle">
@@ -561,6 +584,8 @@
       [message]="cf.message"
       [confirmLabel]="cf.confirmLabel ?? ('common.delete' | translate)"
       [confirmIcon]="cf.confirmIcon ?? 'delete'"
+      [danger]="cf.danger ?? true"
+      [titleIcon]="cf.titleIcon"
       (accept)="onConfirmAccept()"
       (cancelled)="onConfirmCancel()"
     />

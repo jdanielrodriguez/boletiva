@@ -194,6 +194,7 @@ describe('Reembolsos y contracargos (e2e)', () => {
       direction: string;
       kind: string;
       amount: string;
+      status: string | null;
       orderId: string | null;
       createdAt: string;
     }>;
@@ -201,6 +202,12 @@ describe('Reembolsos y contracargos (e2e)', () => {
     const refund = items.find((i) => i.direction === 'income' && i.kind === 'refund');
     expect(refund).toBeDefined();
     expect(refund?.amount).toBe('123.20');
+    // v3.7: los ingresos de devolución llevan un `status` coherente ('refunded')
+    // para poder filtrar la facturación por estado igual que los egresos.
+    expect(refund?.status).toBe('refunded');
+    // Los egresos conservan el estado real de la orden (la compra fue reembolsada).
+    const expense = items.find((i) => i.direction === 'expense' && i.kind === 'purchase');
+    expect(expense?.status).toBe('refunded');
 
     // Ordenado por fecha DESC.
     const dates = items.map((i) => i.createdAt);

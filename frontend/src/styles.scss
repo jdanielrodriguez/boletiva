@@ -1139,6 +1139,43 @@ app-root {
   font-size: 1.05rem;
 }
 
+/* Selector de idioma del perfil (controlado; persiste en BD al Guardar). */
+.lang-choice {
+  display: inline-flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.lang-choice .lang-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid var(--pe-border);
+  border-radius: 0.6rem;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: border-color 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+  opacity: 0.7;
+}
+.lang-choice .lang-opt:hover {
+  opacity: 1;
+}
+.lang-choice .lang-opt.active {
+  opacity: 1;
+  border-color: rgba(123, 92, 255, 0.6);
+  background: rgba(123, 92, 255, 0.12);
+}
+.lang-choice .lang-code {
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+}
+.lang-save {
+  margin-top: 0.85rem;
+}
+
 .stacked-form {
   display: flex;
   flex-direction: column;

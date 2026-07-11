@@ -23,7 +23,7 @@ export interface Movement {
   /** Monto absoluto (Decimal como string, 2 decimales). */
   amount: string;
   currency: string;
-  /** Estado de la orden (solo egresos); null para ingresos del ledger. */
+  /** Estado: egresos = estado real de la orden; ingresos = `refunded`/`paid` coherente. */
   status: string | null;
   eventName: string | null;
   /** Orden asociada (para abrir su detalle); null si no aplica. */
@@ -44,6 +44,17 @@ function movementKind(txKind: string): string {
   if (txKind === 'resale') return 'resale';
   if (txKind === 'order_payment') return 'sale';
   return 'other';
+}
+
+/**
+ * Estado coherente para un INGRESO del ledger (no tiene `OrderStatus` propio): las
+ * devoluciones/reventas se marcan `refunded` (dinero devuelto al usuario) y las
+ * ventas/liquidaciones del promotor `paid`. Así la facturación puede filtrarse por
+ * estado igual que los egresos (compras), que sí llevan el estado real de la orden.
+ */
+function incomeStatus(movKind: string): string {
+  if (movKind === 'refund' || movKind === 'resale') return 'refunded';
+  return 'paid';
 }
 
 @Injectable()
@@ -141,13 +152,14 @@ export class OrdersService {
     const incomes: Movement[] = incomeEntries.map((e) => {
       const orderId =
         e.transaction.refType === 'order' ? (e.transaction.refId ?? null) : null;
+      const kind = movementKind(e.transaction.kind);
       return {
         id: `ledger:${e.id}`,
         direction: 'income',
-        kind: movementKind(e.transaction.kind),
+        kind,
         amount: e.amount.toFixed(2),
         currency: e.account.currency,
-        status: null,
+        status: incomeStatus(kind),
         eventName: orderId ? (eventByOrder.get(orderId) ?? null) : null,
         orderId,
         createdAt: e.transaction.createdAt.toISOString(),

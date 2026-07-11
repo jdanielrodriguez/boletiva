@@ -300,7 +300,11 @@ export class MovementResponseDto {
   @ApiProperty({ example: 'GTQ' })
   currency!: string;
 
-  @ApiProperty({ type: String, nullable: true, description: 'Estado de la orden (egresos)' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Estado: egresos = estado de la orden; ingresos = refunded/paid',
+  })
   status!: string | null;
 
   @ApiProperty({ type: String, nullable: true })
