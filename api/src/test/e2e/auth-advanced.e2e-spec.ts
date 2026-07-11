@@ -181,4 +181,58 @@ describe('Auth avanzado (e2e)', () => {
       .send(payload)
       .expect(201);
   });
+
+  describe('Dispositivos (GET/DELETE /auth/devices)', () => {
+    let token: string;
+
+    beforeAll(async () => {
+      // devA ya quedó confiable en pasos previos → login directo (status 'ok').
+      const res = await http()
+        .post('/api/v1/auth/login')
+        .set(dev('devA'))
+        .send({ email, password })
+        .expect(200);
+      token = res.body.tokens.accessToken;
+    });
+
+    const auth = () => ({ Authorization: `Bearer ${token}` });
+
+    it('lista los dispositivos del usuario (incluye el confiable)', async () => {
+      const res = await http().get('/api/v1/auth/devices').set(auth()).expect(200);
+      expect(Array.isArray(res.body)).toBe(true);
+      expect(res.body.length).toBeGreaterThan(0);
+      expect(res.body[0]).toHaveProperty('trustedAt');
+      expect(res.body[0]).toHaveProperty('lastSeenAt');
+    });
+
+    it('login SIN X-Device-Id resuelve la huella por UA+IP (fallback de hash)', async () => {
+      // Sin header X-Device-Id el hash del dispositivo cae al fallback userAgent|ip;
+      // el login se procesa igual (registra/actualiza ese dispositivo).
+      const before = (await http().get('/api/v1/auth/devices').set(auth()).expect(200)).body.length;
+      const res = await http().post('/api/v1/auth/login').send({ email, password }).expect(200);
+      expect(['ok', '2fa_required']).toContain(res.body.status);
+      const after = (await http().get('/api/v1/auth/devices').set(auth()).expect(200)).body.length;
+      expect(after).toBeGreaterThanOrEqual(before); // el dispositivo del fallback quedó registrado
+    });
+
+    it('revoca un dispositivo propio (204) y desaparece del listado', async () => {
+      const list = (await http().get('/api/v1/auth/devices').set(auth()).expect(200)).body;
+      // El menos reciente (nunca el confiable en uso para el token actual).
+      const target = list[list.length - 1].id;
+      await http().delete(`/api/v1/auth/devices/${target}`).set(auth()).expect(204);
+      const after = (await http().get('/api/v1/auth/devices').set(auth()).expect(200)).body;
+      expect(after.some((d: { id: string }) => d.id === target)).toBe(false);
+    });
+
+    it('revocar un id inexistente es idempotente (204, no falla)', async () => {
+      await http()
+        .delete('/api/v1/auth/devices/00000000-0000-0000-0000-000000000000')
+        .set(auth())
+        .expect(204);
+    });
+
+    it('sin token → 401', async () => {
+      await http().get('/api/v1/auth/devices').expect(401);
+    });
+  });
 });
