@@ -82,6 +82,14 @@ export class PublicUserResponseDto {
     example: 'es',
   })
   language!: string;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description:
+      'Solo en /auth/me bajo un token de IMPERSONACIÓN (v3.8): id del admin que actúa ' +
+      'como este usuario. El frontend lo usa para el banner "estás viendo como X".',
+  })
+  impersonatedBy?: string;
 }
 
 /** Resultado de `signup`: usuario recién creado + par de tokens (sin `status`). */

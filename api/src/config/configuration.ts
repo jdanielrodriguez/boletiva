@@ -26,7 +26,13 @@ export interface AppConfig {
     gcs: { projectId: string; bucket: string; serviceAccountJson: string };
   };
   mail: { host: string; port: number; user: string; pass: string; secure: boolean; from: string };
-  jwt: { accessSecret: string; accessTtl: number; refreshSecret: string; refreshTtl: number };
+  jwt: {
+    accessSecret: string;
+    accessTtl: number;
+    refreshSecret: string;
+    refreshTtl: number;
+    impersonationTtl: number;
+  };
   security: { encryptionKey: string };
   oauth: { google: { clientId: string } };
   payment: {
@@ -102,6 +108,8 @@ export const configuration = (): AppConfig => {
       accessTtl: parseInt(process.env.JWT_ACCESS_TTL ?? '900', 10),
       refreshSecret: process.env.JWT_REFRESH_SECRET as string,
       refreshTtl: parseInt(process.env.JWT_REFRESH_TTL ?? '1209600', 10),
+      // Token de IMPERSONACIÓN (soporte, v3.8): vida corta (default 30 min).
+      impersonationTtl: parseInt(process.env.IMPERSONATION_TOKEN_TTL ?? '1800', 10),
     },
     security: { encryptionKey: process.env.APP_ENCRYPTION_KEY as string },
     oauth: { google: { clientId: process.env.GOOGLE_CLIENT_ID ?? '' } },

@@ -23,7 +23,7 @@ import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
 import { Public } from '../../common/decorators/public.decorator';
 import { AllowDuringMaintenance } from '../../common/decorators/maintenance.decorator';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { AuthUser, CurrentUser } from '../../common/decorators/current-user.decorator';
 import { MessageResponseDto } from '../../common/dto/response.dto';
 import { AuthService } from './auth.service';
 import { clearRefreshCookie, readRefreshCookie, setRefreshCookie } from './refresh-cookie';
@@ -295,10 +295,12 @@ export class AuthController {
 
   @Get('me')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Perfil del usuario autenticado' })
+  @ApiOperation({ summary: 'Perfil del usuario autenticado (expone impersonatedBy si es una sesión de soporte)' })
   @ApiOkResponse({ type: PublicUserResponseDto })
-  me(@CurrentUser('userId') userId: string) {
-    return this.auth.me(userId);
+  async me(@CurrentUser() user: AuthUser) {
+    const profile = await this.auth.me(user.userId);
+    // Bajo un token de impersonación, el front necesita saber quién actúa (banner).
+    return user.impersonation ? { ...profile, impersonatedBy: user.impersonatedBy } : profile;
   }
 
   // ---- Gestión de 2FA ----

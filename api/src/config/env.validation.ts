@@ -52,6 +52,7 @@ export const envValidationSchema = Joi.object({
   JWT_ACCESS_TTL: Joi.number().default(900),
   JWT_REFRESH_SECRET: Joi.string().default('dev-refresh-secret-change-me'),
   JWT_REFRESH_TTL: Joi.number().default(1209600),
+  IMPERSONATION_TOKEN_TTL: Joi.number().default(1800), // token de impersonación (v3.8)
 
   // Llave de cifrado simétrico en reposo (AES-256-GCM), 32 bytes en hex (64 chars).
   // En prod DEBE venir de Secret Manager y ser única/rotable.

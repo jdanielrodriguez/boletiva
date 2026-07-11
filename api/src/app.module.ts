@@ -43,6 +43,7 @@ import { SettingsModule } from './modules/settings/settings.module';
 import { MaintenanceModule } from './modules/maintenance/maintenance.module';
 import { MaintenanceGuard } from './modules/maintenance/maintenance.guard';
 import { AuditModule } from './modules/audit/audit.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -110,6 +111,7 @@ import { AuditModule } from './modules/audit/audit.module';
     SettingsModule,
     MaintenanceModule,
     AuditModule,
+    AdminModule,
   ],
   providers: [
     // Orden importa: autentica (JWT) → corta si hay mantenimiento (503, salvo admin
