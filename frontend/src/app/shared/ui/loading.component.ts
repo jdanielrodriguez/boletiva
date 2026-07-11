@@ -69,6 +69,10 @@ export type LoadingVariant = 'spinner' | 'skeleton';
         background-image: none;
         backdrop-filter: blur(2px);
         -webkit-backdrop-filter: blur(2px);
+        /* Indicador VISUAL de carga: no debe atrapar clics (evita que un overlay
+           transitorio de una petición en vuelo se trague la siguiente acción del
+           usuario). El scrim oscurece; la interacción pasa a través. (v3.9) */
+        pointer-events: none;
       }
       .pe-spinner {
         width: 42px;

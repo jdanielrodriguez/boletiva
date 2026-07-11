@@ -448,7 +448,7 @@ async function main() {
     );
     // Guarda la disposición (bulk) y vuelve al editor.
     await promo.click('[data-testid="se-save"]');
-    await sleep(1200);
+    await sleep(1500);
     await promo.click('[data-testid="seat-back"]');
     await promo.waitForSelector('[data-testid="tab-localidades"]', { timeout: 12000 });
     assert(/\/editar/.test(promo.url()), `el back no volvió al editor: ${promo.url()}`);
@@ -703,18 +703,20 @@ async function main() {
     await guestCtx.close();
   });
 
-  await step('v3.7 admin: Salones/Plantillas enlazan a su página; Configuraciones va bajo Sistema', async () => {
+  await step('v3.9 admin: Salones/Plantillas son TABS con la lista embebida (sin "Gestionar")', async () => {
     await adminPg.goto(`${FE}/configuracion`, { waitUntil: 'networkidle0' });
     await adminPg.waitForSelector('[data-testid="tab-salones"]', { timeout: 12000 });
     assert((await adminPg.$('[data-testid="tab-plantillas"]')) !== null, 'falta la tab Plantillas');
     // Ya NO hay tab Configuraciones separada (se integró en Sistema).
     assert((await adminPg.$('[data-testid="tab-ajustes"]')) === null, 'la tab Configuraciones ya no debería existir');
     await adminPg.click('[data-testid="tab-salones"]');
-    await adminPg.waitForSelector('[data-testid="halls-manage"]', { timeout: 8000 });
+    // v3.9: la lista vive DENTRO del tab (no una tarjeta "Gestionar" a página aparte).
+    await adminPg.waitForSelector('[data-testid="halls-list"]', { timeout: 8000 });
+    assert((await adminPg.$('[data-testid="halls-manage"]')) === null, 'ya no debería existir el botón Gestionar');
   });
 
-  await step('v3.7 admin: página de Salones (crear borrador → publicar)', async () => {
-    await adminPg.goto(`${FE}/configuracion/salones`, { waitUntil: 'networkidle0' });
+  await step('v3.9 admin: tab Salones (crear borrador → publicar)', async () => {
+    await adminPg.goto(`${FE}/configuracion?tab=salones`, { waitUntil: 'networkidle0' });
     await adminPg.waitForSelector('[data-testid="hall-new"]', { timeout: 10000 });
     await adminPg.waitForSelector('[data-testid="hall-status-filter"]', { timeout: 8000 });
     await adminPg.click('[data-testid="hall-new"]');
@@ -726,8 +728,8 @@ async function main() {
     assert((await adminPg.$('[data-testid="hall-publish"]')) !== null, 'falta el botón Publicar del salón borrador');
   });
 
-  await step('v3.7 admin: página de Plantillas (filtros + botones por estado)', async () => {
-    await adminPg.goto(`${FE}/configuracion/plantillas`, { waitUntil: 'networkidle0' });
+  await step('v3.9 admin: tab Plantillas (filtros + botones por estado)', async () => {
+    await adminPg.goto(`${FE}/configuracion?tab=plantillas`, { waitUntil: 'networkidle0' });
     await adminPg.waitForSelector('[data-testid="tpl-list"]', { timeout: 12000 });
     await adminPg.waitForSelector('[data-testid="tpl-status-filter"]', { timeout: 8000 });
     // Las built-in (publicadas) ofrecen "Ver" y NO se pueden eliminar (sin botón de borrado habilitado).

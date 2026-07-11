@@ -1,5 +1,5 @@
 import { HttpInterceptorFn } from '@angular/common/http';
-import { inject } from '@angular/core';
+import { inject, untracked } from '@angular/core';
 import { finalize } from 'rxjs';
 import { LoadingStore } from '../ui/loading.store';
 import { SILENT } from './http-context';
@@ -18,6 +18,11 @@ export const loadingInterceptor: HttpInterceptorFn = (req, next) => {
   if (req.context.get(SILENT)) return next(req);
 
   const store = inject(LoadingStore);
-  store.start();
-  return next(req).pipe(finalize(() => store.stop()));
+  // `untracked`: la petición suele dispararse dentro de un `effect()` (p.ej.
+  // `effect(() => this.load(id))`). Sin esto, las señales internas del store que
+  // se leen al arrancar quedarían registradas como DEPENDENCIAS de ese effect, y
+  // cada cambio del estado de carga lo re-ejecutaría en bucle (recargas/reset de
+  // estado). Aislarlo garantiza que el overlay no contamine la reactividad ajena.
+  untracked(() => store.start());
+  return next(req).pipe(finalize(() => untracked(() => store.stop())));
 };
