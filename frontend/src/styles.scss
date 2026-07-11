@@ -2482,7 +2482,7 @@ button.danger:hover:not(:disabled) { background: rgba(255, 107, 129, 0.12); bord
 .ev-card-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; }
 .ev-card-actions .btn.small { flex: 1 1 auto; justify-content: center; min-width: 96px; }
 /* Barra superior del editor: acciones alineadas a la derecha. */
-.panel-header .header-actions { justify-content: flex-end; margin-top: 0; }
+.panel-header .header-actions { justify-content: flex-end; margin-top: 0; margin-left: auto; }
 
 /* Botón solo-icono (cuadrado, sin label). */
 .btn.icon-only {
