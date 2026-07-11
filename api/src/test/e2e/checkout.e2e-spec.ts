@@ -1,4 +1,4 @@
-import { INestApplication } from '@nestjs/common';
+import { BadRequestException, INestApplication, UnprocessableEntityException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import request from 'supertest';
 import Decimal from 'decimal.js';
@@ -350,4 +350,31 @@ describe('Checkout / commit de compra (e2e)', () => {
     release();
     await holding;
   }, 15000);
+
+  // ---- Guards del commit ejercidos por el servicio (no alcanzables por HTTP) ----
+
+  it('commit directo con seatIds vacío → 400 (el guard vive en el servicio)', async () => {
+    await expect(checkout.commit(eventId, [], buyerAId)).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('commit directo con evento inexistente → 400', async () => {
+    await expect(
+      checkout.commit('00000000-0000-4000-8000-000000000000', [seatIds[30]], buyerAId),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('commit de asiento cuya localidad no tiene precio (desiredNet null) → 422', async () => {
+    const loc = await prisma.locality.create({
+      data: { eventId, name: 'CO Sin Precio', slug: `co-noprice-${Date.now()}`, kind: 'seated' },
+    });
+    const seat = await prisma.seat.create({
+      data: { localityId: loc.id, label: `NP-${Date.now()}`, status: 'available' },
+    });
+    await expect(checkout.commit(eventId, [seat.id], buyerAId)).rejects.toBeInstanceOf(
+      UnprocessableEntityException,
+    );
+    // El asiento NO se vendió (la tx hizo rollback).
+    const after = await prisma.seat.findUniqueOrThrow({ where: { id: seat.id } });
+    expect(after.status).toBe('available');
+  });
 });
