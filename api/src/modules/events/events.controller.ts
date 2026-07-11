@@ -118,10 +118,14 @@ export class EventsController {
   @Roles(Role.promoter, Role.admin)
   @RequireVerifiedEmail()
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Crea un evento (promotor, requiere correo verificado)' })
+  @ApiOperation({
+    summary:
+      'Crea un evento (promotor, requiere correo verificado). Un admin puede crearlo ' +
+      'a nombre de un promotor aprobado enviando promoterId.',
+  })
   @ApiCreatedResponse({ type: EventResponseDto })
-  create(@Body() dto: CreateEventDto, @CurrentUser('userId') userId: string) {
-    return this.events.create(dto, userId);
+  create(@Body() dto: CreateEventDto, @CurrentUser() user: AuthUser) {
+    return this.events.create(dto, user);
   }
 
   @Patch(':id')

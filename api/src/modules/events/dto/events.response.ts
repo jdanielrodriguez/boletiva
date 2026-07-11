@@ -106,6 +106,21 @@ export class EventLocalityDto {
 }
 
 /** Evento (campos escalares). Base de create/update/publish/cancel. */
+/** Promotor resumido (dueño del evento; incluido al crear y en el listado admin). */
+export class AdminEventPromoterDto {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty({ example: 'Ana' })
+  firstName!: string;
+
+  @ApiProperty({ type: String, nullable: true, example: 'Pérez' })
+  lastName!: string | null;
+
+  @ApiProperty({ example: 'promotor@pasaeventos.com' })
+  email!: string;
+}
+
 export class EventResponseDto {
   @ApiProperty({ format: 'uuid', example: '3f2504e0-4f89-41d3-9a0c-0305e82c3301' })
   id!: string;
@@ -183,6 +198,20 @@ export class EventResponseDto {
   })
   promotedPriority!: number | null;
 
+  @ApiPropertyOptional({
+    format: 'uuid',
+    nullable: true,
+    description:
+      'Admin que creó el evento a nombre del promotor (null = lo creó el propio promotor)',
+  })
+  createdByAdminId!: string | null;
+
+  @ApiPropertyOptional({
+    type: () => AdminEventPromoterDto,
+    description: 'Promotor dueño (incluido al crear el evento)',
+  })
+  promoter?: AdminEventPromoterDto;
+
   @ApiProperty({ format: 'date-time', example: '2026-07-01T18:30:00.000Z' })
   createdAt!: string;
 
@@ -258,21 +287,6 @@ export class MyEventListItemDto extends EventResponseDto {
 
   @ApiProperty({ type: () => EventCountDto })
   _count!: EventCountDto;
-}
-
-/** Promotor resumido en el listado admin de eventos. */
-export class AdminEventPromoterDto {
-  @ApiProperty({ format: 'uuid' })
-  id!: string;
-
-  @ApiProperty({ example: 'Ana' })
-  firstName!: string;
-
-  @ApiProperty({ type: String, nullable: true, example: 'Pérez' })
-  lastName!: string | null;
-
-  @ApiProperty({ example: 'promotor@pasaeventos.com' })
-  email!: string;
 }
 
 /** Ítem del listado admin: evento + categoría + _count + promotor. */

@@ -49,6 +49,17 @@ export class CreateEventDto {
   @IsUUID()
   hallId?: string;
 
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description:
+      'Promotor dueño del evento. SOLO tiene efecto si el caller es ADMIN (crea el ' +
+      'evento a nombre de ese promotor, que debe estar APROBADO). Un promotor no-admin ' +
+      'lo ignora y crea el evento a su propio nombre.',
+  })
+  @IsOptional()
+  @IsUUID()
+  promoterId?: string;
+
   @ApiPropertyOptional({ description: 'Dirección/lugar (máx 300)', example: 'Estadio Nacional, Ciudad de Guatemala' })
   @IsOptional()
   @IsString()

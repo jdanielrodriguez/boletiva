@@ -6,7 +6,7 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { Event, GatewayStatus, Prisma, Role } from '@prisma/client';
+import { Event, GatewayStatus, Prisma, PromoterStatus, Role } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { StorageService } from '../../infra/storage/storage.service';
 import { RedisService } from '../../infra/redis/redis.service';
@@ -308,17 +308,39 @@ export class EventsService {
     });
   }
 
-  async create(dto: CreateEventDto, userId: string) {
+  async create(dto: CreateEventDto, user: AuthUser) {
+    // El evento SIEMPRE pertenece a un PROMOTOR. Un ADMIN puede crearlo a nombre de
+    // otro promotor (aprobado) enviando `promoterId`; queda auditado en
+    // `createdByAdminId`. Un promotor no-admin ignora cualquier `promoterId` ajeno
+    // y crea el evento a su propio nombre.
+    const isAdmin = user.roles.includes(Role.admin);
+    let ownerId = user.userId;
+    let createdByAdminId: string | undefined;
+    if (isAdmin && dto.promoterId && dto.promoterId !== user.userId) {
+      const target = await this.prisma.user.findUnique({
+        where: { id: dto.promoterId },
+        select: { id: true, promoterStatus: true },
+      });
+      if (!target) throw new NotFoundException('El promotor indicado no existe');
+      if (target.promoterStatus !== PromoterStatus.approved) {
+        throw new UnprocessableEntityException(
+          'El usuario indicado no es un promotor aprobado; no se le puede asignar el evento',
+        );
+      }
+      ownerId = target.id;
+      createdByAdminId = user.userId;
+    }
     // Solo un promotor autorizado por un admin (o un admin) puede crear eventos.
-    await this.promoters.assertCanOperate(userId);
+    await this.promoters.assertCanOperate(ownerId);
     this.assertDates(dto.startsAt, dto.endsAt);
-    const gatewayId = await this.anchorGatewayForTestUser(userId, dto.gatewayId);
-    await this.assertGatewayActive(gatewayId, userId);
+    const gatewayId = await this.anchorGatewayForTestUser(ownerId, dto.gatewayId);
+    await this.assertGatewayActive(gatewayId, ownerId);
     const loc = await this.resolveLocation(dto);
     const startsAt = new Date(dto.startsAt);
     return this.prisma.event.create({
       data: {
-        promoterId: userId,
+        promoterId: ownerId,
+        createdByAdminId,
         categoryId: dto.categoryId,
         name: dto.name,
         slug: await this.uniqueSlug(dto.name),
@@ -334,6 +356,9 @@ export class EventsService {
         absorbInstallmentCost: dto.absorbInstallmentCost,
         promotedPriority: dto.promotedPriority,
         status: 'draft',
+      },
+      include: {
+        promoter: { select: { id: true, firstName: true, lastName: true, email: true } },
       },
     });
   }

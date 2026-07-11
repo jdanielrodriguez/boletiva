@@ -164,6 +164,59 @@ describe('Eventos: gestión (e2e)', () => {
     await http().get(`/api/v1/events/${draft.slug}`).expect(404); // draft no publicado
   });
 
+  describe('Admin crea evento a nombre de un promotor (v3.8)', () => {
+    it('admin con promoterId aprobado → evento del promotor + createdByAdminId auditado', async () => {
+      // Nombre por defecto `Ev …` para que el afterAll (limpia por nombre) lo borre
+      // y no bloquee la eliminación del promotor B por FK.
+      const res = await http()
+        .post('/api/v1/events')
+        .set(bearer(adminToken))
+        .send(body({ promoterId: promoterBId }))
+        .expect(201);
+      expect(res.body.promoterId).toBe(promoterBId); // dueño = el promotor elegido
+      expect(res.body.promoter?.email).toBeDefined(); // devuelve el promotor dueño
+      const ev = await prisma.event.findUniqueOrThrow({ where: { id: res.body.id } });
+      const admin = await prisma.user.findUniqueOrThrow({ where: { email: SEED.admin } });
+      expect(ev.createdByAdminId).toBe(admin.id); // rastro de quién lo originó
+    });
+
+    it('admin con promoterId de un usuario NO promotor (buyer) → 422', async () => {
+      const buyer = await prisma.user.findUniqueOrThrow({ where: { email: SEED.buyer } });
+      await http()
+        .post('/api/v1/events')
+        .set(bearer(adminToken))
+        .send(body({ promoterId: buyer.id }))
+        .expect(422);
+    });
+
+    it('admin con promoterId de un promotor NO aprobado (pending) → 422', async () => {
+      await http()
+        .post('/api/v1/events')
+        .set(bearer(adminToken))
+        .send(body({ promoterId: pendingPromoterId }))
+        .expect(422);
+    });
+
+    it('admin con promoterId inexistente → 404', async () => {
+      await http()
+        .post('/api/v1/events')
+        .set(bearer(adminToken))
+        .send(body({ promoterId: '00000000-0000-0000-0000-000000000000' }))
+        .expect(404);
+    });
+
+    it('promotor NO puede asignar dueño ajeno: ignora promoterId y crea a su nombre', async () => {
+      const res = await http()
+        .post('/api/v1/events')
+        .set(bearer(promoterToken))
+        .send(body({ promoterId: promoterBId }))
+        .expect(201);
+      expect(res.body.promoterId).toBe(promoterId); // se creó a su propio nombre
+      const ev = await prisma.event.findUniqueOrThrow({ where: { id: res.body.id } });
+      expect(ev.createdByAdminId).toBeNull(); // no lo originó un admin
+    });
+  });
+
   it('crear con pasarela inactiva → 400', async () => {
     await http()
       .post('/api/v1/events')
