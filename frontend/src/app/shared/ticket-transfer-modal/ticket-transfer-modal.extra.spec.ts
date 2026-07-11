@@ -81,10 +81,17 @@ describe('TicketTransferModal — auditoría, compartir y utilidades', () => {
     expect(closed).toBe(true);
   });
 
+  // Instala un `navigator.clipboard.writeText` fresco (evita chocar con otros
+  // specs que reemplazan el clipboard globalmente → sin dependencia de orden).
+  const stubClipboard = (writeText: jasmine.Spy): void => {
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+  };
+
   it('copy() escribe el código al portapapeles y marca copiado', async () => {
     await setup();
     click('transfer-confirm');
-    const writeText = spyOn(navigator.clipboard, 'writeText').and.resolveTo();
+    const writeText = jasmine.createSpy('writeText').and.resolveTo();
+    stubClipboard(writeText);
     await instance().copy();
     expect(writeText).toHaveBeenCalledWith('ABCD12');
     expect(instance().copied()).toBe(true);
@@ -93,7 +100,7 @@ describe('TicketTransferModal — auditoría, compartir y utilidades', () => {
   it('copy() con portapapeles bloqueado no marca copiado y no lanza', async () => {
     await setup();
     click('transfer-confirm');
-    spyOn(navigator.clipboard, 'writeText').and.rejectWith(new Error('denied'));
+    stubClipboard(jasmine.createSpy('writeText').and.rejectWith(new Error('denied')));
     await instance().copy();
     expect(instance().copied()).toBe(false);
   });
