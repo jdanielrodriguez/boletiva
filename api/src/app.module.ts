@@ -40,6 +40,9 @@ import { BannerModule } from './modules/banner/banner.module';
 import { HallsModule } from './modules/halls/halls.module';
 import { SeatTemplatesModule } from './modules/seat-templates/seat-templates.module';
 import { SettingsModule } from './modules/settings/settings.module';
+import { MaintenanceModule } from './modules/maintenance/maintenance.module';
+import { MaintenanceGuard } from './modules/maintenance/maintenance.guard';
+import { AuditModule } from './modules/audit/audit.module';
 
 @Module({
   imports: [
@@ -105,10 +108,14 @@ import { SettingsModule } from './modules/settings/settings.module';
     HallsModule,
     SeatTemplatesModule,
     SettingsModule,
+    MaintenanceModule,
+    AuditModule,
   ],
   providers: [
-    // Orden importa: autentica (JWT) → autoriza por rol → exige correo verificado.
+    // Orden importa: autentica (JWT) → corta si hay mantenimiento (503, salvo admin
+    // o rutas allowlisted) → autoriza por rol → exige correo verificado.
     { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: MaintenanceGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
     { provide: APP_GUARD, useClass: VerifiedEmailGuard },
   ],
