@@ -131,6 +131,25 @@ describe('PromoterPanel (v3 grid)', () => {
     expect(cancel).toHaveBeenCalledWith('e2');
   });
 
+  it('suspender un evento publicado pide confirmación y luego llama suspend (v3.7)', async () => {
+    const suspend = jasmine.createSpy('suspend').and.returnValue(of({ ...EVENTS[1], status: 'suspended' }));
+    await setup({ suspend });
+    click('ev-suspend');
+    expect(suspend).not.toHaveBeenCalled();
+    click('confirm-accept');
+    expect(suspend).toHaveBeenCalledWith('e2');
+  });
+
+  it('un evento suspendido ofrece Publicar (re-publicar) y Cancelar (v3.7)', async () => {
+    await setup({
+      mine: () =>
+        of([{ id: 'e3', name: 'Susp', slug: 'susp', status: 'suspended', startsAt: '2028-10-01T02:00:00.000Z', _count: { localities: 2 } }]),
+    });
+    expect(el.querySelector('[data-testid="ev-publish"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="ev-cancel"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="ev-suspend"]')).toBeNull();
+  });
+
   it('muestra estado vacío cuando no hay eventos', async () => {
     await setup({ mine: () => of([]) });
     expect(el.querySelector('[data-testid="events-empty"]')).not.toBeNull();

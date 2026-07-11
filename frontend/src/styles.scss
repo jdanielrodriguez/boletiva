@@ -3324,3 +3324,21 @@ button.danger {
 .badge-hidden { background: rgba(180, 140, 0, 0.16); color: #b48c00; }
 .badge-maintenance { background: rgba(180, 140, 0, 0.16); color: #b48c00; }
 .badge-suspended { background: rgba(200, 60, 60, 0.14); color: #c83c3c; }
+
+/* Aviso GRANDE de boletos vendidos en el editor de evento (v3.7) */
+.sold-warning {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  margin: 0.75rem 0 1rem;
+  padding: 0.9rem 1.1rem;
+  border-radius: 10px;
+  background: rgba(200, 60, 60, 0.12);
+  border: 1px solid rgba(200, 60, 60, 0.45);
+  color: #c83c3c;
+}
+.sold-warning app-icon svg { width: 22px; height: 22px; }
+.sold-warning .sold-warning-body { display: flex; flex-direction: column; gap: 0.2rem; }
+.sold-warning strong { font-size: 1.02rem; }
+.sold-warning p { margin: 0; color: var(--pe-text); }
+.sold-warning a { color: #c83c3c; font-weight: 600; text-decoration: underline; width: fit-content; }

@@ -15,14 +15,20 @@ export const promoter = {
     editTitle: 'Edit event',
     deleteTitle: 'Delete event',
     cancelTitle: 'Cancel event',
+    suspendTitle: 'Suspend event',
     noMatch: 'No event matches your search.',
     loadError: 'Could not load your events.',
     confirmPublishMsg: 'Publish "{{name}}"? It will be visible for sale.',
     toastPublished: '"{{name}}" published.',
     publishErrorGeneric: 'Could not publish. Open the event to see what is missing (banner/seats).',
-    confirmCancelMsg: 'Are you sure you want to cancel "{{name}}"? It will stop selling.',
+    confirmCancelMsg:
+      'Are you sure you want to cancel "{{name}}"? This is permanent: the event stays cancelled.',
     toastCancelled: '"{{name}}" cancelled.',
     cancelError: 'Could not cancel the event.',
+    confirmSuspendMsg:
+      'Suspend "{{name}}"? It will stop selling and you can reconfigure it (hall, template, localities) before publishing it again.',
+    toastSuspended: '"{{name}}" suspended.',
+    suspendError: 'Could not suspend the event.',
     confirmDeleteMsg: 'Are you sure you want to delete "{{name}}"? This action cannot be undone.',
     toastRemoved: '"{{name}}" deleted.',
     removeError: 'You can only delete draft events.',
@@ -46,7 +52,20 @@ export const promoter = {
       'Fill in the details and press <strong>Save</strong> to create the event. Then you can add localities, a banner and publish it.',
     publishBlockPrefix: 'To publish:',
     publishedNote:
-      'Published event: localities and seats are locked and the gateway and VAT cannot be changed.',
+      'Published event: localities and seats are locked and the gateway and VAT cannot be changed. Suspend it if you need to reconfigure the hall or the seats.',
+    suspendedNote:
+      'SUSPENDED event: it is not visible or on sale. You can reconfigure the hall, template, localities and seats, and publish it again when ready.',
+    suspendEvent: 'Suspend event',
+    suspendEventTitle: 'Suspend event',
+    confirmSuspendMsg:
+      'Suspend "{{name}}"? It will stop selling and switch to reconfiguration mode (you can change hall, template and localities).',
+    toastSuspended: 'Event suspended: you can now reconfigure it.',
+    toastSuspendError: 'Could not suspend the event.',
+    rePublish: 'Publish again',
+    soldWarningTitle: 'This event has sold tickets',
+    soldWarningBody:
+      'There are {{n}} sold ticket(s). Before changing the hall, the template or the localities, please process the corresponding refunds.',
+    soldWarningLink: 'See refund and change policy',
     sectionsAria: 'Event sections',
     tabData: 'Details',
     tabLocalities: 'Localities',

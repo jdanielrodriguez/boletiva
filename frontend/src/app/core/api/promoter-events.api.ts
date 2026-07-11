@@ -65,6 +65,11 @@ export class PromoterEventsApi {
     return this.api.post<ManagedEventDetailDto>(`/events/${id}/publish`);
   }
 
+  /** Suspende un evento publicado: lo despublica y lo deja reconfigurable (re-publicable). */
+  suspend(id: string): Observable<ManagedEventDetailDto> {
+    return this.api.post<ManagedEventDetailDto>(`/events/${id}/suspend`);
+  }
+
   cancel(id: string): Observable<ManagedEventDetailDto> {
     return this.api.post<ManagedEventDetailDto>(`/events/${id}/cancel`);
   }

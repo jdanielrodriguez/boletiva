@@ -512,6 +512,92 @@ async function main() {
     assert(after === before, 'cancelar la confirmación no debería borrar el evento');
   });
 
+  await step('suspender un evento publicado lo despublica, lo deja editable y re-publicable (v3.7)', async () => {
+    await promo.goto(`${FE}/promotor`, { waitUntil: 'networkidle0' });
+    // Filtra por nombre para apuntar SOLO al evento demo (hay otros publicados de
+    // corridas previas). Con el filtro activo, la única card es la del demo.
+    await promo.waitForSelector('[data-testid="panel-search"]', { timeout: 15000 });
+    await promo.type('[data-testid="panel-search"]', 'Evento Demo');
+    await promo.waitForFunction(
+      () => {
+        const c = [...document.querySelectorAll('[data-testid="ev-card"]')];
+        return c.length === 1 && /Evento Demo/i.test(c[0].textContent || '');
+      },
+      { timeout: 8000 },
+    );
+    await promo.waitForSelector('[data-testid="ev-suspend"]', { timeout: 8000 });
+    await promo.screenshot({ path: '/tmp/e2e-suspend-01-panel.png' });
+    await promo.click('[data-testid="ev-suspend"]');
+    await promo.waitForSelector('[data-testid="confirm-dialog"]', { timeout: 8000 });
+    await promo.screenshot({ path: '/tmp/e2e-suspend-02-confirm.png' });
+    await promo.click('[data-testid="confirm-accept"]');
+    // Tras suspender, la card del demo pasa a ofrecer "Publicar" (re-publicar) y ya no "Suspender".
+    await promo.waitForFunction(
+      () => {
+        const c = document.querySelector('[data-testid="ev-card"]');
+        return !!c && !c.querySelector('[data-testid="ev-suspend"]') && !!c.querySelector('[data-testid="ev-publish"]');
+      },
+      { timeout: 12000 },
+    );
+
+    // Ya NO es visible públicamente: el detalle por slug responde 404.
+    const resp = await promo.goto(`${FE}/eventos/${EVENT_SLUG}`, { waitUntil: 'networkidle0' });
+    assert(resp.status() === 404, `el evento suspendido debería dar 404 público; status=${resp.status()}`);
+    await waitSel(promo, '[data-testid="event-notfound"]', 8000);
+
+    // Abre el editor del demo: badge "Suspendido", nota de reconfiguración y (por la
+    // compra del flujo del comprador) el AVISO grande de boletos vendidos con link a T&C.
+    await promo.goto(`${FE}/promotor`, { waitUntil: 'networkidle0' });
+    await promo.waitForSelector('[data-testid="panel-search"]', { timeout: 12000 });
+    await promo.type('[data-testid="panel-search"]', 'Evento Demo');
+    await promo.waitForFunction(
+      () => document.querySelectorAll('[data-testid="ev-card"]').length === 1,
+      { timeout: 8000 },
+    );
+    await promo.click('[data-testid="ev-edit"]');
+    await promo.waitForSelector('[data-testid="ev-status-badge"]', { timeout: 12000 });
+    const badge = await text(promo, '[data-testid="ev-status-badge"]');
+    assert(/suspendid/i.test(badge), `el badge debería decir Suspendido; fue "${badge}"`);
+    assert((await promo.$('[data-testid="suspended-note"]')) !== null, 'falta la nota de suspendido');
+    const warn = await promo.$('[data-testid="sold-warning"]');
+    assert(warn !== null, 'debería mostrarse el aviso de boletos vendidos (hubo una compra)');
+    const tcHref = await promo.$eval('[data-testid="sold-warning-link"]', (a) => a.getAttribute('href'));
+    assert(tcHref === '/terminos#reembolsos', `el link de T&C es incorrecto: ${tcHref}`);
+    await promo.screenshot({ path: '/tmp/e2e-suspend-03-editor-datos.png' });
+
+    // Reconfigurable: el aviso persiste en otras tabs y las localidades son editables.
+    await promo.click('[data-testid="tab-localidades"]');
+    await promo.waitForSelector('[data-testid="loc-add-toggle"]', { timeout: 8000 });
+    assert((await promo.$('[data-testid="sold-warning"]')) !== null, 'el aviso debería verse también en Localidades');
+    await promo.screenshot({ path: '/tmp/e2e-suspend-04-localidades.png' });
+
+    // Asegura un banner (el demo semilla no trae cover) generándolo con la IA stub
+    // → registra un media `cover` para que el gate de publicar se cumpla.
+    await promo.click('[data-testid="tab-banner"]');
+    await promo.waitForSelector('[data-testid="bn-ai-toggle"]', { timeout: 8000 });
+    await promo.click('[data-testid="bn-ai-toggle"]');
+    await promo.waitForSelector('[data-testid="bn-generate"]', { timeout: 8000 });
+    await promo.click('[data-testid="bn-generate"]');
+    await promo.waitForSelector('[data-testid="bn-preview"]', { timeout: 15000 });
+
+    // Vuelve a publicar (restaura el estado del demo para el resto de la suite).
+    await promo.click('[data-testid="tab-datos"]');
+    await promo.waitForFunction(
+      () => {
+        const b = document.querySelector('[data-testid="publish-btn"]');
+        return b && !b.disabled;
+      },
+      { timeout: 10000 },
+    );
+    await promo.click('[data-testid="publish-btn"]');
+    await promo.waitForSelector('[data-testid="confirm-dialog"]', { timeout: 8000 });
+    await promo.click('[data-testid="confirm-accept"]');
+    await promo.waitForFunction(
+      () => /publicad/i.test(document.querySelector('[data-testid="ev-status-badge"]')?.textContent || ''),
+      { timeout: 12000 },
+    );
+  });
+
   await step('el promotor NO ve el enlace de invitaciones (exclusivo admin)', async () => {
     await promo.goto(`${FE}/promotor`, { waitUntil: 'networkidle0' });
     // Espera la hidratación de la sesión (el saludo solo aparece autenticado en cliente).

@@ -22,6 +22,7 @@ export const config = {
     promoter: 'Promoter',
     statusDraft: 'Draft',
     statusPublished: 'Published',
+    statusSuspended: 'Suspended',
     statusCancelled: 'Cancelled',
     localitiesCount: '{{n}} locality(-ies)',
     accounts: 'Accounts',

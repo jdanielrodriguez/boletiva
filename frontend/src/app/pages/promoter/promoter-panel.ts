@@ -11,6 +11,7 @@ import {
 } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
+import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
 import type { MyEventListItemDto } from '../../core/api/types';
 
 const PAGE_SIZE = 9;
@@ -23,7 +24,7 @@ const PAGE_SIZE = 9;
  */
 @Component({
   selector: 'app-promoter-panel',
-  imports: [FormsModule, LocalizedDatePipe, TranslatePipe, RouterLink, IconComponent, ConfirmDialogComponent, PagerComponent],
+  imports: [FormsModule, LocalizedDatePipe, TranslatePipe, RouterLink, IconComponent, ConfirmDialogComponent, PagerComponent, StatusLabelPipe],
   templateUrl: './promoter-panel.html',
 })
 export class PromoterPanel {
@@ -153,6 +154,26 @@ export class PromoterPanel {
         this.loadEvents();
       },
       error: () => this.toasts.error(this.translate.instant('promoter.panel.cancelError')),
+    });
+  }
+
+  protected askSuspend(ev: MyEventListItemDto): void {
+    this.confirm.set({
+      title: this.translate.instant('promoter.panel.suspendTitle'),
+      message: this.translate.instant('promoter.panel.confirmSuspendMsg', { name: ev.name }),
+      confirmLabel: this.translate.instant('promoter.panel.suspendTitle'),
+      confirmIcon: 'cancel',
+      onConfirm: () => this.suspend(ev),
+    });
+  }
+
+  protected suspend(ev: MyEventListItemDto): void {
+    this.eventsApi.suspend(ev.id).subscribe({
+      next: () => {
+        this.toasts.info(this.translate.instant('promoter.panel.toastSuspended', { name: ev.name }));
+        this.loadEvents();
+      },
+      error: () => this.toasts.error(this.translate.instant('promoter.panel.suspendError')),
     });
   }
 

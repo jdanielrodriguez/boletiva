@@ -19,6 +19,7 @@ import { EventSettlementComponent } from '../../shared/event-settlement/event-se
 import { IconComponent } from '../../shared/icon/icon.component';
 import { MapPickerComponent, type MapLocation } from '../../shared/map/map-picker.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
+import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { MoneyPipe } from '../../shared/money.pipe';
 import { EventSeatMapComponent } from './event-seat-map.component';
@@ -62,6 +63,7 @@ function toLocalInput(iso: string | null | undefined): string {
     ConfirmDialogComponent,
     MapPickerComponent,
     PagerComponent,
+    StatusLabelPipe,
     LocalizedDatePipe,
     MoneyPipe,
     TranslatePipe,
@@ -95,7 +97,18 @@ export class EventEditPage implements OnDestroy {
   protected readonly savingData = signal(false);
   protected readonly savingConfig = signal(false);
 
-  protected readonly isPublished = computed(() => (this.event()?.status ?? 'draft') !== 'draft');
+  protected readonly isPublished = computed(() => this.event()?.status === 'published');
+  protected readonly isSuspended = computed(() => this.event()?.status === 'suspended');
+  /**
+   * El evento es RECONFIGURABLE (localidades/asientos/salón editables) cuando está
+   * en borrador o SUSPENDIDO (v3.7). Publicado/cancelado → bloqueado.
+   */
+  protected readonly canEditLayout = computed(() => {
+    const s = this.event()?.status ?? 'draft';
+    return s === 'draft' || s === 'suspended';
+  });
+  /** Boletos vendidos (del detalle gestionable): dispara el aviso de devoluciones. */
+  protected readonly soldTicketsCount = computed(() => this.event()?.soldTicketsCount ?? 0);
   protected readonly isFrozen = computed(() => !!this.event()?.frozenGatewayId);
 
   /** Origen de navegación: 'admin' vuelve a /configuracion; si no, a /promotor. */
@@ -583,9 +596,9 @@ export class EventEditPage implements OnDestroy {
     this.editingLoc.set(null);
   }
 
-  /** Abre el form con los datos de una localidad para editarla (solo no-publicado). */
+  /** Abre el form con los datos de una localidad para editarla (draft o suspendido). */
   protected startEditLocality(l: LocalityView): void {
-    if (this.isPublished()) return;
+    if (!this.canEditLayout()) return;
     this.editingLoc.set(l);
     this.showLocForm.set(true);
     this.locForm.name.set(l.name);
@@ -800,6 +813,29 @@ export class EventEditPage implements OnDestroy {
     if (Array.isArray(msg)) return msg.join(' ');
     if (typeof msg === 'string') return msg;
     return this.translate.instant('promoter.edit.toastPublishError');
+  }
+
+  protected askSuspend(): void {
+    if (this.blockedByLock()) return;
+    this.confirm.set({
+      title: this.translate.instant('promoter.edit.suspendEventTitle'),
+      message: this.translate.instant('promoter.edit.confirmSuspendMsg', {
+        name: this.event()?.name ?? this.translate.instant('promoter.edit.thisEvent'),
+      }),
+      confirmLabel: this.translate.instant('promoter.edit.suspendEvent'),
+      confirmIcon: 'cancel',
+      onConfirm: () => this.suspend(),
+    });
+  }
+
+  protected suspend(): void {
+    this.api.suspend(this.eventId()).subscribe({
+      next: (ev) => {
+        this.event.set(ev);
+        this.toasts.info(this.translate.instant('promoter.edit.toastSuspended'));
+      },
+      error: () => this.toasts.error(this.translate.instant('promoter.edit.toastSuspendError')),
+    });
   }
 
   protected askCancelEvent(): void {

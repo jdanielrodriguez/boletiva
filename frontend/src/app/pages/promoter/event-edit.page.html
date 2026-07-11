@@ -9,7 +9,7 @@
     <div class="panel-header">
       <div>
         <h1>{{ isNew() ? ('promoter.edit.newEvent' | translate) : event()?.name }}</h1>
-        @if (event(); as ev) { <span class="badge badge-{{ ev.status }}">{{ ev.status }}</span> }
+        @if (event(); as ev) { <span class="badge badge-{{ ev.status }}" data-testid="ev-status-badge">{{ ev.status | statusLabel }}</span> }
         @if (isNew()) { <span class="badge badge-draft" data-testid="new-badge">{{ 'promoter.edit.badgeNew' | translate }}</span> }
       </div>
       <div class="ev-card-actions header-actions">
@@ -22,16 +22,23 @@
           [title]="locked() ? ('promoter.edit.unlockToSaveTooltip' | translate) : ('common.save' | translate)">
           <app-icon name="save" /> {{ savingData() ? ('promoter.edit.savingShort' | translate) : ('common.save' | translate) }}
         </button>
-        @if (!isNew() && event()?.status === 'draft') {
+        @if (!isNew() && canEditLayout()) {
           <button type="button" class="btn primary" [disabled]="!canPublish()" (click)="askPublish()" data-testid="publish-btn"
             [title]="publishBlock() ?? ('promoter.edit.publishEventTitle' | translate)">
-            <app-icon name="publish" /> {{ 'promoter.edit.publish' | translate }}
+            <app-icon name="publish" /> {{ isSuspended() ? ('promoter.edit.rePublish' | translate) : ('promoter.edit.publish' | translate) }}
           </button>
+        }
+        @if (!isNew() && event()?.status === 'draft') {
           <button type="button" class="btn danger" [disabled]="locked()" (click)="askRemove()" data-testid="delete-btn" [title]="'promoter.edit.deleteEventTitle' | translate">
             <app-icon name="delete" /> {{ 'common.delete' | translate }}
           </button>
         }
-        @if (event()?.status === 'published') {
+        @if (isPublished()) {
+          <button type="button" class="btn" [disabled]="locked()" (click)="askSuspend()" data-testid="suspend-btn" [title]="'promoter.edit.suspendEventTitle' | translate">
+            <app-icon name="cancel" /> {{ 'promoter.edit.suspendEvent' | translate }}
+          </button>
+        }
+        @if (isPublished() || isSuspended()) {
           <button type="button" class="btn danger" [disabled]="locked()" (click)="askCancelEvent()" data-testid="cancel-btn" [title]="'promoter.edit.cancelEvent' | translate">
             <app-icon name="cancel" /> {{ 'promoter.edit.cancelEvent' | translate }}
           </button>
@@ -46,6 +53,21 @@
       </p>
     }
 
+    <!-- Aviso GRANDE de boletos vendidos: visible en TODAS las tabs (fuera del
+         switch de tabs). Especialmente relevante al reconfigurar un suspendido. -->
+    @if (!isNew() && soldTicketsCount() > 0) {
+      <div class="sold-warning" role="alert" data-testid="sold-warning">
+        <app-icon name="cancel" />
+        <div class="sold-warning-body">
+          <strong>{{ 'promoter.edit.soldWarningTitle' | translate }}</strong>
+          <p>{{ 'promoter.edit.soldWarningBody' | translate: { n: soldTicketsCount() } }}</p>
+          <a [routerLink]="'/terminos'" fragment="reembolsos" data-testid="sold-warning-link">
+            {{ 'promoter.edit.soldWarningLink' | translate }} →
+          </a>
+        </div>
+      </div>
+    }
+
     @if (isNew()) {
       <p class="muted small" data-testid="new-note" [innerHTML]="'promoter.edit.newNote' | translate"></p>
     } @else if (publishBlock()) {
@@ -55,6 +77,10 @@
     @if (isPublished()) {
       <p class="muted small" data-testid="published-note">
         {{ 'promoter.edit.publishedNote' | translate }}
+      </p>
+    } @else if (isSuspended()) {
+      <p class="muted small" data-testid="suspended-note">
+        {{ 'promoter.edit.suspendedNote' | translate }}
       </p>
     }
 
@@ -154,14 +180,14 @@
                                Se oculta mientras ESA localidad está en edición. -->
                           @if (editingLoc()?.id !== l.id) {
                             <a class="btn small primary" [routerLink]="seatsLink(l)" [queryParams]="seatsQuery()" data-testid="loc-seats"
-                              [title]="(isPublished() || locked()) ? ('promoter.edit.viewSeatMap' | translate) : ('promoter.edit.openSeatEditor' | translate)">
-                              <app-icon name="seats" /> {{ (isPublished() || locked()) ? ('promoter.edit.viewSeats' | translate) : ('promoter.edit.manageSeats' | translate) }}
+                              [title]="(!canEditLayout() || locked()) ? ('promoter.edit.viewSeatMap' | translate) : ('promoter.edit.openSeatEditor' | translate)">
+                              <app-icon name="seats" /> {{ (!canEditLayout() || locked()) ? ('promoter.edit.viewSeats' | translate) : ('promoter.edit.manageSeats' | translate) }}
                             </a>
                           }
                         } @else {
                           <span class="muted small loc-general-note" data-testid="loc-general-note">{{ 'promoter.edit.soldByCapacity' | translate }}</span>
                         }
-                        @if (!isPublished()) {
+                        @if (canEditLayout()) {
                           @if (editingLoc()?.id !== l.id) {
                             <button type="button" class="btn small" (click)="startEditLocality(l)" data-testid="loc-edit" [title]="'promoter.edit.editLocalityTitle' | translate">
                               <app-icon name="edit" /> {{ 'common.edit' | translate }}
@@ -182,7 +208,7 @@
               <p class="muted" data-testid="loc-empty">{{ 'promoter.edit.noLocalities' | translate }}</p>
             }
 
-            @if (!isPublished()) {
+            @if (canEditLayout()) {
               <!-- Patrón botón → form: por defecto solo el botón; se abre al pulsar. -->
               @if (!showLocForm()) {
                 <button type="button" class="btn primary" (click)="toggleLocForm()" data-testid="loc-add-toggle" [title]="'promoter.edit.addLocality' | translate">

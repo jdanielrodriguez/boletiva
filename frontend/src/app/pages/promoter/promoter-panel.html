@@ -22,7 +22,7 @@
       <select [ngModel]="filterStatus()" (ngModelChange)="filterStatus.set($event); onFilterChange()" name="status" data-testid="panel-filter-status">
         <option value="">{{ 'promoter.panel.allStatuses' | translate }}</option>
         @for (s of statuses(); track s) {
-          <option [value]="s">{{ s }}</option>
+          <option [value]="s">{{ s | statusLabel }}</option>
         }
       </select>
     </div>
@@ -37,9 +37,9 @@
       @for (ev of pageEvents(); track ev.id) {
         <article class="ev-card" data-testid="ev-card">
           <div class="ev-card-top">
-            <span class="badge badge-{{ ev.status }}">{{ ev.status }}</span>
+            <span class="badge badge-{{ ev.status }}">{{ ev.status | statusLabel }}</span>
             <span class="ev-card-loc muted small">{{ 'promoter.panel.localitiesCount' | translate: { n: ev._count.localities } }}</span>
-            @if (ev.status === 'draft') {
+            @if (ev.status === 'draft' || ev.status === 'suspended') {
               <button type="button" class="btn icon-only primary" (click)="askPublish(ev)" data-testid="ev-publish"
                 [title]="'promoter.panel.publish' | translate" [attr.aria-label]="'promoter.panel.publish' | translate">
                 <app-icon name="publish" />
@@ -60,6 +60,11 @@
               </button>
             }
             @if (ev.status === 'published') {
+              <button type="button" class="btn small" (click)="askSuspend(ev)" data-testid="ev-suspend" [title]="'promoter.panel.suspendTitle' | translate">
+                <app-icon name="cancel" /> {{ 'promoter.panel.suspendTitle' | translate }}
+              </button>
+            }
+            @if (ev.status === 'published' || ev.status === 'suspended') {
               <button type="button" class="btn small danger" (click)="askCancelEvent(ev)" data-testid="ev-cancel" [title]="'promoter.panel.cancelTitle' | translate">
                 <app-icon name="cancel" /> {{ 'common.cancel' | translate }}
               </button>

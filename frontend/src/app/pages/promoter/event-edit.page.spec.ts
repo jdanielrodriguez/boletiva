@@ -652,6 +652,62 @@ describe('EventEditPage (v3)', () => {
     expect(updateLocality).toHaveBeenCalledWith('l1', jasmine.objectContaining({ name: 'VIP' }));
   });
 
+  // --- v3.7: suspensión de evento ---
+  it('publicado: muestra Suspender y Cancelar (no Publicar/Eliminar)', async () => {
+    await setup({ get: () => of({ ...EVENT, status: 'published' }) });
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="suspend-btn"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="cancel-btn"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="publish-btn"]')).toBeNull();
+    expect(el.querySelector('[data-testid="delete-btn"]')).toBeNull();
+    expect(inst()['canEditLayout']()).toBe(false);
+  });
+
+  it('askSuspend abre la modal y al aceptar llama suspend()', async () => {
+    const suspend = jasmine.createSpy('s').and.returnValue(of({ ...EVENT, status: 'suspended' }));
+    await setup({ suspend, get: () => of({ ...EVENT, status: 'published' }) });
+    fixture.componentInstance['askSuspend']();
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="confirm-dialog"]')).not.toBeNull();
+    expect(suspend).not.toHaveBeenCalled();
+    fixture.componentInstance['onConfirmAccept']();
+    expect(suspend).toHaveBeenCalledWith('e1');
+    expect(fixture.componentInstance['event']()?.status).toBe('suspended');
+  });
+
+  it('suspendido: es reconfigurable (canEditLayout) y ofrece Volver a publicar + Cancelar', async () => {
+    await setup({ get: () => of({ ...EVENT, status: 'suspended' }) });
+    expect(inst()['isSuspended']()).toBe(true);
+    expect(inst()['canEditLayout']()).toBe(true);
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="publish-btn"]')?.textContent).toContain('Volver a publicar');
+    expect(el.querySelector('[data-testid="cancel-btn"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="suspended-note"]')).not.toBeNull();
+    // Editable: en el tab localidades aparece el botón de agregar localidad.
+    fixture.componentInstance['selectTab']('localidades');
+    fixture.detectChanges();
+    expect(el.querySelector('[data-testid="loc-add-toggle"]')).not.toBeNull();
+  });
+
+  it('aviso de boletos vendidos: banner visible en varias tabs con link a T&C (#reembolsos)', async () => {
+    await setup({ get: () => of({ ...EVENT, status: 'suspended', soldTicketsCount: 3 }) });
+    const el = fixture.nativeElement as HTMLElement;
+    const warn = el.querySelector('[data-testid="sold-warning"]');
+    expect(warn).not.toBeNull();
+    expect(warn?.textContent).toContain('boletos vendidos');
+    const link = el.querySelector('[data-testid="sold-warning-link"]');
+    expect(link?.getAttribute('href')).toBe('/terminos#reembolsos');
+    // Sigue visible al cambiar de tab (está fuera del switch de tabs).
+    fixture.componentInstance['selectTab']('config');
+    fixture.detectChanges();
+    expect(el.querySelector('[data-testid="sold-warning"]')).not.toBeNull();
+  });
+
+  it('sin boletos vendidos: no se muestra el aviso', async () => {
+    await setup({ get: () => of({ ...EVENT, status: 'published', soldTicketsCount: 0 }) });
+    expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="sold-warning"]')).toBeNull();
+  });
+
   // --- i18n: cambiar el idioma traduce los textos ---
   it('traduce los textos al inglés al cambiar el idioma', async () => {
     await setup();

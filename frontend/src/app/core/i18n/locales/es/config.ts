@@ -22,6 +22,7 @@ export const config = {
     promoter: 'Promotor',
     statusDraft: 'Borrador',
     statusPublished: 'Publicado',
+    statusSuspended: 'Suspendido',
     statusCancelled: 'Cancelado',
     localitiesCount: '{{n}} localidad(es)',
     accounts: 'Cuentas',
