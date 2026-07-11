@@ -125,4 +125,57 @@ describe('Invitación de promotor · by-token (e2e)', () => {
     // Ya aceptada: la vista por token responde 409.
     await http().get(`/api/v1/promoters/invitations/by-token/${invToken}`).expect(409);
   });
+
+  /** Decodifica el payload de un JWT (sin verificar firma) para inspeccionar sus claims. */
+  function jwtClaims(token: string): { roles: string[] } {
+    const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString('utf8'));
+    return payload as { roles: string[] };
+  }
+
+  /**
+   * E4 (v3.9): flujo REAL de registro por invitación (cuenta NO existe). El usuario
+   * se registra con el form (queda buyer, correo sin verificar) y ACEPTA la invitación
+   * con el token de la sesión de registro → en BD queda promoter/approved. El access
+   * token del registro sigue con roles=[buyer] (se firman al emitirse); el contrato
+   * para el frontend es refrescar (o re-loguear): el refresh RELEE los roles de la BD
+   * y el nuevo access token ya trae `promoter`.
+   */
+  it('E4: registro por invitación → promoter en BD; el refresh refleja el rol', async () => {
+    const email = `bt_${stamp}_reg@test.com`;
+    const invToken = await inviteToken(email);
+
+    // 1) Registro con el form (como el frontend): crea la cuenta y devuelve tokens.
+    const signup = await http()
+      .post('/api/v1/auth/signup')
+      .send({ email, password: 'Password123', firstName: 'Reg' })
+      .expect(201);
+    const userId: string = signup.body.user.id;
+    const signupAccess: string = signup.body.tokens.accessToken;
+    const signupRefresh: string = signup.body.tokens.refreshToken;
+    // Recién registrado: solo buyer, tanto en el token como en la sesión.
+    expect(jwtClaims(signupAccess).roles).toEqual(['buyer']);
+
+    // 2) Acepta la invitación con la sesión del registro (correo aún sin verificar).
+    const acc = await http()
+      .post('/api/v1/promoters/invitations/accept')
+      .set(bearer(signupAccess))
+      .send({ token: invToken })
+      .expect(200);
+    expect(acc.body.accepted).toBe(true);
+
+    // 3) En BD el usuario YA es promotor aprobado.
+    const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    expect(user.promoterStatus).toBe('approved');
+    expect(user.roles).toContain('promoter');
+
+    // 4) El token viejo NO refleja el rol (se firmó antes de aceptar)...
+    expect(jwtClaims(signupAccess).roles).not.toContain('promoter');
+
+    // 5) ...pero el refresh relee los roles de la BD → el nuevo access ya trae promoter.
+    const refreshed = await http()
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken: signupRefresh })
+      .expect(200);
+    expect(jwtClaims(refreshed.body.accessToken).roles).toContain('promoter');
+  });
 });
