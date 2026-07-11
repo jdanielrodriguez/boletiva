@@ -10,6 +10,7 @@ export const eventDetail = {
   perTicket: 'per ticket',
   priceTbd: 'Price to be defined',
   noLocalities: 'No sections published yet.',
+  noLocalitiesHint: 'The organizer has not set up tickets for this event yet.',
   loading: 'Loading event…',
   notFoundTitle: 'Event not found',
   notFoundBody: 'The event you are looking for does not exist or is no longer available.',

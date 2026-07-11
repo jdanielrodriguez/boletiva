@@ -1,5 +1,5 @@
 <section class="event-edit">
-  <a [routerLink]="backLink()" class="link-btn" data-testid="back-link">{{ backLabel() }}</a>
+  <app-back-link [link]="backLink()" testId="back-link" [label]="backLabel()" />
 
   @if (loading()) {
     <p class="muted">{{ 'promoter.edit.loadingEvent' | translate }}</p>

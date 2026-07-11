@@ -32,10 +32,31 @@
     }
   </div>
 
-  @if (!loaded()) {
-    <p data-testid="catalog-error">{{ 'catalog.loadError' | translate }}</p>
+  @if (loading()) {
+    <app-loading variant="skeleton" data-testid="catalog-loading" />
+  } @else if (errored()) {
+    <app-empty-state
+      variant="generic"
+      data-testid="catalog-error"
+      [title]="'catalog.loadError' | translate"
+      [subtitle]="'catalog.loadErrorHint' | translate"
+    />
   } @else if (events().length === 0) {
-    <p data-testid="catalog-empty">{{ 'catalog.empty' | translate }}</p>
+    @if (hasFilter()) {
+      <app-empty-state
+        variant="generic"
+        data-testid="catalog-empty"
+        [title]="'catalog.noResults' | translate"
+        [subtitle]="'catalog.noResultsHint' | translate"
+      />
+    } @else {
+      <app-empty-state
+        variant="tickets"
+        data-testid="catalog-empty"
+        [title]="'catalog.empty' | translate"
+        [subtitle]="'catalog.emptyHint' | translate"
+      />
+    }
   } @else {
     <p class="catalog-count" data-testid="catalog-count">{{ 'catalog.count' | translate: { count: total() } }}</p>
     <ul class="catalog-grid">

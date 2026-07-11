@@ -1,11 +1,14 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AdminApi, PromoterStatusEventDto } from '../../core/api/admin.api';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { ToastService } from '../../core/ui/toast.service';
 import { IconComponent } from '../../shared/icon/icon.component';
+import { BackLinkComponent } from '../../shared/ui/back-link.component';
+import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
+import { LoadingComponent } from '../../shared/ui/loading.component';
 
 type StatusValue = PromoterStatusEventDto['statusTo'];
 
@@ -18,7 +21,15 @@ type StatusValue = PromoterStatusEventDto['statusTo'];
  */
 @Component({
   selector: 'app-promoter-history-page',
-  imports: [FormsModule, RouterLink, TranslatePipe, LocalizedDatePipe, IconComponent],
+  imports: [
+    FormsModule,
+    TranslatePipe,
+    LocalizedDatePipe,
+    IconComponent,
+    BackLinkComponent,
+    EmptyStateComponent,
+    LoadingComponent,
+  ],
   templateUrl: './promoter-history.page.html',
 })
 export class PromoterHistoryPage {

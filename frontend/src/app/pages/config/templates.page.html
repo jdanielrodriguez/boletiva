@@ -1,8 +1,6 @@
 <section class="config-page">
   <div class="page-head-row">
-    <a routerLink="/configuracion" class="link-btn back-link" data-testid="back-console">
-      <app-icon name="back" /> {{ 'config.backToConsole' | translate }}
-    </a>
+    <app-back-link link="/configuracion" testId="back-console" [label]="'config.backToConsole' | translate" />
   </div>
   <h1>{{ 'config.templates.heading' | translate }}</h1>
   <p class="muted">{{ 'config.templates.intro' | translate }}</p>

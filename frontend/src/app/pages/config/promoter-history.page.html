@@ -1,8 +1,6 @@
 <section class="config-page promoter-history">
   <div class="ph-head">
-    <a class="btn small" routerLink="/configuracion" [queryParams]="{ tab: 'promotores' }" data-testid="ph-back" [title]="'promoterHistory.back' | translate">
-      <app-icon name="cancel" /> {{ 'promoterHistory.back' | translate }}
-    </a>
+    <app-back-link link="/configuracion" [queryParams]="{ tab: 'promotores' }" testId="ph-back" [label]="'promoterHistory.back' | translate" />
     <h1>
       {{ 'promoterHistory.title' | translate }}
       @if (promoterName()) { <span class="muted">— {{ promoterName() }}</span> }
@@ -10,7 +8,7 @@
   </div>
 
   @if (loading()) {
-    <p class="muted" data-testid="ph-loading">{{ 'common.loading' | translate }}</p>
+    <app-loading variant="skeleton" data-testid="ph-loading" />
   } @else {
     <div class="filters-row">
       <label class="field"><span>{{ 'common.search' | translate }}</span>
@@ -55,9 +53,18 @@
         </table>
       </div>
     } @else if (events().length > 0) {
-      <p class="muted" data-testid="ph-no-match">{{ 'promoterHistory.noMatch' | translate }}</p>
+      <app-empty-state
+        variant="generic"
+        data-testid="ph-no-match"
+        [title]="'promoterHistory.noMatch' | translate"
+        [subtitle]="'promoterHistory.noMatchHint' | translate"
+      />
     } @else {
-      <p class="muted" data-testid="ph-empty">{{ 'config.promoters.noTransitions' | translate }}</p>
+      <app-empty-state
+        variant="billing"
+        data-testid="ph-empty"
+        [title]="'config.promoters.noTransitions' | translate"
+      />
     }
   }
 </section>

@@ -17,6 +17,7 @@ import {
 } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { EventSettlementComponent } from '../../shared/event-settlement/event-settlement.component';
 import { IconComponent } from '../../shared/icon/icon.component';
+import { BackLinkComponent } from '../../shared/ui/back-link.component';
 import { MapPickerComponent, type MapLocation } from '../../shared/map/map-picker.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
 import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
@@ -60,6 +61,7 @@ function toLocalInput(iso: string | null | undefined): string {
     EventSettlementComponent,
     EventSeatMapComponent,
     IconComponent,
+    BackLinkComponent,
     ConfirmDialogComponent,
     MapPickerComponent,
     PagerComponent,

@@ -1,6 +1,6 @@
 @if (event(); as ev) {
   <article class="event-detail">
-    <a class="back" routerLink="/">{{ 'eventDetail.backToEvents' | translate }}</a>
+    <app-back-link link="/" [label]="'eventDetail.backToEvents' | translate" />
     @if (coverImage(); as img) {
       <img class="event-cover" [src]="img" [alt]="ev.name" />
     }
@@ -64,12 +64,17 @@
           }
         </ul>
       } @else {
-        <p>{{ 'eventDetail.noLocalities' | translate }}</p>
+        <app-empty-state
+          variant="tickets"
+          data-testid="event-no-localities"
+          [title]="'eventDetail.noLocalities' | translate"
+          [subtitle]="'eventDetail.noLocalitiesHint' | translate"
+        />
       }
     </section>
   </article>
 } @else if (loading()) {
-  <p data-testid="event-loading">{{ 'eventDetail.loading' | translate }}</p>
+  <app-loading variant="skeleton" data-testid="event-loading" [label]="'eventDetail.loading' | translate" />
 } @else {
   <section class="event-notfound" data-testid="event-notfound">
     <h1>{{ 'eventDetail.notFoundTitle' | translate }}</h1>

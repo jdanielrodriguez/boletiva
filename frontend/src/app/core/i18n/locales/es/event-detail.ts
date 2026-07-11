@@ -10,6 +10,7 @@ export const eventDetail = {
   perTicket: 'por boleto',
   priceTbd: 'Precio por definir',
   noLocalities: 'Aún no hay localidades publicadas.',
+  noLocalitiesHint: 'El organizador todavía no configuró las entradas de este evento.',
   loading: 'Cargando evento…',
   notFoundTitle: 'Evento no encontrado',
   notFoundBody: 'El evento que buscas no existe o ya no está disponible.',

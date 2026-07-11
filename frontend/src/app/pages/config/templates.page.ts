@@ -1,6 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { DomSanitizer, type SafeHtml } from '@angular/platform-browser';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { SeatTemplatesApi } from '../../core/api/seat-templates.api';
@@ -10,6 +9,7 @@ import {
   type ConfirmRequest,
 } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
+import { BackLinkComponent } from '../../shared/ui/back-link.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
 import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
 import type { SeatTemplateResponseDto } from '../../core/api/types';
@@ -35,12 +35,12 @@ const PAGE = 9;
   selector: 'app-templates-page',
   imports: [
     FormsModule,
-    RouterLink,
     TranslatePipe,
     StatusLabelPipe,
     IconComponent,
     ConfirmDialogComponent,
     PagerComponent,
+    BackLinkComponent,
   ],
   templateUrl: './templates.page.html',
 })

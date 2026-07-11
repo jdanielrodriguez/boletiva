@@ -2,16 +2,24 @@ import { Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
-import { catchError, of, switchMap, tap } from 'rxjs';
+import { catchError, map, of, startWith, switchMap, tap } from 'rxjs';
 import { CategoriesApi } from '../../core/api/categories.api';
 import { EventsApi } from '../../core/api/events.api';
 import type { PublicEventListDto } from '../../core/api/types';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { SeoService } from '../../core/seo/seo.service';
 import { HeroSlider, SlideItem } from '../../shared/hero-slider/hero-slider.component';
+import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
+import { LoadingComponent } from '../../shared/ui/loading.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
 
 const PAGE_SIZE = 12;
+
+/** Estado de la consulta del catálogo (distingue OK de error, para vistas propias). */
+interface CatalogResult {
+  ok: boolean;
+  data: PublicEventListDto | null;
+}
 
 /**
  * Catálogo público de eventos. SSR + SEO: se renderiza en el servidor con los
@@ -21,7 +29,15 @@ const PAGE_SIZE = 12;
  */
 @Component({
   selector: 'app-catalog',
-  imports: [RouterLink, LocalizedDatePipe, TranslatePipe, HeroSlider, PagerComponent],
+  imports: [
+    RouterLink,
+    LocalizedDatePipe,
+    TranslatePipe,
+    HeroSlider,
+    PagerComponent,
+    EmptyStateComponent,
+    LoadingComponent,
+  ],
   templateUrl: './catalog.html',
 })
 export class Catalog {
@@ -76,15 +92,27 @@ export class Catalog {
             skip: (page - 1) * PAGE_SIZE,
             take: PAGE_SIZE,
           })
-          .pipe(catchError(() => of(null)));
+          .pipe(
+            map((data): CatalogResult => ({ ok: true, data })),
+            catchError(() => of<CatalogResult>({ ok: false, data: null })),
+            startWith(null as CatalogResult | null),
+          );
       }),
     ),
-    { initialValue: null as PublicEventListDto | null },
+    { initialValue: null as CatalogResult | null },
   );
 
-  protected readonly events = computed(() => this.result()?.items ?? []);
-  protected readonly total = computed(() => this.result()?.total ?? 0);
-  protected readonly loaded = computed(() => this.result() !== null);
+  protected readonly events = computed(() => this.result()?.data?.items ?? []);
+  protected readonly total = computed(() => this.result()?.data?.total ?? 0);
+  /** null = aún cargando (sin respuesta). */
+  protected readonly loading = computed(() => this.result() === null);
+  /** Respuesta recibida pero con error (fallo de red/API). */
+  protected readonly errored = computed(() => {
+    const r = this.result();
+    return r !== null && !r.ok;
+  });
+  /** Hay filtros activos → un vacío es "sin resultados" (no "catálogo vacío"). */
+  protected readonly hasFilter = computed(() => !!this.activeCategory() || !!this.search());
   protected readonly totalPages = computed(() => Math.max(1, Math.ceil(this.total() / PAGE_SIZE)));
 
   protected selectCategory(slug: string): void {

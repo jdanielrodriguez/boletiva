@@ -1,7 +1,5 @@
 <section class="seat-manager">
-  <a [routerLink]="backLink()" [queryParams]="backQuery()" class="link-btn" data-testid="seat-back">
-    {{ 'promoter.seatMgr.back' | translate }}
-  </a>
+  <app-back-link [link]="backLink()" [queryParams]="backQuery()" testId="seat-back" [label]="'promoter.seatMgr.back' | translate" />
 
   @if (loading()) {
     <p class="muted">{{ 'common.loading' | translate }}</p>

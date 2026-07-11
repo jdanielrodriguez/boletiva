@@ -1,9 +1,10 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { catchError, of, switchMap } from 'rxjs';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
+import { BackLinkComponent } from '../../shared/ui/back-link.component';
 import { MoneyPipe } from '../../shared/money.pipe';
 import { OrdersApi } from '../../core/api/orders.api';
 import type { OrderLedgerChainDto, OrderResponseDto } from '../../core/api/types';
@@ -17,7 +18,7 @@ import { ToastService } from '../../core/ui/toast.service';
  */
 @Component({
   selector: 'app-transaction-detail',
-  imports: [TranslatePipe, LocalizedDatePipe, RouterLink, MoneyPipe],
+  imports: [TranslatePipe, LocalizedDatePipe, BackLinkComponent, MoneyPipe],
   templateUrl: './transaction-detail.html',
 })
 export class TransactionDetail {

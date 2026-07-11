@@ -10,6 +10,9 @@ import type {
   PublicEventDetailDto,
 } from '../../core/api/types';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
+import { BackLinkComponent } from '../../shared/ui/back-link.component';
+import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
+import { LoadingComponent } from '../../shared/ui/loading.component';
 import { SeoService } from '../../core/seo/seo.service';
 
 interface DetailData {
@@ -26,7 +29,14 @@ const EMPTY_AV: EventAvailabilityDto = { seatMap: null, localities: [], seats: [
  */
 @Component({
   selector: 'app-event-detail',
-  imports: [RouterLink, LocalizedDatePipe, TranslatePipe],
+  imports: [
+    RouterLink,
+    LocalizedDatePipe,
+    TranslatePipe,
+    BackLinkComponent,
+    EmptyStateComponent,
+    LoadingComponent,
+  ],
   templateUrl: './event-detail.html',
 })
 export class EventDetail {

@@ -1,10 +1,11 @@
 import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
 import { EditUnlockStore } from '../../core/events/edit-unlock.store';
 import { SessionStore } from '../../core/auth/session.store';
 import { IconComponent } from '../../shared/icon/icon.component';
+import { BackLinkComponent } from '../../shared/ui/back-link.component';
 import { SeatEditorComponent } from './seat-editor.component';
 import type { LocalityView, ManagedEventDetailDto } from '../../core/api/types';
 
@@ -17,7 +18,7 @@ import type { LocalityView, ManagedEventDetailDto } from '../../core/api/types';
  */
 @Component({
   selector: 'app-seat-manager',
-  imports: [RouterLink, SeatEditorComponent, IconComponent, TranslatePipe],
+  imports: [SeatEditorComponent, IconComponent, TranslatePipe, BackLinkComponent],
   templateUrl: './seat-manager.page.html',
 })
 export class SeatManagerPage implements OnDestroy {

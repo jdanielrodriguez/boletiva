@@ -13,6 +13,7 @@ export const promoterHistory = {
   colReason: 'Motivo',
   system: 'Sistema',
   noMatch: 'Ningún cambio coincide con el filtro.',
+  noMatchHint: 'Ajusta la búsqueda o el filtro de estado para ver más resultados.',
   status: {
     none: 'Sin estado',
     pending: 'Pendiente',
