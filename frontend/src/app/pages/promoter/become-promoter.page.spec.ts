@@ -148,4 +148,20 @@ describe('BecomePromoterPage (v3.6)', () => {
     expect(el.querySelector('[data-testid="bp-error"]')).not.toBeNull();
     expect(navSpy).not.toHaveBeenCalledWith(['/promotor']);
   });
+
+  it('si falla la consulta de estado igualmente muestra el formulario', async () => {
+    await setup({ statusError: true });
+    expect(el.querySelector('[data-testid="bp-submit"]')).not.toBeNull();
+  });
+
+  it('auto-aprobado: aunque el refresh falle, recarga la sesión y navega al panel', async () => {
+    await setup({ status: 'none', applyStatus: 'approved' });
+    // El refresh falla → cae al fallback que recarga /auth/me y termina aprobando.
+    refresh.and.returnValue(throwError(() => new Error('refresh')));
+    loadMe.calls.reset();
+    navSpy.calls.reset();
+    submit();
+    expect(loadMe).toHaveBeenCalled();
+    expect(navSpy).toHaveBeenCalledWith(['/promotor']);
+  });
 });

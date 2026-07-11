@@ -619,4 +619,98 @@ describe('ConfigPage (v3, admin console)', () => {
     expect(list()?.textContent).toContain('Platform fee');
     expect(list()?.textContent).not.toContain('pricing.platform_fee_pct');
   });
+
+  // --- Cost-share por promotor / notas / impersonación (lógica de servicio) ---
+  interface ConfigTestable {
+    setPctEdit(id: string, v: string): void;
+    setPromoterPct(p: { id: string; firstName: string }): void;
+    resetPromoterPct(p: { id: string; firstName: string }): void;
+    setNote(id: string, v: string): void;
+    saveNote(p: { id: string; firstName: string }): void;
+    askImpersonate(p: { id: string; firstName: string; promoterStatus: string }): void;
+    impersonate(p: { id: string; firstName: string }): void;
+    effectivePct(id: string): number | null;
+    hasOverride(id: string): boolean;
+    confirmSuspend(): void;
+    confirm: { set(v: unknown): void; (): { onConfirm(): void } | null };
+  }
+  const inst = (): ConfigTestable => fixture.componentInstance as unknown as ConfigTestable;
+  const P = { id: 'u2', firstName: 'Leo', lastName: 'G', promoterStatus: 'approved' };
+
+  it('cost-share: un pct válido llama a setPromoterPct y avisa éxito', async () => {
+    const setSpy = jasmine.createSpy('setPromoterPct').and.returnValue(of({}));
+    await setup({ setPromoterPct: setSpy });
+    inst().setPctEdit('u2', '0.3');
+    inst().setPromoterPct(P);
+    expect(setSpy).toHaveBeenCalledWith('u2', 0.3);
+    expect(lastToast()?.kind).toBe('success');
+  });
+
+  it('cost-share: valores fuera de rango o no numéricos NO llaman al backend', async () => {
+    const setSpy = jasmine.createSpy('setPromoterPct').and.returnValue(of({}));
+    await setup({ setPromoterPct: setSpy });
+    for (const bad of ['', 'abc', '-0.1', '1.5']) {
+      inst().setPctEdit('u2', bad);
+      inst().setPromoterPct(P);
+    }
+    expect(setSpy).not.toHaveBeenCalled();
+    expect(lastToast()?.kind).toBe('warning');
+  });
+
+  it('cost-share: restablecer borra el override (info)', async () => {
+    const resetSpy = jasmine.createSpy('reset').and.returnValue(of({}));
+    await setup({ resetPromoterCostShare: resetSpy });
+    inst().resetPromoterPct(P);
+    expect(resetSpy).toHaveBeenCalledWith('u2');
+    expect(lastToast()?.kind).toBe('info');
+  });
+
+  it('nota interna: guardar con éxito avisa', async () => {
+    await setup();
+    inst().setNote('u2', '  cliente VIP  ');
+    inst().saveNote(P);
+    expect(lastToast()?.kind).toBe('success');
+  });
+
+  it('nota interna: un error al guardar muestra error', async () => {
+    await setup({ setPromoterNote: () => throwError(() => new Error('x')) });
+    inst().setNote('u2', 'x');
+    inst().saveNote(P);
+    expect(lastToast()?.kind).toBe('error');
+  });
+
+  it('impersonar a un promotor NO aprobado se rechaza con aviso', async () => {
+    await setup();
+    inst().askImpersonate({ id: 'u1', firstName: 'Pia', promoterStatus: 'pending' });
+    expect(lastToast()?.kind).toBe('warning');
+    expect(inst().confirm()).toBeNull();
+  });
+
+  it('impersonar a un aprobado abre confirmación; al confirmar arranca la sesión y navega', async () => {
+    const startSpy = jasmine.createSpy('start').and.returnValue(of(null));
+    await setup();
+    // El servicio ya inyectado en el componente es un stub; espiamos su start.
+    spyOn(TestBed.inject(ImpersonationService), 'start').and.callFake(startSpy);
+    const nav = spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
+    inst().askImpersonate(P);
+    const confirmState = inst().confirm();
+    expect(confirmState).not.toBeNull();
+    confirmState?.onConfirm();
+    expect(startSpy).toHaveBeenCalledWith('u2');
+    expect(nav).toHaveBeenCalledWith('/promotor');
+  });
+
+  it('confirmSuspend sin objetivo seleccionado no hace nada', async () => {
+    const suspendSpy = jasmine.createSpy('suspend').and.returnValue(of({}));
+    await setup({ suspendPromoter: suspendSpy });
+    inst().confirmSuspend(); // suspendTarget es null
+    expect(suspendSpy).not.toHaveBeenCalled();
+  });
+
+  it('effectivePct/hasOverride reflejan el reparto cargado', async () => {
+    await setup({ getPromoterCostShare: (id: string) => of({ promoterId: id, override: 0.25, effectivePct: 0.25 }) });
+    await selectTab('tab-promotores');
+    expect(inst().effectivePct('u1')).toBe(0.25);
+    expect(inst().hasOverride('u1')).toBe(true);
+  });
 });
