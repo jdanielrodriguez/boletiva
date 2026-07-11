@@ -1080,3 +1080,29 @@ model SeatTemplate {
   @@index([status])
   @@map("seat_templates")
 }
+
+/// Bitácora de auditoría (v3.8, no-repudio). Registro APPEND-ONLY encadenado por
+/// hash (misma técnica que el ledger/custody: `prevHash` + `hash=sha256(prevHash+
+/// contenido)` + `seq` monótono) de acciones sensibles y de CADA click de
+/// confirmación del frontend. Captura contexto server-side (IP y user-agent del
+/// request, NO del body) para justificar "usted dio click en confirmar". El
+/// `userId` se guarda como texto plano SIN FK: la anonimización de un usuario NO
+/// debe borrar ni romper su rastro de auditoría (trazabilidad intacta).
+model AuditEvent {
+  id        String   @id @default(uuid()) @db.Uuid
+  seq       BigInt   @default(autoincrement())
+  userId    String?  @map("user_id")
+  action    String
+  resource  String?
+  ip        String?
+  userAgent String?  @map("user_agent")
+  payload   Json?
+  prevHash  String   @map("prev_hash")
+  hash      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt, id])
+  @@map("audit_events")
+}
