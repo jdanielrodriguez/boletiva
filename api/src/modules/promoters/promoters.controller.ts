@@ -24,10 +24,12 @@ import { PromotersService } from './promoters.service';
 import {
   MyPromoterStatusResponseDto,
   PromoterDecisionDto,
+  PromoterInternalNoteResponseDto,
   PromoterListItemDto,
   PromoterStatusEventDto,
   PromoterStatusResponseDto,
   RequireApprovalResponseDto,
+  SetPromoterNoteDto,
   SetRequireApprovalDto,
 } from './dto/promoters.dto';
 
@@ -121,5 +123,13 @@ export class PromotersController {
   @ApiOkResponse({ type: PromoterStatusEventDto, isArray: true })
   history(@Param('id', ParseUUIDPipe) id: string) {
     return this.promoters.history(id);
+  }
+
+  @Patch(':id/note')
+  @Roles(Role.admin)
+  @ApiOperation({ summary: 'Fija/borra la nota interna del admin sobre un promotor (admin)' })
+  @ApiOkResponse({ type: PromoterInternalNoteResponseDto })
+  setNote(@Param('id', ParseUUIDPipe) id: string, @Body() dto: SetPromoterNoteDto) {
+    return this.promoters.setInternalNote(id, dto.note ?? null);
   }
 }

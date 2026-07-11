@@ -89,9 +89,23 @@ export class PromotersService {
         promoterAppliedAt: true,
         promoterDecidedAt: true,
         promoterNote: true,
+        promoterInternalNote: true,
       },
       orderBy: { promoterAppliedAt: 'asc' },
     });
+  }
+
+  /**
+   * Nota interna del admin sobre un promotor (v3.8). Persistente e independiente
+   * del motivo de la última decisión (`promoterNote`). null = borrar la nota.
+   */
+  async setInternalNote(id: string, note: string | null) {
+    await this.getUser(id); // 404 si no existe
+    const updated = await this.prisma.user.update({
+      where: { id },
+      data: { promoterInternalNote: note ?? null },
+    });
+    return { id: updated.id, promoterInternalNote: updated.promoterInternalNote };
   }
 
   async approve(id: string, adminId?: string) {
@@ -205,6 +219,9 @@ export class PromotersService {
     return user;
   }
 
+  // NOTA: `summarize` es la vista PÚBLICA/propia (la usa `apply`/`myStatus`), por lo
+  // que NO incluye `promoterInternalNote` (nota privada del admin) para no filtrarla
+  // al propio promotor. La nota solo se expone en endpoints admin (list + setInternalNote).
   private summarize(u: {
     id: string;
     promoterStatus: PromoterStatus;

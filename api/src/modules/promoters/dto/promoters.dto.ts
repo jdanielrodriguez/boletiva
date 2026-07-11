@@ -16,6 +16,19 @@ export class SetRequireApprovalDto {
   requireApproval!: boolean;
 }
 
+/** Nota interna del admin sobre un promotor (v3.8). null/omitir = borra la nota. */
+export class SetPromoterNoteDto {
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    description: 'Nota interna del admin (máx 2000). null/omitir = borra la nota.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  note?: string | null;
+}
+
 // ---------------------------------------------------------------------------
 // Respuestas (contrato para el SDK del frontend). Solo documentación.
 // ---------------------------------------------------------------------------
@@ -36,6 +49,15 @@ export class PromoterStatusResponseDto {
 
   @ApiProperty({ type: String, nullable: true, description: 'Motivo de rechazo/suspensión' })
   promoterNote!: string | null;
+}
+
+/** Resultado de fijar/borrar la nota interna de un promotor (admin, v3.8). */
+export class PromoterInternalNoteResponseDto {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty({ type: String, nullable: true, description: 'Nota interna del admin' })
+  promoterInternalNote!: string | null;
 }
 
 /** Mi estado de promotor + si el modo de autorización está activo. */
@@ -78,6 +100,9 @@ export class PromoterListItemDto {
 
   @ApiProperty({ type: String, nullable: true })
   promoterNote!: string | null;
+
+  @ApiProperty({ type: String, nullable: true, description: 'Nota interna del admin' })
+  promoterInternalNote!: string | null;
 }
 
 /** Fila del historial append-only de estados de un promotor. */

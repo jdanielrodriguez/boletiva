@@ -361,6 +361,53 @@ describe('Autorización de promotores (e2e)', () => {
     }
   });
 
+  it('nota interna del admin: se guarda, se lee en el listado y NO se filtra al promotor', async () => {
+    const u = await newVerifiedUser('note');
+    const token = await loginTrusted(u.email, 'promo-note');
+    await http().post('/api/v1/promoters/apply').set(bearer(token)).expect(200);
+
+    // Guardar la nota (admin).
+    const set = await http()
+      .patch(`/api/v1/promoters/${u.id}/note`)
+      .set(bearer(adminToken))
+      .send({ note: 'Cliente VIP, contactar por WhatsApp' })
+      .expect(200);
+    expect(set.body.promoterInternalNote).toBe('Cliente VIP, contactar por WhatsApp');
+
+    // Se lee en el listado admin.
+    const list = await http().get('/api/v1/promoters?status=pending').set(bearer(adminToken)).expect(200);
+    const row = list.body.find((p: { id: string }) => p.id === u.id);
+    expect(row.promoterInternalNote).toBe('Cliente VIP, contactar por WhatsApp');
+
+    // El propio promotor NO ve la nota interna en /promoters/me.
+    const me = await http().get('/api/v1/promoters/me').set(bearer(token)).expect(200);
+    expect(me.body.promoterInternalNote).toBeUndefined();
+
+    // Borrar la nota (null).
+    const cleared = await http()
+      .patch(`/api/v1/promoters/${u.id}/note`)
+      .set(bearer(adminToken))
+      .send({ note: null })
+      .expect(200);
+    expect(cleared.body.promoterInternalNote).toBeNull();
+  });
+
+  it('nota interna: RBAC no-admin → 403; id inexistente → 404; >2000 chars → 400', async () => {
+    const u = await newVerifiedUser('note-rbac');
+    const token = await loginTrusted(u.email, 'promo-noterbac');
+    await http().patch(`/api/v1/promoters/${u.id}/note`).set(bearer(token)).send({ note: 'x' }).expect(403);
+    await http()
+      .patch('/api/v1/promoters/00000000-0000-0000-0000-000000000000/note')
+      .set(bearer(adminToken))
+      .send({ note: 'x' })
+      .expect(404);
+    await http()
+      .patch(`/api/v1/promoters/${u.id}/note`)
+      .set(bearer(adminToken))
+      .send({ note: 'x'.repeat(2001) })
+      .expect(400);
+  });
+
   it('validación: settings no booleano → 400; note >500 chars → 400', async () => {
     const u = await newVerifiedUser('val');
     await http()

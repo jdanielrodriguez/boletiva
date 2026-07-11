@@ -86,6 +86,13 @@ describe('Reparto de gastos extra (e2e)', () => {
       .send({ pct: 1 })
       .expect(200);
     expect(set.body.effectivePct).toBe(1);
+    // GET expone el override CRUDO + el efectivo (v3.8, para que el panel lea/edite).
+    const withOverride = await http()
+      .get(`/api/v1/cost-share/promoter/${promoterId}`)
+      .set(bearer(adminToken))
+      .expect(200);
+    expect(withOverride.body.override).toBe(1);
+    expect(withOverride.body.effectivePct).toBe(1);
     await http()
       .delete(`/api/v1/cost-share/promoter/${promoterId}`)
       .set(bearer(adminToken))
@@ -94,7 +101,16 @@ describe('Reparto de gastos extra (e2e)', () => {
       .get(`/api/v1/cost-share/promoter/${promoterId}`)
       .set(bearer(adminToken))
       .expect(200);
+    expect(eff.body.override).toBeNull(); // sin override tras limpiar
     expect(eff.body.effectivePct).toBe(0.5); // volvió al default global
+  });
+
+  it('GET /cost-share/promoter/:id → 403 buyer; 404 promotor inexistente', async () => {
+    await http().get(`/api/v1/cost-share/promoter/${promoterId}`).set(bearer(buyerToken)).expect(403);
+    await http()
+      .get('/api/v1/cost-share/promoter/00000000-0000-0000-0000-000000000000')
+      .set(bearer(adminToken))
+      .expect(404);
   });
 
   it('valida el rango del porcentaje (>1 → 400)', async () => {

@@ -55,6 +55,20 @@ export class CostShareService {
     return { defaultPct: pct };
   }
 
+  /**
+   * Reparto de un promotor para el panel admin: su override crudo (null = sin
+   * override) + el % efectivo resultante. 404 si el promotor no existe.
+   */
+  async getPromoter(promoterId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: promoterId } });
+    if (!user) throw new NotFoundException('Promotor no encontrado');
+    return {
+      promoterId,
+      override: user.costSharePct === null ? null : user.costSharePct.toNumber(),
+      effectivePct: await this.effectivePct(promoterId),
+    };
+  }
+
   /** % efectivo de un promotor: su override, o el default global. */
   async effectivePct(promoterId: string): Promise<number> {
     const user = await this.prisma.user.findUnique({ where: { id: promoterId } });

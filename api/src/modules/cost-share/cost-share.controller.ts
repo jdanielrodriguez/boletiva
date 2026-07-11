@@ -6,7 +6,6 @@ import { CostShareService } from './cost-share.service';
 import {
   DefaultPctResponseDto,
   PromoterCostSharePctResponseDto,
-  PromoterEffectivePctResponseDto,
   SetDefaultPctDto,
   SetPromoterPctDto,
 } from './dto/cost-share.dto';
@@ -35,10 +34,10 @@ export class CostShareController {
 
   @Get('promoter/:id')
   @Roles(Role.admin)
-  @ApiOperation({ summary: 'Reparto efectivo de un promotor (admin)' })
-  @ApiOkResponse({ type: PromoterEffectivePctResponseDto })
-  async getPromoter(@Param('id', ParseUUIDPipe) id: string) {
-    return { promoterId: id, effectivePct: await this.costShare.effectivePct(id) };
+  @ApiOperation({ summary: 'Reparto de un promotor: override crudo + efectivo (admin)' })
+  @ApiOkResponse({ type: PromoterCostSharePctResponseDto })
+  getPromoter(@Param('id', ParseUUIDPipe) id: string) {
+    return this.costShare.getPromoter(id);
   }
 
   @Patch('promoter/:id')
