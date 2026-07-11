@@ -51,7 +51,12 @@ describe('AuthService (ramas de borde, unit)', () => {
     const config = { get: jest.fn(() => ['http://front.local']), getOrThrow: jest.fn(() => 'secret') };
     const jwt = { sign: jest.fn().mockReturnValue('preauth'), verify: jest.fn() };
     const challenges = { issue: jest.fn(), verifyCode: jest.fn(), verifyToken: jest.fn() };
-    const devices = { touch: jest.fn(), trust: jest.fn(), isTrusted: jest.fn() };
+    const devices = {
+      touch: jest.fn(),
+      trust: jest.fn(),
+      isTrusted: jest.fn(),
+      isKnownTrusted: jest.fn().mockResolvedValue(false),
+    };
     const twofactor = { verify: jest.fn(), startChallenge: jest.fn() };
     const google = { verify: jest.fn(), enabled: true };
     const service = new AuthService(
@@ -108,7 +113,7 @@ describe('AuthService (ramas de borde, unit)', () => {
       expect(challenges.issue).toHaveBeenCalled();
     });
 
-    it('verificado + dispositivo nuevo no confiable → 2fa_required + aviso', async () => {
+    it('verificado + dispositivo nuevo no confiable → 2fa_required (SIN aviso todavía)', async () => {
       const { prisma, mail, devices, twofactor, service } = build();
       prisma.user.findUnique.mockResolvedValue(makeUser());
       prisma.user.update.mockResolvedValue(makeUser());
@@ -118,18 +123,8 @@ describe('AuthService (ramas de borde, unit)', () => {
       const res = await service.login({ email: 'u1@x.com', password: 'ok' }, {});
       expect(res.status).toBe('2fa_required');
       expect(twofactor.startChallenge).toHaveBeenCalled();
-      expect(mail.sendTemplated).toHaveBeenCalled(); // aviso de nuevo dispositivo (ctx sin ip/ua → ?? default)
-    });
-
-    it('dispositivo nuevo con ctx completo → aviso con ip/agente reales', async () => {
-      const { prisma, mail, devices, service } = build();
-      prisma.user.findUnique.mockResolvedValue(makeUser());
-      prisma.user.update.mockResolvedValue(makeUser());
-      bcrypt.compare.mockResolvedValue(true);
-      devices.touch.mockResolvedValue({ device: {}, isNew: true });
-      devices.isTrusted.mockReturnValue(false);
-      await service.login({ email: 'u1@x.com', password: 'ok' }, ctx); // ip + userAgent presentes
-      expect(mail.sendTemplated).toHaveBeenCalled();
+      // E2: el aviso de nuevo dispositivo se manda DESPUÉS de validar el 2FA, no aquí.
+      expect(mail.sendTemplated).not.toHaveBeenCalled();
     });
 
     it('verificado + dispositivo no confiable pero conocido → 2fa_required sin aviso', async () => {
@@ -166,14 +161,40 @@ describe('AuthService (ramas de borde, unit)', () => {
       );
     });
 
-    it('preauth válida + 2FA correcto → ok', async () => {
-      const { prisma, jwt, twofactor, devices, service } = build();
+    it('preauth válida + 2FA correcto → ok + confía dispositivo + aviso (E2)', async () => {
+      const { prisma, jwt, twofactor, devices, mail, service } = build();
       jwt.verify.mockReturnValue({ sub: 'u1', typ: '2fa' });
       prisma.user.findUnique.mockResolvedValue(makeUser());
       twofactor.verify.mockResolvedValue(undefined);
+      devices.isKnownTrusted.mockResolvedValue(false); // dispositivo nuevo
       const res = await service.verifyTwoFactor('tok', '123456', ctx);
       expect(res.status).toBe('ok');
       expect(devices.trust).toHaveBeenCalled();
+      // E2: el aviso de nuevo dispositivo se envía AHORA (tras validar el 2FA).
+      expect(mail.sendTemplated).toHaveBeenCalled();
+    });
+
+    it('código 2FA inválido → lanza y NO envía aviso ni confía dispositivo', async () => {
+      const { prisma, jwt, twofactor, devices, mail, service } = build();
+      jwt.verify.mockReturnValue({ sub: 'u1', typ: '2fa' });
+      prisma.user.findUnique.mockResolvedValue(makeUser());
+      twofactor.verify.mockRejectedValue(new BadRequestException('Código inválido'));
+      await expect(service.verifyTwoFactor('tok', 'bad', ctx)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(devices.trust).not.toHaveBeenCalled();
+      expect(mail.sendTemplated).not.toHaveBeenCalled();
+    });
+
+    it('2FA correcto en dispositivo YA confiable → ok sin aviso duplicado', async () => {
+      const { prisma, jwt, twofactor, devices, mail, service } = build();
+      jwt.verify.mockReturnValue({ sub: 'u1', typ: '2fa' });
+      prisma.user.findUnique.mockResolvedValue(makeUser());
+      twofactor.verify.mockResolvedValue(undefined);
+      devices.isKnownTrusted.mockResolvedValue(true); // ya confiable
+      const res = await service.verifyTwoFactor('tok', '123456', ctx);
+      expect(res.status).toBe('ok');
+      expect(mail.sendTemplated).not.toHaveBeenCalled();
     });
   });
 

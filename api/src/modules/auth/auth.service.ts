@@ -116,7 +116,7 @@ export class AuthService {
     if (user.status !== 'active') throw new UnauthorizedException('Cuenta inactiva');
 
     await this.prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
-    const { device, isNew } = await this.devices.touch(user.id, ctx);
+    const { device } = await this.devices.touch(user.id, ctx);
 
     // Email sin verificar: insistir con el correo de verificación; no hay 2FA aún.
     if (!user.emailVerifiedAt) {
@@ -126,8 +126,9 @@ export class AuthService {
     }
 
     // Email verificado: 2FA obligatorio en dispositivos no confiables.
+    // El aviso de "nuevo dispositivo" se envía DESPUÉS de validar el 2FA (en
+    // verifyTwoFactor), no aquí: no queremos alertar de un intento aún sin autenticar.
     if (!this.devices.isTrusted(device)) {
-      if (isNew) await this.sendNewDeviceAlert(user, ctx);
       await this.twofactor.startChallenge(user);
       return {
         status: '2fa_required',
@@ -144,8 +145,13 @@ export class AuthService {
     const userId = this.verifyPreauth(preauthToken);
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException();
-    await this.twofactor.verify(user, code);
+    // El 2FA solo se exige en dispositivos NO confiables; si el código es válido,
+    // este dispositivo se está confiando ahora → es el momento correcto de avisar
+    // del "nuevo inicio de sesión" (ya autenticado, no un mero intento).
+    const wasTrusted = await this.devices.isKnownTrusted(user.id, ctx);
+    await this.twofactor.verify(user, code); // lanza si el código es inválido → no se avisa
     await this.devices.trust(user.id, ctx);
+    if (!wasTrusted) await this.sendNewDeviceAlert(user, ctx);
     const tokens = await this.tokens.issuePair(user, ctx);
     return { status: 'ok' as const, user: this.toPublic(user), tokens };
   }

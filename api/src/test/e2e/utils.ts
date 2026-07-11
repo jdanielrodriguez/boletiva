@@ -80,6 +80,17 @@ export async function lastEmailFor(
   throw new Error(`No llegó correo para ${email}`);
 }
 
+/** Devuelve los asuntos de TODOS los correos capturados para `email` (para E2). */
+export async function subjectsFor(email: string): Promise<string[]> {
+  const { data } = await axios.get(`${MAILHOG}/api/v2/messages`);
+  const out: string[] = [];
+  for (const m of data.items ?? []) {
+    const to = (m.Content?.Headers?.To ?? []).join(',');
+    if (to.includes(email)) out.push((m.Content?.Headers?.Subject ?? []).join(' '));
+  }
+  return out;
+}
+
 /** Devuelve el código de 6 dígitos del correo más reciente enviado a `email`. */
 export async function lastEmailCode(email: string): Promise<string> {
   for (let i = 0; i < 10; i++) {
