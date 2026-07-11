@@ -34,10 +34,11 @@ describe('Salones (halls) e2e', () => {
   const http = () => request(app.getHttpServer());
   const bearer = (t: string) => ({ Authorization: `Bearer ${t}` });
 
-  it('promotor lista salones (seed ≥ 3)', async () => {
+  it('promotor lista salones PUBLICADOS (seed ≥ 3)', async () => {
     const res = await http().get('/api/v1/halls').set(bearer(promoterToken)).expect(200);
     expect(Array.isArray(res.body)).toBe(true);
     expect(res.body.length).toBeGreaterThanOrEqual(3);
+    expect(res.body.every((h: { status: string }) => h.status === 'published')).toBe(true);
   });
 
   it('sin token → 401; buyer → 403 (rol insuficiente)', async () => {
@@ -108,6 +109,38 @@ describe('Salones (halls) e2e', () => {
     expect(ev.body.address).toBe('Av. Reforma 1-1');
     expect(ev.body.lat).toBeCloseTo(14.59);
     expect(ev.body.lng).toBeCloseTo(-90.51);
+  });
+
+  it('salón nace en borrador (draft) y NO sale al selector del promotor', async () => {
+    const res = await http()
+      .post('/api/v1/halls')
+      .set(bearer(adminToken))
+      .send({ name: 'Salón Draft', city: 'Guatemala' })
+      .expect(201);
+    created.push(res.body.id);
+    expect(res.body.status).toBe('draft');
+    const list = await http().get('/api/v1/halls').set(bearer(promoterToken)).expect(200);
+    expect(list.body.some((h: { id: string }) => h.id === res.body.id)).toBe(false);
+  });
+
+  it('publish → aparece al promotor; unpublish → desaparece (admin)', async () => {
+    const id = created[created.length - 1];
+    let r = await http().post(`/api/v1/halls/${id}/publish`).set(bearer(adminToken)).expect(200);
+    expect(r.body.status).toBe('published');
+    let list = await http().get('/api/v1/halls').set(bearer(promoterToken)).expect(200);
+    expect(list.body.some((h: { id: string }) => h.id === id)).toBe(true);
+    r = await http().post(`/api/v1/halls/${id}/unpublish`).set(bearer(adminToken)).expect(200);
+    expect(r.body.status).toBe('draft');
+    list = await http().get('/api/v1/halls').set(bearer(promoterToken)).expect(200);
+    expect(list.body.some((h: { id: string }) => h.id === id)).toBe(false);
+  });
+
+  it('publish/unpublish exigen admin; GET /halls/all admin lista todos, promotor → 403', async () => {
+    const id = created[created.length - 1];
+    await http().post(`/api/v1/halls/${id}/publish`).set(bearer(promoterToken)).expect(403);
+    const all = await http().get('/api/v1/halls/all').set(bearer(adminToken)).expect(200);
+    expect(all.body.some((h: { id: string }) => h.id === id)).toBe(true);
+    await http().get('/api/v1/halls/all').set(bearer(promoterToken)).expect(403);
   });
 
   it('borrar salón lo desvincula del evento (SetNull)', async () => {

@@ -219,6 +219,7 @@ async function seedSeatTemplates(): Promise<Record<string, string>> {
       layoutJson: { hint: b.hint, icon: b.icon },
       params: b.params,
       isBuiltIn: true,
+      status: 'published' as const, // built-ins visibles para el promotor (v3.7)
     };
     const tpl = existing
       ? await prisma.seatTemplate.update({ where: { id: existing.id }, data })
@@ -270,6 +271,7 @@ async function seedHalls(seatTemplateId?: string): Promise<void> {
       lng: h.lng,
       city: h.city,
       seatTemplateId: h.withTemplate ? seatTemplateId ?? null : null,
+      status: 'published' as const, // salones demo visibles para el promotor (v3.7)
     };
     if (existing) {
       await prisma.hall.update({ where: { id: existing.id }, data });

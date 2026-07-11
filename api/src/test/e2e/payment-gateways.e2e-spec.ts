@@ -178,4 +178,29 @@ describe('Pasarelas de pago configurables (e2e)', () => {
       .expect(200);
     expect(active.body.some((g: { id: string }) => g.id === gwId)).toBe(false);
   });
+
+  it('eliminar solo una pasarela INACTIVA: activa/mantenimiento → 409; inactiva → 200 (v3.7)', async () => {
+    // Crea una pasarela nueva (nace activa) → no se puede eliminar.
+    const created = await http()
+      .post('/api/v1/payment-gateways')
+      .set(bearer(adminToken))
+      .send({ name: `${gwName}_del`, provider: 'x', feePct: 0.03, unlockCode: await unlockCode() })
+      .expect(201);
+    const id = created.body.id;
+    await http().delete(`/api/v1/payment-gateways/${id}`).set(bearer(adminToken)).expect(409);
+    // En mantenimiento → tampoco.
+    await http()
+      .patch(`/api/v1/payment-gateways/${id}/status`)
+      .set(bearer(adminToken))
+      .send({ status: 'maintenance' })
+      .expect(200);
+    await http().delete(`/api/v1/payment-gateways/${id}`).set(bearer(adminToken)).expect(409);
+    // Inactiva → se elimina.
+    await http()
+      .patch(`/api/v1/payment-gateways/${id}/status`)
+      .set(bearer(adminToken))
+      .send({ status: 'inactive' })
+      .expect(200);
+    await http().delete(`/api/v1/payment-gateways/${id}`).set(bearer(adminToken)).expect(200);
+  });
 });

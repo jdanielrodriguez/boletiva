@@ -144,6 +144,13 @@ describe('Precios dinámicos: pasarela por evento + IVA (e2e)', () => {
     const ev = await makeEvent('migrate', { gatewayId: gw.id });
     const adminToken = await loginTrusted(SEED.admin, 'dyn-admin');
 
+    // v3.7: solo se elimina una pasarela INACTIVA → desactivar antes de anular.
+    await request(app.getHttpServer())
+      .patch(`/api/v1/payment-gateways/${gw.id}/status`)
+      .set({ Authorization: `Bearer ${adminToken}` })
+      .send({ status: 'inactive' })
+      .expect(200);
+
     await request(app.getHttpServer())
       .delete(`/api/v1/payment-gateways/${gw.id}`)
       .set({ Authorization: `Bearer ${adminToken}` })

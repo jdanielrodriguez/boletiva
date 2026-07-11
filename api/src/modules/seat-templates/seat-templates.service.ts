@@ -1,19 +1,32 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, SeatTemplate } from '@prisma/client';
+import { ContentStatus, Prisma, SeatTemplate } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { CreateSeatTemplateDto, UpdateSeatTemplateDto } from './dto/seat-templates.dto';
 
 /**
- * Plantillas de disposición de asientos (v3.5). Registra los presets del editor
+ * Plantillas de disposición de asientos (v3.5/v3.7). Registra los presets del editor
  * (built-in, sembrados) y las plantillas que el admin cree a mano. El promotor las
- * consume (lectura) para el desplegable del editor; el admin las gestiona.
+ * consume (lectura) para el desplegable del editor; el admin las gestiona con estados
+ * draft/published + ocultar/deshabilitar.
  */
 @Injectable()
 export class SeatTemplatesService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** Lista completa (admin): todas las plantillas en cualquier estado. */
   list() {
     return this.prisma.seatTemplate.findMany({
+      orderBy: [{ isBuiltIn: 'desc' }, { name: 'asc' }],
+    });
+  }
+
+  /**
+   * Lista para el desplegable del editor (promotor): solo publicadas, no ocultas
+   * y no deshabilitadas. Las draft/hidden/disabled nunca salen al promotor.
+   */
+  listPublished() {
+    return this.prisma.seatTemplate.findMany({
+      where: { status: ContentStatus.published, hidden: false, disabled: false },
       orderBy: [{ isBuiltIn: 'desc' }, { name: 'asc' }],
     });
   }
@@ -57,7 +70,34 @@ export class SeatTemplatesService {
     if (tpl.isBuiltIn) {
       throw new ConflictException('Las plantillas del sistema no se pueden eliminar');
     }
+    // Regla v3.7: solo se puede ELIMINAR una plantilla deshabilitada. Si está
+    // oculta pero no deshabilitada → 409 (primero hay que deshabilitarla).
+    if (!tpl.disabled) {
+      throw new ConflictException(
+        'Solo se puede eliminar una plantilla deshabilitada; deshabilítala primero',
+      );
+    }
     await this.prisma.seatTemplate.delete({ where: { id } });
     return { id, deleted: true };
+  }
+
+  /** Cambia el estado de publicación (draft/published). Built-in permitido. */
+  setStatus(id: string, status: ContentStatus) {
+    return this.transition(id, { status });
+  }
+
+  /** Oculta/muestra sin eliminar (reversible). Built-in permitido. */
+  setHidden(id: string, hidden: boolean) {
+    return this.transition(id, { hidden });
+  }
+
+  /** Deshabilita/habilita (deshabilitar es prerequisito para eliminar). Built-in permitido. */
+  setDisabled(id: string, disabled: boolean) {
+    return this.transition(id, { disabled });
+  }
+
+  private async transition(id: string, data: Prisma.SeatTemplateUpdateInput) {
+    await this.get(id); // 404 si no existe (built-in SÍ puede cambiar de estado)
+    return this.prisma.seatTemplate.update({ where: { id }, data });
   }
 }

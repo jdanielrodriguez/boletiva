@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { SeatTemplateKind } from '@prisma/client';
+import { ContentStatus, SeatTemplateKind } from '@prisma/client';
 import { IsEnum, IsObject, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class CreateSeatTemplateDto {
@@ -75,6 +75,15 @@ export class SeatTemplateResponseDto {
 
   @ApiProperty({ description: 'Plantilla del sistema (no editable/borrable)' })
   isBuiltIn!: boolean;
+
+  @ApiProperty({ enum: ContentStatus, description: 'Estado de publicación' })
+  status!: ContentStatus;
+
+  @ApiProperty({ description: 'Oculta del desplegable del promotor' })
+  hidden!: boolean;
+
+  @ApiProperty({ description: 'Deshabilitada (prerequisito para eliminar)' })
+  disabled!: boolean;
 
   @ApiProperty({ format: 'date-time' })
   createdAt!: string;

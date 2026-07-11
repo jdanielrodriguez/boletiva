@@ -205,6 +205,13 @@ export class PaymentGatewaysService {
     if (gw.isPlatformDefault) {
       throw new ConflictException('No se puede eliminar la pasarela default; designa otra primero');
     }
+    // Regla v3.7: solo se elimina una pasarela INACTIVA. En mantenimiento o activa
+    // → 409 (primero hay que desactivarla; puede tener eventos/compras en curso).
+    if (gw.status !== GatewayStatus.inactive) {
+      throw new ConflictException(
+        'Solo se puede eliminar una pasarela inactiva; desactívala primero',
+      );
+    }
     const fallback = await this.platformDefault();
     if (!fallback) {
       throw new ConflictException('No hay pasarela default para migrar los eventos');

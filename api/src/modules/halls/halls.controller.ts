@@ -16,7 +16,7 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { ContentStatus, Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { HallsService } from './halls.service';
 import { CreateHallDto, HallResponseDto, UpdateHallDto } from './dto/halls.dto';
@@ -29,9 +29,17 @@ export class HallsController {
 
   @Get()
   @Roles(Role.promoter, Role.admin)
-  @ApiOperation({ summary: 'Lista salones/venues (para seleccionar al crear evento)' })
+  @ApiOperation({ summary: 'Salones publicados (para seleccionar al crear evento)' })
   @ApiOkResponse({ type: HallResponseDto, isArray: true })
   list() {
+    return this.halls.listPublished();
+  }
+
+  @Get('all')
+  @Roles(Role.admin)
+  @ApiOperation({ summary: 'Todos los salones en cualquier estado (gestión admin)' })
+  @ApiOkResponse({ type: HallResponseDto, isArray: true })
+  listAll() {
     return this.halls.list();
   }
 
@@ -57,6 +65,24 @@ export class HallsController {
   @ApiOkResponse({ type: HallResponseDto })
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateHallDto) {
     return this.halls.update(id, dto);
+  }
+
+  @Post(':id/publish')
+  @Roles(Role.admin)
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Publica un salón (admin; visible para promotores)' })
+  @ApiOkResponse({ type: HallResponseDto })
+  publish(@Param('id', ParseUUIDPipe) id: string) {
+    return this.halls.setStatus(id, ContentStatus.published);
+  }
+
+  @Post(':id/unpublish')
+  @Roles(Role.admin)
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Regresa un salón a borrador (admin)' })
+  @ApiOkResponse({ type: HallResponseDto })
+  unpublish(@Param('id', ParseUUIDPipe) id: string) {
+    return this.halls.setStatus(id, ContentStatus.draft);
   }
 
   @Delete(':id')

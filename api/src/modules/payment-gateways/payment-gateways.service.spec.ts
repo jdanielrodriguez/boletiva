@@ -284,16 +284,44 @@ describe('PaymentGatewaysService (guardas y validaciones, unit)', () => {
       await expect(service.remove('g1')).rejects.toBeInstanceOf(ConflictException);
     });
 
+    it('no se puede eliminar una pasarela activa → 409 (v3.7)', async () => {
+      const { prisma, service } = build();
+      prisma.paymentGateway.findUnique.mockResolvedValue({
+        id: 'g1',
+        isPlatformDefault: false,
+        status: GatewayStatus.active,
+      });
+      await expect(service.remove('g1')).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it('no se puede eliminar una pasarela en mantenimiento → 409 (v3.7)', async () => {
+      const { prisma, service } = build();
+      prisma.paymentGateway.findUnique.mockResolvedValue({
+        id: 'g1',
+        isPlatformDefault: false,
+        status: GatewayStatus.maintenance,
+      });
+      await expect(service.remove('g1')).rejects.toBeInstanceOf(ConflictException);
+    });
+
     it('sin default para migrar → 409', async () => {
       const { prisma, service } = build();
-      prisma.paymentGateway.findUnique.mockResolvedValue({ id: 'g1', isPlatformDefault: false });
+      prisma.paymentGateway.findUnique.mockResolvedValue({
+        id: 'g1',
+        isPlatformDefault: false,
+        status: GatewayStatus.inactive,
+      });
       prisma.paymentGateway.findFirst.mockResolvedValue(null); // no hay default
       await expect(service.remove('g1')).rejects.toBeInstanceOf(ConflictException);
     });
 
-    it('migra los eventos a la default y elimina', async () => {
+    it('migra los eventos a la default y elimina (inactiva)', async () => {
       const { prisma, service } = build();
-      prisma.paymentGateway.findUnique.mockResolvedValue({ id: 'g1', isPlatformDefault: false });
+      prisma.paymentGateway.findUnique.mockResolvedValue({
+        id: 'g1',
+        isPlatformDefault: false,
+        status: GatewayStatus.inactive,
+      });
       prisma.paymentGateway.findFirst.mockResolvedValue({ id: 'def', isPlatformDefault: true });
       prisma.$transaction.mockResolvedValue([]);
       const res = await service.remove('g1');

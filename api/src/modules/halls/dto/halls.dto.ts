@@ -1,5 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ContentStatus } from '@prisma/client';
 import {
+  IsEnum,
   IsLatitude,
   IsLongitude,
   IsOptional,
@@ -48,6 +50,11 @@ export class CreateHallDto {
   @IsOptional()
   @IsUUID()
   seatTemplateId?: string;
+
+  @ApiPropertyOptional({ enum: ContentStatus, description: 'Estado (default draft)' })
+  @IsOptional()
+  @IsEnum(ContentStatus)
+  status?: ContentStatus;
 }
 
 export class UpdateHallDto {
@@ -90,6 +97,11 @@ export class UpdateHallDto {
   @IsOptional()
   @IsUUID()
   seatTemplateId?: string;
+
+  @ApiPropertyOptional({ enum: ContentStatus })
+  @IsOptional()
+  @IsEnum(ContentStatus)
+  status?: ContentStatus;
 }
 
 export class HallResponseDto {
@@ -116,6 +128,9 @@ export class HallResponseDto {
 
   @ApiProperty({ format: 'uuid', nullable: true })
   seatTemplateId!: string | null;
+
+  @ApiProperty({ enum: ContentStatus, description: 'Estado de publicación' })
+  status!: ContentStatus;
 
   @ApiProperty({ format: 'date-time' })
   createdAt!: string;

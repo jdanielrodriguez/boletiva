@@ -1,19 +1,28 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Hall } from '@prisma/client';
+import { ContentStatus, Hall } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { CreateHallDto, UpdateHallDto } from './dto/halls.dto';
 
 /**
- * Salones/venues reutilizables (v3.5). El admin los gestiona; cualquier promotor
- * los lista para elegirlos al crear/editar un evento (prefija dirección/coordenadas
- * y, opcionalmente, un layout de asientos base).
+ * Salones/venues reutilizables (v3.5/v3.7). El admin los gestiona (estados
+ * draft/published); cualquier promotor lista los PUBLICADOS para elegirlos al
+ * crear/editar un evento (prefija dirección/coordenadas y un layout base).
  */
 @Injectable()
 export class HallsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** Lista completa (admin): salones en cualquier estado. */
   list() {
     return this.prisma.hall.findMany({ orderBy: { name: 'asc' } });
+  }
+
+  /** Lista para el selector del promotor: solo salones publicados. */
+  listPublished() {
+    return this.prisma.hall.findMany({
+      where: { status: ContentStatus.published },
+      orderBy: { name: 'asc' },
+    });
   }
 
   async get(id: string): Promise<Hall> {
@@ -40,6 +49,7 @@ export class HallsService {
         city: dto.city,
         notes: dto.notes,
         seatTemplateId: dto.seatTemplateId,
+        status: dto.status,
       },
     });
   }
@@ -57,6 +67,7 @@ export class HallsService {
         city: dto.city,
         notes: dto.notes,
         seatTemplateId: dto.seatTemplateId,
+        status: dto.status,
       },
     });
   }
@@ -66,5 +77,11 @@ export class HallsService {
     // Desvincula los eventos que apuntan a este salón (onDelete: SetNull en el FK).
     await this.prisma.hall.delete({ where: { id } });
     return { id, deleted: true };
+  }
+
+  /** Cambia el estado de publicación (draft/published). */
+  async setStatus(id: string, status: ContentStatus) {
+    await this.get(id);
+    return this.prisma.hall.update({ where: { id }, data: { status } });
   }
 }

@@ -83,6 +83,14 @@ enum SeatTemplateKind {
   custom // definida a mano
 }
 
+/// Estado de publicación de contenido gestionable por admin (salones, plantillas
+/// de asientos, v3.7): `draft` = solo lo ve el admin en su consola; `published` =
+/// visible para el promotor (selector de salón / desplegable de plantillas).
+enum ContentStatus {
+  draft
+  published
+}
+
 /// Estado de un intento de pago.
 enum PaymentStatus {
   pending // creado; esperando confirmación del webhook
@@ -1028,6 +1036,8 @@ model Hall {
   city           String?
   notes          String?
   seatTemplateId String?  @map("seat_template_id") @db.Uuid
+  /// v3.7: draft (solo admin) | published (visible en el selector del promotor).
+  status         ContentStatus @default(draft)
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
@@ -1035,6 +1045,7 @@ model Hall {
   events       Event[]
 
   @@index([name])
+  @@index([status])
   @@map("halls")
 }
 
@@ -1049,11 +1060,18 @@ model SeatTemplate {
   layoutJson Json             @default("{}") @map("layout_json")
   params     Json?
   isBuiltIn  Boolean          @default(false) @map("is_built_in")
+  /// v3.7: draft (solo admin) | published (visible en el desplegable del editor).
+  status     ContentStatus    @default(draft)
+  /// v3.7: oculta del desplegable del promotor sin eliminarla (reversible).
+  hidden     Boolean          @default(false)
+  /// v3.7: deshabilitada (prerequisito para poder ELIMINARla). No sale al promotor.
+  disabled   Boolean          @default(false)
   createdAt  DateTime         @default(now()) @map("created_at")
   updatedAt  DateTime         @updatedAt @map("updated_at")
 
   halls Hall[]
 
   @@index([kind])
+  @@index([status])
   @@map("seat_templates")
 }
