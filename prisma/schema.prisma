@@ -243,6 +243,10 @@ model User {
   promoterAppliedAt DateTime?      @map("promoter_applied_at")
   promoterDecidedAt DateTime?      @map("promoter_decided_at")
   promoterNote      String?        @map("promoter_note") // motivo de rechazo/suspensión
+  // Nota interna del admin sobre el promotor (v3.8). Persistente e independiente
+  // de `promoterNote` (que es el motivo de la última decisión y se limpia al
+  // aprobar). Solo la ve/edita el admin en la consola; no se muestra al promotor.
+  promoterInternalNote String? @map("promoter_internal_note")
 
   // Usuario de PRUEBA (v3.2): promotores invitados marcados como test no pueden
   // usar pasarelas reales (anclados a Sandbox) para no contaminar métricas de prod.
@@ -257,6 +261,8 @@ model User {
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
   events        Event[]            @relation("EventPromoter")
+  // Eventos creados por este usuario (admin) a nombre de otro promotor (v3.8).
+  eventsCreatedAsAdmin Event[]     @relation("EventCreatedByAdmin")
   refreshTokens RefreshToken[]
   recoveries    PasswordRecovery[]
   categories    Category[]
@@ -425,6 +431,11 @@ model Event {
   frozenGatewayId String?  @map("frozen_gateway_id") @db.Uuid
   ivaOnNet        Boolean  @default(true) @map("iva_on_net")
 
+  // Auditoría (v3.8): admin que creó el evento A NOMBRE de un promotor. null = lo
+  // creó el propio promotor. El evento SIEMPRE pertenece al promotor (`promoterId`);
+  // este campo solo deja rastro de quién lo originó desde la consola admin.
+  createdByAdminId String? @map("created_by_admin_id") @db.Uuid
+
   // Salón/venue reutilizable (v3.5). Opcional: el promotor puede elegir un salón
   // pre-registrado (con dirección/coordenadas y layout de asientos) o escribir la
   // dirección a mano. Al asignarlo se pueden prefijar address/lat/lng si van vacíos.
@@ -447,6 +458,7 @@ model Event {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   promoter   User        @relation("EventPromoter", fields: [promoterId], references: [id])
+  createdByAdmin User?   @relation("EventCreatedByAdmin", fields: [createdByAdminId], references: [id], onDelete: SetNull)
   category   Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   hall       Hall?       @relation(fields: [hallId], references: [id], onDelete: SetNull)
   gateAssignments GateAssignment[]

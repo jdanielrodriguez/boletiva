@@ -572,7 +572,7 @@
             "bearer": []
           }
         ],
-        "summary": "Perfil del usuario autenticado",
+        "summary": "Perfil del usuario autenticado (expone impersonatedBy si es una sesi\u00f3n de soporte)",
         "tags": [
           "auth"
         ]
@@ -1208,7 +1208,7 @@
             "bearer": []
           }
         ],
-        "summary": "Crea un evento (promotor, requiere correo verificado)",
+        "summary": "Crea un evento (promotor, requiere correo verificado). Un admin puede crearlo a nombre de un promotor aprobado enviando promoterId.",
         "tags": [
           "events"
         ]
@@ -2022,6 +2022,52 @@
           }
         ],
         "summary": "Historial append-only de estados de un promotor (admin)",
+        "tags": [
+          "promoters"
+        ]
+      }
+    },
+    "/api/v1/promoters/{id}/note": {
+      "patch": {
+        "operationId": "PromotersController_setNote_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPromoterNoteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromoterInternalNoteResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Fija/borra la nota interna del admin sobre un promotor (admin)",
         "tags": [
           "promoters"
         ]
@@ -5033,7 +5079,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PromoterEffectivePctResponseDto"
+                  "$ref": "#/components/schemas/PromoterCostSharePctResponseDto"
                 }
               }
             }
@@ -5044,7 +5090,7 @@
             "bearer": []
           }
         ],
-        "summary": "Reparto efectivo de un promotor (admin)",
+        "summary": "Reparto de un promotor: override crudo + efectivo (admin)",
         "tags": [
           "cost-share"
         ]
@@ -6381,6 +6427,69 @@
           "audit"
         ]
       }
+    },
+    "/api/v1/admin/impersonate/stop": {
+      "post": {
+        "operationId": "AdminController_stop_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Termina la impersonaci\u00f3n (deja rastro en la bit\u00e1cora). Se llama con el token impersonado.",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/impersonate/{userId}": {
+      "post": {
+        "operationId": "AdminController_start_v1",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImpersonationResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Emite un token de vida corta para actuar como un promotor (soporte). Solo admin; no impersona a otros admins; auditado.",
+        "tags": [
+          "admin"
+        ]
+      }
     }
   },
   "info": {
@@ -6526,6 +6635,11 @@
               "en"
             ],
             "example": "es"
+          },
+          "impersonatedBy": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Solo en /auth/me bajo un token de IMPERSONACI\u00d3N (v3.8): id del admin que act\u00faa como este usuario. El frontend lo usa para el banner \"est\u00e1s viendo como X\"."
           }
         },
         "required": [
@@ -7308,6 +7422,34 @@
           }
         }
       },
+      "AdminEventPromoterDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "firstName": {
+            "type": "string",
+            "example": "Ana"
+          },
+          "lastName": {
+            "type": "string",
+            "nullable": true,
+            "example": "P\u00e9rez"
+          },
+          "email": {
+            "type": "string",
+            "example": "promotor@pasaeventos.com"
+          }
+        },
+        "required": [
+          "id",
+          "firstName",
+          "lastName",
+          "email"
+        ]
+      },
       "EventCategoryDto": {
         "type": "object",
         "properties": {
@@ -7516,6 +7658,20 @@
             "example": 1,
             "description": "Prioridad en el slider de destacados (menor = primero; null = no promocionado)"
           },
+          "createdByAdminId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Admin que cre\u00f3 el evento a nombre del promotor (null = lo cre\u00f3 el propio promotor)"
+          },
+          "promoter": {
+            "description": "Promotor due\u00f1o (incluido al crear el evento)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AdminEventPromoterDto"
+              }
+            ]
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time",
@@ -7706,6 +7862,20 @@
             "example": 1,
             "description": "Prioridad en el slider de destacados (menor = primero; null = no promocionado)"
           },
+          "createdByAdminId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Admin que cre\u00f3 el evento a nombre del promotor (null = lo cre\u00f3 el propio promotor)"
+          },
+          "promoter": {
+            "description": "Promotor due\u00f1o (incluido al crear el evento)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AdminEventPromoterDto"
+              }
+            ]
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time",
@@ -7741,34 +7911,6 @@
           "createdAt",
           "updatedAt",
           "_count"
-        ]
-      },
-      "AdminEventPromoterDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "firstName": {
-            "type": "string",
-            "example": "Ana"
-          },
-          "lastName": {
-            "type": "string",
-            "nullable": true,
-            "example": "P\u00e9rez"
-          },
-          "email": {
-            "type": "string",
-            "example": "promotor@pasaeventos.com"
-          }
-        },
-        "required": [
-          "id",
-          "firstName",
-          "lastName",
-          "email"
         ]
       },
       "AdminEventListItemDto": {
@@ -7876,6 +8018,20 @@
             "example": 1,
             "description": "Prioridad en el slider de destacados (menor = primero; null = no promocionado)"
           },
+          "createdByAdminId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Admin que cre\u00f3 el evento a nombre del promotor (null = lo cre\u00f3 el propio promotor)"
+          },
+          "promoter": {
+            "description": "Promotor due\u00f1o (incluido al crear el evento)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AdminEventPromoterDto"
+              }
+            ]
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time",
@@ -7896,9 +8052,6 @@
           },
           "_count": {
             "$ref": "#/components/schemas/EventCountDto"
-          },
-          "promoter": {
-            "$ref": "#/components/schemas/AdminEventPromoterDto"
           }
         },
         "required": [
@@ -7913,8 +8066,7 @@
           "absorbInstallmentCost",
           "createdAt",
           "updatedAt",
-          "_count",
-          "promoter"
+          "_count"
         ]
       },
       "EventLocalityDto": {
@@ -8083,6 +8235,20 @@
             "nullable": true,
             "example": 1,
             "description": "Prioridad en el slider de destacados (menor = primero; null = no promocionado)"
+          },
+          "createdByAdminId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Admin que cre\u00f3 el evento a nombre del promotor (null = lo cre\u00f3 el propio promotor)"
+          },
+          "promoter": {
+            "description": "Promotor due\u00f1o (incluido al crear el evento)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AdminEventPromoterDto"
+              }
+            ]
           },
           "createdAt": {
             "type": "string",
@@ -8472,6 +8638,20 @@
             "example": 1,
             "description": "Prioridad en el slider de destacados (menor = primero; null = no promocionado)"
           },
+          "createdByAdminId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Admin que cre\u00f3 el evento a nombre del promotor (null = lo cre\u00f3 el propio promotor)"
+          },
+          "promoter": {
+            "description": "Promotor due\u00f1o (incluido al crear el evento)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AdminEventPromoterDto"
+              }
+            ]
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time",
@@ -8541,6 +8721,11 @@
             "type": "string",
             "format": "uuid",
             "description": "Sal\u00f3n/venue reutilizable. Si se indica, prefija address/lat/lng vac\u00edos."
+          },
+          "promoterId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Promotor due\u00f1o del evento. SOLO tiene efecto si el caller es ADMIN (crea el evento a nombre de ese promotor, que debe estar APROBADO). Un promotor no-admin lo ignora y crea el evento a su propio nombre."
           },
           "address": {
             "type": "string",
@@ -8700,6 +8885,20 @@
             "nullable": true,
             "example": 1,
             "description": "Prioridad en el slider de destacados (menor = primero; null = no promocionado)"
+          },
+          "createdByAdminId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Admin que cre\u00f3 el evento a nombre del promotor (null = lo cre\u00f3 el propio promotor)"
+          },
+          "promoter": {
+            "description": "Promotor due\u00f1o (incluido al crear el evento)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AdminEventPromoterDto"
+              }
+            ]
           },
           "createdAt": {
             "type": "string",
@@ -9012,6 +9211,11 @@
           "promoterNote": {
             "type": "string",
             "nullable": true
+          },
+          "promoterInternalNote": {
+            "type": "string",
+            "nullable": true,
+            "description": "Nota interna del admin"
           }
         },
         "required": [
@@ -9023,7 +9227,8 @@
           "promoterStatus",
           "promoterAppliedAt",
           "promoterDecidedAt",
-          "promoterNote"
+          "promoterNote",
+          "promoterInternalNote"
         ]
       },
       "PromoterDecisionDto": {
@@ -9090,6 +9295,34 @@
           "statusTo",
           "reason",
           "createdAt"
+        ]
+      },
+      "SetPromoterNoteDto": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "nullable": true,
+            "description": "Nota interna del admin (m\u00e1x 2000). null/omitir = borra la nota."
+          }
+        }
+      },
+      "PromoterInternalNoteResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "promoterInternalNote": {
+            "type": "string",
+            "nullable": true,
+            "description": "Nota interna del admin"
+          }
+        },
+        "required": [
+          "id",
+          "promoterInternalNote"
         ]
       },
       "CreateInvitationsDto": {
@@ -12379,36 +12612,6 @@
           "pct"
         ]
       },
-      "PromoterEffectivePctResponseDto": {
-        "type": "object",
-        "properties": {
-          "promoterId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "effectivePct": {
-            "type": "number",
-            "example": 0.5,
-            "description": "% efectivo que asume el promotor (0..1)"
-          }
-        },
-        "required": [
-          "promoterId",
-          "effectivePct"
-        ]
-      },
-      "SetPromoterPctDto": {
-        "type": "object",
-        "properties": {
-          "pct": {
-            "type": "number",
-            "description": "% que asume el promotor (0..1)"
-          }
-        },
-        "required": [
-          "pct"
-        ]
-      },
       "PromoterCostSharePctResponseDto": {
         "type": "object",
         "properties": {
@@ -12432,6 +12635,18 @@
           "promoterId",
           "override",
           "effectivePct"
+        ]
+      },
+      "SetPromoterPctDto": {
+        "type": "object",
+        "properties": {
+          "pct": {
+            "type": "number",
+            "description": "% que asume el promotor (0..1)"
+          }
+        },
+        "required": [
+          "pct"
         ]
       },
       "PaymentMethodResponseDto": {
@@ -13181,6 +13396,66 @@
         },
         "required": [
           "ok"
+        ]
+      },
+      "ImpersonationUserDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "promotor@pasaeventos.com"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "admin",
+                "promoter",
+                "promoter_staff",
+                "gate_operator",
+                "buyer"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "roles"
+        ]
+      },
+      "ImpersonationResponseDto": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "description": "Access token de vida corta que act\u00faa como el promotor"
+          },
+          "expiresIn": {
+            "type": "number",
+            "example": 1800,
+            "description": "Vigencia del token en segundos"
+          },
+          "impersonatedBy": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Admin que inici\u00f3 la impersonaci\u00f3n"
+          },
+          "user": {
+            "$ref": "#/components/schemas/ImpersonationUserDto"
+          }
+        },
+        "required": [
+          "accessToken",
+          "expiresIn",
+          "impersonatedBy",
+          "user"
         ]
       }
     }
