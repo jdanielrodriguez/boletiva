@@ -399,10 +399,15 @@
 
           <div class="card-block" data-testid="tx-block">
             <h3>{{ 'promoter.tx.title' | translate }}</h3>
-            @if (txLoading() && txAll().length === 0) {
-              <p class="muted small">{{ 'common.loading' | translate }}</p>
+            @if (!txLoaded() || (txLoading() && txAll().length === 0)) {
+              <app-loading data-testid="tx-loading" [label]="'common.loading' | translate" />
             } @else if (txAll().length === 0) {
-              <p class="muted" data-testid="tx-empty">{{ 'promoter.tx.empty' | translate }}</p>
+              <app-empty-state
+                variant="billing"
+                data-testid="tx-empty"
+                [title]="'promoter.tx.emptyTitle' | translate"
+                [subtitle]="'promoter.tx.empty' | translate"
+              />
             } @else {
               <div class="tx-table-scroll">
                 <table class="tx-table" data-testid="tx-table">

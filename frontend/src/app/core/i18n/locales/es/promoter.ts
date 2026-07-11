@@ -333,6 +333,8 @@ export const promoter = {
   settle: {
     loading: 'Cargando cuentas…',
     error: 'No se pudieron cargar las cuentas del evento.',
+    emptyTitle: 'Aún no hay movimientos',
+    emptyBody: 'Cuando se concrete la primera compra verás aquí la liquidación del evento.',
     paidOrders: 'Órdenes pagadas',
     ticketsSold: 'Boletos vendidos',
     gross: 'Total cobrado',
@@ -365,6 +367,7 @@ export const promoter = {
   // --- Tabla de transacciones del evento (tab Cuentas) ---
   tx: {
     title: 'Transacciones',
+    emptyTitle: 'Sin transacciones todavía',
     empty: 'Este evento aún no tiene transacciones.',
     colBuyer: 'Comprador',
     colDate: 'Fecha',

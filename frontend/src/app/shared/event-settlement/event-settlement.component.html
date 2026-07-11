@@ -1,10 +1,22 @@
 <div class="settlement" data-testid="settlement">
   @if (loading()) {
-    <p class="muted">{{ 'promoter.settle.loading' | translate }}</p>
+    <app-loading data-testid="settlement-loading" [label]="'promoter.settle.loading' | translate" />
   } @else if (error()) {
-    <p class="error">{{ 'promoter.settle.error' | translate }}</p>
+    <app-empty-state
+      variant="billing"
+      data-testid="settlement-error"
+      [title]="'common.errorLoading' | translate"
+      [subtitle]="'promoter.settle.error' | translate"
+    />
+  } @else if (isEmpty()) {
+    <app-empty-state
+      variant="billing"
+      data-testid="settlement-empty"
+      [title]="'promoter.settle.emptyTitle' | translate"
+      [subtitle]="'promoter.settle.emptyBody' | translate"
+    />
   }
-  @if (data(); as s) {
+  @if (hasData() && data(); as s) {
     <div class="settlement-summary">
       <div class="settlement-metric">
         <span class="sm-label">{{ 'promoter.settle.paidOrders' | translate }}</span>

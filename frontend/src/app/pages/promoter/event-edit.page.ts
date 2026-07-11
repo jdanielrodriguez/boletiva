@@ -22,6 +22,8 @@ import { BackLinkComponent } from '../../shared/ui/back-link.component';
 import { LockChipComponent } from '../../shared/ui/lock-chip.component';
 import { MapPickerComponent, type MapLocation } from '../../shared/map/map-picker.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
+import { LoadingComponent } from '../../shared/ui/loading.component';
+import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { MoneyPipe } from '../../shared/money.pipe';
@@ -68,6 +70,8 @@ function toLocalInput(iso: string | null | undefined): string {
     ConfirmDialogComponent,
     MapPickerComponent,
     PagerComponent,
+    LoadingComponent,
+    EmptyStateComponent,
     StatusLabelPipe,
     LocalizedDatePipe,
     MoneyPipe,

@@ -1,6 +1,8 @@
 import { Component, computed, inject, input, effect, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
+import { LoadingComponent } from '../ui/loading.component';
+import { EmptyStateComponent } from '../ui/empty-state.component';
 import type { EventSettlementDto } from '../../core/api/types';
 
 /**
@@ -11,7 +13,7 @@ import type { EventSettlementDto } from '../../core/api/types';
  */
 @Component({
   selector: 'app-event-settlement',
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, LoadingComponent, EmptyStateComponent],
   templateUrl: './event-settlement.component.html',
 })
 export class EventSettlementComponent {
@@ -27,6 +29,17 @@ export class EventSettlementComponent {
   protected readonly error = signal(false);
 
   protected readonly currency = computed(() => this.data()?.currency ?? 'GTQ');
+
+  /** Cargado sin órdenes pagadas → vista por defecto (aún no hay movimientos). */
+  protected readonly isEmpty = computed(() => {
+    const d = this.data();
+    return !this.loading() && !this.error() && !!d && d.paidOrders === 0;
+  });
+  /** Hay datos reales que mostrar (al menos una orden pagada). */
+  protected readonly hasData = computed(() => {
+    const d = this.data();
+    return !this.loading() && !this.error() && !!d && d.paidOrders > 0;
+  });
 
   constructor() {
     effect(() => {

@@ -59,7 +59,15 @@ describe('EventSettlementComponent', () => {
   it('muestra error si el endpoint falla', async () => {
     await setup(() => throwError(() => new Error('x')));
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('.error')).not.toBeNull();
+    expect(el.querySelector('[data-testid="settlement-error"]')).not.toBeNull();
+  });
+
+  it('muestra la vista por defecto (empty) sin órdenes pagadas', async () => {
+    await setup(() => of({ ...DATA, paidOrders: 0, ticketsSold: 0, gross: '0.00', net: '0.00' }));
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="settlement-empty"]')).not.toBeNull();
+    // No debe pintar el desglose con ceros.
+    expect(el.querySelector('[data-testid="settlement-net"]')).toBeNull();
   });
 
   // --- i18n: cambiar el idioma traduce los textos ---

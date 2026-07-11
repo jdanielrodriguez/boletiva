@@ -334,6 +334,8 @@ export const promoter = {
   settle: {
     loading: 'Loading accounts…',
     error: 'Could not load the event accounts.',
+    emptyTitle: 'No activity yet',
+    emptyBody: 'Once the first purchase goes through, the event settlement will show up here.',
     paidOrders: 'Paid orders',
     ticketsSold: 'Tickets sold',
     gross: 'Total collected',
@@ -366,6 +368,7 @@ export const promoter = {
   // --- Event transactions table (Accounts tab) ---
   tx: {
     title: 'Transactions',
+    emptyTitle: 'No transactions yet',
     empty: 'This event has no transactions yet.',
     colBuyer: 'Buyer',
     colDate: 'Date',
