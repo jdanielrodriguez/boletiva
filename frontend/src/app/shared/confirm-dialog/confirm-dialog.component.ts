@@ -1,6 +1,8 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Injector, inject, input, output } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { TranslatePipe } from '@ngx-translate/core';
 import { IconComponent, type IconName } from '../icon/icon.component';
+import { AuditApi } from '../../core/api/audit.api';
 
 /** Petición de confirmación: el disparador guarda esto y ejecuta `onConfirm` al aceptar. */
 export interface ConfirmRequest {
@@ -34,7 +36,7 @@ export interface ConfirmRequest {
       </div>
       <p id="confirm-msg" class="confirm-message">{{ message() }}</p>
       <div class="ev-card-actions confirm-actions">
-        <button type="button" class="btn" [class.danger]="danger()" [class.primary]="!danger()" (click)="accept.emit()" data-testid="confirm-accept" [title]="confirmLabel()">
+        <button type="button" class="btn" [class.danger]="danger()" [class.primary]="!danger()" (click)="onAccept()" data-testid="confirm-accept" [title]="confirmLabel()">
           <app-icon [name]="confirmIcon()" /> {{ confirmLabel() }}
         </button>
         <button type="button" class="btn" (click)="cancelled.emit()" data-testid="confirm-cancel" [title]="'common.cancel' | translate">
@@ -99,9 +101,39 @@ export class ConfirmDialogComponent {
   readonly danger = input(true);
   /** Icono del encabezado; default sensato según sea destructiva o no. */
   readonly titleIcon = input<IconName | undefined>(undefined);
+  /**
+   * Etiqueta de auditoría (no-repudio, v3.8 · G4). Si el llamador la provee, al
+   * confirmar se registra un click en la bitácora (`POST /audit/confirm`). Si no
+   * se pasa `auditAction`, NO se audita (los usos actuales del diálogo siguen
+   * igual). `auditResource` acompaña con el id/referencia del recurso afectado.
+   */
+  readonly auditAction = input<string | undefined>(undefined);
+  readonly auditResource = input<string | undefined>(undefined);
   readonly accept = output<void>();
   readonly cancelled = output<void>();
 
+  private readonly injector = inject(Injector);
+  // El diálogo es presentacional y algunos specs lo montan SIN HttpClient (APIs
+  // stubbeadas). Solo auditamos si HttpClient está disponible (siempre en la app
+  // real); si no, degradamos en silencio sin romper esos tests.
+  private readonly canAudit = inject(HttpClient, { optional: true }) !== null;
+
   /** Icono efectivo: el explícito, o 'alert'/'help' según sea destructiva. */
   protected readonly resolvedTitleIcon = () => this.titleIcon() ?? (this.danger() ? 'alert' : 'help');
+
+  /**
+   * Confirma la acción. Antes de emitir, registra el click en la bitácora si hay
+   * `auditAction`. FIRE-AND-FORGET: no espera al audit ni deja que su fallo bloquee
+   * la acción del usuario (error capturado en silencio). La acción se emite SIEMPRE.
+   */
+  protected onAccept(): void {
+    const action = this.auditAction();
+    if (action && this.canAudit) {
+      this.injector
+        .get(AuditApi)
+        .confirm(action, this.auditResource())
+        .subscribe({ error: () => undefined });
+    }
+    this.accept.emit();
+  }
 }

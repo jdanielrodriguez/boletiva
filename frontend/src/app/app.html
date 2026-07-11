@@ -1,9 +1,15 @@
+@if (showAdminBanner()) {
+  <app-maintenance-banner />
+}
 <app-header />
 <main class="site-main">
   <router-outlet />
 </main>
 <app-footer />
 <app-toast-container />
-@if (hydrating()) {
+@if (showMaintenancePage()) {
+  <app-maintenance-page [message]="maintMessage()" />
+}
+@if (booting()) {
   <app-loading [fullscreen]="true" [label]="'common.loading' | translate" data-testid="hydration-loader" />
 }

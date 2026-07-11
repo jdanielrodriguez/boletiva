@@ -1,16 +1,29 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideI18nTesting } from '../../core/i18n/testing';
+import { API_BASE_URL } from '../../core/config/api.tokens';
 import { ConfirmDialogComponent } from './confirm-dialog.component';
+
+const BASE = 'http://api.test';
 
 describe('ConfirmDialogComponent', () => {
   let fixture: ComponentFixture<ConfirmDialogComponent>;
   let el: HTMLElement;
+  let httpMock: HttpTestingController;
 
   async function setup() {
-    TestBed.configureTestingModule({ providers: [
+    TestBed.configureTestingModule({
+      providers: [
         ...provideI18nTesting(),
-        ...provideI18nTesting(),provideZonelessChangeDetection()] });
+        provideZonelessChangeDetection(),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: API_BASE_URL, useValue: BASE },
+      ],
+    });
+    httpMock = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(ConfirmDialogComponent);
     fixture.componentRef.setInput('title', 'Eliminar evento');
     fixture.componentRef.setInput('message', '¿Seguro que deseas eliminar "Fiesta"?');
@@ -19,6 +32,8 @@ describe('ConfirmDialogComponent', () => {
     fixture.detectChanges();
     el = fixture.nativeElement as HTMLElement;
   }
+
+  afterEach(() => httpMock?.verify());
 
   it('muestra el título y el mensaje', async () => {
     await setup();
@@ -73,5 +88,48 @@ describe('ConfirmDialogComponent', () => {
     await fixture.whenStable();
     expect(el.querySelector('[data-testid="confirm-accept"].primary')).not.toBeNull();
     expect(el.querySelector('.confirm-head.is-danger')).toBeNull();
+  });
+
+  it('SIN auditAction: al confirmar NO registra en la bitácora (usos actuales intactos)', async () => {
+    await setup();
+    (el.querySelector('[data-testid="confirm-accept"]') as HTMLButtonElement).click();
+    // httpMock.verify() en afterEach falla si hubo alguna petición inesperada.
+  });
+
+  it('CON auditAction: al confirmar registra el click (POST /audit/confirm) con action+resource', async () => {
+    await setup();
+    fixture.componentRef.setInput('auditAction', 'promoter.suspend');
+    fixture.componentRef.setInput('auditResource', 'promo-123');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const spy = jasmine.createSpy('accept');
+    fixture.componentInstance.accept.subscribe(spy);
+    (el.querySelector('[data-testid="confirm-accept"]') as HTMLButtonElement).click();
+
+    // La acción se emite SIEMPRE (no espera al audit).
+    expect(spy).toHaveBeenCalled();
+    const reqs = httpMock.match(`${BASE}/audit/confirm`);
+    expect(reqs.length).toBe(1);
+    expect(reqs[0].request.method).toBe('POST');
+    expect(reqs[0].request.body).toEqual({ action: 'promoter.suspend', resource: 'promo-123' });
+    reqs[0].flush({ message: 'ok' });
+  });
+
+  it('FIRE-AND-FORGET: si el audit falla, la acción igual se ejecuta', async () => {
+    await setup();
+    fixture.componentRef.setInput('auditAction', 'event.publish');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const spy = jasmine.createSpy('accept');
+    fixture.componentInstance.accept.subscribe(spy);
+    (el.querySelector('[data-testid="confirm-accept"]') as HTMLButtonElement).click();
+
+    expect(spy).toHaveBeenCalled();
+    const reqs = httpMock.match(`${BASE}/audit/confirm`);
+    expect(reqs.length).toBe(1);
+    // El backend responde error; el subscribe lo captura en silencio (no relanza).
+    reqs[0].flush({ message: 'nope' }, { status: 500, statusText: 'Server Error' });
   });
 });

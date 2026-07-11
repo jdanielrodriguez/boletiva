@@ -14,6 +14,7 @@ import { becomePromoter } from './en/become-promoter';
 import { config } from './en/config';
 import { promoterHistory } from './en/promoter-history';
 import { terms } from './en/terms';
+import { maintenance } from './en/maintenance';
 
 /** ENGLISH dictionary (en-US). Composed from namespaces. */
 export const en: TranslationObject = {
@@ -32,4 +33,5 @@ export const en: TranslationObject = {
   config,
   promoterHistory,
   terms,
+  maintenance,
 };
