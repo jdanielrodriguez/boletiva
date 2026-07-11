@@ -1,4 +1,3 @@
-/* eslint-disable */
 const { execSync } = require('child_process');
 const { PrismaClient } = require('@prisma/client');
 
