@@ -3,7 +3,7 @@ import {
   provideBrowserGlobalErrorListeners,
   provideZonelessChangeDetection,
 } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 
@@ -17,7 +17,12 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZonelessChangeDetection(),
-    provideRouter(routes),
+    // anchorScrolling: links con fragmento (p.ej. /terminos#reembolsos) desplazan
+    // a la sección; scrollPositionRestoration devuelve al tope al navegar.
+    provideRouter(
+      routes,
+      withInMemoryScrolling({ anchorScrolling: 'enabled', scrollPositionRestoration: 'enabled' }),
+    ),
     provideClientHydration(withEventReplay()),
     // i18n runtime (ngx-translate) + locales es-GT/en-US. SSR-safe (loader inline).
     ...provideI18n(),
