@@ -83,6 +83,10 @@ export class AdminApi {
   makeGatewayDefault(id: string): Observable<GatewayResponseDto> {
     return this.api.post<GatewayResponseDto>(`/payment-gateways/${id}/make-default`);
   }
+  /** Elimina una pasarela (solo si está inactiva; el backend lo valida → 409). */
+  deleteGateway(id: string): Observable<unknown> {
+    return this.api.delete(`/payment-gateways/${id}`);
+  }
 
   // --- Eventos (todos) ---
   listAllEvents(): Observable<AdminEventListItemDto[]> {

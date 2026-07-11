@@ -12,8 +12,13 @@ import type { CreateHallDto, HallResponseDto, UpdateHallDto } from './types';
 export class HallsApi {
   private readonly api = inject(ApiClient);
 
+  /** Salones publicados (selector del promotor). */
   list(): Observable<HallResponseDto[]> {
     return this.api.get<HallResponseDto[]>('/halls');
+  }
+  /** Todos los salones en cualquier estado (gestión admin). */
+  listAll(): Observable<HallResponseDto[]> {
+    return this.api.get<HallResponseDto[]>('/halls/all');
   }
   get(id: string): Observable<HallResponseDto> {
     return this.api.get<HallResponseDto>(`/halls/${id}`);
@@ -26,5 +31,11 @@ export class HallsApi {
   }
   remove(id: string): Observable<unknown> {
     return this.api.delete(`/halls/${id}`);
+  }
+  publish(id: string): Observable<HallResponseDto> {
+    return this.api.post<HallResponseDto>(`/halls/${id}/publish`);
+  }
+  unpublish(id: string): Observable<HallResponseDto> {
+    return this.api.post<HallResponseDto>(`/halls/${id}/unpublish`);
   }
 }

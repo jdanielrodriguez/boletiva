@@ -16,8 +16,13 @@ import type {
 export class SeatTemplatesApi {
   private readonly api = inject(ApiClient);
 
+  /** Publicadas + visibles (para el desplegable del editor). */
   list(): Observable<SeatTemplateResponseDto[]> {
     return this.api.get<SeatTemplateResponseDto[]>('/seat-templates');
+  }
+  /** Todas en cualquier estado (gestión admin). */
+  listAll(): Observable<SeatTemplateResponseDto[]> {
+    return this.api.get<SeatTemplateResponseDto[]>('/seat-templates/all');
   }
   get(id: string): Observable<SeatTemplateResponseDto> {
     return this.api.get<SeatTemplateResponseDto>(`/seat-templates/${id}`);
@@ -30,5 +35,23 @@ export class SeatTemplatesApi {
   }
   remove(id: string): Observable<unknown> {
     return this.api.delete(`/seat-templates/${id}`);
+  }
+  publish(id: string): Observable<SeatTemplateResponseDto> {
+    return this.api.post<SeatTemplateResponseDto>(`/seat-templates/${id}/publish`);
+  }
+  unpublish(id: string): Observable<SeatTemplateResponseDto> {
+    return this.api.post<SeatTemplateResponseDto>(`/seat-templates/${id}/unpublish`);
+  }
+  hide(id: string): Observable<SeatTemplateResponseDto> {
+    return this.api.post<SeatTemplateResponseDto>(`/seat-templates/${id}/hide`);
+  }
+  unhide(id: string): Observable<SeatTemplateResponseDto> {
+    return this.api.post<SeatTemplateResponseDto>(`/seat-templates/${id}/unhide`);
+  }
+  disable(id: string): Observable<SeatTemplateResponseDto> {
+    return this.api.post<SeatTemplateResponseDto>(`/seat-templates/${id}/disable`);
+  }
+  enable(id: string): Observable<SeatTemplateResponseDto> {
+    return this.api.post<SeatTemplateResponseDto>(`/seat-templates/${id}/enable`);
   }
 }

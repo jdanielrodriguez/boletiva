@@ -2158,11 +2158,28 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lista salones/venues (para seleccionar al crear evento) */
+        /** Salones publicados (para seleccionar al crear evento) */
         get: operations["HallsController_list_v1"];
         put?: never;
         /** Crea un salón (admin) */
         post: operations["HallsController_create_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/halls/all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Todos los salones en cualquier estado (gestión admin) */
+        get: operations["HallsController_listAll_v1"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2188,6 +2205,40 @@ export interface paths {
         patch: operations["HallsController_update_v1"];
         trace?: never;
     };
+    "/api/v1/halls/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publica un salón (admin; visible para promotores) */
+        post: operations["HallsController_publish_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/halls/{id}/unpublish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Regresa un salón a borrador (admin) */
+        post: operations["HallsController_unpublish_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/seat-templates": {
         parameters: {
             query?: never;
@@ -2195,11 +2246,28 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Plantillas de asientos (para el desplegable del editor) */
+        /** Plantillas de asientos (para el desplegable del editor; solo publicadas) */
         get: operations["SeatTemplatesController_list_v1"];
         put?: never;
         /** Crea una plantilla de asientos (admin) */
         post: operations["SeatTemplatesController_create_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/seat-templates/all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Todas las plantillas en cualquier estado (gestión admin) */
+        get: operations["SeatTemplatesController_listAll_v1"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2217,12 +2285,114 @@ export interface paths {
         get: operations["SeatTemplatesController_get_v1"];
         put?: never;
         post?: never;
-        /** Elimina una plantilla (admin; built-in bloqueada) */
+        /** Elimina una plantilla (admin; solo deshabilitada; built-in bloqueada) */
         delete: operations["SeatTemplatesController_remove_v1"];
         options?: never;
         head?: never;
         /** Actualiza una plantilla (admin; built-in bloqueada) */
         patch: operations["SeatTemplatesController_update_v1"];
+        trace?: never;
+    };
+    "/api/v1/seat-templates/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publica una plantilla (admin) */
+        post: operations["SeatTemplatesController_publish_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/seat-templates/{id}/unpublish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Regresa una plantilla a borrador (admin) */
+        post: operations["SeatTemplatesController_unpublish_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/seat-templates/{id}/hide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Oculta una plantilla del desplegable del promotor (admin) */
+        post: operations["SeatTemplatesController_hide_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/seat-templates/{id}/unhide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Muestra de nuevo una plantilla oculta (admin) */
+        post: operations["SeatTemplatesController_unhide_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/seat-templates/{id}/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Deshabilita una plantilla (prerequisito para eliminar; admin) */
+        post: operations["SeatTemplatesController_disable_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/seat-templates/{id}/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Habilita una plantilla deshabilitada (admin) */
+        post: operations["SeatTemplatesController_enable_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/settings": {
@@ -5830,6 +6000,11 @@ export interface components {
             notes: string | null;
             /** Format: uuid */
             seatTemplateId: string | null;
+            /**
+             * @description Estado de publicación
+             * @enum {string}
+             */
+            status: "draft" | "published";
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -5871,6 +6046,11 @@ export interface components {
              * @description Plantilla de asientos base del salón
              */
             seatTemplateId?: string;
+            /**
+             * @description Estado (default draft)
+             * @enum {string}
+             */
+            status?: "draft" | "published";
         };
         UpdateHallDto: {
             /** @example Teatro Nacional */
@@ -5887,6 +6067,8 @@ export interface components {
             notes?: string;
             /** Format: uuid */
             seatTemplateId?: string;
+            /** @enum {string} */
+            status?: "draft" | "published";
         };
         SeatTemplateResponseDto: {
             /** Format: uuid */
@@ -5903,6 +6085,15 @@ export interface components {
             } | null;
             /** @description Plantilla del sistema (no editable/borrable) */
             isBuiltIn: boolean;
+            /**
+             * @description Estado de publicación
+             * @enum {string}
+             */
+            status: "draft" | "published";
+            /** @description Oculta del desplegable del promotor */
+            hidden: boolean;
+            /** @description Deshabilitada (prerequisito para eliminar) */
+            disabled: boolean;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -9250,6 +9441,25 @@ export interface operations {
             };
         };
     };
+    HallsController_listAll_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HallResponseDto"][];
+                };
+            };
+        };
+    };
     HallsController_get_v1: {
         parameters: {
             query?: never;
@@ -9315,6 +9525,48 @@ export interface operations {
             };
         };
     };
+    HallsController_publish_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HallResponseDto"];
+                };
+            };
+        };
+    };
+    HallsController_unpublish_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HallResponseDto"];
+                };
+            };
+        };
+    };
     SeatTemplatesController_list_v1: {
         parameters: {
             query?: never;
@@ -9353,6 +9605,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SeatTemplateResponseDto"];
+                };
+            };
+        };
+    };
+    SeatTemplatesController_listAll_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeatTemplateResponseDto"][];
                 };
             };
         };
@@ -9411,6 +9682,132 @@ export interface operations {
                 "application/json": components["schemas"]["UpdateSeatTemplateDto"];
             };
         };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeatTemplateResponseDto"];
+                };
+            };
+        };
+    };
+    SeatTemplatesController_publish_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeatTemplateResponseDto"];
+                };
+            };
+        };
+    };
+    SeatTemplatesController_unpublish_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeatTemplateResponseDto"];
+                };
+            };
+        };
+    };
+    SeatTemplatesController_hide_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeatTemplateResponseDto"];
+                };
+            };
+        };
+    };
+    SeatTemplatesController_unhide_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeatTemplateResponseDto"];
+                };
+            };
+        };
+    };
+    SeatTemplatesController_disable_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeatTemplateResponseDto"];
+                };
+            };
+        };
+    };
+    SeatTemplatesController_enable_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {
