@@ -11,19 +11,28 @@
         <h1>{{ isNew() ? ('promoter.edit.newEvent' | translate) : event()?.name }}</h1>
         @if (event(); as ev) { <span class="badge badge-{{ ev.status }}" data-testid="ev-status-badge">{{ ev.status | statusLabel }}</span> }
         @if (isNew()) { <span class="badge badge-draft" data-testid="new-badge">{{ 'promoter.edit.badgeNew' | translate }}</span> }
+        @if (createdByAdminId()) { <span class="badge" data-testid="created-by-support">{{ 'promoter.edit.createdBySupport' | translate }}</span> }
       </div>
       <div class="ev-card-actions header-actions">
         @if (locked()) {
-          <button type="button" class="btn primary" (click)="openUnlock()" data-testid="unlock-btn" [title]="'promoter.edit.unlockEdit' | translate">
-            <app-icon name="unlock" /> {{ 'promoter.edit.unlockEdit' | translate }}
+          <!-- Candado CERRADO: admin no-dueño sin desbloqueo vigente. -->
+          <button type="button" class="btn primary lock-chip lock-chip-closed" (click)="openUnlock()" data-testid="unlock-btn"
+            [title]="'promoter.edit.lockedClosedTitle' | translate">
+            <app-icon name="lock" /> {{ 'promoter.edit.unlockEdit' | translate }}
           </button>
+        } @else if (unlockActive()) {
+          <!-- Candado ABIERTO + cuenta regresiva (mm:ss) del desbloqueo, estilo pasarelas. -->
+          <span class="lock-chip lock-chip-open" data-testid="unlock-timer" [title]="'promoter.edit.unlockedOpenTitle' | translate">
+            <app-icon name="unlock" />
+            <span class="lock-countdown">{{ 'promoter.edit.lockCountdown' | translate: { time: unlockRemaining() } }}</span>
+          </span>
         }
         <button type="button" class="btn primary" [disabled]="savingData() || locked()" (click)="saveData()" data-testid="save-draft-btn"
           [title]="locked() ? ('promoter.edit.unlockToSaveTooltip' | translate) : ('common.save' | translate)">
           <app-icon name="save" /> {{ savingData() ? ('promoter.edit.savingShort' | translate) : ('common.save' | translate) }}
         </button>
         @if (!isNew() && canEditLayout()) {
-          <button type="button" class="btn primary" [disabled]="!canPublish()" (click)="askPublish()" data-testid="publish-btn"
+          <button type="button" class="btn primary" [disabled]="!canPublish() || locked()" (click)="askPublish()" data-testid="publish-btn"
             [title]="publishBlock() ?? ('promoter.edit.publishEventTitle' | translate)">
             <app-icon name="publish" /> {{ isSuspended() ? ('promoter.edit.rePublish' | translate) : ('promoter.edit.publish' | translate) }}
           </button>
@@ -48,7 +57,7 @@
 
     @if (locked()) {
       <p class="lock-banner" data-testid="lock-banner">
-        <app-icon name="unlock" />
+        <app-icon name="lock" />
         <span [innerHTML]="'promoter.edit.lockBanner' | translate"></span>
       </p>
     }
@@ -99,6 +108,17 @@
     @if (isNew() || tab() === 'datos') {
       <div class="card-block">
         <div class="form-grid">
+          @if (isNew() && isAdmin()) {
+            <label class="field full"><span>{{ 'promoter.edit.selectPromoter' | translate }}</span>
+              <select [ngModel]="newPromoterId()" (ngModelChange)="newPromoterId.set($event)" name="promoter" data-testid="ed-promoter" required>
+                <option value="">{{ 'promoter.edit.selectPromoterHint' | translate }}</option>
+                @for (p of promoters(); track p.id) {
+                  <option [value]="p.id">{{ p.firstName }}{{ p.lastName ? ' ' + p.lastName : '' }} ({{ p.email }})</option>
+                }
+              </select>
+            </label>
+            <p class="field full muted small">{{ 'promoter.edit.selectPromoterNote' | translate }}</p>
+          }
           <label class="field"><span>{{ 'common.name' | translate }}</span>
             <input type="text" [ngModel]="d.name()" (ngModelChange)="d.name.set($event)" name="name" data-testid="ed-name" />
           </label>

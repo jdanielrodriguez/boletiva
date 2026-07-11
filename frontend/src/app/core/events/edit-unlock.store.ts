@@ -58,6 +58,19 @@ export class EditUnlockStore {
     return u ? u.expiresAt : null;
   }
 
+  /**
+   * Milisegundos restantes del desbloqueo del evento (0 si no hay o expiró).
+   * REACTIVO: lee el `clock` interno para que los `computed` que lo consuman
+   * (p.ej. el temporizador del candado) se recomputen cada segundo.
+   */
+  remainingMs(eventId: string): number {
+    this.tick();
+    this.clock();
+    const u = this.unlocks()[eventId];
+    if (!u) return 0;
+    return Math.max(0, u.expiresAt - Date.now());
+  }
+
   /** Token a enviar en el header para el evento activo (o null si no aplica/expiró). */
   readonly headerToken = computed<string | null>(() => {
     this.tick();

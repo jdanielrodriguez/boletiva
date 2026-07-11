@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
+import { AdminApi, type PromoterListItemDto } from '../../core/api/admin.api';
 import { CategoriesApi } from '../../core/api/categories.api';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
 import { HallsApi } from '../../core/api/halls.api';
@@ -74,6 +75,7 @@ function toLocalInput(iso: string | null | undefined): string {
 })
 export class EventEditPage implements OnDestroy {
   private readonly api = inject(PromoterEventsApi);
+  private readonly adminApi = inject(AdminApi);
   private readonly hallsApi = inject(HallsApi);
   private readonly media = inject(MediaApi);
   private readonly categoriesApi = inject(CategoriesApi);
@@ -131,6 +133,24 @@ export class EventEditPage implements OnDestroy {
   protected readonly locked = computed(
     () => this.adminContext() && !this.isNew() && !this.editUnlock.isUnlocked(this.eventId()),
   );
+  /** Admin no-dueño CON desbloqueo vigente: candado abierto + cuenta regresiva. */
+  protected readonly unlockActive = computed(
+    () => this.adminContext() && !this.isNew() && this.editUnlock.isUnlocked(this.eventId()),
+  );
+  /**
+   * Tiempo restante del desbloqueo formateado mm:ss. Reactivo (el `remainingMs`
+   * del store lee su `clock` interno → se recomputa cada segundo). Al llegar a 0
+   * el store recomputa `isUnlocked()` → el candado se cierra solo y todo se
+   * re-bloquea sin timer por componente.
+   */
+  protected readonly unlockRemaining = computed(() => {
+    // ceil = convención de cuenta regresiva (muestra el segundo "techo": 05:00 al
+    // desbloquear, 04:00 tras 60s exactos) y evita el off-by-one de floor.
+    const total = Math.ceil(this.editUnlock.remainingMs(this.eventId()) / 1000);
+    const mm = Math.floor(total / 60);
+    const ss = total % 60;
+    return `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+  });
   /** Estado del modal de desbloqueo. */
   protected readonly showUnlockModal = signal(false);
   protected readonly unlockSending = signal(false);
@@ -161,6 +181,19 @@ export class EventEditPage implements OnDestroy {
   };
   /** Muestra/oculta el mapa de ubicación en el campo Dirección. */
   protected readonly showMap = signal(false);
+
+  // --- Admin crea evento a nombre de un promotor (v3.8 · G2-7) ---
+  /** El usuario actual es admin (habilita el selector de promotor en modo nuevo). */
+  protected readonly isAdmin = computed(() => this.session.hasRole('admin'));
+  /** Lista de promotores APROBADOS (solo se carga si el creador es admin). */
+  protected readonly promoters = signal<PromoterListItemDto[]>([]);
+  /** Promotor elegido por el admin al crear (obligatorio en modo nuevo admin). */
+  protected readonly newPromoterId = signal<string>('');
+  /**
+   * Id del admin que creó el evento a nombre del promotor (badge "creado por
+   * soporte"). Solo presente si el detalle lo trae y no es null.
+   */
+  protected readonly createdByAdminId = computed(() => this.event()?.createdByAdminId ?? null);
   // Config
   protected readonly c = {
     gatewayId: signal(''),
@@ -274,6 +307,14 @@ export class EventEditPage implements OnDestroy {
     this.categoriesApi.list().subscribe({ next: (c) => this.categories.set(c), error: () => undefined });
     this.api.activeGateways().subscribe({ next: (g) => this.gateways.set(g), error: () => undefined });
     this.hallsApi.list().subscribe({ next: (h) => this.halls.set(h), error: () => undefined });
+    // Modo nuevo + admin: carga los promotores APROBADOS para el selector obligatorio
+    // (endpoint admin-only; el promotor normal no lo llama porque no ve el selector).
+    if (this.isNew() && this.isAdmin()) {
+      this.adminApi.listPromoters('approved').subscribe({
+        next: (p) => this.promoters.set(p),
+        error: () => undefined,
+      });
+    }
     // Contexto para el interceptor: adjunta x-edit-unlock del evento activo (admin).
     if (!this.isNew()) this.editUnlock.setCurrentEvent(this.eventId());
 
@@ -492,6 +533,11 @@ export class EventEditPage implements OnDestroy {
       this.toasts.warning(this.translate.instant('promoter.edit.toastStartRequired'));
       return;
     }
+    // Admin creando: debe elegir a nombre de qué promotor (obligatorio).
+    if (this.isNew() && this.isAdmin() && !this.newPromoterId()) {
+      this.toasts.warning(this.translate.instant('promoter.edit.promoterRequired'));
+      return;
+    }
     this.savingData.set(true);
     if (this.isNew()) {
       this.api
@@ -499,6 +545,8 @@ export class EventEditPage implements OnDestroy {
           name: this.d.name(),
           description: this.d.description() || undefined,
           categoryId: this.d.categoryId() || undefined,
+          // Solo el admin envía promoterId (el backend lo ignora para no-admin).
+          promoterId: this.isAdmin() ? this.newPromoterId() || undefined : undefined,
           hallId: this.d.hallId() || undefined,
           address: this.d.address() || undefined,
           lat: this.d.lat() ?? undefined,

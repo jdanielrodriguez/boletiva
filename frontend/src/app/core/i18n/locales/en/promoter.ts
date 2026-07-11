@@ -160,6 +160,17 @@ export const promoter = {
     validateCodeTitle: 'Validate code',
     validating: 'Validating…',
     unlock: 'Unlock',
+    // Editing lock (non-owner admin) — v3.8
+    lockCountdown: 'Unlocked · {{time}}',
+    lockedClosedTitle: 'Editing locked. Click to unlock (code sent to your email).',
+    unlockedOpenTitle: 'Editing unlocked. It re-locks when it reaches 00:00.',
+    // Admin creates on behalf of a promoter — v3.8
+    selectPromoter: 'Promoter (on whose behalf)',
+    selectPromoterHint: '— Choose an approved promoter —',
+    selectPromoterNote:
+      'As an administrator, the event will be created on behalf of the promoter you choose. Only approved promoters are listed.',
+    promoterRequired: 'Choose the promoter on whose behalf the event is created.',
+    createdBySupport: 'Created by support',
     // Navigation
     backToConsole: '← Back to console',
     backToMyEvents: '← Back to my events',

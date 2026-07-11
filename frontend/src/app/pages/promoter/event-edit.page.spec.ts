@@ -2,6 +2,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, provideRouter, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
+import { AdminApi } from '../../core/api/admin.api';
 import { CategoriesApi } from '../../core/api/categories.api';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
 import { HallsApi } from '../../core/api/halls.api';
@@ -52,6 +53,7 @@ describe('EventEditPage (v3)', () => {
     qp: Record<string, string> = {},
     paramId: string | null = 'e1',
     session: { id: string; roles: string[] } = { id: 'owner-1', roles: ['promoter'] },
+    admin: Record<string, unknown> = {},
   ) {
     queryParams = qp;
     TestBed.configureTestingModule({
@@ -84,6 +86,17 @@ describe('EventEditPage (v3)', () => {
           } as unknown as PromoterEventsApi,
         },
         { provide: CategoriesApi, useValue: { list: () => of([]) } },
+        {
+          provide: AdminApi,
+          useValue: {
+            listPromoters: () =>
+              of([
+                { id: 'p1', firstName: 'Prom', lastName: 'Uno', email: 'p1@x.com' },
+                { id: 'p2', firstName: 'Prom', lastName: 'Dos', email: 'p2@x.com' },
+              ]),
+            ...admin,
+          } as unknown as AdminApi,
+        },
         { provide: HallsApi, useValue: { list: () => of([]) } as unknown as HallsApi },
         {
           provide: MediaApi,
@@ -706,6 +719,93 @@ describe('EventEditPage (v3)', () => {
   it('sin boletos vendidos: no se muestra el aviso', async () => {
     await setup({ get: () => of({ ...EVENT, status: 'published', soldTicketsCount: 0 }) });
     expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="sold-warning"]')).toBeNull();
+  });
+
+  // --- v3.8 · G2-8: candado por tiempo (estilo pasarelas) ---
+  it('admin no-dueño: candado CERRADO (icono lock) y Publicar deshabilitado', async () => {
+    await setup({ get: () => of({ ...EVENT, status: 'draft' }) }, {}, 'e1', {
+      id: 'admin-9',
+      roles: ['admin'],
+    });
+    const el = fixture.nativeElement as HTMLElement;
+    expect(inst()['locked']()).toBe(true);
+    expect(inst()['unlockActive']()).toBe(false);
+    // Candado cerrado (botón desbloquear) presente; NO hay temporizador abierto.
+    expect(el.querySelector('[data-testid="unlock-btn"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="unlock-timer"]')).toBeNull();
+    // Publicar (draft reconfigurable) visible pero deshabilitado por el bloqueo.
+    const publish = el.querySelector('[data-testid="publish-btn"]') as HTMLButtonElement;
+    expect(publish).not.toBeNull();
+    expect(publish.disabled).toBe(true);
+  });
+
+  it('admin: al desbloquear aparece el candado ABIERTO con cuenta regresiva y se re-bloquea al vencer', async () => {
+    jasmine.clock().install();
+    const base = new Date('2026-07-11T12:00:00.000Z');
+    jasmine.clock().mockDate(base);
+    const verifyEditUnlock = jasmine
+      .createSpy('v')
+      .and.returnValue(of({ token: 'tok', expiresAt: new Date(base.getTime() + 300000).toISOString() }));
+    await setup({ verifyEditUnlock }, {}, 'e1', { id: 'admin-9', roles: ['admin'] });
+    expect(inst()['locked']()).toBe(true);
+    (fixture.componentInstance['unlockCode'] as unknown as { set: (v: string) => void }).set('123456');
+    fixture.componentInstance['verifyUnlock']();
+    fixture.detectChanges();
+    expect(inst()['locked']()).toBe(false);
+    expect(inst()['unlockActive']()).toBe(true);
+    expect(inst()['unlockRemaining']()).toBe('05:00');
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="unlock-timer"]')).not.toBeNull();
+    // Avanza el reloj 1 min: el setInterval del store recomputa → countdown 04:00.
+    // (mockDate a +59s y tick(1000) → "ahora" queda en +60s exactos y dispara el intervalo.)
+    jasmine.clock().mockDate(new Date(base.getTime() + 59000));
+    jasmine.clock().tick(1000);
+    expect(inst()['unlockRemaining']()).toBe('04:00');
+    // Al vencer, el candado se cierra solo (se re-bloquea).
+    jasmine.clock().mockDate(new Date(base.getTime() + 301000));
+    jasmine.clock().tick(1000);
+    expect(inst()['locked']()).toBe(true);
+    expect(inst()['unlockActive']()).toBe(false);
+    jasmine.clock().uninstall();
+  });
+
+  // --- v3.8 · G2-7: admin crea evento a nombre de un promotor ---
+  it('modo nuevo admin: muestra el selector de promotor; sin elegir NO crea', async () => {
+    const create = jasmine.createSpy('c').and.returnValue(of(EVENT));
+    await setup({ create }, {}, null, { id: 'admin-9', roles: ['admin'] });
+    const nav = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="ed-promoter"]')).not.toBeNull();
+    fixture.componentInstance['d'].name.set('Mi evento');
+    fixture.componentInstance['d'].startsAt.set('2028-08-15T20:00');
+    fixture.componentInstance['saveData']();
+    expect(create).not.toHaveBeenCalled();
+    expect(lastToast()?.kind).toBe('warning');
+    // Al elegir el promotor, crea enviando promoterId.
+    (fixture.componentInstance['newPromoterId'] as unknown as { set: (v: string) => void }).set('p1');
+    fixture.componentInstance['saveData']();
+    expect(create).toHaveBeenCalled();
+    expect((create.calls.mostRecent().args[0] as Record<string, unknown>)['promoterId']).toBe('p1');
+    expect(nav).toHaveBeenCalled();
+  });
+
+  it('modo nuevo promotor normal: NO muestra el selector y create NO envía promoterId', async () => {
+    const create = jasmine.createSpy('c').and.returnValue(of(EVENT));
+    await setup({ create }, {}, null);
+    spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="ed-promoter"]')).toBeNull();
+    fixture.componentInstance['d'].name.set('Mi evento');
+    fixture.componentInstance['d'].startsAt.set('2028-08-15T20:00');
+    fixture.componentInstance['saveData']();
+    expect(create).toHaveBeenCalled();
+    expect((create.calls.mostRecent().args[0] as Record<string, unknown>)['promoterId']).toBeUndefined();
+  });
+
+  it('badge "creado por soporte" cuando el detalle trae createdByAdminId', async () => {
+    await setup({ get: () => of({ ...EVENT, createdByAdminId: 'admin-9' }) });
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="created-by-support"]'),
+    ).not.toBeNull();
   });
 
   // --- i18n: cambiar el idioma traduce los textos ---

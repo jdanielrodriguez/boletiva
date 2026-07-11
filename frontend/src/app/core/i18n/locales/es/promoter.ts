@@ -159,6 +159,17 @@ export const promoter = {
     validateCodeTitle: 'Validar código',
     validating: 'Validando…',
     unlock: 'Desbloquear',
+    // Candado de edición (admin no-dueño) — v3.8
+    lockCountdown: 'Desbloqueado · {{time}}',
+    lockedClosedTitle: 'Edición bloqueada. Pulsa para desbloquear (código al correo).',
+    unlockedOpenTitle: 'Edición desbloqueada. Se vuelve a bloquear al llegar a 00:00.',
+    // Admin crea a nombre de un promotor — v3.8
+    selectPromoter: 'Promotor (a nombre de quién)',
+    selectPromoterHint: '— Elige un promotor aprobado —',
+    selectPromoterNote:
+      'Como administrador, el evento se creará a nombre del promotor que elijas. Solo aparecen los promotores aprobados.',
+    promoterRequired: 'Elige el promotor a nombre de quien se crea el evento.',
+    createdBySupport: 'Creado por soporte',
     // Navegación
     backToConsole: '← Volver a la consola',
     backToMyEvents: '← Volver a mis eventos',
