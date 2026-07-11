@@ -21,6 +21,11 @@ async function bootstrap(): Promise<void> {
   app.useLogger(app.get(Logger));
 
   // Seguridad y transporte.
+  // Ocultar la tecnología (v3.8): quitar el fingerprint `X-Powered-By: Express`
+  // (helmet ya lo hace por defecto; explícito aquí como defensa en profundidad para
+  // no regalar a un atacante el mapa exacto de versiones/CVEs). helmet añade además
+  // CSP, HSTS, X-Frame-Options, nosniff, etc. La CSP por defecto convive con Swagger.
+  app.getHttpAdapter().getInstance().disable('x-powered-by');
   app.use(helmet());
   app.use(compression());
   app.enableCors({
