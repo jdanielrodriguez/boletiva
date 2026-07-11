@@ -209,6 +209,13 @@ export class EventEditPage implements OnDestroy {
   protected readonly uploadingBanner = signal(false);
   /** El form de IA no está siempre visible: se abre desde el desplegable. */
   protected readonly showAiForm = signal(false);
+  /**
+   * PREVIEW antes de subir: al elegir un archivo NO se sube todavía; se muestra
+   * una vista previa (arriba del bloque "Generar con IA") con Guardar/Cancelar.
+   * Solo al Guardar se ejecuta la subida real (presign→PUT→registrar).
+   */
+  protected readonly pendingBannerFile = signal<File | null>(null);
+  protected readonly pendingBannerUrl = signal<string | null>(null);
 
   /**
    * ¿Hay banner? Un cover en el media del evento (el detalle gestionable NO trae
@@ -672,22 +679,45 @@ export class EventEditPage implements OnDestroy {
     if (!open) this.locSearch.set('');
   }
 
-  // --- Banner: subir imagen ya hecha ---
+  // --- Banner: elegir imagen → PREVIEW (no sube todavía) ---
   protected onBannerFile(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
       this.toasts.error(this.translate.instant('promoter.edit.toastBannerImage'));
+      input.value = '';
       return;
     }
+    // Descarta un preview anterior sin usar.
+    const prev = this.pendingBannerUrl();
+    if (prev) URL.revokeObjectURL(prev);
+    this.pendingBannerFile.set(file);
+    this.pendingBannerUrl.set(URL.createObjectURL(file));
+    input.value = '';
+  }
+
+  /** Descarta el preview sin subir nada. */
+  protected cancelBannerPreview(): void {
+    const url = this.pendingBannerUrl();
+    if (url) URL.revokeObjectURL(url);
+    this.pendingBannerFile.set(null);
+    this.pendingBannerUrl.set(null);
+  }
+
+  /** Guarda el preview: ejecuta la subida real y lo lleva a la posición del banner. */
+  protected saveBannerPreview(): void {
+    const file = this.pendingBannerFile();
+    if (!file) return;
+    const localUrl = this.pendingBannerUrl();
     this.uploadingBanner.set(true);
-    // Vista previa inmediata mientras sube.
-    const localUrl = URL.createObjectURL(file);
     this.media.uploadBanner(this.eventId(), file).subscribe({
       next: () => {
         this.uploadingBanner.set(false);
+        // El objectURL del preview pasa a ser el banner activo (no lo revocamos).
         this.bannerUrl.set(localUrl);
+        this.pendingBannerFile.set(null);
+        this.pendingBannerUrl.set(null);
         this.toasts.success(this.translate.instant('promoter.edit.toastBannerUploaded'));
         this.reload();
       },
@@ -696,7 +726,6 @@ export class EventEditPage implements OnDestroy {
         this.toasts.error(this.translate.instant('promoter.edit.toastBannerUploadError'));
       },
     });
-    input.value = '';
   }
 
   protected toggleAiForm(): void {

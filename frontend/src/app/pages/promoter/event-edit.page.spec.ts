@@ -261,14 +261,48 @@ describe('EventEditPage (v3)', () => {
     expect(el.querySelector('[data-testid="bn-generate"]')).not.toBeNull();
   });
 
-  it('banner: subir un archivo llama a MediaApi.uploadBanner', async () => {
+  it('banner: elegir un archivo muestra PREVIEW y NO sube todavía', async () => {
     const uploadBanner = jasmine.createSpy('ub').and.returnValue(of({ id: 'm1', key: 'k', kind: 'cover' }));
     await setup({}, {}, 'e1');
-    // Inyecta el spy en la instancia (el MediaApi real es privado).
+    (fixture.componentInstance as unknown as { media: { uploadBanner: typeof uploadBanner } }).media = { uploadBanner };
+    fixture.componentInstance['selectTab']('banner');
+    const file = new File(['x'], 'banner.png', { type: 'image/png' });
+    fixture.componentInstance['onBannerFile']({ target: { files: [file], value: '' } } as unknown as Event);
+    fixture.detectChanges();
+    // No sube; muestra el bloque de preview con Guardar/Cancelar (arriba del generar-IA).
+    expect(uploadBanner).not.toHaveBeenCalled();
+    expect(fixture.componentInstance['pendingBannerUrl']()).not.toBeNull();
+    const el = fixture.nativeElement as HTMLElement;
+    const pending = el.querySelector('[data-testid="bn-preview-pending"]');
+    const aiToggle = el.querySelector('[data-testid="bn-ai-toggle"]');
+    expect(pending).not.toBeNull();
+    expect(aiToggle).not.toBeNull();
+    // La preview va ANTES del bloque "Generar con IA" en el DOM.
+    expect(pending!.compareDocumentPosition(aiToggle!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('banner: Guardar el preview sube con MediaApi.uploadBanner y limpia el preview', async () => {
+    const uploadBanner = jasmine.createSpy('ub').and.returnValue(of({ id: 'm1', key: 'k', kind: 'cover' }));
+    await setup({}, {}, 'e1');
     (fixture.componentInstance as unknown as { media: { uploadBanner: typeof uploadBanner } }).media = { uploadBanner };
     const file = new File(['x'], 'banner.png', { type: 'image/png' });
     fixture.componentInstance['onBannerFile']({ target: { files: [file], value: '' } } as unknown as Event);
+    fixture.componentInstance['saveBannerPreview']();
     expect(uploadBanner).toHaveBeenCalledWith('e1', file);
+    expect(fixture.componentInstance['pendingBannerUrl']()).toBeNull();
+    expect(fixture.componentInstance['bannerUrl']()).not.toBeNull();
+  });
+
+  it('banner: Cancelar el preview lo descarta sin subir', async () => {
+    const uploadBanner = jasmine.createSpy('ub').and.returnValue(of({ id: 'm1', key: 'k', kind: 'cover' }));
+    await setup({}, {}, 'e1');
+    (fixture.componentInstance as unknown as { media: { uploadBanner: typeof uploadBanner } }).media = { uploadBanner };
+    const file = new File(['x'], 'banner.png', { type: 'image/png' });
+    fixture.componentInstance['onBannerFile']({ target: { files: [file], value: '' } } as unknown as Event);
+    expect(fixture.componentInstance['pendingBannerUrl']()).not.toBeNull();
+    fixture.componentInstance['cancelBannerPreview']();
+    expect(fixture.componentInstance['pendingBannerUrl']()).toBeNull();
+    expect(uploadBanner).not.toHaveBeenCalled();
   });
 
   it('generar banner arma opciones y muestra la imagen', async () => {
@@ -553,6 +587,36 @@ describe('EventEditPage (v3)', () => {
     fixture.componentInstance['saveData']();
     expect(update).not.toHaveBeenCalled();
     expect(lastToast()?.kind).toBe('warning');
+  });
+
+  // --- v3.7: barra superior del admin — Guardar deshabilitado hasta desbloquear ---
+  it('admin bloqueado: el botón Guardar de la cabecera está DESHABILITADO', async () => {
+    await setup({}, {}, 'e1', { id: 'admin-9', roles: ['admin'] });
+    const save = (fixture.nativeElement as HTMLElement).querySelector(
+      '[data-testid="save-draft-btn"]',
+    ) as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+  });
+
+  it('admin: al desbloquear, el botón Guardar de la cabecera se HABILITA', async () => {
+    const verifyEditUnlock = jasmine
+      .createSpy('v')
+      .and.returnValue(of({ token: 'tok', expiresAt: new Date(Date.now() + 300000).toISOString() }));
+    await setup({ verifyEditUnlock }, {}, 'e1', { id: 'admin-9', roles: ['admin'] });
+    const el = fixture.nativeElement as HTMLElement;
+    expect((el.querySelector('[data-testid="save-draft-btn"]') as HTMLButtonElement).disabled).toBe(true);
+    (fixture.componentInstance['unlockCode'] as unknown as { set: (v: string) => void }).set('123456');
+    fixture.componentInstance['verifyUnlock']();
+    fixture.detectChanges();
+    expect((el.querySelector('[data-testid="save-draft-btn"]') as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('promotor dueño: el botón Guardar de la cabecera está HABILITADO', async () => {
+    await setup();
+    const save = (fixture.nativeElement as HTMLElement).querySelector(
+      '[data-testid="save-draft-btn"]',
+    ) as HTMLButtonElement;
+    expect(save.disabled).toBe(false);
   });
 
   it('verificar OTP desbloquea (persiste) y deja de bloquear', async () => {

@@ -12,13 +12,14 @@
         @if (event(); as ev) { <span class="badge badge-{{ ev.status }}">{{ ev.status }}</span> }
         @if (isNew()) { <span class="badge badge-draft" data-testid="new-badge">{{ 'promoter.edit.badgeNew' | translate }}</span> }
       </div>
-      <div class="ev-card-actions">
+      <div class="ev-card-actions header-actions">
         @if (locked()) {
           <button type="button" class="btn primary" (click)="openUnlock()" data-testid="unlock-btn" [title]="'promoter.edit.unlockEdit' | translate">
             <app-icon name="unlock" /> {{ 'promoter.edit.unlockEdit' | translate }}
           </button>
         }
-        <button type="button" class="btn primary" [disabled]="savingData()" (click)="saveData()" data-testid="save-draft-btn" [title]="'common.save' | translate">
+        <button type="button" class="btn primary" [disabled]="savingData() || locked()" (click)="saveData()" data-testid="save-draft-btn"
+          [title]="locked() ? ('promoter.edit.unlockToSaveTooltip' | translate) : ('common.save' | translate)">
           <app-icon name="save" /> {{ savingData() ? ('promoter.edit.savingShort' | translate) : ('common.save' | translate) }}
         </button>
         @if (!isNew() && event()?.status === 'draft') {
@@ -249,10 +250,29 @@
               <h3>{{ 'promoter.edit.bannerUploadTitle' | translate }}</h3>
               <p class="muted small">{{ 'promoter.edit.bannerUploadHint' | translate }}</p>
               <label class="btn" [class.disabled]="uploadingBanner()">
-                <app-icon name="add" /> {{ uploadingBanner() ? ('promoter.edit.uploading' | translate) : ('promoter.edit.uploadImage' | translate) }}
+                <app-icon name="add" /> {{ uploadingBanner() ? ('promoter.edit.uploading' | translate) : ('promoter.edit.chooseImage' | translate) }}
                 <input type="file" accept="image/*" hidden (change)="onBannerFile($event)" data-testid="bn-file" [disabled]="uploadingBanner()" />
               </label>
             </div>
+
+            <!-- PREVIEW antes de subir: se muestra ARRIBA del bloque "Generar con IA".
+                 Guardar sube de verdad; Cancelar descarta sin subir. -->
+            @if (pendingBannerUrl(); as purl) {
+              <div class="banner-preview-pending" data-testid="bn-preview-pending">
+                <p class="muted small">{{ 'promoter.edit.bannerPreviewHint' | translate }}</p>
+                <div class="banner-box">
+                  <img [src]="purl" [alt]="'promoter.edit.bannerAlt' | translate" data-testid="bn-preview-img" />
+                </div>
+                <div class="loc-form-actions">
+                  <button type="button" class="btn primary" [disabled]="uploadingBanner()" (click)="saveBannerPreview()" data-testid="bn-preview-save" [title]="'common.save' | translate">
+                    <app-icon name="save" /> {{ uploadingBanner() ? ('promoter.edit.uploading' | translate) : ('common.save' | translate) }}
+                  </button>
+                  <button type="button" class="btn" [disabled]="uploadingBanner()" (click)="cancelBannerPreview()" data-testid="bn-preview-cancel" [title]="'common.cancel' | translate">
+                    <app-icon name="cancel" /> {{ 'common.cancel' | translate }}
+                  </button>
+                </div>
+              </div>
+            }
 
             <div class="banner-divider"><span>{{ 'promoter.edit.orDivider' | translate }}</span></div>
 
@@ -285,7 +305,9 @@
             </div>
 
             @if (bannerUrl(); as url) {
-              <img class="banner-preview" [src]="url" [alt]="'promoter.edit.bannerAlt' | translate" data-testid="bn-preview" />
+              <div class="banner-box banner-current" data-testid="bn-current">
+                <img [src]="url" [alt]="'promoter.edit.bannerAlt' | translate" data-testid="bn-preview" />
+              </div>
             } @else if (hasBanner()) {
               <p class="muted small" data-testid="bn-present">{{ 'promoter.edit.bannerPresent' | translate }}</p>
             } @else {

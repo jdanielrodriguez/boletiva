@@ -105,6 +105,9 @@ export const promoter = {
     bannerUploadHint: 'Sube una imagen (JPG/PNG/WebP). Se usará como portada del evento.',
     uploading: 'Subiendo…',
     uploadImage: 'Subir imagen',
+    chooseImage: 'Elegir imagen',
+    bannerPreviewHint: 'Vista previa. Pulsa Guardar para subirla o Cancelar para descartarla.',
+    unlockToSaveTooltip: 'Desbloquea para guardar',
     orDivider: 'o',
     generateAiTitle: 'Generar un banner con IA',
     generateWithAi: 'Generar con IA',
@@ -322,6 +325,12 @@ export const promoter = {
     toggleTitle: 'Mostrar u ocultar el mapa combinado',
     totalSeats: 'asientos',
     empty: 'Aún no hay localidades con asientos en este evento.',
+    layoutTitle: 'Alternar disposición (lado a lado / apiladas)',
+    layoutHorizontal: 'Lado a lado',
+    layoutVertical: 'Apiladas',
+    reorderHint: 'Reordena las localidades con las flechas ‹ ›.',
+    moveBefore: 'Mover antes',
+    moveAfter: 'Mover después',
   },
 
   // --- Tabla de transacciones del evento (tab Cuentas) ---

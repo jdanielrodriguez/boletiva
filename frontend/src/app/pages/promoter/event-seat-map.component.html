@@ -10,16 +10,32 @@
         <span class="seat-count-num">{{ totalSeats() }}</span>
         <span class="seat-count-label">{{ 'promoter.seatMap.totalSeats' | translate }}</span>
       </span>
-      <ul class="esm-legend" data-testid="esm-legend">
-        @for (l of legend(); track l.name) {
-          <li class="esm-legend-item">
-            <span class="esm-swatch" [style.background]="l.color"></span>
-            <span>{{ l.name }}</span>
-            <span class="muted small">({{ l.count }})</span>
-          </li>
-        }
-      </ul>
+      <button type="button" class="btn small" (click)="toggleLayout()" data-testid="esm-layout-toggle"
+        [title]="'promoter.seatMap.layoutTitle' | translate">
+        <app-icon name="seats" />
+        {{ layout() === 'horizontal' ? ('promoter.seatMap.layoutHorizontal' | translate) : ('promoter.seatMap.layoutVertical' | translate) }}
+      </button>
     </div>
+    @if (legend().length > 1) {
+      <p class="muted small esm-reorder-hint">{{ 'promoter.seatMap.reorderHint' | translate }}</p>
+    }
+    <ul class="esm-legend" data-testid="esm-legend">
+      @for (l of legend(); track l.id) {
+        <li class="esm-legend-item" data-testid="esm-legend-item">
+          <span class="esm-swatch" [style.background]="l.color"></span>
+          <span>{{ l.name }}</span>
+          <span class="muted small">({{ l.count }})</span>
+          @if (legend().length > 1) {
+            <span class="esm-move">
+              <button type="button" class="btn tiny icon-only" [disabled]="isFirst(l.id)" (click)="moveUp(l.id)"
+                data-testid="esm-move-up" [title]="'promoter.seatMap.moveBefore' | translate">‹</button>
+              <button type="button" class="btn tiny icon-only" [disabled]="isLast(l.id)" (click)="moveDown(l.id)"
+                data-testid="esm-move-down" [title]="'promoter.seatMap.moveAfter' | translate">›</button>
+            </span>
+          }
+        </li>
+      }
+    </ul>
   }
   <!-- El host SIEMPRE está en el DOM (aunque oculto): así `afterNextRender` puede
        crear el stage de Konva y los efectos posteriores redibujan al llegar datos. -->

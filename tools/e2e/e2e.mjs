@@ -9,6 +9,7 @@
  * Requiere PAYMENT_SIMULATOR_AUTO_CONFIRM=true para que el pago se confirme solo.
  */
 import puppeteer from 'puppeteer-core';
+import { writeFileSync } from 'node:fs';
 
 // La página se sirve desde un origen `localhost` (mapeado al contenedor del
 // frontend vía host-resolver) para quedar SAME-SITE con el API en localhost:8080,
@@ -460,6 +461,38 @@ async function main() {
     assert(src && src.includes('http'), 'el banner no tiene URL');
   });
 
+  await step('banner: elegir imagen muestra PREVIEW (Guardar/Cancelar) antes de subir; Cancelar la descarta', async () => {
+    // Sigue en el tab banner del mismo evento. Escribe una imagen mínima válida.
+    const imgPath = '/tmp/e2e-banner.png';
+    writeFileSync(
+      imgPath,
+      Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+        'base64',
+      ),
+    );
+    const input = await promo.$('[data-testid="bn-file"]');
+    await input.uploadFile(imgPath);
+    // NO sube todavía: aparece la PREVIEW con Guardar/Cancelar, ARRIBA del generar-IA.
+    await promo.waitForSelector('[data-testid="bn-preview-pending"]', { timeout: 8000 });
+    assert((await promo.$('[data-testid="bn-preview-save"]')) !== null, 'falta el botón Guardar del preview');
+    assert((await promo.$('[data-testid="bn-preview-cancel"]')) !== null, 'falta el botón Cancelar del preview');
+    // La preview está antes del desplegable de IA en el DOM.
+    const beforeAi = await promo.evaluate(() => {
+      const p = document.querySelector('[data-testid="bn-preview-pending"]');
+      const ai = document.querySelector('[data-testid="bn-ai-toggle"]');
+      return !!(p && ai && p.compareDocumentPosition(ai) & Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+    assert(beforeAi, 'la preview debería ir arriba del bloque "Generar con IA"');
+    // Cancelar descarta el preview sin subir nada (la subida real a S3 no es
+    // alcanzable desde el navegador E2E; el Guardar está cubierto por unit test).
+    await promo.click('[data-testid="bn-preview-cancel"]');
+    await promo.waitForFunction(
+      () => !document.querySelector('[data-testid="bn-preview-pending"]'),
+      { timeout: 8000 },
+    );
+  });
+
   await step('publicar queda habilitado solo con banner + asientos (gate del backend)', async () => {
     // Tras generar banner y guardar asientos, el gate se cumple → Publicar habilitado.
     await promo.waitForSelector('[data-testid="publish-btn"]', { timeout: 8000 });
@@ -633,10 +666,10 @@ async function main() {
     await adminPg.click('[data-testid="ev-open-btn"]');
     await adminPg.waitForSelector('[data-testid="lock-banner"]', { timeout: 12000 });
     assert((await adminPg.$('[data-testid="unlock-btn"]')) !== null, 'falta el botón Desbloquear');
-    // Guardar bloqueado no persiste (solo avisa): el banner de bloqueo sigue visible.
-    await adminPg.click('[data-testid="save-draft-btn"]');
-    await sleep(300);
-    assert((await adminPg.$('[data-testid="lock-banner"]')) !== null, 'debería seguir bloqueado tras intentar guardar');
+    // v3.7: bloqueado → el botón Guardar de la cabecera está DESHABILITADO.
+    const saveDisabled = await adminPg.$eval('[data-testid="save-draft-btn"]', (b) => b.disabled);
+    assert(saveDisabled === true, 'Guardar debería estar deshabilitado hasta desbloquear');
+    assert((await adminPg.$('[data-testid="lock-banner"]')) !== null, 'debería seguir bloqueado');
   });
 
   await step('v3.5 invitación a cuenta existente: el link ofrece iniciar sesión para activar', async () => {
