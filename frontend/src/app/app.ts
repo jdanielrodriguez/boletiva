@@ -1,4 +1,4 @@
-import { Component, PLATFORM_ID, afterNextRender, computed, inject } from '@angular/core';
+import { Component, PLATFORM_ID, computed, effect, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -14,6 +14,7 @@ import { TokenStore } from './core/auth/token-store.service';
 import { MaintenanceStore } from './core/maintenance/maintenance.store';
 import { LoadingStore } from './core/ui/loading.store';
 import { I18nService } from './core/i18n/i18n.service';
+import { PublicConfigStore } from './core/config/public-config.store';
 
 @Component({
   selector: 'app-root',
@@ -38,7 +39,11 @@ export class App {
   private readonly maintenance = inject(MaintenanceStore);
   private readonly loading = inject(LoadingStore);
   private readonly i18n = inject(I18nService);
+  private readonly publicConfig = inject(PublicConfigStore);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
+
+  /** Guard: la decisión de idioma inicial se aplica una sola vez. */
+  private langDecided = false;
 
   protected readonly maintMessage = this.maintenance.message;
 
@@ -83,16 +88,26 @@ export class App {
     // el cache público de las páginas anónimas).
     if (this.isBrowser) {
       this.maintenance.load();
-      this.session.ensureLoaded().subscribe((user) => {
-        // La preferencia de idioma GUARDADA del usuario manda sobre la de
-        // localStorage: al resolver la sesión aplicamos su idioma de BD (v3.7).
-        const lang = user?.language;
-        if (lang === 'es' || lang === 'en') this.i18n.use(lang);
+      this.publicConfig.load();
+      this.session.ensureLoaded().subscribe();
+
+      // Decisión de idioma inicial (v3.10 · GI). Se aplica UNA vez, cuando ya se
+      // resolvió la sesión Y llegó la config pública (ambas HTTP → post-hidratación,
+      // sin romper el calce del SSR que va en español):
+      //  - usuario logueado → SIEMPRE su idioma de BD, sin importar el flag;
+      //  - visitante con el flag ACTIVO → aplica su preferencia guardada;
+      //  - visitante con el flag INACTIVO → se queda en español (default).
+      effect(() => {
+        if (this.langDecided) return;
+        if (!this.session.loaded() || !this.publicConfig.loaded()) return;
+        this.langDecided = true;
+        const lang = this.session.user()?.language;
+        if (lang === 'es' || lang === 'en') {
+          this.i18n.use(lang);
+        } else if (this.publicConfig.allowVisitorLangSwitch()) {
+          this.i18n.hydratePreference();
+        }
       });
     }
-    // Aplica la preferencia de idioma DESPUÉS de la hidratación: el SSR y el
-    // primer render del cliente van en español (calce exacto, sin warning); si
-    // el usuario prefiere inglés, se cambia aquí (el pipe reacciona por signal).
-    afterNextRender(() => this.i18n.hydratePreference());
   }
 }

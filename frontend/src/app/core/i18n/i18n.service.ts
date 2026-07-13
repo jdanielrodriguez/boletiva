@@ -60,6 +60,17 @@ export class I18nService {
     this.apply(lang, true);
   }
 
+  /**
+   * Vuelve SIEMPRE al idioma por defecto (español) y BORRA la preferencia
+   * persistida del visitante (localStorage + cookie). Se usa al cerrar sesión:
+   * aunque el usuario recién salido tuviera inglés, la app queda en español para
+   * el siguiente visitante anónimo (v3.10 · GI). No-op fuera del navegador.
+   */
+  reset(): void {
+    this.clearStored();
+    this.apply(DEFAULT_LANG, false);
+  }
+
   private apply(lang: Lang, persist: boolean): void {
     const next = SUPPORTED_LANGS.includes(lang) ? lang : DEFAULT_LANG;
     this.translate.use(next);
@@ -90,6 +101,16 @@ export class I18nService {
       this.document.cookie = `${LANG_STORAGE_KEY}=${lang};path=/;max-age=31536000;SameSite=Lax`;
     } catch {
       /* sin persistencia disponible → se pierde entre sesiones, no rompe */
+    }
+  }
+
+  private clearStored(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    try {
+      this.window()?.localStorage?.removeItem(LANG_STORAGE_KEY);
+      this.document.cookie = `${LANG_STORAGE_KEY}=;path=/;max-age=0;SameSite=Lax`;
+    } catch {
+      /* sin almacenamiento → nada que borrar */
     }
   }
 

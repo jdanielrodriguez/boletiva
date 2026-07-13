@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, Injector, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Injector, computed, inject } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { UsersApi } from '../../core/api/users.api';
 import { SessionStore } from '../../core/auth/session.store';
 import { I18nService } from '../../core/i18n/i18n.service';
+import { PublicConfigStore } from '../../core/config/public-config.store';
 import type { Lang } from '../../core/i18n/i18n.types';
 
 /**
@@ -27,7 +28,8 @@ import type { Lang } from '../../core/i18n/i18n.types';
         [class.active]="i18n.lang() === 'es'"
         [attr.aria-pressed]="i18n.lang() === 'es'"
         [attr.aria-label]="'shell.langEs' | translate"
-        [title]="'shell.langEs' | translate"
+        [title]="canSwitch() ? ('shell.langEs' | translate) : ('shell.langLocked' | translate)"
+        [disabled]="!canSwitch()"
         (click)="setLang('es')"
         data-testid="lang-es"
       >
@@ -45,7 +47,8 @@ import type { Lang } from '../../core/i18n/i18n.types';
         [class.active]="i18n.lang() === 'en'"
         [attr.aria-pressed]="i18n.lang() === 'en'"
         [attr.aria-label]="'shell.langEn' | translate"
-        [title]="'shell.langEn' | translate"
+        [title]="canSwitch() ? ('shell.langEn' | translate) : ('shell.langLocked' | translate)"
+        [disabled]="!canSwitch()"
         (click)="setLang('en')"
         data-testid="lang-en"
       >
@@ -85,8 +88,14 @@ import type { Lang } from '../../core/i18n/i18n.types';
         opacity: 0.55;
         transition: opacity 0.15s ease, border-color 0.15s ease, background 0.15s ease;
       }
-      .lang-flag:hover {
+      .lang-flag:hover:not(:disabled) {
         opacity: 0.85;
+      }
+      .lang-flag:disabled {
+        cursor: not-allowed;
+      }
+      .lang-flag:disabled:not(.active) {
+        opacity: 0.35;
       }
       .lang-flag.active {
         opacity: 1;
@@ -112,9 +121,21 @@ import type { Lang } from '../../core/i18n/i18n.types';
 export class LangSwitcherComponent {
   protected readonly i18n = inject(I18nService);
   private readonly session = inject(SessionStore);
+  private readonly publicConfig = inject(PublicConfigStore);
   private readonly injector = inject(Injector);
 
+  /**
+   * ¿Se permite cambiar idioma? (v3.10 · GI) El usuario logueado SIEMPRE puede
+   * (ajusta su propia preferencia). El visitante anónimo solo si el admin activó
+   * `allowVisitorLangSwitch`; si no, el selector queda deshabilitado (con tooltip)
+   * y la UI permanece en español.
+   */
+  protected readonly canSwitch = computed(
+    () => this.session.isAuthenticated() || this.publicConfig.allowVisitorLangSwitch(),
+  );
+
   setLang(lang: Lang): void {
+    if (!this.canSwitch()) return;
     this.i18n.use(lang);
     // Si hay sesión, persiste también en BD: de lo contrario, al recargar,
     // `ensureLoaded()` reaplicaría el idioma guardado del usuario y revertiría

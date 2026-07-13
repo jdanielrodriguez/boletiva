@@ -53,7 +53,7 @@ describe('AuthService', () => {
         { provide: AuthApi, useValue: api },
         { provide: ApiClient, useValue: { get: () => of(null), post: () => of(null) } },
         { provide: AuthRefreshService, useValue: { refresh: () => of(null) } },
-        { provide: I18nService, useValue: { use: () => undefined } },
+        { provide: I18nService, useValue: { use: () => undefined, reset: () => undefined } },
       ],
     });
     auth = TestBed.inject(AuthService);

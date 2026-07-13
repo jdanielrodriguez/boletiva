@@ -24,6 +24,7 @@ export const shell = {
   langEn: 'English (United States)',
   langEsShort: 'ES',
   langEnShort: 'EN',
+  langLocked: 'Language switching is not available for visitors',
   verifyTitle: 'Verify your email',
   verifyBody: 'We sent you a confirmation link. You need to verify your email to buy, create or transfer tickets.',
   verifyRedirecting: 'Taking you home…',

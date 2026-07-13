@@ -58,6 +58,10 @@ export class AuthService {
   logout(): Observable<void> {
     const hadSession = this.tokens.hasSessionHint();
     this.session.clear();
+    // Al cerrar sesión SIEMPRE se vuelve a español y se borra la preferencia de
+    // idioma del visitante (v3.10 · GI): aunque el usuario recién salido tuviera
+    // inglés, la app queda en español para el siguiente anónimo.
+    this.i18n.reset();
     if (!hadSession) return EMPTY;
     // El estado local ya está limpio; la cookie httpOnly identifica la sesión a
     // revocar en el backend. Ignoramos errores de red del logout remoto.

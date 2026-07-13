@@ -24,6 +24,7 @@ export const shell = {
   langEn: 'English (Estados Unidos)',
   langEsShort: 'ES',
   langEnShort: 'EN',
+  langLocked: 'El cambio de idioma no está disponible para visitantes',
   verifyTitle: 'Verifica tu correo',
   verifyBody: 'Te enviamos un enlace de confirmación. Necesitas verificar tu correo para comprar, crear o transferir boletos.',
   verifyRedirecting: 'Te llevamos al inicio…',
