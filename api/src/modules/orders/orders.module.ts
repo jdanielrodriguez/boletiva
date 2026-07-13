@@ -5,6 +5,7 @@ import { OrdersController } from './orders.controller';
 import { CheckoutService } from './checkout.service';
 import { OrdersService } from './orders.service';
 import { SettlementService } from './settlement.service';
+import { SettlementExportService } from './settlement-export.service';
 import { EventRefundsService } from './event-refunds.service';
 import { EventSettlementMailService } from './event-settlement-mail.service';
 
@@ -15,6 +16,7 @@ import { EventSettlementMailService } from './event-settlement-mail.service';
     CheckoutService,
     OrdersService,
     SettlementService,
+    SettlementExportService,
     EventRefundsService,
     EventSettlementMailService,
   ],

@@ -3230,6 +3230,43 @@
         ]
       }
     },
+    "/api/v1/events/{eventId}/settlement/export.xlsx": {
+      "get": {
+        "operationId": "OrdersController_exportSettlement_v1",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Archivo .xlsx (adjunto)",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Descarga el detalle de la liquidación del evento en Excel (.xlsx): boletos vendidos + desglose (neto/plataforma/pasarela/IVA) + totales (owner/admin).",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
     "/api/v1/events/{eventId}/settlement/finalize": {
       "post": {
         "operationId": "OrdersController_finalizeSettlement_v1",
@@ -11092,7 +11129,14 @@
           },
           "kind": {
             "type": "string",
-            "description": "purchase = compra (egreso); refund/resale/sale = ingreso",
+            "description": "purchase = compra (egreso); refund/resale = ingreso al wallet; event_settlement = LIQUIDACIÓN al promotor al cerrar el evento (ingreso)",
+            "enum": [
+              "purchase",
+              "refund",
+              "resale",
+              "event_settlement",
+              "other"
+            ],
             "example": "purchase"
           },
           "amount": {
@@ -11113,6 +11157,12 @@
             "type": "string",
             "nullable": true
           },
+          "eventId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Evento asociado (navegar a sus cuentas; presente en la liquidación event_settlement)"
+          },
           "orderId": {
             "type": "string",
             "format": "uuid",
@@ -11132,6 +11182,7 @@
           "currency",
           "status",
           "eventName",
+          "eventId",
           "orderId",
           "createdAt"
         ]

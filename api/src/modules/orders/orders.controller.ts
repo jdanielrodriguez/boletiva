@@ -9,12 +9,15 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
+  Res,
 } from '@nestjs/common';
+import { Response } from 'express';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiProduces,
   ApiTags,
 } from '@nestjs/swagger';
 import { RequireVerifiedEmail } from '../../common/decorators/verified-email.decorator';
@@ -25,6 +28,7 @@ import { Role } from '@prisma/client';
 import { CheckoutService } from './checkout.service';
 import { OrdersService } from './orders.service';
 import { SettlementService } from './settlement.service';
+import { SettlementExportService } from './settlement-export.service';
 import { EventRefundsService } from './event-refunds.service';
 import {
   CheckoutDto,
@@ -47,6 +51,7 @@ export class OrdersController {
     private readonly checkout: CheckoutService,
     private readonly orders: OrdersService,
     private readonly settlement: SettlementService,
+    private readonly settlementExport: SettlementExportService,
     private readonly eventRefunds: EventRefundsService,
   ) {}
 
@@ -59,6 +64,36 @@ export class OrdersController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.settlement.forEvent(eventId, user);
+  }
+
+  @Get('events/:eventId/settlement/export.xlsx')
+  @Roles(Role.promoter, Role.admin)
+  @ApiProduces('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+  @ApiOperation({
+    summary:
+      'Descarga el detalle de la liquidación del evento en Excel (.xlsx): boletos ' +
+      'vendidos + desglose (neto/plataforma/pasarela/IVA) + totales (owner/admin).',
+  })
+  @ApiOkResponse({
+    description: 'Archivo .xlsx (adjunto)',
+    content: {
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': {
+        schema: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  async exportSettlement(
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+    @CurrentUser() user: AuthUser,
+    @Res() res: Response,
+  ): Promise<void> {
+    const { filename, buffer } = await this.settlementExport.exportForEvent(eventId, user);
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': String(buffer.length),
+    });
+    res.end(buffer);
   }
 
   @Post('events/:eventId/settlement/finalize')
