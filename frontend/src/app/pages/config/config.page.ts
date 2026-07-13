@@ -14,6 +14,7 @@ import { InvitationsApi } from '../../core/api/invitations.api';
 import { SettingsApi } from '../../core/api/settings.api';
 import { AuditApi } from '../../core/api/audit.api';
 import { ImpersonationService } from '../../core/auth/impersonation.service';
+import { PublicConfigStore } from '../../core/config/public-config.store';
 import { ToastService } from '../../core/ui/toast.service';
 import { ConfirmController } from '../../shared/confirm-dialog/confirm-controller';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
@@ -91,7 +92,20 @@ export class ConfigPage {
   private readonly settingsApi = inject(SettingsApi);
   private readonly audit = inject(AuditApi);
   private readonly impersonation = inject(ImpersonationService);
+  private readonly publicConfig = inject(PublicConfigStore);
   private readonly toasts = inject(ToastService);
+
+  /**
+   * Settings que mapean a `PublicConfigStore` → togglearlos debe reflejarse YA en el
+   * frontend (switcher de idioma / categorías del inicio) sin F5 (W2/W10).
+   */
+  private static readonly PUBLIC_CONFIG_SETTERS: Record<
+    string,
+    (store: PublicConfigStore, v: boolean) => void
+  > = {
+    'i18n.allow_visitor_switch': (s, v) => s.setAllowVisitorLangSwitch(v),
+    'home.show_categories': (s, v) => s.setShowHomeCategories(v),
+  };
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly translate = inject(TranslateService);
@@ -809,6 +823,10 @@ export class ConfigPage {
     this.settingsApi.update(s.key, value).subscribe({
       next: (updated) => {
         this.settings.update((list) => list.map((x) => (x.key === updated.key ? updated : x)));
+        // W2/W10: si el setting mapea a la config pública, refleja el cambio al
+        // instante en el store (switcher/categorías) sin recargar la página.
+        const setter = ConfigPage.PUBLIC_CONFIG_SETTERS[updated.key];
+        if (setter) setter(this.publicConfig, Boolean(updated.value));
         this.toasts.success(this.translate.instant('config.settings.saved', { key: s.key }));
       },
       error: () => this.toasts.error(this.translate.instant('config.settings.saveError')),

@@ -1,4 +1,5 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, PLATFORM_ID, computed, inject } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -55,6 +56,13 @@ export class Catalog {
 
   /** Flag de admin: ¿mostrar las categorías en el inicio? (v3.10 · GI). */
   protected readonly showCategories = this.publicConfig.showHomeCategories;
+
+  constructor() {
+    // W2/W10: re-consulta la config pública al entrar al inicio → una navegación
+    // fresca toma los cambios del admin (categorías/idioma) sin necesidad de un F5.
+    // Solo en el navegador (el store se hidrata allí; en SSR van los defaults).
+    if (isPlatformBrowser(inject(PLATFORM_ID))) this.publicConfig.refresh();
+  }
 
   protected readonly categories = toSignal(
     this.categoriesApi.list().pipe(catchError(() => of([]))),

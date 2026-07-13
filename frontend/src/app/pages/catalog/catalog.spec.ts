@@ -1,4 +1,4 @@
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { provideI18nTesting } from '../../core/i18n/testing';
@@ -7,6 +7,7 @@ import { Observable, of, throwError } from 'rxjs';
 import { CategoriesApi } from '../../core/api/categories.api';
 import { EventsApi } from '../../core/api/events.api';
 import { SITE_URL } from '../../core/config/api.tokens';
+import { PublicConfigStore } from '../../core/config/public-config.store';
 import { Catalog } from './catalog';
 
 const EVENT = {
@@ -33,6 +34,11 @@ function setup(
       { provide: EventsApi, useValue: { listPublic, promoted: () => of([]) } },
       { provide: CategoriesApi, useValue: { list: () => of(CATS) } },
       { provide: SITE_URL, useValue: 'http://localhost:4200' },
+      // Stub del store de config (evita el HTTP de refresh() en el constructor, W2/W10).
+      {
+        provide: PublicConfigStore,
+        useValue: { showHomeCategories: signal(true).asReadonly(), refresh: () => undefined },
+      },
       {
         provide: ActivatedRoute,
         useValue: {

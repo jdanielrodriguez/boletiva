@@ -30,6 +30,19 @@ export class PublicConfigStore {
   /** Consulta la config inicial. Fallo → conserva los defaults y marca cargado. */
   load(): void {
     if (this._loaded()) return;
+    this.fetch();
+  }
+
+  /**
+   * Re-consulta `GET /public/config` SIEMPRE (ignora el guard de `load`). Lo usa el
+   * catálogo/inicio al entrar a la ruta: una navegación fresca toma los cambios de
+   * config que hizo el admin (idioma/categorías) sin necesidad de un F5 (W2/W10).
+   */
+  refresh(): void {
+    this.fetch();
+  }
+
+  private fetch(): void {
     this.injector.get(PublicConfigApi).get().subscribe({
       next: (c) => {
         this._allowVisitorLangSwitch.set(c.allowVisitorLangSwitch);
@@ -38,5 +51,17 @@ export class PublicConfigStore {
       },
       error: () => this._loaded.set(true),
     });
+  }
+
+  /**
+   * Setters instantáneos (W2/W10): al togglear el setting en la consola admin,
+   * el store refleja el cambio al momento para el admin que lo hizo (el switcher
+   * de idioma se oculta/muestra y las categorías aparecen/desaparecen sin F5).
+   */
+  setAllowVisitorLangSwitch(value: boolean): void {
+    this._allowVisitorLangSwitch.set(value);
+  }
+  setShowHomeCategories(value: boolean): void {
+    this._showHomeCategories.set(value);
   }
 }
