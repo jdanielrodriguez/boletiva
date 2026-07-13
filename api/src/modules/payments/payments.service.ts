@@ -203,13 +203,33 @@ export class PaymentsService {
       where: { id: orderId },
       include: {
         items: true,
-        event: { select: { ivaOnNet: true, absorbInstallmentCost: true, promoterId: true } },
+        event: {
+          select: {
+            ivaOnNet: true,
+            absorbInstallmentCost: true,
+            promoterId: true,
+            gatewayId: true,
+            frozenGatewayId: true,
+          },
+        },
       },
     });
     if (!order || order.buyerId !== buyerId) {
       throw new NotFoundException('Orden no encontrada'); // IDOR → 404
     }
     const absorbedByPromoter = order.event.absorbInstallmentCost;
+    // Pasarela EFECTIVA del evento para esta orden (la recomendada en el checkout):
+    // congelada de la orden (feeGatewayId) → congelada del evento → elegida por el
+    // promotor → default de plataforma. Reusa la resolución del pricing (no se
+    // duplica): resolveGateway hace `frozenGatewayId ?? gatewayId ?? default`, así
+    // que se alimenta feeGatewayId/frozenGatewayId como "frozen".
+    const eventGatewayId = (
+      await this.pricing.resolveFeesForEvent({
+        gatewayId: order.event.gatewayId,
+        frozenGatewayId: order.feeGatewayId ?? order.event.frozenGatewayId,
+        ivaOnNet: order.event.ivaOnNet,
+      })
+    ).gatewayId;
     // Política del promotor (Ola 6.6): cuotas y pasarelas según su cost-share.
     const promoterPct = await this.costShare.effectivePct(order.event.promoterId);
     const installmentsAllowed = promoterPct >= (await this.costShare.installmentsMinPct());
@@ -263,6 +283,8 @@ export class PaymentsService {
         name: gw.name,
         provider: gw.provider,
         isPlatformDefault: gw.isPlatformDefault,
+        // Pasarela asignada al evento → recomendada/preseleccionada en el checkout.
+        recommended: gw.id === eventGatewayId,
         total: base.total,
         serviceFee: base.serviceFee,
         installmentOptions: options,
@@ -273,6 +295,7 @@ export class PaymentsService {
       orderId: order.id,
       currency: order.currency,
       absorbedByPromoter,
+      eventGatewayId,
       gateways: result,
     };
   }

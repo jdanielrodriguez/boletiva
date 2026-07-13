@@ -36,7 +36,11 @@ describe('PaymentsService (ramas de borde, unit)', () => {
       $transaction: jest.fn().mockResolvedValue([]),
     };
     const ledger = { walletBalance: jest.fn().mockResolvedValue(new Prisma.Decimal(0)), post: jest.fn() };
-    const pricing = { paramsForRequote: jest.fn(), installmentRate: jest.fn() };
+    const pricing = {
+      paramsForRequote: jest.fn(),
+      installmentRate: jest.fn(),
+      resolveFeesForEvent: jest.fn().mockResolvedValue({ gatewayId: null }),
+    };
     const gateways = {
       get: jest.fn(),
       platformDefault: jest.fn(),
@@ -350,6 +354,81 @@ describe('PaymentsService (ramas de borde, unit)', () => {
       expect(res.gateways[0].installmentOptions).toEqual([
         expect.objectContaining({ installments: 1 }),
       ]);
+    });
+  });
+
+  describe('paymentOptions · pasarela efectiva del evento (recommended)', () => {
+    const setup = (
+      over: {
+        feeGatewayId?: string | null;
+        gatewayId?: string | null;
+        frozenGatewayId?: string | null;
+      } = {},
+    ) => {
+      const { prisma, gateways, costShare, pricing, service } = build();
+      prisma.order.findUnique.mockResolvedValue({
+        id: 'o1',
+        buyerId: 'u1',
+        currency: 'GTQ',
+        feeScheduleVersion: 1,
+        feeGatewayId: over.feeGatewayId ?? null,
+        items: [{ net: dec(100) }],
+        event: {
+          ivaOnNet: true,
+          absorbInstallmentCost: false,
+          promoterId: 'P',
+          gatewayId: over.gatewayId ?? null,
+          frozenGatewayId: over.frozenGatewayId ?? null,
+        },
+      });
+      costShare.effectivePct.mockResolvedValue(0);
+      costShare.installmentsMinPct.mockResolvedValue(0.3);
+      costShare.gatewayAllowed.mockReturnValue(true);
+      gateways.listActive.mockResolvedValue([
+        { id: 'DEF', name: 'Sandbox', provider: 'sim', isPlatformDefault: true, feePct: dec(0.05), transactionFixedFee: dec(0), installmentRates: null },
+        { id: 'REC', name: 'Recurrente', provider: 'recurrente', isPlatformDefault: false, feePct: dec(0.045), transactionFixedFee: dec(0), installmentRates: null },
+      ]);
+      pricing.paramsForRequote.mockResolvedValue({
+        platformFeePct: 0.1,
+        gatewayFeePct: 0,
+        ivaPct: 0.12,
+        ivaOnNet: true,
+        fixedFees: 0,
+      });
+      return { pricing, service };
+    };
+
+    it('orden congelada (feeGatewayId) → esa es la recomendada', async () => {
+      const { pricing, service } = setup({ feeGatewayId: 'REC', gatewayId: 'DEF' });
+      // resolveGateway hace `frozen ?? elegida ?? default`: feeGatewayId gana.
+      pricing.resolveFeesForEvent.mockResolvedValue({ gatewayId: 'REC' });
+      const res = await service.paymentOptions('o1', 'u1');
+      expect(pricing.resolveFeesForEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ frozenGatewayId: 'REC', gatewayId: 'DEF' }),
+      );
+      expect(res.eventGatewayId).toBe('REC');
+      expect(res.gateways).toContainEqual(expect.objectContaining({ gatewayId: 'REC', recommended: true }));
+      expect(res.gateways).toContainEqual(expect.objectContaining({ gatewayId: 'DEF', recommended: false }));
+    });
+
+    it('evento con pasarela elegida (sin congelar) → esa es la recomendada', async () => {
+      const { pricing, service } = setup({ gatewayId: 'REC' });
+      pricing.resolveFeesForEvent.mockResolvedValue({ gatewayId: 'REC' });
+      const res = await service.paymentOptions('o1', 'u1');
+      expect(pricing.resolveFeesForEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ frozenGatewayId: null, gatewayId: 'REC' }),
+      );
+      expect(res.eventGatewayId).toBe('REC');
+      expect(res.gateways).toContainEqual(expect.objectContaining({ gatewayId: 'REC', recommended: true }));
+    });
+
+    it('sin pasarela del evento → default de plataforma es la recomendada', async () => {
+      const { pricing, service } = setup();
+      pricing.resolveFeesForEvent.mockResolvedValue({ gatewayId: 'DEF' });
+      const res = await service.paymentOptions('o1', 'u1');
+      expect(res.eventGatewayId).toBe('DEF');
+      expect(res.gateways).toContainEqual(expect.objectContaining({ gatewayId: 'DEF', recommended: true }));
+      expect(res.gateways).toContainEqual(expect.objectContaining({ gatewayId: 'REC', recommended: false }));
     });
   });
 

@@ -144,6 +144,13 @@ export class GatewayPaymentOptionResponseDto {
   @ApiProperty({ description: 'Si es la pasarela default de plataforma', example: true })
   isPlatformDefault!: boolean;
 
+  @ApiProperty({
+    description:
+      'true = pasarela EFECTIVA/asignada al evento para esta orden. El frontend debe preseleccionarla en el checkout.',
+    example: true,
+  })
+  recommended!: boolean;
+
   @ApiProperty({ type: String, description: 'Total en 1 pago (el comprador paga igual)', example: '129.68' })
   total!: string;
 
@@ -171,6 +178,16 @@ export class PaymentOptionsResponseDto {
     example: false,
   })
   absorbedByPromoter!: boolean;
+
+  @ApiProperty({
+    type: String,
+    format: 'uuid',
+    nullable: true,
+    description:
+      'Pasarela EFECTIVA/asignada al evento (congelada de la orden → congelada del evento → elegida por el promotor → default de plataforma). El frontend preselecciona el gateway cuyo id coincide (o el item con recommended:true). null si no hay ninguna configurada.',
+    example: 'a1b2c3d4-0000-0000-0000-000000000000',
+  })
+  eventGatewayId!: string | null;
 
   @ApiProperty({ type: GatewayPaymentOptionResponseDto, isArray: true })
   gateways!: GatewayPaymentOptionResponseDto[];

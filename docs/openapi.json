@@ -12390,6 +12390,11 @@
             "description": "Si es la pasarela default de plataforma",
             "example": true
           },
+          "recommended": {
+            "type": "boolean",
+            "description": "true = pasarela EFECTIVA/asignada al evento para esta orden. El frontend debe preseleccionarla en el checkout.",
+            "example": true
+          },
           "total": {
             "type": "string",
             "description": "Total en 1 pago (el comprador paga igual)",
@@ -12413,6 +12418,7 @@
           "name",
           "provider",
           "isPlatformDefault",
+          "recommended",
           "total",
           "serviceFee",
           "installmentOptions"
@@ -12434,6 +12440,13 @@
             "description": "true = el promotor absorbe el costo de cuotas (libera todos los plazos)",
             "example": false
           },
+          "eventGatewayId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Pasarela EFECTIVA/asignada al evento (congelada de la orden → congelada del evento → elegida por el promotor → default de plataforma). El frontend preselecciona el gateway cuyo id coincide (o el item con recommended:true). null si no hay ninguna configurada.",
+            "example": "a1b2c3d4-0000-0000-0000-000000000000"
+          },
           "gateways": {
             "type": "array",
             "items": {
@@ -12445,6 +12458,7 @@
           "orderId",
           "currency",
           "absorbedByPromoter",
+          "eventGatewayId",
           "gateways"
         ]
       },
