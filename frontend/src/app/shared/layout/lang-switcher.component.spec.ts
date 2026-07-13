@@ -69,22 +69,22 @@ describe('LangSwitcherComponent', () => {
     expect(i18n.lang()).toBe('es');
   });
 
-  it('visitante con el flag INACTIVO: banderas deshabilitadas y NO cambia idioma', () => {
+  it('visitante con el flag INACTIVO: el selector de idioma queda OCULTO (v3.11)', () => {
     setup(false);
     const el = fixture.nativeElement as HTMLElement;
-    const en = el.querySelector('[data-testid="lang-en"]') as HTMLButtonElement;
-    expect(en.disabled).toBe(true);
-    en.click();
-    fixture.detectChanges();
+    // Sin permiso de visitante, el switcher no se renderiza en absoluto.
+    expect(el.querySelector('[data-testid="lang-switcher"]')).toBeNull();
+    expect(el.querySelector('[data-testid="lang-en"]')).toBeNull();
     expect(i18n.lang()).toBe('es');
   });
 
-  it('usuario logueado SIEMPRE puede cambiar aunque el flag esté inactivo', () => {
+  it('usuario logueado SIEMPRE ve el selector aunque el flag esté inactivo', () => {
     setup(false);
     const session = TestBed.inject(SessionStore);
     session.setUser({ id: 'u1', email: 'x@y.z', roles: ['buyer'], language: 'es' } as never);
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="lang-switcher"]')).not.toBeNull();
     const en = el.querySelector('[data-testid="lang-en"]') as HTMLButtonElement;
     expect(en.disabled).toBe(false);
   });

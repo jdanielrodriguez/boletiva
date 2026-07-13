@@ -21,6 +21,10 @@ import type { Lang } from '../../core/i18n/i18n.types';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe],
   template: `
+    <!-- v3.11 · B1: si el visitante no puede cambiar idioma (flag admin OFF y sin
+         sesión), el selector se OCULTA por completo (no solo deshabilitado). El
+         usuario logueado siempre lo ve. -->
+    @if (canSwitch()) {
     <div class="lang-switcher" role="group" [attr.aria-label]="'shell.language' | translate" data-testid="lang-switcher">
       <button
         type="button"
@@ -28,8 +32,7 @@ import type { Lang } from '../../core/i18n/i18n.types';
         [class.active]="i18n.lang() === 'es'"
         [attr.aria-pressed]="i18n.lang() === 'es'"
         [attr.aria-label]="'shell.langEs' | translate"
-        [title]="canSwitch() ? ('shell.langEs' | translate) : ('shell.langLocked' | translate)"
-        [disabled]="!canSwitch()"
+        [title]="'shell.langEs' | translate"
         (click)="setLang('es')"
         data-testid="lang-es"
       >
@@ -47,8 +50,7 @@ import type { Lang } from '../../core/i18n/i18n.types';
         [class.active]="i18n.lang() === 'en'"
         [attr.aria-pressed]="i18n.lang() === 'en'"
         [attr.aria-label]="'shell.langEn' | translate"
-        [title]="canSwitch() ? ('shell.langEn' | translate) : ('shell.langLocked' | translate)"
-        [disabled]="!canSwitch()"
+        [title]="'shell.langEn' | translate"
         (click)="setLang('en')"
         data-testid="lang-en"
       >
@@ -67,6 +69,7 @@ import type { Lang } from '../../core/i18n/i18n.types';
         <span class="lang-code">{{ 'shell.langEnShort' | translate }}</span>
       </button>
     </div>
+    }
   `,
   styles: [
     `
