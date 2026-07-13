@@ -388,6 +388,8 @@ export const config = {
     costshare_default_pct: 'Default promoter cost-share',
     installments_min_cost_share_pct: 'Minimum cost-share for installments',
     promoters_require_approval: 'Require promoter approval',
+    i18n_allow_visitor_switch: 'Language switch for visitors',
+    home_show_categories: 'Show categories on home',
   },
 
   /** Friendly descriptions per setting. */
@@ -404,5 +406,8 @@ export const config = {
     installments_min_cost_share_pct: 'Minimum cost-share required to enable installment payments.',
     promoters_require_approval:
       'Whether admin approval is required for a user to operate as a promoter.',
+    i18n_allow_visitor_switch:
+      'Lets a signed-out visitor switch the page language with the flags. When off, visitors see everything in Spanish (signed-in users always see their own language).',
+    home_show_categories: 'Shows the category filters on the home page.',
   },
 };

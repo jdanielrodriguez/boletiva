@@ -388,6 +388,8 @@ export const config = {
     costshare_default_pct: 'Reparto por defecto del promotor',
     installments_min_cost_share_pct: 'Cost-share mínimo para cuotas',
     promoters_require_approval: 'Exigir aprobación de promotores',
+    i18n_allow_visitor_switch: 'Cambio de idioma para visitantes',
+    home_show_categories: 'Mostrar categorías en el inicio',
   },
 
   /** Descripciones amigables de cada setting. */
@@ -407,5 +409,8 @@ export const config = {
       'Cost-share mínimo requerido para habilitar pagos en cuotas.',
     promoters_require_approval:
       'Si se exige aprobación del admin para que un usuario opere como promotor.',
+    i18n_allow_visitor_switch:
+      'Permite que un visitante sin sesión cambie el idioma de la página con las banderas. Si está apagado, los visitantes ven todo en español (los usuarios con sesión siempre ven su idioma).',
+    home_show_categories: 'Muestra los filtros de categoría en la página principal.',
   },
 };

@@ -96,7 +96,7 @@ export const account = {
       'Tu saldo proviene solo de reembolsos y reventas de boletos. No se puede recargar con tarjeta: solo circula dinero ya amparado por una compra.',
     balanceError: 'No se pudo cargar tu saldo.',
     source:
-      'Tu saldo proviene únicamente de <strong>reembolsos</strong> y <strong>reventas</strong> de boletos. No es posible recargarlo con tarjeta. Puedes usarlo para pagar boletos o retirarlo a tu cuenta.',
+      'Tu saldo proviene únicamente de <strong>reembolsos</strong> y <strong>reventas</strong> de boletos. No es posible recargarlo con tarjeta. Puedes usarlo para pagar tus boletos.',
     infoTitle: '¿De dónde sale tu saldo?',
     infoClientBody:
       'El saldo del wallet es tu ÚNICA forma de recibir dinero dentro de la plataforma. Se genera solo cuando recibes una DEVOLUCIÓN de una compra o el pago de una REVENTA de tus boletos. No se puede recargar con tarjeta ni con transferencia: solo circula dinero ya amparado por una compra. Puedes usarlo para pagar nuevos boletos.',

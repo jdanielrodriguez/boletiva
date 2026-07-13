@@ -96,7 +96,7 @@ export const account = {
       'Your balance comes only from ticket refunds and resales. It cannot be topped up with a card: only money already backed by a purchase circulates.',
     balanceError: 'Could not load your balance.',
     source:
-      'Your balance comes only from ticket <strong>refunds</strong> and <strong>resales</strong>. It cannot be topped up with a card. You can use it to pay for tickets or withdraw it to your account.',
+      'Your balance comes only from ticket <strong>refunds</strong> and <strong>resales</strong>. It cannot be topped up with a card. You can use it to pay for your tickets.',
     infoTitle: 'Where does your balance come from?',
     infoClientBody:
       'Your wallet balance is your ONLY way to receive money on the platform. It is created only when you get a REFUND from a purchase or the payment from a RESALE of your tickets. It cannot be topped up with a card or a transfer: only money already backed by a purchase circulates. You can use it to pay for new tickets.',

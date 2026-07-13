@@ -425,6 +425,10 @@ export class Account {
   protected readonly qrHidden = signal<Record<string, boolean>>({});
   /** Boletos cuya media ya se pidió (evita recargas al reejecutarse el efecto). */
   private readonly mediaRequested = new Set<string>();
+  /** QR cuya imagen falló al cargar (aún generándose async) → placeholder. */
+  protected readonly qrBroken = signal<Record<string, boolean>>({});
+  /** Boletos a los que ya se reintentó la media (un solo reintento). */
+  private readonly qrRetried = new Set<string>();
   /** Boleto en proceso de transferencia (abre el modal-asistente). null = cerrado. */
   protected readonly transferTicket = signal<{ id: string; serial: string } | null>(null);
 
@@ -756,6 +760,24 @@ export class Account {
   /** true si el QR debe verse (por defecto sí, salvo que se haya ocultado). */
   protected qrVisible(ticketId: string): boolean {
     return !this.qrHidden()[ticketId];
+  }
+
+  /**
+   * La imagen del QR falló al cargar: la media (PNG) se genera async por cola tras
+   * el pago, así que justo tras comprar puede no existir aún. Mostramos el
+   * placeholder "generándose" y reintentamos UNA vez la media pasados ~4s.
+   */
+  protected onQrError(ticketId: string): void {
+    this.qrBroken.update((c) => ({ ...c, [ticketId]: true }));
+    if (this.qrRetried.has(ticketId)) return;
+    this.qrRetried.add(ticketId);
+    setTimeout(() => {
+      this.qrBroken.update((c) => ({ ...c, [ticketId]: false }));
+      this.loadMedia(ticketId);
+    }, 4000);
+  }
+  protected qrBrokenFor(ticketId: string): boolean {
+    return !!this.qrBroken()[ticketId];
   }
 
   /** Abre el asistente de transferencia (modal de 2 pasos) para un boleto. */
