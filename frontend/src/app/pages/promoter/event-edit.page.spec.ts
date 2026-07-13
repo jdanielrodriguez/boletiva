@@ -926,7 +926,7 @@ describe('EventEditPage (v3)', () => {
     await setup({ get: () => of({ ...EVENT, status: 'finished' }) });
     fixture.componentInstance['selectTab']('cuentas');
     fixture.detectChanges();
-    expect(inst()['canFinalizeCash']()).toBe(false);
+    expect(inst()['canSeeFinalize']()).toBe(false);
     expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="cash-transfer"]')).toBeNull();
   });
 
@@ -948,7 +948,7 @@ describe('EventEditPage (v3)', () => {
     });
     fixture.componentInstance['selectTab']('cuentas');
     fixture.detectChanges();
-    expect(inst()['canFinalizeCash']()).toBe(true);
+    expect(inst()['canSeeFinalize']()).toBe(true);
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('[data-testid="cash-transfer"]')).not.toBeNull();
     // Modal de validación → aceptar → llama al endpoint.
@@ -1015,12 +1015,12 @@ describe('EventEditPage (v3)', () => {
     fixture.componentInstance['selectTab']('cuentas');
     fixture.detectChanges();
     expect(inst()['isAdminReal']()).toBe(false);
-    expect(inst()['canFinalizeCash']()).toBe(false);
+    expect(inst()['canSeeFinalize']()).toBe(false);
     expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="cash-transfer"]')).toBeNull();
   });
 
   // --- v3.12: devoluciones (OWNER: promotor dueño / admin impersonando) ---
-  it('devoluciones: el ADMIN REAL NO ve los botones ni la tabla (solo finalizar)', async () => {
+  it('devoluciones: el ADMIN REAL NO ve los botones de devolución (solo el owner)', async () => {
     await setup({ get: () => of({ ...EVENT, status: 'suspended' }) }, {}, 'e1', {
       id: 'admin-9',
       roles: ['admin'],
@@ -1029,9 +1029,88 @@ describe('EventEditPage (v3)', () => {
     fixture.detectChanges();
     expect(inst()['canRefund']()).toBe(false);
     const el = fixture.nativeElement as HTMLElement;
+    // Las DEVOLUCIONES siguen siendo del dueño (el admin real no las ve)…
     expect(el.querySelector('[data-testid="refunds-block"]')).toBeNull();
-    // El admin real tampoco ve la tabla de transacciones (solo el owner).
-    expect(el.querySelector('[data-testid="tx-block"]')).toBeNull();
+    // …pero el B1 (v3.13): el admin real AHORA SÍ ve el detalle de cuentas/transacciones
+    // sin impersonar.
+    expect(el.querySelector('[data-testid="tx-block"]')).not.toBeNull();
+  });
+
+  // --- B1 (v3.13): admin real ve las cuentas y el botón finalizar según estado ---
+  it('B1: el ADMIN REAL ve la tabla de transacciones en la tab Cuentas (sin impersonar)', async () => {
+    const transactions = jasmine.createSpy('tx').and.returnValue(
+      of({
+        items: [
+          {
+            id: 'o1', buyerName: 'Ana', buyerEmail: 'ana@x.com', status: 'paid',
+            total: '129.68', currency: 'GTQ', itemCount: 1, localities: ['General'],
+            createdAt: '2028-01-01T00:00:00.000Z',
+          },
+        ],
+        nextCursor: null,
+      }),
+    );
+    await setup({ transactions, get: () => of({ ...EVENT, status: 'published' }) }, {}, 'e1', {
+      id: 'admin-9',
+      roles: ['admin'],
+    });
+    fixture.componentInstance['selectTab']('cuentas');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(inst()['canSeeAccounts']()).toBe(true);
+    expect(transactions).toHaveBeenCalled();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="tx-table"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="tx-row"]')).not.toBeNull();
+  });
+
+  it('B1: botón finalizar VISIBLE pero DESHABILITADO si el evento no está suspendido/cancelado/finalizado', async () => {
+    await setup({ get: () => of({ ...EVENT, status: 'published' }) }, {}, 'e1', {
+      id: 'admin-9',
+      roles: ['admin'],
+    });
+    fixture.componentInstance['selectTab']('cuentas');
+    fixture.detectChanges();
+    expect(inst()['canSeeFinalize']()).toBe(true);
+    expect(inst()['canFinalizeNow']()).toBe(false);
+    const el = fixture.nativeElement as HTMLElement;
+    // Sección visible…
+    expect(el.querySelector('[data-testid="cash-transfer"]')).not.toBeNull();
+    // …con el aviso y el botón deshabilitado.
+    expect(el.querySelector('[data-testid="cash-transfer-locked-hint"]')).not.toBeNull();
+    const btn = el.querySelector<HTMLButtonElement>('[data-testid="cash-transfer-btn"]');
+    expect(btn?.disabled).toBe(true);
+  });
+
+  for (const status of ['suspended', 'cancelled', 'finished']) {
+    it(`B1: botón finalizar HABILITADO cuando el evento está ${status}`, async () => {
+      await setup({ get: () => of({ ...EVENT, status }) }, {}, 'e1', {
+        id: 'admin-9',
+        roles: ['admin'],
+      });
+      fixture.componentInstance['selectTab']('cuentas');
+      fixture.detectChanges();
+      expect(inst()['canFinalizeNow']()).toBe(true);
+      const el = fixture.nativeElement as HTMLElement;
+      expect(el.querySelector('[data-testid="cash-transfer-locked-hint"]')).toBeNull();
+      const btn = el.querySelector<HTMLButtonElement>('[data-testid="cash-transfer-btn"]');
+      expect(btn?.disabled).toBe(false);
+    });
+  }
+
+  it('B1: botón finalizar HABILITADO cuando el evento CONCLUYÓ por fecha (published + endsAt pasado = completado)', async () => {
+    await setup(
+      { get: () => of({ ...EVENT, status: 'published', endsAt: '2020-01-01T00:00:00.000Z' }) },
+      {},
+      'e1',
+      { id: 'admin-9', roles: ['admin'] },
+    );
+    fixture.componentInstance['selectTab']('cuentas');
+    fixture.detectChanges();
+    expect(inst()['canFinalizeNow']()).toBe(true);
+    const btn = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('[data-testid="cash-transfer-btn"]');
+    expect(btn?.disabled).toBe(false);
   });
 
   it('devoluciones: el PROMOTOR DUEÑO SÍ ve el panel (suspendido)', async () => {

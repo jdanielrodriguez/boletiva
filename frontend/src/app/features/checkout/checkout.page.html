@@ -118,11 +118,11 @@
                       type="text"
                       inputmode="numeric"
                       autocomplete="cc-csc"
-                      maxlength="4"
-                      placeholder="123"
+                      [attr.maxlength]="cvvLen()"
+                      [placeholder]="cvvLen() === 4 ? '1234' : '123'"
                       data-testid="saved-cvv"
                       [ngModel]="cvv()"
-                      (ngModelChange)="cvv.set($event)"
+                      (ngModelChange)="onCvvInput($event)"
                     />
                   </div>
                   <p class="hint">{{ 'checkout.cvvHint' | translate }}</p>

@@ -395,11 +395,11 @@
         }
 
         @case ('cuentas') {
-          <!-- OWNER (promotor dueño o admin impersonando): detalle de cuentas
-               (Total recaudado / Servicios / Total del promotor) + transacciones +
-               devoluciones. El ADMIN REAL NO ve nada de esto: solo la sección
-               "Finalizar y acreditar" (abajo, fuera del fieldset). -->
-          @if (isOwner()) {
+          <!-- DUEÑO (promotor o admin impersonando) y ADMIN REAL: detalle de cuentas
+               (Total recaudado / Servicios / Total del promotor) + transacciones. El
+               admin real ya NO necesita impersonar para ver las cuentas; solo las
+               DEVOLUCIONES (canRefund) siguen siendo del dueño. -->
+          @if (canSeeAccounts()) {
           <div class="card-block">
             <h2>{{ 'promoter.edit.accountsTitle' | translate }}</h2>
             <app-event-settlement [eventId]="eventId()" [showSplit]="false" [reloadToken]="settlementReloadToken()" />
@@ -524,10 +524,11 @@
       </div>
     }
 
-    <!-- Cierre + transferencia de saldos de caja: SOLO admin, evento finalizado o
-         suspendido. Fuera del fieldset → NUNCA se bloquea por el candado de edición.
-         El promotor NO ve esta sección. -->
-    @if (tab() === 'cuentas' && canFinalizeCash()) {
+    <!-- Cierre + transferencia de saldos de caja: SOLO admin REAL. SIEMPRE visible
+         (no se oculta); el botón se DESHABILITA mientras el evento no esté suspendido,
+         cancelado o finalizado. Fuera del fieldset → NUNCA se bloquea por el candado
+         de edición. El promotor / la impersonación NO ven esta sección. -->
+    @if (tab() === 'cuentas' && canSeeFinalize()) {
       <div class="card-block cash-transfer-block" data-testid="cash-transfer">
         <h3>{{ 'promoter.edit.cashTransferHeading' | translate }}</h3>
         <p class="muted small">{{ 'promoter.edit.cashTransferIntro' | translate }}</p>
@@ -550,8 +551,15 @@
           @if (cashError(); as err) {
             <p class="error" data-testid="cash-transfer-error">{{ err }}</p>
           }
-          <button type="button" class="btn primary" [disabled]="finalizing()" (click)="askFinalizeCash()" data-testid="cash-transfer-btn"
-            [title]="'promoter.edit.cashTransferBtn' | translate">
+          <!-- Deshabilitado mientras el evento no esté suspendido/cancelado/finalizado.
+               El aviso explica por qué (transparencia). -->
+          @if (!canFinalizeNow()) {
+            <p class="muted small" data-testid="cash-transfer-locked-hint">
+              {{ 'promoter.edit.cashTransferLockedHint' | translate }}
+            </p>
+          }
+          <button type="button" class="btn primary" [disabled]="finalizing() || !canFinalizeNow()" (click)="askFinalizeCash()" data-testid="cash-transfer-btn"
+            [title]="(canFinalizeNow() ? 'promoter.edit.cashTransferBtn' : 'promoter.edit.cashTransferLockedHint') | translate">
             <app-icon name="accounts" /> {{ finalizing() ? ('promoter.edit.cashTransferring' | translate) : ('promoter.edit.cashTransferBtn' | translate) }}
           </button>
         }

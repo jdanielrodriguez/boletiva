@@ -23,7 +23,6 @@
         <div class="ev-card-top">
           <span class="badge badge-{{ list.displayState(t) }}" data-testid="tpl-state">{{ list.displayState(t) | statusLabel }}</span>
           <span class="ev-card-top-spacer"></span>
-          @if (t.isBuiltIn) { <span class="badge badge-approved" data-testid="tpl-builtin">{{ 'config.templates.builtInBadge' | translate }}</span> }
           @if (t.status === 'draft') {
             <button type="button" class="btn small icon-only primary" (click)="askPublish(t)" data-testid="tpl-publish" [title]="'config.templates.publishTitle' | translate" [attr.aria-label]="'config.templates.publish' | translate">
               <app-icon name="publish" />
@@ -34,7 +33,13 @@
             </button>
           }
         </div>
-        <strong>{{ t.name }}</strong>
+        <!-- Nombre + badge built-in INLINE (misma fila), como el estado en salones: el badge
+             built-in vivía dentro del grid `ev-card-top` (1fr auto 1fr) y, al ser un 4.º item,
+             empujaba el botón a una 2.ª fila. Fuera del grid ya no rompe la fila. -->
+        <div class="tpl-title-row">
+          <strong>{{ t.name }}</strong>
+          @if (t.isBuiltIn) { <span class="badge badge-approved" data-testid="tpl-builtin">{{ 'config.templates.builtInBadge' | translate }}</span> }
+        </div>
         <span class="muted small">{{ t.kind }}</span>
         <div class="ev-card-actions">
           @if (t.status === 'published' && !t.disabled) {

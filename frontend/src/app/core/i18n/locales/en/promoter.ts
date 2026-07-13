@@ -234,6 +234,8 @@ export const promoter = {
       "Marks the event as finished and credits the promoter's net to their wallet, closing the cash flow. It posts the double-entry ledger entries and notifies the promoter by email. It is idempotent: it cannot be transferred twice.",
     cashTransferBtn: 'Finish event and credit balance to promoter',
     cashTransferNetLabel: 'Net to transfer to the promoter',
+    cashTransferLockedHint:
+      'You can finalize once the event is suspended, cancelled or completed.',
     cashTransferring: 'Transferring…',
     cashTransferTitle: 'Mark event as finished',
     cashTransferConfirm:

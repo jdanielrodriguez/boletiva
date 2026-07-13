@@ -118,6 +118,15 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
   protected readonly isFinished = computed(() => this.event()?.status === 'finished');
   protected readonly isCancelled = computed(() => this.event()?.status === 'cancelled');
   /**
+   * El evento ya CONCLUYÓ por fecha (`endsAt` en el pasado) = "completado". Es una de
+   * las condiciones que habilitan el cierre de caja: un evento exitoso que simplemente
+   * terminó por fecha se liquida sin necesidad de suspenderlo ni cancelarlo.
+   */
+  protected readonly hasEnded = computed(() => {
+    const ends = this.event()?.endsAt;
+    return !!ends && new Date(ends).getTime() < Date.now();
+  });
+  /**
    * ¿Sesión impersonada? La impersonación hace que la sesión SEA el promotor y trae
    * `impersonatedBy` (id del admin real) desde `/auth/me`.
    */
@@ -349,13 +358,24 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
   protected readonly settlementCurrency = signal('GTQ');
   protected readonly settlementNetLoading = signal(false);
   /**
-   * Sección "evento finalizado / pagar al promotor" visible SOLO para el admin REAL
-   * (no impersonando) cuando el evento está finalizado o suspendido. NUNCA se
-   * bloquea por el candado de edición; el promotor y la impersonación no la ven.
+   * Sección "evento finalizado / pagar al promotor": VISIBLE para el admin REAL (no
+   * impersonando) en cualquier evento existente, aunque el botón esté deshabilitado.
+   * El usuario pidió que el admin SIEMPRE vea la sección (no ocultarla); solo se
+   * habilita el botón según el estado (`canFinalizeNow`). NUNCA se bloquea por el
+   * candado de edición; el promotor y la impersonación no la ven.
    */
-  protected readonly canFinalizeCash = computed(
-    () => this.isAdminReal() && !this.isNew() && (this.isFinished() || this.isSuspended()),
+  protected readonly canSeeFinalize = computed(() => this.isAdminReal() && !this.isNew());
+  /**
+   * ¿El cierre de caja se puede EJECUTAR ahora? Solo si el evento está suspendido,
+   * cancelado, ya finalizado, o COMPLETADO (concluido por fecha) — mismos criterios
+   * que valida el backend. Mientras no cumpla ninguno, la sección se ve pero el botón
+   * queda deshabilitado con un aviso.
+   */
+  protected readonly canFinalizeNow = computed(
+    () => this.isSuspended() || this.isCancelled() || this.isFinished() || this.hasEnded(),
   );
+  /** El admin real ve el DETALLE de cuentas del evento (igual que el dueño). */
+  protected readonly canSeeAccounts = computed(() => this.isOwner() || this.isAdminReal());
 
   // --- Devoluciones por cancelación/suspensión (OWNER, tab Cuentas) ---
   protected readonly refunding = signal(false);
@@ -602,15 +622,16 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
   }
 
   /**
-   * Carga de la tab Cuentas según el rol: el DUEÑO ve la tabla de transacciones (la
-   * carga por cursor); el ADMIN REAL solo necesita el neto a transferir (no la tabla
-   * ni las devoluciones). Evita peticiones inútiles por rol.
+   * Carga de la tab Cuentas según el rol: el DUEÑO y el ADMIN REAL ven la tabla de
+   * transacciones (cursor); el ADMIN REAL además carga el neto a transferir para la
+   * sección de cierre. El admin ya no necesita impersonar para ver las cuentas.
    */
   private loadAccountsData(): void {
     if (this.isNew()) return;
-    if (this.isOwner()) {
+    if (this.canSeeAccounts()) {
       if (!this.txLoaded()) this.loadTransactions();
-    } else if (this.isAdminReal()) {
+    }
+    if (this.isAdminReal()) {
       this.loadSettlementNet();
     }
   }

@@ -233,6 +233,8 @@ export const promoter = {
       'Marca el evento como finalizado y acredita el neto del promotor a su wallet, cerrando el cobro. Genera los asientos contables (partida doble) y notifica al promotor por correo. Es idempotente: no se puede transferir dos veces.',
     cashTransferBtn: 'Finalizar evento y acreditar saldo al promotor',
     cashTransferNetLabel: 'Neto a transferir al promotor',
+    cashTransferLockedHint:
+      'Podrás finalizar cuando el evento esté suspendido, cancelado o completado.',
     cashTransferring: 'Transfiriendo…',
     cashTransferTitle: 'Marcar evento finalizado',
     cashTransferConfirm:

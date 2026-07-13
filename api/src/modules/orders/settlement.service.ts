@@ -159,13 +159,20 @@ export class SettlementService {
     if (event.cashTransferredAt) {
       throw new ConflictException('La caja de este evento ya fue transferida al promotor');
     }
+    // Elegibilidad por estado (no confiar en el `disabled` del UI): el evento debe
+    // estar suspendido, cancelado, ya finalizado, o COMPLETADO (concluido por fecha:
+    // `endsAt` en el pasado). Un evento exitoso que simplemente terminó por fecha se
+    // liquida sin suspenderlo ni cancelarlo; un borrador o un publicado aún vigente
+    // (fecha futura) NO se puede finalizar todavía.
+    const hasEnded = !!event.endsAt && event.endsAt.getTime() < Date.now();
     const eligible =
-      event.status === 'finished' ||
       event.status === 'suspended' ||
-      event.endsAt.getTime() < Date.now();
+      event.status === 'cancelled' ||
+      event.status === 'finished' ||
+      hasEnded;
     if (!eligible) {
       throw new ConflictException(
-        'El evento no es elegible: debe estar finalizado o suspendido (o su fecha ya haber pasado)',
+        'El evento no es elegible: debe estar suspendido, cancelado o haber concluido',
       );
     }
 

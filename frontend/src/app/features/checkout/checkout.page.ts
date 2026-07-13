@@ -148,13 +148,27 @@ export class CheckoutPage implements OnDestroy {
   });
   protected readonly hasSavedMethods = computed(() => this.savedMethods().length > 0);
 
+  /** Tarjeta guardada seleccionada (su marca fija la longitud del CVV). */
+  protected readonly selectedCard = computed(
+    () => this.savedMethods().find((c) => c.id === this.selectedCardId()) ?? null,
+  );
+  /** Longitud del CVV por marca de la tarjeta guardada: Amex 4, resto 3. */
+  protected readonly cvvLen = computed(() => (this.selectedCard()?.brand === 'amex' ? 4 : 3));
+
   /** ¿Se necesita una pasarela para este pago? (no si el saldo cubre todo). */
   protected readonly needsGateway = computed(
     () => !(this.payMode() === 'wallet' && this.walletCoversAll()),
   );
 
-  /** CVV válido (3–4 dígitos) — requerido al pagar con tarjeta guardada. */
-  protected readonly cvvValid = computed(() => /^\d{3,4}$/.test(this.cvv()));
+  /** CVV válido: longitud EXACTA de la marca (Amex 4, resto 3) — al pagar guardada. */
+  protected readonly cvvValid = computed(() =>
+    new RegExp(`^\\d{${this.cvvLen()}}$`).test(this.cvv()),
+  );
+
+  /** Sanea el CVV: solo dígitos, recortado a la longitud de la marca. */
+  protected onCvvInput(value: string): void {
+    this.cvv.set((value ?? '').replace(/\D/g, '').slice(0, this.cvvLen()));
+  }
 
   /** ¿Puede confirmar el pago con el modo/campos actuales? */
   protected readonly canPay = computed(() => {

@@ -41,6 +41,16 @@ export class OrdersApi {
     return this.api.get<OrderLedgerChainDto>(`/orders/${orderId}/ledger`);
   }
 
+  /**
+   * Cadena contable (hash-chain) de la LIQUIDACIÓN de un evento (W7). Las liquidaciones
+   * no tienen orden → se consultan por evento. La respuesta trae `{ eventId, transactions,
+   * chainValid }`; se tipa como `OrderLedgerChainDto` porque la vista solo lee
+   * `transactions`/`chainValid` (el id no se usa en el render).
+   */
+  eventLedgerChain(eventId: string): Observable<OrderLedgerChainDto> {
+    return this.api.get<OrderLedgerChainDto>(`/events/${eventId}/ledger`);
+  }
+
   /** Opciones de pago por pasarela (total del comprador + plazos disponibles). */
   paymentOptions(orderId: string): Observable<PaymentOptionsResponseDto> {
     return this.api.get<PaymentOptionsResponseDto>(`/orders/${orderId}/payment-options`);

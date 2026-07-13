@@ -237,6 +237,18 @@ export class OrderLedgerChainDto {
   chainValid!: boolean;
 }
 
+/** Cadena contable de la LIQUIDACIÓN de un evento — transparencia al promotor (W7). */
+export class EventLedgerChainDto {
+  @ApiProperty({ format: 'uuid' })
+  eventId!: string;
+
+  @ApiProperty({ type: OrderLedgerTxDto, isArray: true, description: 'Transacciones encadenadas del evento (liquidación)' })
+  transactions!: OrderLedgerTxDto[];
+
+  @ApiProperty({ description: 'true si la cadena de la liquidación verifica íntegra', example: true })
+  chainValid!: boolean;
+}
+
 /** Liquidación (cuentas) agregada de un evento sobre sus órdenes pagadas. */
 export class EventSettlementDto {
   @ApiProperty({ format: 'uuid' })

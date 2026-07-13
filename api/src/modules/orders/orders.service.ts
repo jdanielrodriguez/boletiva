@@ -292,4 +292,24 @@ export class OrdersService {
     await this.findOne(id, user);
     return this.ledger.orderChain(id);
   }
+
+  /**
+   * Cadena contable (hash-chain) de la LIQUIDACIÓN de un EVENTO — vista "blockchain"
+   * del promotor sobre el cierre de caja (W7). Las liquidaciones se asientan con
+   * `refType:'event'` (no tienen orden), así que la transparencia se expone por
+   * evento. Autorización: promotor DUEÑO del evento o admin; cualquier otro → 404
+   * (no se filtra la existencia del recurso, como en findOne).
+   */
+  async eventLedgerChain(eventId: string, user: AuthUser) {
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      select: { id: true, promoterId: true },
+    });
+    const isAdmin = user.roles.includes(Role.admin);
+    const isOwner = !!event && event.promoterId === user.userId;
+    if (!event || (!isAdmin && !isOwner)) {
+      throw new NotFoundException('Evento no encontrado');
+    }
+    return this.ledger.eventChain(eventId);
+  }
 }

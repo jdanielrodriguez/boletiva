@@ -209,4 +209,31 @@ describe('Ledger doble-entrada + hash-chain (e2e)', () => {
     expect(check.ok).toBe(false); // huella rota
     expect(check.brokenAt).toBeDefined();
   });
+
+  // --- eventChain (cadena de la LIQUIDACIÓN por evento, B4/W7) ---
+  // Al final del describe: solo recomputan el hash de la transacción del evento
+  // (no usan verifyChain global, que ya quedó roto por el test anterior).
+  it('eventChain: devuelve la cadena de la LIQUIDACIÓN de un evento (refType=event) verificada', async () => {
+    const EVENT_ID = '44444444-4444-4444-8444-444444444444';
+    await ledger.post({
+      kind: 'event_cash_transfer',
+      refType: 'event',
+      refId: EVENT_ID,
+      entries: [
+        { type: 'promoter_payable', ownerId: U2, amount: '-100.00' },
+        { type: 'platform_revenue', amount: '100.00' },
+      ],
+    });
+    const chain = await ledger.eventChain(EVENT_ID);
+    expect(chain.eventId).toBe(EVENT_ID);
+    expect(chain.transactions).toHaveLength(1);
+    expect(chain.transactions[0].kind).toBe('event_cash_transfer');
+    expect(chain.transactions[0].verified).toBe(true); // hash recomputado coincide
+    expect(chain.chainValid).toBe(true);
+  });
+
+  it('eventChain: un evento sin liquidación devuelve cadena vacía', async () => {
+    const chain = await ledger.eventChain('88888888-8888-4888-8888-888888888888');
+    expect(chain.transactions).toEqual([]);
+  });
 });

@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../core/auth/auth.service';
+import { OtpInputComponent } from '../../shared/ui/otp-input/otp-input.component';
 
 /**
  * Login: contraseña + segundo factor (email OTP o TOTP). En dispositivos nuevos
@@ -11,7 +12,7 @@ import { AuthService } from '../../core/auth/auth.service';
  */
 @Component({
   selector: 'app-login',
-  imports: [FormsModule, RouterLink, TranslatePipe],
+  imports: [FormsModule, RouterLink, TranslatePipe, OtpInputComponent],
   templateUrl: './login.html',
 })
 export class Login {

@@ -66,7 +66,7 @@ describe('Account (mi cuenta)', () => {
           } as unknown as WalletApi,
         },
         { provide: TicketsApi, useValue: { list: () => of(TICKETS), media: () => of({}), transfer: () => of({}), ...o.tickets } as unknown as TicketsApi },
-        { provide: OrdersApi, useValue: { list: () => of({ items: [], nextCursor: null }), movements: () => of({ items: [] }), ledgerChain: () => of({ orderId: 'o1', transactions: [], chainValid: true }), ...o.orders } as unknown as OrdersApi },
+        { provide: OrdersApi, useValue: { list: () => of({ items: [], nextCursor: null }), movements: () => of({ items: [] }), ledgerChain: () => of({ orderId: 'o1', transactions: [], chainValid: true }), eventLedgerChain: () => of({ eventId: 'e1', transactions: [], chainValid: true }), ...o.orders } as unknown as OrdersApi },
         { provide: TransfersApi, useValue: { claim: () => of({}), outgoing: () => of([]), cancel: () => of({}), ...o.transfers } as unknown as TransfersApi },
         {
           provide: PromoterEventsApi,
@@ -400,6 +400,7 @@ describe('Account (mi cuenta)', () => {
     fixture.componentInstance['cardExpMonth'].set('12');
     fixture.componentInstance['cardExpYear'].set('28');
     fixture.componentInstance['cardCvc'].set('123');
+    fixture.detectChanges(); // habilita el botón (cardFormValid) antes de hacer click
     go('save-card');
     await fixture.whenStable();
     fixture.detectChanges();
@@ -413,16 +414,87 @@ describe('Account (mi cuenta)', () => {
     expect(lastToast()?.kind).toBe('success');
   });
 
-  it('métodos: número inválido muestra toast y no llama al backend', async () => {
+  it('métodos: con número inválido el botón Guardar queda deshabilitado y no llama al backend', async () => {
     const add = jasmine.createSpy('add').and.returnValue(of({}));
     await setup({ cardsApi: { add } });
     go('menu-metodos');
     go('add-method');
     fixture.componentInstance['cardNumber'].set('123');
     fixture.componentInstance['cardCvc'].set('123');
-    go('save-card');
+    fixture.detectChanges();
+    const btn = el.querySelector('[data-testid="save-card"]') as HTMLButtonElement;
+    expect(btn.disabled).toBe(true);
+    btn.click();
     expect(add).not.toHaveBeenCalled();
-    expect(lastToast()?.kind).toBe('warning');
+  });
+
+  it('métodos: número Visa/MC se formatea en grupos de 4 y detecta la marca', async () => {
+    await setup();
+    const comp = fixture.componentInstance;
+    comp['onCardNumberInput']('4242424242424242');
+    expect(comp['cardNumberDisplay']()).toBe('4242 4242 4242 4242');
+    expect(comp['cardBrand']()).toBe('visa');
+    comp['onCardNumberInput']('5555555555554444');
+    expect(comp['cardBrand']()).toBe('mastercard');
+  });
+
+  it('métodos: número Amex se formatea 4-6-5 y detecta la marca', async () => {
+    await setup();
+    const comp = fixture.componentInstance;
+    comp['onCardNumberInput']('378282246310005');
+    expect(comp['cardBrand']()).toBe('amex');
+    expect(comp['cardNumberDisplay']()).toBe('3782 822463 10005');
+  });
+
+  it('métodos: no acepta más dígitos que el máximo por marca', async () => {
+    await setup();
+    const comp = fixture.componentInstance;
+    comp['onCardNumberInput']('4242424242424242999'); // Visa → 16
+    expect(comp['cardNumber']().length).toBe(16);
+    comp['onCardNumberInput']('378282246310005123'); // Amex → 15
+    expect(comp['cardNumber']().length).toBe(15);
+  });
+
+  it('métodos: CVV admite 4 dígitos en Amex y 3 en Visa/MC (recorta el exceso)', async () => {
+    await setup();
+    const comp = fixture.componentInstance;
+    comp['onCardNumberInput']('378282246310005'); // Amex
+    expect(comp['cvcMaxLen']()).toBe(4);
+    comp['onCardCvcInput']('12345');
+    expect(comp['cardCvc']()).toBe('1234');
+    comp['onCardNumberInput']('4242424242424242'); // Visa
+    expect(comp['cvcMaxLen']()).toBe(3);
+    comp['onCardCvcInput']('1234');
+    expect(comp['cardCvc']()).toBe('123');
+  });
+
+  it('métodos: mes de expiración inválido (00/13) marca error; 01–12 es válido', async () => {
+    await setup();
+    const comp = fixture.componentInstance;
+    comp['onCardExpMonthInput']('00');
+    expect(comp['expMonthValid']()).toBe(false);
+    comp['onCardExpMonthInput']('13');
+    expect(comp['expMonthValid']()).toBe(false);
+    comp['onCardExpMonthInput']('12');
+    expect(comp['expMonthValid']()).toBe(true);
+  });
+
+  it('métodos: año de expiración menor al actual es inválido', async () => {
+    await setup();
+    const comp = fixture.componentInstance;
+    const yy = new Date().getFullYear() % 100;
+    comp['onCardExpYearInput'](String(yy - 1).padStart(2, '0'));
+    expect(comp['expYearValid']()).toBe(false);
+    comp['onCardExpYearInput'](String(yy).padStart(2, '0'));
+    expect(comp['expYearValid']()).toBe(true);
+  });
+
+  it('métodos: marca no reconocida (no Visa/MC/Amex) se marca inválida', async () => {
+    await setup();
+    const comp = fixture.componentInstance;
+    comp['onCardNumberInput']('9999999999999999');
+    expect(comp['cardBrandRecognized']()).toBe(false);
+    expect(comp['cardNumberValid']()).toBe(false);
   });
 
   it('métodos: eliminar tarjeta pide confirmación y luego llama al API', async () => {
@@ -508,7 +580,10 @@ describe('Account (mi cuenta)', () => {
     go('menu-metodos');
     go('add-method');
     fixture.componentInstance['cardNumber'].set('4242424242424242');
+    fixture.componentInstance['cardExpMonth'].set('12');
+    fixture.componentInstance['cardExpYear'].set(String((new Date().getFullYear() % 100) + 2).padStart(2, '0'));
     fixture.componentInstance['cardCvc'].set('123');
+    fixture.detectChanges(); // habilita el botón (cardFormValid) antes de hacer click
     go('save-card');
     await fixture.whenStable();
     fixture.detectChanges();
@@ -598,6 +673,80 @@ describe('Account (mi cuenta)', () => {
     go('menu-facturacion');
     go('settlement-view-accounts');
     expect(nav).toHaveBeenCalledWith(['/promotor/eventos', 'e9', 'editar'], { queryParams: { tab: 'cuentas' } });
+  });
+
+  it('B5: el historial del promotor lista las liquidaciones recibidas (event_settlement)', async () => {
+    await setup({ roles: ['promoter'], orders: { movements: () => of({ items: SETTLEMENT }) } });
+    go('menu-facturacion');
+    const list = el.querySelector('[data-testid="orders-list"]');
+    expect(list).not.toBeNull();
+    // Título "Liquidación — <evento>", badge de liquidación y monto neto liquidado.
+    const title = el.querySelector('[data-testid="settlement-title"]')?.textContent ?? '';
+    expect(title).toContain('Liquidación');
+    expect(title).toContain('Gran Concierto');
+    expect(el.querySelector('[data-testid="settlement-badge"]')).not.toBeNull();
+    expect(list?.textContent).toContain('5,000.00');
+    // Incluye el nuevo botón "Ver transacción" (B4).
+    expect(el.querySelector('[data-testid="settlement-view-transaction"]')).not.toBeNull();
+  });
+
+  it('B4: liquidación muestra "Descargar detalle", "Ver transacción" y "Ver cuentas" con toggle de cadena disponible', async () => {
+    await setup({ roles: ['promoter'], orders: { movements: () => of({ items: SETTLEMENT }) } });
+    go('menu-facturacion');
+    expect(el.querySelector('[data-testid="settlement-download"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="settlement-view-transaction"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="settlement-view-accounts"]')).not.toBeNull();
+    // La validación de la cadena está SIEMPRE disponible, también en liquidaciones.
+    expect(el.querySelector('[data-testid="toggle-chain"]')).not.toBeNull();
+  });
+
+  it('B4: "Ver transacción" de una liquidación abre el detalle inline de la transacción', async () => {
+    await setup({ roles: ['promoter'], orders: { movements: () => of({ items: SETTLEMENT }) } });
+    go('menu-facturacion');
+    expect(el.querySelector('[data-testid="settlement-detail"]')).toBeNull();
+    go('settlement-view-transaction');
+    const detail = el.querySelector('[data-testid="settlement-detail"]');
+    expect(detail).not.toBeNull();
+    expect(detail?.textContent).toContain('Gran Concierto');
+    expect(detail?.textContent).toContain('5,000.00');
+    // Alterna: un segundo click lo oculta.
+    go('settlement-view-transaction');
+    expect(el.querySelector('[data-testid="settlement-detail"]')).toBeNull();
+  });
+
+  it('B4: el toggle de cadena de una liquidación carga y muestra la validación (usa el eventId disponible)', async () => {
+    const chain = {
+      orderId: 'x',
+      chainValid: true,
+      transactions: [{ seq: '1', kind: 'event_cash_transfer', createdAt: '2026-07-10', hash: 'abcdef0123456789', prevHash: '', verified: true }],
+    };
+    const eventLedgerChain = jasmine.createSpy('elc').and.returnValue(of(chain));
+    await setup({ roles: ['promoter'], orders: { movements: () => of({ items: SETTLEMENT }), eventLedgerChain } });
+    go('menu-facturacion');
+    go('toggle-chain');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    // La liquidación no tiene orderId → consulta la cadena por EVENTO (endpoint event-scoped).
+    expect(eventLedgerChain).toHaveBeenCalledWith('e9');
+    expect(el.querySelector('[data-testid="ledger-chain"]')?.textContent).toContain('íntegra');
+  });
+
+  it('B3: el selector de idioma del perfil muestra banderas (SVG) y guarda el idioma elegido', async () => {
+    const updateMe = jasmine.createSpy('updateMe').and.returnValue(of({ firstName: 'Ana', language: 'en' }));
+    await setup({ users: { updateMe } });
+    // Perfil es la sección por defecto: ambas opciones renderizan su bandera SVG.
+    const es = el.querySelector('[data-testid="account-lang-es"]');
+    const en = el.querySelector('[data-testid="account-lang-en"]');
+    expect(es?.querySelector('svg.flag')).not.toBeNull();
+    expect(en?.querySelector('svg.flag')).not.toBeNull();
+    // Guardar persiste el idioma elegido en BD (PATCH /users/me).
+    const c = fixture.componentInstance as unknown as { setProfileLang: (l: string) => void };
+    c.setProfileLang('en');
+    fixture.detectChanges();
+    (el.querySelector('[data-testid="save-language"]') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(updateMe).toHaveBeenCalledWith({ language: 'en' });
   });
 
   it('facturación filtra por dirección (ingresos vs egresos)', async () => {

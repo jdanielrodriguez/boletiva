@@ -37,6 +37,7 @@ import {
   EventRefundResultDto,
   EventSettlementDto,
   EventTransactionPageDto,
+  EventLedgerChainDto,
   MovementsResponseDto,
   OrderLedgerChainDto,
   OrderPageResponseDto,
@@ -194,5 +195,12 @@ export class OrdersController {
   @ApiOkResponse({ type: OrderLedgerChainDto })
   ledgerChain(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
     return this.orders.ledgerChain(id, user);
+  }
+
+  @Get('events/:id/ledger')
+  @ApiOperation({ summary: 'Cadena contable (hash-chain) de la LIQUIDACIÓN del evento — vista blockchain del promotor' })
+  @ApiOkResponse({ type: EventLedgerChainDto })
+  eventLedgerChain(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
+    return this.orders.eventLedgerChain(id, user);
   }
 }

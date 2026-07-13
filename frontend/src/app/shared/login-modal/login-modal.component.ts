@@ -2,6 +2,7 @@ import { Component, inject, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../core/auth/auth.service';
+import { OtpInputComponent } from '../ui/otp-input/otp-input.component';
 
 /**
  * Modal de login (amigable, sin salir de la página). Reusa AuthService: password
@@ -10,7 +11,7 @@ import { AuthService } from '../../core/auth/auth.service';
  */
 @Component({
   selector: 'app-login-modal',
-  imports: [FormsModule, TranslatePipe],
+  imports: [FormsModule, TranslatePipe, OtpInputComponent],
   templateUrl: './login-modal.component.html',
 })
 export class LoginModal {

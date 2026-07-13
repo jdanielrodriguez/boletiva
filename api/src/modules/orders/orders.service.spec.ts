@@ -15,7 +15,7 @@ describe('OrdersService (IDOR + keyset, unit)', () => {
       ledgerEntry: { findMany: jest.fn() },
       event: { findUnique: jest.fn(), findMany: jest.fn() },
     };
-    const ledger = { orderChain: jest.fn() };
+    const ledger = { orderChain: jest.fn(), eventChain: jest.fn() };
     const service = new OrdersService(prisma as never, ledger as never);
     return { prisma, ledger, service };
   };
@@ -347,6 +347,41 @@ describe('OrdersService (IDOR + keyset, unit)', () => {
       prisma.order.findUnique.mockResolvedValue({ id: 'o1', buyerId: 'otro', items: [] });
       await expect(service.ledgerChain('o1', buyer)).rejects.toBeInstanceOf(NotFoundException);
       expect(ledger.orderChain).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('eventLedgerChain (cadena de liquidación del evento, B4/W7)', () => {
+    const owner: AuthUser = { userId: 'promo', email: 'p@x.com', roles: [Role.promoter] };
+
+    it('el promotor dueño obtiene la cadena de la liquidación de su evento', async () => {
+      const { prisma, ledger, service } = build();
+      prisma.event.findUnique.mockResolvedValue({ id: 'e9', promoterId: 'promo' });
+      const chain = { eventId: 'e9', transactions: [], chainValid: true };
+      ledger.eventChain.mockResolvedValue(chain);
+      await expect(service.eventLedgerChain('e9', owner)).resolves.toEqual(chain);
+      expect(ledger.eventChain).toHaveBeenCalledWith('e9');
+    });
+
+    it('el admin puede ver la cadena de cualquier evento', async () => {
+      const { prisma, ledger, service } = build();
+      prisma.event.findUnique.mockResolvedValue({ id: 'e9', promoterId: 'otro' });
+      ledger.eventChain.mockResolvedValue({ eventId: 'e9', transactions: [], chainValid: true });
+      await expect(service.eventLedgerChain('e9', admin)).resolves.toBeDefined();
+      expect(ledger.eventChain).toHaveBeenCalledWith('e9');
+    });
+
+    it('un promotor ajeno recibe 404 y NO se consulta el ledger (IDOR)', async () => {
+      const { prisma, ledger, service } = build();
+      prisma.event.findUnique.mockResolvedValue({ id: 'e9', promoterId: 'otro' });
+      await expect(service.eventLedgerChain('e9', owner)).rejects.toBeInstanceOf(NotFoundException);
+      expect(ledger.eventChain).not.toHaveBeenCalled();
+    });
+
+    it('evento inexistente → 404', async () => {
+      const { prisma, ledger, service } = build();
+      prisma.event.findUnique.mockResolvedValue(null);
+      await expect(service.eventLedgerChain('nope', admin)).rejects.toBeInstanceOf(NotFoundException);
+      expect(ledger.eventChain).not.toHaveBeenCalled();
     });
   });
 });

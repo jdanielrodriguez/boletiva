@@ -1017,6 +1017,34 @@ app-root {
   font-size: 0.85rem;
 }
 
+/* Detalle inline de una transacción (liquidación) */
+.txn-detail {
+  margin: 0.85rem 0 0;
+  padding: 0.85rem;
+  border-radius: var(--pe-radius-sm);
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--pe-border);
+  display: grid;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+.txn-detail > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.txn-detail dt {
+  color: var(--pe-muted, #9ca3af);
+  margin: 0;
+}
+.txn-detail dd {
+  margin: 0;
+  text-align: right;
+}
+.txn-detail .txn-detail-amount {
+  font-weight: 700;
+}
+
 /* Vista blockchain de la transacción */
 .chain {
   margin-top: 0.85rem;
@@ -1316,6 +1344,14 @@ app-root {
   font-weight: 700;
   font-size: 0.72rem;
   letter-spacing: 0.02em;
+}
+.lang-choice .flag {
+  width: 22px;
+  height: 15px;
+  border-radius: 2px;
+  display: block;
+  flex: 0 0 auto;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15);
 }
 .lang-save {
   margin-top: 0.85rem;
@@ -2746,6 +2782,8 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
   text-decoration: none;
 }
 .ev-card-name:hover { color: var(--pe-primary); }
+.tpl-title-row { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+.tpl-title-row > strong { min-width: 0; }
 .ev-card-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; }
 .ev-card-actions .btn.small { flex: 1 1 auto; justify-content: center; min-width: 96px; }
 /* Barra superior del editor: acciones alineadas a la derecha y CENTRADAS

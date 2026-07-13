@@ -160,6 +160,39 @@ describe('SettlementService (branches, unit)', () => {
     await expect(service.finalizeAndTransfer('e1', admin)).rejects.toBeInstanceOf(ConflictException);
   });
 
+  it('finalize: publicado y CONCLUIDO por fecha (completado) → OK (elegible)', async () => {
+    // Un evento exitoso que simplemente terminó por fecha (published, endsAt pasado)
+    // SÍ es elegible: es el caso "completado" del cierre de caja.
+    const { service, prisma, ledger } = build();
+    prisma.event.findUnique.mockResolvedValue({
+      id: 'e1', name: 'X', promoterId: 'promo', status: 'published', endsAt: past, cashTransferredAt: null,
+    });
+    prisma.order.aggregate.mockResolvedValue({ _sum: { net: '150.00' } });
+    const res = await service.finalizeAndTransfer('e1', admin);
+    expect(res).toMatchObject({ eventId: 'e1', status: 'finished' });
+    expect(ledger.post).toHaveBeenCalled();
+  });
+
+  it('finalize: publicado y AÚN VIGENTE (fecha futura) → 409 (no concluido)', async () => {
+    const { service, prisma } = build();
+    prisma.event.findUnique.mockResolvedValue({
+      id: 'e1', name: 'X', promoterId: 'promo', status: 'published', endsAt: future, cashTransferredAt: null,
+    });
+    await expect(service.finalizeAndTransfer('e1', admin)).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.event.update).not.toHaveBeenCalled();
+  });
+
+  it('finalize: evento CANCELADO → OK (estado elegible)', async () => {
+    const { service, prisma, ledger } = build();
+    prisma.event.findUnique.mockResolvedValue({
+      id: 'e1', name: 'Show', promoterId: 'promo', status: 'cancelled', endsAt: future, cashTransferredAt: null,
+    });
+    prisma.order.aggregate.mockResolvedValue({ _sum: { net: '150.00' } });
+    const res = await service.finalizeAndTransfer('e1', admin, '1.2.3.4', 'jest');
+    expect(res).toMatchObject({ eventId: 'e1', transferred: '150.00', status: 'finished' });
+    expect(ledger.post).toHaveBeenCalled();
+  });
+
   it('finalize: elegible con neto → asienta traslado payable→wallet, cierra y audita', async () => {
     const { service, prisma, ledger, audit } = build();
     prisma.event.findUnique.mockResolvedValue({

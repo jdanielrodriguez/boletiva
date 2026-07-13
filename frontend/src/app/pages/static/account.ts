@@ -1,6 +1,6 @@
 import { HttpResponse } from '@angular/common/http';
 import { DOCUMENT, UpperCasePipe, isPlatformBrowser } from '@angular/common';
-import { Component, PLATFORM_ID, computed, effect, inject, signal } from '@angular/core';
+import { Component, ElementRef, PLATFORM_ID, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { I18nService } from '../../core/i18n/i18n.service';
@@ -28,6 +28,7 @@ import type {
   WithdrawalResponseDto,
 } from '../../core/api/types';
 import { CardTokenizerStub } from '../../core/payments/card-tokenizer.stub';
+import type { CardBrand } from '../../core/payments/card-tokenizer.stub';
 import { AuthService } from '../../core/auth/auth.service';
 import { SessionStore } from '../../core/auth/session.store';
 import { ToastService } from '../../core/ui/toast.service';
@@ -174,12 +175,111 @@ export class Account {
 
   // --- Métodos de pago (tarjetas tokenizadas, PCI) ---
   protected readonly cards = signal<PaymentMethodResponseDto[]>([]);
+  /** Número de tarjeta: se guarda SOLO dígitos; se muestra formateado (grupos). */
   protected readonly cardNumber = signal('');
   protected readonly cardExpMonth = signal('');
   protected readonly cardExpYear = signal('');
   protected readonly cardCvc = signal('');
   protected readonly savingCard = signal(false);
   protected readonly showCardForm = signal(false);
+  /** Referencia al input de AÑO para autofocar al completar el MES (B6.2). */
+  private readonly expYearInput = viewChild<ElementRef<HTMLInputElement>>('expYearInput');
+
+  /** Marca detectada del número tecleado (visa/mastercard/amex/discover/other). */
+  protected readonly cardBrand = computed<CardBrand>(() => this.tokenizer.detectBrand(this.cardNumber()));
+  /** Solo visa/mastercard/amex se aceptan como marca reconocida en el formulario. */
+  protected readonly cardBrandRecognized = computed(() =>
+    ['visa', 'mastercard', 'amex'].includes(this.cardBrand()),
+  );
+  /** Longitud de dígitos esperada por marca: Amex 15, resto 16. */
+  protected readonly cardMaxLen = computed(() => (this.cardBrand() === 'amex' ? 15 : 16));
+  /** Longitud del CVV por marca: Amex 4, resto 3. */
+  protected readonly cvcMaxLen = computed(() => (this.cardBrand() === 'amex' ? 4 : 3));
+  /** Número mostrado con separadores por marca (Amex 4-6-5; resto grupos de 4). */
+  protected readonly cardNumberDisplay = computed(() =>
+    Account.formatCardNumber(this.cardNumber(), this.cardBrand()),
+  );
+
+  /** Año actual en 2 dígitos (para validar la expiración). */
+  private static readonly currentYY = new Date().getFullYear() % 100;
+
+  /** Mes válido: 2 dígitos y 01–12. */
+  protected readonly expMonthValid = computed(() => {
+    const m = this.cardExpMonth();
+    return /^\d{2}$/.test(m) && +m >= 1 && +m <= 12;
+  });
+  /** Año válido: 2 dígitos y >= año actual. */
+  protected readonly expYearValid = computed(() => {
+    const y = this.cardExpYear();
+    return /^\d{2}$/.test(y) && +y >= Account.currentYY;
+  });
+  /** CVV válido: exactamente la longitud de la marca (3 o 4 dígitos). */
+  protected readonly cvcValid = computed(() =>
+    new RegExp(`^\\d{${this.cvcMaxLen()}}$`).test(this.cardCvc()),
+  );
+  /** Número completo y válido (marca reconocida + longitud + Luhn). */
+  protected readonly cardNumberValid = computed(() => {
+    const digits = this.cardNumber();
+    if (!this.cardBrandRecognized()) return false;
+    if (digits.length !== this.cardMaxLen()) return false;
+    return Account.luhn(digits);
+  });
+  /** Formulario de tarjeta completo (habilita el botón Guardar). */
+  protected readonly cardFormValid = computed(
+    () => this.cardNumberValid() && this.expMonthValid() && this.expYearValid() && this.cvcValid(),
+  );
+
+  /** Formatea el número por marca: Amex en 4-6-5, el resto en grupos de 4. */
+  private static formatCardNumber(digits: string, brand: CardBrand): string {
+    if (!digits) return '';
+    if (brand === 'amex') {
+      return [digits.slice(0, 4), digits.slice(4, 10), digits.slice(10, 15)].filter(Boolean).join(' ');
+    }
+    return (digits.match(/.{1,4}/g) ?? []).join(' ');
+  }
+
+  /** Algoritmo de Luhn (validez del número de tarjeta). */
+  private static luhn(digits: string): boolean {
+    let sum = 0;
+    let alt = false;
+    for (let i = digits.length - 1; i >= 0; i--) {
+      let n = +digits[i];
+      if (alt) {
+        n *= 2;
+        if (n > 9) n -= 9;
+      }
+      sum += n;
+      alt = !alt;
+    }
+    return sum % 10 === 0;
+  }
+
+  /** Sanea (solo dígitos) y recorta al máximo de la marca; guarda solo dígitos. */
+  protected onCardNumberInput(value: string): void {
+    const digits = (value ?? '').replace(/\D/g, '');
+    const brand = this.tokenizer.detectBrand(digits);
+    const max = brand === 'amex' ? 15 : 16;
+    this.cardNumber.set(digits.slice(0, max));
+  }
+
+  /** Mes: solo dígitos, 2 máx.; al completar 2 dígitos válidos autofoca el año. */
+  protected onCardExpMonthInput(value: string): void {
+    const digits = (value ?? '').replace(/\D/g, '').slice(0, 2);
+    this.cardExpMonth.set(digits);
+    if (digits.length === 2 && +digits >= 1 && +digits <= 12) {
+      this.expYearInput()?.nativeElement.focus();
+    }
+  }
+
+  /** Año: solo dígitos, 2 máx. */
+  protected onCardExpYearInput(value: string): void {
+    this.cardExpYear.set((value ?? '').replace(/\D/g, '').slice(0, 2));
+  }
+
+  /** CVV: solo dígitos, recortado a la longitud de la marca (3 o 4). */
+  protected onCardCvcInput(value: string): void {
+    this.cardCvc.set((value ?? '').replace(/\D/g, '').slice(0, this.cvcMaxLen()));
+  }
 
   // --- Cambio de contraseña (autenticado) ---
   protected readonly currentPassword = signal('');
@@ -710,21 +810,39 @@ export class Account {
     this.orderFilter.set(null);
   }
 
-  /** Carga (bajo demanda) la cadena contable de una orden para la vista blockchain. */
-  protected loadChain(orderId: string): void {
-    if (this.chains()[orderId]) {
+  /**
+   * Clave de caché de la cadena para un movimiento. Las compras usan su `orderId`
+   * (endpoint `/orders/:id/ledger`); las liquidaciones NO tienen orden → usan su id
+   * sintético de movimiento (`ledger:<entryId>`), que es único y estable.
+   */
+  protected chainKey(m: MovementResponseDto): string {
+    return m.orderId ?? m.id;
+  }
+
+  /**
+   * Carga (bajo demanda) la cadena contable para la vista blockchain — SIEMPRE
+   * disponible en el detalle de cualquier transacción (compras y liquidaciones).
+   * `key` es la clave de caché (chainKey del movimiento); `backendId` es el id que se
+   * envía al backend (la orden en compras; el evento en liquidaciones). Retrocompatible:
+   * si se llama con un solo argumento (p.ej. `loadChain(orderId)`), la clave y el id
+   * del backend coinciden.
+   */
+  protected loadChain(key: string, backendId: string = key, scope: 'order' | 'event' = 'order'): void {
+    if (this.chains()[key]) {
       // Ya cargada: alterna ocultándola.
       this.chains.update((c) => {
         const next = { ...c };
-        delete next[orderId];
+        delete next[key];
         return next;
       });
       return;
     }
-    this.loadingChain.set(orderId);
-    this.ordersApi.ledgerChain(orderId).subscribe({
+    this.loadingChain.set(key);
+    const source$ =
+      scope === 'event' ? this.ordersApi.eventLedgerChain(backendId) : this.ordersApi.ledgerChain(backendId);
+    source$.subscribe({
       next: (chain) => {
-        this.chains.update((c) => ({ ...c, [orderId]: chain }));
+        this.chains.update((c) => ({ ...c, [key]: chain }));
         this.loadingChain.set(null);
       },
       error: () => {
@@ -732,6 +850,16 @@ export class Account {
         this.toasts.error(this.translate.instant('account.toast.chainError'));
       },
     });
+  }
+
+  /**
+   * Detalle inline de una transacción (movimiento) expandido. null = ninguno. Se usa
+   * para "Ver transacción" de las liquidaciones, que no tienen una orden a la que
+   * navegar: se muestra el detalle de LA transacción individual aquí mismo.
+   */
+  protected readonly expandedTxn = signal<string | null>(null);
+  protected toggleTxnDetail(m: MovementResponseDto): void {
+    this.expandedTxn.update((cur) => (cur === m.id ? null : m.id));
   }
 
   /** Abre la vista dedicada de detalle de la transacción (compra). */

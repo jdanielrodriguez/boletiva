@@ -56,18 +56,13 @@
           }
         </p>
         <div class="field">
-          <label for="code">{{ 'auth.code' | translate }}</label>
-          <input
-            id="code"
-            type="text"
-            name="code"
-            inputmode="numeric"
-            autocomplete="one-time-code"
-            maxlength="6"
-            placeholder="000000"
-            [ngModel]="code()"
-            (ngModelChange)="code.set($event)"
-            required
+          <label id="code-label">{{ 'auth.code' | translate }}</label>
+          <app-otp-input
+            data-testid="code-input"
+            [length]="6"
+            [disabled]="submitting()"
+            [value]="code()"
+            (valueChange)="code.set($event)"
           />
         </div>
         <button type="submit" class="primary btn-block" [disabled]="submitting()">

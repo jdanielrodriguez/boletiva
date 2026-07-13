@@ -173,11 +173,12 @@ async function main() {
     await page.type('#email', BUYER.email);
     await page.type('#password', BUYER.password);
     await page.click('button[type="submit"]');
-    // Puede pedir 2FA (dispositivo nuevo).
-    await waitSel(page, '#code, [data-testid="session-greeting"]', 15000);
-    if (await page.$('#code')) {
+    // Puede pedir 2FA (dispositivo nuevo). El código ahora es un app-otp-input
+    // (casillas por dígito): se llena dígito por dígito en cada otp-box-<i>.
+    await waitSel(page, '[data-testid="otp-box-0"], [data-testid="session-greeting"]', 15000);
+    if (await page.$('[data-testid="otp-box-0"]')) {
       const otp = await otpFromMail();
-      await page.type('#code', otp);
+      for (let i = 0; i < otp.length; i++) await page.type(`[data-testid="otp-box-${i}"]`, otp[i]);
       await page.click('button[type="submit"]');
     }
     await waitSel(page, '[data-testid="session-greeting"]', 15000);
@@ -317,6 +318,10 @@ async function main() {
     await page.click('[data-testid="add-method"]');
     await waitSel(page, '[data-testid="card-number"]', 6000);
     await page.type('[data-testid="card-number"]', '4242424242424242');
+    // B6: mes (01–12) y año (>= actual) son obligatorios para habilitar Guardar;
+    // el CVV es de 3 dígitos para Visa/MC (4 solo Amex).
+    await page.type('[data-testid="card-exp-m"]', '12');
+    await page.type('[data-testid="card-exp-y"]', '30');
     await page.type('[data-testid="card-cvc"]', '123');
     await page.click('[data-testid="save-card"]');
     await waitSel(page, '[data-testid="cards-list"]', 8000);
@@ -359,9 +364,10 @@ async function main() {
     await pg.type('#email', email);
     await pg.type('#password', password);
     await pg.click('button[type="submit"]');
-    await pg.waitForSelector('#code, [data-testid="session-greeting"]', { timeout: 15000 });
-    if (await pg.$('#code')) {
-      await pg.type('#code', await otpFromMail());
+    await pg.waitForSelector('[data-testid="otp-box-0"], [data-testid="session-greeting"]', { timeout: 15000 });
+    if (await pg.$('[data-testid="otp-box-0"]')) {
+      const otp = await otpFromMail();
+      for (let i = 0; i < otp.length; i++) await pg.type(`[data-testid="otp-box-${i}"]`, otp[i]);
       await pg.click('button[type="submit"]');
     }
     await pg.waitForSelector('[data-testid="session-greeting"]', { timeout: 15000 });
@@ -672,13 +678,25 @@ async function main() {
     await adminPg.waitForSelector('[data-testid="ev-accounts"]', { timeout: 10000 });
     await adminPg.click('[data-testid="ev-accounts"]');
     // Navega al editor con ?from=admin&tab=cuentas (no expande la card, no impersona /promotor).
-    // v3.12 re-gating: el ADMIN REAL ya NO ve el detalle de settlement (owner-only);
-    // solo la sección de finalizar (visible en finished/suspended). Este test valida la
-    // NAVEGACIÓN (abre la tab Cuentas del editor y el back vuelve a la consola), así que
-    // esperamos la tab Cuentas activa en vez del settlement.
+    // B1 (v3.13): el ADMIN REAL AHORA SÍ ve el detalle de cuentas/transacciones SIN
+    // impersonar, y la sección de finalizar SIEMPRE está visible (el botón se deshabilita
+    // según el estado del evento). Validamos navegación + detalle de cuentas + sección de
+    // cierre con el botón coherente con el estado (deshabilitado ⇔ hay aviso).
     await adminPg.waitForSelector('[data-testid="tab-cuentas"]', { timeout: 12000 });
     assert(/\/promotor\/eventos\/.+\/editar\?/.test(adminPg.url()), `no navegó al editor: ${adminPg.url()}`);
     assert(adminPg.url().includes('from=admin'), 'falta from=admin en la URL');
+    // Detalle de cuentas del evento visible para el admin real (tabla de transacciones).
+    await adminPg.waitForSelector('[data-testid="tx-block"]', { timeout: 12000 });
+    // Sección de cierre de caja SIEMPRE visible para el admin real.
+    await adminPg.waitForSelector('[data-testid="cash-transfer"]', { timeout: 12000 });
+    // El botón finalizar es coherente: si está deshabilitado, hay aviso; si está
+    // habilitado (evento suspendido/cancelado/completado), no hay aviso.
+    const finalizeDisabled = await adminPg.$eval('[data-testid="cash-transfer-btn"]', (b) => b.disabled);
+    const lockedHint = await adminPg.$('[data-testid="cash-transfer-locked-hint"]');
+    assert(
+      finalizeDisabled === !!lockedHint,
+      `botón finalizar (disabled=${finalizeDisabled}) incoherente con el aviso (hint=${!!lockedHint})`,
+    );
     // El back-link vuelve a la CONSOLA del admin, no a /promotor.
     await adminPg.waitForSelector('[data-testid="back-link"]', { timeout: 8000 });
     await adminPg.click('[data-testid="back-link"]');

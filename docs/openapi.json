@@ -3616,6 +3616,42 @@
         ]
       }
     },
+    "/api/v1/events/{id}/ledger": {
+      "get": {
+        "operationId": "OrdersController_eventLedgerChain_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventLedgerChainDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cadena contable (hash-chain) de la LIQUIDACIÓN del evento — vista blockchain del promotor",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
     "/api/v1/tickets": {
       "get": {
         "operationId": "TicketsController_listMine_v1",
@@ -11263,6 +11299,32 @@
         },
         "required": [
           "orderId",
+          "transactions",
+          "chainValid"
+        ]
+      },
+      "EventLedgerChainDto": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "transactions": {
+            "description": "Transacciones encadenadas del evento (liquidación)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderLedgerTxDto"
+            }
+          },
+          "chainValid": {
+            "type": "boolean",
+            "description": "true si la cadena de la liquidación verifica íntegra",
+            "example": true
+          }
+        },
+        "required": [
+          "eventId",
           "transactions",
           "chainValid"
         ]

@@ -39,6 +39,14 @@ export class CardTokenizerStub {
   }
 
   /**
+   * Detecta la marca del PAN (o su prefijo) para la UI: separador, tope de longitud
+   * por marca y CVV. Reutiliza el mismo BIN que `tokenize`. Ignora no-dígitos.
+   */
+  detectBrand(number: string): CardBrand {
+    return this.brandFromNumber((number ?? '').replace(/\D/g, ''));
+  }
+
+  /**
    * "Tokeniza" la tarjeta: valida mínimamente, deriva marca + últimos 4 y genera un
    * nonce aleatorio. Lanza si el número no es válido. El PAN no sale de esta función.
    */

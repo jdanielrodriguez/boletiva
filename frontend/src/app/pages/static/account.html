@@ -44,10 +44,28 @@
             <h3>{{ 'account.language.title' | translate }}</h3>
             <p class="muted">{{ 'account.language.hint' | translate }}</p>
             <div class="lang-choice" role="group" [attr.aria-label]="'account.language.title' | translate" data-testid="account-lang-switcher">
-              <button type="button" class="lang-opt" [class.active]="profileLang() === 'es'" [attr.aria-pressed]="profileLang() === 'es'" (click)="setProfileLang('es')" data-testid="account-lang-es">
+              <button type="button" class="lang-opt" [class.active]="profileLang() === 'es'" [attr.aria-pressed]="profileLang() === 'es'" [attr.aria-label]="'shell.langEs' | translate" (click)="setProfileLang('es')" data-testid="account-lang-es">
+                <!-- Bandera de Guatemala: celeste | blanco | celeste (SVG inline, igual que el lang-switcher del header) -->
+                <svg class="flag" viewBox="0 0 24 16" aria-hidden="true">
+                  <rect width="24" height="16" fill="#fff" />
+                  <rect width="8" height="16" fill="#4997d0" />
+                  <rect x="16" width="8" height="16" fill="#4997d0" />
+                </svg>
                 <span class="lang-code">{{ 'shell.langEsShort' | translate }}</span> {{ 'shell.langEs' | translate }}
               </button>
-              <button type="button" class="lang-opt" [class.active]="profileLang() === 'en'" [attr.aria-pressed]="profileLang() === 'en'" (click)="setProfileLang('en')" data-testid="account-lang-en">
+              <button type="button" class="lang-opt" [class.active]="profileLang() === 'en'" [attr.aria-pressed]="profileLang() === 'en'" [attr.aria-label]="'shell.langEn' | translate" (click)="setProfileLang('en')" data-testid="account-lang-en">
+                <!-- Bandera de EE. UU. (simplificada): franjas + cantón azul -->
+                <svg class="flag" viewBox="0 0 24 16" aria-hidden="true">
+                  <rect width="24" height="16" fill="#fff" />
+                  <g fill="#b22234">
+                    <rect width="24" height="1.6" y="0" />
+                    <rect width="24" height="1.6" y="3.2" />
+                    <rect width="24" height="1.6" y="6.4" />
+                    <rect width="24" height="1.6" y="9.6" />
+                    <rect width="24" height="1.6" y="12.8" />
+                  </g>
+                  <rect width="11" height="8.8" fill="#3c3b6e" />
+                </svg>
                 <span class="lang-code">{{ 'shell.langEnShort' | translate }}</span> {{ 'shell.langEn' | translate }}
               </button>
             </div>
@@ -130,24 +148,37 @@
               <form class="stacked-form" (ngSubmit)="addCard()">
                 <div class="field">
                   <label for="card-number">{{ 'account.methods.cardNumber' | translate }}</label>
-                  <input id="card-number" type="text" inputmode="numeric" autocomplete="cc-number" placeholder="4242 4242 4242 4242" [ngModel]="cardNumber()" (ngModelChange)="cardNumber.set($event)" name="ccnumber" data-testid="card-number" />
+                  <input id="card-number" type="text" inputmode="numeric" autocomplete="cc-number" placeholder="4242 4242 4242 4242" [ngModel]="cardNumberDisplay()" (ngModelChange)="onCardNumberInput($event)" name="ccnumber" data-testid="card-number" [attr.aria-invalid]="cardNumber().length > 0 && !cardNumberValid()" />
+                  @if (cardNumber().length > 0) {
+                    @if (cardBrandRecognized()) {
+                      <span class="card-brand-badge" data-testid="card-brand">{{ ('account.methods.brand.' + cardBrand()) | translate }}</span>
+                    } @else {
+                      <span class="field-error" data-testid="card-brand-invalid">{{ 'account.methods.brandUnknown' | translate }}</span>
+                    }
+                  }
                 </div>
                 <div class="form-row">
                   <div class="field">
                     <label for="card-exp-m">{{ 'account.methods.monthMM' | translate }}</label>
-                    <input id="card-exp-m" type="text" inputmode="numeric" maxlength="2" placeholder="12" [ngModel]="cardExpMonth()" (ngModelChange)="cardExpMonth.set($event)" name="ccexpm" />
+                    <input id="card-exp-m" type="text" inputmode="numeric" maxlength="2" placeholder="12" [ngModel]="cardExpMonth()" (ngModelChange)="onCardExpMonthInput($event)" name="ccexpm" data-testid="card-exp-m" [attr.aria-invalid]="cardExpMonth().length > 0 && !expMonthValid()" />
+                    @if (cardExpMonth().length > 0 && !expMonthValid()) {
+                      <span class="field-error" data-testid="card-exp-m-error">{{ 'account.methods.monthInvalid' | translate }}</span>
+                    }
                   </div>
                   <div class="field">
                     <label for="card-exp-y">{{ 'account.methods.yearYY' | translate }}</label>
-                    <input id="card-exp-y" type="text" inputmode="numeric" maxlength="2" placeholder="28" [ngModel]="cardExpYear()" (ngModelChange)="cardExpYear.set($event)" name="ccexpy" />
+                    <input #expYearInput id="card-exp-y" type="text" inputmode="numeric" maxlength="2" placeholder="28" [ngModel]="cardExpYear()" (ngModelChange)="onCardExpYearInput($event)" name="ccexpy" data-testid="card-exp-y" [attr.aria-invalid]="cardExpYear().length > 0 && !expYearValid()" />
+                    @if (cardExpYear().length > 0 && !expYearValid()) {
+                      <span class="field-error" data-testid="card-exp-y-error">{{ 'account.methods.yearInvalid' | translate }}</span>
+                    }
                   </div>
                   <div class="field">
                     <label for="card-cvc">{{ 'account.methods.cvc' | translate }}</label>
-                    <input id="card-cvc" type="text" inputmode="numeric" maxlength="4" placeholder="123" [ngModel]="cardCvc()" (ngModelChange)="cardCvc.set($event)" name="cccvc" data-testid="card-cvc" />
+                    <input id="card-cvc" type="text" inputmode="numeric" [attr.maxlength]="cvcMaxLen()" placeholder="123" [ngModel]="cardCvc()" (ngModelChange)="onCardCvcInput($event)" name="cccvc" data-testid="card-cvc" />
                   </div>
                 </div>
                 <div class="ticket-actions">
-                  <button type="submit" class="primary" [disabled]="savingCard()" data-testid="save-card" [title]="'account.methods.saveCard' | translate">
+                  <button type="submit" class="primary" [disabled]="savingCard() || !cardFormValid()" data-testid="save-card" [title]="'account.methods.saveCard' | translate">
                     <app-icon name="save" /> {{ (savingCard() ? 'account.methods.savingCard' : 'account.methods.saveCard') | translate }}
                   </button>
                   <button type="button" (click)="showCardForm.set(false)" [title]="'common.cancel' | translate">
@@ -253,23 +284,44 @@
                       <button type="button" class="link-btn" (click)="downloadSettlement(m.eventId)" [disabled]="downloadingSettlement() === m.eventId" data-testid="settlement-download">
                         {{ (downloadingSettlement() === m.eventId ? 'account.billing.settlement.downloading' : 'account.billing.settlement.download') | translate }}
                       </button>
+                      <button type="button" class="link-btn" (click)="toggleTxnDetail(m)" data-testid="settlement-view-transaction">
+                        {{ (expandedTxn() === m.id ? 'account.billing.settlement.hideTransaction' : 'account.billing.settlement.viewTransaction') | translate }}
+                      </button>
                       <button type="button" class="link-btn" (click)="verEventAccounts(m.eventId)" data-testid="settlement-view-accounts">
                         {{ 'account.billing.settlement.viewAccounts' | translate }}
+                      </button>
+                      <button type="button" class="link-btn" (click)="loadChain(chainKey(m), m.eventId, 'event')" data-testid="toggle-chain">
+                        {{ (chains()[chainKey(m)] ? 'account.billing.hideChain' : 'account.billing.showChain') | translate }}
                       </button>
                     } @else if (m.orderId) {
                       <button type="button" class="link-btn" (click)="verCompra(m.orderId)" data-testid="ver-detalle">
                         {{ 'account.billing.viewFullDetail' | translate }}
                       </button>
                       <button type="button" class="link-btn" (click)="loadChain(m.orderId)" data-testid="toggle-chain">
-                        {{ (chains()[m.orderId] ? 'account.billing.hideChain' : 'account.billing.showChain') | translate }}
+                        {{ (chains()[chainKey(m)] ? 'account.billing.hideChain' : 'account.billing.showChain') | translate }}
                       </button>
                     }
                   </div>
 
-                  @if (m.orderId && loadingChain() === m.orderId) {
+                  <!-- Detalle inline de la transacción (liquidaciones): "Ver transacción"
+                       muestra el detalle de LA transacción individual, distinto de
+                       "Ver detalle de cuentas del evento" (que navega al panel del evento). -->
+                  @if (m.kind === 'event_settlement' && expandedTxn() === m.id) {
+                    <dl class="txn-detail" data-testid="settlement-detail">
+                      <div><dt>{{ 'account.billing.event' | translate }}</dt><dd>{{ m.eventName ?? ('account.billing.movement' | translate) }}</dd></div>
+                      <div><dt>{{ 'account.billing.movementType' | translate }}</dt><dd>{{ ('account.billing.kind.' + m.kind) | translate }}</dd></div>
+                      <div><dt>{{ 'common.date' | translate }}</dt><dd>{{ m.createdAt | localizedDate: 'dd/MM/yyyy HH:mm' }}</dd></div>
+                      @if (m.status) {
+                        <div><dt>{{ 'account.billing.statusFilter' | translate }}</dt><dd><span class="badge badge-{{ m.status }}">{{ m.status | statusLabel }}</span></dd></div>
+                      }
+                      <div><dt>{{ 'account.billing.settlement.amount' | translate }}</dt><dd class="txn-detail-amount">{{ m.amount | money }} {{ m.currency }}</dd></div>
+                    </dl>
+                  }
+
+                  @if (loadingChain() === chainKey(m)) {
                     <p class="muted">{{ 'account.chain.loading' | translate }}</p>
                   }
-                  @if (m.orderId && chains()[m.orderId]; as chain) {
+                  @if (chains()[chainKey(m)]; as chain) {
                     <div class="chain" data-testid="ledger-chain">
                       <p class="chain-status" [class.ok]="chain.chainValid" [class.bad]="!chain.chainValid">
                         {{ (chain.chainValid ? 'account.chain.valid' : 'account.chain.invalid') | translate }}
