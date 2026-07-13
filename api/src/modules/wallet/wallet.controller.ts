@@ -49,16 +49,20 @@ export class WalletController {
   }
 
   @Post('withdrawals')
+  @Roles(Role.promoter, Role.admin)
   @RequireVerifiedEmail()
   @HttpCode(201)
-  @ApiOperation({ summary: 'Solicita un retiro de saldo (reserva en el ledger)' })
+  @ApiOperation({
+    summary: 'Solicita un retiro de saldo (reserva en el ledger). Solo promotor/admin.',
+  })
   @ApiCreatedResponse({ type: WithdrawalActionResponseDto })
   request(@Body() dto: RequestWithdrawalDto, @CurrentUser('userId') userId: string) {
     return this.withdrawals.request(userId, dto.amount);
   }
 
   @Get('withdrawals')
-  @ApiOperation({ summary: 'Mis retiros (keyset: ?cursor&limit)' })
+  @Roles(Role.promoter, Role.admin)
+  @ApiOperation({ summary: 'Mis retiros (keyset: ?cursor&limit). Solo promotor/admin.' })
   @ApiOkResponse({ type: WithdrawalPageResponseDto })
   mine(@CurrentUser('userId') userId: string, @Query() page: PageQueryDto) {
     return this.withdrawals.listMine(userId, page);
