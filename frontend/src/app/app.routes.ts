@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard, guestGuard, roleGuard, verifiedEmailGuard } from './core/auth/guards';
+import { unsavedChangesGuard } from './core/guards/unsaved-changes.guard';
 
 export const routes: Routes = [
   {
@@ -93,12 +94,14 @@ export const routes: Routes = [
     path: 'promotor/eventos/nuevo',
     loadComponent: () => import('./pages/promoter/event-edit.page').then((m) => m.EventEditPage),
     canActivate: [roleGuard('promoter', 'admin')],
+    canDeactivate: [unsavedChangesGuard],
     title: 'Nuevo evento — Pasa Eventos',
   },
   {
     path: 'promotor/eventos/:id/editar',
     loadComponent: () => import('./pages/promoter/event-edit.page').then((m) => m.EventEditPage),
     canActivate: [roleGuard('promoter', 'admin')],
+    canDeactivate: [unsavedChangesGuard],
     title: 'Editar evento — Pasa Eventos',
   },
   {
@@ -140,12 +143,14 @@ export const routes: Routes = [
     path: 'configuracion/salones/nuevo',
     loadComponent: () => import('./pages/config/hall-edit.page').then((m) => m.HallEditPage),
     canActivate: [roleGuard('admin')],
+    canDeactivate: [unsavedChangesGuard],
     title: 'Nuevo salón — Pasa Eventos',
   },
   {
     path: 'configuracion/salones/:id/editar',
     loadComponent: () => import('./pages/config/hall-edit.page').then((m) => m.HallEditPage),
     canActivate: [roleGuard('admin')],
+    canDeactivate: [unsavedChangesGuard],
     title: 'Editar salón — Pasa Eventos',
   },
   {
@@ -154,12 +159,14 @@ export const routes: Routes = [
     path: 'configuracion/plantillas/nuevo',
     loadComponent: () => import('./pages/config/template-edit.page').then((m) => m.TemplateEditPage),
     canActivate: [roleGuard('admin')],
+    canDeactivate: [unsavedChangesGuard],
     title: 'Nueva plantilla — Pasa Eventos',
   },
   {
     path: 'configuracion/plantillas/:id/editar',
     loadComponent: () => import('./pages/config/template-edit.page').then((m) => m.TemplateEditPage),
     canActivate: [roleGuard('admin')],
+    canDeactivate: [unsavedChangesGuard],
     title: 'Editar plantilla — Pasa Eventos',
   },
   {

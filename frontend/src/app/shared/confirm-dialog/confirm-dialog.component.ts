@@ -19,6 +19,8 @@ export interface ConfirmRequest {
   /** Referencia del recurso afectado (acompaña a `auditAction`). */
   auditResource?: string;
   onConfirm: () => void;
+  /** Callback opcional al CANCELAR (p.ej. resolver un guard de "descartar cambios"). */
+  onCancel?: () => void;
 }
 
 /**

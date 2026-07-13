@@ -2,11 +2,20 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { Observable } from 'rxjs';
 import { HallsApi } from '../../core/api/halls.api';
 import { ToastService } from '../../core/ui/toast.service';
+import {
+  ConfirmDialogComponent,
+  type ConfirmRequest,
+} from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { MapPickerComponent, type MapLocation } from '../../shared/map/map-picker.component';
 import { BackLinkComponent } from '../../shared/ui/back-link.component';
+import {
+  type HasUnsavedChanges,
+  promptDiscardChanges,
+} from '../../core/guards/unsaved-changes.guard';
 import type { HallResponseDto } from '../../core/api/types';
 
 /** Borrador editable de un salón (crear/editar con ubicación en mapa). */
@@ -30,10 +39,17 @@ interface HallDraft {
  */
 @Component({
   selector: 'app-hall-edit-page',
-  imports: [FormsModule, TranslatePipe, IconComponent, MapPickerComponent, BackLinkComponent],
+  imports: [
+    FormsModule,
+    TranslatePipe,
+    IconComponent,
+    MapPickerComponent,
+    BackLinkComponent,
+    ConfirmDialogComponent,
+  ],
   templateUrl: './hall-edit.page.html',
 })
-export class HallEditPage {
+export class HallEditPage implements HasUnsavedChanges {
   private readonly hallsApi = inject(HallsApi);
   private readonly toasts = inject(ToastService);
   private readonly translate = inject(TranslateService);
@@ -48,6 +64,11 @@ export class HallEditPage {
   protected readonly loadError = signal(false);
   protected readonly saving = signal(false);
 
+  // --- Guard de cambios sin guardar ---
+  private readonly savedSnapshot = signal('');
+  private skipGuard = false;
+  protected readonly confirm = signal<ConfirmRequest | null>(null);
+
   protected readonly heading = computed(() =>
     this.isNew ? 'config.halls.newPageTitle' : 'config.halls.editPageTitle',
   );
@@ -57,7 +78,28 @@ export class HallEditPage {
       this.loadHall(this.hallId);
     } else {
       this.draft.set({ id: null, name: '', address: '', city: '', notes: '', lat: null, lng: null, status: 'draft' });
+      this.savedSnapshot.set(JSON.stringify(this.draft()));
     }
+  }
+
+  hasUnsavedChanges(): boolean {
+    return !this.skipGuard && JSON.stringify(this.draft()) !== this.savedSnapshot();
+  }
+  confirmDiscard(): Observable<boolean> {
+    return promptDiscardChanges(
+      (req) => this.confirm.set(req),
+      (k) => this.translate.instant(k),
+    );
+  }
+  protected onConfirmAccept(): void {
+    const c = this.confirm();
+    this.confirm.set(null);
+    c?.onConfirm();
+  }
+  protected onConfirmCancel(): void {
+    const c = this.confirm();
+    this.confirm.set(null);
+    c?.onCancel?.();
   }
 
   private loadHall(id: string): void {
@@ -75,6 +117,7 @@ export class HallEditPage {
           lng: h.lng ?? null,
           status: h.status,
         });
+        this.savedSnapshot.set(JSON.stringify(this.draft()));
         this.loading.set(false);
       },
       error: () => {
@@ -117,6 +160,7 @@ export class HallEditPage {
     req.subscribe({
       next: () => {
         this.saving.set(false);
+        this.skipGuard = true;
         this.toasts.success(this.translate.instant(d.id ? 'config.halls.updated' : 'config.halls.created'));
         void this.router.navigate(['/configuracion'], { queryParams: { tab: 'salones' } });
       },
@@ -128,6 +172,8 @@ export class HallEditPage {
   }
 
   protected cancel(): void {
+    // Cancelar = descartar intencional → no dispares el guard de nuevo.
+    this.skipGuard = true;
     void this.router.navigate(['/configuracion'], { queryParams: { tab: 'salones' } });
   }
 }

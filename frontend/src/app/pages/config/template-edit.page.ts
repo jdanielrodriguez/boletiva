@@ -2,10 +2,19 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { Observable } from 'rxjs';
 import { SeatTemplatesApi } from '../../core/api/seat-templates.api';
 import { ToastService } from '../../core/ui/toast.service';
+import {
+  ConfirmDialogComponent,
+  type ConfirmRequest,
+} from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { BackLinkComponent } from '../../shared/ui/back-link.component';
+import {
+  type HasUnsavedChanges,
+  promptDiscardChanges,
+} from '../../core/guards/unsaved-changes.guard';
 import type { SeatTemplateResponseDto } from '../../core/api/types';
 
 /** Borrador editable de una plantilla de asientos. */
@@ -24,10 +33,10 @@ interface TemplateDraft {
  */
 @Component({
   selector: 'app-template-edit-page',
-  imports: [FormsModule, TranslatePipe, IconComponent, BackLinkComponent],
+  imports: [FormsModule, TranslatePipe, IconComponent, BackLinkComponent, ConfirmDialogComponent],
   templateUrl: './template-edit.page.html',
 })
-export class TemplateEditPage {
+export class TemplateEditPage implements HasUnsavedChanges {
   private readonly templatesApi = inject(SeatTemplatesApi);
   private readonly toasts = inject(ToastService);
   private readonly translate = inject(TranslateService);
@@ -46,6 +55,11 @@ export class TemplateEditPage {
   /** Si la plantilla cargada es del sistema, el formulario queda en solo-lectura. */
   protected readonly builtIn = signal(false);
 
+  // --- Guard de cambios sin guardar ---
+  private readonly savedSnapshot = signal('');
+  private skipGuard = false;
+  protected readonly confirm = signal<ConfirmRequest | null>(null);
+
   protected readonly heading = computed(() =>
     this.isNew ? 'config.templates.newPageTitle' : 'config.templates.editPageTitle',
   );
@@ -55,7 +69,28 @@ export class TemplateEditPage {
       this.loadTemplate(this.templateId);
     } else {
       this.draft.set({ id: null, name: '', kind: 'grid', paramsJson: '{"rows":5,"cols":10}' });
+      this.savedSnapshot.set(JSON.stringify(this.draft()));
     }
+  }
+
+  hasUnsavedChanges(): boolean {
+    return !this.skipGuard && !this.builtIn() && JSON.stringify(this.draft()) !== this.savedSnapshot();
+  }
+  confirmDiscard(): Observable<boolean> {
+    return promptDiscardChanges(
+      (req) => this.confirm.set(req),
+      (k) => this.translate.instant(k),
+    );
+  }
+  protected onConfirmAccept(): void {
+    const c = this.confirm();
+    this.confirm.set(null);
+    c?.onConfirm();
+  }
+  protected onConfirmCancel(): void {
+    const c = this.confirm();
+    this.confirm.set(null);
+    c?.onCancel?.();
   }
 
   private loadTemplate(id: string): void {
@@ -71,6 +106,7 @@ export class TemplateEditPage {
           kind: t.kind,
           paramsJson: t.params ? JSON.stringify(t.params) : '',
         });
+        this.savedSnapshot.set(JSON.stringify(this.draft()));
       },
       error: () => {
         this.loading.set(false);
@@ -110,6 +146,7 @@ export class TemplateEditPage {
     req.subscribe({
       next: () => {
         this.saving.set(false);
+        this.skipGuard = true;
         this.toasts.success(this.translate.instant(d.id ? 'config.templates.updated' : 'config.templates.created'));
         void this.router.navigate(['/configuracion'], { queryParams: { tab: 'plantillas' } });
       },
@@ -125,6 +162,7 @@ export class TemplateEditPage {
   }
 
   protected cancel(): void {
+    this.skipGuard = true;
     void this.router.navigate(['/configuracion'], { queryParams: { tab: 'plantillas' } });
   }
 }
