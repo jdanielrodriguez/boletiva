@@ -29,7 +29,7 @@
               <app-icon name="publish" />
             </button>
           } @else {
-            <button type="button" class="btn small icon-only" (click)="unpublish(t)" data-testid="tpl-unpublish" [title]="'config.templates.unpublishTitle' | translate" [attr.aria-label]="'config.templates.unpublish' | translate">
+            <button type="button" class="btn small icon-only" (click)="askUnpublish(t)" data-testid="tpl-unpublish" [title]="'config.templates.unpublishTitle' | translate" [attr.aria-label]="'config.templates.unpublish' | translate">
               <app-icon name="draft" />
             </button>
           }
@@ -52,7 +52,7 @@
             </button>
           }
           @if (!t.disabled) {
-            <button type="button" class="btn small" (click)="disable(t)" data-testid="tpl-disable" [title]="'config.templates.disableTitle' | translate">
+            <button type="button" class="btn small" (click)="askDisable(t)" data-testid="tpl-disable" [title]="'config.templates.disableTitle' | translate">
               <app-icon name="cancel" /> {{ 'config.templates.disable' | translate }}
             </button>
           } @else {

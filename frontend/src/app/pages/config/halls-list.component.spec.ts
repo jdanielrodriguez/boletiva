@@ -70,6 +70,8 @@ describe('HallsListComponent (v3.9 · B1 + v3.10 · FE-3)', () => {
     hide: (h: unknown) => void;
     disable: (h: unknown) => void;
     askPublish: (h: unknown) => void;
+    askUnpublish: (h: unknown) => void;
+    askDisable: (h: unknown) => void;
     askRemove: (h: unknown) => void;
     confirm: { accept: () => void };
   };
@@ -187,6 +189,28 @@ describe('HallsListComponent (v3.9 · B1 + v3.10 · FE-3)', () => {
     expect(publish).not.toHaveBeenCalled();
     inst().confirm.accept();
     expect(publish).toHaveBeenCalledWith('h2');
+  });
+
+  it('desactivar pide confirmación y solo deshabilita al aceptar (B2)', async () => {
+    const disable = jasmine.createSpy('d').and.returnValue(of(HALLS[0]));
+    await setup({ disable });
+    inst().askDisable(HALLS[0]);
+    fixture.detectChanges();
+    expect(el.querySelector('[data-testid="confirm-dialog"]')).not.toBeNull();
+    expect(disable).not.toHaveBeenCalled();
+    inst().confirm.accept();
+    expect(disable).toHaveBeenCalledWith('h1');
+  });
+
+  it('volver a borrador pide confirmación y solo despublica al aceptar (B2)', async () => {
+    const unpublish = jasmine.createSpy('u').and.returnValue(of(HALLS[0]));
+    await setup({ unpublish });
+    inst().askUnpublish(HALLS[0]);
+    fixture.detectChanges();
+    expect(el.querySelector('[data-testid="confirm-dialog"]')).not.toBeNull();
+    expect(unpublish).not.toHaveBeenCalled();
+    inst().confirm.accept();
+    expect(unpublish).toHaveBeenCalledWith('h1');
   });
 
   it('askRemove bloquea si no es borrable (warning, sin API)', async () => {

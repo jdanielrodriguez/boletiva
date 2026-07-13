@@ -129,6 +129,20 @@ export class TemplatesListComponent {
   protected publish(t: SeatTemplateResponseDto): void {
     this.transition(this.templatesApi.publish(t.id), 'config.templates.published');
   }
+  /** Volver a borrador con modal de confirmación (v3.11 · B2). */
+  protected askUnpublish(t: SeatTemplateResponseDto): void {
+    this.confirm.ask({
+      title: this.translate.instant('config.templates.unpublishConfirmTitle'),
+      message: this.translate.instant('config.templates.unpublishConfirmMessage', { name: t.name }),
+      confirmLabel: this.translate.instant('config.templates.unpublish'),
+      confirmIcon: 'draft',
+      titleIcon: 'draft',
+      danger: false,
+      auditAction: 'template.unpublish',
+      auditResource: t.id,
+      onConfirm: () => this.unpublish(t),
+    });
+  }
   protected unpublish(t: SeatTemplateResponseDto): void {
     this.transition(this.templatesApi.unpublish(t.id), 'config.templates.unpublished');
   }
@@ -137,6 +151,20 @@ export class TemplatesListComponent {
   }
   protected unhide(t: SeatTemplateResponseDto): void {
     this.transition(this.templatesApi.unhide(t.id), 'config.templates.shown');
+  }
+  /** Deshabilitar con modal de confirmación (v3.11 · B2). */
+  protected askDisable(t: SeatTemplateResponseDto): void {
+    this.confirm.ask({
+      title: this.translate.instant('config.templates.disableConfirmTitle'),
+      message: this.translate.instant('config.templates.disableConfirmMessage', { name: t.name }),
+      confirmLabel: this.translate.instant('config.templates.disable'),
+      confirmIcon: 'cancel',
+      titleIcon: 'cancel',
+      danger: false,
+      auditAction: 'template.disable',
+      auditResource: t.id,
+      onConfirm: () => this.disable(t),
+    });
   }
   protected disable(t: SeatTemplateResponseDto): void {
     this.transition(this.templatesApi.disable(t.id), 'config.templates.disabled');

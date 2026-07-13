@@ -103,6 +103,20 @@ export class HallsListComponent {
       error: () => this.toasts.error(this.translate.instant('config.halls.publishError')),
     });
   }
+  /** Volver a borrador con modal de confirmación (v3.11 · B2). */
+  protected askUnpublish(h: HallResponseDto): void {
+    this.confirm.ask({
+      title: this.translate.instant('config.halls.unpublishConfirmTitle'),
+      message: this.translate.instant('config.halls.unpublishConfirmMessage', { name: h.name }),
+      confirmLabel: this.translate.instant('config.halls.unpublish'),
+      confirmIcon: 'draft',
+      titleIcon: 'draft',
+      danger: false,
+      auditAction: 'hall.unpublish',
+      auditResource: h.id,
+      onConfirm: () => this.unpublish(h),
+    });
+  }
   protected unpublish(h: HallResponseDto): void {
     this.hallsApi.unpublish(h.id).subscribe({
       next: () => {
@@ -128,6 +142,20 @@ export class HallsListComponent {
   }
   protected unhide(h: HallResponseDto): void {
     this.transition(this.hallsApi.unhide(h.id), 'config.halls.shown');
+  }
+  /** Deshabilitar con modal de confirmación (v3.11 · B2). */
+  protected askDisable(h: HallResponseDto): void {
+    this.confirm.ask({
+      title: this.translate.instant('config.halls.disableConfirmTitle'),
+      message: this.translate.instant('config.halls.disableConfirmMessage', { name: h.name }),
+      confirmLabel: this.translate.instant('config.halls.disable'),
+      confirmIcon: 'cancel',
+      titleIcon: 'cancel',
+      danger: false,
+      auditAction: 'hall.disable',
+      auditResource: h.id,
+      onConfirm: () => this.disable(h),
+    });
   }
   protected disable(h: HallResponseDto): void {
     this.transition(this.hallsApi.disable(h.id), 'config.halls.disabled');

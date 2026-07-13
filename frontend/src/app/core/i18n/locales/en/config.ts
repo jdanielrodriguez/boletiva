@@ -253,6 +253,9 @@ export const config = {
       'Publish venue "{{name}}"? Promoters will be able to pick it when creating events.',
     unpublish: 'Unpublish',
     unpublishTitle: 'Back to draft (hidden from the selector)',
+    unpublishConfirmTitle: 'Move back to draft',
+    unpublishConfirmMessage:
+      'Move venue "{{name}}" back to draft? It will no longer be available for promoters to pick.',
     published: 'Venue published.',
     unpublished: 'Venue moved back to draft.',
     publishError: 'Could not change the venue status.',
@@ -261,6 +264,9 @@ export const config = {
     removeTitle: 'Delete venue',
     disable: 'Disable',
     disableTitle: 'Disable (required before deleting)',
+    disableConfirmTitle: 'Disable venue',
+    disableConfirmMessage:
+      'Disable venue "{{name}}"? It cannot be picked for new events until you enable it again.',
     enable: 'Enable',
     enableTitle: 'Enable again',
     hideTitle: 'Hide from the promoter selector',
@@ -319,8 +325,14 @@ export const config = {
       'Publish template "{{name}}"? It will show up in the "Generate" dropdown of the seat editor.',
     unpublish: 'Unpublish',
     unpublishTitle: 'Back to draft',
+    unpublishConfirmTitle: 'Move back to draft',
+    unpublishConfirmMessage:
+      'Move template "{{name}}" back to draft? It will no longer appear in the "Generate" dropdown of the editor.',
     disable: 'Disable',
     disableTitle: 'Disable (required before deleting)',
+    disableConfirmTitle: 'Disable template',
+    disableConfirmMessage:
+      'Disable template "{{name}}"? It cannot be used in the editor until you enable it again.',
     enable: 'Enable',
     enableTitle: 'Enable again',
     hideTitle: 'Hide from the promoter editor',

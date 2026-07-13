@@ -253,6 +253,9 @@ export const config = {
       '¿Publicar el salón "{{name}}"? Quedará disponible para que los promotores lo elijan al crear eventos.',
     unpublish: 'Despublicar',
     unpublishTitle: 'Regresar a borrador (oculto del selector)',
+    unpublishConfirmTitle: 'Regresar a borrador',
+    unpublishConfirmMessage:
+      '¿Regresar el salón "{{name}}" a borrador? Dejará de estar disponible para que los promotores lo elijan.',
     published: 'Salón publicado.',
     unpublished: 'Salón regresado a borrador.',
     publishError: 'No se pudo cambiar el estado del salón.',
@@ -261,6 +264,9 @@ export const config = {
     removeTitle: 'Eliminar salón',
     disable: 'Deshabilitar',
     disableTitle: 'Deshabilitar (requisito para eliminar)',
+    disableConfirmTitle: 'Deshabilitar salón',
+    disableConfirmMessage:
+      '¿Deshabilitar el salón "{{name}}"? No se podrá elegir en eventos nuevos hasta que lo habilites de nuevo.',
     enable: 'Habilitar',
     enableTitle: 'Habilitar de nuevo',
     hideTitle: 'Ocultar del selector del promotor',
@@ -319,8 +325,14 @@ export const config = {
       '¿Publicar la plantilla "{{name}}"? Aparecerá en el desplegable "Generar" del editor de asientos.',
     unpublish: 'Despublicar',
     unpublishTitle: 'Regresar a borrador',
+    unpublishConfirmTitle: 'Regresar a borrador',
+    unpublishConfirmMessage:
+      '¿Regresar la plantilla "{{name}}" a borrador? Dejará de aparecer en el desplegable "Generar" del editor.',
     disable: 'Deshabilitar',
     disableTitle: 'Deshabilitar (requisito para eliminar)',
+    disableConfirmTitle: 'Deshabilitar plantilla',
+    disableConfirmMessage:
+      '¿Deshabilitar la plantilla "{{name}}"? No se podrá usar en el editor hasta que la habilites de nuevo.',
     enable: 'Habilitar',
     enableTitle: 'Habilitar de nuevo',
     hideTitle: 'Ocultar del editor del promotor',

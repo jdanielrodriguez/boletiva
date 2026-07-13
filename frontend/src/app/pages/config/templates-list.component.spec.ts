@@ -63,6 +63,8 @@ describe('TemplatesListComponent (v3.9 · B1)', () => {
     canDelete: (t: unknown) => boolean;
     publish: (t: unknown) => void;
     askPublish: (t: unknown) => void;
+    askUnpublish: (t: unknown) => void;
+    askDisable: (t: unknown) => void;
     hide: (t: unknown) => void;
     disable: (t: unknown) => void;
     newTemplate: () => void;
@@ -205,6 +207,28 @@ describe('TemplatesListComponent (v3.9 · B1)', () => {
     expect(publish).not.toHaveBeenCalled();
     inst().confirm.accept();
     expect(publish).toHaveBeenCalledWith('t2');
+  });
+
+  it('desactivar pide confirmación y solo deshabilita al aceptar (B2)', async () => {
+    const disable = jasmine.createSpy('d').and.returnValue(of(TEMPLATES[1]));
+    await setup({ disable });
+    inst().askDisable(TEMPLATES[1]);
+    fixture.detectChanges();
+    expect(el.querySelector('[data-testid="confirm-dialog"]')).not.toBeNull();
+    expect(disable).not.toHaveBeenCalled();
+    inst().confirm.accept();
+    expect(disable).toHaveBeenCalledWith('t2');
+  });
+
+  it('volver a borrador pide confirmación y solo despublica al aceptar (B2)', async () => {
+    const unpublish = jasmine.createSpy('u').and.returnValue(of(TEMPLATES[1]));
+    await setup({ unpublish });
+    inst().askUnpublish(TEMPLATES[1]);
+    fixture.detectChanges();
+    expect(el.querySelector('[data-testid="confirm-dialog"]')).not.toBeNull();
+    expect(unpublish).not.toHaveBeenCalled();
+    inst().confirm.accept();
+    expect(unpublish).toHaveBeenCalledWith('t2');
   });
 
   it('preview de una plantilla publicada abre el modal', async () => {
