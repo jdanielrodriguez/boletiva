@@ -11,6 +11,7 @@ import { MaintenanceBannerComponent } from './shared/maintenance/maintenance-ban
 import { ImpersonationBannerComponent } from './shared/layout/impersonation-banner.component';
 import { SessionStore } from './core/auth/session.store';
 import { TokenStore } from './core/auth/token-store.service';
+import { ImpersonationService } from './core/auth/impersonation.service';
 import { MaintenanceStore } from './core/maintenance/maintenance.store';
 import { LoadingStore } from './core/ui/loading.store';
 import { I18nService } from './core/i18n/i18n.service';
@@ -40,6 +41,7 @@ export class App {
   private readonly loading = inject(LoadingStore);
   private readonly i18n = inject(I18nService);
   private readonly publicConfig = inject(PublicConfigStore);
+  private readonly impersonation = inject(ImpersonationService);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
 
   /** Guard: la decisión de idioma inicial se aplica una sola vez. */
@@ -89,7 +91,16 @@ export class App {
     if (this.isBrowser) {
       this.maintenance.load();
       this.publicConfig.load();
-      this.session.ensureLoaded().subscribe();
+      // W9: restaura una impersonación persistida ANTES de resolver la sesión. Si
+      // había token, `ensureLoaded` ve un access token en memoria y hace /auth/me
+      // directo → resuelve al promotor (con `impersonatedBy`) sin refrescar al admin.
+      // Sin token, el flujo normal (refresh del admin/usuario) sigue igual.
+      const restoringImpersonation = this.impersonation.bootstrap();
+      this.session.ensureLoaded().subscribe(() => {
+        // Si el token impersonado ya venció (el interceptor cayó al admin), descarta
+        // el token obsoleto para no reintentarlo en el próximo F5.
+        if (restoringImpersonation) this.impersonation.reconcile();
+      });
 
       // Decisión de idioma inicial (v3.10 · GI). Se aplica UNA vez, cuando ya se
       // resolvió la sesión Y llegó la config pública (ambas HTTP → post-hidratación,

@@ -15,6 +15,7 @@ import type {
 } from '../api/types';
 import { SessionStore, type SessionUser } from './session.store';
 import { TokenStore } from './token-store.service';
+import { ImpersonationService } from './impersonation.service';
 import { I18nService } from '../i18n/i18n.service';
 
 /**
@@ -27,6 +28,7 @@ export class AuthService {
   private readonly authApi = inject(AuthApi);
   private readonly tokens = inject(TokenStore);
   private readonly session = inject(SessionStore);
+  private readonly impersonation = inject(ImpersonationService);
   private readonly i18n = inject(I18nService);
 
   /**
@@ -57,6 +59,9 @@ export class AuthService {
   /** Cierra la sesión: revoca el refresh en el backend y limpia el estado local. */
   logout(): Observable<void> {
     const hadSession = this.tokens.hasSessionHint();
+    // Descarta cualquier impersonación persistida: al cerrar sesión no debe quedar
+    // un token que reviva la vista impersonada en el próximo boot (W9).
+    this.impersonation.clearStored();
     this.session.clear();
     // Al cerrar sesión SIEMPRE se vuelve a español y se borra la preferencia de
     // idioma del visitante (v3.10 · GI): aunque el usuario recién salido tuviera

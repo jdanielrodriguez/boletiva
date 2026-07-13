@@ -16,6 +16,7 @@ describe('ImpersonationService (v3.8)', () => {
   let refresh: jasmine.Spy;
 
   beforeEach(() => {
+    sessionStorage.clear();
     userSig.set(null);
     post = jasmine.createSpy('post').and.returnValue(
       of({ accessToken: 'imp-token', expiresIn: 1800, impersonatedBy: 'admin-1', user: { id: 'u2' } }),
@@ -59,5 +60,51 @@ describe('ImpersonationService (v3.8)', () => {
     userSig.set({ id: 'u2', firstName: 'Leo', impersonatedBy: 'admin-1' } as SessionUser);
     expect(service.active()).toBe(true);
     expect(service.asUser()?.firstName).toBe('Leo');
+  });
+
+  describe('persistencia al F5 (W9)', () => {
+    it('start() persiste el token impersonado en sessionStorage', () => {
+      service.start('u2').subscribe();
+      expect(sessionStorage.getItem('pe_impersonation')).toBe('imp-token');
+    });
+
+    it('bootstrap() con token persistido lo coloca en el TokenStore y devuelve true', () => {
+      sessionStorage.setItem('pe_impersonation', 'imp-token');
+      const restored = service.bootstrap();
+      expect(restored).toBe(true);
+      expect(setAccessToken).toHaveBeenCalledWith('imp-token');
+    });
+
+    it('bootstrap() sin token no toca el TokenStore y devuelve false (flujo normal)', () => {
+      const restored = service.bootstrap();
+      expect(restored).toBe(false);
+      expect(setAccessToken).not.toHaveBeenCalled();
+    });
+
+    it('stop() borra el token persistido', () => {
+      sessionStorage.setItem('pe_impersonation', 'imp-token');
+      service.stop().subscribe();
+      expect(sessionStorage.getItem('pe_impersonation')).toBeNull();
+    });
+
+    it('reconcile() borra el token si la sesión NO quedó impersonada (token vencido)', () => {
+      sessionStorage.setItem('pe_impersonation', 'stale');
+      userSig.set({ id: 'admin-1', firstName: 'Admin' } as SessionUser); // sin impersonatedBy
+      service.reconcile();
+      expect(sessionStorage.getItem('pe_impersonation')).toBeNull();
+    });
+
+    it('reconcile() conserva el token si la sesión SÍ quedó impersonada', () => {
+      sessionStorage.setItem('pe_impersonation', 'imp-token');
+      userSig.set({ id: 'u2', impersonatedBy: 'admin-1' } as SessionUser);
+      service.reconcile();
+      expect(sessionStorage.getItem('pe_impersonation')).toBe('imp-token');
+    });
+
+    it('clearStored() borra el token (lo usa el logout)', () => {
+      sessionStorage.setItem('pe_impersonation', 'imp-token');
+      service.clearStored();
+      expect(sessionStorage.getItem('pe_impersonation')).toBeNull();
+    });
   });
 });
