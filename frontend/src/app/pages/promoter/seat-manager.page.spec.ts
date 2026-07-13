@@ -82,11 +82,21 @@ describe('SeatManagerPage (vista de asientos a página completa)', () => {
     expect(fixture.componentInstance['backQuery']()).toEqual({ tab: 'localidades', from: 'admin' });
   });
 
-  it('evento publicado → asientos en solo lectura', async () => {
+  it('dueño en evento PUBLICADO → SÍ puede editar asientos (v3.10 · GIV, sin gate por status)', async () => {
     await setup({ get: () => of({ id: 'e1', promoterId: 'owner-1', name: 'Show', status: 'published', media: [] }) });
-    expect(fixture.componentInstance['readonly']()).toBe(true);
+    // El dueño edita SIEMPRE: el gate por status ya NO bloquea.
+    expect(fixture.componentInstance['readonly']()).toBe(false);
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('[data-testid="seat-readonly-note"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="seat-admin-locked"]')).toBeNull();
+  });
+
+  it('admin NO dueño en evento PUBLICADO → bloqueado hasta desbloquear', async () => {
+    await setup(
+      { get: () => of({ id: 'e1', promoterId: 'owner-1', name: 'Show', status: 'published', media: [] }) },
+      {},
+      { id: 'admin-9', roles: ['admin'] },
+    );
+    expect(fixture.componentInstance['readonly']()).toBe(true);
   });
 
   it('admin NO dueño → bloqueado (solo lectura) por propiedad real', async () => {

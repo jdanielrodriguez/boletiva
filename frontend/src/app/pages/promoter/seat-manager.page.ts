@@ -52,10 +52,12 @@ export class SeatManagerPage implements OnDestroy {
       !this.editUnlock.isUnlocked(this.eventId())
     );
   });
-  /** Publicado o bloqueado por admin → asientos solo lectura; el backend también valida. */
-  protected readonly readonly = computed(
-    () => (this.event()?.status ?? 'draft') !== 'draft' || this.adminLocked(),
-  );
+  /**
+   * SOLO LECTURA cuando un ADMIN no-dueño no ha desbloqueado (v3.10 · GIV). El DUEÑO
+   * (promotor propietario o admin impersonándolo) edita SIEMPRE, aunque el evento
+   * esté publicado — el gate por `status` NO aplica al dueño. El backend también valida.
+   */
+  protected readonly readonly = computed(() => this.adminLocked());
 
   /** Vuelve al editor del evento (pestaña Localidades), preservando el origen. */
   protected readonly backLink = computed(() => `/promotor/eventos/${this.eventId()}/editar`);

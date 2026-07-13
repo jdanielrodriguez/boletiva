@@ -6,6 +6,7 @@ import type {
   CreateEventDto,
   CreateLocalityInput,
   EditUnlockTokenDto,
+  EventCashTransferDto,
   EventSettlementDto,
   EventTransactionPageDto,
   GatewayResponseDto,
@@ -96,6 +97,15 @@ export class PromoterEventsApi {
   /** Liquidación (cuentas) del evento sobre sus órdenes pagadas. */
   settlement(id: string): Observable<EventSettlementDto> {
     return this.api.get<EventSettlementDto>(`/events/${id}/settlement`);
+  }
+
+  /**
+   * Cierra el evento y TRANSFIERE su saldo de caja al wallet del promotor (SOLO
+   * admin). Elegible si el evento está finalizado/suspendido o su fecha de fin ya
+   * pasó. Idempotente: si ya se transfirió responde 409.
+   */
+  finalizeSettlement(id: string): Observable<EventCashTransferDto> {
+    return this.api.post<EventCashTransferDto>(`/events/${id}/settlement/finalize`);
   }
 
   /** Transacciones (órdenes) del evento, paginadas por keyset (?cursor&limit). */

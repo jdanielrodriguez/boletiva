@@ -203,14 +203,14 @@
                                Se oculta mientras ESA localidad está en edición. -->
                           @if (editingLoc()?.id !== l.id) {
                             <a class="btn small primary" [routerLink]="seatsLink(l)" [queryParams]="seatsQuery()" data-testid="loc-seats"
-                              [title]="(!canEditLayout() || locked()) ? ('promoter.edit.viewSeatMap' | translate) : ('promoter.edit.openSeatEditor' | translate)">
-                              <app-icon name="seats" /> {{ (!canEditLayout() || locked()) ? ('promoter.edit.viewSeats' | translate) : ('promoter.edit.manageSeats' | translate) }}
+                              [title]="!canEdit() ? ('promoter.edit.viewSeatMap' | translate) : ('promoter.edit.openSeatEditor' | translate)">
+                              <app-icon name="seats" /> {{ !canEdit() ? ('promoter.edit.viewSeats' | translate) : ('promoter.edit.manageSeats' | translate) }}
                             </a>
                           }
                         } @else {
                           <span class="muted small loc-general-note" data-testid="loc-general-note">{{ 'promoter.edit.soldByCapacity' | translate }}</span>
                         }
-                        @if (canEditLayout()) {
+                        @if (canEdit()) {
                           @if (editingLoc()?.id !== l.id) {
                             <button type="button" class="btn small" (click)="startEditLocality(l)" data-testid="loc-edit" [title]="'promoter.edit.editLocalityTitle' | translate">
                               <app-icon name="edit" /> {{ 'common.edit' | translate }}
@@ -231,7 +231,7 @@
               <p class="muted" data-testid="loc-empty">{{ 'promoter.edit.noLocalities' | translate }}</p>
             }
 
-            @if (canEditLayout()) {
+            @if (canEdit()) {
               <!-- Patrón botón → form: por defecto solo el botón; se abre al pulsar. -->
               @if (!showLocForm()) {
                 <button type="button" class="btn primary" (click)="toggleLocForm()" data-testid="loc-add-toggle" [title]="'promoter.edit.addLocality' | translate">
@@ -367,23 +367,26 @@
 
         @case ('config') {
           <div class="card-block">
+            <!-- Pasarela EDITABLE en borrador o suspendido (v3.10): el backend permite
+                 cambiarla en suspendido aunque el evento tuviera compras. Solo se
+                 bloquea cuando está publicado/finalizado (congelada). -->
             <label class="field"><span>{{ 'promoter.edit.fieldGateway' | translate }}</span>
-              <select [ngModel]="c.gatewayId()" (ngModelChange)="c.gatewayId.set($event)" name="gw" [disabled]="isFrozen()" data-testid="cfg-gateway">
+              <select [ngModel]="c.gatewayId()" (ngModelChange)="c.gatewayId.set($event)" name="gw" [disabled]="!canEditLayout()" data-testid="cfg-gateway">
                 <option value="">{{ 'promoter.edit.gatewayDefault' | translate }}</option>
                 @for (g of gateways(); track g.id) { <option [value]="g.id">{{ g.name }}</option> }
               </select>
             </label>
-            <p class="muted small">{{ 'promoter.edit.gatewayHint' | translate }} {{ isFrozen() ? ('promoter.edit.gatewayFrozen' | translate) : '' }}</p>
+            <p class="muted small">{{ 'promoter.edit.gatewayHint' | translate }} {{ (isFrozen() && !canEditLayout()) ? ('promoter.edit.gatewayFrozen' | translate) : '' }}</p>
 
-            <label class="check-row">
-              <input type="checkbox" [ngModel]="c.ivaOnNet()" (ngModelChange)="c.ivaOnNet.set($event)" name="iva" [disabled]="isFrozen()" data-testid="cfg-iva" />
-              <span>{{ 'promoter.edit.ivaOnNetLabel' | translate }}</span>
-            </label>
+            <div class="check-row">
+              <app-switch [checked]="c.ivaOnNet()" (checkedChange)="c.ivaOnNet.set($event)" [disabled]="!canEditLayout()"
+                [label]="'promoter.edit.ivaOnNetLabel' | translate" testId="cfg-iva" />
+            </div>
 
-            <label class="check-row">
-              <input type="checkbox" [ngModel]="c.absorbInstallmentCost()" (ngModelChange)="c.absorbInstallmentCost.set($event)" name="abs" data-testid="cfg-absorb" />
-              <span>{{ 'promoter.edit.absorbLabel' | translate }}</span>
-            </label>
+            <div class="check-row">
+              <app-switch [checked]="c.absorbInstallmentCost()" (checkedChange)="c.absorbInstallmentCost.set($event)"
+                [label]="'promoter.edit.absorbLabel' | translate" testId="cfg-absorb" />
+            </div>
 
             <button type="button" class="btn primary" [disabled]="savingConfig()" (click)="saveConfig()" data-testid="cfg-save" [title]="'promoter.edit.saveConfig' | translate">
               <app-icon name="save" /> {{ savingConfig() ? ('promoter.edit.savingShort' | translate) : ('promoter.edit.saveConfig' | translate) }}
@@ -479,6 +482,31 @@
         }
       </div>
     }
+
+    <!-- Cierre + transferencia de saldos de caja: SOLO admin, evento finalizado o
+         suspendido. Fuera del fieldset → NUNCA se bloquea por el candado de edición.
+         El promotor NO ve esta sección. -->
+    @if (tab() === 'cuentas' && canFinalizeCash()) {
+      <div class="card-block cash-transfer-block" data-testid="cash-transfer">
+        <h3>{{ 'promoter.edit.cashTransferHeading' | translate }}</h3>
+        <p class="muted small">{{ 'promoter.edit.cashTransferIntro' | translate }}</p>
+
+        @if (cashResult(); as r) {
+          <div class="cash-transfer-result" data-testid="cash-transfer-result" role="status">
+            <p><app-icon name="save" /> {{ 'promoter.edit.cashTransferSummary' | translate: { amount: r.transferred, currency: r.currency } }}</p>
+            <p class="muted small">{{ 'promoter.edit.cashTransferState' | translate: { state: (r.status | statusLabel) } }}</p>
+          </div>
+        } @else {
+          @if (cashError(); as err) {
+            <p class="error" data-testid="cash-transfer-error">{{ err }}</p>
+          }
+          <button type="button" class="btn primary" [disabled]="finalizing()" (click)="askFinalizeCash()" data-testid="cash-transfer-btn"
+            [title]="'promoter.edit.cashTransferBtn' | translate">
+            <app-icon name="accounts" /> {{ finalizing() ? ('promoter.edit.cashTransferring' | translate) : ('promoter.edit.cashTransferBtn' | translate) }}
+          </button>
+        }
+      </div>
+    }
   }
 
   @if (showUnlockModal()) {
@@ -521,6 +549,10 @@
       [message]="cf.message"
       [confirmLabel]="cf.confirmLabel ?? ('common.delete' | translate)"
       [confirmIcon]="cf.confirmIcon ?? 'delete'"
+      [danger]="cf.danger ?? true"
+      [titleIcon]="cf.titleIcon"
+      [auditAction]="cf.auditAction"
+      [auditResource]="cf.auditResource"
       (accept)="onConfirmAccept()"
       (cancelled)="onConfirmCancel()"
     />

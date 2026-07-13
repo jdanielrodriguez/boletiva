@@ -78,6 +78,16 @@ describe('EventEditPage (v3)', () => {
             generateBanner: () => of({ url: 'http://x/b.svg' }),
             activeGateways: () => of([{ id: 'g1', name: 'Sandbox' }]),
             settlement: () => of({ net: '0.00' }),
+            finalizeSettlement: () =>
+              of({
+                eventId: 'e1',
+                eventName: 'Show',
+                promoterId: 'owner-1',
+                currency: 'GTQ',
+                transferred: '1000.00',
+                status: 'finished',
+                transferredAt: '2028-01-01T00:00:00.000Z',
+              }),
             seats: () => of([]),
             transactions: () => of({ items: [], nextCursor: null }),
             updateLocality: () => of({ id: 'l1' }),
@@ -673,7 +683,7 @@ describe('EventEditPage (v3)', () => {
   it('elegir salón prefija dirección y coordenadas', async () => {
     await setup();
     fixture.componentInstance['halls'].set([
-      { id: 'h1', name: 'Teatro', address: 'Zona 1', lat: 14.6, lng: -90.5, city: 'GT', notes: null, seatTemplateId: null, status: 'published', createdAt: '', updatedAt: '' },
+      { id: 'h1', name: 'Teatro', address: 'Zona 1', lat: 14.6, lng: -90.5, city: 'GT', notes: null, seatTemplateId: null, status: 'published', hidden: false, disabled: false, createdAt: '', updatedAt: '' },
     ]);
     fixture.componentInstance['onHallChange']('h1');
     expect(fixture.componentInstance['d'].address()).toBe('Zona 1');
@@ -830,6 +840,131 @@ describe('EventEditPage (v3)', () => {
     await setup({ get: () => of({ ...EVENT, createdByAdminId: 'admin-9' }) });
     expect(
       (fixture.nativeElement as HTMLElement).querySelector('[data-testid="created-by-support"]'),
+    ).not.toBeNull();
+  });
+
+  // --- v3.10 · GIV: permisos del editor (el DUEÑO edita SIEMPRE) ---
+  it('dueño en evento PUBLICADO: canEdit true → ve agregar/editar localidades', async () => {
+    await setup({ get: () => of({ ...EVENT, status: 'published' }) });
+    expect(inst()['canEdit']()).toBe(true);
+    fixture.componentInstance['selectTab']('localidades');
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="loc-add-toggle"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="loc-edit"]')).not.toBeNull();
+  });
+
+  it('admin NO dueño en publicado: canEdit false (bloqueado hasta desbloquear)', async () => {
+    await setup({ get: () => of({ ...EVENT, status: 'published' }) }, {}, 'e1', {
+      id: 'admin-9',
+      roles: ['admin'],
+    });
+    expect(inst()['canEdit']()).toBe(false);
+    expect(fixture.componentInstance['locked']()).toBe(true);
+  });
+
+  // --- v3.10 · GIV: pasarela editable si suspendido ---
+  it('config: pasarela EDITABLE cuando el evento está suspendido (canEditLayout)', async () => {
+    await setup({ get: () => of({ ...EVENT, status: 'suspended', frozenGatewayId: 'g1' }) });
+    fixture.componentInstance['selectTab']('config');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(inst()['canEditLayout']()).toBe(true);
+    const gw = (fixture.nativeElement as HTMLElement).querySelector(
+      '[data-testid="cfg-gateway"]',
+    ) as HTMLSelectElement;
+    expect(gw.disabled).toBe(false);
+  });
+
+  it('config: pasarela BLOQUEADA cuando el evento está publicado y congelado', async () => {
+    await setup({ get: () => of({ ...EVENT, status: 'published', frozenGatewayId: 'g1' }) });
+    fixture.componentInstance['selectTab']('config');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(inst()['canEditLayout']()).toBe(false);
+    const gw = (fixture.nativeElement as HTMLElement).querySelector(
+      '[data-testid="cfg-gateway"]',
+    ) as HTMLSelectElement;
+    expect(gw.disabled).toBe(true);
+  });
+
+  // --- v3.10 · GIV: guard de cambios sin guardar ---
+  it('hasUnsavedChanges: false tras cargar; true al cambiar un dato; confirmDiscard abre modal', async () => {
+    await setup();
+    const c = fixture.componentInstance as unknown as {
+      hasUnsavedChanges: () => boolean;
+      confirmDiscard: () => { subscribe: (cb: (v: boolean) => void) => void };
+      d: { name: { set: (v: string) => void } };
+    };
+    expect(c.hasUnsavedChanges()).toBe(false);
+    c.d.name.set('Otro nombre');
+    expect(c.hasUnsavedChanges()).toBe(true);
+    let resolved: boolean | undefined;
+    c.confirmDiscard().subscribe((v) => (resolved = v));
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="confirm-dialog"]')).not.toBeNull();
+    // Cancelar (seguir editando) resuelve false.
+    fixture.componentInstance['onConfirmCancel']();
+    expect(resolved).toBe(false);
+  });
+
+  // --- v3.10 · GVI: finalizar evento y transferir saldos (SOLO admin) ---
+  it('finalizar/transferir: el PROMOTOR NO ve la sección', async () => {
+    await setup({ get: () => of({ ...EVENT, status: 'finished' }) });
+    fixture.componentInstance['selectTab']('cuentas');
+    fixture.detectChanges();
+    expect(inst()['canFinalizeCash']()).toBe(false);
+    expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="cash-transfer"]')).toBeNull();
+  });
+
+  it('finalizar/transferir: el ADMIN ve la sección en evento finalizado y transfiere', async () => {
+    const finalizeSettlement = jasmine.createSpy('f').and.returnValue(
+      of({
+        eventId: 'e1',
+        eventName: 'Show',
+        promoterId: 'owner-1',
+        currency: 'GTQ',
+        transferred: '1000.00',
+        status: 'finished',
+        transferredAt: '2028-01-01T00:00:00.000Z',
+      }),
+    );
+    await setup({ finalizeSettlement, get: () => of({ ...EVENT, status: 'finished' }) }, {}, 'e1', {
+      id: 'admin-9',
+      roles: ['admin'],
+    });
+    fixture.componentInstance['selectTab']('cuentas');
+    fixture.detectChanges();
+    expect(inst()['canFinalizeCash']()).toBe(true);
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="cash-transfer"]')).not.toBeNull();
+    // Modal de validación → aceptar → llama al endpoint.
+    fixture.componentInstance['askFinalizeCash']();
+    fixture.detectChanges();
+    fixture.componentInstance['onConfirmAccept']();
+    fixture.detectChanges();
+    expect(finalizeSettlement).toHaveBeenCalledWith('e1');
+    expect(el.querySelector('[data-testid="cash-transfer-result"]')).not.toBeNull();
+  });
+
+  it('finalizar/transferir: 409 (ya transferido) muestra mensaje claro', async () => {
+    const finalizeSettlement = jasmine
+      .createSpy('f')
+      .and.returnValue(throwError(() => ({ status: 409 })));
+    await setup({ finalizeSettlement, get: () => of({ ...EVENT, status: 'suspended' }) }, {}, 'e1', {
+      id: 'admin-9',
+      roles: ['admin'],
+    });
+    fixture.componentInstance['selectTab']('cuentas');
+    fixture.detectChanges();
+    fixture.componentInstance['askFinalizeCash']();
+    fixture.detectChanges();
+    fixture.componentInstance['onConfirmAccept']();
+    fixture.detectChanges();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="cash-transfer-error"]'),
     ).not.toBeNull();
   });
 

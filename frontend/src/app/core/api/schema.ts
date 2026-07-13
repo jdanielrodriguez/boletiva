@@ -1310,6 +1310,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{eventId}/settlement/finalize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Finaliza el evento y transfiere el saldo de caja (neto) al wallet del promotor (SOLO admin; idempotente). Disponible si el evento está finalizado/suspendido o ya pasó. */
+        post: operations["OrdersController_finalizeSettlement_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{eventId}/transactions": {
         parameters: {
             query?: never;
@@ -1828,10 +1845,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Mis retiros (keyset: ?cursor&limit) */
+        /** Mis retiros (keyset: ?cursor&limit). Solo promotor/admin. */
         get: operations["WalletController_mine_v1"];
         put?: never;
-        /** Solicita un retiro de saldo (reserva en el ledger) */
+        /** Solicita un retiro de saldo (reserva en el ledger). Solo promotor/admin. */
         post: operations["WalletController_request_v1"];
         delete?: never;
         options?: never;
@@ -2231,7 +2248,7 @@ export interface paths {
         get: operations["HallsController_get_v1"];
         put?: never;
         post?: never;
-        /** Elimina un salón (admin; desvincula sus eventos) */
+        /** Elimina un salón (admin; solo deshabilitado; desvincula sus eventos) */
         delete: operations["HallsController_remove_v1"];
         options?: never;
         head?: never;
@@ -2267,6 +2284,74 @@ export interface paths {
         put?: never;
         /** Regresa un salón a borrador (admin) */
         post: operations["HallsController_unpublish_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/halls/{id}/hide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Oculta un salón del selector del promotor (admin) */
+        post: operations["HallsController_hide_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/halls/{id}/unhide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Muestra de nuevo un salón oculto (admin) */
+        post: operations["HallsController_unhide_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/halls/{id}/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Deshabilita un salón (prerequisito para eliminar; admin) */
+        post: operations["HallsController_disable_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/halls/{id}/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Habilita un salón deshabilitado (admin) */
+        post: operations["HallsController_enable_v1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2462,6 +2547,23 @@ export interface paths {
         head?: never;
         /** Actualiza una configuración validando su tipo/rango (admin) */
         patch: operations["SettingsController_update_v1"];
+        trace?: never;
+    };
+    "/api/v1/public/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Flags de UI públicos (sin login) */
+        get: operations["PublicConfigController_get_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/maintenance": {
@@ -4766,6 +4868,31 @@ export interface components {
              */
             iva: string;
         };
+        EventCashTransferDto: {
+            /** Format: uuid */
+            eventId: string;
+            /** @example Concierto de Apertura */
+            eventName: string;
+            /**
+             * Format: uuid
+             * @description Promotor que recibe el saldo en su wallet
+             */
+            promoterId: string;
+            /** @example GTQ */
+            currency: string;
+            /**
+             * @description Neto transferido desde promoter_payable al wallet del promotor
+             * @example 34200.00
+             */
+            transferred: string;
+            /**
+             * @description Estado del evento tras el cierre
+             * @example finished
+             */
+            status: string;
+            /** Format: date-time */
+            transferredAt: string;
+        };
         EventTransactionDto: {
             /** Format: uuid */
             id: string;
@@ -6235,6 +6362,10 @@ export interface components {
              * @enum {string}
              */
             status: "draft" | "published";
+            /** @description Oculto del selector del promotor */
+            hidden: boolean;
+            /** @description Deshabilitado (prerequisito para eliminar) */
+            disabled: boolean;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -6380,6 +6511,18 @@ export interface components {
              * @example 0.1
              */
             value: number | boolean;
+        };
+        PublicConfigDto: {
+            /**
+             * @description Si un visitante (sin sesión) puede cambiar el idioma de la UI.
+             * @example false
+             */
+            allowVisitorLangSwitch: boolean;
+            /**
+             * @description Si se muestran las categorías en la página principal.
+             * @example true
+             */
+            showHomeCategories: boolean;
         };
         MaintenanceStatusDto: {
             /** @description true si la plataforma está en mantenimiento */
@@ -8444,6 +8587,29 @@ export interface operations {
             };
         };
     };
+    OrdersController_finalizeSettlement_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                "user-agent": string;
+            };
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventCashTransferDto"];
+                };
+            };
+        };
+    };
     OrdersController_eventTransactions_v1: {
         parameters: {
             query?: {
@@ -9923,6 +10089,90 @@ export interface operations {
             };
         };
     };
+    HallsController_hide_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HallResponseDto"];
+                };
+            };
+        };
+    };
+    HallsController_unhide_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HallResponseDto"];
+                };
+            };
+        };
+    };
+    HallsController_disable_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HallResponseDto"];
+                };
+            };
+        };
+    };
+    HallsController_enable_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HallResponseDto"];
+                };
+            };
+        };
+    };
     SeatTemplatesController_list_v1: {
         parameters: {
             query?: never;
@@ -10236,6 +10486,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SettingViewDto"];
+                };
+            };
+        };
+    };
+    PublicConfigController_get_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicConfigDto"];
                 };
             };
         };

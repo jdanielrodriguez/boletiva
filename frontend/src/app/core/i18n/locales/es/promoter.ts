@@ -219,6 +219,24 @@ export const promoter = {
     toastCancelError: 'No se pudo cancelar el evento.',
     toastRemoved: 'Evento eliminado.',
     toastRemoveError: 'Solo puedes eliminar eventos en borrador.',
+    // Sugerencia al chocar por conflicto (cambio de salón con boletos vendidos)
+    suggestSuspendToReorg:
+      'Para reorganizar el salón, la plantilla o los asientos, suspende primero el evento (el suspendido sí permite reconfigurar).',
+    // Cierre + transferencia de saldos de caja (SOLO admin) — v3.10 · GVI
+    cashTransferHeading: 'Finalizar evento y transferir saldos de caja',
+    cashTransferIntro:
+      'Cierra el evento y transfiere su saldo neto de caja al wallet del promotor. Genera los asientos contables (partida doble) y marca el evento como finalizado. Es idempotente: no se puede transferir dos veces.',
+    cashTransferBtn: 'Finalizar y transferir al promotor',
+    cashTransferring: 'Transfiriendo…',
+    cashTransferTitle: 'Finalizar evento y transferir',
+    cashTransferConfirm:
+      '¿Cerrar "{{name}}" y transferir su saldo de caja al wallet del promotor? Esta acción es contable y no se puede deshacer.',
+    cashTransferConfirmBtn: 'Sí, finalizar y transferir',
+    cashTransferDone: 'Saldo de caja transferido al promotor.',
+    cashTransferSummary: 'Transferido: {{currency}} {{amount}}',
+    cashTransferState: 'Estado del evento: {{state}}',
+    cashTransferAlready: 'El saldo de este evento ya fue transferido.',
+    cashTransferError: 'No se pudo finalizar y transferir el saldo del evento.',
   },
 
   // --- Editor de asientos (Konva) ---

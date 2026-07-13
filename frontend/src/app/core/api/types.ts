@@ -129,6 +129,8 @@ export type CreateEventDto = Schemas['CreateEventDto'];
 export type UpdateEventDto = Schemas['UpdateEventDto'];
 export type ManagedEventDetailDto = Schemas['ManagedEventDetailDto'];
 export type MyEventListItemDto = Schemas['MyEventListItemDto'];
+/** Resultado del cierre + transferencia de saldos de caja al promotor (admin). */
+export type EventCashTransferDto = Schemas['EventCashTransferDto'];
 
 // Localidades: el OpenAPI no expone un schema nombrado para el request/response de
 // localidades del panel, así que se tipan localmente (vista + cuerpo de creación).

@@ -3,7 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
+import { Observable, Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
 import { AdminApi, type PromoterListItemDto } from '../../core/api/admin.api';
 import { CategoriesApi } from '../../core/api/categories.api';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
@@ -20,6 +20,11 @@ import { EventSettlementComponent } from '../../shared/event-settlement/event-se
 import { IconComponent } from '../../shared/icon/icon.component';
 import { BackLinkComponent } from '../../shared/ui/back-link.component';
 import { LockChipComponent } from '../../shared/ui/lock-chip.component';
+import { SwitchComponent } from '../../shared/ui/switch.component';
+import {
+  type HasUnsavedChanges,
+  promptDiscardChanges,
+} from '../../core/guards/unsaved-changes.guard';
 import { MapPickerComponent, type MapLocation } from '../../shared/map/map-picker.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
 import { LoadingComponent } from '../../shared/ui/loading.component';
@@ -30,6 +35,7 @@ import { MoneyPipe } from '../../shared/money.pipe';
 import { EventSeatMapComponent } from './event-seat-map.component';
 import type {
   CategoryResponseDto,
+  EventCashTransferDto,
   EventTransactionDto,
   GatewayResponseDto,
   HallResponseDto,
@@ -67,6 +73,7 @@ function toLocalInput(iso: string | null | undefined): string {
     IconComponent,
     BackLinkComponent,
     LockChipComponent,
+    SwitchComponent,
     ConfirmDialogComponent,
     MapPickerComponent,
     PagerComponent,
@@ -79,7 +86,7 @@ function toLocalInput(iso: string | null | undefined): string {
   ],
   templateUrl: './event-edit.page.html',
 })
-export class EventEditPage implements OnDestroy {
+export class EventEditPage implements OnDestroy, HasUnsavedChanges {
   private readonly api = inject(PromoterEventsApi);
   private readonly adminApi = inject(AdminApi);
   private readonly hallsApi = inject(HallsApi);
@@ -109,9 +116,11 @@ export class EventEditPage implements OnDestroy {
 
   protected readonly isPublished = computed(() => this.event()?.status === 'published');
   protected readonly isSuspended = computed(() => this.event()?.status === 'suspended');
+  protected readonly isFinished = computed(() => this.event()?.status === 'finished');
   /**
-   * El evento es RECONFIGURABLE (localidades/asientos/salón editables) cuando está
-   * en borrador o SUSPENDIDO (v3.7). Publicado/cancelado → bloqueado.
+   * PUBLICABLE por ciclo de vida: solo un evento en borrador o suspendido admite el
+   * botón Publicar / Volver a publicar. NO es un gate de permisos de edición (eso
+   * es `canEdit`); solo decide la visibilidad del botón de publicación.
    */
   protected readonly canEditLayout = computed(() => {
     const s = this.event()?.status ?? 'draft';
@@ -143,6 +152,23 @@ export class EventEditPage implements OnDestroy {
   protected readonly unlockActive = computed(
     () => this.adminContext() && !this.isNew() && this.editUnlock.isUnlocked(this.eventId()),
   );
+  /**
+   * DUEÑO del evento: el promotor propietario, o el admin que lo impersona (en ese
+   * caso la sesión ES el promotor → `promoterId === uid`). En modo NUEVO se trata
+   * como dueño (lo está creando). El dueño NUNCA ve candado ni bloqueo.
+   */
+  protected readonly isOwner = computed(() => {
+    if (this.isNew()) return true;
+    const ev = this.event();
+    const uid = this.session.user()?.id;
+    return !!ev && !!uid && ev.promoterId === uid;
+  });
+  /**
+   * ¿Puede EDITAR localidades/asientos/salón? (v3.10 · GIV — permiso RECURRENTE).
+   * El gate por `status` NO aplica al dueño: el promotor dueño edita SIEMPRE, aunque
+   * el evento esté publicado. Solo el admin NO-dueño requiere desbloqueo vigente.
+   */
+  protected readonly canEdit = computed(() => this.isOwner() || this.unlockActive());
   /**
    * Tiempo restante del desbloqueo formateado mm:ss. Reactivo (el `remainingMs`
    * del store lee su `clock` interno → se recomputa cada segundo). Al llegar a 0
@@ -298,6 +324,41 @@ export class EventEditPage implements OnDestroy {
   });
   protected readonly canPublish = computed(() => this.publishBlock() === null);
 
+  // --- Cierre + transferencia de saldos de caja (SOLO admin, tab Cuentas) ---
+  protected readonly finalizing = signal(false);
+  protected readonly cashResult = signal<EventCashTransferDto | null>(null);
+  protected readonly cashError = signal<string | null>(null);
+  /**
+   * Sección "finalizar y transferir" visible SOLO para admin cuando el evento está
+   * finalizado o suspendido. NUNCA se bloquea por el candado de edición.
+   */
+  protected readonly canFinalizeCash = computed(
+    () => this.isAdmin() && !this.isNew() && (this.isFinished() || this.isSuspended()),
+  );
+
+  // --- Guard de cambios sin guardar (datos + configuración) ---
+  /** Snapshot serializado del último estado guardado (para detectar "dirty"). */
+  private readonly savedSnapshot = signal('');
+  /** Se activa antes de una navegación programática tras guardar/eliminar (no preguntar). */
+  private skipGuard = false;
+  /** Serializa los campos persistibles del formulario (datos + config). */
+  private snapshot(): string {
+    return JSON.stringify({
+      name: this.d.name(),
+      description: this.d.description(),
+      categoryId: this.d.categoryId(),
+      hallId: this.d.hallId(),
+      address: this.d.address(),
+      lat: this.d.lat(),
+      lng: this.d.lng(),
+      startsAt: this.d.startsAt(),
+      gatewayId: this.c.gatewayId(),
+      ivaOnNet: this.c.ivaOnNet(),
+      absorbInstallmentCost: this.c.absorbInstallmentCost(),
+      promoterId: this.newPromoterId(),
+    });
+  }
+
   // Confirmación de acciones destructivas (modal reutilizable).
   protected readonly confirm = signal<ConfirmRequest | null>(null);
   protected onConfirmAccept(): void {
@@ -306,7 +367,21 @@ export class EventEditPage implements OnDestroy {
     c?.onConfirm();
   }
   protected onConfirmCancel(): void {
+    const c = this.confirm();
     this.confirm.set(null);
+    c?.onCancel?.();
+  }
+
+  /** Hay cambios en el formulario de datos/config sin guardar. */
+  hasUnsavedChanges(): boolean {
+    return !this.skipGuard && this.snapshot() !== this.savedSnapshot();
+  }
+  /** Abre el modal "¿descartar cambios?" (reutiliza el confirm-dialog del componente). */
+  confirmDiscard(): Observable<boolean> {
+    return promptDiscardChanges(
+      (req) => this.confirm.set(req),
+      (k) => this.translate.instant(k),
+    );
   }
 
   constructor() {
@@ -354,6 +429,8 @@ export class EventEditPage implements OnDestroy {
     if (this.isNew()) {
       // Modo NUEVO: formulario en blanco; el evento aún no existe.
       this.loading.set(false);
+      // Base del guard: el formulario en blanco NO es dirty hasta que se teclee.
+      this.savedSnapshot.set(this.snapshot());
     } else {
       this.reload();
     }
@@ -482,6 +559,8 @@ export class EventEditPage implements OnDestroy {
     // recargar. Solo se limpia si el evento realmente no tiene cover.
     const cover = ev.media?.find((m) => m.kind === 'cover');
     this.bannerUrl.set(cover?.url ?? (cover ? this.bannerUrl() : null));
+    // Base del guard de cambios sin guardar: el estado recién cargado NO es dirty.
+    this.savedSnapshot.set(this.snapshot());
   }
 
   protected selectTab(t: Tab): void {
@@ -565,15 +644,19 @@ export class EventEditPage implements OnDestroy {
           next: (ev) => {
             this.savingData.set(false);
             this.toasts.success(this.translate.instant('promoter.edit.toastCreated'));
+            // Navegación programática tras guardar → no dispares el guard de cambios.
+            this.skipGuard = true;
             // Pasa a modo edición reemplazando la URL por la del evento real.
             void this.router.navigate(['/promotor/eventos', ev.id, 'editar'], {
               replaceUrl: true,
               queryParams: this.from() === 'admin' ? { from: 'admin' } : {},
             });
           },
-          error: () => {
+          error: (err) => {
             this.savingData.set(false);
-            this.toasts.error(this.translate.instant('promoter.edit.toastCreateError'));
+            this.toasts.error(
+              this.backendMessage(err, 'promoter.edit.toastCreateError'),
+            );
           },
         });
       return;
@@ -595,13 +678,40 @@ export class EventEditPage implements OnDestroy {
         next: (ev) => {
           this.savingData.set(false);
           this.event.set(ev);
+          this.savedSnapshot.set(this.snapshot());
           this.toasts.success(this.translate.instant('promoter.edit.toastChangesSaved'));
         },
-        error: () => {
+        error: (err) => {
           this.savingData.set(false);
-          this.toasts.error(this.translate.instant('promoter.edit.toastSaveDataError'));
+          // Muestra el mensaje REAL del backend (p.ej. 409 al cambiar de salón con
+          // boletos vendidos). El genérico queda solo como fallback.
+          this.toasts.error(this.backendMessage(err, 'promoter.edit.toastSaveDataError'));
+          this.suggestSuspendIfConflict(err);
         },
       });
+  }
+
+  /**
+   * Extrae el mensaje de error del backend (string o array de validación) para
+   * mostrarlo tal cual; si no viene, usa la clave i18n de fallback.
+   */
+  private backendMessage(err: unknown, fallbackKey: string): string {
+    const msg = (err as { error?: { message?: string | string[] } })?.error?.message;
+    if (Array.isArray(msg) && msg.length) return msg.join(' ');
+    if (typeof msg === 'string' && msg.trim()) return msg;
+    return this.translate.instant(fallbackKey);
+  }
+
+  /**
+   * Si el guardado chocó por conflicto (409) en un evento publicado, sugiere
+   * SUSPENDER para reorganizar (el suspendido ya permite cambiar salón/plantilla/
+   * pasarela). Solo un aviso; no fuerza nada.
+   */
+  private suggestSuspendIfConflict(err: unknown): void {
+    const status = (err as { status?: number })?.status;
+    if (status === 409 && this.isPublished()) {
+      this.toasts.info(this.translate.instant('promoter.edit.suggestSuspendToReorg'));
+    }
   }
 
   // --- Configuración ---
@@ -618,11 +728,12 @@ export class EventEditPage implements OnDestroy {
         next: (ev) => {
           this.savingConfig.set(false);
           this.event.set(ev);
+          this.savedSnapshot.set(this.snapshot());
           this.toasts.success(this.translate.instant('promoter.edit.toastConfigSaved'));
         },
-        error: () => {
+        error: (err) => {
           this.savingConfig.set(false);
-          this.toasts.error(this.translate.instant('promoter.edit.toastConfigError'));
+          this.toasts.error(this.backendMessage(err, 'promoter.edit.toastConfigError'));
         },
       });
   }
@@ -654,7 +765,7 @@ export class EventEditPage implements OnDestroy {
 
   /** Abre el form con los datos de una localidad para editarla (draft o suspendido). */
   protected startEditLocality(l: LocalityView): void {
-    if (!this.canEditLayout()) return;
+    if (!this.canEdit()) return;
     this.editingLoc.set(l);
     this.showLocForm.set(true);
     this.locForm.name.set(l.name);
@@ -930,9 +1041,53 @@ export class EventEditPage implements OnDestroy {
     this.api.remove(this.eventId()).subscribe({
       next: () => {
         this.toasts.success(this.translate.instant('promoter.edit.toastRemoved'));
+        this.skipGuard = true;
         void this.router.navigateByUrl(this.backLink());
       },
       error: () => this.toasts.error(this.translate.instant('promoter.edit.toastRemoveError')),
+    });
+  }
+
+  // --- Cierre + transferencia de saldos de caja (SOLO admin) ---
+  /** Modal de validación antes de transferir el saldo del evento al promotor. */
+  protected askFinalizeCash(): void {
+    this.confirm.set({
+      title: this.translate.instant('promoter.edit.cashTransferTitle'),
+      message: this.translate.instant('promoter.edit.cashTransferConfirm', {
+        name: this.event()?.name ?? this.translate.instant('promoter.edit.thisEvent'),
+      }),
+      confirmLabel: this.translate.instant('promoter.edit.cashTransferConfirmBtn'),
+      confirmIcon: 'save',
+      titleIcon: 'accounts',
+      danger: false,
+      auditAction: 'event.cash_transfer',
+      auditResource: this.eventId(),
+      onConfirm: () => this.finalizeCash(),
+    });
+  }
+
+  private finalizeCash(): void {
+    this.finalizing.set(true);
+    this.cashError.set(null);
+    this.api.finalizeSettlement(this.eventId()).subscribe({
+      next: (res) => {
+        this.finalizing.set(false);
+        this.cashResult.set(res);
+        this.toasts.success(this.translate.instant('promoter.edit.cashTransferDone'));
+        // Refleja el nuevo estado del evento (p.ej. finished) sin recargar el form.
+        const ev = this.event();
+        if (ev) this.event.set({ ...ev, status: res.status as ManagedEventDetailDto['status'] });
+      },
+      error: (err) => {
+        this.finalizing.set(false);
+        const status = (err as { status?: number })?.status;
+        // 409 = ya transferido (idempotente): mensaje claro; otros = mensaje del backend.
+        this.cashError.set(
+          status === 409
+            ? this.translate.instant('promoter.edit.cashTransferAlready')
+            : this.backendMessage(err, 'promoter.edit.cashTransferError'),
+        );
+      },
     });
   }
 }

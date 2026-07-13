@@ -21,10 +21,6 @@
 
     @if (adminLocked()) {
       <p class="muted small" data-testid="seat-admin-locked" [innerHTML]="'promoter.seatMgr.adminLocked' | translate"></p>
-    } @else if (readonly()) {
-      <p class="muted small" data-testid="seat-readonly-note">
-        {{ 'promoter.seatMgr.readonlyNote' | translate }}
-      </p>
     }
 
     <div class="card-block">

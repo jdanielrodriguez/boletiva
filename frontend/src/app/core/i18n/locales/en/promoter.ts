@@ -220,6 +220,24 @@ export const promoter = {
     toastCancelError: 'Could not cancel the event.',
     toastRemoved: 'Event deleted.',
     toastRemoveError: 'You can only delete draft events.',
+    // Suggestion on a conflict (changing venue with sold tickets)
+    suggestSuspendToReorg:
+      'To reorganize the venue, template or seats, suspend the event first (a suspended event can be reconfigured).',
+    // Close event + transfer cash balances (ADMIN only) — v3.10 · GVI
+    cashTransferHeading: 'Finalize event and transfer cash balances',
+    cashTransferIntro:
+      "Close the event and transfer its net cash balance to the promoter's wallet. It posts the double-entry ledger entries and marks the event as finished. It is idempotent: it cannot be transferred twice.",
+    cashTransferBtn: 'Finalize and transfer to promoter',
+    cashTransferring: 'Transferring…',
+    cashTransferTitle: 'Finalize event and transfer',
+    cashTransferConfirm:
+      "Close \"{{name}}\" and transfer its cash balance to the promoter's wallet? This is an accounting action and cannot be undone.",
+    cashTransferConfirmBtn: 'Yes, finalize and transfer',
+    cashTransferDone: 'Cash balance transferred to the promoter.',
+    cashTransferSummary: 'Transferred: {{currency}} {{amount}}',
+    cashTransferState: 'Event status: {{state}}',
+    cashTransferAlready: "This event's balance has already been transferred.",
+    cashTransferError: "Could not finalize and transfer the event's balance.",
   },
 
   // --- Seat editor (Konva) ---
