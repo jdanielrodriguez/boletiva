@@ -9,6 +9,8 @@ import Decimal from 'decimal.js';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { LedgerService } from '../ledger/ledger.service';
 import { AuditService } from '../audit/audit.service';
+import { QueueService } from '../../infra/queue/queue.service';
+import { QUEUES } from '../../infra/queue/queue.constants';
 import { AuthUser } from '../../common/decorators/current-user.decorator';
 
 Decimal.set({ rounding: Decimal.ROUND_HALF_EVEN });
@@ -33,6 +35,7 @@ export class SettlementService {
     private readonly prisma: PrismaService,
     private readonly ledger: LedgerService,
     private readonly audit: AuditService,
+    private readonly queue: QueueService,
   ) {}
 
   async forEvent(eventId: string, user: AuthUser) {
@@ -46,6 +49,15 @@ export class SettlementService {
     const isOwner = event.promoterId === user.userId;
     if (!isAdmin && !isOwner) throw new ForbiddenException('No es tu evento');
 
+    return this.summaryForEvent(event.id, event.name);
+  }
+
+  /**
+   * Agregación de cuentas de un evento SIN authz (uso interno: F4 correo de estado
+   * de cuentas). Mismos montos que `forEvent`. Incluye `refundsIssued` = neto ya
+   * devuelto a compradores (órdenes en estado `refunded`), informativo.
+   */
+  async summaryForEvent(eventId: string, eventName: string) {
     const where = { eventId, status: 'paid' as const };
     const agg = await this.prisma.order.aggregate({
       where,
@@ -62,6 +74,12 @@ export class SettlementService {
     const ticketsSold = await this.prisma.orderItem.count({
       where: { order: where, active: true },
     });
+    // Neto ya devuelto a compradores (órdenes refunded) — informativo para el estado
+    // de cuentas. Las órdenes refunded ya NO cuentan en `net` (filtro status=paid).
+    const refundAgg = await this.prisma.order.aggregate({
+      where: { eventId, status: 'refunded' },
+      _sum: { net: true },
+    });
 
     const d = (v: Decimal.Value | null | undefined): Decimal => new Decimal(v ?? 0);
     const net = d(agg._sum.net);
@@ -71,10 +89,11 @@ export class SettlementService {
     const iva = d(agg._sum.iva);
     const gross = d(agg._sum.total);
     const serviceFee = platformFee.add(gatewayFee).add(fixedFees);
+    const refundsIssued = d(refundAgg._sum.net);
 
     return {
-      eventId: event.id,
-      eventName: event.name,
+      eventId,
+      eventName,
       currency: 'GTQ',
       paidOrders: agg._count,
       ticketsSold,
@@ -85,6 +104,7 @@ export class SettlementService {
       fixedFees: fixedFees.toFixed(2),
       serviceFee: serviceFee.toFixed(2),
       iva: iva.toFixed(2),
+      refundsIssued: refundsIssued.toFixed(2),
     };
   }
 
@@ -98,11 +118,23 @@ export class SettlementService {
    *
    * Elegibilidad: el evento debe estar FINALIZADO o SUSPENDIDO, o su fecha de fin
    * ya haber pasado. IDEMPOTENTE: `cashTransferredAt` evita transferir dos veces
-   * (→ 409). Al finalizar, el evento queda en estado `finished`.
+   * (→ 409). Al finalizar, el evento queda en estado `finished` y se ENCOLA el
+   * correo de estado de cuentas al promotor (F4, en su idioma).
    *
-   * Authz: SOLO admin (el promotor NO puede autoliquidarse su caja).
+   * Authz: SOLO ADMIN REAL. El promotor NO puede autoliquidarse su caja; y un admin
+   * IMPERSONANDO a un promotor (token con `impersonatedBy`) tampoco: el pago al
+   * promotor solo lo ejecuta el admin actuando como sí mismo (v3.11 · F2).
    */
   async finalizeAndTransfer(eventId: string, admin: AuthUser, ip?: string, userAgent?: string) {
+    // Un token de impersonación actúa CON las capacidades del usuario suplantado
+    // (un promotor), por lo que normalmente ya no traería el rol admin; aun así lo
+    // bloqueamos EXPLÍCITAMENTE: esta acción financiera es del admin real, nunca
+    // impersonando (aunque el token conservara el rol admin).
+    if (admin.impersonatedBy || admin.impersonation) {
+      throw new ForbiddenException(
+        'El cierre de caja no puede ejecutarse en una sesión de impersonación; usa tu sesión de administrador real',
+      );
+    }
     if (!admin.roles.includes(Role.admin)) {
       throw new ForbiddenException('Solo un administrador puede finalizar y transferir la caja');
     }
@@ -168,6 +200,16 @@ export class SettlementService {
       ip,
       userAgent,
       payload: { promoterId: event.promoterId, net: net.toFixed(2) },
+    });
+
+    // F4 (v3.11): al finalizar, enviar al promotor (en su idioma) el ESTADO DE
+    // CUENTAS del evento. Se ENCOLA (cola MAIL) para no bloquear la respuesta; el
+    // handler recalcula el settlement. enqueue nunca lanza (un fallo de correo no
+    // debe revertir un cierre de caja ya asentado en el ledger).
+    await this.queue.enqueue(QUEUES.MAIL, 'event-settlement', {
+      eventId,
+      promoterId: event.promoterId,
+      transferred: net.toFixed(2),
     });
 
     return {

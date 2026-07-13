@@ -19,8 +19,14 @@ describe('SettlementService (branches, unit)', () => {
     };
     const ledger = { post: jest.fn().mockResolvedValue({}) };
     const audit = { record: jest.fn().mockResolvedValue(undefined) };
-    const service = new SettlementService(prisma as never, ledger as never, audit as never);
-    return { prisma, ledger, audit, service };
+    const queue = { enqueue: jest.fn().mockResolvedValue(undefined) };
+    const service = new SettlementService(
+      prisma as never,
+      ledger as never,
+      audit as never,
+      queue as never,
+    );
+    return { prisma, ledger, audit, queue, service };
   };
 
   const owner: AuthUser = { userId: 'promo', email: 'p@x.com', roles: [Role.promoter] };
@@ -64,6 +70,7 @@ describe('SettlementService (branches, unit)', () => {
       fixedFees: '0.00',
       serviceFee: '0.00',
       iva: '0.00',
+      refundsIssued: '0.00',
     });
   });
 
@@ -109,6 +116,21 @@ describe('SettlementService (branches, unit)', () => {
     expect(prisma.event.findUnique).not.toHaveBeenCalled();
   });
 
+  it('finalize: admin IMPERSONANDO → 403 (solo admin real; v3.11 F2)', async () => {
+    const { service, prisma } = build();
+    const impersonating: AuthUser = {
+      userId: 'promo',
+      email: 'p@x.com',
+      roles: [Role.admin],
+      impersonation: true,
+      impersonatedBy: 'adm',
+    };
+    await expect(service.finalizeAndTransfer('e1', impersonating)).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+    expect(prisma.event.findUnique).not.toHaveBeenCalled();
+  });
+
   it('finalize: evento inexistente → 404', async () => {
     const { service, prisma } = build();
     prisma.event.findUnique.mockResolvedValue(null);
@@ -148,6 +170,20 @@ describe('SettlementService (branches, unit)', () => {
     const sum = posted.entries.reduce((a: number, e: { amount: string }) => a + Number(e.amount), 0);
     expect(sum).toBeCloseTo(0, 2); // partida doble cuadra
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'event.cash_transfer' }));
+  });
+
+  it('finalize: encola el correo de estado de cuentas al promotor (F4)', async () => {
+    const { service, prisma, queue } = build();
+    prisma.event.findUnique.mockResolvedValue({
+      id: 'e1', name: 'Show', promoterId: 'promo', status: 'finished', endsAt: past, cashTransferredAt: null,
+    });
+    prisma.order.aggregate.mockResolvedValue({ _sum: { net: '150.00' } });
+    await service.finalizeAndTransfer('e1', admin);
+    expect(queue.enqueue).toHaveBeenCalledWith(
+      'mail',
+      'event-settlement',
+      expect.objectContaining({ eventId: 'e1', promoterId: 'promo', transferred: '150.00' }),
+    );
   });
 
   it('finalize: neto 0 → cierra sin asiento contable (evita partida vacía)', async () => {

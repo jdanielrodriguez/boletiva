@@ -3229,6 +3229,60 @@
         ]
       }
     },
+    "/api/v1/events/{eventId}/refunds": {
+      "post": {
+        "operationId": "OrdersController_refundEvent_v1",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "user-agent",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventRefundDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventRefundResultDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Tramita devoluciones por cancelación/suspensión del evento (SOLO admin). Acredita SOLO el NETO del boleto a la wallet del comprador (la cuota de servicio no se devuelve). Con body.orderId devuelve una orden; sin él, todas las pagadas. Idempotente.",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
     "/api/v1/events/{eventId}/transactions": {
       "get": {
         "operationId": "OrdersController_eventTransactions_v1",
@@ -3477,247 +3531,6 @@
         "summary": "Cadena contable (hash-chain) de la orden — vista blockchain del comprador",
         "tags": [
           "orders"
-        ]
-      }
-    },
-    "/api/v1/events/{eventId}/reservations": {
-      "post": {
-        "operationId": "ReservationsController_create_v1",
-        "parameters": [
-          {
-            "name": "eventId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateReservationDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ReservationResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Crea una reserva ANÓNIMA y compartible (sin login)",
-        "tags": [
-          "reservations"
-        ]
-      }
-    },
-    "/api/v1/reservations/{token}": {
-      "get": {
-        "operationId": "ReservationsController_getByToken_v1",
-        "parameters": [
-          {
-            "name": "token",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ReservationResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Ver una reserva por su token (desde el link compartido)",
-        "tags": [
-          "reservations"
-        ]
-      }
-    },
-    "/api/v1/reservations/{token}/checkout": {
-      "post": {
-        "operationId": "ReservationsController_checkout_v1",
-        "parameters": [
-          {
-            "name": "token",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CheckoutReservationDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrderResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Paga una reserva: crea la orden a nombre del usuario logueado",
-        "tags": [
-          "reservations"
-        ]
-      }
-    },
-    "/api/v1/orders/{id}/payment-options": {
-      "get": {
-        "operationId": "PaymentsController_paymentOptions_v1",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaymentOptionsResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Opciones de pago del checkout: pasarelas + plazos de cuotas disponibles",
-        "tags": [
-          "payments"
-        ]
-      }
-    },
-    "/api/v1/orders/{id}/pay": {
-      "post": {
-        "operationId": "PaymentsController_pay_v1",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PayOrderDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PayOrderResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Inicia el pago de una orden (webhook-first; wallet/mixto)",
-        "tags": [
-          "payments"
-        ]
-      }
-    },
-    "/api/v1/payments/webhook": {
-      "post": {
-        "operationId": "PaymentsController_webhook_v1",
-        "parameters": [
-          {
-            "name": "x-webhook-signature",
-            "required": true,
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WebhookDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WebhookResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Webhook de la pasarela (firma HMAC; idempotente)",
-        "tags": [
-          "payments"
         ]
       }
     },
@@ -4416,6 +4229,247 @@
         "summary": "Emite un token de PUERTA corto/fresco acotado al evento (SafeTix)",
         "tags": [
           "gate-access"
+        ]
+      }
+    },
+    "/api/v1/events/{eventId}/reservations": {
+      "post": {
+        "operationId": "ReservationsController_create_v1",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReservationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservationResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Crea una reserva ANÓNIMA y compartible (sin login)",
+        "tags": [
+          "reservations"
+        ]
+      }
+    },
+    "/api/v1/reservations/{token}": {
+      "get": {
+        "operationId": "ReservationsController_getByToken_v1",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservationResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Ver una reserva por su token (desde el link compartido)",
+        "tags": [
+          "reservations"
+        ]
+      }
+    },
+    "/api/v1/reservations/{token}/checkout": {
+      "post": {
+        "operationId": "ReservationsController_checkout_v1",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutReservationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Paga una reserva: crea la orden a nombre del usuario logueado",
+        "tags": [
+          "reservations"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/payment-options": {
+      "get": {
+        "operationId": "PaymentsController_paymentOptions_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentOptionsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Opciones de pago del checkout: pasarelas + plazos de cuotas disponibles",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/pay": {
+      "post": {
+        "operationId": "PaymentsController_pay_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayOrderResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Inicia el pago de una orden (webhook-first; wallet/mixto)",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/api/v1/payments/webhook": {
+      "post": {
+        "operationId": "PaymentsController_webhook_v1",
+        "parameters": [
+          {
+            "name": "x-webhook-signature",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Webhook de la pasarela (firma HMAC; idempotente)",
+        "tags": [
+          "payments"
         ]
       }
     },
@@ -7796,6 +7850,12 @@
             "nullable": true,
             "example": "Una noche inolvidable"
           },
+          "hallId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Salón/venue reutilizable asignado al evento (null = dirección escrita a mano). Se persiste al elegirlo en el editor y queda ligado al evento."
+          },
           "address": {
             "type": "string",
             "nullable": true,
@@ -8000,6 +8060,12 @@
             "nullable": true,
             "example": "Una noche inolvidable"
           },
+          "hallId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Salón/venue reutilizable asignado al evento (null = dirección escrita a mano). Se persiste al elegirlo en el editor y queda ligado al evento."
+          },
           "address": {
             "type": "string",
             "nullable": true,
@@ -8155,6 +8221,12 @@
             "type": "string",
             "nullable": true,
             "example": "Una noche inolvidable"
+          },
+          "hallId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Salón/venue reutilizable asignado al evento (null = dirección escrita a mano). Se persiste al elegirlo en el editor y queda ligado al evento."
           },
           "address": {
             "type": "string",
@@ -8373,6 +8445,12 @@
             "type": "string",
             "nullable": true,
             "example": "Una noche inolvidable"
+          },
+          "hallId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Salón/venue reutilizable asignado al evento (null = dirección escrita a mano). Se persiste al elegirlo en el editor y queda ligado al evento."
           },
           "address": {
             "type": "string",
@@ -8776,6 +8854,12 @@
             "nullable": true,
             "example": "Una noche inolvidable"
           },
+          "hallId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Salón/venue reutilizable asignado al evento (null = dirección escrita a mano). Se persiste al elegirlo en el editor y queda ligado al evento."
+          },
           "address": {
             "type": "string",
             "nullable": true,
@@ -9023,6 +9107,12 @@
             "type": "string",
             "nullable": true,
             "example": "Una noche inolvidable"
+          },
+          "hallId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Salón/venue reutilizable asignado al evento (null = dirección escrita a mano). Se persiste al elegirlo en el editor y queda ligado al evento."
           },
           "address": {
             "type": "string",
@@ -10350,6 +10440,11 @@
             "type": "string",
             "example": "4104.00",
             "description": "IVA recaudado"
+          },
+          "refundsIssued": {
+            "type": "string",
+            "example": "0.00",
+            "description": "Neto ya devuelto a compradores (órdenes reembolsadas por cancelación/suspensión). Informativo: estas órdenes ya NO cuentan en los montos de arriba (solo agregan las pagadas)."
           }
         },
         "required": [
@@ -10364,7 +10459,8 @@
           "gatewayFee",
           "fixedFees",
           "serviceFee",
-          "iva"
+          "iva",
+          "refundsIssued"
         ]
       },
       "EventCashTransferDto": {
@@ -10410,6 +10506,88 @@
           "transferred",
           "status",
           "transferredAt"
+        ]
+      },
+      "EventRefundDto": {
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Orden concreta a devolver. Si se omite, se devuelven TODAS las órdenes pagadas del evento."
+          }
+        }
+      },
+      "RefundedOrderDto": {
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "buyerId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Comprador al que se acreditó el neto"
+          },
+          "net": {
+            "type": "string",
+            "example": "100.00",
+            "description": "Neto acreditado a su wallet"
+          },
+          "status": {
+            "type": "string",
+            "example": "refunded",
+            "description": "Estado final de la orden"
+          }
+        },
+        "required": [
+          "orderId",
+          "buyerId",
+          "net",
+          "status"
+        ]
+      },
+      "EventRefundResultDto": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "currency": {
+            "type": "string",
+            "example": "GTQ"
+          },
+          "refundedOrders": {
+            "type": "number",
+            "example": 3,
+            "description": "Órdenes efectivamente devueltas en esta llamada"
+          },
+          "skipped": {
+            "type": "number",
+            "example": 1,
+            "description": "Órdenes omitidas por ya estar devueltas (solo en modo \"todas\"; idempotencia)"
+          },
+          "totalNetRefunded": {
+            "type": "string",
+            "example": "300.00",
+            "description": "Suma del neto acreditado a los compradores (el servicio NO se devuelve)"
+          },
+          "orders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RefundedOrderDto"
+            }
+          }
+        },
+        "required": [
+          "eventId",
+          "currency",
+          "refundedOrders",
+          "skipped",
+          "totalNetRefunded",
+          "orders"
         ]
       },
       "EventTransactionDto": {
@@ -10985,454 +11163,6 @@
           "orderId",
           "transactions",
           "chainValid"
-        ]
-      },
-      "ReservationQuantityDto": {
-        "type": "object",
-        "properties": {
-          "localityId": {
-            "type": "string",
-            "format": "uuid",
-            "description": "Localidad general"
-          },
-          "quantity": {
-            "type": "number",
-            "example": 2,
-            "minimum": 1,
-            "maximum": 50,
-            "description": "Cantidad de cupos"
-          }
-        },
-        "required": [
-          "localityId",
-          "quantity"
-        ]
-      },
-      "CreateReservationDto": {
-        "type": "object",
-        "properties": {
-          "seatIds": {
-            "description": "Asientos numerados a reservar (1–50, de una o varias localidades)",
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          "localityId": {
-            "type": "string",
-            "format": "uuid",
-            "description": "Atajo de una sola localidad general"
-          },
-          "quantity": {
-            "type": "number",
-            "example": 2,
-            "minimum": 1,
-            "maximum": 50,
-            "description": "Cantidad (con localityId)"
-          },
-          "quantities": {
-            "description": "Cupos por localidad general (permite varias localidades a la vez)",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ReservationQuantityDto"
-            }
-          }
-        }
-      },
-      "ReservationPriceDto": {
-        "type": "object",
-        "properties": {
-          "currency": {
-            "type": "string",
-            "example": "GTQ"
-          },
-          "net": {
-            "type": "string",
-            "example": "100.00"
-          },
-          "serviceFee": {
-            "type": "string",
-            "example": "16.48"
-          },
-          "iva": {
-            "type": "string",
-            "example": "13.20"
-          },
-          "total": {
-            "type": "string",
-            "example": "129.68"
-          }
-        },
-        "required": [
-          "currency",
-          "net",
-          "serviceFee",
-          "iva",
-          "total"
-        ]
-      },
-      "ReservationItemDto": {
-        "type": "object",
-        "properties": {
-          "seatId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "label": {
-            "type": "string",
-            "example": "12",
-            "description": "Asiento/etiqueta del cupo"
-          },
-          "section": {
-            "type": "string",
-            "nullable": true,
-            "example": "Mesa 3",
-            "description": "Mesa o zona (si aplica)"
-          },
-          "row": {
-            "type": "string",
-            "nullable": true,
-            "example": "A",
-            "description": "Fila (si aplica)"
-          },
-          "localityId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "localityName": {
-            "type": "string",
-            "example": "General"
-          },
-          "price": {
-            "$ref": "#/components/schemas/ReservationPriceDto"
-          }
-        },
-        "required": [
-          "seatId",
-          "label",
-          "localityId",
-          "localityName",
-          "price"
-        ]
-      },
-      "ReservationResponseDto": {
-        "type": "object",
-        "properties": {
-          "token": {
-            "type": "string",
-            "description": "Token firmado de la reserva (para compartir/pagar)"
-          },
-          "eventId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "eventName": {
-            "type": "string",
-            "example": "Concierto de Apertura"
-          },
-          "eventSlug": {
-            "type": "string",
-            "example": "concierto-de-apertura"
-          },
-          "startsAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "valid": {
-            "type": "boolean",
-            "description": "true si la reserva sigue viva (holds vigentes)"
-          },
-          "expiresAt": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true,
-            "description": "Cuándo expira la reserva"
-          },
-          "currency": {
-            "type": "string",
-            "example": "GTQ"
-          },
-          "total": {
-            "type": "string",
-            "example": "259.36"
-          },
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ReservationItemDto"
-            }
-          }
-        },
-        "required": [
-          "token",
-          "eventId",
-          "eventName",
-          "eventSlug",
-          "startsAt",
-          "valid",
-          "currency",
-          "total",
-          "items"
-        ]
-      },
-      "CheckoutReservationDto": {
-        "type": "object",
-        "properties": {
-          "billingNit": {
-            "type": "string",
-            "description": "NIT para facturación FEL; vacío = CF (consumidor final)"
-          },
-          "billingName": {
-            "type": "string",
-            "description": "Nombre de facturación FEL"
-          },
-          "billingAddress": {
-            "type": "string",
-            "description": "Dirección de facturación FEL"
-          }
-        }
-      },
-      "InstallmentOptionResponseDto": {
-        "type": "object",
-        "properties": {
-          "installments": {
-            "type": "number",
-            "description": "Número de cuotas (1 = pago único)",
-            "example": 1
-          },
-          "total": {
-            "type": "string",
-            "description": "Total que paga el comprador",
-            "example": "129.68"
-          },
-          "serviceFee": {
-            "type": "string",
-            "description": "Cuota por servicio (fusionada) del comprador",
-            "example": "16.48"
-          }
-        },
-        "required": [
-          "installments",
-          "total",
-          "serviceFee"
-        ]
-      },
-      "GatewayPaymentOptionResponseDto": {
-        "type": "object",
-        "properties": {
-          "gatewayId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string",
-            "description": "Nombre de la pasarela",
-            "example": "Recurrente"
-          },
-          "provider": {
-            "type": "string",
-            "description": "Proveedor técnico",
-            "example": "recurrente"
-          },
-          "isPlatformDefault": {
-            "type": "boolean",
-            "description": "Si es la pasarela default de plataforma",
-            "example": true
-          },
-          "total": {
-            "type": "string",
-            "description": "Total en 1 pago (el comprador paga igual)",
-            "example": "129.68"
-          },
-          "serviceFee": {
-            "type": "string",
-            "description": "Cuota por servicio (fusionada) en 1 pago",
-            "example": "16.48"
-          },
-          "installmentOptions": {
-            "description": "Plazos disponibles (los de margen negativo se ocultan si absorbe la plataforma)",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/InstallmentOptionResponseDto"
-            }
-          }
-        },
-        "required": [
-          "gatewayId",
-          "name",
-          "provider",
-          "isPlatformDefault",
-          "total",
-          "serviceFee",
-          "installmentOptions"
-        ]
-      },
-      "PaymentOptionsResponseDto": {
-        "type": "object",
-        "properties": {
-          "orderId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "currency": {
-            "type": "string",
-            "example": "GTQ"
-          },
-          "absorbedByPromoter": {
-            "type": "boolean",
-            "description": "true = el promotor absorbe el costo de cuotas (libera todos los plazos)",
-            "example": false
-          },
-          "gateways": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/GatewayPaymentOptionResponseDto"
-            }
-          }
-        },
-        "required": [
-          "orderId",
-          "currency",
-          "absorbedByPromoter",
-          "gateways"
-        ]
-      },
-      "PayOrderDto": {
-        "type": "object",
-        "properties": {
-          "gatewayId": {
-            "type": "string",
-            "description": "Método/pasarela elegida (recotiza el total con su comisión); omitir usa la del evento"
-          },
-          "useWallet": {
-            "type": "boolean",
-            "description": "Usar el saldo interno primero (pago mixto si no alcanza)",
-            "default": false
-          },
-          "installments": {
-            "type": "number",
-            "description": "Número de cuotas (Recurrente/Visacuotas: 3/6/12/18). Omitir o 1 = pago único. El comprador paga lo mismo; el costo de financiamiento lo absorbe la plataforma (o el promotor si el evento lo marca).",
-            "minimum": 1,
-            "maximum": 48,
-            "default": 1
-          }
-        }
-      },
-      "PayOrderResponseDto": {
-        "type": "object",
-        "properties": {
-          "paymentId": {
-            "type": "string",
-            "format": "uuid",
-            "description": "ID del intento de pago"
-          },
-          "providerRef": {
-            "type": "string",
-            "description": "Referencia del pago en la pasarela"
-          },
-          "status": {
-            "type": "string",
-            "description": "Estado del intento de pago",
-            "enum": [
-              "pending",
-              "succeeded",
-              "failed",
-              "refunded"
-            ],
-            "example": "pending"
-          },
-          "method": {
-            "type": "string",
-            "description": "Método de pago",
-            "enum": [
-              "gateway",
-              "wallet",
-              "mixed"
-            ],
-            "example": "gateway"
-          },
-          "amount": {
-            "type": "string",
-            "description": "Monto cobrado por la pasarela",
-            "example": "129.68"
-          },
-          "walletAmount": {
-            "type": "string",
-            "description": "Monto cubierto con saldo interno",
-            "example": "0.00"
-          },
-          "installments": {
-            "type": "number",
-            "description": "Cuotas confirmadas (eco de la selección)",
-            "example": 1
-          },
-          "paymentUrl": {
-            "type": "string",
-            "description": "URL para completar el pago en la pasarela (ausente si el wallet cubre todo)"
-          }
-        },
-        "required": [
-          "paymentId",
-          "providerRef",
-          "status",
-          "method",
-          "amount",
-          "walletAmount"
-        ]
-      },
-      "WebhookDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "ID del evento en la pasarela (idempotencia)"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "payment.succeeded",
-              "payment.failed",
-              "payment.refunded",
-              "payment.chargeback"
-            ]
-          },
-          "providerRef": {
-            "type": "string",
-            "description": "Referencia del pago en la pasarela"
-          },
-          "occurredAt": {
-            "type": "string",
-            "description": "Marca de tiempo del evento en la pasarela (ISO 8601)"
-          }
-        },
-        "required": [
-          "id",
-          "type",
-          "providerRef"
-        ]
-      },
-      "WebhookResponseDto": {
-        "type": "object",
-        "properties": {
-          "received": {
-            "type": "boolean",
-            "description": "Webhook recibido",
-            "example": true
-          },
-          "duplicate": {
-            "type": "boolean",
-            "description": "true si el evento ya se había procesado (replay)",
-            "example": false
-          },
-          "unknown": {
-            "type": "boolean",
-            "description": "true si no hay un pago asociado a la referencia",
-            "example": false
-          }
-        },
-        "required": [
-          "received"
         ]
       },
       "TicketEventSummaryDto": {
@@ -12354,6 +12084,454 @@
           "token",
           "expiresIn",
           "gateEventId"
+        ]
+      },
+      "ReservationQuantityDto": {
+        "type": "object",
+        "properties": {
+          "localityId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Localidad general"
+          },
+          "quantity": {
+            "type": "number",
+            "example": 2,
+            "minimum": 1,
+            "maximum": 50,
+            "description": "Cantidad de cupos"
+          }
+        },
+        "required": [
+          "localityId",
+          "quantity"
+        ]
+      },
+      "CreateReservationDto": {
+        "type": "object",
+        "properties": {
+          "seatIds": {
+            "description": "Asientos numerados a reservar (1–50, de una o varias localidades)",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "localityId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Atajo de una sola localidad general"
+          },
+          "quantity": {
+            "type": "number",
+            "example": 2,
+            "minimum": 1,
+            "maximum": 50,
+            "description": "Cantidad (con localityId)"
+          },
+          "quantities": {
+            "description": "Cupos por localidad general (permite varias localidades a la vez)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReservationQuantityDto"
+            }
+          }
+        }
+      },
+      "ReservationPriceDto": {
+        "type": "object",
+        "properties": {
+          "currency": {
+            "type": "string",
+            "example": "GTQ"
+          },
+          "net": {
+            "type": "string",
+            "example": "100.00"
+          },
+          "serviceFee": {
+            "type": "string",
+            "example": "16.48"
+          },
+          "iva": {
+            "type": "string",
+            "example": "13.20"
+          },
+          "total": {
+            "type": "string",
+            "example": "129.68"
+          }
+        },
+        "required": [
+          "currency",
+          "net",
+          "serviceFee",
+          "iva",
+          "total"
+        ]
+      },
+      "ReservationItemDto": {
+        "type": "object",
+        "properties": {
+          "seatId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "label": {
+            "type": "string",
+            "example": "12",
+            "description": "Asiento/etiqueta del cupo"
+          },
+          "section": {
+            "type": "string",
+            "nullable": true,
+            "example": "Mesa 3",
+            "description": "Mesa o zona (si aplica)"
+          },
+          "row": {
+            "type": "string",
+            "nullable": true,
+            "example": "A",
+            "description": "Fila (si aplica)"
+          },
+          "localityId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "localityName": {
+            "type": "string",
+            "example": "General"
+          },
+          "price": {
+            "$ref": "#/components/schemas/ReservationPriceDto"
+          }
+        },
+        "required": [
+          "seatId",
+          "label",
+          "localityId",
+          "localityName",
+          "price"
+        ]
+      },
+      "ReservationResponseDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token firmado de la reserva (para compartir/pagar)"
+          },
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "eventName": {
+            "type": "string",
+            "example": "Concierto de Apertura"
+          },
+          "eventSlug": {
+            "type": "string",
+            "example": "concierto-de-apertura"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "valid": {
+            "type": "boolean",
+            "description": "true si la reserva sigue viva (holds vigentes)"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Cuándo expira la reserva"
+          },
+          "currency": {
+            "type": "string",
+            "example": "GTQ"
+          },
+          "total": {
+            "type": "string",
+            "example": "259.36"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReservationItemDto"
+            }
+          }
+        },
+        "required": [
+          "token",
+          "eventId",
+          "eventName",
+          "eventSlug",
+          "startsAt",
+          "valid",
+          "currency",
+          "total",
+          "items"
+        ]
+      },
+      "CheckoutReservationDto": {
+        "type": "object",
+        "properties": {
+          "billingNit": {
+            "type": "string",
+            "description": "NIT para facturación FEL; vacío = CF (consumidor final)"
+          },
+          "billingName": {
+            "type": "string",
+            "description": "Nombre de facturación FEL"
+          },
+          "billingAddress": {
+            "type": "string",
+            "description": "Dirección de facturación FEL"
+          }
+        }
+      },
+      "InstallmentOptionResponseDto": {
+        "type": "object",
+        "properties": {
+          "installments": {
+            "type": "number",
+            "description": "Número de cuotas (1 = pago único)",
+            "example": 1
+          },
+          "total": {
+            "type": "string",
+            "description": "Total que paga el comprador",
+            "example": "129.68"
+          },
+          "serviceFee": {
+            "type": "string",
+            "description": "Cuota por servicio (fusionada) del comprador",
+            "example": "16.48"
+          }
+        },
+        "required": [
+          "installments",
+          "total",
+          "serviceFee"
+        ]
+      },
+      "GatewayPaymentOptionResponseDto": {
+        "type": "object",
+        "properties": {
+          "gatewayId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre de la pasarela",
+            "example": "Recurrente"
+          },
+          "provider": {
+            "type": "string",
+            "description": "Proveedor técnico",
+            "example": "recurrente"
+          },
+          "isPlatformDefault": {
+            "type": "boolean",
+            "description": "Si es la pasarela default de plataforma",
+            "example": true
+          },
+          "total": {
+            "type": "string",
+            "description": "Total en 1 pago (el comprador paga igual)",
+            "example": "129.68"
+          },
+          "serviceFee": {
+            "type": "string",
+            "description": "Cuota por servicio (fusionada) en 1 pago",
+            "example": "16.48"
+          },
+          "installmentOptions": {
+            "description": "Plazos disponibles (los de margen negativo se ocultan si absorbe la plataforma)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InstallmentOptionResponseDto"
+            }
+          }
+        },
+        "required": [
+          "gatewayId",
+          "name",
+          "provider",
+          "isPlatformDefault",
+          "total",
+          "serviceFee",
+          "installmentOptions"
+        ]
+      },
+      "PaymentOptionsResponseDto": {
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "currency": {
+            "type": "string",
+            "example": "GTQ"
+          },
+          "absorbedByPromoter": {
+            "type": "boolean",
+            "description": "true = el promotor absorbe el costo de cuotas (libera todos los plazos)",
+            "example": false
+          },
+          "gateways": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GatewayPaymentOptionResponseDto"
+            }
+          }
+        },
+        "required": [
+          "orderId",
+          "currency",
+          "absorbedByPromoter",
+          "gateways"
+        ]
+      },
+      "PayOrderDto": {
+        "type": "object",
+        "properties": {
+          "gatewayId": {
+            "type": "string",
+            "description": "Método/pasarela elegida (recotiza el total con su comisión); omitir usa la del evento"
+          },
+          "useWallet": {
+            "type": "boolean",
+            "description": "Usar el saldo interno primero (pago mixto si no alcanza)",
+            "default": false
+          },
+          "installments": {
+            "type": "number",
+            "description": "Número de cuotas (Recurrente/Visacuotas: 3/6/12/18). Omitir o 1 = pago único. El comprador paga lo mismo; el costo de financiamiento lo absorbe la plataforma (o el promotor si el evento lo marca).",
+            "minimum": 1,
+            "maximum": 48,
+            "default": 1
+          }
+        }
+      },
+      "PayOrderResponseDto": {
+        "type": "object",
+        "properties": {
+          "paymentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID del intento de pago"
+          },
+          "providerRef": {
+            "type": "string",
+            "description": "Referencia del pago en la pasarela"
+          },
+          "status": {
+            "type": "string",
+            "description": "Estado del intento de pago",
+            "enum": [
+              "pending",
+              "succeeded",
+              "failed",
+              "refunded"
+            ],
+            "example": "pending"
+          },
+          "method": {
+            "type": "string",
+            "description": "Método de pago",
+            "enum": [
+              "gateway",
+              "wallet",
+              "mixed"
+            ],
+            "example": "gateway"
+          },
+          "amount": {
+            "type": "string",
+            "description": "Monto cobrado por la pasarela",
+            "example": "129.68"
+          },
+          "walletAmount": {
+            "type": "string",
+            "description": "Monto cubierto con saldo interno",
+            "example": "0.00"
+          },
+          "installments": {
+            "type": "number",
+            "description": "Cuotas confirmadas (eco de la selección)",
+            "example": 1
+          },
+          "paymentUrl": {
+            "type": "string",
+            "description": "URL para completar el pago en la pasarela (ausente si el wallet cubre todo)"
+          }
+        },
+        "required": [
+          "paymentId",
+          "providerRef",
+          "status",
+          "method",
+          "amount",
+          "walletAmount"
+        ]
+      },
+      "WebhookDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID del evento en la pasarela (idempotencia)"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "payment.succeeded",
+              "payment.failed",
+              "payment.refunded",
+              "payment.chargeback"
+            ]
+          },
+          "providerRef": {
+            "type": "string",
+            "description": "Referencia del pago en la pasarela"
+          },
+          "occurredAt": {
+            "type": "string",
+            "description": "Marca de tiempo del evento en la pasarela (ISO 8601)"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "providerRef"
+        ]
+      },
+      "WebhookResponseDto": {
+        "type": "object",
+        "properties": {
+          "received": {
+            "type": "boolean",
+            "description": "Webhook recibido",
+            "example": true
+          },
+          "duplicate": {
+            "type": "boolean",
+            "description": "true si el evento ya se había procesado (replay)",
+            "example": false
+          },
+          "unknown": {
+            "type": "boolean",
+            "description": "true si no hay un pago asociado a la referencia",
+            "example": false
+          }
+        },
+        "required": [
+          "received"
         ]
       },
       "WalletBalanceResponseDto": {

@@ -278,6 +278,15 @@ export class EventSettlementDto {
 
   @ApiProperty({ type: String, example: '4104.00', description: 'IVA recaudado' })
   iva!: string;
+
+  @ApiProperty({
+    type: String,
+    example: '0.00',
+    description:
+      'Neto ya devuelto a compradores (órdenes reembolsadas por cancelación/suspensión). ' +
+      'Informativo: estas órdenes ya NO cuentan en los montos de arriba (solo agregan las pagadas).',
+  })
+  refundsIssued!: string;
 }
 
 export class EventCashTransferDto {
