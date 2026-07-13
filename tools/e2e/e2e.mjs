@@ -544,6 +544,10 @@ async function main() {
     await promo.waitForSelector('[data-testid="confirm-dialog"]', { timeout: 8000 });
     await promo.screenshot({ path: '/tmp/e2e-suspend-02-confirm.png' });
     await promo.click('[data-testid="confirm-accept"]');
+    // v3.13 · W8: el filtro por defecto "Futuros" oculta los suspendidos → tras
+    // suspender hay que ver "Todos" para encontrar la card del demo.
+    await promo.select('[data-testid="panel-filter-status"]', 'all');
+    await sleep(400);
     // Tras suspender, la card del demo pasa a ofrecer "Publicar" (re-publicar) y ya no "Suspender".
     await promo.waitForFunction(
       () => {
@@ -562,6 +566,8 @@ async function main() {
     // compra del flujo del comprador) el AVISO grande de boletos vendidos con link a T&C.
     await promo.goto(`${FE}/promotor`, { waitUntil: 'networkidle0' });
     await promo.waitForSelector('[data-testid="panel-search"]', { timeout: 12000 });
+    // El demo quedó suspendido → filtro "Todos" para verlo (default oculta suspendidos, W8).
+    await promo.select('[data-testid="panel-filter-status"]', 'all');
     await promo.type('[data-testid="panel-search"]', 'Evento Demo');
     await promo.waitForFunction(
       () => document.querySelectorAll('[data-testid="ev-card"]').length === 1,
@@ -666,7 +672,11 @@ async function main() {
     await adminPg.waitForSelector('[data-testid="ev-accounts"]', { timeout: 10000 });
     await adminPg.click('[data-testid="ev-accounts"]');
     // Navega al editor con ?from=admin&tab=cuentas (no expande la card, no impersona /promotor).
-    await adminPg.waitForSelector('[data-testid="settlement"]', { timeout: 12000 });
+    // v3.12 re-gating: el ADMIN REAL ya NO ve el detalle de settlement (owner-only);
+    // solo la sección de finalizar (visible en finished/suspended). Este test valida la
+    // NAVEGACIÓN (abre la tab Cuentas del editor y el back vuelve a la consola), así que
+    // esperamos la tab Cuentas activa en vez del settlement.
+    await adminPg.waitForSelector('[data-testid="tab-cuentas"]', { timeout: 12000 });
     assert(/\/promotor\/eventos\/.+\/editar\?/.test(adminPg.url()), `no navegó al editor: ${adminPg.url()}`);
     assert(adminPg.url().includes('from=admin'), 'falta from=admin en la URL');
     // El back-link vuelve a la CONSOLA del admin, no a /promotor.
