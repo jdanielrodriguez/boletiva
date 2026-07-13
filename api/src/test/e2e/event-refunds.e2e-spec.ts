@@ -31,6 +31,7 @@ describe('Devolución por cancelación/suspensión del evento (e2e)', () => {
   let buyerToken: string;
   let adminToken: string;
   let promoterToken: string;
+  let otherPromToken: string;
   let stamp: number;
   const orderIds: string[] = [];
 
@@ -46,6 +47,11 @@ describe('Devolución por cancelación/suspensión del evento (e2e)', () => {
     const prom = await mkUser('evref_prom', { roles: ['promoter'], promoterStatus: 'approved' });
     promoterId = prom.id;
     promoterToken = await loginTrusted(`evref_prom_${stamp}@test.com`, 'evref-prom');
+
+    // Promotor NO dueño (para el 403 de propiedad): tiene rol promoter pero no es
+    // el dueño del evento.
+    await mkUser('evref_other', { roles: ['promoter'], promoterStatus: 'approved' });
+    otherPromToken = await loginTrusted(`evref_other_${stamp}@test.com`, 'evref-other');
 
     const event = await prisma.event.create({
       data: {
@@ -154,19 +160,24 @@ describe('Devolución por cancelación/suspensión del evento (e2e)', () => {
     expect(await walletBalance(buyerToken)).toBe('0.00');
   });
 
-  it('evento PUBLICADO (no elegible) → 409, aunque sea admin', async () => {
+  it('evento PUBLICADO (no elegible) → 409, aunque sea el promotor dueño', async () => {
     await http()
       .post(`/api/v1/events/${eventId}/refunds`)
-      .set(bearer(adminToken))
+      .set(bearer(promoterToken))
       .send({ orderId: orderIds[0] })
       .expect(409);
     // Suspender el evento (reconfiguración): a partir de aquí ya es elegible.
     await prisma.event.update({ where: { id: eventId }, data: { status: 'suspended' } });
   });
 
-  it('RBAC: promotor y comprador NO pueden tramitar devoluciones → 403; sin token → 401', async () => {
+  it('RBAC: admin real, otro promotor y comprador NO devuelven → 403; sin token → 401', async () => {
+    // Sin token → 401.
     await http().post(`/api/v1/events/${eventId}/refunds`).send({}).expect(401);
-    await http().post(`/api/v1/events/${eventId}/refunds`).set(bearer(promoterToken)).send({}).expect(403);
+    // Admin REAL (rol admin, sin rol promoter) → bloqueado por @Roles(promoter) → 403.
+    await http().post(`/api/v1/events/${eventId}/refunds`).set(bearer(adminToken)).send({}).expect(403);
+    // Otro promotor (rol promoter pero NO dueño) → pasa el guard, falla la propiedad → 403.
+    await http().post(`/api/v1/events/${eventId}/refunds`).set(bearer(otherPromToken)).send({}).expect(403);
+    // Comprador (rol buyer) → bloqueado por el guard → 403.
     await http().post(`/api/v1/events/${eventId}/refunds`).set(bearer(buyerToken)).send({}).expect(403);
   });
 
@@ -176,7 +187,7 @@ describe('Devolución por cancelación/suspensión del evento (e2e)', () => {
 
     const res = await http()
       .post(`/api/v1/events/${eventId}/refunds`)
-      .set(bearer(adminToken))
+      .set(bearer(promoterToken))
       .send({ orderId: orderIds[0] })
       .expect(200);
     expect(res.body.refundedOrders).toBe(1);
@@ -206,7 +217,7 @@ describe('Devolución por cancelación/suspensión del evento (e2e)', () => {
   it('idempotencia: la MISMA orden ya devuelta → 409, sin recrédito', async () => {
     await http()
       .post(`/api/v1/events/${eventId}/refunds`)
-      .set(bearer(adminToken))
+      .set(bearer(promoterToken))
       .send({ orderId: orderIds[0] })
       .expect(409);
     expect(await walletBalance(buyerToken)).toBe('100.00');
@@ -215,7 +226,7 @@ describe('Devolución por cancelación/suspensión del evento (e2e)', () => {
   it('orden de OTRO evento / inexistente → 404 (no filtra existencia)', async () => {
     await http()
       .post(`/api/v1/events/${eventId}/refunds`)
-      .set(bearer(adminToken))
+      .set(bearer(promoterToken))
       .send({ orderId: '00000000-0000-0000-0000-000000000000' })
       .expect(404);
   });
@@ -225,7 +236,7 @@ describe('Devolución por cancelación/suspensión del evento (e2e)', () => {
     const paidBefore = await prisma.order.count({ where: { eventId, status: 'paid' } });
     const res = await http()
       .post(`/api/v1/events/${eventId}/refunds`)
-      .set(bearer(adminToken))
+      .set(bearer(promoterToken))
       .send({})
       .expect(200);
     expect(res.body.refundedOrders).toBe(paidBefore);
@@ -243,7 +254,7 @@ describe('Devolución por cancelación/suspensión del evento (e2e)', () => {
   it('todas de nuevo: nada pagado → refundedOrders 0 (idempotente)', async () => {
     const res = await http()
       .post(`/api/v1/events/${eventId}/refunds`)
-      .set(bearer(adminToken))
+      .set(bearer(promoterToken))
       .send({})
       .expect(200);
     expect(res.body.refundedOrders).toBe(0);
@@ -255,9 +266,26 @@ describe('Devolución por cancelación/suspensión del evento (e2e)', () => {
     await prisma.event.update({ where: { id: eventId }, data: { status: 'cancelled' } });
     const res = await http()
       .post(`/api/v1/events/${eventId}/refunds`)
-      .set(bearer(adminToken))
+      .set(bearer(promoterToken))
       .send({})
       .expect(200);
+    expect(res.body.refundedOrders).toBe(0);
+  });
+
+  it('admin IMPERSONANDO al promotor dueño SÍ puede tramitar (soporte) → 200', async () => {
+    // El admin emite un token de impersonación del dueño (roles=[promoter],
+    // userId = dueño). Ese token pasa el guard @Roles(promoter) y la propiedad.
+    const imp = await http()
+      .post(`/api/v1/admin/impersonate/${promoterId}`)
+      .set(bearer(adminToken))
+      .expect(200);
+    const impToken = imp.body.accessToken as string;
+    const res = await http()
+      .post(`/api/v1/events/${eventId}/refunds`)
+      .set(bearer(impToken))
+      .send({})
+      .expect(200);
+    // Evento ya sin órdenes pagadas → 0 devoluciones, pero PASA authz (no 403).
     expect(res.body.refundedOrders).toBe(0);
   });
 });

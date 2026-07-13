@@ -3277,7 +3277,7 @@
             "bearer": []
           }
         ],
-        "summary": "Tramita devoluciones por cancelación/suspensión del evento (SOLO admin). Acredita SOLO el NETO del boleto a la wallet del comprador (la cuota de servicio no se devuelve). Con body.orderId devuelve una orden; sin él, todas las pagadas. Idempotente.",
+        "summary": "Tramita devoluciones por cancelación/suspensión del evento (SOLO el PROMOTOR DUEÑO; un admin real está excluido, un admin impersonando al dueño sí puede). Acredita SOLO el NETO del boleto a la wallet del comprador (la cuota de servicio no se devuelve). Con body.orderId devuelve una orden; sin él, todas las pagadas. Idempotente.",
         "tags": [
           "orders"
         ]
@@ -10436,6 +10436,11 @@
             "example": "5890.72",
             "description": "Cuota por servicio (plataforma + pasarela + fijos, sin IVA)"
           },
+          "services": {
+            "type": "string",
+            "example": "9994.72",
+            "description": "Servicios TOTALES que NO van al promotor (plataforma + pasarela + fijos + IVA). Identidad exacta: gross = services + net. El promotor ve: recaudado − servicios = neto."
+          },
           "iva": {
             "type": "string",
             "example": "4104.00",
@@ -10459,6 +10464,7 @@
           "gatewayFee",
           "fixedFees",
           "serviceFee",
+          "services",
           "iva",
           "refundsIssued"
         ]

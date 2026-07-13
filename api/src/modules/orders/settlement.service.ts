@@ -89,6 +89,10 @@ export class SettlementService {
     const iva = d(agg._sum.iva);
     const gross = d(agg._sum.total);
     const serviceFee = platformFee.add(gatewayFee).add(fixedFees);
+    // `services` = cuota de servicio TOTAL que NO va al promotor (plataforma +
+    // pasarela + fijos + IVA). Identidad exacta: gross = services + net, de modo
+    // que el frontend muestra al promotor: recaudado (gross) − servicios = neto.
+    const services = platformFee.add(gatewayFee).add(fixedFees).add(iva);
     const refundsIssued = d(refundAgg._sum.net);
 
     return {
@@ -103,6 +107,7 @@ export class SettlementService {
       gatewayFee: gatewayFee.toFixed(2),
       fixedFees: fixedFees.toFixed(2),
       serviceFee: serviceFee.toFixed(2),
+      services: services.toFixed(2),
       iva: iva.toFixed(2),
       refundsIssued: refundsIssued.toFixed(2),
     };

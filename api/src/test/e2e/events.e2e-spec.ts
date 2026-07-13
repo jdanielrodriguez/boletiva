@@ -511,7 +511,10 @@ describe('Eventos: gestión (e2e)', () => {
       expect(res.body.ticketsSold).toBe(1);
       expect(res.body.net).toBe('100.00');
       expect(res.body.gatewayFee).toBe('6.48');
-      expect(res.body.serviceFee).toBe('16.48'); // 10 + 6.48 + 0
+      expect(res.body.serviceFee).toBe('16.48'); // 10 + 6.48 + 0 (sin IVA)
+      expect(res.body.services).toBe('29.68'); // 10 + 6.48 + 0 + 13.20 (IVA incluido)
+      // Identidad exacta: gross = services + net (129.68 = 29.68 + 100.00).
+      expect(res.body.services).toBe((Number(res.body.gross) - Number(res.body.net)).toFixed(2));
       expect(res.body.gross).toBe('129.68');
       // Ajeno → 403; sin token → 401.
       await http().get(`/api/v1/events/${ev.id}/settlement`).set(bearer(promoterBToken)).expect(403);

@@ -1,5 +1,6 @@
 import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Role } from '@prisma/client';
+import Decimal from 'decimal.js';
 import { SettlementService } from './settlement.service';
 import { AuthUser } from '../../common/decorators/current-user.decorator';
 
@@ -69,6 +70,7 @@ describe('SettlementService (branches, unit)', () => {
       gatewayFee: '0.00',
       fixedFees: '0.00',
       serviceFee: '0.00',
+      services: '0.00',
       iva: '0.00',
       refundsIssued: '0.00',
     });
@@ -98,8 +100,12 @@ describe('SettlementService (branches, unit)', () => {
     expect(res.fixedFees).toBe('4.00');
     expect(res.iva).toBe('26.40');
     expect(res.gross).toBe('263.36');
-    // serviceFee = 20.00 + 12.96 + 4.00
+    // serviceFee = 20.00 + 12.96 + 4.00 (sin IVA)
     expect(res.serviceFee).toBe('36.96');
+    // services = plataforma + pasarela + fijos + IVA = 20 + 12.96 + 4 + 26.40
+    expect(res.services).toBe('63.36');
+    // Identidad exacta: gross = services + net (200.00 + 63.36 = 263.36).
+    expect(res.services).toBe(new Decimal(res.gross).sub(res.net).toFixed(2));
     expect(prisma.orderItem.count).toHaveBeenCalledWith({
       where: { order: { eventId: 'e1', status: 'paid' }, active: true },
     });

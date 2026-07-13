@@ -276,6 +276,15 @@ export class EventSettlementDto {
   })
   serviceFee!: string;
 
+  @ApiProperty({
+    type: String,
+    example: '9994.72',
+    description:
+      'Servicios TOTALES que NO van al promotor (plataforma + pasarela + fijos + IVA). ' +
+      'Identidad exacta: gross = services + net. El promotor ve: recaudado − servicios = neto.',
+  })
+  services!: string;
+
   @ApiProperty({ type: String, example: '4104.00', description: 'IVA recaudado' })
   iva!: string;
 

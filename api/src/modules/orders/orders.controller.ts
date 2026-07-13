@@ -80,11 +80,12 @@ export class OrdersController {
   }
 
   @Post('events/:eventId/refunds')
-  @Roles(Role.admin)
+  @Roles(Role.promoter)
   @HttpCode(200)
   @ApiOperation({
     summary:
-      'Tramita devoluciones por cancelación/suspensión del evento (SOLO admin). Acredita ' +
+      'Tramita devoluciones por cancelación/suspensión del evento (SOLO el PROMOTOR DUEÑO; ' +
+      'un admin real está excluido, un admin impersonando al dueño sí puede). Acredita ' +
       'SOLO el NETO del boleto a la wallet del comprador (la cuota de servicio no se ' +
       'devuelve). Con body.orderId devuelve una orden; sin él, todas las pagadas. Idempotente.',
   })

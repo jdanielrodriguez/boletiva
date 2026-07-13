@@ -5,7 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Order, Role } from '@prisma/client';
+import { Order } from '@prisma/client';
 import Decimal from 'decimal.js';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { LedgerService } from '../ledger/ledger.service';
@@ -17,7 +17,14 @@ import { AuthUser } from '../../common/decorators/current-user.decorator';
 Decimal.set({ rounding: Decimal.ROUND_HALF_EVEN });
 
 /**
- * F1 (v3.11) — DEVOLUCIÓN por CANCELACIÓN/SUSPENSIÓN del evento (SOLO ADMIN).
+ * F1 (v3.11) — DEVOLUCIÓN por CANCELACIÓN/SUSPENSIÓN del evento.
+ *
+ * RBAC (re-asignado en v3.12): la ejecuta el PROMOTOR DUEÑO del evento. El
+ * controller exige `@Roles(promoter)` (el admin REAL, cuyo token no trae el rol
+ * promoter, queda excluido → 403) y aquí se verifica la PROPIEDAD: solo el dueño
+ * (`event.promoterId === user.userId`) puede devolver. Un admin IMPERSONANDO al
+ * promotor dueño actúa con `user.userId` = dueño → sí puede (soporte); otro
+ * promotor (no dueño) → 403.
  *
  * DISTINTA del refund/chargeback de pasarela (webhook, `PaymentsService.reverse`):
  * aquí el evento NO se realizará, así que se le devuelve al comprador SOLO el NETO
@@ -54,19 +61,25 @@ export class EventRefundsService {
    */
   async refund(
     eventId: string,
-    admin: AuthUser,
+    user: AuthUser,
     opts: { orderId?: string } = {},
     ip?: string,
     userAgent?: string,
   ) {
-    if (!admin.roles.includes(Role.admin)) {
-      throw new ForbiddenException('Solo un administrador puede tramitar devoluciones del evento');
-    }
     const event = await this.prisma.event.findUnique({
       where: { id: eventId },
       select: { id: true, name: true, status: true, promoterId: true },
     });
     if (!event) throw new NotFoundException('Evento no encontrado');
+
+    // Propiedad: solo el promotor DUEÑO del evento devuelve. El guard @Roles(promoter)
+    // ya excluye al admin real; un admin impersonando actúa como el dueño (user.userId
+    // = promoterId) → pasa; otro promotor (no dueño) → 403.
+    if (event.promoterId !== user.userId) {
+      throw new ForbiddenException(
+        'Solo el promotor dueño del evento puede tramitar devoluciones',
+      );
+    }
 
     // Elegibilidad: el evento no se realizará (suspendido o cancelado).
     if (event.status !== 'suspended' && event.status !== 'cancelled') {
@@ -110,7 +123,7 @@ export class EventRefundsService {
     }
 
     await this.audit.record({
-      userId: admin.userId,
+      userId: user.userId,
       action: 'event.refund',
       resource: `event:${eventId}`,
       ip,
