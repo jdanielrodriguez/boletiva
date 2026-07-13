@@ -2678,6 +2678,51 @@
           "seats"
         ]
       },
+      "put": {
+        "operationId": "SeatsController_replace_v1",
+        "parameters": [
+          {
+            "name": "localityId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-edit-unlock",
+            "required": false,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkSeatsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reemplaza (migra) el mapa de asientos por un layout nuevo, conservando los vendidos",
+        "tags": [
+          "seats"
+        ]
+      },
       "delete": {
         "operationId": "SeatsController_remove_v1",
         "parameters": [

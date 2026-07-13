@@ -1,4 +1,9 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { AuthUser } from '../../common/decorators/current-user.decorator';
@@ -247,6 +252,175 @@ export class VenuesService {
     });
     const capacity = await this.syncCapacity(localityId);
     return { deleted: result.count, capacity };
+  }
+
+  /**
+   * REEMPLAZA (migra) el mapa de asientos de una localidad SEATED por un layout
+   * nuevo, ATÓMICAMENTE y SIN orfanar boletos vendidos. Pensado para reconfigurar
+   * un evento en `draft`/`suspended` (nunca `published` activo) cuando se aplica
+   * otra plantilla sobre una localidad que YA tiene ventas.
+   *
+   * Política de migración (por `label` = identidad lógica del asiento):
+   *  1. Label nuevo que coincide con uno existente → se CONSERVA el asiento (mismo
+   *     `id`, mismo `status`, mismo boleto apuntándolo) y solo se actualiza su
+   *     geometría (`x/y/section/row`). Nunca se duplica.
+   *  2. Label nuevo sin coincidencia → se crea `available`.
+   *  3. Asiento viejo `available` cuyo label NO está en el layout nuevo → se borra.
+   *  4. Asiento viejo OCUPADO (vendido/held/blocked o con ítem de orden activo /
+   *     boleto) cuyo label NO está en el layout nuevo → se PRESERVA ("arrastrado"):
+   *     el layout nuevo NO puede eliminar un asiento ya vendido (fallback seguro).
+   *
+   * Garantías: 0 huérfanos (jamás se borra un asiento ocupado), 0 doble-venta
+   * (`SELECT … FOR UPDATE` sobre los asientos de la localidad + índice único
+   * `(locality_id, label)`; no se toca `order_items` ni su índice parcial). El
+   * LEDGER no se toca (es inventario, no dinero). Localidades SIN vendidos usan el
+   * camino rápido delete-all + insert (comportamiento idéntico al de siempre).
+   */
+  async replaceSeats(
+    localityId: string,
+    dto: BulkSeatsDto,
+    user: AuthUser,
+    unlockToken?: string,
+  ) {
+    const locality = await this.getLocalityEditable(localityId, user, unlockToken);
+    if (locality.kind === 'general') {
+      throw new BadRequestException(
+        'Para admisión general ajusta el aforo (capacity), no el mapa de asientos',
+      );
+    }
+    // Labels duplicados en el propio payload → 400 (el índice único los rechazaría
+    // igual, pero un error de validación es más claro que un 409 de la BD).
+    const incomingLabels = dto.seats.map((s) => s.label);
+    if (new Set(incomingLabels).size !== incomingLabels.length) {
+      throw new BadRequestException('El layout tiene labels de asiento duplicados');
+    }
+    const incomingSet = new Set(incomingLabels);
+
+    try {
+      return await this.prisma.$transaction(
+        async (tx) => {
+          // Fallar rápido si otro proceso sostiene el lock (no colgar el pool).
+          await tx.$executeRawUnsafe(`SET LOCAL lock_timeout = '5000ms'`);
+          // Capa 2 (anti-doble-venta): bloquear TODOS los asientos de la localidad.
+          const existing = await tx.$queryRaw<
+            { id: string; label: string; status: string }[]
+          >(Prisma.sql`
+            SELECT id, label, status::text AS status
+            FROM seats
+            WHERE locality_id = ${localityId}::uuid
+            FOR UPDATE
+          `);
+
+          // Conjunto de asientos OCUPADOS (jamás se borran): estado != available o
+          // referenciados por un ítem de orden ACTIVO o por un boleto emitido.
+          const ids = existing.map((s) => s.id);
+          const occupied = new Set<string>();
+          for (const s of existing) if (s.status !== 'available') occupied.add(s.id);
+          if (ids.length) {
+            const items = await tx.orderItem.findMany({
+              where: { seatId: { in: ids }, active: true },
+              select: { seatId: true },
+            });
+            for (const it of items) if (it.seatId) occupied.add(it.seatId);
+            const tks = await tx.ticket.findMany({
+              where: { seatId: { in: ids } },
+              select: { seatId: true },
+            });
+            for (const t of tks) if (t.seatId) occupied.add(t.seatId);
+          }
+
+          // Camino rápido: sin asientos ocupados → delete-all + insert (idéntico al
+          // comportamiento histórico; más barato con createMany).
+          if (occupied.size === 0) {
+            await tx.seat.deleteMany({ where: { localityId } });
+            const ins = await tx.seat.createMany({
+              data: dto.seats.map((s) => ({ localityId, ...s })),
+              skipDuplicates: true,
+            });
+            await tx.locality.update({
+              where: { id: localityId },
+              data: { capacity: ins.count },
+            });
+            return {
+              created: ins.count,
+              updated: 0,
+              preserved: 0,
+              deleted: existing.length,
+              capacity: ins.count,
+            };
+          }
+
+          // Camino de migración: hay ventas → conservar/arrastrar lo ocupado.
+          const existingByLabel = new Map(existing.map((s) => [s.label, s]));
+          let created = 0;
+          let updated = 0;
+          let deleted = 0;
+          let preserved = 0;
+
+          // (3) Borrar SOLO asientos disponibles cuyo label ya no está en el layout.
+          const toDelete = existing
+            .filter((s) => !occupied.has(s.id) && !incomingSet.has(s.label))
+            .map((s) => s.id);
+          if (toDelete.length) {
+            const del = await tx.seat.deleteMany({ where: { id: { in: toDelete } } });
+            deleted = del.count;
+          }
+          // (4) Ocupados fuera del layout nuevo → preservados (arrastrados).
+          preserved = existing.filter(
+            (s) => occupied.has(s.id) && !incomingSet.has(s.label),
+          ).length;
+
+          // (1) y (2): actualizar geometría de los que coinciden por label, crear
+          // los genuinamente nuevos. Un label que coincide con un ocupado gana el
+          // ocupado (se actualiza, nunca se duplica).
+          for (const seat of dto.seats) {
+            const match = existingByLabel.get(seat.label);
+            if (match) {
+              await tx.seat.update({
+                where: { id: match.id },
+                data: {
+                  section: seat.section ?? null,
+                  row: seat.row ?? null,
+                  x: seat.x ?? null,
+                  y: seat.y ?? null,
+                },
+              });
+              updated++;
+            } else {
+              await tx.seat.create({ data: { localityId, ...seat } });
+              created++;
+            }
+          }
+
+          const capacity = await tx.seat.count({ where: { localityId } });
+          await tx.locality.update({ where: { id: localityId }, data: { capacity } });
+          return { created, updated, preserved, deleted, capacity };
+        },
+        {
+          maxWait: 10000,
+          timeout: 20000,
+          isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+        },
+      );
+    } catch (e) {
+      throw this.translateSeatError(e);
+    }
+  }
+
+  /** Traduce errores de Postgres/Prisma del reemplazo de asientos a HTTP claros. */
+  private translateSeatError(e: unknown): Error {
+    if (e instanceof BadRequestException || e instanceof ConflictException) return e;
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes('lock_timeout') || msg.includes('55P03') || msg.includes('canceling statement')) {
+      return new ConflictException('Los asientos están en disputa, reintenta en un momento');
+    }
+    if (
+      (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') ||
+      msg.includes('23505')
+    ) {
+      return new ConflictException('Conflicto de labels de asiento (duplicado)');
+    }
+    return e instanceof Error ? e : new Error(msg);
   }
 
   // ---- Mapas de asiento (versionados) -------------------------------------

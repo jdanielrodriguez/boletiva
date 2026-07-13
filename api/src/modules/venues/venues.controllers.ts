@@ -9,6 +9,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
@@ -98,6 +99,21 @@ export class SeatsController {
     @Headers('x-edit-unlock') unlockToken?: string,
   ) {
     return this.venues.bulkCreateSeats(localityId, dto, user, unlockToken);
+  }
+
+  @Put()
+  @ApiHeader({ name: 'x-edit-unlock', required: false })
+  @ApiOperation({
+    summary:
+      'Reemplaza (migra) el mapa de asientos por un layout nuevo, conservando los vendidos',
+  })
+  replace(
+    @Param('localityId', ParseUUIDPipe) localityId: string,
+    @Body() dto: BulkSeatsDto,
+    @CurrentUser() user: AuthUser,
+    @Headers('x-edit-unlock') unlockToken?: string,
+  ) {
+    return this.venues.replaceSeats(localityId, dto, user, unlockToken);
   }
 
   @Post('generate')
