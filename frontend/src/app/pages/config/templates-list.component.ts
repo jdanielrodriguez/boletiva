@@ -5,10 +5,8 @@ import { DomSanitizer, type SafeHtml } from '@angular/platform-browser';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { SeatTemplatesApi } from '../../core/api/seat-templates.api';
 import { ToastService } from '../../core/ui/toast.service';
-import {
-  ConfirmDialogComponent,
-  type ConfirmRequest,
-} from '../../shared/confirm-dialog/confirm-dialog.component';
+import { ConfirmController } from '../../shared/confirm-dialog/confirm-controller';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { FilteredPagedList } from '../../shared/ui/filtered-paged-list';
@@ -116,7 +114,7 @@ export class TemplatesListComponent {
   }
   // --- Publicar (con modal de confirmación, v3.9 · B3) ---
   protected askPublish(t: SeatTemplateResponseDto): void {
-    this.confirm.set({
+    this.confirm.ask({
       title: this.translate.instant('config.templates.publishConfirmTitle'),
       message: this.translate.instant('config.templates.publishConfirmMessage', { name: t.name }),
       confirmLabel: this.translate.instant('config.templates.publish'),
@@ -152,22 +150,14 @@ export class TemplatesListComponent {
     return t.disabled && !t.isBuiltIn;
   }
 
-  // --- Confirmación de borrado ---
-  protected readonly confirm = signal<ConfirmRequest | null>(null);
-  protected onConfirmAccept(): void {
-    const c = this.confirm();
-    this.confirm.set(null);
-    c?.onConfirm();
-  }
-  protected onConfirmCancel(): void {
-    this.confirm.set(null);
-  }
+  // --- Confirmación de borrado (controlador compartido) ---
+  protected readonly confirm = new ConfirmController();
   protected askRemove(t: SeatTemplateResponseDto): void {
     if (!this.canDelete(t)) {
       this.toasts.warning(this.translate.instant('config.templates.deleteBlocked'));
       return;
     }
-    this.confirm.set({
+    this.confirm.ask({
       title: this.translate.instant('config.templates.removeConfirmTitle'),
       message: this.translate.instant('config.templates.removeConfirmMessage', { name: t.name }),
       confirmLabel: this.translate.instant('common.delete'),

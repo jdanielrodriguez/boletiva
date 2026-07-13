@@ -40,15 +40,15 @@
     }
   }
 
-  @if (confirm(); as cf) {
+  @if (confirm.request(); as cf) {
     <app-confirm-dialog
       [title]="cf.title"
       [message]="cf.message"
       [confirmLabel]="cf.confirmLabel ?? ('common.discard' | translate)"
       [confirmIcon]="cf.confirmIcon ?? 'delete'"
       [danger]="cf.danger ?? true"
-      (accept)="onConfirmAccept()"
-      (cancelled)="onConfirmCancel()"
+      (accept)="confirm.accept()"
+      (cancelled)="confirm.cancel()"
     />
   }
 </section>

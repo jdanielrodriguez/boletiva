@@ -15,10 +15,8 @@ import { SettingsApi } from '../../core/api/settings.api';
 import { AuditApi } from '../../core/api/audit.api';
 import { ImpersonationService } from '../../core/auth/impersonation.service';
 import { ToastService } from '../../core/ui/toast.service';
-import {
-  ConfirmDialogComponent,
-  type ConfirmRequest,
-} from '../../shared/confirm-dialog/confirm-dialog.component';
+import { ConfirmController } from '../../shared/confirm-dialog/confirm-controller';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
 import { SearchFieldComponent } from '../../shared/ui/search-field.component';
@@ -366,7 +364,7 @@ export class ConfigPage {
   // --- Aprobar / reactivar / rechazar con confirmación (v3.8 · G2-5) ---
   protected askApprove(p: PromoterListItemDto): void {
     const reactivate = p.promoterStatus === 'suspended';
-    this.confirm.set({
+    this.confirm.ask({
       title: this.translate.instant(reactivate ? 'config.promoters.reactivateConfirmTitle' : 'config.promoters.approveConfirmTitle', { name: p.firstName }),
       message: this.translate.instant(reactivate ? 'config.promoters.reactivateConfirmMsg' : 'config.promoters.approveConfirmMsg', { name: p.firstName }),
       confirmLabel: this.translate.instant(reactivate ? 'config.promoters.reactivate' : 'config.promoters.approve'),
@@ -388,7 +386,7 @@ export class ConfigPage {
     });
   }
   protected askReject(p: PromoterListItemDto): void {
-    this.confirm.set({
+    this.confirm.ask({
       title: this.translate.instant('config.promoters.rejectConfirmTitle', { name: p.firstName }),
       message: this.translate.instant('config.promoters.rejectConfirmMsg', { name: p.firstName }),
       confirmLabel: this.translate.instant('config.promoters.reject'),
@@ -415,7 +413,7 @@ export class ConfigPage {
       this.toasts.warning(this.translate.instant('config.promoters.impersonateOnlyApproved'));
       return;
     }
-    this.confirm.set({
+    this.confirm.ask({
       title: this.translate.instant('config.promoters.impersonateConfirmTitle', { name: p.firstName }),
       message: this.translate.instant('config.promoters.impersonateConfirmMsg', { name: p.firstName }),
       confirmLabel: this.translate.instant('config.promoters.impersonateStart'),
@@ -627,7 +625,7 @@ export class ConfigPage {
       this.toasts.warning(this.translate.instant('config.system.deleteGatewayBlockedTitle'));
       return;
     }
-    this.confirm.set({
+    this.confirm.ask({
       title: this.translate.instant('config.system.gwRemoveConfirmTitle'),
       message: this.translate.instant('config.system.gwRemoveConfirmMessage', { name: g.name }),
       confirmLabel: this.translate.instant('common.delete'),
@@ -818,18 +816,10 @@ export class ConfigPage {
   }
 
   // --- Confirmación de acciones destructivas ---
-  protected readonly confirm = signal<ConfirmRequest | null>(null);
-  protected onConfirmAccept(): void {
-    const c = this.confirm();
-    this.confirm.set(null);
-    c?.onConfirm();
-  }
-  protected onConfirmCancel(): void {
-    this.confirm.set(null);
-  }
+  protected readonly confirm = new ConfirmController();
 
   protected askRevoke(i: InvitationListItemDto): void {
-    this.confirm.set({
+    this.confirm.ask({
       title: this.translate.instant('config.invitations.revokeConfirmTitle'),
       message: this.translate.instant('config.invitations.revokeConfirmMessage', { email: i.email }),
       confirmLabel: this.translate.instant('config.invitations.revoke'),

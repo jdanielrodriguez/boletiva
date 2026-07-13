@@ -557,7 +557,7 @@ describe('EventEditPage (v3)', () => {
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('[data-testid="confirm-dialog"]')).not.toBeNull();
     expect(remove).not.toHaveBeenCalled();
-    fixture.componentInstance['onConfirmAccept']();
+    fixture.componentInstance['confirm'].accept();
     expect(remove).toHaveBeenCalled();
   });
 
@@ -566,7 +566,7 @@ describe('EventEditPage (v3)', () => {
     await setup({ removeLocality, localities: () => of([{ id: 'l1', name: 'VIP', kind: 'seated', capacity: 5 }]) });
     fixture.componentInstance['askRemoveLocality']({ id: 'l1', name: 'VIP', kind: 'seated' } as never);
     expect(removeLocality).not.toHaveBeenCalled();
-    fixture.componentInstance['onConfirmAccept']();
+    fixture.componentInstance['confirm'].accept();
     expect(removeLocality).toHaveBeenCalledWith('l1');
   });
 
@@ -579,7 +579,7 @@ describe('EventEditPage (v3)', () => {
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('[data-testid="confirm-dialog"]')).not.toBeNull();
     expect(publish).not.toHaveBeenCalled();
-    fixture.componentInstance['onConfirmAccept']();
+    fixture.componentInstance['confirm'].accept();
     expect(publish).toHaveBeenCalled();
   });
 
@@ -718,7 +718,7 @@ describe('EventEditPage (v3)', () => {
     fixture.detectChanges();
     expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="confirm-dialog"]')).not.toBeNull();
     expect(suspend).not.toHaveBeenCalled();
-    fixture.componentInstance['onConfirmAccept']();
+    fixture.componentInstance['confirm'].accept();
     expect(suspend).toHaveBeenCalledWith('e1');
     expect(fixture.componentInstance['event']()?.status).toBe('suspended');
   });
@@ -906,7 +906,7 @@ describe('EventEditPage (v3)', () => {
     fixture.detectChanges();
     expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="confirm-dialog"]')).not.toBeNull();
     // Cancelar (seguir editando) resuelve false.
-    fixture.componentInstance['onConfirmCancel']();
+    fixture.componentInstance['confirm'].cancel();
     expect(resolved).toBe(false);
   });
 
@@ -943,7 +943,7 @@ describe('EventEditPage (v3)', () => {
     // Modal de validación → aceptar → llama al endpoint.
     fixture.componentInstance['askFinalizeCash']();
     fixture.detectChanges();
-    fixture.componentInstance['onConfirmAccept']();
+    fixture.componentInstance['confirm'].accept();
     fixture.detectChanges();
     expect(finalizeSettlement).toHaveBeenCalledWith('e1');
     expect(el.querySelector('[data-testid="cash-transfer-result"]')).not.toBeNull();
@@ -961,7 +961,7 @@ describe('EventEditPage (v3)', () => {
     fixture.detectChanges();
     fixture.componentInstance['askFinalizeCash']();
     fixture.detectChanges();
-    fixture.componentInstance['onConfirmAccept']();
+    fixture.componentInstance['confirm'].accept();
     fixture.detectChanges();
     expect(
       (fixture.nativeElement as HTMLElement).querySelector('[data-testid="cash-transfer-error"]'),

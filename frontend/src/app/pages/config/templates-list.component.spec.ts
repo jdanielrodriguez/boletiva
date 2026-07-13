@@ -69,7 +69,7 @@ describe('TemplatesListComponent (v3.9 · B1)', () => {
     editTemplate: (t: unknown) => void;
     canEditState: (t: unknown) => boolean;
     askRemove: (t: unknown) => void;
-    onConfirmAccept: () => void;
+    confirm: { accept: () => void };
     openPreview: (t: unknown) => void;
     preview: () => unknown;
   };
@@ -121,7 +121,7 @@ describe('TemplatesListComponent (v3.9 · B1)', () => {
     const remove = jasmine.createSpy('r').and.returnValue(of({}));
     await setup({ remove });
     inst().askRemove(TEMPLATES[3]);
-    inst().onConfirmAccept();
+    inst().confirm.accept();
     expect(remove).toHaveBeenCalledWith('t4');
   });
 
@@ -203,7 +203,7 @@ describe('TemplatesListComponent (v3.9 · B1)', () => {
     fixture.detectChanges();
     expect(el.querySelector('[data-testid="confirm-dialog"]')).not.toBeNull();
     expect(publish).not.toHaveBeenCalled();
-    inst().onConfirmAccept();
+    inst().confirm.accept();
     expect(publish).toHaveBeenCalledWith('t2');
   });
 

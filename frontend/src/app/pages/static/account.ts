@@ -29,10 +29,8 @@ import { CardTokenizerStub } from '../../core/payments/card-tokenizer.stub';
 import { AuthService } from '../../core/auth/auth.service';
 import { SessionStore } from '../../core/auth/session.store';
 import { ToastService } from '../../core/ui/toast.service';
-import {
-  ConfirmDialogComponent,
-  type ConfirmRequest,
-} from '../../shared/confirm-dialog/confirm-dialog.component';
+import { ConfirmController } from '../../shared/confirm-dialog/confirm-controller';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { TicketTransferModal } from '../../shared/ticket-transfer-modal/ticket-transfer-modal.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
@@ -547,18 +545,10 @@ export class Account {
   }
 
   // --- Confirmación de acciones destructivas ---
-  protected readonly confirm = signal<ConfirmRequest | null>(null);
-  protected onConfirmAccept(): void {
-    const c = this.confirm();
-    this.confirm.set(null);
-    c?.onConfirm();
-  }
-  protected onConfirmCancel(): void {
-    this.confirm.set(null);
-  }
+  protected readonly confirm = new ConfirmController();
 
   protected askRemoveCard(c: PaymentMethodResponseDto): void {
-    this.confirm.set({
+    this.confirm.ask({
       title: this.translate.instant('account.methods.removeCardTitle'),
       message: this.translate.instant('account.confirm.removeCardMessage', {
         brand: c.brand.toUpperCase(),
@@ -667,7 +657,7 @@ export class Account {
   }
 
   protected askCancelWithdrawal(w: WithdrawalResponseDto): void {
-    this.confirm.set({
+    this.confirm.ask({
       title: this.translate.instant('account.confirm.cancelWithdrawalTitle'),
       message: this.translate.instant('account.confirm.cancelWithdrawalMessage'),
       confirmLabel: this.translate.instant('account.wallet.cancelWithdrawalTitle'),

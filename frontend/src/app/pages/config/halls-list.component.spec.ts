@@ -71,7 +71,7 @@ describe('HallsListComponent (v3.9 · B1 + v3.10 · FE-3)', () => {
     disable: (h: unknown) => void;
     askPublish: (h: unknown) => void;
     askRemove: (h: unknown) => void;
-    onConfirmAccept: () => void;
+    confirm: { accept: () => void };
   };
 
   it('lista todos los salones (draft + publicados)', async () => {
@@ -185,7 +185,7 @@ describe('HallsListComponent (v3.9 · B1 + v3.10 · FE-3)', () => {
     fixture.detectChanges();
     expect(el.querySelector('[data-testid="confirm-dialog"]')).not.toBeNull();
     expect(publish).not.toHaveBeenCalled();
-    inst().onConfirmAccept();
+    inst().confirm.accept();
     expect(publish).toHaveBeenCalledWith('h2');
   });
 
@@ -201,7 +201,7 @@ describe('HallsListComponent (v3.9 · B1 + v3.10 · FE-3)', () => {
     const remove = jasmine.createSpy('r').and.returnValue(of({}));
     await setup({ remove });
     inst().askRemove(HALLS[3]);
-    inst().onConfirmAccept();
+    inst().confirm.accept();
     expect(remove).toHaveBeenCalledWith('h4');
   });
 

@@ -5,10 +5,8 @@ import { Router, RouterLink } from '@angular/router';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
 import { ToastService } from '../../core/ui/toast.service';
-import {
-  ConfirmDialogComponent,
-  type ConfirmRequest,
-} from '../../shared/confirm-dialog/confirm-dialog.component';
+import { ConfirmController } from '../../shared/confirm-dialog/confirm-controller';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
 import { SearchFieldComponent } from '../../shared/ui/search-field.component';
@@ -100,7 +98,7 @@ export class PromoterPanel {
 
   /** Pide confirmación (modal) antes de publicar el evento. */
   protected askPublish(ev: MyEventListItemDto): void {
-    this.confirm.set({
+    this.confirm.ask({
       title: this.translate.instant('promoter.panel.publish'),
       message: this.translate.instant('promoter.panel.confirmPublishMsg', { name: ev.name }),
       confirmLabel: this.translate.instant('promoter.panel.publishShort'),
@@ -128,18 +126,10 @@ export class PromoterPanel {
   }
 
   // --- Confirmación de acciones destructivas ---
-  protected readonly confirm = signal<ConfirmRequest | null>(null);
-  protected onConfirmAccept(): void {
-    const c = this.confirm();
-    this.confirm.set(null);
-    c?.onConfirm();
-  }
-  protected onConfirmCancel(): void {
-    this.confirm.set(null);
-  }
+  protected readonly confirm = new ConfirmController();
 
   protected askCancelEvent(ev: MyEventListItemDto): void {
-    this.confirm.set({
+    this.confirm.ask({
       title: this.translate.instant('promoter.panel.cancelTitle'),
       message: this.translate.instant('promoter.panel.confirmCancelMsg', { name: ev.name }),
       confirmLabel: this.translate.instant('promoter.panel.cancelTitle'),
@@ -159,7 +149,7 @@ export class PromoterPanel {
   }
 
   protected askSuspend(ev: MyEventListItemDto): void {
-    this.confirm.set({
+    this.confirm.ask({
       title: this.translate.instant('promoter.panel.suspendTitle'),
       message: this.translate.instant('promoter.panel.confirmSuspendMsg', { name: ev.name }),
       confirmLabel: this.translate.instant('promoter.panel.suspendTitle'),
@@ -179,7 +169,7 @@ export class PromoterPanel {
   }
 
   protected askRemove(ev: MyEventListItemDto): void {
-    this.confirm.set({
+    this.confirm.ask({
       title: this.translate.instant('promoter.panel.deleteTitle'),
       message: this.translate.instant('promoter.panel.confirmDeleteMsg', { name: ev.name }),
       onConfirm: () => this.remove(ev),

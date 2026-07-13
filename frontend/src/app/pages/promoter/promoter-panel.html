@@ -79,14 +79,14 @@
     <app-pager [page]="page()" [totalPages]="totalPages()" (pageChange)="goToPage($event)" data-testid="panel-pager" />
   }
 
-  @if (confirm(); as cf) {
+  @if (confirm.request(); as cf) {
     <app-confirm-dialog
       [title]="cf.title"
       [message]="cf.message"
       [confirmLabel]="cf.confirmLabel ?? ('common.delete' | translate)"
       [confirmIcon]="cf.confirmIcon ?? 'delete'"
-      (accept)="onConfirmAccept()"
-      (cancelled)="onConfirmCancel()"
+      (accept)="confirm.accept()"
+      (cancelled)="confirm.cancel()"
     />
   }
 </section>

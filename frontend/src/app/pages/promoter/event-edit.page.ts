@@ -12,10 +12,8 @@ import { MediaApi } from '../../core/api/media.api';
 import { EditUnlockStore } from '../../core/events/edit-unlock.store';
 import { SessionStore } from '../../core/auth/session.store';
 import { ToastService } from '../../core/ui/toast.service';
-import {
-  ConfirmDialogComponent,
-  type ConfirmRequest,
-} from '../../shared/confirm-dialog/confirm-dialog.component';
+import { ConfirmController } from '../../shared/confirm-dialog/confirm-controller';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { EventSettlementComponent } from '../../shared/event-settlement/event-settlement.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { BackLinkComponent } from '../../shared/ui/back-link.component';
@@ -360,17 +358,7 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
   }
 
   // Confirmación de acciones destructivas (modal reutilizable).
-  protected readonly confirm = signal<ConfirmRequest | null>(null);
-  protected onConfirmAccept(): void {
-    const c = this.confirm();
-    this.confirm.set(null);
-    c?.onConfirm();
-  }
-  protected onConfirmCancel(): void {
-    const c = this.confirm();
-    this.confirm.set(null);
-    c?.onCancel?.();
-  }
+  protected readonly confirm = new ConfirmController();
 
   /** Hay cambios en el formulario de datos/config sin guardar. */
   hasUnsavedChanges(): boolean {
@@ -379,7 +367,7 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
   /** Abre el modal "¿descartar cambios?" (reutiliza el confirm-dialog del componente). */
   confirmDiscard(): Observable<boolean> {
     return promptDiscardChanges(
-      (req) => this.confirm.set(req),
+      (req) => this.confirm.ask(req),
       (k) => this.translate.instant(k),
     );
   }
@@ -836,7 +824,7 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
 
   protected askRemoveLocality(l: LocalityView): void {
     if (this.blockedByLock()) return;
-    this.confirm.set({
+    this.confirm.ask({
       title: this.translate.instant('promoter.edit.deleteLocalityTitle'),
       message: this.translate.instant('promoter.edit.confirmDeleteLocalityMsg', { name: l.name }),
       onConfirm: () => this.removeLocality(l),
@@ -948,7 +936,7 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
       this.toasts.warning(reason);
       return;
     }
-    this.confirm.set({
+    this.confirm.ask({
       title: this.translate.instant('promoter.edit.publishEventTitle'),
       message: this.translate.instant('promoter.edit.confirmPublishMsg', {
         name: this.event()?.name ?? this.translate.instant('promoter.edit.thisEvent'),
@@ -984,7 +972,7 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
 
   protected askSuspend(): void {
     if (this.blockedByLock()) return;
-    this.confirm.set({
+    this.confirm.ask({
       title: this.translate.instant('promoter.edit.suspendEventTitle'),
       message: this.translate.instant('promoter.edit.confirmSuspendMsg', {
         name: this.event()?.name ?? this.translate.instant('promoter.edit.thisEvent'),
@@ -1006,7 +994,7 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
   }
 
   protected askCancelEvent(): void {
-    this.confirm.set({
+    this.confirm.ask({
       title: this.translate.instant('promoter.edit.cancelEvent'),
       message: this.translate.instant('promoter.edit.confirmCancelMsg', {
         name: this.event()?.name ?? this.translate.instant('promoter.edit.thisEvent'),
@@ -1028,7 +1016,7 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
   }
 
   protected askRemove(): void {
-    this.confirm.set({
+    this.confirm.ask({
       title: this.translate.instant('promoter.edit.deleteEventTitle'),
       message: this.translate.instant('promoter.edit.confirmDeleteMsg', {
         name: this.event()?.name ?? this.translate.instant('promoter.edit.thisEvent'),
@@ -1051,7 +1039,7 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
   // --- Cierre + transferencia de saldos de caja (SOLO admin) ---
   /** Modal de validación antes de transferir el saldo del evento al promotor. */
   protected askFinalizeCash(): void {
-    this.confirm.set({
+    this.confirm.ask({
       title: this.translate.instant('promoter.edit.cashTransferTitle'),
       message: this.translate.instant('promoter.edit.cashTransferConfirm', {
         name: this.event()?.name ?? this.translate.instant('promoter.edit.thisEvent'),

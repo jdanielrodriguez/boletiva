@@ -19,10 +19,8 @@ import { PromoterEventsApi, SeatView, BulkSeatInput } from '../../core/api/promo
 import { SeatTemplatesApi } from '../../core/api/seat-templates.api';
 import { ToastService } from '../../core/ui/toast.service';
 import type { SeatTemplateResponseDto } from '../../core/api/types';
-import {
-  ConfirmDialogComponent,
-  type ConfirmRequest,
-} from '../../shared/confirm-dialog/confirm-dialog.component';
+import { ConfirmController } from '../../shared/confirm-dialog/confirm-controller';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { collides, snapToGrid, SEAT_GRID } from './seat-collision';
 import { buildTemplate, SEAT_TEMPLATES, type SeatTemplateId } from './seat-templates';
@@ -331,19 +329,11 @@ export class SeatEditorComponent {
   }
 
   // --- Confirmación de acciones destructivas ---
-  protected readonly confirm = signal<ConfirmRequest | null>(null);
-  protected onConfirmAccept(): void {
-    const c = this.confirm();
-    this.confirm.set(null);
-    c?.onConfirm();
-  }
-  protected onConfirmCancel(): void {
-    this.confirm.set(null);
-  }
+  protected readonly confirm = new ConfirmController();
 
   protected askClearAll(): void {
     if (this.readonly() || this.draft().length === 0) return;
-    this.confirm.set({
+    this.confirm.ask({
       title: this.translate.instant('promoter.seat.confirmClearTitle'),
       message: this.translate.instant('promoter.seat.confirmClearMsg', { n: this.draft().length }),
       confirmLabel: this.translate.instant('promoter.seat.clear'),

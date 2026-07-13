@@ -5,10 +5,8 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { Observable } from 'rxjs';
 import { HallsApi } from '../../core/api/halls.api';
 import { ToastService } from '../../core/ui/toast.service';
-import {
-  ConfirmDialogComponent,
-  type ConfirmRequest,
-} from '../../shared/confirm-dialog/confirm-dialog.component';
+import { ConfirmController } from '../../shared/confirm-dialog/confirm-controller';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { MapPickerComponent, type MapLocation } from '../../shared/map/map-picker.component';
 import { BackLinkComponent } from '../../shared/ui/back-link.component';
@@ -67,7 +65,7 @@ export class HallEditPage implements HasUnsavedChanges {
   // --- Guard de cambios sin guardar ---
   private readonly savedSnapshot = signal('');
   private skipGuard = false;
-  protected readonly confirm = signal<ConfirmRequest | null>(null);
+  protected readonly confirm = new ConfirmController();
 
   protected readonly heading = computed(() =>
     this.isNew ? 'config.halls.newPageTitle' : 'config.halls.editPageTitle',
@@ -87,19 +85,9 @@ export class HallEditPage implements HasUnsavedChanges {
   }
   confirmDiscard(): Observable<boolean> {
     return promptDiscardChanges(
-      (req) => this.confirm.set(req),
+      (req) => this.confirm.ask(req),
       (k) => this.translate.instant(k),
     );
-  }
-  protected onConfirmAccept(): void {
-    const c = this.confirm();
-    this.confirm.set(null);
-    c?.onConfirm();
-  }
-  protected onConfirmCancel(): void {
-    const c = this.confirm();
-    this.confirm.set(null);
-    c?.onCancel?.();
   }
 
   private loadHall(id: string): void {

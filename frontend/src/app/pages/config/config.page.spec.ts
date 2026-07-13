@@ -378,13 +378,13 @@ describe('ConfigPage (v3, admin console)', () => {
     const c = fixture.componentInstance as unknown as {
       canDeleteGateway: (g: { status: string; isPlatformDefault: boolean }) => boolean;
       askRemoveGateway: (g: unknown) => void;
-      onConfirmAccept: () => void;
+      confirm: { accept: () => void };
     };
     // Activa/default → NO borrable; inactiva no-default → borrable.
     expect(c.canDeleteGateway(INACTIVE[0] as never)).toBe(false);
     expect(c.canDeleteGateway(INACTIVE[1] as never)).toBe(true);
     c.askRemoveGateway(INACTIVE[1] as never);
-    c.onConfirmAccept();
+    c.confirm.accept();
     expect(deleteGateway).toHaveBeenCalledWith('g2');
   });
 
@@ -645,7 +645,7 @@ describe('ConfigPage (v3, admin console)', () => {
     effectivePct(id: string): number | null;
     hasOverride(id: string): boolean;
     confirmSuspend(): void;
-    confirm: { set(v: unknown): void; (): { onConfirm(): void } | null };
+    confirm: { ask(v: unknown): void; request(): { onConfirm(): void } | null };
   }
   const inst = (): ConfigTestable => fixture.componentInstance as unknown as ConfigTestable;
   const P = { id: 'u2', firstName: 'Leo', lastName: 'G', promoterStatus: 'approved' };
@@ -696,7 +696,7 @@ describe('ConfigPage (v3, admin console)', () => {
     await setup();
     inst().askImpersonate({ id: 'u1', firstName: 'Pia', promoterStatus: 'pending' });
     expect(lastToast()?.kind).toBe('warning');
-    expect(inst().confirm()).toBeNull();
+    expect(inst().confirm.request()).toBeNull();
   });
 
   it('impersonar a un aprobado abre confirmación; al confirmar arranca la sesión y navega', async () => {
@@ -706,7 +706,7 @@ describe('ConfigPage (v3, admin console)', () => {
     spyOn(TestBed.inject(ImpersonationService), 'start').and.callFake(startSpy);
     const nav = spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
     inst().askImpersonate(P);
-    const confirmState = inst().confirm();
+    const confirmState = inst().confirm.request();
     expect(confirmState).not.toBeNull();
     confirmState?.onConfirm();
     expect(startSpy).toHaveBeenCalledWith('u2');
