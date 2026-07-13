@@ -54,3 +54,6 @@ google-cloud-sdk*
 
 # Artefacto generado por el seeder de carga (K6)
 load/stadium.manifest.json
+
+# Notas de trabajo del usuario (no versionar)
+promot_fixes.md
