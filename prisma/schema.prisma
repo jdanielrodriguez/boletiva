@@ -454,6 +454,11 @@ model Event {
   // entero define el ORDEN de prioridad (menor = primero). Lo edita admin/promotor.
   promotedPriority Int? @map("promoted_priority")
 
+  // v3.10: sello de "cierre de caja" — cuándo un ADMIN finalizó el evento y
+  // transfirió el saldo (neto acumulado) al wallet del promotor. Idempotencia:
+  // con esto puesto, la transferencia no se repite.
+  cashTransferredAt DateTime? @map("cash_transferred_at")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

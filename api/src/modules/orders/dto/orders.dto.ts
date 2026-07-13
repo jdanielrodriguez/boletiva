@@ -280,6 +280,33 @@ export class EventSettlementDto {
   iva!: string;
 }
 
+export class EventCashTransferDto {
+  @ApiProperty({ format: 'uuid' })
+  eventId!: string;
+
+  @ApiProperty({ example: 'Concierto de Apertura' })
+  eventName!: string;
+
+  @ApiProperty({ format: 'uuid', description: 'Promotor que recibe el saldo en su wallet' })
+  promoterId!: string;
+
+  @ApiProperty({ example: 'GTQ' })
+  currency!: string;
+
+  @ApiProperty({
+    type: String,
+    example: '34200.00',
+    description: 'Neto transferido desde promoter_payable al wallet del promotor',
+  })
+  transferred!: string;
+
+  @ApiProperty({ example: 'finished', description: 'Estado del evento tras el cierre' })
+  status!: string;
+
+  @ApiProperty({ format: 'date-time' })
+  transferredAt!: string;
+}
+
 /** Un movimiento del feed de facturación (ingreso/egreso). */
 export class MovementResponseDto {
   @ApiProperty({ description: 'id sintético estable', example: 'order:8f…' })

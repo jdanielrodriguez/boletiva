@@ -1,22 +1,26 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { SettlementService } from './settlement.service';
 import { AuthUser } from '../../common/decorators/current-user.decorator';
 
 /**
  * Cobertura de RAMAS de SettlementService (módulo FINANCIERO → 100% branches):
- * authz (404 evento inexistente, 403 ajeno, admin, owner) y la agregación de
- * montos (evento vacío → nulls → 0.00; evento con órdenes pagadas → suma exacta).
+ * authz (404 evento inexistente, 403 ajeno, admin, owner), la agregación de
+ * montos (evento vacío → nulls → 0.00; evento con órdenes pagadas → suma exacta)
+ * y el cierre de caja v3.10 (finalizeAndTransfer): RBAC, idempotencia,
+ * elegibilidad y el asiento contable de traslado.
  */
 describe('SettlementService (branches, unit)', () => {
   const build = () => {
     const prisma = {
-      event: { findUnique: jest.fn() },
+      event: { findUnique: jest.fn(), update: jest.fn().mockResolvedValue({}) },
       order: { aggregate: jest.fn() },
       orderItem: { count: jest.fn() },
     };
-    const service = new SettlementService(prisma as never);
-    return { prisma, service };
+    const ledger = { post: jest.fn().mockResolvedValue({}) };
+    const audit = { record: jest.fn().mockResolvedValue(undefined) };
+    const service = new SettlementService(prisma as never, ledger as never, audit as never);
+    return { prisma, ledger, audit, service };
   };
 
   const owner: AuthUser = { userId: 'promo', email: 'p@x.com', roles: [Role.promoter] };
@@ -92,5 +96,68 @@ describe('SettlementService (branches, unit)', () => {
     expect(prisma.orderItem.count).toHaveBeenCalledWith({
       where: { order: { eventId: 'e1', status: 'paid' }, active: true },
     });
+  });
+
+  // ---- finalizeAndTransfer (cierre de caja v3.10) ----
+
+  const future = new Date(Date.now() + 86_400_000);
+  const past = new Date(Date.now() - 86_400_000);
+
+  it('finalize: no-admin → 403 (el promotor no autoliquida su caja)', async () => {
+    const { service, prisma } = build();
+    await expect(service.finalizeAndTransfer('e1', owner)).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.event.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('finalize: evento inexistente → 404', async () => {
+    const { service, prisma } = build();
+    prisma.event.findUnique.mockResolvedValue(null);
+    await expect(service.finalizeAndTransfer('nope', admin)).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('finalize: ya transferido → 409 (idempotencia)', async () => {
+    const { service, prisma } = build();
+    prisma.event.findUnique.mockResolvedValue({
+      id: 'e1', name: 'X', promoterId: 'promo', status: 'finished', endsAt: past,
+      cashTransferredAt: new Date(),
+    });
+    await expect(service.finalizeAndTransfer('e1', admin)).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('finalize: evento no elegible (draft, futuro) → 409', async () => {
+    const { service, prisma } = build();
+    prisma.event.findUnique.mockResolvedValue({
+      id: 'e1', name: 'X', promoterId: 'promo', status: 'draft', endsAt: future, cashTransferredAt: null,
+    });
+    await expect(service.finalizeAndTransfer('e1', admin)).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('finalize: elegible con neto → asienta traslado payable→wallet, cierra y audita', async () => {
+    const { service, prisma, ledger, audit } = build();
+    prisma.event.findUnique.mockResolvedValue({
+      id: 'e1', name: 'Show', promoterId: 'promo', status: 'suspended', endsAt: future, cashTransferredAt: null,
+    });
+    prisma.order.aggregate.mockResolvedValue({ _sum: { net: '150.00' } });
+    const res = await service.finalizeAndTransfer('e1', admin, '1.2.3.4', 'jest');
+    expect(res).toMatchObject({ eventId: 'e1', promoterId: 'promo', transferred: '150.00', status: 'finished' });
+    expect(prisma.event.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: 'finished' }) }),
+    );
+    const posted = ledger.post.mock.calls[0][0];
+    expect(posted.kind).toBe('event_cash_transfer');
+    const sum = posted.entries.reduce((a: number, e: { amount: string }) => a + Number(e.amount), 0);
+    expect(sum).toBeCloseTo(0, 2); // partida doble cuadra
+    expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'event.cash_transfer' }));
+  });
+
+  it('finalize: neto 0 → cierra sin asiento contable (evita partida vacía)', async () => {
+    const { service, prisma, ledger } = build();
+    prisma.event.findUnique.mockResolvedValue({
+      id: 'e1', name: 'Show', promoterId: 'promo', status: 'finished', endsAt: past, cashTransferredAt: null,
+    });
+    prisma.order.aggregate.mockResolvedValue({ _sum: { net: null } });
+    const res = await service.finalizeAndTransfer('e1', admin);
+    expect(res.transferred).toBe('0.00');
+    expect(ledger.post).not.toHaveBeenCalled();
   });
 });

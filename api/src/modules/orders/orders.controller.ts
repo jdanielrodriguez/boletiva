@@ -1,4 +1,15 @@
-import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  HttpCode,
+  Ip,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Query,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -16,6 +27,7 @@ import { OrdersService } from './orders.service';
 import { SettlementService } from './settlement.service';
 import {
   CheckoutDto,
+  EventCashTransferDto,
   EventSettlementDto,
   EventTransactionPageDto,
   MovementsResponseDto,
@@ -43,6 +55,24 @@ export class OrdersController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.settlement.forEvent(eventId, user);
+  }
+
+  @Post('events/:eventId/settlement/finalize')
+  @Roles(Role.admin)
+  @HttpCode(200)
+  @ApiOperation({
+    summary:
+      'Finaliza el evento y transfiere el saldo de caja (neto) al wallet del promotor ' +
+      '(SOLO admin; idempotente). Disponible si el evento está finalizado/suspendido o ya pasó.',
+  })
+  @ApiOkResponse({ type: EventCashTransferDto })
+  finalizeSettlement(
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+    @CurrentUser() user: AuthUser,
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent?: string,
+  ) {
+    return this.settlement.finalizeAndTransfer(eventId, user, ip, userAgent);
   }
 
   @Get('events/:eventId/transactions')
