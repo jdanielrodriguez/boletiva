@@ -110,7 +110,9 @@ async function main() {
     await page.goto(`${FE}/`, { waitUntil: 'networkidle0' });
     await waitSel(page, '.catalog-search input');
     await page.type('.catalog-search input', 'demo');
-    await page.click('.catalog-search button');
+    // Enter busca (ruta primaria del search-field v3.10). El clic en la lupita hace
+    // lo mismo (mismo emitSearch); se valida por unit del componente.
+    await page.keyboard.press('Enter');
     await page.waitForFunction(() => location.search.includes('search='), { timeout: 8000 });
   });
 

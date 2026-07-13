@@ -456,13 +456,9 @@
 
                               @if (qrVisible(t.id)) {
                                 @if (media()[t.id]; as m) {
-                                  @if (qrBrokenFor(t.id)) {
-                                    <p class="muted qr-pending" data-testid="qr-pending">{{ 'account.tickets.qrPending' | translate }}</p>
-                                  } @else {
-                                    <div class="poster-qr">
-                                      <img [src]="m.qrUrl" alt="Código QR del boleto para validar en la puerta" width="160" height="160" (error)="onQrError(t.id)" />
-                                    </div>
-                                  }
+                                  <div class="poster-qr">
+                                    <img [src]="m.qrUrl" alt="Código QR del boleto para validar en la puerta" width="160" height="160" (error)="onQrError(t.id)" />
+                                  </div>
                                 } @else {
                                   <p class="muted qr-pending" data-testid="qr-pending">{{ 'account.tickets.qrPending' | translate }}</p>
                                 }
