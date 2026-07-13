@@ -181,6 +181,14 @@ describe('Pases de wallet (e2e)', () => {
       update: { value: 2 },
       create: { key: 'wallet.pass_fee', value: 2, description: 'test' },
     });
+    // Reparto DETERMINISTA al 50% (no depende del estado dejado por otros suites en
+    // la BD compartida serial): default global 0.5 y sin override del promotor.
+    await prisma.setting.upsert({
+      where: { key: 'costshare.default_pct' },
+      update: { value: 0.5 },
+      create: { key: 'costshare.default_pct', value: 0.5, description: 'test' },
+    });
+    await prisma.user.update({ where: { id: promoterId }, data: { costSharePct: null } });
     const id = await buyAndGetTicket(5);
     const expenseBefore = await bal('platform_expense', SYS);
     const payableBefore = await bal('promoter_payable', promoterId);

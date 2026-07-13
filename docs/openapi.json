@@ -72,7 +72,7 @@
             }
           }
         },
-        "summary": "Registro con correo y contrase\u00f1a (env\u00eda verificaci\u00f3n)",
+        "summary": "Registro con correo y contraseña (envía verificación)",
         "tags": [
           "auth"
         ]
@@ -104,7 +104,7 @@
             }
           }
         },
-        "summary": "Login por contrase\u00f1a (puede requerir 2FA en dispositivo nuevo)",
+        "summary": "Login por contraseña (puede requerir 2FA en dispositivo nuevo)",
         "tags": [
           "auth"
         ]
@@ -168,7 +168,7 @@
             }
           }
         },
-        "summary": "Verifica el correo con el c\u00f3digo de 6 d\u00edgitos",
+        "summary": "Verifica el correo con el código de 6 dígitos",
         "tags": [
           "auth"
         ]
@@ -200,7 +200,7 @@
             }
           }
         },
-        "summary": "Verifica el correo con el token del enlace m\u00e1gico",
+        "summary": "Verifica el correo con el token del enlace mágico",
         "tags": [
           "auth"
         ]
@@ -232,7 +232,7 @@
             }
           }
         },
-        "summary": "Reenv\u00eda el correo de verificaci\u00f3n",
+        "summary": "Reenvía el correo de verificación",
         "tags": [
           "auth"
         ]
@@ -264,7 +264,7 @@
             }
           }
         },
-        "summary": "Solicita acceso solo con correo (enlace + c\u00f3digo)",
+        "summary": "Solicita acceso solo con correo (enlace + código)",
         "tags": [
           "auth"
         ]
@@ -296,7 +296,7 @@
             }
           }
         },
-        "summary": "Entra con el c\u00f3digo enviado al correo",
+        "summary": "Entra con el código enviado al correo",
         "tags": [
           "auth"
         ]
@@ -328,7 +328,7 @@
             }
           }
         },
-        "summary": "Entra con el token del enlace m\u00e1gico",
+        "summary": "Entra con el token del enlace mágico",
         "tags": [
           "auth"
         ]
@@ -382,7 +382,7 @@
             }
           }
         },
-        "summary": "M\u00e9todos de acceso disponibles",
+        "summary": "Métodos de acceso disponibles",
         "tags": [
           "auth"
         ]
@@ -444,7 +444,7 @@
             "bearer": []
           }
         ],
-        "summary": "Cierra la sesi\u00f3n",
+        "summary": "Cierra la sesión",
         "tags": [
           "auth"
         ]
@@ -476,7 +476,7 @@
             }
           }
         },
-        "summary": "Solicita recuperaci\u00f3n de contrase\u00f1a",
+        "summary": "Solicita recuperación de contraseña",
         "tags": [
           "auth"
         ]
@@ -508,7 +508,7 @@
             }
           }
         },
-        "summary": "Restablece la contrase\u00f1a con el token",
+        "summary": "Restablece la contraseña con el token",
         "tags": [
           "auth"
         ]
@@ -545,7 +545,7 @@
             "bearer": []
           }
         ],
-        "summary": "Cambia la contrase\u00f1a (autenticado)",
+        "summary": "Cambia la contraseña (autenticado)",
         "tags": [
           "auth"
         ]
@@ -572,7 +572,7 @@
             "bearer": []
           }
         ],
-        "summary": "Perfil del usuario autenticado (expone impersonatedBy si es una sesi\u00f3n de soporte)",
+        "summary": "Perfil del usuario autenticado (expone impersonatedBy si es una sesión de soporte)",
         "tags": [
           "auth"
         ]
@@ -636,7 +636,7 @@
             "bearer": []
           }
         ],
-        "summary": "Confirma TOTP con un c\u00f3digo de la app",
+        "summary": "Confirma TOTP con un código de la app",
         "tags": [
           "auth"
         ]
@@ -773,7 +773,7 @@
             "name": "cursor",
             "required": false,
             "in": "query",
-            "description": "Cursor: id de la \u00faltima fila de la p\u00e1gina previa",
+            "description": "Cursor: id de la última fila de la página previa",
             "schema": {
               "type": "string"
             }
@@ -782,7 +782,7 @@
             "name": "limit",
             "required": false,
             "in": "query",
-            "description": "Tama\u00f1o de p\u00e1gina (1\u2013100, default 20)",
+            "description": "Tamaño de página (1–100, default 20)",
             "schema": {
               "minimum": 1,
               "maximum": 100,
@@ -979,7 +979,7 @@
             }
           }
         },
-        "summary": "Lista categor\u00edas (activas por defecto)",
+        "summary": "Lista categorías (activas por defecto)",
         "tags": [
           "categories"
         ]
@@ -1014,7 +1014,7 @@
             "bearer": []
           }
         ],
-        "summary": "Crea categor\u00eda (admin)",
+        "summary": "Crea categoría (admin)",
         "tags": [
           "categories"
         ]
@@ -1045,7 +1045,7 @@
             }
           }
         },
-        "summary": "Categor\u00eda por slug",
+        "summary": "Categoría por slug",
         "tags": [
           "categories"
         ]
@@ -1091,7 +1091,7 @@
             "bearer": []
           }
         ],
-        "summary": "Actualiza categor\u00eda (admin)",
+        "summary": "Actualiza categoría (admin)",
         "tags": [
           "categories"
         ]
@@ -1110,7 +1110,7 @@
         ],
         "responses": {
           "204": {
-            "description": "Categor\u00eda eliminada"
+            "description": "Categoría eliminada"
           }
         },
         "security": [
@@ -1118,7 +1118,7 @@
             "bearer": []
           }
         ],
-        "summary": "Elimina categor\u00eda (admin)",
+        "summary": "Elimina categoría (admin)",
         "tags": [
           "categories"
         ]
@@ -1413,7 +1413,7 @@
             "name": "x-edit-unlock",
             "required": false,
             "in": "header",
-            "description": "Token de desbloqueo (admin no-due\u00f1o)",
+            "description": "Token de desbloqueo (admin no-dueño)",
             "schema": {
               "type": "string"
             }
@@ -1446,7 +1446,7 @@
             "bearer": []
           }
         ],
-        "summary": "Actualiza un evento (owner/admin; admin no-due\u00f1o requiere desbloqueo)",
+        "summary": "Actualiza un evento (owner/admin; admin no-dueño requiere desbloqueo)",
         "tags": [
           "events"
         ]
@@ -1466,7 +1466,7 @@
             "name": "x-edit-unlock",
             "required": false,
             "in": "header",
-            "description": "Token de desbloqueo (admin no-due\u00f1o)",
+            "description": "Token de desbloqueo (admin no-dueño)",
             "schema": {
               "type": "string"
             }
@@ -1504,7 +1504,7 @@
             "name": "x-edit-unlock",
             "required": false,
             "in": "header",
-            "description": "Token de desbloqueo (admin no-due\u00f1o)",
+            "description": "Token de desbloqueo (admin no-dueño)",
             "schema": {
               "type": "string"
             }
@@ -1549,7 +1549,7 @@
             "name": "x-edit-unlock",
             "required": false,
             "in": "header",
-            "description": "Token de desbloqueo (admin no-due\u00f1o)",
+            "description": "Token de desbloqueo (admin no-dueño)",
             "schema": {
               "type": "string"
             }
@@ -1572,7 +1572,7 @@
             "bearer": []
           }
         ],
-        "summary": "Suspende un evento publicado (lo despublica y lo pone en reconfiguraci\u00f3n; re-publicable)",
+        "summary": "Suspende un evento publicado (lo despublica y lo pone en reconfiguración; re-publicable)",
         "tags": [
           "events"
         ]
@@ -1594,7 +1594,7 @@
             "name": "x-edit-unlock",
             "required": false,
             "in": "header",
-            "description": "Token de desbloqueo (admin no-due\u00f1o)",
+            "description": "Token de desbloqueo (admin no-dueño)",
             "schema": {
               "type": "string"
             }
@@ -1653,7 +1653,7 @@
             "bearer": []
           }
         ],
-        "summary": "Env\u00eda un c\u00f3digo OTP al admin para desbloquear la edici\u00f3n del evento",
+        "summary": "Envía un código OTP al admin para desbloquear la edición del evento",
         "tags": [
           "events"
         ]
@@ -1780,7 +1780,7 @@
             "bearer": []
           }
         ],
-        "summary": "Config de autorizaci\u00f3n de promotores (admin)",
+        "summary": "Config de autorización de promotores (admin)",
         "tags": [
           "promoters"
         ]
@@ -1815,7 +1815,7 @@
             "bearer": []
           }
         ],
-        "summary": "Activa/desactiva la exigencia de autorizaci\u00f3n \u2014 \"Activar pruebas\" (admin)",
+        "summary": "Activa/desactiva la exigencia de autorización — \"Activar pruebas\" (admin)",
         "tags": [
           "promoters"
         ]
@@ -2168,7 +2168,7 @@
             "bearer": []
           }
         ],
-        "summary": "Vista p\u00fablica para precargar el registro (valida el token)",
+        "summary": "Vista pública para precargar el registro (valida el token)",
         "tags": [
           "promoters"
         ]
@@ -2204,7 +2204,7 @@
             "bearer": []
           }
         ],
-        "summary": "Vista p\u00fablica por token: correo invitado + si ya existe cuenta (login vs registro)",
+        "summary": "Vista pública por token: correo invitado + si ya existe cuenta (login vs registro)",
         "tags": [
           "promoters"
         ]
@@ -2241,7 +2241,7 @@
             "bearer": []
           }
         ],
-        "summary": "Acepta la invitaci\u00f3n: el usuario queda auto-aprobado como promotor",
+        "summary": "Acepta la invitación: el usuario queda auto-aprobado como promotor",
         "tags": [
           "promoters"
         ]
@@ -2313,7 +2313,7 @@
             "bearer": []
           }
         ],
-        "summary": "Revoca una invitaci\u00f3n pendiente",
+        "summary": "Revoca una invitación pendiente",
         "tags": [
           "promoters"
         ]
@@ -2378,7 +2378,7 @@
             "bearer": []
           }
         ],
-        "summary": "Crea y activa una nueva versi\u00f3n de comisiones (admin)",
+        "summary": "Crea y activa una nueva versión de comisiones (admin)",
         "tags": [
           "pricing"
         ]
@@ -2443,7 +2443,7 @@
             "bearer": []
           }
         ],
-        "summary": "Cotizaci\u00f3n de un neto con las comisiones vigentes (preview)",
+        "summary": "Cotización de un neto con las comisiones vigentes (preview)",
         "tags": [
           "pricing"
         ]
@@ -2472,7 +2472,7 @@
             "bearer": []
           }
         ],
-        "summary": "Localidades del evento (gesti\u00f3n)",
+        "summary": "Localidades del evento (gestión)",
         "tags": [
           "localities"
         ]
@@ -2789,7 +2789,7 @@
             "description": ""
           }
         },
-        "summary": "Mapa de asientos activo del evento (p\u00fablico)",
+        "summary": "Mapa de asientos activo del evento (público)",
         "tags": [
           "seat-maps"
         ]
@@ -2818,7 +2818,7 @@
             "bearer": []
           }
         ],
-        "summary": "Versiones de mapa del evento (gesti\u00f3n)",
+        "summary": "Versiones de mapa del evento (gestión)",
         "tags": [
           "seat-maps"
         ]
@@ -2863,7 +2863,7 @@
             "bearer": []
           }
         ],
-        "summary": "Crea una nueva versi\u00f3n de mapa (queda activa)",
+        "summary": "Crea una nueva versión de mapa (queda activa)",
         "tags": [
           "seat-maps"
         ]
@@ -2900,7 +2900,7 @@
             "bearer": []
           }
         ],
-        "summary": "Activa una versi\u00f3n de mapa",
+        "summary": "Activa una versión de mapa",
         "tags": [
           "seat-maps"
         ]
@@ -3179,7 +3179,51 @@
             "bearer": []
           }
         ],
-        "summary": "Liquidaci\u00f3n del evento: cuentas por pasarela/plataforma/promotor (owner/admin)",
+        "summary": "Liquidación del evento: cuentas por pasarela/plataforma/promotor (owner/admin)",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/api/v1/events/{eventId}/settlement/finalize": {
+      "post": {
+        "operationId": "OrdersController_finalizeSettlement_v1",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "user-agent",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventCashTransferDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Finaliza el evento y transfiere el saldo de caja (neto) al wallet del promotor (SOLO admin; idempotente). Disponible si el evento está finalizado/suspendido o ya pasó.",
         "tags": [
           "orders"
         ]
@@ -3201,7 +3245,7 @@
             "name": "cursor",
             "required": false,
             "in": "query",
-            "description": "Cursor: id de la \u00faltima fila de la p\u00e1gina previa",
+            "description": "Cursor: id de la última fila de la página previa",
             "schema": {
               "type": "string"
             }
@@ -3210,7 +3254,7 @@
             "name": "limit",
             "required": false,
             "in": "query",
-            "description": "Tama\u00f1o de p\u00e1gina (1\u2013100, default 20)",
+            "description": "Tamaño de página (1–100, default 20)",
             "schema": {
               "minimum": 1,
               "maximum": 100,
@@ -3236,7 +3280,7 @@
             "bearer": []
           }
         ],
-        "summary": "Transacciones (\u00f3rdenes) del evento para el panel (owner/admin; keyset: ?cursor&limit)",
+        "summary": "Transacciones (órdenes) del evento para el panel (owner/admin; keyset: ?cursor&limit)",
         "tags": [
           "orders"
         ]
@@ -3296,7 +3340,7 @@
             "name": "cursor",
             "required": false,
             "in": "query",
-            "description": "Cursor: id de la \u00faltima fila de la p\u00e1gina previa",
+            "description": "Cursor: id de la última fila de la página previa",
             "schema": {
               "type": "string"
             }
@@ -3305,7 +3349,7 @@
             "name": "limit",
             "required": false,
             "in": "query",
-            "description": "Tama\u00f1o de p\u00e1gina (1\u2013100, default 20)",
+            "description": "Tamaño de página (1–100, default 20)",
             "schema": {
               "minimum": 1,
               "maximum": 100,
@@ -3331,7 +3375,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lista mis \u00f3rdenes (keyset: ?cursor&limit)",
+        "summary": "Lista mis órdenes (keyset: ?cursor&limit)",
         "tags": [
           "orders"
         ]
@@ -3358,7 +3402,7 @@
             "bearer": []
           }
         ],
-        "summary": "Feed de facturaci\u00f3n: movimientos ingreso/egreso del usuario (compras + cr\u00e9ditos)",
+        "summary": "Feed de facturación: movimientos ingreso/egreso del usuario (compras + créditos)",
         "tags": [
           "orders"
         ]
@@ -3430,7 +3474,7 @@
             "bearer": []
           }
         ],
-        "summary": "Cadena contable (hash-chain) de la orden \u2014 vista blockchain del comprador",
+        "summary": "Cadena contable (hash-chain) de la orden — vista blockchain del comprador",
         "tags": [
           "orders"
         ]
@@ -3471,7 +3515,7 @@
             }
           }
         },
-        "summary": "Crea una reserva AN\u00d3NIMA y compartible (sin login)",
+        "summary": "Crea una reserva ANÓNIMA y compartible (sin login)",
         "tags": [
           "reservations"
         ]
@@ -3685,7 +3729,7 @@
             "name": "cursor",
             "required": false,
             "in": "query",
-            "description": "Cursor: id de la \u00faltima fila de la p\u00e1gina previa",
+            "description": "Cursor: id de la última fila de la página previa",
             "schema": {
               "type": "string"
             }
@@ -3694,7 +3738,7 @@
             "name": "limit",
             "required": false,
             "in": "query",
-            "description": "Tama\u00f1o de p\u00e1gina (1\u2013100, default 20)",
+            "description": "Tamaño de página (1–100, default 20)",
             "schema": {
               "minimum": 1,
               "maximum": 100,
@@ -3757,7 +3801,7 @@
             "bearer": []
           }
         ],
-        "summary": "Valida un QR en puerta (operador) \u2014 check-in din\u00e1mico",
+        "summary": "Valida un QR en puerta (operador) — check-in dinámico",
         "tags": [
           "tickets"
         ]
@@ -3793,7 +3837,7 @@
             "bearer": []
           }
         ],
-        "summary": "Detalle de un boleto (due\u00f1o/admin)",
+        "summary": "Detalle de un boleto (dueño/admin)",
         "tags": [
           "tickets"
         ]
@@ -3829,7 +3873,7 @@
             "bearer": []
           }
         ],
-        "summary": "Valor rotativo actual del QR (due\u00f1o) \u2014 refrescar cada 30s",
+        "summary": "Valor rotativo actual del QR (dueño) — refrescar cada 30s",
         "tags": [
           "tickets"
         ]
@@ -3865,7 +3909,7 @@
             "bearer": []
           }
         ],
-        "summary": "URLs firmadas del QR PNG y el PDF (due\u00f1o)",
+        "summary": "URLs firmadas del QR PNG y el PDF (dueño)",
         "tags": [
           "tickets"
         ]
@@ -3901,7 +3945,7 @@
             "bearer": []
           }
         ],
-        "summary": "Cadena de custodia del boleto (due\u00f1o/admin) + integridad",
+        "summary": "Cadena de custodia del boleto (dueño/admin) + integridad",
         "tags": [
           "tickets"
         ]
@@ -3937,7 +3981,7 @@
             "bearer": []
           }
         ],
-        "summary": "Inicia la transferencia (regalo) del boleto \u2192 devuelve el c\u00f3digo (due\u00f1o)",
+        "summary": "Inicia la transferencia (regalo) del boleto → devuelve el código (dueño)",
         "tags": [
           "tickets"
         ]
@@ -3983,7 +4027,7 @@
             "bearer": []
           }
         ],
-        "summary": "Genera un pase de wallet (Google/Apple) para el boleto (due\u00f1o)",
+        "summary": "Genera un pase de wallet (Google/Apple) para el boleto (dueño)",
         "tags": [
           "tickets"
         ]
@@ -4020,7 +4064,7 @@
             "bearer": []
           }
         ],
-        "summary": "Canjea un c\u00f3digo de transferencia (destinatario verificado)",
+        "summary": "Canjea un código de transferencia (destinatario verificado)",
         "tags": [
           "ticket-transfers"
         ]
@@ -4130,7 +4174,7 @@
             "bearer": []
           }
         ],
-        "summary": "Manifiesto firmado de validaci\u00f3n offline (delta desde ?since). Requiere token de PUERTA del evento; expira (SafeTix).",
+        "summary": "Manifiesto firmado de validación offline (delta desde ?since). Requiere token de PUERTA del evento; expira (SafeTix).",
         "tags": [
           "ticket-manifest"
         ]
@@ -4206,7 +4250,7 @@
             "bearer": []
           }
         ],
-        "summary": "Conflictos de validaci\u00f3n del evento (dobles check-in)",
+        "summary": "Conflictos de validación del evento (dobles check-in)",
         "tags": [
           "validation-ingest"
         ]
@@ -4245,7 +4289,7 @@
             "bearer": []
           }
         ],
-        "summary": "Operadores de puerta asignados al evento (admin/promotor due\u00f1o)",
+        "summary": "Operadores de puerta asignados al evento (admin/promotor dueño)",
         "tags": [
           "gate-access"
         ]
@@ -4289,7 +4333,7 @@
             "bearer": []
           }
         ],
-        "summary": "Asigna un operador de puerta al evento (admin/promotor due\u00f1o)",
+        "summary": "Asigna un operador de puerta al evento (admin/promotor dueño)",
         "tags": [
           "gate-access"
         ]
@@ -4333,7 +4377,7 @@
             "bearer": []
           }
         ],
-        "summary": "Revoca la asignaci\u00f3n de un operador (corta su acceso al instante)",
+        "summary": "Revoca la asignación de un operador (corta su acceso al instante)",
         "tags": [
           "gate-access"
         ]
@@ -4433,7 +4477,7 @@
             "bearer": []
           }
         ],
-        "summary": "Solicita un retiro de saldo (reserva en el ledger)",
+        "summary": "Solicita un retiro de saldo (reserva en el ledger). Solo promotor/admin.",
         "tags": [
           "wallet"
         ]
@@ -4445,7 +4489,7 @@
             "name": "cursor",
             "required": false,
             "in": "query",
-            "description": "Cursor: id de la \u00faltima fila de la p\u00e1gina previa",
+            "description": "Cursor: id de la última fila de la página previa",
             "schema": {
               "type": "string"
             }
@@ -4454,7 +4498,7 @@
             "name": "limit",
             "required": false,
             "in": "query",
-            "description": "Tama\u00f1o de p\u00e1gina (1\u2013100, default 20)",
+            "description": "Tamaño de página (1–100, default 20)",
             "schema": {
               "minimum": 1,
               "maximum": 100,
@@ -4480,7 +4524,7 @@
             "bearer": []
           }
         ],
-        "summary": "Mis retiros (keyset: ?cursor&limit)",
+        "summary": "Mis retiros (keyset: ?cursor&limit). Solo promotor/admin.",
         "tags": [
           "wallet"
         ]
@@ -4494,7 +4538,7 @@
             "name": "cursor",
             "required": false,
             "in": "query",
-            "description": "Cursor: id de la \u00faltima fila de la p\u00e1gina previa",
+            "description": "Cursor: id de la última fila de la página previa",
             "schema": {
               "type": "string"
             }
@@ -4503,7 +4547,7 @@
             "name": "limit",
             "required": false,
             "in": "query",
-            "description": "Tama\u00f1o de p\u00e1gina (1\u2013100, default 20)",
+            "description": "Tamaño de página (1–100, default 20)",
             "schema": {
               "minimum": 1,
               "maximum": 100,
@@ -4735,7 +4779,7 @@
             "bearer": []
           }
         ],
-        "summary": "Env\u00eda un c\u00f3digo OTP al correo del admin para autorizar agregar una pasarela",
+        "summary": "Envía un código OTP al correo del admin para autorizar agregar una pasarela",
         "tags": [
           "payment-gateways"
         ]
@@ -4800,7 +4844,7 @@
             "bearer": []
           }
         ],
-        "summary": "Crea una pasarela (admin) \u2014 exige c\u00f3digo OTP de desbloqueo",
+        "summary": "Crea una pasarela (admin) — exige código OTP de desbloqueo",
         "tags": [
           "payment-gateways"
         ]
@@ -4830,7 +4874,7 @@
             "bearer": []
           }
         ],
-        "summary": "Pasarelas activas (m\u00e9todos disponibles para cobrar)",
+        "summary": "Pasarelas activas (métodos disponibles para cobrar)",
         "tags": [
           "payment-gateways"
         ]
@@ -5198,7 +5242,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lista mis m\u00e9todos de pago (sin datos sensibles)",
+        "summary": "Lista mis métodos de pago (sin datos sensibles)",
         "tags": [
           "payment-methods"
         ]
@@ -5269,7 +5313,7 @@
             "bearer": []
           }
         ],
-        "summary": "Marca un m\u00e9todo propio como predeterminado",
+        "summary": "Marca un método propio como predeterminado",
         "tags": [
           "payment-methods"
         ]
@@ -5298,7 +5342,7 @@
             "bearer": []
           }
         ],
-        "summary": "Elimina un m\u00e9todo de pago propio",
+        "summary": "Elimina un método de pago propio",
         "tags": [
           "payment-methods"
         ]
@@ -5371,7 +5415,7 @@
             "bearer": []
           }
         ],
-        "summary": "Ejecuta la retenci\u00f3n (anonimiza a los elegibles) \u2014 admin",
+        "summary": "Ejecuta la retención (anonimiza a los elegibles) — admin",
         "tags": [
           "retention"
         ]
@@ -5513,7 +5557,7 @@
             "bearer": []
           }
         ],
-        "summary": "Crea un sal\u00f3n (admin)",
+        "summary": "Crea un salón (admin)",
         "tags": [
           "halls"
         ]
@@ -5543,7 +5587,7 @@
             "bearer": []
           }
         ],
-        "summary": "Todos los salones en cualquier estado (gesti\u00f3n admin)",
+        "summary": "Todos los salones en cualquier estado (gestión admin)",
         "tags": [
           "halls"
         ]
@@ -5579,7 +5623,7 @@
             "bearer": []
           }
         ],
-        "summary": "Detalle de un sal\u00f3n",
+        "summary": "Detalle de un salón",
         "tags": [
           "halls"
         ]
@@ -5623,7 +5667,7 @@
             "bearer": []
           }
         ],
-        "summary": "Actualiza un sal\u00f3n (admin)",
+        "summary": "Actualiza un salón (admin)",
         "tags": [
           "halls"
         ]
@@ -5650,7 +5694,7 @@
             "bearer": []
           }
         ],
-        "summary": "Elimina un sal\u00f3n (admin; desvincula sus eventos)",
+        "summary": "Elimina un salón (admin; desvincula sus eventos)",
         "tags": [
           "halls"
         ]
@@ -5686,7 +5730,7 @@
             "bearer": []
           }
         ],
-        "summary": "Publica un sal\u00f3n (admin; visible para promotores)",
+        "summary": "Publica un salón (admin; visible para promotores)",
         "tags": [
           "halls"
         ]
@@ -5722,7 +5766,7 @@
             "bearer": []
           }
         ],
-        "summary": "Regresa un sal\u00f3n a borrador (admin)",
+        "summary": "Regresa un salón a borrador (admin)",
         "tags": [
           "halls"
         ]
@@ -5817,7 +5861,7 @@
             "bearer": []
           }
         ],
-        "summary": "Todas las plantillas en cualquier estado (gesti\u00f3n admin)",
+        "summary": "Todas las plantillas en cualquier estado (gestión admin)",
         "tags": [
           "seat-templates"
         ]
@@ -6206,7 +6250,7 @@
             "bearer": []
           }
         ],
-        "summary": "Detalle de una configuraci\u00f3n (admin)",
+        "summary": "Detalle de una configuración (admin)",
         "tags": [
           "settings"
         ]
@@ -6250,9 +6294,31 @@
             "bearer": []
           }
         ],
-        "summary": "Actualiza una configuraci\u00f3n validando su tipo/rango (admin)",
+        "summary": "Actualiza una configuración validando su tipo/rango (admin)",
         "tags": [
           "settings"
+        ]
+      }
+    },
+    "/api/v1/public/config": {
+      "get": {
+        "operationId": "PublicConfigController_get_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicConfigDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Flags de UI públicos (sin login)",
+        "tags": [
+          "config"
         ]
       }
     },
@@ -6272,7 +6338,7 @@
             }
           }
         },
-        "summary": "Estado del modo mantenimiento (p\u00fablico)",
+        "summary": "Estado del modo mantenimiento (público)",
         "tags": [
           "maintenance"
         ]
@@ -6346,7 +6412,7 @@
             "bearer": []
           }
         ],
-        "summary": "Registra un click de confirmaci\u00f3n (no-repudio). IP y user-agent se capturan server-side",
+        "summary": "Registra un click de confirmación (no-repudio). IP y user-agent se capturan server-side",
         "tags": [
           "audit"
         ]
@@ -6360,7 +6426,7 @@
             "name": "cursor",
             "required": false,
             "in": "query",
-            "description": "Cursor: id de la \u00faltima fila de la p\u00e1gina previa",
+            "description": "Cursor: id de la última fila de la página previa",
             "schema": {
               "type": "string"
             }
@@ -6369,7 +6435,7 @@
             "name": "limit",
             "required": false,
             "in": "query",
-            "description": "Tama\u00f1o de p\u00e1gina (1\u2013100, default 20)",
+            "description": "Tamaño de página (1–100, default 20)",
             "schema": {
               "minimum": 1,
               "maximum": 100,
@@ -6395,7 +6461,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lista la bit\u00e1cora de auditor\u00eda (admin, keyset)",
+        "summary": "Lista la bitácora de auditoría (admin, keyset)",
         "tags": [
           "audit"
         ]
@@ -6422,7 +6488,7 @@
             "bearer": []
           }
         ],
-        "summary": "Verifica la integridad de la cadena de auditor\u00eda (admin)",
+        "summary": "Verifica la integridad de la cadena de auditoría (admin)",
         "tags": [
           "audit"
         ]
@@ -6449,7 +6515,7 @@
             "bearer": []
           }
         ],
-        "summary": "Termina la impersonaci\u00f3n (deja rastro en la bit\u00e1cora). Se llama con el token impersonado.",
+        "summary": "Termina la impersonación (deja rastro en la bitácora). Se llama con el token impersonado.",
         "tags": [
           "admin"
         ]
@@ -6514,12 +6580,12 @@
         "properties": {
           "email": {
             "type": "string",
-            "description": "Correo electr\u00f3nico \u00fanico",
+            "description": "Correo electrónico único",
             "example": "ana@correo.com"
           },
           "password": {
             "type": "string",
-            "description": "Contrase\u00f1a (8\u201372 caracteres; 72 = l\u00edmite de bcrypt)",
+            "description": "Contraseña (8–72 caracteres; 72 = límite de bcrypt)",
             "minLength": 8,
             "maxLength": 72,
             "example": "Password123"
@@ -6534,11 +6600,11 @@
             "type": "string",
             "description": "Apellido",
             "maxLength": 100,
-            "example": "Garc\u00eda"
+            "example": "García"
           },
           "phone": {
             "type": "string",
-            "description": "Tel\u00e9fono de contacto",
+            "description": "Teléfono de contacto",
             "maxLength": 30,
             "example": "+50255551234"
           }
@@ -6560,7 +6626,7 @@
           },
           "email": {
             "type": "string",
-            "description": "Correo electr\u00f3nico",
+            "description": "Correo electrónico",
             "example": "cliente@pasaeventos.com"
           },
           "firstName": {
@@ -6571,12 +6637,12 @@
           "lastName": {
             "type": "string",
             "description": "Apellido",
-            "example": "Garc\u00eda",
+            "example": "García",
             "nullable": true
           },
           "phone": {
             "type": "string",
-            "description": "Tel\u00e9fono",
+            "description": "Teléfono",
             "example": "+50255551234",
             "nullable": true
           },
@@ -6615,12 +6681,12 @@
           },
           "emailVerified": {
             "type": "boolean",
-            "description": "\u00bfEl correo est\u00e1 verificado?",
+            "description": "¿El correo está verificado?",
             "example": true
           },
           "twoFactorMethod": {
             "type": "string",
-            "description": "M\u00e9todo de segundo factor configurado",
+            "description": "Método de segundo factor configurado",
             "enum": [
               "email",
               "totp"
@@ -6639,7 +6705,7 @@
           "impersonatedBy": {
             "type": "string",
             "format": "uuid",
-            "description": "Solo en /auth/me bajo un token de IMPERSONACI\u00d3N (v3.8): id del admin que act\u00faa como este usuario. El frontend lo usa para el banner \"est\u00e1s viendo como X\"."
+            "description": "Solo en /auth/me bajo un token de IMPERSONACIÓN (v3.8): id del admin que actúa como este usuario. El frontend lo usa para el banner \"estás viendo como X\"."
           }
         },
         "required": [
@@ -6663,7 +6729,7 @@
           },
           "refreshToken": {
             "type": "string",
-            "description": "Refresh token opaco para rotar la sesi\u00f3n (se guarda hasheado en BD)",
+            "description": "Refresh token opaco para rotar la sesión (se guarda hasheado en BD)",
             "example": "a3f1c9e2b47d8f0a1c2e3b4d5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a"
           },
           "expiresIn": {
@@ -6690,7 +6756,7 @@
             ]
           },
           "tokens": {
-            "description": "Par de tokens de la sesi\u00f3n",
+            "description": "Par de tokens de la sesión",
             "allOf": [
               {
                 "$ref": "#/components/schemas/TokenPairResponseDto"
@@ -6708,12 +6774,12 @@
         "properties": {
           "email": {
             "type": "string",
-            "description": "Correo electr\u00f3nico registrado",
+            "description": "Correo electrónico registrado",
             "example": "ana@correo.com"
           },
           "password": {
             "type": "string",
-            "description": "Contrase\u00f1a de la cuenta",
+            "description": "Contraseña de la cuenta",
             "example": "Password123"
           }
         },
@@ -6743,7 +6809,7 @@
             ]
           },
           "tokens": {
-            "description": "Par de tokens de la sesi\u00f3n (solo cuando status = ok)",
+            "description": "Par de tokens de la sesión (solo cuando status = ok)",
             "allOf": [
               {
                 "$ref": "#/components/schemas/TokenPairResponseDto"
@@ -6752,7 +6818,7 @@
           },
           "method": {
             "type": "string",
-            "description": "M\u00e9todo de segundo factor requerido (solo cuando status = 2fa_required)",
+            "description": "Método de segundo factor requerido (solo cuando status = 2fa_required)",
             "enum": [
               "email",
               "totp"
@@ -6761,7 +6827,7 @@
           },
           "preauthToken": {
             "type": "string",
-            "description": "Token de pre-autenticaci\u00f3n para completar el 2FA (solo cuando status = 2fa_required)",
+            "description": "Token de pre-autenticación para completar el 2FA (solo cuando status = 2fa_required)",
             "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
           }
         },
@@ -6774,12 +6840,12 @@
         "properties": {
           "preauthToken": {
             "type": "string",
-            "description": "Token de pre-autenticaci\u00f3n devuelto por el login (status = 2fa_required)",
+            "description": "Token de pre-autenticación devuelto por el login (status = 2fa_required)",
             "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
           },
           "code": {
             "type": "string",
-            "description": "C\u00f3digo del segundo factor (app TOTP o c\u00f3digo enviado por correo)",
+            "description": "Código del segundo factor (app TOTP o código enviado por correo)",
             "minLength": 6,
             "maxLength": 6,
             "example": "482913"
@@ -6810,7 +6876,7 @@
             ]
           },
           "tokens": {
-            "description": "Par de tokens de la sesi\u00f3n",
+            "description": "Par de tokens de la sesión",
             "allOf": [
               {
                 "$ref": "#/components/schemas/TokenPairResponseDto"
@@ -6834,7 +6900,7 @@
           },
           "code": {
             "type": "string",
-            "description": "C\u00f3digo de verificaci\u00f3n de 6 d\u00edgitos",
+            "description": "Código de verificación de 6 dígitos",
             "minLength": 6,
             "maxLength": 6,
             "example": "482913"
@@ -6850,7 +6916,7 @@
         "properties": {
           "token": {
             "type": "string",
-            "description": "Token del enlace m\u00e1gico recibido por correo",
+            "description": "Token del enlace mágico recibido por correo",
             "example": "c9e2b47d8f0a1c2e3b4d5f6a7b8c9d0e1f2a3b4c..."
           }
         },
@@ -6863,7 +6929,7 @@
         "properties": {
           "email": {
             "type": "string",
-            "description": "Correo al que reenviar la verificaci\u00f3n",
+            "description": "Correo al que reenviar la verificación",
             "example": "ana@correo.com"
           }
         },
@@ -6889,7 +6955,7 @@
         "properties": {
           "email": {
             "type": "string",
-            "description": "Correo con el que acceder sin contrase\u00f1a",
+            "description": "Correo con el que acceder sin contraseña",
             "example": "ana@correo.com"
           },
           "firstName": {
@@ -6908,12 +6974,12 @@
         "properties": {
           "email": {
             "type": "string",
-            "description": "Correo que solicit\u00f3 el acceso",
+            "description": "Correo que solicitó el acceso",
             "example": "ana@correo.com"
           },
           "code": {
             "type": "string",
-            "description": "C\u00f3digo de 6 d\u00edgitos enviado al correo",
+            "description": "Código de 6 dígitos enviado al correo",
             "minLength": 6,
             "maxLength": 6,
             "example": "482913"
@@ -6942,17 +7008,17 @@
         "properties": {
           "password": {
             "type": "boolean",
-            "description": "\u00bfAcceso con correo y contrase\u00f1a habilitado?",
+            "description": "¿Acceso con correo y contraseña habilitado?",
             "example": true
           },
           "passwordless": {
             "type": "boolean",
-            "description": "\u00bfAcceso sin contrase\u00f1a (magic link + c\u00f3digo) habilitado?",
+            "description": "¿Acceso sin contraseña (magic link + código) habilitado?",
             "example": true
           },
           "google": {
             "type": "boolean",
-            "description": "\u00bfLogin con Google habilitado?",
+            "description": "¿Login con Google habilitado?",
             "example": false
           }
         },
@@ -6990,12 +7056,12 @@
         "properties": {
           "token": {
             "type": "string",
-            "description": "Token del enlace de recuperaci\u00f3n recibido por correo",
+            "description": "Token del enlace de recuperación recibido por correo",
             "example": "b7d2f4a6c8e0135792468acebdf013579246..."
           },
           "password": {
             "type": "string",
-            "description": "Nueva contrase\u00f1a (8\u201372 caracteres)",
+            "description": "Nueva contraseña (8–72 caracteres)",
             "minLength": 8,
             "maxLength": 72,
             "example": "NuevaClave456"
@@ -7011,12 +7077,12 @@
         "properties": {
           "currentPassword": {
             "type": "string",
-            "description": "Contrase\u00f1a actual",
+            "description": "Contraseña actual",
             "example": "Password123"
           },
           "newPassword": {
             "type": "string",
-            "description": "Nueva contrase\u00f1a (8\u201372 caracteres)",
+            "description": "Nueva contraseña (8–72 caracteres)",
             "minLength": 8,
             "maxLength": 72,
             "example": "NuevaClave456"
@@ -7037,7 +7103,7 @@
           },
           "qrDataUrl": {
             "type": "string",
-            "description": "C\u00f3digo QR de la URL otpauth como data URL (PNG base64)",
+            "description": "Código QR de la URL otpauth como data URL (PNG base64)",
             "example": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
           },
           "secret": {
@@ -7057,7 +7123,7 @@
         "properties": {
           "code": {
             "type": "string",
-            "description": "C\u00f3digo de 6 d\u00edgitos generado por la app autenticadora",
+            "description": "Código de 6 dígitos generado por la app autenticadora",
             "minLength": 6,
             "maxLength": 6,
             "example": "482913"
@@ -7084,20 +7150,20 @@
           },
           "ip": {
             "type": "string",
-            "description": "Direcci\u00f3n IP",
+            "description": "Dirección IP",
             "example": "181.174.1.10",
             "nullable": true
           },
           "trustedAt": {
             "type": "string",
-            "description": "Fecha en que el dispositivo pas\u00f3 a ser confiable (null si no lo es)",
+            "description": "Fecha en que el dispositivo pasó a ser confiable (null si no lo es)",
             "format": "date-time",
             "example": "2026-07-08T14:23:00.000Z",
             "nullable": true
           },
           "lastSeenAt": {
             "type": "string",
-            "description": "\u00daltima vez que se vio el dispositivo",
+            "description": "Última vez que se vio el dispositivo",
             "format": "date-time",
             "example": "2026-07-08T14:23:00.000Z"
           },
@@ -7126,12 +7192,12 @@
           "lastName": {
             "type": "string",
             "description": "Apellido",
-            "example": "P\u00e9rez",
+            "example": "Pérez",
             "maxLength": 100
           },
           "phone": {
             "type": "string",
-            "description": "Tel\u00e9fono de contacto",
+            "description": "Teléfono de contacto",
             "example": "+502 5555 5555",
             "maxLength": 30
           },
@@ -7162,7 +7228,7 @@
           },
           "email": {
             "type": "string",
-            "description": "Correo electr\u00f3nico (\u00fanico)",
+            "description": "Correo electrónico (único)",
             "example": "cliente@pasaeventos.com"
           },
           "firstName": {
@@ -7174,12 +7240,12 @@
             "type": "string",
             "nullable": true,
             "description": "Apellido",
-            "example": "P\u00e9rez"
+            "example": "Pérez"
           },
           "phone": {
             "type": "string",
             "nullable": true,
-            "description": "Tel\u00e9fono de contacto",
+            "description": "Teléfono de contacto",
             "example": "+502 5555 5555"
           },
           "avatarUrl": {
@@ -7228,13 +7294,13 @@
             "type": "string",
             "format": "date-time",
             "nullable": true,
-            "description": "Fecha del \u00faltimo inicio de sesi\u00f3n",
+            "description": "Fecha del último inicio de sesión",
             "example": "2026-07-08T12:34:56.000Z"
           },
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "description": "Fecha de creaci\u00f3n de la cuenta",
+            "description": "Fecha de creación de la cuenta",
             "example": "2026-07-01T09:00:00.000Z"
           }
         },
@@ -7252,7 +7318,7 @@
         "type": "object",
         "properties": {
           "items": {
-            "description": "Usuarios de la p\u00e1gina",
+            "description": "Usuarios de la página",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/UserResponseDto"
@@ -7261,7 +7327,7 @@
           "nextCursor": {
             "type": "string",
             "nullable": true,
-            "description": "Cursor para la siguiente p\u00e1gina (id de la \u00faltima fila); null si no hay m\u00e1s",
+            "description": "Cursor para la siguiente página (id de la última fila); null si no hay más",
             "example": "3f2504e0-4f89-41d3-9a0c-0305e82c3301"
           }
         },
@@ -7274,7 +7340,7 @@
         "properties": {
           "roles": {
             "type": "array",
-            "description": "Roles a asignar (no vac\u00edo)",
+            "description": "Roles a asignar (no vacío)",
             "example": [
               "buyer",
               "promoter"
@@ -7319,47 +7385,47 @@
           "id": {
             "type": "string",
             "format": "uuid",
-            "description": "Identificador de la categor\u00eda",
+            "description": "Identificador de la categoría",
             "example": "9c1e6f2a-1b7d-4d3e-8b2a-1f0e2d3c4b5a"
           },
           "name": {
             "type": "string",
-            "description": "Nombre de la categor\u00eda",
+            "description": "Nombre de la categoría",
             "example": "Conciertos"
           },
           "slug": {
             "type": "string",
-            "description": "Slug \u00fanico derivado del nombre",
+            "description": "Slug único derivado del nombre",
             "example": "conciertos"
           },
           "description": {
             "type": "string",
             "nullable": true,
-            "description": "Descripci\u00f3n de la categor\u00eda",
-            "example": "Eventos de m\u00fasica en vivo"
+            "description": "Descripción de la categoría",
+            "example": "Eventos de música en vivo"
           },
           "active": {
             "type": "boolean",
-            "description": "Indica si la categor\u00eda est\u00e1 activa",
+            "description": "Indica si la categoría está activa",
             "example": true
           },
           "createdById": {
             "type": "string",
             "format": "uuid",
             "nullable": true,
-            "description": "Id del usuario que la cre\u00f3 (null si el creador fue eliminado)",
+            "description": "Id del usuario que la creó (null si el creador fue eliminado)",
             "example": "3f2504e0-4f89-41d3-9a0c-0305e82c3301"
           },
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "description": "Fecha de creaci\u00f3n",
+            "description": "Fecha de creación",
             "example": "2026-07-01T09:00:00.000Z"
           },
           "updatedAt": {
             "type": "string",
             "format": "date-time",
-            "description": "Fecha de \u00faltima actualizaci\u00f3n",
+            "description": "Fecha de última actualización",
             "example": "2026-07-05T10:15:00.000Z"
           }
         },
@@ -7377,20 +7443,20 @@
         "properties": {
           "name": {
             "type": "string",
-            "description": "Nombre de la categor\u00eda",
+            "description": "Nombre de la categoría",
             "example": "Conciertos",
             "minLength": 2,
             "maxLength": 80
           },
           "description": {
             "type": "string",
-            "description": "Descripci\u00f3n de la categor\u00eda",
-            "example": "Eventos de m\u00fasica en vivo",
+            "description": "Descripción de la categoría",
+            "example": "Eventos de música en vivo",
             "maxLength": 500
           },
           "active": {
             "type": "boolean",
-            "description": "Indica si la categor\u00eda queda activa (default true)",
+            "description": "Indica si la categoría queda activa (default true)",
             "example": true,
             "default": true
           }
@@ -7404,20 +7470,20 @@
         "properties": {
           "name": {
             "type": "string",
-            "description": "Nombre de la categor\u00eda",
+            "description": "Nombre de la categoría",
             "example": "Conciertos",
             "minLength": 2,
             "maxLength": 80
           },
           "description": {
             "type": "string",
-            "description": "Descripci\u00f3n de la categor\u00eda",
-            "example": "Eventos de m\u00fasica en vivo",
+            "description": "Descripción de la categoría",
+            "example": "Eventos de música en vivo",
             "maxLength": 500
           },
           "active": {
             "type": "boolean",
-            "description": "Indica si la categor\u00eda est\u00e1 activa",
+            "description": "Indica si la categoría está activa",
             "example": true
           }
         }
@@ -7436,7 +7502,7 @@
           "lastName": {
             "type": "string",
             "nullable": true,
-            "example": "P\u00e9rez"
+            "example": "Pérez"
           },
           "email": {
             "type": "string",
@@ -7474,13 +7540,13 @@
           "active": {
             "type": "boolean",
             "example": true,
-            "description": "Si la categor\u00eda est\u00e1 activa"
+            "description": "Si la categoría está activa"
           },
           "createdById": {
             "type": "string",
             "format": "uuid",
             "nullable": true,
-            "description": "Usuario que cre\u00f3 la categor\u00eda (null si fue borrado)"
+            "description": "Usuario que creó la categoría (null si fue borrado)"
           },
           "createdAt": {
             "type": "string",
@@ -7535,7 +7601,7 @@
           },
           "url": {
             "type": "string",
-            "description": "URL firmada para mostrar el archivo (presente en listados/detalle p\u00fablicos; ausente en el detalle gestionable)",
+            "description": "URL firmada para mostrar el archivo (presente en listados/detalle públicos; ausente en el detalle gestionable)",
             "example": "https://cdn.pasaeventos.com/events/3f2504e0/9f8b1c2d-poster.jpg?X-Amz-Signature=..."
           },
           "createdAt": {
@@ -7564,13 +7630,13 @@
           "promoterId": {
             "type": "string",
             "format": "uuid",
-            "description": "Promotor due\u00f1o del evento"
+            "description": "Promotor dueño del evento"
           },
           "categoryId": {
             "type": "string",
             "format": "uuid",
             "nullable": true,
-            "description": "Categor\u00eda del evento"
+            "description": "Categoría del evento"
           },
           "name": {
             "type": "string",
@@ -7579,7 +7645,7 @@
           "slug": {
             "type": "string",
             "example": "concierto-de-apertura",
-            "description": "Slug \u00fanico"
+            "description": "Slug único"
           },
           "description": {
             "type": "string",
@@ -7639,7 +7705,7 @@
           "ivaOnNet": {
             "type": "boolean",
             "example": true,
-            "description": "Si el IVA se aplica sobre el neto del promotor (false = solo sobre comisi\u00f3n de plataforma)"
+            "description": "Si el IVA se aplica sobre el neto del promotor (false = solo sobre comisión de plataforma)"
           },
           "absorbInstallmentCost": {
             "type": "boolean",
@@ -7650,7 +7716,7 @@
             "type": "number",
             "nullable": true,
             "example": 1,
-            "description": "M\u00e1ximo de transferencias por boleto (null = usa el default global)"
+            "description": "Máximo de transferencias por boleto (null = usa el default global)"
           },
           "promotedPriority": {
             "type": "number",
@@ -7662,10 +7728,10 @@
             "type": "string",
             "format": "uuid",
             "nullable": true,
-            "description": "Admin que cre\u00f3 el evento a nombre del promotor (null = lo cre\u00f3 el propio promotor)"
+            "description": "Admin que creó el evento a nombre del promotor (null = lo creó el propio promotor)"
           },
           "promoter": {
-            "description": "Promotor due\u00f1o (incluido al crear el evento)",
+            "description": "Promotor dueño (incluido al crear el evento)",
             "allOf": [
               {
                 "$ref": "#/components/schemas/AdminEventPromoterDto"
@@ -7734,7 +7800,7 @@
           "take": {
             "type": "number",
             "example": 20,
-            "description": "Tama\u00f1o de p\u00e1gina aplicado"
+            "description": "Tamaño de página aplicado"
           }
         },
         "required": [
@@ -7768,13 +7834,13 @@
           "promoterId": {
             "type": "string",
             "format": "uuid",
-            "description": "Promotor due\u00f1o del evento"
+            "description": "Promotor dueño del evento"
           },
           "categoryId": {
             "type": "string",
             "format": "uuid",
             "nullable": true,
-            "description": "Categor\u00eda del evento"
+            "description": "Categoría del evento"
           },
           "name": {
             "type": "string",
@@ -7783,7 +7849,7 @@
           "slug": {
             "type": "string",
             "example": "concierto-de-apertura",
-            "description": "Slug \u00fanico"
+            "description": "Slug único"
           },
           "description": {
             "type": "string",
@@ -7843,7 +7909,7 @@
           "ivaOnNet": {
             "type": "boolean",
             "example": true,
-            "description": "Si el IVA se aplica sobre el neto del promotor (false = solo sobre comisi\u00f3n de plataforma)"
+            "description": "Si el IVA se aplica sobre el neto del promotor (false = solo sobre comisión de plataforma)"
           },
           "absorbInstallmentCost": {
             "type": "boolean",
@@ -7854,7 +7920,7 @@
             "type": "number",
             "nullable": true,
             "example": 1,
-            "description": "M\u00e1ximo de transferencias por boleto (null = usa el default global)"
+            "description": "Máximo de transferencias por boleto (null = usa el default global)"
           },
           "promotedPriority": {
             "type": "number",
@@ -7866,10 +7932,10 @@
             "type": "string",
             "format": "uuid",
             "nullable": true,
-            "description": "Admin que cre\u00f3 el evento a nombre del promotor (null = lo cre\u00f3 el propio promotor)"
+            "description": "Admin que creó el evento a nombre del promotor (null = lo creó el propio promotor)"
           },
           "promoter": {
-            "description": "Promotor due\u00f1o (incluido al crear el evento)",
+            "description": "Promotor dueño (incluido al crear el evento)",
             "allOf": [
               {
                 "$ref": "#/components/schemas/AdminEventPromoterDto"
@@ -7924,13 +7990,13 @@
           "promoterId": {
             "type": "string",
             "format": "uuid",
-            "description": "Promotor due\u00f1o del evento"
+            "description": "Promotor dueño del evento"
           },
           "categoryId": {
             "type": "string",
             "format": "uuid",
             "nullable": true,
-            "description": "Categor\u00eda del evento"
+            "description": "Categoría del evento"
           },
           "name": {
             "type": "string",
@@ -7939,7 +8005,7 @@
           "slug": {
             "type": "string",
             "example": "concierto-de-apertura",
-            "description": "Slug \u00fanico"
+            "description": "Slug único"
           },
           "description": {
             "type": "string",
@@ -7999,7 +8065,7 @@
           "ivaOnNet": {
             "type": "boolean",
             "example": true,
-            "description": "Si el IVA se aplica sobre el neto del promotor (false = solo sobre comisi\u00f3n de plataforma)"
+            "description": "Si el IVA se aplica sobre el neto del promotor (false = solo sobre comisión de plataforma)"
           },
           "absorbInstallmentCost": {
             "type": "boolean",
@@ -8010,7 +8076,7 @@
             "type": "number",
             "nullable": true,
             "example": 1,
-            "description": "M\u00e1ximo de transferencias por boleto (null = usa el default global)"
+            "description": "Máximo de transferencias por boleto (null = usa el default global)"
           },
           "promotedPriority": {
             "type": "number",
@@ -8022,10 +8088,10 @@
             "type": "string",
             "format": "uuid",
             "nullable": true,
-            "description": "Admin que cre\u00f3 el evento a nombre del promotor (null = lo cre\u00f3 el propio promotor)"
+            "description": "Admin que creó el evento a nombre del promotor (null = lo creó el propio promotor)"
           },
           "promoter": {
-            "description": "Promotor due\u00f1o (incluido al crear el evento)",
+            "description": "Promotor dueño (incluido al crear el evento)",
             "allOf": [
               {
                 "$ref": "#/components/schemas/AdminEventPromoterDto"
@@ -8142,13 +8208,13 @@
           "promoterId": {
             "type": "string",
             "format": "uuid",
-            "description": "Promotor due\u00f1o del evento"
+            "description": "Promotor dueño del evento"
           },
           "categoryId": {
             "type": "string",
             "format": "uuid",
             "nullable": true,
-            "description": "Categor\u00eda del evento"
+            "description": "Categoría del evento"
           },
           "name": {
             "type": "string",
@@ -8157,7 +8223,7 @@
           "slug": {
             "type": "string",
             "example": "concierto-de-apertura",
-            "description": "Slug \u00fanico"
+            "description": "Slug único"
           },
           "description": {
             "type": "string",
@@ -8217,7 +8283,7 @@
           "ivaOnNet": {
             "type": "boolean",
             "example": true,
-            "description": "Si el IVA se aplica sobre el neto del promotor (false = solo sobre comisi\u00f3n de plataforma)"
+            "description": "Si el IVA se aplica sobre el neto del promotor (false = solo sobre comisión de plataforma)"
           },
           "absorbInstallmentCost": {
             "type": "boolean",
@@ -8228,7 +8294,7 @@
             "type": "number",
             "nullable": true,
             "example": 1,
-            "description": "M\u00e1ximo de transferencias por boleto (null = usa el default global)"
+            "description": "Máximo de transferencias por boleto (null = usa el default global)"
           },
           "promotedPriority": {
             "type": "number",
@@ -8240,10 +8306,10 @@
             "type": "string",
             "format": "uuid",
             "nullable": true,
-            "description": "Admin que cre\u00f3 el evento a nombre del promotor (null = lo cre\u00f3 el propio promotor)"
+            "description": "Admin que creó el evento a nombre del promotor (null = lo creó el propio promotor)"
           },
           "promoter": {
-            "description": "Promotor due\u00f1o (incluido al crear el evento)",
+            "description": "Promotor dueño (incluido al crear el evento)",
             "allOf": [
               {
                 "$ref": "#/components/schemas/AdminEventPromoterDto"
@@ -8283,7 +8349,7 @@
           "soldTicketsCount": {
             "type": "number",
             "example": 0,
-            "description": "Boletos vendidos (\u00edtems activos de \u00f3rdenes pagadas). Server-authoritative; alimenta el aviso de devoluciones al reconfigurar un evento suspendido."
+            "description": "Boletos vendidos (ítems activos de órdenes pagadas). Server-authoritative; alimenta el aviso de devoluciones al reconfigurar un evento suspendido."
           }
         },
         "required": [
@@ -8544,13 +8610,13 @@
           "promoterId": {
             "type": "string",
             "format": "uuid",
-            "description": "Promotor due\u00f1o del evento"
+            "description": "Promotor dueño del evento"
           },
           "categoryId": {
             "type": "string",
             "format": "uuid",
             "nullable": true,
-            "description": "Categor\u00eda del evento"
+            "description": "Categoría del evento"
           },
           "name": {
             "type": "string",
@@ -8559,7 +8625,7 @@
           "slug": {
             "type": "string",
             "example": "concierto-de-apertura",
-            "description": "Slug \u00fanico"
+            "description": "Slug único"
           },
           "description": {
             "type": "string",
@@ -8619,7 +8685,7 @@
           "ivaOnNet": {
             "type": "boolean",
             "example": true,
-            "description": "Si el IVA se aplica sobre el neto del promotor (false = solo sobre comisi\u00f3n de plataforma)"
+            "description": "Si el IVA se aplica sobre el neto del promotor (false = solo sobre comisión de plataforma)"
           },
           "absorbInstallmentCost": {
             "type": "boolean",
@@ -8630,7 +8696,7 @@
             "type": "number",
             "nullable": true,
             "example": 1,
-            "description": "M\u00e1ximo de transferencias por boleto (null = usa el default global)"
+            "description": "Máximo de transferencias por boleto (null = usa el default global)"
           },
           "promotedPriority": {
             "type": "number",
@@ -8642,10 +8708,10 @@
             "type": "string",
             "format": "uuid",
             "nullable": true,
-            "description": "Admin que cre\u00f3 el evento a nombre del promotor (null = lo cre\u00f3 el propio promotor)"
+            "description": "Admin que creó el evento a nombre del promotor (null = lo creó el propio promotor)"
           },
           "promoter": {
-            "description": "Promotor due\u00f1o (incluido al crear el evento)",
+            "description": "Promotor dueño (incluido al crear el evento)",
             "allOf": [
               {
                 "$ref": "#/components/schemas/AdminEventPromoterDto"
@@ -8704,32 +8770,32 @@
         "properties": {
           "name": {
             "type": "string",
-            "description": "Nombre del evento (3\u2013150 caracteres)",
+            "description": "Nombre del evento (3–150 caracteres)",
             "example": "Concierto de Apertura"
           },
           "description": {
             "type": "string",
-            "description": "Descripci\u00f3n larga (m\u00e1x 5000)",
+            "description": "Descripción larga (máx 5000)",
             "example": "Una noche inolvidable"
           },
           "categoryId": {
             "type": "string",
             "format": "uuid",
-            "description": "Categor\u00eda del evento"
+            "description": "Categoría del evento"
           },
           "hallId": {
             "type": "string",
             "format": "uuid",
-            "description": "Sal\u00f3n/venue reutilizable. Si se indica, prefija address/lat/lng vac\u00edos."
+            "description": "Salón/venue reutilizable. Si se indica, prefija address/lat/lng vacíos."
           },
           "promoterId": {
             "type": "string",
             "format": "uuid",
-            "description": "Promotor due\u00f1o del evento. SOLO tiene efecto si el caller es ADMIN (crea el evento a nombre de ese promotor, que debe estar APROBADO). Un promotor no-admin lo ignora y crea el evento a su propio nombre."
+            "description": "Promotor dueño del evento. SOLO tiene efecto si el caller es ADMIN (crea el evento a nombre de ese promotor, que debe estar APROBADO). Un promotor no-admin lo ignora y crea el evento a su propio nombre."
           },
           "address": {
             "type": "string",
-            "description": "Direcci\u00f3n/lugar (m\u00e1x 300)",
+            "description": "Dirección/lugar (máx 300)",
             "example": "Estadio Nacional, Ciudad de Guatemala"
           },
           "lat": {
@@ -8762,7 +8828,7 @@
           "ivaOnNet": {
             "type": "boolean",
             "default": true,
-            "description": "Si el IVA se aplica sobre el neto del promotor (false = solo sobre comisi\u00f3n de plataforma)"
+            "description": "Si el IVA se aplica sobre el neto del promotor (false = solo sobre comisión de plataforma)"
           },
           "absorbInstallmentCost": {
             "type": "boolean",
@@ -8792,13 +8858,13 @@
           "promoterId": {
             "type": "string",
             "format": "uuid",
-            "description": "Promotor due\u00f1o del evento"
+            "description": "Promotor dueño del evento"
           },
           "categoryId": {
             "type": "string",
             "format": "uuid",
             "nullable": true,
-            "description": "Categor\u00eda del evento"
+            "description": "Categoría del evento"
           },
           "name": {
             "type": "string",
@@ -8807,7 +8873,7 @@
           "slug": {
             "type": "string",
             "example": "concierto-de-apertura",
-            "description": "Slug \u00fanico"
+            "description": "Slug único"
           },
           "description": {
             "type": "string",
@@ -8867,7 +8933,7 @@
           "ivaOnNet": {
             "type": "boolean",
             "example": true,
-            "description": "Si el IVA se aplica sobre el neto del promotor (false = solo sobre comisi\u00f3n de plataforma)"
+            "description": "Si el IVA se aplica sobre el neto del promotor (false = solo sobre comisión de plataforma)"
           },
           "absorbInstallmentCost": {
             "type": "boolean",
@@ -8878,7 +8944,7 @@
             "type": "number",
             "nullable": true,
             "example": 1,
-            "description": "M\u00e1ximo de transferencias por boleto (null = usa el default global)"
+            "description": "Máximo de transferencias por boleto (null = usa el default global)"
           },
           "promotedPriority": {
             "type": "number",
@@ -8890,10 +8956,10 @@
             "type": "string",
             "format": "uuid",
             "nullable": true,
-            "description": "Admin que cre\u00f3 el evento a nombre del promotor (null = lo cre\u00f3 el propio promotor)"
+            "description": "Admin que creó el evento a nombre del promotor (null = lo creó el propio promotor)"
           },
           "promoter": {
-            "description": "Promotor due\u00f1o (incluido al crear el evento)",
+            "description": "Promotor dueño (incluido al crear el evento)",
             "allOf": [
               {
                 "$ref": "#/components/schemas/AdminEventPromoterDto"
@@ -8930,27 +8996,27 @@
         "properties": {
           "name": {
             "type": "string",
-            "description": "Nombre del evento (3\u2013150 caracteres)",
+            "description": "Nombre del evento (3–150 caracteres)",
             "example": "Concierto de Apertura"
           },
           "description": {
             "type": "string",
-            "description": "Descripci\u00f3n larga (m\u00e1x 5000)",
+            "description": "Descripción larga (máx 5000)",
             "example": "Una noche inolvidable"
           },
           "categoryId": {
             "type": "string",
             "format": "uuid",
-            "description": "Categor\u00eda del evento"
+            "description": "Categoría del evento"
           },
           "hallId": {
             "type": "string",
             "format": "uuid",
-            "description": "Sal\u00f3n/venue reutilizable. Si se indica, prefija address/lat/lng vac\u00edos."
+            "description": "Salón/venue reutilizable. Si se indica, prefija address/lat/lng vacíos."
           },
           "address": {
             "type": "string",
-            "description": "Direcci\u00f3n/lugar (m\u00e1x 300)",
+            "description": "Dirección/lugar (máx 300)",
             "example": "Estadio Nacional, Ciudad de Guatemala"
           },
           "lat": {
@@ -9016,7 +9082,7 @@
         "properties": {
           "code": {
             "type": "string",
-            "description": "C\u00f3digo OTP de 6 d\u00edgitos enviado al correo del admin",
+            "description": "Código OTP de 6 dígitos enviado al correo del admin",
             "example": "123456"
           }
         },
@@ -9034,7 +9100,7 @@
           "expiresAt": {
             "type": "string",
             "format": "date-time",
-            "description": "Expiraci\u00f3n del token (5 min)"
+            "description": "Expiración del token (5 min)"
           }
         },
         "required": [
@@ -9063,18 +9129,18 @@
             "format": "date-time",
             "type": "string",
             "nullable": true,
-            "description": "Cu\u00e1ndo solicit\u00f3 ser promotor"
+            "description": "Cuándo solicitó ser promotor"
           },
           "promoterDecidedAt": {
             "format": "date-time",
             "type": "string",
             "nullable": true,
-            "description": "Cu\u00e1ndo el admin decidi\u00f3"
+            "description": "Cuándo el admin decidió"
           },
           "promoterNote": {
             "type": "string",
             "nullable": true,
-            "description": "Motivo de rechazo/suspensi\u00f3n"
+            "description": "Motivo de rechazo/suspensión"
           }
         },
         "required": [
@@ -9106,22 +9172,22 @@
             "format": "date-time",
             "type": "string",
             "nullable": true,
-            "description": "Cu\u00e1ndo solicit\u00f3 ser promotor"
+            "description": "Cuándo solicitó ser promotor"
           },
           "promoterDecidedAt": {
             "format": "date-time",
             "type": "string",
             "nullable": true,
-            "description": "Cu\u00e1ndo el admin decidi\u00f3"
+            "description": "Cuándo el admin decidió"
           },
           "promoterNote": {
             "type": "string",
             "nullable": true,
-            "description": "Motivo de rechazo/suspensi\u00f3n"
+            "description": "Motivo de rechazo/suspensión"
           },
           "requireApproval": {
             "type": "boolean",
-            "description": "true = se exige autorizaci\u00f3n de admin; false = modo pruebas"
+            "description": "true = se exige autorización de admin; false = modo pruebas"
           }
         },
         "required": [
@@ -9138,7 +9204,7 @@
         "properties": {
           "requireApproval": {
             "type": "boolean",
-            "description": "true = se exige autorizaci\u00f3n de admin; false = modo pruebas"
+            "description": "true = se exige autorización de admin; false = modo pruebas"
           }
         },
         "required": [
@@ -9150,7 +9216,7 @@
         "properties": {
           "requireApproval": {
             "type": "boolean",
-            "description": "true = exigir autorizaci\u00f3n de admin; false = modo pruebas"
+            "description": "true = exigir autorización de admin; false = modo pruebas"
           }
         },
         "required": [
@@ -9236,7 +9302,7 @@
         "properties": {
           "note": {
             "type": "string",
-            "description": "Motivo de rechazo/suspensi\u00f3n"
+            "description": "Motivo de rechazo/suspensión"
           }
         }
       },
@@ -9255,7 +9321,7 @@
             "type": "string",
             "format": "uuid",
             "nullable": true,
-            "description": "Admin que ejecut\u00f3 (null = sistema)"
+            "description": "Admin que ejecutó (null = sistema)"
           },
           "statusFrom": {
             "type": "string",
@@ -9280,7 +9346,7 @@
           "reason": {
             "type": "string",
             "nullable": true,
-            "description": "Motivo de la transici\u00f3n"
+            "description": "Motivo de la transición"
           },
           "createdAt": {
             "format": "date-time",
@@ -9303,7 +9369,7 @@
           "note": {
             "type": "string",
             "nullable": true,
-            "description": "Nota interna del admin (m\u00e1x 2000). null/omitir = borra la nota."
+            "description": "Nota interna del admin (máx 2000). null/omitir = borra la nota."
           }
         }
       },
@@ -9342,7 +9408,7 @@
           "isTestUser": {
             "type": "boolean",
             "default": false,
-            "description": "Marca a los invitados como usuarios de PRUEBA: al aceptar, quedan anclados a Sandbox (no pueden usar pasarelas reales). \u00datil para alpha/beta sin contaminar m\u00e9tricas de prod."
+            "description": "Marca a los invitados como usuarios de PRUEBA: al aceptar, quedan anclados a Sandbox (no pueden usar pasarelas reales). Útil para alpha/beta sin contaminar métricas de prod."
           }
         },
         "required": [
@@ -9362,13 +9428,13 @@
           },
           "token": {
             "type": "string",
-            "description": "Token en claro (solo aqu\u00ed)",
-            "example": "a1b2c3\u2026"
+            "description": "Token en claro (solo aquí)",
+            "example": "a1b2c3…"
           },
           "url": {
             "type": "string",
             "description": "URL de registro con el token",
-            "example": "https://app/registro?token=\u2026"
+            "example": "https://app/registro?token=…"
           },
           "expiresAt": {
             "type": "string",
@@ -9462,7 +9528,7 @@
           "email": {
             "type": "string",
             "example": "nuevo@promotor.com",
-            "description": "Correo al que se invit\u00f3"
+            "description": "Correo al que se invitó"
           },
           "valid": {
             "type": "boolean",
@@ -9480,12 +9546,12 @@
           "email": {
             "type": "string",
             "example": "nuevo@promotor.com",
-            "description": "Correo al que se invit\u00f3"
+            "description": "Correo al que se invitó"
           },
           "accountExists": {
             "type": "boolean",
             "example": true,
-            "description": "Si ya existe una cuenta con ese correo (\u2192 iniciar sesi\u00f3n y aceptar, sin registro)"
+            "description": "Si ya existe una cuenta con ese correo (→ iniciar sesión y aceptar, sin registro)"
           },
           "valid": {
             "type": "boolean",
@@ -9503,7 +9569,7 @@
         "properties": {
           "token": {
             "type": "string",
-            "description": "Token de invitaci\u00f3n (de la URL)"
+            "description": "Token de invitación (de la URL)"
           }
         },
         "required": [
@@ -9559,7 +9625,7 @@
           },
           "version": {
             "type": "number",
-            "description": "N\u00famero de versi\u00f3n (\u00fanico, incremental)",
+            "description": "Número de versión (único, incremental)",
             "example": 1
           },
           "label": {
@@ -9569,12 +9635,12 @@
           },
           "platformFeePct": {
             "type": "string",
-            "description": "Comisi\u00f3n de plataforma (0.10 = 10%)",
+            "description": "Comisión de plataforma (0.10 = 10%)",
             "example": "0.10000"
           },
           "gatewayFeePct": {
             "type": "string",
-            "description": "Comisi\u00f3n de pasarela default (0.05 = 5%)",
+            "description": "Comisión de pasarela default (0.05 = 5%)",
             "example": "0.05000"
           },
           "ivaPct": {
@@ -9589,7 +9655,7 @@
           },
           "active": {
             "type": "boolean",
-            "description": "Si es la versi\u00f3n activa",
+            "description": "Si es la versión activa",
             "example": true
           },
           "createdById": {
@@ -9620,12 +9686,12 @@
         "properties": {
           "platformFeePct": {
             "type": "number",
-            "description": "Comisi\u00f3n de plataforma sobre el neto (0.10 = 10%)",
+            "description": "Comisión de plataforma sobre el neto (0.10 = 10%)",
             "example": 0.1
           },
           "gatewayFeePct": {
             "type": "number",
-            "description": "Comisi\u00f3n de la pasarela sobre el total (0.05 = 5%)",
+            "description": "Comisión de la pasarela sobre el total (0.05 = 5%)",
             "example": 0.05
           },
           "ivaPct": {
@@ -9640,7 +9706,7 @@
           },
           "label": {
             "type": "string",
-            "description": "Etiqueta descriptiva de la versi\u00f3n"
+            "description": "Etiqueta descriptiva de la versión"
           }
         },
         "required": [
@@ -9654,12 +9720,12 @@
         "properties": {
           "platformFeePct": {
             "type": "number",
-            "description": "Comisi\u00f3n de plataforma sobre el neto (0.10 = 10%)",
+            "description": "Comisión de plataforma sobre el neto (0.10 = 10%)",
             "example": 0.1
           },
           "gatewayFeePct": {
             "type": "number",
-            "description": "Comisi\u00f3n de la pasarela sobre el total (0.05 = 5%)",
+            "description": "Comisión de la pasarela sobre el total (0.05 = 5%)",
             "example": 0.05
           },
           "ivaPct": {
@@ -9669,7 +9735,7 @@
           },
           "ivaOnNet": {
             "type": "boolean",
-            "description": "true (default): IVA sobre neto + comisi\u00f3n plataforma; false: solo comisi\u00f3n",
+            "description": "true (default): IVA sobre neto + comisión plataforma; false: solo comisión",
             "example": true
           },
           "fixedFees": {
@@ -9705,7 +9771,7 @@
           },
           "platformFee": {
             "type": "string",
-            "description": "Comisi\u00f3n de plataforma (absorbe el residuo de redondeo)",
+            "description": "Comisión de plataforma (absorbe el residuo de redondeo)",
             "example": "10.00"
           },
           "taxableBase": {
@@ -9720,12 +9786,12 @@
           },
           "gatewayFee": {
             "type": "string",
-            "description": "Comisi\u00f3n real que la plataforma paga a la pasarela",
+            "description": "Comisión real que la plataforma paga a la pasarela",
             "example": "6.48"
           },
           "serviceFee": {
             "type": "string",
-            "description": "Cuota por servicio (comprador) = plataforma + pasarela (+ fijos) = total \u2212 net \u2212 iva",
+            "description": "Cuota por servicio (comprador) = plataforma + pasarela (+ fijos) = total − net − iva",
             "example": "16.48"
           },
           "total": {
@@ -9743,17 +9809,17 @@
           },
           "installments": {
             "type": "number",
-            "description": "N\u00famero de cuotas seleccionadas (>= 2)",
+            "description": "Número de cuotas seleccionadas (>= 2)",
             "example": 3
           },
           "installmentFeePct": {
             "type": "number",
-            "description": "Comisi\u00f3n de pasarela aplicada por las cuotas (gn)",
+            "description": "Comisión de pasarela aplicada por las cuotas (gn)",
             "example": 0.08
           },
           "installmentFixedFee": {
             "type": "string",
-            "description": "Cargo fijo de la pasarela por transacci\u00f3n en cuotas",
+            "description": "Cargo fijo de la pasarela por transacción en cuotas",
             "example": "2.00"
           },
           "basePrice": {
@@ -9768,7 +9834,7 @@
           },
           "installmentAbsorbedBy": {
             "type": "string",
-            "description": "Qui\u00e9n absorbe el costo de las cuotas (nunca el comprador)",
+            "description": "Quién absorbe el costo de las cuotas (nunca el comprador)",
             "enum": [
               "platform",
               "promoter"
@@ -9777,7 +9843,7 @@
           },
           "hash": {
             "type": "string",
-            "description": "SHA-256 de params + resultado (anti-manipulaci\u00f3n)"
+            "description": "SHA-256 de params + resultado (anti-manipulación)"
           }
         },
         "required": [
@@ -9801,7 +9867,7 @@
           "feeScheduleVersion": {
             "type": "number",
             "nullable": true,
-            "description": "Versi\u00f3n de comisiones usada",
+            "description": "Versión de comisiones usada",
             "example": 1
           },
           "quote": {
@@ -9842,7 +9908,7 @@
         "properties": {
           "filename": {
             "type": "string",
-            "description": "Nombre del archivo original (1\u2013200)",
+            "description": "Nombre del archivo original (1–200)",
             "example": "poster.jpg"
           },
           "contentType": {
@@ -9862,12 +9928,12 @@
           "key": {
             "type": "string",
             "example": "events/3f2504e0/9f8b1c2d-poster.jpg",
-            "description": "Clave del objeto en el bucket (\u00fasala luego para registrar el media)"
+            "description": "Clave del objeto en el bucket (úsala luego para registrar el media)"
           },
           "uploadUrl": {
             "type": "string",
             "example": "https://storage.local/pasaeventos-local/events/...?X-Amz-Signature=...",
-            "description": "URL firmada PUT para subir el archivo (expiraci\u00f3n corta)"
+            "description": "URL firmada PUT para subir el archivo (expiración corta)"
           }
         },
         "required": [
@@ -9987,7 +10053,7 @@
         "type": "object",
         "properties": {
           "seatIds": {
-            "description": "Modo numerado: asientos a reservar (1\u201350). Excluyente con localityId+quantity",
+            "description": "Modo numerado: asientos a reservar (1–50). Excluyente con localityId+quantity",
             "example": [
               "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d"
             ],
@@ -10027,7 +10093,7 @@
           },
           "holderId": {
             "type": "string",
-            "description": "Due\u00f1o de la reserva (userId)",
+            "description": "Dueño de la reserva (userId)",
             "format": "uuid"
           },
           "ttlSeconds": {
@@ -10039,7 +10105,7 @@
             "type": "string",
             "format": "date-time",
             "example": "2026-07-08T18:40:00.000Z",
-            "description": "Momento en que la reserva expira autom\u00e1ticamente"
+            "description": "Momento en que la reserva expira automáticamente"
           }
         },
         "required": [
@@ -10053,7 +10119,7 @@
         "type": "object",
         "properties": {
           "seatIds": {
-            "description": "Asientos a reservar (1\u201350, tope por carrito anti-abuso)",
+            "description": "Asientos a reservar (1–50, tope por carrito anti-abuso)",
             "example": [
               "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d"
             ],
@@ -10099,12 +10165,12 @@
           "paidOrders": {
             "type": "number",
             "example": 128,
-            "description": "Cantidad de \u00f3rdenes pagadas"
+            "description": "Cantidad de órdenes pagadas"
           },
           "ticketsSold": {
             "type": "number",
             "example": 342,
-            "description": "Boletos vendidos (\u00edtems activos de \u00f3rdenes pagadas)"
+            "description": "Boletos vendidos (ítems activos de órdenes pagadas)"
           },
           "gross": {
             "type": "string",
@@ -10119,17 +10185,17 @@
           "platformFee": {
             "type": "string",
             "example": "3420.00",
-            "description": "Comisi\u00f3n de plataforma"
+            "description": "Comisión de plataforma"
           },
           "gatewayFee": {
             "type": "string",
             "example": "2214.72",
-            "description": "Comisi\u00f3n de la pasarela"
+            "description": "Comisión de la pasarela"
           },
           "fixedFees": {
             "type": "string",
             "example": "256.00",
-            "description": "Cargos fijos (p.ej. Q2/transacci\u00f3n)"
+            "description": "Cargos fijos (p.ej. Q2/transacción)"
           },
           "serviceFee": {
             "type": "string",
@@ -10155,6 +10221,51 @@
           "fixedFees",
           "serviceFee",
           "iva"
+        ]
+      },
+      "EventCashTransferDto": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "eventName": {
+            "type": "string",
+            "example": "Concierto de Apertura"
+          },
+          "promoterId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Promotor que recibe el saldo en su wallet"
+          },
+          "currency": {
+            "type": "string",
+            "example": "GTQ"
+          },
+          "transferred": {
+            "type": "string",
+            "example": "34200.00",
+            "description": "Neto transferido desde promoter_payable al wallet del promotor"
+          },
+          "status": {
+            "type": "string",
+            "example": "finished",
+            "description": "Estado del evento tras el cierre"
+          },
+          "transferredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "eventId",
+          "eventName",
+          "promoterId",
+          "currency",
+          "transferred",
+          "status",
+          "transferredAt"
         ]
       },
       "EventTransactionDto": {
@@ -10198,7 +10309,7 @@
           "itemCount": {
             "type": "number",
             "example": 2,
-            "description": "Cantidad de \u00edtems/boletos de la orden"
+            "description": "Cantidad de ítems/boletos de la orden"
           },
           "localities": {
             "description": "Localidades distintas presentes en la orden",
@@ -10240,7 +10351,7 @@
           "nextCursor": {
             "type": "string",
             "nullable": true,
-            "description": "Cursor para la siguiente p\u00e1gina; null si no hay m\u00e1s",
+            "description": "Cursor para la siguiente página; null si no hay más",
             "example": null
           }
         },
@@ -10262,15 +10373,15 @@
           },
           "billingNit": {
             "type": "string",
-            "description": "NIT para facturaci\u00f3n FEL; vac\u00edo = CF (consumidor final)"
+            "description": "NIT para facturación FEL; vacío = CF (consumidor final)"
           },
           "billingName": {
             "type": "string",
-            "description": "Nombre de facturaci\u00f3n FEL"
+            "description": "Nombre de facturación FEL"
           },
           "billingAddress": {
             "type": "string",
-            "description": "Direcci\u00f3n de facturaci\u00f3n FEL"
+            "description": "Dirección de facturación FEL"
           }
         },
         "required": [
@@ -10330,7 +10441,7 @@
             "type": "string",
             "format": "uuid",
             "nullable": true,
-            "description": "Asiento (null = admisi\u00f3n general por aforo)"
+            "description": "Asiento (null = admisión general por aforo)"
           },
           "label": {
             "type": "string",
@@ -10338,7 +10449,7 @@
             "description": "Etiqueta del asiento"
           },
           "locality": {
-            "description": "Localidad del \u00edtem (incluida en el detalle de facturaci\u00f3n)",
+            "description": "Localidad del ítem (incluida en el detalle de facturación)",
             "allOf": [
               {
                 "$ref": "#/components/schemas/OrderItemLocalityDto"
@@ -10347,16 +10458,16 @@
           },
           "net": {
             "type": "string",
-            "description": "Neto del \u00edtem",
+            "description": "Neto del ítem",
             "example": "100.00"
           },
           "total": {
             "type": "string",
-            "description": "Total all-in del \u00edtem",
+            "description": "Total all-in del ítem",
             "example": "129.68"
           },
           "quote": {
-            "description": "PriceQuote \u00edntegro (snapshot)",
+            "description": "PriceQuote íntegro (snapshot)",
             "allOf": [
               {
                 "$ref": "#/components/schemas/PriceQuoteResponseDto"
@@ -10365,11 +10476,11 @@
           },
           "quoteHash": {
             "type": "string",
-            "description": "Hash anti-manipulaci\u00f3n del quote"
+            "description": "Hash anti-manipulación del quote"
           },
           "active": {
             "type": "boolean",
-            "description": "\u00cdtem activo (false = liberado por reembolso/fallo)",
+            "description": "Ítem activo (false = liberado por reembolso/fallo)",
             "example": true
           },
           "createdAt": {
@@ -10459,18 +10570,18 @@
           "feeScheduleVersion": {
             "type": "number",
             "nullable": true,
-            "description": "Versi\u00f3n de comisiones usada",
+            "description": "Versión de comisiones usada",
             "example": 1
           },
           "feeGatewayId": {
             "type": "string",
             "format": "uuid",
             "nullable": true,
-            "description": "Pasarela usada en la cotizaci\u00f3n"
+            "description": "Pasarela usada en la cotización"
           },
           "billingNit": {
             "type": "string",
-            "description": "NIT de facturaci\u00f3n ('CF' = consumidor final)",
+            "description": "NIT de facturación ('CF' = consumidor final)",
             "example": "CF"
           },
           "billingName": {
@@ -10581,7 +10692,7 @@
           "nextCursor": {
             "type": "string",
             "nullable": true,
-            "description": "Cursor para la siguiente p\u00e1gina (id de la \u00faltima fila); null si no hay m\u00e1s",
+            "description": "Cursor para la siguiente página (id de la última fila); null si no hay más",
             "example": null
           }
         },
@@ -10595,8 +10706,8 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "id sint\u00e9tico estable",
-            "example": "order:8f\u2026"
+            "description": "id sintético estable",
+            "example": "order:8f…"
           },
           "direction": {
             "type": "string",
@@ -10671,7 +10782,7 @@
         "properties": {
           "seq": {
             "type": "string",
-            "description": "N\u00famero de secuencia global (orden en la cadena)",
+            "description": "Número de secuencia global (orden en la cadena)",
             "example": "42"
           },
           "kind": {
@@ -10685,11 +10796,11 @@
           },
           "hash": {
             "type": "string",
-            "description": "Hash SHA-256 de la transacci\u00f3n"
+            "description": "Hash SHA-256 de la transacción"
           },
           "prevHash": {
             "type": "string",
-            "description": "Hash de la transacci\u00f3n anterior (encadenado)"
+            "description": "Hash de la transacción anterior (encadenado)"
           },
           "verified": {
             "type": "boolean",
@@ -10722,7 +10833,7 @@
           },
           "chainValid": {
             "type": "boolean",
-            "description": "true si toda la cadena del ledger verifica \u00edntegra",
+            "description": "true si toda la cadena del ledger verifica íntegra",
             "example": true
           }
         },
@@ -10757,7 +10868,7 @@
         "type": "object",
         "properties": {
           "seatIds": {
-            "description": "Asientos numerados a reservar (1\u201350, de una o varias localidades)",
+            "description": "Asientos numerados a reservar (1–50, de una o varias localidades)",
             "type": "array",
             "items": {
               "type": "string",
@@ -10892,7 +11003,7 @@
             "type": "string",
             "format": "date-time",
             "nullable": true,
-            "description": "Cu\u00e1ndo expira la reserva"
+            "description": "Cuándo expira la reserva"
           },
           "currency": {
             "type": "string",
@@ -10926,15 +11037,15 @@
         "properties": {
           "billingNit": {
             "type": "string",
-            "description": "NIT para facturaci\u00f3n FEL; vac\u00edo = CF (consumidor final)"
+            "description": "NIT para facturación FEL; vacío = CF (consumidor final)"
           },
           "billingName": {
             "type": "string",
-            "description": "Nombre de facturaci\u00f3n FEL"
+            "description": "Nombre de facturación FEL"
           },
           "billingAddress": {
             "type": "string",
-            "description": "Direcci\u00f3n de facturaci\u00f3n FEL"
+            "description": "Dirección de facturación FEL"
           }
         }
       },
@@ -10943,7 +11054,7 @@
         "properties": {
           "installments": {
             "type": "number",
-            "description": "N\u00famero de cuotas (1 = pago \u00fanico)",
+            "description": "Número de cuotas (1 = pago único)",
             "example": 1
           },
           "total": {
@@ -10977,7 +11088,7 @@
           },
           "provider": {
             "type": "string",
-            "description": "Proveedor t\u00e9cnico",
+            "description": "Proveedor técnico",
             "example": "recurrente"
           },
           "isPlatformDefault": {
@@ -11048,7 +11159,7 @@
         "properties": {
           "gatewayId": {
             "type": "string",
-            "description": "M\u00e9todo/pasarela elegida (recotiza el total con su comisi\u00f3n); omitir usa la del evento"
+            "description": "Método/pasarela elegida (recotiza el total con su comisión); omitir usa la del evento"
           },
           "useWallet": {
             "type": "boolean",
@@ -11057,7 +11168,7 @@
           },
           "installments": {
             "type": "number",
-            "description": "N\u00famero de cuotas (Recurrente/Visacuotas: 3/6/12/18). Omitir o 1 = pago \u00fanico. El comprador paga lo mismo; el costo de financiamiento lo absorbe la plataforma (o el promotor si el evento lo marca).",
+            "description": "Número de cuotas (Recurrente/Visacuotas: 3/6/12/18). Omitir o 1 = pago único. El comprador paga lo mismo; el costo de financiamiento lo absorbe la plataforma (o el promotor si el evento lo marca).",
             "minimum": 1,
             "maximum": 48,
             "default": 1
@@ -11089,7 +11200,7 @@
           },
           "method": {
             "type": "string",
-            "description": "M\u00e9todo de pago",
+            "description": "Método de pago",
             "enum": [
               "gateway",
               "wallet",
@@ -11109,7 +11220,7 @@
           },
           "installments": {
             "type": "number",
-            "description": "Cuotas confirmadas (eco de la selecci\u00f3n)",
+            "description": "Cuotas confirmadas (eco de la selección)",
             "example": 1
           },
           "paymentUrl": {
@@ -11167,7 +11278,7 @@
           },
           "duplicate": {
             "type": "boolean",
-            "description": "true si el evento ya se hab\u00eda procesado (replay)",
+            "description": "true si el evento ya se había procesado (replay)",
             "example": false
           },
           "unknown": {
@@ -11214,7 +11325,7 @@
           "serial": {
             "type": "string",
             "example": "PE7K3M9Q",
-            "description": "Serial p\u00fablico legible (base del QR)"
+            "description": "Serial público legible (base del QR)"
           },
           "status": {
             "type": "string",
@@ -11230,12 +11341,12 @@
             "type": "string",
             "format": "uuid",
             "nullable": true,
-            "description": "Asiento asignado (null en admisi\u00f3n general no materializada por asiento)"
+            "description": "Asiento asignado (null en admisión general no materializada por asiento)"
           },
           "orderId": {
             "type": "string",
             "format": "uuid",
-            "description": "Orden que origin\u00f3 el boleto (enlace a facturaci\u00f3n)"
+            "description": "Orden que originó el boleto (enlace a facturación)"
           },
           "localityId": {
             "type": "string",
@@ -11258,7 +11369,7 @@
             "description": "Evento del boleto"
           },
           "event": {
-            "description": "Evento anidado (si se incluy\u00f3)",
+            "description": "Evento anidado (si se incluyó)",
             "allOf": [
               {
                 "$ref": "#/components/schemas/TicketEventSummaryDto"
@@ -11268,13 +11379,13 @@
           "eventBannerUrl": {
             "type": "string",
             "nullable": true,
-            "description": "URL firmada del banner (cover) del evento, para el boleto estilo p\u00f3ster; null si el evento no tiene cover",
+            "description": "URL firmada del banner (cover) del evento, para el boleto estilo póster; null si el evento no tiene cover",
             "example": "https://storage.pasaeventos.com/events/.../cover.jpg?sig=..."
           },
           "mediaReady": {
             "type": "boolean",
             "example": true,
-            "description": "Si la media (QR/PDF) ya est\u00e1 generada"
+            "description": "Si la media (QR/PDF) ya está generada"
           }
         },
         "required": [
@@ -11291,7 +11402,7 @@
         "type": "object",
         "properties": {
           "items": {
-            "description": "Boletos de la p\u00e1gina",
+            "description": "Boletos de la página",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TicketResponseDto"
@@ -11300,7 +11411,7 @@
           "nextCursor": {
             "type": "string",
             "nullable": true,
-            "description": "Cursor para la siguiente p\u00e1gina (id de la \u00faltima fila); null si no hay m\u00e1s",
+            "description": "Cursor para la siguiente página (id de la última fila); null si no hay más",
             "example": "3f2504e0-4f89-41d3-9a0c-0305e82c3301"
           }
         },
@@ -11313,7 +11424,7 @@
         "properties": {
           "payload": {
             "type": "string",
-            "description": "Valor le\u00eddo del QR (PE1.<serial>.<code>)"
+            "description": "Valor leído del QR (PE1.<serial>.<code>)"
           },
           "checkIn": {
             "type": "boolean",
@@ -11331,7 +11442,7 @@
           "valid": {
             "type": "boolean",
             "example": true,
-            "description": "true = boleto v\u00e1lido; false = rechazado"
+            "description": "true = boleto válido; false = rechazado"
           },
           "reason": {
             "type": "string",
@@ -11346,7 +11457,7 @@
           "serial": {
             "type": "string",
             "example": "PE7K3M9Q",
-            "description": "Serial (presente en v\u00e1lidos y en la mayor\u00eda de rechazos)"
+            "description": "Serial (presente en válidos y en la mayoría de rechazos)"
           },
           "eventId": {
             "type": "string",
@@ -11362,7 +11473,7 @@
           "checkedIn": {
             "type": "boolean",
             "example": true,
-            "description": "Si se marc\u00f3 el check-in en esta validaci\u00f3n (solo si valid=true)"
+            "description": "Si se marcó el check-in en esta validación (solo si valid=true)"
           }
         },
         "required": [
@@ -11432,12 +11543,12 @@
           "ok": {
             "type": "boolean",
             "example": true,
-            "description": "Si la cadena hash es \u00edntegra"
+            "description": "Si la cadena hash es íntegra"
           },
           "brokenAt": {
             "type": "number",
             "example": 3,
-            "description": "Seq del eslab\u00f3n roto (solo si ok=false)"
+            "description": "Seq del eslabón roto (solo si ok=false)"
           }
         },
         "required": [
@@ -11474,29 +11585,29 @@
             "type": "string",
             "format": "uuid",
             "nullable": true,
-            "description": "Due\u00f1o saliente"
+            "description": "Dueño saliente"
           },
           "toOwnerId": {
             "type": "string",
             "format": "uuid",
             "nullable": true,
-            "description": "Due\u00f1o entrante"
+            "description": "Dueño entrante"
           },
           "actorId": {
             "type": "string",
             "format": "uuid",
             "nullable": true,
-            "description": "Qui\u00e9n ejecut\u00f3 el movimiento"
+            "description": "Quién ejecutó el movimiento"
           },
           "prevHash": {
             "type": "string",
             "example": "",
-            "description": "Hash del eslab\u00f3n anterior ('' en el g\u00e9nesis)"
+            "description": "Hash del eslabón anterior ('' en el génesis)"
           },
           "hash": {
             "type": "string",
             "example": "a1b2c3...",
-            "description": "Hash del eslab\u00f3n (sha256 encadenado)"
+            "description": "Hash del eslabón (sha256 encadenado)"
           },
           "meta": {
             "type": "object",
@@ -11526,7 +11637,7 @@
             "$ref": "#/components/schemas/CustodyIntegrityDto"
           },
           "events": {
-            "description": "Movimientos en orden cronol\u00f3gico",
+            "description": "Movimientos en orden cronológico",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CustodyEventDto"
@@ -11549,12 +11660,12 @@
           "code": {
             "type": "string",
             "example": "K7MNPQ23",
-            "description": "C\u00f3digo a compartir con el destinatario (solo aqu\u00ed)"
+            "description": "Código a compartir con el destinatario (solo aquí)"
           },
           "expiresAt": {
             "type": "string",
             "format": "date-time",
-            "description": "Vencimiento del c\u00f3digo"
+            "description": "Vencimiento del código"
           }
         },
         "required": [
@@ -11597,7 +11708,7 @@
           "provider": {
             "type": "string",
             "example": "stub",
-            "description": "Proveedor que emiti\u00f3 el pase"
+            "description": "Proveedor que emitió el pase"
           },
           "feeApplied": {
             "type": "string",
@@ -11608,7 +11719,7 @@
             "type": "object",
             "additionalProperties": true,
             "nullable": true,
-            "description": "Detalle del reparto del cargo extra promotor\u2194plataforma (null si no hubo cargo)"
+            "description": "Detalle del reparto del cargo extra promotor↔plataforma (null si no hubo cargo)"
           }
         },
         "required": [
@@ -11623,7 +11734,7 @@
         "properties": {
           "code": {
             "type": "string",
-            "description": "C\u00f3digo de transferencia compartido por el remitente"
+            "description": "Código de transferencia compartido por el remitente"
           }
         },
         "required": [
@@ -11636,7 +11747,7 @@
           "ticketId": {
             "type": "string",
             "format": "uuid",
-            "description": "Boleto re-emitido al nuevo due\u00f1o"
+            "description": "Boleto re-emitido al nuevo dueño"
           },
           "serial": {
             "type": "string",
@@ -11650,7 +11761,7 @@
           "transferredFrom": {
             "type": "string",
             "format": "uuid",
-            "description": "Due\u00f1o anterior (remitente)"
+            "description": "Dueño anterior (remitente)"
           }
         },
         "required": [
@@ -11730,7 +11841,7 @@
           "ownerId": {
             "type": "string",
             "format": "uuid",
-            "description": "Due\u00f1o actual del boleto"
+            "description": "Dueño actual del boleto"
           },
           "status": {
             "type": "string",
@@ -11750,12 +11861,12 @@
           "signingKeyId": {
             "type": "string",
             "example": "k1",
-            "description": "ID de la llave de firma (rotaci\u00f3n)"
+            "description": "ID de la llave de firma (rotación)"
           },
           "totpSecret": {
             "type": "string",
             "example": "JBSWY3DPEHPK3PXP",
-            "description": "Secreto TOTP en claro (base32) \u2014 el device recomputa el QR rotativo offline"
+            "description": "Secreto TOTP en claro (base32) — el device recomputa el QR rotativo offline"
           },
           "reason": {
             "type": "string",
@@ -11765,7 +11876,7 @@
               "checked_in",
               "revoked"
             ],
-            "description": "\u00daltimo movimiento que dej\u00f3 al boleto en este estado"
+            "description": "Último movimiento que dejó al boleto en este estado"
           }
         },
         "required": [
@@ -11788,7 +11899,7 @@
           "maxSeq": {
             "type": "number",
             "example": 128,
-            "description": "Mayor seq incluido (cursor para el pr\u00f3ximo pull ?since)"
+            "description": "Mayor seq incluido (cursor para el próximo pull ?since)"
           },
           "keyId": {
             "type": "string",
@@ -11798,7 +11909,7 @@
           "publicKeyPem": {
             "type": "string",
             "example": "-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----\n",
-            "description": "Llave p\u00fablica Ed25519 (PEM) para verificar la firma offline"
+            "description": "Llave pública Ed25519 (PEM) para verificar la firma offline"
           },
           "count": {
             "type": "number",
@@ -11815,7 +11926,7 @@
           "contentHash": {
             "type": "string",
             "example": "a1b2c3...",
-            "description": "sha256 del digest can\u00f3nico firmado"
+            "description": "sha256 del digest canónico firmado"
           },
           "signature": {
             "type": "string",
@@ -11825,12 +11936,12 @@
           "generatedAt": {
             "type": "string",
             "format": "date-time",
-            "description": "Momento de generaci\u00f3n (dentro del contenido firmado)"
+            "description": "Momento de generación (dentro del contenido firmado)"
           },
           "expiresAt": {
             "type": "string",
             "format": "date-time",
-            "description": "Expiraci\u00f3n firmada (SafeTix): el device rechaza offline un manifiesto vencido"
+            "description": "Expiración firmada (SafeTix): el device rechaza offline un manifiesto vencido"
           }
         },
         "required": [
@@ -11925,7 +12036,7 @@
           "invalid": {
             "type": "number",
             "example": 0,
-            "description": "Boletos en estado inv\u00e1lido: revocado/transferido (solo modo inline)"
+            "description": "Boletos en estado inválido: revocado/transferido (solo modo inline)"
           }
         },
         "required": [
@@ -11955,7 +12066,7 @@
             "type": "string",
             "nullable": true,
             "example": "gate-3",
-            "description": "Puerta que reintent\u00f3 validar"
+            "description": "Puerta que reintentó validar"
           },
           "reason": {
             "type": "string",
@@ -11970,7 +12081,7 @@
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "description": "Momento en que se registr\u00f3 el conflicto"
+            "description": "Momento en que se registró el conflicto"
           }
         },
         "required": [
@@ -12002,7 +12113,7 @@
           "lastName": {
             "type": "string",
             "nullable": true,
-            "example": "L\u00f3pez"
+            "example": "López"
           }
         },
         "required": [
@@ -12029,7 +12140,7 @@
             "type": "string",
             "format": "uuid",
             "nullable": true,
-            "description": "Qui\u00e9n cre\u00f3 la asignaci\u00f3n"
+            "description": "Quién creó la asignación"
           },
           "createdAt": {
             "type": "string",
@@ -12144,7 +12255,7 @@
           "userId": {
             "type": "string",
             "format": "uuid",
-            "description": "Usuario due\u00f1o del retiro"
+            "description": "Usuario dueño del retiro"
           },
           "amount": {
             "type": "string",
@@ -12154,7 +12265,7 @@
           "fee": {
             "type": "string",
             "example": "6.00",
-            "description": "Comisi\u00f3n retenida (GTQ)"
+            "description": "Comisión retenida (GTQ)"
           },
           "net": {
             "type": "string",
@@ -12164,7 +12275,7 @@
           "feePct": {
             "type": "number",
             "example": 0.06,
-            "description": "Porcentaje de comisi\u00f3n aplicado (fracci\u00f3n)"
+            "description": "Porcentaje de comisión aplicado (fracción)"
           },
           "status": {
             "type": "string",
@@ -12185,7 +12296,7 @@
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "description": "Fecha de creaci\u00f3n de la solicitud"
+            "description": "Fecha de creación de la solicitud"
           },
           "paidAt": {
             "type": "string",
@@ -12218,7 +12329,7 @@
           "userId": {
             "type": "string",
             "format": "uuid",
-            "description": "Usuario due\u00f1o del retiro"
+            "description": "Usuario dueño del retiro"
           },
           "amount": {
             "type": "string",
@@ -12228,12 +12339,12 @@
           "feePct": {
             "type": "string",
             "example": "0.06000",
-            "description": "Porcentaje de comisi\u00f3n aplicado (fracci\u00f3n)"
+            "description": "Porcentaje de comisión aplicado (fracción)"
           },
           "fee": {
             "type": "string",
             "example": "6.00",
-            "description": "Comisi\u00f3n retenida (GTQ)"
+            "description": "Comisión retenida (GTQ)"
           },
           "net": {
             "type": "string",
@@ -12265,13 +12376,13 @@
             "type": "string",
             "format": "uuid",
             "nullable": true,
-            "description": "Admin que decidi\u00f3 el retiro"
+            "description": "Admin que decidió el retiro"
           },
           "decidedAt": {
             "type": "string",
             "format": "date-time",
             "nullable": true,
-            "description": "Fecha de decisi\u00f3n (aprobaci\u00f3n/rechazo)"
+            "description": "Fecha de decisión (aprobación/rechazo)"
           },
           "paidAt": {
             "type": "string",
@@ -12282,12 +12393,12 @@
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "description": "Fecha de creaci\u00f3n de la solicitud"
+            "description": "Fecha de creación de la solicitud"
           },
           "updatedAt": {
             "type": "string",
             "format": "date-time",
-            "description": "Fecha de \u00faltima actualizaci\u00f3n"
+            "description": "Fecha de última actualización"
           }
         },
         "required": [
@@ -12311,7 +12422,7 @@
         "type": "object",
         "properties": {
           "items": {
-            "description": "Retiros de la p\u00e1gina",
+            "description": "Retiros de la página",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/WithdrawalResponseDto"
@@ -12321,7 +12432,7 @@
             "type": "string",
             "format": "uuid",
             "nullable": true,
-            "description": "Cursor (id de la \u00faltima fila) para la p\u00e1gina siguiente; null si no hay m\u00e1s"
+            "description": "Cursor (id de la última fila) para la página siguiente; null si no hay más"
           }
         },
         "required": [
@@ -12343,7 +12454,7 @@
         "properties": {
           "sent": {
             "type": "boolean",
-            "description": "true = se envi\u00f3 el c\u00f3digo al correo del admin"
+            "description": "true = se envió el código al correo del admin"
           }
         },
         "required": [
@@ -12369,17 +12480,17 @@
           "feePct": {
             "type": "string",
             "example": "0.05",
-            "description": "Comisi\u00f3n de la pasarela en 1 pago (Decimal serializado como string)"
+            "description": "Comisión de la pasarela en 1 pago (Decimal serializado como string)"
           },
           "transactionFixedFee": {
             "type": "string",
             "example": "2.00",
-            "description": "Cargo fijo por transacci\u00f3n (GTQ). Aplica a todo cobro (1 pago y cuotas)."
+            "description": "Cargo fijo por transacción (GTQ). Aplica a todo cobro (1 pago y cuotas)."
           },
           "minCostSharePct": {
             "type": "string",
             "example": "0.00",
-            "description": "Cost-share m\u00ednimo del promotor para usar esta pasarela. La default = 0."
+            "description": "Cost-share mínimo del promotor para usar esta pasarela. La default = 0."
           },
           "installmentRates": {
             "type": "object",
@@ -12393,13 +12504,13 @@
               "12": 0.1,
               "18": 0.14
             },
-            "description": "Comisi\u00f3n por cuotas: mapa cuotas\u2192tasa. null = sin cuotas."
+            "description": "Comisión por cuotas: mapa cuotas→tasa. null = sin cuotas."
           },
           "installmentFixedFee": {
             "type": "string",
             "nullable": true,
             "example": "2.00",
-            "description": "Cargo fijo por transacci\u00f3n en cuotas (GTQ). null = sin fijo."
+            "description": "Cargo fijo por transacción en cuotas (GTQ). null = sin fijo."
           },
           "credentialsRef": {
             "type": "string",
@@ -12416,7 +12527,7 @@
           },
           "isPlatformDefault": {
             "type": "boolean",
-            "description": "\u00bfEs la pasarela default de plataforma?"
+            "description": "¿Es la pasarela default de plataforma?"
           },
           "sandbox": {
             "type": "boolean"
@@ -12452,7 +12563,7 @@
         "properties": {
           "unlockCode": {
             "type": "string",
-            "description": "C\u00f3digo OTP de 6 d\u00edgitos enviado al correo del admin por POST /payment-gateways/unlock. Agregar una pasarela es una acci\u00f3n sensible y exige este desbloqueo.",
+            "description": "Código OTP de 6 dígitos enviado al correo del admin por POST /payment-gateways/unlock. Agregar una pasarela es una acción sensible y exige este desbloqueo.",
             "example": "123456"
           },
           "name": {
@@ -12466,22 +12577,22 @@
           },
           "feePct": {
             "type": "number",
-            "description": "Comisi\u00f3n de la pasarela en 1 pago (0.05 = 5%)",
+            "description": "Comisión de la pasarela en 1 pago (0.05 = 5%)",
             "example": 0.05
           },
           "transactionFixedFee": {
             "type": "number",
-            "description": "Cargo FIJO por transacci\u00f3n de la pasarela (GTQ, p.ej. Q2 de Recurrente). Aplica a TODO cobro (1 pago y cuotas).",
+            "description": "Cargo FIJO por transacción de la pasarela (GTQ, p.ej. Q2 de Recurrente). Aplica a TODO cobro (1 pago y cuotas).",
             "example": 2
           },
           "minCostSharePct": {
             "type": "number",
-            "description": "Cost-share m\u00ednimo del promotor para usar esta pasarela (0.5 = 50%). La default de plataforma debe ser 0.",
+            "description": "Cost-share mínimo del promotor para usar esta pasarela (0.5 = 50%). La default de plataforma debe ser 0.",
             "example": 0.5
           },
           "installmentRates": {
             "type": "object",
-            "description": "Comisi\u00f3n por cuotas: mapa cuotas\u2192tasa, p.ej. {\"3\":0.08,\"6\":0.09,\"12\":0.10,\"18\":0.14}",
+            "description": "Comisión por cuotas: mapa cuotas→tasa, p.ej. {\"3\":0.08,\"6\":0.09,\"12\":0.10,\"18\":0.14}",
             "example": {
               "3": 0.08,
               "6": 0.09,
@@ -12491,7 +12602,7 @@
           },
           "installmentFixedFee": {
             "type": "number",
-            "description": "Cargo fijo por transacci\u00f3n en cuotas (GTQ, p.ej. 2)",
+            "description": "Cargo fijo por transacción en cuotas (GTQ, p.ej. 2)",
             "example": 2
           },
           "credentialsRef": {
@@ -12522,17 +12633,17 @@
           },
           "transactionFixedFee": {
             "type": "number",
-            "description": "Cargo fijo por transacci\u00f3n (GTQ). Aplica a todo cobro.",
+            "description": "Cargo fijo por transacción (GTQ). Aplica a todo cobro.",
             "example": 2
           },
           "minCostSharePct": {
             "type": "number",
-            "description": "Cost-share m\u00ednimo del promotor para usar esta pasarela (0-1). La default debe ser 0.",
+            "description": "Cost-share mínimo del promotor para usar esta pasarela (0-1). La default debe ser 0.",
             "example": 0.5
           },
           "installmentRates": {
             "type": "object",
-            "description": "Comisi\u00f3n por cuotas: mapa cuotas\u2192tasa. {} borra las cuotas.",
+            "description": "Comisión por cuotas: mapa cuotas→tasa. {} borra las cuotas.",
             "example": {
               "3": 0.08,
               "6": 0.09,
@@ -12542,7 +12653,7 @@
           },
           "installmentFixedFee": {
             "type": "number",
-            "description": "Cargo fijo por transacci\u00f3n en cuotas (GTQ)"
+            "description": "Cargo fijo por transacción en cuotas (GTQ)"
           },
           "credentialsRef": {
             "type": "string"
@@ -12701,12 +12812,12 @@
           },
           "last4": {
             "type": "string",
-            "description": "\u00daltimos 4 d\u00edgitos (para mostrar)",
+            "description": "Últimos 4 dígitos (para mostrar)",
             "example": "4242"
           },
           "isDefault": {
             "type": "boolean",
-            "description": "Marcar como m\u00e9todo por defecto",
+            "description": "Marcar como método por defecto",
             "example": true
           }
         },
@@ -12726,7 +12837,7 @@
           },
           "anonymized": {
             "type": "boolean",
-            "description": "true si qued\u00f3 anonimizado (idempotente)"
+            "description": "true si quedó anonimizado (idempotente)"
           }
         },
         "required": [
@@ -12739,7 +12850,7 @@
         "properties": {
           "days": {
             "type": "number",
-            "description": "D\u00edas de corte de retenci\u00f3n (override del valor por env). Default: retention.days",
+            "description": "Días de corte de retención (override del valor por env). Default: retention.days",
             "minimum": 0,
             "maximum": 36500
           }
@@ -12754,7 +12865,7 @@
           },
           "days": {
             "type": "number",
-            "description": "D\u00edas de corte usados"
+            "description": "Días de corte usados"
           }
         },
         "required": [
@@ -12798,8 +12909,8 @@
         "properties": {
           "prompt": {
             "type": "string",
-            "description": "Instrucci\u00f3n libre para el generador (tagline/estilo). M\u00e1x 500.",
-            "example": "Ambiente ne\u00f3n, tipograf\u00eda audaz, p\u00fablico saltando"
+            "description": "Instrucción libre para el generador (tagline/estilo). Máx 500.",
+            "example": "Ambiente neón, tipografía audaz, público saltando"
           },
           "template": {
             "type": "string",
@@ -12813,7 +12924,7 @@
             "description": "Plantilla visual (paleta/estilo)"
           },
           "sampleImages": {
-            "description": "Im\u00e1genes de ejemplo (URLs/claves) que gu\u00edan al proveedor real. M\u00e1x 5.",
+            "description": "Imágenes de ejemplo (URLs/claves) que guían al proveedor real. Máx 5.",
             "type": "array",
             "items": {
               "type": "string"
@@ -12851,7 +12962,7 @@
           "provider": {
             "type": "string",
             "example": "stub",
-            "description": "Proveedor que gener\u00f3 el banner"
+            "description": "Proveedor que generó el banner"
           }
         },
         "required": [
@@ -12909,7 +13020,7 @@
               "draft",
               "published"
             ],
-            "description": "Estado de publicaci\u00f3n"
+            "description": "Estado de publicación"
           },
           "createdAt": {
             "type": "string",
@@ -12939,12 +13050,12 @@
         "properties": {
           "name": {
             "type": "string",
-            "description": "Nombre del sal\u00f3n/venue",
+            "description": "Nombre del salón/venue",
             "example": "Teatro Nacional"
           },
           "address": {
             "type": "string",
-            "description": "Direcci\u00f3n",
+            "description": "Dirección",
             "example": "24 Calle 3-81, Zona 1"
           },
           "lat": {
@@ -12970,7 +13081,7 @@
           "seatTemplateId": {
             "type": "string",
             "format": "uuid",
-            "description": "Plantilla de asientos base del sal\u00f3n"
+            "description": "Plantilla de asientos base del salón"
           },
           "status": {
             "type": "string",
@@ -13068,7 +13179,7 @@
               "draft",
               "published"
             ],
-            "description": "Estado de publicaci\u00f3n"
+            "description": "Estado de publicación"
           },
           "hidden": {
             "type": "boolean",
@@ -13126,12 +13237,12 @@
           "layoutJson": {
             "type": "object",
             "additionalProperties": true,
-            "description": "Geometr\u00eda/metadata de la plantilla (icono, hint, layout)."
+            "description": "Geometría/metadata de la plantilla (icono, hint, layout)."
           },
           "params": {
             "type": "object",
             "additionalProperties": true,
-            "description": "Par\u00e1metros de generaci\u00f3n (filas, columnas, radio, etc.)."
+            "description": "Parámetros de generación (filas, columnas, radio, etc.)."
           }
         },
         "required": [
@@ -13226,7 +13337,7 @@
         "type": "object",
         "properties": {
           "value": {
-            "description": "Nuevo valor (number para pct/int, boolean para bool). Validado contra el cat\u00e1logo.",
+            "description": "Nuevo valor (number para pct/int, boolean para bool). Validado contra el catálogo.",
             "oneOf": [
               {
                 "type": "number"
@@ -13242,12 +13353,31 @@
           "value"
         ]
       },
+      "PublicConfigDto": {
+        "type": "object",
+        "properties": {
+          "allowVisitorLangSwitch": {
+            "type": "boolean",
+            "description": "Si un visitante (sin sesión) puede cambiar el idioma de la UI.",
+            "example": false
+          },
+          "showHomeCategories": {
+            "type": "boolean",
+            "description": "Si se muestran las categorías en la página principal.",
+            "example": true
+          }
+        },
+        "required": [
+          "allowVisitorLangSwitch",
+          "showHomeCategories"
+        ]
+      },
       "MaintenanceStatusDto": {
         "type": "object",
         "properties": {
           "enabled": {
             "type": "boolean",
-            "description": "true si la plataforma est\u00e1 en mantenimiento"
+            "description": "true si la plataforma está en mantenimiento"
           },
           "message": {
             "type": "string",
@@ -13282,7 +13412,7 @@
         "properties": {
           "action": {
             "type": "string",
-            "description": "Acci\u00f3n confirmada (p.ej. \"promoter.approve\", \"event.publish\")",
+            "description": "Acción confirmada (p.ej. \"promoter.approve\", \"event.publish\")",
             "maxLength": 120
           },
           "resource": {
@@ -13292,7 +13422,7 @@
           },
           "payload": {
             "type": "object",
-            "description": "Contexto adicional (jsonb). NO se conf\u00eda en \u00e9l para IP/UA (esos van server-side)",
+            "description": "Contexto adicional (jsonb). NO se confía en él para IP/UA (esos van server-side)",
             "additionalProperties": true
           }
         },
@@ -13309,12 +13439,12 @@
           },
           "seq": {
             "type": "string",
-            "description": "Secuencia mon\u00f3tona (string por ser BigInt)"
+            "description": "Secuencia monótona (string por ser BigInt)"
           },
           "userId": {
             "type": "string",
             "nullable": true,
-            "description": "Usuario que ejecut\u00f3 la acci\u00f3n"
+            "description": "Usuario que ejecutó la acción"
           },
           "action": {
             "type": "string"
@@ -13374,7 +13504,7 @@
           "nextCursor": {
             "type": "string",
             "nullable": true,
-            "description": "Cursor para la siguiente p\u00e1gina"
+            "description": "Cursor para la siguiente página"
           }
         },
         "required": [
@@ -13387,7 +13517,7 @@
         "properties": {
           "ok": {
             "type": "boolean",
-            "description": "true si la cadena est\u00e1 \u00edntegra"
+            "description": "true si la cadena está íntegra"
           },
           "brokenAt": {
             "type": "string",
@@ -13435,7 +13565,7 @@
         "properties": {
           "accessToken": {
             "type": "string",
-            "description": "Access token de vida corta que act\u00faa como el promotor"
+            "description": "Access token de vida corta que actúa como el promotor"
           },
           "expiresIn": {
             "type": "number",
@@ -13445,7 +13575,7 @@
           "impersonatedBy": {
             "type": "string",
             "format": "uuid",
-            "description": "Admin que inici\u00f3 la impersonaci\u00f3n"
+            "description": "Admin que inició la impersonación"
           },
           "user": {
             "$ref": "#/components/schemas/ImpersonationUserDto"
