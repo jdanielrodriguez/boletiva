@@ -2738,8 +2738,10 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
 .ev-card-name:hover { color: var(--pe-primary); }
 .ev-card-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; }
 .ev-card-actions .btn.small { flex: 1 1 auto; justify-content: center; min-width: 96px; }
-/* Barra superior del editor: acciones alineadas a la derecha. */
-.panel-header .header-actions { justify-content: flex-end; margin-top: 0; margin-left: auto; }
+/* Barra superior del editor: acciones alineadas a la derecha y CENTRADAS
+   verticalmente (W5) → el botón/chip de desbloqueo queda a la misma altura que
+   Guardar/Publicar (antes se estiraban a distinta altura por el default stretch). */
+.panel-header .header-actions { justify-content: flex-end; align-items: center; margin-top: 0; margin-left: auto; }
 
 /* Botón solo-icono (cuadrado, sin label). */
 .btn.icon-only {
