@@ -26,6 +26,7 @@ import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { InfoTooltipComponent } from '../../shared/ui/info-tooltip.component';
 import { LockChipComponent } from '../../shared/ui/lock-chip.component';
+import { SwitchComponent } from '../../shared/ui/switch.component';
 import { HallsListComponent } from './halls-list.component';
 import { TemplatesListComponent } from './templates-list.component';
 import type {
@@ -79,6 +80,7 @@ const INV_PAGE = 9;
     EmptyStateComponent,
     InfoTooltipComponent,
     LockChipComponent,
+    SwitchComponent,
     HallsListComponent,
     TemplatesListComponent,
     SearchFieldComponent,
