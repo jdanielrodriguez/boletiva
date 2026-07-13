@@ -6,6 +6,7 @@ import { catchError, map, of, startWith, switchMap, tap } from 'rxjs';
 import { CategoriesApi } from '../../core/api/categories.api';
 import { EventsApi } from '../../core/api/events.api';
 import type { PublicEventListDto } from '../../core/api/types';
+import { PublicConfigStore } from '../../core/config/public-config.store';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { SeoService } from '../../core/seo/seo.service';
 import { HeroSlider, SlideItem } from '../../shared/hero-slider/hero-slider.component';
@@ -48,8 +49,12 @@ export class Catalog {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly seo = inject(SeoService);
+  private readonly publicConfig = inject(PublicConfigStore);
 
   protected readonly pageSize = PAGE_SIZE;
+
+  /** Flag de admin: ¿mostrar las categorías en el inicio? (v3.10 · GI). */
+  protected readonly showCategories = this.publicConfig.showHomeCategories;
 
   protected readonly categories = toSignal(
     this.categoriesApi.list().pipe(catchError(() => of([]))),

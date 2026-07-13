@@ -16,20 +16,22 @@
     />
   </div>
 
-  <div class="catalog-categories" role="group" [attr.aria-label]="'catalog.filterByCategory' | translate">
-    <button type="button" [class.active]="activeCategory() === ''" (click)="selectCategory('')">
-      {{ 'catalog.allCategories' | translate }}
-    </button>
-    @for (cat of categories(); track cat.id) {
-      <button
-        type="button"
-        [class.active]="activeCategory() === cat.slug"
-        (click)="selectCategory(cat.slug)"
-      >
-        {{ cat.name }}
+  @if (showCategories()) {
+    <div class="catalog-categories" role="group" [attr.aria-label]="'catalog.filterByCategory' | translate">
+      <button type="button" [class.active]="activeCategory() === ''" (click)="selectCategory('')">
+        {{ 'catalog.allCategories' | translate }}
       </button>
-    }
-  </div>
+      @for (cat of categories(); track cat.id) {
+        <button
+          type="button"
+          [class.active]="activeCategory() === cat.slug"
+          (click)="selectCategory(cat.slug)"
+        >
+          {{ cat.name }}
+        </button>
+      }
+    </div>
+  }
 
   @if (loading()) {
     <app-loading variant="skeleton" data-testid="catalog-loading" />
