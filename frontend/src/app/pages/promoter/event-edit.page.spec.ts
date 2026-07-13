@@ -48,6 +48,14 @@ describe('EventEditPage (v3)', () => {
 
   let queryParams: Record<string, string> = {};
 
+  // El EditUnlockStore rehidrata el desbloqueo desde sessionStorage (W4); limpiar
+  // antes de cada test evita que un desbloqueo dejado por otro spec contamine el
+  // estado bloqueado/desbloqueado que verifican estas pruebas.
+  beforeEach(() => {
+    sessionStorage.clear();
+    localStorage.clear();
+  });
+
   async function setup(
     api: Record<string, unknown> = {},
     qp: Record<string, string> = {},
