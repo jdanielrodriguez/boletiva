@@ -389,7 +389,10 @@ export class MovementResponseDto {
   direction!: string;
 
   @ApiProperty({
-    description: 'purchase = compra (egreso); refund/resale/sale = ingreso',
+    description:
+      'purchase = compra (egreso); refund/resale = ingreso al wallet; ' +
+      'event_settlement = LIQUIDACIÓN al promotor al cerrar el evento (ingreso)',
+    enum: ['purchase', 'refund', 'resale', 'event_settlement', 'other'],
     example: 'purchase',
   })
   kind!: string;
@@ -409,6 +412,14 @@ export class MovementResponseDto {
 
   @ApiProperty({ type: String, nullable: true })
   eventName!: string | null;
+
+  @ApiProperty({
+    type: String,
+    format: 'uuid',
+    nullable: true,
+    description: 'Evento asociado (navegar a sus cuentas; presente en la liquidación event_settlement)',
+  })
+  eventId!: string | null;
 
   @ApiProperty({ type: String, format: 'uuid', nullable: true, description: 'Orden para abrir su detalle' })
   orderId!: string | null;

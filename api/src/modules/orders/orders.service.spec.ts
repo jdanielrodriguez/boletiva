@@ -13,7 +13,7 @@ describe('OrdersService (IDOR + keyset, unit)', () => {
     const prisma = {
       order: { findMany: jest.fn(), findUnique: jest.fn() },
       ledgerEntry: { findMany: jest.fn() },
-      event: { findUnique: jest.fn() },
+      event: { findUnique: jest.fn(), findMany: jest.fn() },
     };
     const ledger = { orderChain: jest.fn() };
     const service = new OrdersService(prisma as never, ledger as never);
@@ -223,7 +223,9 @@ describe('OrdersService (IDOR + keyset, unit)', () => {
       });
     });
 
-    it('order_payment (promoter_payable) es un INGRESO de venta (kind sale)', async () => {
+    it('W7: order_payment (venta por-boleto a promoter_payable) NO es un movimiento del promotor', async () => {
+      // La venta por-boleto cae a las CUENTAS DEL EVENTO, no a la facturación del
+      // promotor. Solo la LIQUIDACIÓN al cierre le "cae" al promotor.
       const { prisma, service } = build();
       prisma.order.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
       prisma.ledgerEntry.findMany.mockResolvedValue([
@@ -240,7 +242,40 @@ describe('OrdersService (IDOR + keyset, unit)', () => {
         },
       ]);
       const { items } = await service.listMovements('promo1');
-      expect(items[0]).toMatchObject({ direction: 'income', kind: 'sale', orderId: null });
+      expect(items).toHaveLength(0);
+    });
+
+    it('W7: la LIQUIDACIÓN (event_cash_transfer) es un INGRESO event_settlement con eventId/eventName', async () => {
+      const { prisma, service } = build();
+      prisma.order.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+      prisma.event.findMany.mockResolvedValue([{ id: 'ev1', name: 'Festival' }]);
+      prisma.ledgerEntry.findMany.mockResolvedValue([
+        {
+          id: 'e5',
+          amount: dec('34200.00'),
+          account: { currency: 'GTQ' },
+          transaction: {
+            kind: 'event_cash_transfer',
+            refType: 'event',
+            refId: 'ev1',
+            createdAt: new Date('2026-07-10T10:00:00Z'),
+          },
+        },
+      ]);
+      const { items } = await service.listMovements('promo1');
+      expect(items).toHaveLength(1);
+      expect(items[0]).toMatchObject({
+        direction: 'income',
+        kind: 'event_settlement',
+        amount: '34200.00',
+        eventId: 'ev1',
+        eventName: 'Festival',
+        orderId: null,
+        status: 'paid',
+      });
+      expect(prisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: { in: ['ev1'] } } }),
+      );
     });
 
     it('mezcla egresos e ingresos ordenados por fecha DESC', async () => {

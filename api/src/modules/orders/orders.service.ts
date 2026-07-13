@@ -12,13 +12,20 @@ export type MovementDirection = 'income' | 'expense';
  * Un movimiento del feed unificado de facturación. Los EGRESOS son las compras
  * (órdenes del comprador). Los INGRESOS son créditos a las cuentas del usuario en
  * el ledger: `refund` (devolución al wallet) y `resale` (reventa) para el cliente,
- * y `order_payment` (venta/liquidación a `promoter_payable`) para el promotor.
+ * y `event_settlement` (LIQUIDACIÓN al cerrar la caja del evento) para el promotor.
+ *
+ * IMPORTANTE (v3.13 · W7): el promotor NO ve las ventas por-boleto individuales de
+ * sus eventos en su facturación (esas caen a las CUENTAS DEL EVENTO —
+ * `promoter_payable` vía `order_payment`— y se consultan en el panel del evento).
+ * Al promotor le "cae" la transacción SOLO al CIERRE del evento (finalize), como
+ * un único movimiento de tipo `event_settlement` (con `eventId`/`eventName` para
+ * que el frontend lo distinga y ofrezca "Descargar detalle" + "Ver cuentas").
  */
 export interface Movement {
   /** id sintético estable (`order:<id>` o `ledger:<entryId>`). */
   id: string;
   direction: MovementDirection;
-  /** 'purchase' | 'refund' | 'resale' | 'sale' | 'other'. */
+  /** 'purchase' | 'refund' | 'resale' | 'event_settlement' | 'other'. */
   kind: string;
   /** Monto absoluto (Decimal como string, 2 decimales). */
   amount: string;
@@ -26,6 +33,8 @@ export interface Movement {
   /** Estado: egresos = estado real de la orden; ingresos = `refunded`/`paid` coherente. */
   status: string | null;
   eventName: string | null;
+  /** Evento asociado (para navegar a sus cuentas; p.ej. la liquidación). null si no aplica. */
+  eventId: string | null;
   /** Orden asociada (para abrir su detalle); null si no aplica. */
   orderId: string | null;
   createdAt: string;
@@ -33,24 +42,26 @@ export interface Movement {
 
 /**
  * Tipos de transacción del ledger que representan un INGRESO para el usuario.
- * `wallet_reserve`/`withdrawal_*` NO entran (o ya se cuentan en la compra, o son
- * flujo de retiro que vive en la sección Wallet) para no duplicar movimientos.
+ * `wallet_reserve`/`withdrawal_*` NO entran (flujo de retiro, vive en Wallet).
+ * `order_payment` (venta por-boleto a `promoter_payable`) tampoco: es una cuenta
+ * DEL EVENTO, no del promotor — a él le cae solo la LIQUIDACIÓN al cierre
+ * (`event_cash_transfer`, W7). Así el feed del promotor no lista cada venta.
  */
-const INCOME_TX_KINDS = new Set(['refund', 'resale', 'order_payment']);
+const INCOME_TX_KINDS = new Set(['refund', 'resale', 'event_cash_transfer']);
 
 /** Traduce el kind de la transacción del ledger al kind del movimiento. */
 function movementKind(txKind: string): string {
   if (txKind === 'refund') return 'refund';
   if (txKind === 'resale') return 'resale';
-  if (txKind === 'order_payment') return 'sale';
+  if (txKind === 'event_cash_transfer') return 'event_settlement';
   return 'other';
 }
 
 /**
  * Estado coherente para un INGRESO del ledger (no tiene `OrderStatus` propio): las
- * devoluciones/reventas se marcan `refunded` (dinero devuelto al usuario) y las
- * ventas/liquidaciones del promotor `paid`. Así la facturación puede filtrarse por
- * estado igual que los egresos (compras), que sí llevan el estado real de la orden.
+ * devoluciones/reventas se marcan `refunded` (dinero devuelto al usuario) y la
+ * liquidación del promotor `paid`. Así la facturación puede filtrarse por estado
+ * igual que los egresos (compras), que sí llevan el estado real de la orden.
  */
 function incomeStatus(movKind: string): string {
   if (movKind === 'refund' || movKind === 'resale') return 'refunded';
@@ -97,6 +108,7 @@ export class OrdersService {
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       select: {
         id: true,
+        eventId: true,
         total: true,
         currency: true,
         status: true,
@@ -112,6 +124,7 @@ export class OrdersService {
       currency: o.currency,
       status: o.status,
       eventName: o.event?.name ?? null,
+      eventId: o.eventId ?? null,
       orderId: o.id,
       createdAt: o.createdAt.toISOString(),
     }));
@@ -133,7 +146,9 @@ export class OrdersService {
     });
     const incomeEntries = credits.filter((e) => INCOME_TX_KINDS.has(e.transaction.kind));
 
-    // Resolver nombre de evento de las órdenes referenciadas (para mostrar/enlazar).
+    // Los ingresos referencian una ORDEN (refType='order': refund/resale) o un
+    // EVENTO (refType='event': la LIQUIDACIÓN `event_cash_transfer`). Resolvemos
+    // nombre/id de evento de ambas fuentes para mostrar y navegar.
     const orderIds = [
       ...new Set(
         incomeEntries
@@ -141,18 +156,44 @@ export class OrdersService {
           .map((e) => e.transaction.refId as string),
       ),
     ];
+    const eventIds = [
+      ...new Set(
+        incomeEntries
+          .filter((e) => e.transaction.refType === 'event' && e.transaction.refId)
+          .map((e) => e.transaction.refId as string),
+      ),
+    ];
     const refOrders = orderIds.length
       ? await this.prisma.order.findMany({
           where: { id: { in: orderIds } },
-          select: { id: true, event: { select: { name: true } } },
+          select: { id: true, eventId: true, event: { select: { name: true } } },
         })
       : [];
-    const eventByOrder = new Map(refOrders.map((o) => [o.id, o.event?.name ?? null]));
+    const eventByOrder = new Map(
+      refOrders.map((o) => [o.id, { eventId: o.eventId ?? null, eventName: o.event?.name ?? null }]),
+    );
+    const refEvents = eventIds.length
+      ? await this.prisma.event.findMany({
+          where: { id: { in: eventIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const eventById = new Map(refEvents.map((e) => [e.id, e.name]));
 
     const incomes: Movement[] = incomeEntries.map((e) => {
-      const orderId =
-        e.transaction.refType === 'order' ? (e.transaction.refId ?? null) : null;
       const kind = movementKind(e.transaction.kind);
+      let orderId: string | null = null;
+      let eventId: string | null = null;
+      let eventName: string | null = null;
+      if (e.transaction.refType === 'order' && e.transaction.refId) {
+        orderId = e.transaction.refId;
+        const ref = eventByOrder.get(orderId);
+        eventId = ref?.eventId ?? null;
+        eventName = ref?.eventName ?? null;
+      } else if (e.transaction.refType === 'event' && e.transaction.refId) {
+        eventId = e.transaction.refId;
+        eventName = eventById.get(eventId) ?? null;
+      }
       return {
         id: `ledger:${e.id}`,
         direction: 'income',
@@ -160,7 +201,8 @@ export class OrdersService {
         amount: e.amount.toFixed(2),
         currency: e.account.currency,
         status: incomeStatus(kind),
-        eventName: orderId ? (eventByOrder.get(orderId) ?? null) : null,
+        eventName,
+        eventId,
         orderId,
         createdAt: e.transaction.createdAt.toISOString(),
       };
