@@ -92,6 +92,23 @@ describe('TicketMailService (bordes)', () => {
     expect(input.bodyText).toContain('PE1.abc.def');
   });
 
+  it('F3: comprador con language="en" → correo en inglés (asunto/cuerpo/texto)', async () => {
+    const order = {
+      total: { toFixed: (n: number) => (100).toFixed(n) },
+      buyer: { email: 'en@test.com', firstName: 'Sam', language: 'en' },
+      event: { name: 'Rock Night', startsAt: new Date('2026-08-15T02:00:00.000Z'), address: null, media: [] },
+      tickets: [{ serial: 'PE1.en.001', qrKey: null, locality: null, seat: null }],
+    };
+    const { service, mail } = makeService(order);
+    await service.sendOrderConfirmation('o-en');
+    const [, subject, input] = mail.sendTemplated.mock.calls[0];
+    expect(subject).toContain('Tickets confirmed');
+    expect(input.title).toBe('Purchase confirmed!');
+    expect(input.bodyHtml).toContain('General admission');
+    expect(input.bodyText).toContain('Guatemala time');
+    expect(input.bodyText).not.toContain('hora de Guatemala');
+  });
+
   it('sin media/QR listos → sin imágenes, serial destacado y "Admisión general"', async () => {
     const order = {
       total: { toFixed: (n: number) => (50).toFixed(n) },

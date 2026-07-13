@@ -61,6 +61,15 @@ describe('PromoterMailService (estados y bordes)', () => {
     expect(sentSubject).toMatch(subject);
   });
 
+  it('F3: promotor con language="en" → asunto y cuerpo en inglés', async () => {
+    const { service, mail } = makeService({ email: 'en@test.com', firstName: 'Pro', language: 'en' });
+    await service.sendStatus({ userId: 'u1', status: 'approved', note: 'welcome' });
+    const [, subject, input] = mail.sendTemplated.mock.calls[0];
+    expect(subject).toMatch(/approved/i);
+    expect(input.title).toBe('Promoter account approved!');
+    expect(input.bodyHtml).toContain('Team note:');
+  });
+
   it('la nota del equipo se incluye (escapada) en approved/rejected/suspended', async () => {
     const { service, mail } = makeService({ email: 'prom@test.com', firstName: 'Pro' });
     await service.sendStatus({ userId: 'u1', status: 'rejected', note: 'faltan <docs>' });

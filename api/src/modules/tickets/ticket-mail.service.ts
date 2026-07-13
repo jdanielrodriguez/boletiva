@@ -3,6 +3,7 @@ import { PrismaService } from '../../infra/prisma/prisma.service';
 import { MailService } from '../../infra/mail/mail.service';
 import { StorageService } from '../../infra/storage/storage.service';
 import { escapeHtml } from '../../infra/mail/email-template';
+import { formatEventDate, mailStrings, resolveMailLocale } from '../../infra/mail/mail-i18n';
 import { QueueService } from '../../infra/queue/queue.service';
 import { QUEUES } from '../../infra/queue/queue.constants';
 
@@ -39,21 +40,6 @@ export class TicketMailService implements OnModuleInit {
     }
   }
 
-  /** Fecha/hora en zona horaria de Guatemala, legible en español. */
-  private formatGt(d: Date): string {
-    const fmt = new Intl.DateTimeFormat('es-GT', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-      timeZone: 'America/Guatemala',
-    });
-    return `${fmt.format(d)} (hora de Guatemala)`;
-  }
-
   /** URL firmada de una clave de bucket (o null si no hay clave o falla la firma). */
   private async signOrNull(key: string | null | undefined): Promise<string | null> {
     if (!key) return null;
@@ -69,7 +55,7 @@ export class TicketMailService implements OnModuleInit {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       include: {
-        buyer: { select: { email: true, firstName: true } },
+        buyer: { select: { email: true, firstName: true, language: true } },
         event: {
           select: {
             name: true,
@@ -94,8 +80,12 @@ export class TicketMailService implements OnModuleInit {
       return;
     }
 
+    // F3 (v3.11): el correo se renderiza en el IDIOMA del COMPRADOR (fallback es).
+    const locale = resolveMailLocale(order.buyer.language);
+    const t = mailStrings(locale).order;
+    const dateRaw = formatEventDate(order.event.startsAt, locale);
     const eventName = escapeHtml(order.event.name);
-    const dateGt = escapeHtml(this.formatGt(order.event.startsAt));
+    const dateGt = escapeHtml(dateRaw);
     const address = order.event.address ? escapeHtml(order.event.address) : null;
     const bannerUrl = await this.signOrNull(order.event.media[0]?.key);
 
@@ -106,12 +96,12 @@ export class TicketMailService implements OnModuleInit {
 
     // Una tarjeta por boleto: datos + QR (imagen si la media está lista, si no serial).
     const cards = await Promise.all(
-      order.tickets.map(async (t) => {
-        const qrUrl = await this.signOrNull(t.qrKey);
-        const serial = escapeHtml(t.serial);
-        const locality = t.locality?.name ? escapeHtml(t.locality.name) : null;
-        const seat = t.seat?.label ? escapeHtml(t.seat.label) : null;
-        const seatLine = [locality, seat].filter(Boolean).join(' · ') || 'Admisión general';
+      order.tickets.map(async (tk) => {
+        const qrUrl = await this.signOrNull(tk.qrKey);
+        const serial = escapeHtml(tk.serial);
+        const locality = tk.locality?.name ? escapeHtml(tk.locality.name) : null;
+        const seat = tk.seat?.label ? escapeHtml(tk.seat.label) : null;
+        const seatLine = [locality, seat].filter(Boolean).join(' · ') || t.generalAdmission;
         const qrBlock = qrUrl
           ? `<img src="${escapeHtml(qrUrl)}" alt="Código QR del boleto ${serial}" width="150" height="150" style="width:150px;height:150px;display:block;margin:0 auto 8px auto;background:#ffffff;border-radius:8px;" />`
           : '';
@@ -120,7 +110,7 @@ export class TicketMailService implements OnModuleInit {
         <tr><td style="padding:18px 20px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
           <div class="pe-text" style="font-size:13px;text-transform:uppercase;letter-spacing:0.5px;color:#7c3aed;margin:0 0 4px 0;">${seatLine}</div>
           ${qrBlock}
-          <div class="pe-muted" style="font-size:13px;color:#6b6b76;text-align:center;margin:0;">Serial del boleto</div>
+          <div class="pe-muted" style="font-size:13px;color:#6b6b76;text-align:center;margin:0;">${t.serialLabel}</div>
           <div class="pe-text" style="font-size:16px;font-weight:700;color:#1a1a2e;text-align:center;letter-spacing:0.5px;margin:2px 0 0 0;word-break:break-all;">${serial}</div>
         </td></tr>
       </table>`;
@@ -133,28 +123,26 @@ export class TicketMailService implements OnModuleInit {
 
     const bodyHtml = `
       ${bannerHtml}
-      <p style="margin:0 0 4px 0;">Hola ${escapeHtml(order.buyer.firstName)}, tu compra del evento <strong>${eventName}</strong> fue confirmada.</p>
+      <p style="margin:0 0 4px 0;">${t.greeting(escapeHtml(order.buyer.firstName), eventName)}</p>
       <p class="pe-muted" style="margin:0 0 2px 0;font-size:14px;color:#6b6b76;">${dateGt}</p>
       ${addressHtml}
-      <p style="margin:16px 0 12px 0;">Total: <strong>Q${order.total.toFixed(2)}</strong></p>
-      <p style="margin:0 0 12px 0;">Tus boletos (${order.tickets.length}):</p>
+      <p style="margin:16px 0 12px 0;">${t.total}: <strong>Q${order.total.toFixed(2)}</strong></p>
+      <p style="margin:0 0 12px 0;">${t.ticketsHeading(order.tickets.length)}</p>
       ${cards.join('')}
-      <p class="pe-muted" style="margin:8px 0 0 0;font-size:14px;color:#6b6b76;">Ábrelos desde la app para ver el código QR dinámico de validación (un screenshot no sirve).</p>`;
+      <p class="pe-muted" style="margin:8px 0 0 0;font-size:14px;color:#6b6b76;">${t.dynamicQrNote}</p>`;
 
     const seatSummary = order.tickets
-      .map((t) => {
-        const loc = [t.locality?.name, t.seat?.label].filter(Boolean).join(' ');
-        return `${t.serial}${loc ? ` (${loc})` : ''}`;
+      .map((tk) => {
+        const loc = [tk.locality?.name, tk.seat?.label].filter(Boolean).join(' ');
+        return `${tk.serial}${loc ? ` (${loc})` : ''}`;
       })
       .join(', ');
 
-    await this.mail.sendTemplated(order.buyer.email, `Boletos confirmados — ${order.event.name}`, {
-      title: '¡Compra confirmada!',
-      preheader: `Tus ${order.tickets.length} boleto(s) para ${order.event.name} están listos.`,
+    await this.mail.sendTemplated(order.buyer.email, t.subject(order.event.name), {
+      title: t.title,
+      preheader: t.preheader(order.tickets.length, order.event.name),
       bodyHtml,
-      bodyText: `Compra confirmada de ${order.event.name}. ${this.formatGt(
-        order.event.startsAt,
-      )}. ${order.tickets.length} boleto(s): ${seatSummary}`,
+      bodyText: t.textSummary(order.event.name, dateRaw, order.tickets.length, seatSummary),
     });
   }
 }
