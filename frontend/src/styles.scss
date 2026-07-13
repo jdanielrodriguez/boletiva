@@ -3278,6 +3278,44 @@ button.danger {
 }
 .list-filters select { flex: 0 0 auto; }
 
+/* --- Campo de búsqueda homogéneo (v3.10 · GIII): lupita dentro del field --- */
+.search-field {
+  position: relative;
+  display: flex;
+  flex: 1 1 220px;
+  min-width: 180px;
+}
+.search-field input[type='search'] {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding-right: 2.5rem; /* espacio para la lupita */
+  /* oculta la X nativa de type=search para no chocar con la lupita */
+  &::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+}
+.search-field-btn {
+  position: absolute;
+  right: 0.3rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--pe-muted);
+  cursor: pointer;
+  border-radius: var(--pe-radius-sm);
+  transition: color 0.15s ease;
+}
+.search-field-btn:hover { color: var(--pe-primary); }
+.search-field-btn:focus-visible { outline: 2px solid var(--pe-primary); outline-offset: 1px; }
+/* En `.field` (columna con label arriba) el search-field ocupa todo el ancho. */
+.field .search-field { flex: 1 1 auto; width: 100%; }
+
 /* Grid de promotores (consola admin) */
 .promoters-grid {
   display: grid;

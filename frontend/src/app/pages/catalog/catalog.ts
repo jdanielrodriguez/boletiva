@@ -11,6 +11,7 @@ import { SeoService } from '../../core/seo/seo.service';
 import { HeroSlider, SlideItem } from '../../shared/hero-slider/hero-slider.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { LoadingComponent } from '../../shared/ui/loading.component';
+import { SearchFieldComponent } from '../../shared/ui/search-field.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
 
 const PAGE_SIZE = 12;
@@ -37,6 +38,7 @@ interface CatalogResult {
     PagerComponent,
     EmptyStateComponent,
     LoadingComponent,
+    SearchFieldComponent,
   ],
   templateUrl: './catalog.html',
 })

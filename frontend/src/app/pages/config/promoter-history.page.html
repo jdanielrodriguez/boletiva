@@ -12,7 +12,8 @@
   } @else {
     <div class="filters-row">
       <label class="field"><span>{{ 'common.search' | translate }}</span>
-        <input type="search" [attr.placeholder]="'promoterHistory.searchPlaceholder' | translate" [ngModel]="search()" (ngModelChange)="search.set($event)" name="phq" data-testid="ph-search" />
+        <app-search-field [value]="search()" (valueChange)="search.set($event)" (searched)="search.set($event)"
+          [placeholder]="'promoterHistory.searchPlaceholder' | translate" name="phq" testId="ph-search" />
       </label>
       <label class="field"><span>{{ 'promoterHistory.statusLabel' | translate }}</span>
         <select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)" name="phstatus" data-testid="ph-filter">

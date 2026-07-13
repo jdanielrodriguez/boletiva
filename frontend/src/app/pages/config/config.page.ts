@@ -21,6 +21,7 @@ import {
 } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
+import { SearchFieldComponent } from '../../shared/ui/search-field.component';
 import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { InfoTooltipComponent } from '../../shared/ui/info-tooltip.component';
@@ -80,6 +81,7 @@ const INV_PAGE = 9;
     LockChipComponent,
     HallsListComponent,
     TemplatesListComponent,
+    SearchFieldComponent,
   ],
   templateUrl: './config.page.html',
 })

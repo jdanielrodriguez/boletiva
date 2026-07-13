@@ -11,6 +11,7 @@ import {
 } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
+import { SearchFieldComponent } from '../../shared/ui/search-field.component';
 import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
 import type { MyEventListItemDto } from '../../core/api/types';
 
@@ -24,7 +25,7 @@ const PAGE_SIZE = 9;
  */
 @Component({
   selector: 'app-promoter-panel',
-  imports: [FormsModule, LocalizedDatePipe, TranslatePipe, RouterLink, IconComponent, ConfirmDialogComponent, PagerComponent, StatusLabelPipe],
+  imports: [FormsModule, LocalizedDatePipe, TranslatePipe, RouterLink, IconComponent, ConfirmDialogComponent, PagerComponent, StatusLabelPipe, SearchFieldComponent],
   templateUrl: './promoter-panel.html',
 })
 export class PromoterPanel {

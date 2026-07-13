@@ -15,7 +15,8 @@
       <h2>{{ 'config.events.heading' | translate }}</h2>
       <div class="filters-row">
         <label class="field"><span>{{ 'common.search' | translate }}</span>
-          <input type="text" [attr.placeholder]="'config.events.searchPlaceholder' | translate" [ngModel]="eventSearch()" (ngModelChange)="setEventSearch($event)" name="esearch" data-testid="event-search" />
+          <app-search-field [value]="eventSearch()" (valueChange)="setEventSearch($event)" (searched)="setEventSearch($event)"
+            [placeholder]="'config.events.searchPlaceholder' | translate" name="esearch" testId="event-search" />
         </label>
         <label class="field"><span>{{ 'common.status' | translate }}</span>
           <select [ngModel]="eventStatus()" (ngModelChange)="setEventStatus($event)" name="estatus" data-testid="event-status-filter">
@@ -71,7 +72,8 @@
       <h2>{{ 'config.promoters.heading' | translate }}</h2>
       <div class="filters-row">
         <label class="field"><span>{{ 'common.search' | translate }}</span>
-          <input type="text" [attr.placeholder]="'config.promoters.searchPlaceholder' | translate" [ngModel]="promoterSearch()" (ngModelChange)="promoterSearch.set($event)" name="psearch" data-testid="promoter-search" />
+          <app-search-field [value]="promoterSearch()" (valueChange)="promoterSearch.set($event)" (searched)="promoterSearch.set($event)"
+            [placeholder]="'config.promoters.searchPlaceholder' | translate" name="psearch" testId="promoter-search" />
         </label>
         <label class="field"><span>{{ 'common.status' | translate }}</span>
           <select [ngModel]="promoterStatus()" (ngModelChange)="promoterStatus.set($event); loadPromoters()" name="pstatus" data-testid="promoter-status-filter">
@@ -297,7 +299,8 @@
 
         @if (gateways().length > 0) {
           <div class="list-filters">
-            <input type="search" [attr.placeholder]="'config.system.gwSearchPlaceholder' | translate" [ngModel]="gatewaySearch()" (ngModelChange)="gatewaySearch.set($event)" name="gwq" data-testid="gw-search" />
+            <app-search-field [value]="gatewaySearch()" (valueChange)="gatewaySearch.set($event)" (searched)="gatewaySearch.set($event)"
+              [placeholder]="'config.system.gwSearchPlaceholder' | translate" name="gwq" testId="gw-search" />
           </div>
           <div data-testid="gateways-list">
             @for (g of filteredGateways(); track g.id) {
@@ -482,7 +485,8 @@
       <h3>{{ 'config.invitations.listHeading' | translate }}</h3>
       @if (invitations().length > 0) {
         <div class="list-filters">
-          <input type="search" [attr.placeholder]="'config.invitations.searchPlaceholder' | translate" [ngModel]="invSearch()" (ngModelChange)="setInvSearch($event)" name="invq" data-testid="inv-search" />
+          <app-search-field [value]="invSearch()" (valueChange)="setInvSearch($event)" (searched)="setInvSearch($event)"
+            [placeholder]="'config.invitations.searchPlaceholder' | translate" name="invq" testId="inv-search" />
           <select [ngModel]="invFilterStatus()" (ngModelChange)="setInvFilter($event)" name="invstatus" data-testid="inv-filter">
             @for (o of invFilterOptions; track o.value) {
               <option [value]="o.value">{{ o.key | translate }}</option>

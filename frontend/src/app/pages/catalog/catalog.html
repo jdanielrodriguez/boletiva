@@ -5,17 +5,16 @@
 
   <h1>{{ 'catalog.title' | translate }}</h1>
 
-  <form class="catalog-search" (ngSubmit)="submitSearch(searchBox.value)">
-    <input
-      #searchBox
-      type="search"
-      name="search"
-      [attr.placeholder]="'catalog.searchPlaceholder' | translate"
+  <div class="catalog-search">
+    <app-search-field
       [value]="search()"
-      [attr.aria-label]="'catalog.searchAria' | translate"
+      (searched)="submitSearch($event)"
+      name="search"
+      testId="catalog-search"
+      [placeholder]="'catalog.searchPlaceholder' | translate"
+      [ariaLabel]="'catalog.searchAria' | translate"
     />
-    <button type="submit" class="primary">{{ 'catalog.searchButton' | translate }}</button>
-  </form>
+  </div>
 
   <div class="catalog-categories" role="group" [attr.aria-label]="'catalog.filterByCategory' | translate">
     <button type="button" [class.active]="activeCategory() === ''" (click)="selectCategory('')">

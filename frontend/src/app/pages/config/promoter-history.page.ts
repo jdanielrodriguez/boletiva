@@ -9,6 +9,7 @@ import { IconComponent } from '../../shared/icon/icon.component';
 import { BackLinkComponent } from '../../shared/ui/back-link.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { LoadingComponent } from '../../shared/ui/loading.component';
+import { SearchFieldComponent } from '../../shared/ui/search-field.component';
 
 type StatusValue = PromoterStatusEventDto['statusTo'];
 
@@ -29,6 +30,7 @@ type StatusValue = PromoterStatusEventDto['statusTo'];
     BackLinkComponent,
     EmptyStateComponent,
     LoadingComponent,
+    SearchFieldComponent,
   ],
   templateUrl: './promoter-history.page.html',
 })

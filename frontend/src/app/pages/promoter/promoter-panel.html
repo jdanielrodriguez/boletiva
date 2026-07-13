@@ -11,13 +11,13 @@
 
   @if (!loading() && events().length > 0) {
     <div class="list-filters" data-testid="panel-filters">
-      <input
-        type="search"
-        [attr.placeholder]="'promoter.panel.searchPlaceholder' | translate"
-        [ngModel]="search()"
-        (ngModelChange)="search.set($event); onFilterChange()"
+      <app-search-field
+        [value]="search()"
+        (valueChange)="search.set($event); onFilterChange()"
+        (searched)="search.set($event); onFilterChange()"
+        [placeholder]="'promoter.panel.searchPlaceholder' | translate"
         name="q"
-        data-testid="panel-search"
+        testId="panel-search"
       />
       <select [ngModel]="filterStatus()" (ngModelChange)="filterStatus.set($event); onFilterChange()" name="status" data-testid="panel-filter-status">
         <option value="">{{ 'promoter.panel.allStatuses' | translate }}</option>
