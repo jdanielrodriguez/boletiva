@@ -556,7 +556,12 @@ export class PaymentsService {
         items: { select: { total: true } },
       },
     });
-    if (order.status === 'paid') return; // ya confirmada (idempotente)
+    // Solo se confirma una orden PENDIENTE. Además de la idempotencia (una orden ya
+    // `paid` no re-asienta), esto es defensivo ante un `payment.succeeded` tardío o
+    // fuera de orden: una orden ya `refunded`/`cancelled`/`expired` NO debe resucitar
+    // a `paid` ni re-emitir boletos. (La dedupe por (provider,eventId) cubre el replay
+    // del MISMO evento, pero no un evento distinto con el mismo pago.)
+    if (order.status !== 'pending') return;
 
     // Asiento contable (idempotente por referencia de orden).
     const already = await this.prisma.ledgerTransaction.findFirst({
