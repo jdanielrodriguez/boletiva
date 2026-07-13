@@ -67,6 +67,7 @@ interface Testable {
   selectCard(id: string): void;
   perInstallment(total: string, n: number): string;
   canPay(): boolean;
+  processing(): boolean;
   needsGateway(): boolean;
   walletCoversAll(): boolean;
   breakdown(): { total: string; serviceFee: string } | null;
@@ -196,12 +197,15 @@ describe('CheckoutPage — ramas de pago y selección', () => {
     expect(orders.pay).not.toHaveBeenCalled();
   });
 
-  it('un error del backend al pagar muestra el mensaje de error', async () => {
+  it('un error del backend al pagar muestra el mensaje de error y deja reintentar', async () => {
     const c = await setup({ pay: () => throwError(() => new Error('409')) });
     c.setPayMode('new');
     c.pay();
     expect(orders.pay).toHaveBeenCalled();
     expect(c.error()).toBeTruthy();
+    // El fallo libera el envío: no queda en "procesando" y se puede reintentar.
+    expect(c.processing()).toBe(false);
+    expect(c.canPay()).toBe(true);
   });
 
   it('walletCoversAll es falso si el saldo no cubre el total', async () => {

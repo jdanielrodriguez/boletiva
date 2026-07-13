@@ -45,6 +45,7 @@ export const checkout = {
   iva: 'IVA',
   serviceFeeNote: 'La cuota por servicio varía según el método de pago.',
   awaiting: 'Procesando el pago… esperando confirmación.',
+  confirming: 'Confirmando tu pago…',
   processing: 'Procesando…',
   payButton: 'Pagar {{amount}}',
   secureNote:

@@ -7,6 +7,7 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { catchError, forkJoin, of, startWith, switchMap } from 'rxjs';
 import { MoneyPipe } from '../../shared/money.pipe';
 import { ConfirmationSplashComponent } from '../../shared/ui/confirmation-splash.component';
+import { LoadingComponent } from '../../shared/ui/loading.component';
 import { OrderStreamService } from '../../core/api/order-stream.service';
 import { OrdersApi } from '../../core/api/orders.api';
 import { PaymentMethodsApi } from '../../core/api/payment-methods.api';
@@ -37,7 +38,15 @@ type PayMode = 'saved' | 'wallet' | 'new';
  */
 @Component({
   selector: 'app-checkout',
-  imports: [FormsModule, MoneyPipe, TranslatePipe, UpperCasePipe, RouterLink, ConfirmationSplashComponent],
+  imports: [
+    FormsModule,
+    MoneyPipe,
+    TranslatePipe,
+    UpperCasePipe,
+    RouterLink,
+    ConfirmationSplashComponent,
+    LoadingComponent,
+  ],
   templateUrl: './checkout.page.html',
 })
 export class CheckoutPage implements OnDestroy {
@@ -54,7 +63,16 @@ export class CheckoutPage implements OnDestroy {
   protected readonly loaded = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly paying = signal(false);
+  /** El comprador ya envió el pago (HTTP en curso o esperando el webhook). */
+  protected readonly submitted = signal(false);
   protected readonly status = signal<OrderStatus>('pending');
+  /**
+   * Feedback CONTINUO tras enviar el pago: sigue en marcha desde que se envía
+   * hasta que el webhook (por SSE) confirma (paid → splash) o cancela
+   * (cancelled/expired → pantalla de fallo). Cubre la ventana en que la petición
+   * HTTP ya retornó pero el estado sigue en 'pending' (jitter del simulador 1–5s).
+   */
+  protected readonly processing = computed(() => this.submitted() && this.status() === 'pending');
   /** Cuenta atrás visible antes de redirigir a los boletos (tras pagar). */
   protected readonly redirecting = signal(false);
 
@@ -140,7 +158,8 @@ export class CheckoutPage implements OnDestroy {
 
   /** ¿Puede confirmar el pago con el modo/campos actuales? */
   protected readonly canPay = computed(() => {
-    if (this.paying()) return false;
+    // Bloqueado mientras se procesa (evita doble envío durante el jitter del webhook).
+    if (this.paying() || this.submitted()) return false;
     switch (this.payMode()) {
       case 'wallet':
         return this.hasWalletFunds();
@@ -253,6 +272,9 @@ export class CheckoutPage implements OnDestroy {
     // Se necesita pasarela salvo que el saldo cubra todo.
     if (this.needsGateway() && !gw) return;
     this.paying.set(true);
+    // Marca el envío: el feedback de carga se mantiene hasta que el SSE confirme
+    // o cancele (no solo mientras dura la petición HTTP).
+    this.submitted.set(true);
     this.error.set(null);
     this.ordersApi
       .pay(this.orderId(), {
@@ -264,6 +286,8 @@ export class CheckoutPage implements OnDestroy {
         next: () => this.paying.set(false),
         error: () => {
           this.paying.set(false);
+          // Reintentable: libera el estado de envío para que el comprador pueda pagar de nuevo.
+          this.submitted.set(false);
           this.error.set(this.translate.instant('checkout.payError'));
         },
       });

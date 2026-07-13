@@ -124,6 +124,20 @@ describe('CheckoutPage', () => {
     });
   });
 
+  it('tras enviar el pago muestra el loading continuo mientras sigue pendiente', async () => {
+    await setup();
+    expect(el.querySelector('[data-testid="checkout-confirming"]')).toBeNull();
+    (el.querySelector('[data-testid="pay-confirm"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    // La petición retornó (status sigue 'pending') → el overlay de carga toma el relevo.
+    expect(el.querySelector('[data-testid="checkout-confirming"]')).not.toBeNull();
+    // Al confirmarse (SSE paid) desaparece el loading y aparece el splash.
+    sse.next({ type: 'order', data: { status: 'paid' } });
+    fixture.detectChanges();
+    expect(el.querySelector('[data-testid="checkout-confirming"]')).toBeNull();
+    expect(el.querySelector('[data-testid="status-paid"]')).not.toBeNull();
+  });
+
   it('el SSE confirma el pago (pending → paid) sin polling', async () => {
     await setup();
     expect(el.querySelector('[data-testid="status-paid"]')).toBeNull();

@@ -20,6 +20,14 @@
         <p>{{ 'checkout.orderWas' | translate: { state: (status() === 'expired' ? ('checkout.expired' | translate) : ('checkout.cancelled' | translate)) } }}</p>
       </div>
     } @else {
+      @if (processing()) {
+        <app-loading
+          [fullscreen]="true"
+          [dim]="true"
+          [label]="'checkout.confirming' | translate"
+          data-testid="checkout-confirming"
+        />
+      }
       <div class="checkout-grid">
         <div class="checkout-main">
           <!-- MÉTODO DE PAGO: cómo paga el comprador -->
