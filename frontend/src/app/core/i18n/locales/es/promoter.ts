@@ -223,10 +223,11 @@ export const promoter = {
     suggestSuspendToReorg:
       'Para reorganizar el salón, la plantilla o los asientos, suspende primero el evento (el suspendido sí permite reconfigurar).',
     // Cierre + transferencia de saldos de caja (SOLO admin REAL) — v3.10 · GVI / v3.11 · F2
-    cashTransferHeading: 'Evento finalizado — pagar al promotor',
+    cashTransferHeading: 'Finalizar evento y acreditar al promotor',
     cashTransferIntro:
-      'Marca el evento como finalizado y transfiere el total recaudado al wallet del promotor, cerrando el cobro. Genera los asientos contables (partida doble) y notifica al promotor por correo. Es idempotente: no se puede transferir dos veces.',
-    cashTransferBtn: 'Evento finalizado',
+      'Marca el evento como finalizado y acredita el neto del promotor a su wallet, cerrando el cobro. Genera los asientos contables (partida doble) y notifica al promotor por correo. Es idempotente: no se puede transferir dos veces.',
+    cashTransferBtn: 'Finalizar evento y acreditar saldo al promotor',
+    cashTransferNetLabel: 'Neto a transferir al promotor',
     cashTransferring: 'Transfiriendo…',
     cashTransferTitle: 'Marcar evento finalizado',
     cashTransferConfirm:
@@ -381,6 +382,7 @@ export const promoter = {
     gatewayFee: 'Comisión de pasarela',
     fixedFees: 'Cargos fijos',
     serviceFee: 'Cuota por servicio (descontada)',
+    services: 'Servicios (comisiones + IVA)',
     iva: 'IVA recaudado',
     note: 'Recibes el <strong>neto</strong>; la cuota por servicio (plataforma + pasarela) y el IVA los cobra la plataforma y el fisco. El total cobrado al público es la suma de todo.',
   },

@@ -36,6 +36,19 @@ export class EventSettlementComponent {
 
   protected readonly currency = computed(() => this.data()?.currency ?? 'GTQ');
 
+  /**
+   * Servicios (vista del promotor): todo lo que NO se lleva el promotor =
+   * comisión de plataforma + pasarela + cargos fijos + IVA. Se calcula como
+   * `gross − net` para que las tres líneas SIEMPRE reconcilien
+   * (Total recaudado − Servicios = Total del promotor), sin depender de un campo
+   * extra del DTO. Equivale a `serviceFee + iva`.
+   */
+  protected readonly services = computed(() => {
+    const d = this.data();
+    if (!d) return '0.00';
+    return (Number(d.gross) - Number(d.net)).toFixed(2);
+  });
+
   /** Cargado sin órdenes pagadas → vista por defecto (aún no hay movimientos). */
   protected readonly isEmpty = computed(() => {
     const d = this.data();

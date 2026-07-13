@@ -340,6 +340,15 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
   protected readonly cashResult = signal<EventCashTransferDto | null>(null);
   protected readonly cashError = signal<string | null>(null);
   /**
+   * Neto del promotor que se acreditará al finalizar (vista del admin REAL). El admin
+   * real NO ve la tabla de transacciones ni las devoluciones; solo el neto a
+   * transferir + el botón de finalizar. Se carga desde el settlement al entrar a la
+   * tab Cuentas siendo admin real.
+   */
+  protected readonly settlementNet = signal<string | null>(null);
+  protected readonly settlementCurrency = signal('GTQ');
+  protected readonly settlementNetLoading = signal(false);
+  /**
    * Sección "evento finalizado / pagar al promotor" visible SOLO para el admin REAL
    * (no impersonando) cuando el evento está finalizado o suspendido. NUNCA se
    * bloquea por el candado de edición; el promotor y la impersonación no la ven.
@@ -348,18 +357,20 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
     () => this.isAdminReal() && !this.isNew() && (this.isFinished() || this.isSuspended()),
   );
 
-  // --- Devoluciones por cancelación/suspensión (SOLO admin REAL, tab Cuentas) ---
+  // --- Devoluciones por cancelación/suspensión (OWNER, tab Cuentas) ---
   protected readonly refunding = signal(false);
   protected readonly refundResult = signal<EventRefundResultDto | null>(null);
   protected readonly refundError = signal<string | null>(null);
   /** Token que fuerza recargar el settlement embebido tras devolver. */
   protected readonly settlementReloadToken = signal(0);
   /**
-   * Botones de devolución visibles SOLO para el admin REAL (no impersonando) y solo
-   * cuando el evento está suspendido o cancelado (requisito del backend).
+   * Botones de devolución visibles para el DUEÑO del evento (promotor propietario o
+   * admin impersonándolo) y solo cuando el evento está suspendido o cancelado
+   * (requisito del backend). El ADMIN REAL (no impersonando) NO los ve: el backend
+   * ahora permite el refund al promotor dueño y devolvería 403 al admin real.
    */
   protected readonly canRefund = computed(
-    () => this.isAdminReal() && !this.isNew() && (this.isSuspended() || this.isCancelled()),
+    () => this.isOwner() && !this.isNew() && (this.isSuspended() || this.isCancelled()),
   );
 
   // --- Guard de cambios sin guardar (datos + configuración) ---
@@ -418,7 +429,8 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
     const tab = this.route.snapshot.queryParamMap.get('tab');
     if (tab && ['datos', 'localidades', 'banner', 'config', 'cuentas', 'dashboard'].includes(tab)) {
       this.tab.set(tab as Tab);
-      if (tab === 'cuentas' && !this.isNew()) this.loadTransactions();
+      // Los datos de la tab Cuentas dependen del rol (owner vs admin real) y del
+      // estado del evento → se cargan tras `reload()`, no aquí (el evento aún no está).
     }
 
     this.netInput$
@@ -551,6 +563,8 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
         this.hydrate(ev);
         this.loading.set(false);
         this.loadLocalities();
+        // Deep-link ?tab=cuentas: ya con el evento cargado, carga lo que toca por rol.
+        if (this.tab() === 'cuentas') this.loadAccountsData();
       },
       error: () => {
         this.notFound.set(true);
@@ -584,7 +598,34 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
 
   protected selectTab(t: Tab): void {
     this.tab.set(t);
-    if (t === 'cuentas' && !this.txLoaded()) this.loadTransactions();
+    if (t === 'cuentas') this.loadAccountsData();
+  }
+
+  /**
+   * Carga de la tab Cuentas según el rol: el DUEÑO ve la tabla de transacciones (la
+   * carga por cursor); el ADMIN REAL solo necesita el neto a transferir (no la tabla
+   * ni las devoluciones). Evita peticiones inútiles por rol.
+   */
+  private loadAccountsData(): void {
+    if (this.isNew()) return;
+    if (this.isOwner()) {
+      if (!this.txLoaded()) this.loadTransactions();
+    } else if (this.isAdminReal()) {
+      this.loadSettlementNet();
+    }
+  }
+
+  /** Neto a transferir (settlement) para la vista del admin real. */
+  private loadSettlementNet(): void {
+    this.settlementNetLoading.set(true);
+    this.api.settlement(this.eventId()).subscribe({
+      next: (s) => {
+        this.settlementNet.set(s.net);
+        this.settlementCurrency.set(s.currency);
+        this.settlementNetLoading.set(false);
+      },
+      error: () => this.settlementNetLoading.set(false),
+    });
   }
 
   protected toggleCombinedMap(): void {

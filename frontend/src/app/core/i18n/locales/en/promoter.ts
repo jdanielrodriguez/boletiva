@@ -224,10 +224,11 @@ export const promoter = {
     suggestSuspendToReorg:
       'To reorganize the venue, template or seats, suspend the event first (a suspended event can be reconfigured).',
     // Close event + transfer cash balances (REAL ADMIN only) — v3.10 · GVI / v3.11 · F2
-    cashTransferHeading: 'Event finished — pay the promoter',
+    cashTransferHeading: 'Finish event and credit the promoter',
     cashTransferIntro:
-      "Marks the event as finished and transfers the total collected to the promoter's wallet, closing the cash flow. It posts the double-entry ledger entries and notifies the promoter by email. It is idempotent: it cannot be transferred twice.",
-    cashTransferBtn: 'Event finished',
+      "Marks the event as finished and credits the promoter's net to their wallet, closing the cash flow. It posts the double-entry ledger entries and notifies the promoter by email. It is idempotent: it cannot be transferred twice.",
+    cashTransferBtn: 'Finish event and credit balance to promoter',
+    cashTransferNetLabel: 'Net to transfer to the promoter',
     cashTransferring: 'Transferring…',
     cashTransferTitle: 'Mark event as finished',
     cashTransferConfirm:
@@ -382,6 +383,7 @@ export const promoter = {
     gatewayFee: 'Gateway fee',
     fixedFees: 'Fixed charges',
     serviceFee: 'Service fee (deducted)',
+    services: 'Services (fees + VAT)',
     iva: 'VAT collected',
     note: 'You receive the <strong>net</strong>; the service fee (platform + gateway) and VAT are collected by the platform and the tax authority. The total charged to the public is the sum of everything.',
   },

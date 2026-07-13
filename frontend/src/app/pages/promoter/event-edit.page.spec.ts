@@ -1011,16 +1011,30 @@ describe('EventEditPage (v3)', () => {
     expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="cash-transfer"]')).toBeNull();
   });
 
-  // --- v3.11 · F1: devoluciones (SOLO admin real, suspendido/cancelado) ---
-  it('F1: el PROMOTOR NO ve los botones de devolución', async () => {
-    await setup({ get: () => of({ ...EVENT, status: 'suspended' }) });
+  // --- v3.12: devoluciones (OWNER: promotor dueño / admin impersonando) ---
+  it('devoluciones: el ADMIN REAL NO ve los botones ni la tabla (solo finalizar)', async () => {
+    await setup({ get: () => of({ ...EVENT, status: 'suspended' }) }, {}, 'e1', {
+      id: 'admin-9',
+      roles: ['admin'],
+    });
     fixture.componentInstance['selectTab']('cuentas');
     fixture.detectChanges();
     expect(inst()['canRefund']()).toBe(false);
-    expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="refunds-block"]')).toBeNull();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="refunds-block"]')).toBeNull();
+    // El admin real tampoco ve la tabla de transacciones (solo el owner).
+    expect(el.querySelector('[data-testid="tx-block"]')).toBeNull();
   });
 
-  it('F1: admin IMPERSONANDO NO ve los botones de devolución', async () => {
+  it('devoluciones: el PROMOTOR DUEÑO SÍ ve el panel (suspendido)', async () => {
+    await setup({ get: () => of({ ...EVENT, status: 'suspended' }) });
+    fixture.componentInstance['selectTab']('cuentas');
+    fixture.detectChanges();
+    expect(inst()['canRefund']()).toBe(true);
+    expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="refunds-block"]')).not.toBeNull();
+  });
+
+  it('devoluciones: el admin IMPERSONANDO al dueño SÍ ve el panel (cancelado)', async () => {
     await setup({ get: () => of({ ...EVENT, status: 'cancelled' }) }, {}, 'e1', {
       id: 'owner-1',
       roles: ['admin', 'promoter'],
@@ -1028,17 +1042,14 @@ describe('EventEditPage (v3)', () => {
     });
     fixture.componentInstance['selectTab']('cuentas');
     fixture.detectChanges();
-    expect(inst()['canRefund']()).toBe(false);
+    expect(inst()['canRefund']()).toBe(true);
   });
 
-  it('F1: admin real en evento suspendido ve el panel y "devolver todas" llama refundEvent sin orderId', async () => {
+  it('devoluciones: el DUEÑO en evento suspendido "devolver todas" llama refundEvent sin orderId', async () => {
     const refundEvent = jasmine.createSpy('r').and.returnValue(
       of({ eventId: 'e1', currency: 'GTQ', refundedOrders: 3, skipped: 1, totalNetRefunded: '300.00', orders: [] }),
     );
-    await setup({ refundEvent, get: () => of({ ...EVENT, status: 'suspended' }) }, {}, 'e1', {
-      id: 'admin-9',
-      roles: ['admin'],
-    });
+    await setup({ refundEvent, get: () => of({ ...EVENT, status: 'suspended' }) });
     fixture.componentInstance['selectTab']('cuentas');
     fixture.detectChanges();
     expect(inst()['canRefund']()).toBe(true);
@@ -1053,14 +1064,11 @@ describe('EventEditPage (v3)', () => {
     expect(lastToast()?.kind).toBe('success');
   });
 
-  it('F1: "devolver" por orden llama refundEvent con el orderId', async () => {
+  it('devoluciones: "devolver" por orden llama refundEvent con el orderId', async () => {
     const refundEvent = jasmine.createSpy('r').and.returnValue(
       of({ eventId: 'e1', currency: 'GTQ', refundedOrders: 1, skipped: 0, totalNetRefunded: '100.00', orders: [] }),
     );
-    await setup({ refundEvent, get: () => of({ ...EVENT, status: 'suspended' }) }, {}, 'e1', {
-      id: 'admin-9',
-      roles: ['admin'],
-    });
+    await setup({ refundEvent, get: () => of({ ...EVENT, status: 'suspended' }) });
     fixture.componentInstance['askRefundOne']({ id: 'o7', buyerName: 'Ana', buyerEmail: null } as never);
     fixture.detectChanges();
     fixture.componentInstance['confirm'].accept();
@@ -1068,12 +1076,9 @@ describe('EventEditPage (v3)', () => {
     expect(refundEvent).toHaveBeenCalledWith('e1', 'o7');
   });
 
-  it('F1: 409 (no elegible) muestra mensaje claro', async () => {
+  it('devoluciones: 409 (no elegible) muestra mensaje claro', async () => {
     const refundEvent = jasmine.createSpy('r').and.returnValue(throwError(() => ({ status: 409 })));
-    await setup({ refundEvent, get: () => of({ ...EVENT, status: 'suspended' }) }, {}, 'e1', {
-      id: 'admin-9',
-      roles: ['admin'],
-    });
+    await setup({ refundEvent, get: () => of({ ...EVENT, status: 'suspended' }) });
     fixture.componentInstance['selectTab']('cuentas');
     fixture.detectChanges();
     fixture.componentInstance['askRefundAll']();
@@ -1081,6 +1086,23 @@ describe('EventEditPage (v3)', () => {
     fixture.componentInstance['confirm'].accept();
     fixture.detectChanges();
     expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="refund-error"]')).not.toBeNull();
+  });
+
+  it('finalizar (admin real): muestra el neto a transferir desde el settlement', async () => {
+    const settlement = jasmine
+      .createSpy('s')
+      .and.returnValue(of({ paidOrders: 2, net: '1234.56', currency: 'GTQ' }));
+    await setup({ settlement, get: () => of({ ...EVENT, status: 'finished' }) }, {}, 'e1', {
+      id: 'admin-9',
+      roles: ['admin'],
+    });
+    fixture.componentInstance['selectTab']('cuentas');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(settlement).toHaveBeenCalledWith('e1');
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="cash-transfer-net"]')?.textContent).toContain('1234.56');
   });
 
   // --- i18n: cambiar el idioma traduce los textos ---

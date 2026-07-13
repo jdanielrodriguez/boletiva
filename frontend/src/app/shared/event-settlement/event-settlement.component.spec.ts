@@ -41,11 +41,15 @@ describe('EventSettlementComponent', () => {
     fixture.detectChanges();
   }
 
-  it('muestra el neto y la cuota por servicio (vista promotor)', async () => {
+  it('vista promotor: 3 líneas claras (Total recaudado / Servicios / Total del promotor)', async () => {
     await setup(() => of(DATA), false);
     const el = fixture.nativeElement as HTMLElement;
+    // Total recaudado (gross), Servicios (gross − net = 59.36) y Total del promotor (net).
+    expect(el.querySelector('[data-testid="settlement-gross"]')?.textContent).toContain('259.36');
+    expect(el.querySelector('[data-testid="settlement-services"]')?.textContent).toContain('59.36');
     expect(el.querySelector('[data-testid="settlement-net"]')?.textContent).toContain('200.00');
-    expect(el.textContent).toContain('Cuota por servicio');
+    expect(el.textContent).toContain('Servicios');
+    // No revela el desglose interno de comisiones al promotor.
     expect(el.textContent).not.toContain('Comisión de pasarela');
   });
 

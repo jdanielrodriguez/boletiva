@@ -395,13 +395,18 @@
         }
 
         @case ('cuentas') {
+          <!-- OWNER (promotor dueño o admin impersonando): detalle de cuentas
+               (Total recaudado / Servicios / Total del promotor) + transacciones +
+               devoluciones. El ADMIN REAL NO ve nada de esto: solo la sección
+               "Finalizar y acreditar" (abajo, fuera del fieldset). -->
+          @if (isOwner()) {
           <div class="card-block">
             <h2>{{ 'promoter.edit.accountsTitle' | translate }}</h2>
             <app-event-settlement [eventId]="eventId()" [showSplit]="false" [reloadToken]="settlementReloadToken()" />
           </div>
 
-          <!-- Devoluciones (SOLO admin real): evento suspendido/cancelado. Devuelve
-               SOLO el neto a la wallet del comprador; la cuota de servicio no. -->
+          <!-- Devoluciones (OWNER): evento suspendido/cancelado. Devuelve SOLO el neto
+               a la wallet del comprador; la cuota de servicio no. -->
           @if (canRefund()) {
             <div class="card-block refunds-block" data-testid="refunds-block">
               <h3>{{ 'promoter.edit.refundHeading' | translate }}</h3>
@@ -486,6 +491,7 @@
               />
             }
           </div>
+          }
         }
 
         @case ('dashboard') {
@@ -532,6 +538,15 @@
             <p class="muted small">{{ 'promoter.edit.cashTransferState' | translate: { state: (r.status | statusLabel) } }}</p>
           </div>
         } @else {
+          <!-- Neto del promotor que se acreditará (informativo para el admin real). -->
+          @if (settlementNet(); as net) {
+            <p class="settlement-line highlight" data-testid="cash-transfer-net">
+              <span>{{ 'promoter.edit.cashTransferNetLabel' | translate }}</span>
+              <strong>{{ settlementCurrency() }} {{ net }}</strong>
+            </p>
+          } @else if (settlementNetLoading()) {
+            <app-loading data-testid="cash-transfer-net-loading" [label]="'common.loading' | translate" />
+          }
           @if (cashError(); as err) {
             <p class="error" data-testid="cash-transfer-error">{{ err }}</p>
           }

@@ -26,18 +26,21 @@
         <span class="sm-label">{{ 'promoter.settle.ticketsSold' | translate }}</span>
         <span class="sm-value">{{ s.ticketsSold }}</span>
       </div>
-      <div class="settlement-metric">
-        <span class="sm-label">{{ 'promoter.settle.gross' | translate }}</span>
-        <span class="sm-value">{{ currency() }} {{ s.gross }}</span>
-      </div>
+      @if (showSplit()) {
+        <div class="settlement-metric">
+          <span class="sm-label">{{ 'promoter.settle.gross' | translate }}</span>
+          <span class="sm-value">{{ currency() }} {{ s.gross }}</span>
+        </div>
+      }
     </div>
 
-    <ul class="settlement-lines">
-      <li class="settlement-line highlight">
-        <span>{{ 'promoter.settle.net' | translate }}</span>
-        <strong data-testid="settlement-net">{{ currency() }} {{ s.net }}</strong>
-      </li>
-      @if (showSplit()) {
+    @if (showSplit()) {
+      <!-- ADMIN: split interno completo (comisiones desglosadas). -->
+      <ul class="settlement-lines">
+        <li class="settlement-line highlight">
+          <span>{{ 'promoter.settle.net' | translate }}</span>
+          <strong data-testid="settlement-net">{{ currency() }} {{ s.net }}</strong>
+        </li>
         <li class="settlement-line">
           <span>{{ 'promoter.settle.platformFee' | translate }}</span>
           <span>{{ currency() }} {{ s.platformFee }}</span>
@@ -50,19 +53,28 @@
           <span>{{ 'promoter.settle.fixedFees' | translate }}</span>
           <span>{{ currency() }} {{ s.fixedFees }}</span>
         </li>
-      } @else {
         <li class="settlement-line">
-          <span>{{ 'promoter.settle.serviceFee' | translate }}</span>
-          <span>{{ currency() }} {{ s.serviceFee }}</span>
+          <span>{{ 'promoter.settle.iva' | translate }}</span>
+          <span>{{ currency() }} {{ s.iva }}</span>
         </li>
-      }
-      <li class="settlement-line">
-        <span>{{ 'promoter.settle.iva' | translate }}</span>
-        <span>{{ currency() }} {{ s.iva }}</span>
-      </li>
-    </ul>
-
-    @if (!showSplit()) {
+      </ul>
+    } @else {
+      <!-- PROMOTOR (dueño): tres líneas claras que reconcilian
+           Total recaudado − Servicios = Total del promotor. -->
+      <ul class="settlement-lines">
+        <li class="settlement-line">
+          <span>{{ 'promoter.settle.gross' | translate }}</span>
+          <span data-testid="settlement-gross">{{ currency() }} {{ s.gross }}</span>
+        </li>
+        <li class="settlement-line">
+          <span>{{ 'promoter.settle.services' | translate }}</span>
+          <span data-testid="settlement-services">{{ currency() }} {{ services() }}</span>
+        </li>
+        <li class="settlement-line highlight">
+          <span>{{ 'promoter.settle.net' | translate }}</span>
+          <strong data-testid="settlement-net">{{ currency() }} {{ s.net }}</strong>
+        </li>
+      </ul>
       <p class="muted small" [innerHTML]="'promoter.settle.note' | translate"></p>
     }
   }
