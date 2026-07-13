@@ -389,11 +389,15 @@ export class EventsService {
       effectiveEndsAt ?? event.endsAt.toISOString(),
     );
     // Con la pasarela ya congelada (evento con compras) no se puede cambiar la
-    // pasarela ni el IVA: alteraría un precio que ya no debe cambiar.
+    // pasarela ni el IVA en un evento a la venta: alteraría un precio que ya no
+    // debe cambiar. EXCEPCIÓN v3.10: un evento SUSPENDIDO está en reconfiguración
+    // (no se vende) → SÍ puede cambiar de pasarela/IVA; las órdenes ya pagadas
+    // conservan su snapshot inmutable y las ventas futuras usan la nueva pasarela.
     const changesPricing = dto.gatewayId !== undefined || dto.ivaOnNet !== undefined;
-    if (changesPricing && event.frozenGatewayId) {
+    const isReconfiguring = event.status === 'suspended';
+    if (changesPricing && event.frozenGatewayId && !isReconfiguring) {
       throw new ConflictException(
-        'El evento ya tiene compras; su pasarela e IVA quedaron congelados',
+        'El evento ya tiene compras; su pasarela e IVA quedaron congelados. Suspéndelo para reconfigurarlo.',
       );
     }
     // Cambiar el SALÓN altera la ubicación/layout: solo se permite mientras el
@@ -401,8 +405,13 @@ export class EventsService {
     // que suspenderlo primero (así deja de venderse mientras se reorganiza).
     const changesHall = dto.hallId !== undefined && dto.hallId !== event.hallId;
     if (changesHall && event.status === 'published') {
+      const sold = await this.soldTicketsCount(id);
+      const soldNote =
+        sold > 0
+          ? ` Este evento tiene ${sold} boleto(s) vendido(s): al suspenderlo podrás reorganizar el salón y sus boletos se migrarán al nuevo mapa.`
+          : '';
       throw new ConflictException(
-        'No puedes cambiar el salón de un evento publicado; suspéndelo para reconfigurarlo',
+        `No puedes cambiar el salón de un evento publicado; suspéndelo para reconfigurarlo.${soldNote}`,
       );
     }
     const gatewayId =
@@ -411,6 +420,12 @@ export class EventsService {
         : undefined;
     await this.assertGatewayActive(gatewayId, event.promoterId);
     const loc = await this.resolveLocation(dto);
+    // Al reconfigurar (suspendido) la pasarela, re-congela a la nueva para que las
+    // ventas futuras usen el precio coherente (los pagos previos ya están fijados).
+    const reFreezeGateway =
+      isReconfiguring && dto.gatewayId !== undefined && event.frozenGatewayId
+        ? gatewayId ?? null
+        : undefined;
     return this.prisma.event.update({
       where: { id },
       data: {
@@ -424,6 +439,7 @@ export class EventsService {
         startsAt: dto.startsAt ? new Date(dto.startsAt) : undefined,
         endsAt: effectiveEndsAt ? new Date(effectiveEndsAt) : undefined,
         gatewayId,
+        frozenGatewayId: reFreezeGateway,
         ivaOnNet: dto.ivaOnNet,
         // El flag de absorción de cuotas NO congela el precio base (el costo de
         // cuotas se resuelve al pagar): se puede ajustar aunque haya compras.

@@ -168,6 +168,17 @@ export class VenuesService {
 
   async removeLocality(localityId: string, user: AuthUser, unlockToken?: string) {
     await this.getLocalityEditable(localityId, user, unlockToken);
+    // Seguridad contable (v3.10): no se elimina una localidad con boletos vendidos
+    // (ítems de orden activos). Borrarla dejaría boletos/asientos huérfanos y
+    // rompería la trazabilidad del ledger. Primero hay que reasignar/reembolsar.
+    const soldItems = await this.prisma.orderItem.count({
+      where: { localityId, active: true, order: { status: 'paid' } },
+    });
+    if (soldItems > 0) {
+      throw new ConflictException(
+        `No puedes eliminar la localidad: tiene ${soldItems} boleto(s) vendido(s). Reasígnalos o reembólsalos primero.`,
+      );
+    }
     await this.prisma.locality.delete({ where: { id: localityId } });
   }
 
