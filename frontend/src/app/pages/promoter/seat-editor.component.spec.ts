@@ -12,17 +12,21 @@ describe('SeatEditorComponent (editor de asientos)', () => {
   let fixture: ComponentFixture<SeatEditorComponent>;
   let bulkSeats: jasmine.Spy;
   let deleteSeats: jasmine.Spy;
+  let replaceSeats: jasmine.Spy;
 
   async function setup(): Promise<void> {
     bulkSeats = jasmine.createSpy('bulkSeats').and.returnValue(of({ created: 0, capacity: 0 }));
     deleteSeats = jasmine.createSpy('deleteSeats').and.returnValue(of({ deleted: 0, capacity: 0 }));
+    replaceSeats = jasmine
+      .createSpy('replaceSeats')
+      .and.returnValue(of({ created: 0, updated: 0, preserved: 0, deleted: 0, capacity: 0 }));
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
         ...provideI18nTesting(),
         {
           provide: PromoterEventsApi,
-          useValue: { seats: () => of([]), bulkSeats, deleteSeats } as unknown as PromoterEventsApi,
+          useValue: { seats: () => of([]), bulkSeats, deleteSeats, replaceSeats } as unknown as PromoterEventsApi,
         },
         {
           provide: SeatTemplatesApi,
@@ -73,11 +77,14 @@ describe('SeatEditorComponent (editor de asientos)', () => {
   async function setupWithBackend(templates: unknown[]): Promise<void> {
     bulkSeats = jasmine.createSpy('bulkSeats').and.returnValue(of({ created: 0, capacity: 0 }));
     deleteSeats = jasmine.createSpy('deleteSeats').and.returnValue(of({ deleted: 0, capacity: 0 }));
+    replaceSeats = jasmine
+      .createSpy('replaceSeats')
+      .and.returnValue(of({ created: 0, updated: 0, preserved: 0, deleted: 0, capacity: 0 }));
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
         ...provideI18nTesting(),
-        { provide: PromoterEventsApi, useValue: { seats: () => of([]), bulkSeats, deleteSeats } as unknown as PromoterEventsApi },
+        { provide: PromoterEventsApi, useValue: { seats: () => of([]), bulkSeats, deleteSeats, replaceSeats } as unknown as PromoterEventsApi },
         { provide: SeatTemplatesApi, useValue: { list: () => of(templates) } as unknown as SeatTemplatesApi },
         { provide: ToastService, useValue: { success: () => undefined, error: () => undefined, info: () => undefined, warning: () => undefined } },
       ],
@@ -104,12 +111,12 @@ describe('SeatEditorComponent (editor de asientos)', () => {
     expect(inst().seatCount()).toBe(5000);
   });
 
-  it('guardar persiste el borrador vía bulkSeats', async () => {
+  it('guardar persiste el borrador (atómico) vía replaceSeats', async () => {
     await setup();
     inst().applyTemplate('rows');
     inst().save();
-    expect(bulkSeats).toHaveBeenCalledWith('l1', jasmine.any(Array));
-    expect(bulkSeats.calls.mostRecent().args[1].length).toBe(96);
+    expect(replaceSeats).toHaveBeenCalledWith('l1', jasmine.any(Array));
+    expect(replaceSeats.calls.mostRecent().args[1].length).toBe(96);
   });
 
   it('cambia de herramienta (mover/agregar/línea/eliminar)', async () => {

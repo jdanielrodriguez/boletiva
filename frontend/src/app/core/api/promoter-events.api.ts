@@ -167,6 +167,22 @@ export class PromoterEventsApi {
     return this.api.post<{ created: number; capacity: number }>(`/localities/${localityId}/seats`, { seats });
   }
 
+  /**
+   * Reemplaza el layout completo de una localidad de forma ATÓMICA con migración de
+   * vendidos (P2): match por `label` (conserva el asiento vendido + su boleto,
+   * actualiza posición), crea los nuevos, borra solo los `available`, y PRESERVA
+   * cualquier vendido cuyo label ya no esté. Solo en eventos draft/suspendido.
+   */
+  replaceSeats(
+    localityId: string,
+    seats: BulkSeatInput[],
+  ): Observable<{ created: number; updated: number; preserved: number; deleted: number; capacity: number }> {
+    return this.api.put<{ created: number; updated: number; preserved: number; deleted: number; capacity: number }>(
+      `/localities/${localityId}/seats`,
+      { seats },
+    );
+  }
+
   deleteSeats(localityId: string, ids: string[]): Observable<{ deleted: number; capacity: number }> {
     return this.api.request<{ deleted: number; capacity: number }>('DELETE', `/localities/${localityId}/seats`, { ids });
   }

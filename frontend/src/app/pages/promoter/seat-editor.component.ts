@@ -295,37 +295,27 @@ export class SeatEditorComponent {
       x: s.x,
       y: s.y,
     }));
-    const existingIds = this.persisted().map((s) => s.id);
-
-    const doBulk = () => {
-      if (bulk.length === 0) {
+    // Reemplazo ATÓMICO del layout con migración de vendidos (P2): una sola llamada
+    // `PUT` que conserva los asientos vendidos (match por label + preserva) → nunca
+    // deja boletos huérfanos ni doble-venta. Sustituye al viejo delete+bulk.
+    this.api.replaceSeats(localityId, bulk).subscribe({
+      next: (res) => {
         this.saving.set(false);
         this.dirty.set(false);
-        this.changed.emit(0);
-        this.toasts.info(this.translate.instant('promoter.seat.toastCleared'));
-        this.load(localityId);
-        return;
-      }
-      this.api.bulkSeats(localityId, bulk).subscribe({
-        next: (res) => {
-          this.saving.set(false);
-          this.dirty.set(false);
+        if (bulk.length === 0) {
+          this.changed.emit(res.capacity);
+          this.toasts.info(this.translate.instant('promoter.seat.toastCleared'));
+        } else {
           this.toasts.success(this.translate.instant('promoter.seat.toastSaved', { n: res.capacity }));
           this.changed.emit(res.capacity);
-          this.load(localityId);
-        },
-        error: () => {
-          this.saving.set(false);
-          this.toasts.error(this.translate.instant('promoter.seat.toastSaveError'));
-        },
-      });
-    };
-
-    if (existingIds.length > 0) {
-      this.api.deleteSeats(localityId, existingIds).subscribe({ next: doBulk, error: doBulk });
-    } else {
-      doBulk();
-    }
+        }
+        this.load(localityId);
+      },
+      error: () => {
+        this.saving.set(false);
+        this.toasts.error(this.translate.instant('promoter.seat.toastSaveError'));
+      },
+    });
   }
 
   // --- Confirmación de acciones destructivas ---
