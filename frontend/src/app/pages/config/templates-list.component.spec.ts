@@ -54,11 +54,13 @@ describe('TemplatesListComponent (v3.9 · B1)', () => {
 
   const lastToast = () => toasts.toasts().at(-1);
   const inst = () => fixture.componentInstance as unknown as {
-    displayState: (t: unknown) => string;
+    list: {
+      displayState: (t: unknown) => string;
+      setStatus: (v: string) => void;
+      hasFilter: () => boolean;
+      filtered: () => { id: string }[];
+    };
     canDelete: (t: unknown) => boolean;
-    setStatus: (v: string) => void;
-    hasFilter: () => boolean;
-    filtered: () => { id: string }[];
     publish: (t: unknown) => void;
     askPublish: (t: unknown) => void;
     hide: (t: unknown) => void;
@@ -86,17 +88,17 @@ describe('TemplatesListComponent (v3.9 · B1)', () => {
 
   it('displayState prioriza disabled > hidden > status', async () => {
     await setup();
-    expect(inst().displayState(TEMPLATES[0])).toBe('published');
-    expect(inst().displayState(TEMPLATES[1])).toBe('draft');
-    expect(inst().displayState(TEMPLATES[2])).toBe('hidden');
-    expect(inst().displayState(TEMPLATES[3])).toBe('disabled');
+    expect(inst().list.displayState(TEMPLATES[0])).toBe('published');
+    expect(inst().list.displayState(TEMPLATES[1])).toBe('draft');
+    expect(inst().list.displayState(TEMPLATES[2])).toBe('hidden');
+    expect(inst().list.displayState(TEMPLATES[3])).toBe('disabled');
   });
 
   it('filtra por estado deshabilitada', async () => {
     await setup();
-    inst().setStatus('disabled');
-    expect(inst().filtered().length).toBe(1);
-    expect(inst().filtered()[0].id).toBe('t4');
+    inst().list.setStatus('disabled');
+    expect(inst().list.filtered().length).toBe(1);
+    expect(inst().list.filtered()[0].id).toBe('t4');
   });
 
   it('canDelete: solo deshabilitada y no built-in', async () => {
@@ -125,7 +127,7 @@ describe('TemplatesListComponent (v3.9 · B1)', () => {
 
   it('el botón Eliminar se muestra habilitado para una plantilla deshabilitada', async () => {
     await setup();
-    inst().setStatus('disabled');
+    inst().list.setStatus('disabled');
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
@@ -173,7 +175,7 @@ describe('TemplatesListComponent (v3.9 · B1)', () => {
 
   it('muestra botón Editar para una plantilla desactivada', async () => {
     await setup();
-    inst().setStatus('disabled');
+    inst().list.setStatus('disabled');
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();

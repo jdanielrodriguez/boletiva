@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -10,6 +10,7 @@ import {
 } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
+import { FilteredPagedList } from '../../shared/ui/filtered-paged-list';
 import { PagerComponent } from '../../shared/ui/pager.component';
 import { SearchFieldComponent } from '../../shared/ui/search-field.component';
 import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
@@ -45,37 +46,11 @@ export class HallsListComponent {
   private readonly translate = inject(TranslateService);
   private readonly router = inject(Router);
 
-  protected readonly halls = signal<HallResponseDto[]>([]);
-  protected readonly search = signal('');
-  protected readonly statusFilter = signal<string>('');
-  protected readonly page = signal(1);
-
-  /** Estados disponibles para el filtro (value interno → label capitalizado en UI). */
-  protected readonly statusOptions = ['published', 'draft', 'hidden', 'disabled'];
-
-  /** Estado de display de un salón (prioridad: disabled > hidden > status). */
-  protected displayState(h: HallResponseDto): string {
-    if (h.disabled) return 'disabled';
-    if (h.hidden) return 'hidden';
-    return h.status;
-  }
-
-  protected readonly filtered = computed(() => {
-    const q = this.search().trim().toLowerCase();
-    const st = this.statusFilter();
-    return this.halls().filter((h) => {
-      if (st && this.displayState(h) !== st) return false;
-      if (!q) return true;
-      return h.name.toLowerCase().includes(q) || (h.city ?? '').toLowerCase().includes(q);
-    });
-  });
-  protected readonly totalPages = computed(() => Math.max(1, Math.ceil(this.filtered().length / PAGE)));
-  protected readonly pageItems = computed(() => {
-    const start = (this.page() - 1) * PAGE;
-    return this.filtered().slice(start, start + PAGE);
-  });
-  /** True cuando hay un filtro/búsqueda activo (para distinguir vacío-total de sin-resultados). */
-  protected readonly hasFilter = computed(() => this.search().trim().length > 0 || this.statusFilter() !== '');
+  /** Lista con buscador (nombre/ciudad) + filtro por estado + paginación (helper DRY compartido con plantillas). */
+  protected readonly list = new FilteredPagedList<HallResponseDto>(
+    PAGE,
+    (h, q) => h.name.toLowerCase().includes(q) || (h.city ?? '').toLowerCase().includes(q),
+  );
 
   constructor() {
     this.load();
@@ -83,21 +58,9 @@ export class HallsListComponent {
 
   private load(): void {
     this.hallsApi.listAll().subscribe({
-      next: (h) => this.halls.set(h),
+      next: (h) => this.list.items.set(h),
       error: () => this.toasts.error(this.translate.instant('config.halls.loadError')),
     });
-  }
-
-  protected goToPage(p: number): void {
-    this.page.set(Math.min(Math.max(1, p), this.totalPages()));
-  }
-  protected setSearch(v: string): void {
-    this.search.set(v);
-    this.page.set(1);
-  }
-  protected setStatus(v: string): void {
-    this.statusFilter.set(v);
-    this.page.set(1);
   }
 
   /**

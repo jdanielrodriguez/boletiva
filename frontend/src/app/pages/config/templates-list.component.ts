@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { DomSanitizer, type SafeHtml } from '@angular/platform-browser';
@@ -11,6 +11,7 @@ import {
 } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
+import { FilteredPagedList } from '../../shared/ui/filtered-paged-list';
 import { PagerComponent } from '../../shared/ui/pager.component';
 import { SearchFieldComponent } from '../../shared/ui/search-field.component';
 import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
@@ -48,38 +49,12 @@ export class TemplatesListComponent {
   private readonly sanitizer = inject(DomSanitizer);
   private readonly router = inject(Router);
 
-  protected readonly templates = signal<SeatTemplateResponseDto[]>([]);
-  protected readonly search = signal('');
-  protected readonly statusFilter = signal<string>('');
+  /** Lista con buscador (nombre) + filtro por estado + paginación (helper DRY compartido con salones). */
+  protected readonly list = new FilteredPagedList<SeatTemplateResponseDto>(
+    PAGE,
+    (t, q) => t.name.toLowerCase().includes(q),
+  );
   protected readonly preview = signal<SeatTemplateResponseDto | null>(null);
-  protected readonly page = signal(1);
-
-  /** Estados para el filtro (value interno; label capitalizado en la UI). */
-  protected readonly statusOptions = ['published', 'draft', 'hidden', 'disabled'];
-
-  /** Estado de display de una plantilla (prioridad: disabled > hidden > status). */
-  protected displayState(t: SeatTemplateResponseDto): string {
-    if (t.disabled) return 'disabled';
-    if (t.hidden) return 'hidden';
-    return t.status;
-  }
-
-  protected readonly filtered = computed(() => {
-    const q = this.search().trim().toLowerCase();
-    const st = this.statusFilter();
-    return this.templates().filter((t) => {
-      if (st && this.displayState(t) !== st) return false;
-      if (!q) return true;
-      return t.name.toLowerCase().includes(q);
-    });
-  });
-  protected readonly totalPages = computed(() => Math.max(1, Math.ceil(this.filtered().length / PAGE)));
-  protected readonly pageItems = computed(() => {
-    const start = (this.page() - 1) * PAGE;
-    return this.filtered().slice(start, start + PAGE);
-  });
-  /** True cuando hay un filtro/búsqueda activo (para distinguir vacío-total de sin-resultados). */
-  protected readonly hasFilter = computed(() => this.search().trim().length > 0 || this.statusFilter() !== '');
 
   constructor() {
     this.load();
@@ -87,21 +62,9 @@ export class TemplatesListComponent {
 
   private load(): void {
     this.templatesApi.listAll().subscribe({
-      next: (t) => this.templates.set(t),
+      next: (t) => this.list.items.set(t),
       error: () => this.toasts.error(this.translate.instant('config.templates.loadError')),
     });
-  }
-
-  protected goToPage(p: number): void {
-    this.page.set(Math.min(Math.max(1, p), this.totalPages()));
-  }
-  protected setSearch(v: string): void {
-    this.search.set(v);
-    this.page.set(1);
-  }
-  protected setStatus(v: string): void {
-    this.statusFilter.set(v);
-    this.page.set(1);
   }
 
   /** SVG del icono (built-in) sanitizado para el preview. */

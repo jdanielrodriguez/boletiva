@@ -1,27 +1,27 @@
 <div class="list-filters">
   <app-search-field
-    [value]="search()"
-    (valueChange)="setSearch($event)"
-    (searched)="setSearch($event)"
+    [value]="list.search()"
+    (valueChange)="list.setSearch($event)"
+    (searched)="list.setSearch($event)"
     [placeholder]="'config.halls.searchPlaceholder' | translate"
     name="hallq"
     testId="hall-search"
   />
-  <select [ngModel]="statusFilter()" (ngModelChange)="setStatus($event)" name="hallstatus" data-testid="hall-status-filter">
+  <select [ngModel]="list.statusFilter()" (ngModelChange)="list.setStatus($event)" name="hallstatus" data-testid="hall-status-filter">
     <option value="">{{ 'common.statuses.all' | translate }}</option>
-    @for (s of statusOptions; track s) { <option [value]="s">{{ s | statusLabel }}</option> }
+    @for (s of list.statusOptions; track s) { <option [value]="s">{{ s | statusLabel }}</option> }
   </select>
   <button type="button" class="btn primary" (click)="newHall()" data-testid="hall-new" [title]="'config.halls.newHallTitle' | translate">
     <app-icon name="add" /> {{ 'config.halls.newHall' | translate }}
   </button>
 </div>
 
-@if (filtered().length > 0) {
+@if (list.filtered().length > 0) {
   <div class="admin-events-grid" data-testid="halls-list">
-    @for (h of pageItems(); track h.id) {
+    @for (h of list.pageItems(); track h.id) {
       <article class="ev-card" data-testid="hall-card">
         <div class="ev-card-top">
-          <span class="badge badge-{{ displayState(h) }}" data-testid="hall-status">{{ displayState(h) | statusLabel }}</span>
+          <span class="badge badge-{{ list.displayState(h) }}" data-testid="hall-status">{{ list.displayState(h) | statusLabel }}</span>
           <span class="ev-card-top-spacer"></span>
           @if (h.status === 'draft') {
             <button type="button" class="btn small icon-only primary" (click)="askPublish(h)" data-testid="hall-publish" [title]="'config.halls.publishTitle' | translate" [attr.aria-label]="'config.halls.publish' | translate">
@@ -69,8 +69,8 @@
       </article>
     }
   </div>
-  <app-pager [page]="page()" [totalPages]="totalPages()" (pageChange)="goToPage($event)" data-testid="halls-pager" />
-} @else if (hasFilter()) {
+  <app-pager [page]="list.page()" [totalPages]="list.totalPages()" (pageChange)="list.goToPage($event)" data-testid="halls-pager" />
+} @else if (list.hasFilter()) {
   <app-empty-state
     variant="generic"
     [title]="'config.halls.noResults' | translate"

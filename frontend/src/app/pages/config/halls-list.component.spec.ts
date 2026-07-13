@@ -54,13 +54,15 @@ describe('HallsListComponent (v3.9 · B1 + v3.10 · FE-3)', () => {
 
   const lastToast = () => toasts.toasts().at(-1);
   const inst = () => fixture.componentInstance as unknown as {
-    displayState: (h: unknown) => string;
+    list: {
+      displayState: (h: unknown) => string;
+      setStatus: (v: string) => void;
+      setSearch: (v: string) => void;
+      filtered: () => { id: string }[];
+      hasFilter: () => boolean;
+    };
     canDelete: (h: unknown) => boolean;
     canEditState: (h: unknown) => boolean;
-    setStatus: (v: string) => void;
-    setSearch: (v: string) => void;
-    filtered: () => { id: string }[];
-    hasFilter: () => boolean;
     newHall: () => void;
     editHall: (h: unknown) => void;
     publish: (h: unknown) => void;
@@ -85,31 +87,31 @@ describe('HallsListComponent (v3.9 · B1 + v3.10 · FE-3)', () => {
 
   it('displayState prioriza disabled > hidden > status', async () => {
     await setup();
-    expect(inst().displayState(HALLS[0])).toBe('published');
-    expect(inst().displayState(HALLS[1])).toBe('draft');
-    expect(inst().displayState(HALLS[2])).toBe('hidden');
-    expect(inst().displayState(HALLS[3])).toBe('disabled');
+    expect(inst().list.displayState(HALLS[0])).toBe('published');
+    expect(inst().list.displayState(HALLS[1])).toBe('draft');
+    expect(inst().list.displayState(HALLS[2])).toBe('hidden');
+    expect(inst().list.displayState(HALLS[3])).toBe('disabled');
   });
 
   it('filtra por estado (solo borradores)', async () => {
     await setup();
-    inst().setStatus('draft');
-    expect(inst().filtered().length).toBe(1);
-    expect(inst().filtered()[0].id).toBe('h2');
+    inst().list.setStatus('draft');
+    expect(inst().list.filtered().length).toBe(1);
+    expect(inst().list.filtered()[0].id).toBe('h2');
   });
 
   it('filtra por estado deshabilitado', async () => {
     await setup();
-    inst().setStatus('disabled');
-    expect(inst().filtered().length).toBe(1);
-    expect(inst().filtered()[0].id).toBe('h4');
+    inst().list.setStatus('disabled');
+    expect(inst().list.filtered().length).toBe(1);
+    expect(inst().list.filtered()[0].id).toBe('h4');
   });
 
   it('busca por nombre/ciudad', async () => {
     await setup();
-    inst().setSearch('antigua');
-    expect(inst().filtered().length).toBe(1);
-    expect(inst().filtered()[0].id).toBe('h2');
+    inst().list.setSearch('antigua');
+    expect(inst().list.filtered().length).toBe(1);
+    expect(inst().list.filtered()[0].id).toBe('h2');
   });
 
   it('canEditState: draft y disabled sí; publicado-visible no', async () => {
@@ -205,7 +207,7 @@ describe('HallsListComponent (v3.9 · B1 + v3.10 · FE-3)', () => {
 
   it('el botón Eliminar se muestra habilitado para un salón deshabilitado', async () => {
     await setup();
-    inst().setStatus('disabled');
+    inst().list.setStatus('disabled');
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
@@ -216,7 +218,7 @@ describe('HallsListComponent (v3.9 · B1 + v3.10 · FE-3)', () => {
 
   it('muestra botón Editar para un salón deshabilitado', async () => {
     await setup();
-    inst().setStatus('disabled');
+    inst().list.setStatus('disabled');
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
@@ -225,7 +227,7 @@ describe('HallsListComponent (v3.9 · B1 + v3.10 · FE-3)', () => {
 
   it('empty-state cuando no hay resultados de filtro', async () => {
     await setup();
-    inst().setSearch('zzz-inexistente');
+    inst().list.setSearch('zzz-inexistente');
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();

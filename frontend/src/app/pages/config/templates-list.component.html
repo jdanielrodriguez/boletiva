@@ -1,27 +1,27 @@
 <div class="list-filters">
   <app-search-field
-    [value]="search()"
-    (valueChange)="setSearch($event)"
-    (searched)="setSearch($event)"
+    [value]="list.search()"
+    (valueChange)="list.setSearch($event)"
+    (searched)="list.setSearch($event)"
     [placeholder]="'config.templates.searchPlaceholder' | translate"
     name="tplq"
     testId="tpl-search"
   />
-  <select [ngModel]="statusFilter()" (ngModelChange)="setStatus($event)" name="tplstatus" data-testid="tpl-status-filter">
+  <select [ngModel]="list.statusFilter()" (ngModelChange)="list.setStatus($event)" name="tplstatus" data-testid="tpl-status-filter">
     <option value="">{{ 'common.statuses.all' | translate }}</option>
-    @for (s of statusOptions; track s) { <option [value]="s">{{ s | statusLabel }}</option> }
+    @for (s of list.statusOptions; track s) { <option [value]="s">{{ s | statusLabel }}</option> }
   </select>
   <button type="button" class="btn primary" (click)="newTemplate()" data-testid="tpl-new" [title]="'config.templates.newTemplateTitle' | translate">
     <app-icon name="add" /> {{ 'config.templates.newTemplate' | translate }}
   </button>
 </div>
 
-@if (filtered().length > 0) {
+@if (list.filtered().length > 0) {
   <div class="admin-events-grid" data-testid="tpl-list">
-    @for (t of pageItems(); track t.id) {
+    @for (t of list.pageItems(); track t.id) {
       <article class="ev-card" data-testid="tpl-card">
         <div class="ev-card-top">
-          <span class="badge badge-{{ displayState(t) }}" data-testid="tpl-state">{{ displayState(t) | statusLabel }}</span>
+          <span class="badge badge-{{ list.displayState(t) }}" data-testid="tpl-state">{{ list.displayState(t) | statusLabel }}</span>
           <span class="ev-card-top-spacer"></span>
           @if (t.isBuiltIn) { <span class="badge badge-approved" data-testid="tpl-builtin">{{ 'config.templates.builtInBadge' | translate }}</span> }
           @if (t.status === 'draft') {
@@ -77,8 +77,8 @@
       </article>
     }
   </div>
-  <app-pager [page]="page()" [totalPages]="totalPages()" (pageChange)="goToPage($event)" data-testid="tpl-pager" />
-} @else if (hasFilter()) {
+  <app-pager [page]="list.page()" [totalPages]="list.totalPages()" (pageChange)="list.goToPage($event)" data-testid="tpl-pager" />
+} @else if (list.hasFilter()) {
   <app-empty-state
     variant="generic"
     [title]="'config.templates.noResults' | translate"
