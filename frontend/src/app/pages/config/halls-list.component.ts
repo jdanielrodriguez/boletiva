@@ -51,13 +51,20 @@ export class HallsListComponent {
   protected readonly page = signal(1);
 
   /** Estados disponibles para el filtro (value interno → label capitalizado en UI). */
-  protected readonly statusOptions = ['published', 'draft'];
+  protected readonly statusOptions = ['published', 'draft', 'hidden', 'disabled'];
+
+  /** Estado de display de un salón (prioridad: disabled > hidden > status). */
+  protected displayState(h: HallResponseDto): string {
+    if (h.disabled) return 'disabled';
+    if (h.hidden) return 'hidden';
+    return h.status;
+  }
 
   protected readonly filtered = computed(() => {
     const q = this.search().trim().toLowerCase();
     const st = this.statusFilter();
     return this.halls().filter((h) => {
-      if (st && h.status !== st) return false;
+      if (st && this.displayState(h) !== st) return false;
       if (!q) return true;
       return h.name.toLowerCase().includes(q) || (h.city ?? '').toLowerCase().includes(q);
     });
@@ -93,10 +100,22 @@ export class HallsListComponent {
     this.page.set(1);
   }
 
+  /**
+   * Un salón es editable si está en borrador o desactivado (paridad con plantillas,
+   * v3.10 · FE-3). Los salones no tienen concepto built-in.
+   */
+  protected canEditState(h: HallResponseDto): boolean {
+    return h.status === 'draft' || h.disabled;
+  }
+
   protected newHall(): void {
     void this.router.navigate(['/configuracion/salones/nuevo']);
   }
   protected editHall(h: HallResponseDto): void {
+    if (!this.canEditState(h)) {
+      this.toasts.warning(this.translate.instant('config.halls.editBlocked'));
+      return;
+    }
     void this.router.navigate(['/configuracion/salones', h.id, 'editar']);
   }
 
@@ -133,6 +152,34 @@ export class HallsListComponent {
     });
   }
 
+  // --- Transiciones de estado (ocultar/mostrar/deshabilitar/habilitar) ---
+  private transition(obs: ReturnType<HallsApi['hide']>, msg: string): void {
+    obs.subscribe({
+      next: () => {
+        this.toasts.success(this.translate.instant(msg));
+        this.load();
+      },
+      error: () => this.toasts.error(this.translate.instant('config.halls.stateError')),
+    });
+  }
+  protected hide(h: HallResponseDto): void {
+    this.transition(this.hallsApi.hide(h.id), 'config.halls.hidden');
+  }
+  protected unhide(h: HallResponseDto): void {
+    this.transition(this.hallsApi.unhide(h.id), 'config.halls.shown');
+  }
+  protected disable(h: HallResponseDto): void {
+    this.transition(this.hallsApi.disable(h.id), 'config.halls.disabled');
+  }
+  protected enable(h: HallResponseDto): void {
+    this.transition(this.hallsApi.enable(h.id), 'config.halls.enabled');
+  }
+
+  /** El botón Eliminar solo se habilita si el salón está deshabilitado. */
+  protected canDelete(h: HallResponseDto): boolean {
+    return h.disabled;
+  }
+
   // --- Confirmación de borrado ---
   protected readonly confirm = signal<ConfirmRequest | null>(null);
   protected onConfirmAccept(): void {
@@ -144,6 +191,10 @@ export class HallsListComponent {
     this.confirm.set(null);
   }
   protected askRemove(h: HallResponseDto): void {
+    if (!this.canDelete(h)) {
+      this.toasts.warning(this.translate.instant('config.halls.deleteBlocked'));
+      return;
+    }
     this.confirm.set({
       title: this.translate.instant('config.halls.removeConfirmTitle'),
       message: this.translate.instant('config.halls.removeConfirmMessage', { name: h.name }),

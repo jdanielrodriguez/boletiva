@@ -38,4 +38,16 @@ export class HallsApi {
   unpublish(id: string): Observable<HallResponseDto> {
     return this.api.post<HallResponseDto>(`/halls/${id}/unpublish`);
   }
+  hide(id: string): Observable<HallResponseDto> {
+    return this.api.post<HallResponseDto>(`/halls/${id}/hide`);
+  }
+  unhide(id: string): Observable<HallResponseDto> {
+    return this.api.post<HallResponseDto>(`/halls/${id}/unhide`);
+  }
+  disable(id: string): Observable<HallResponseDto> {
+    return this.api.post<HallResponseDto>(`/halls/${id}/disable`);
+  }
+  enable(id: string): Observable<HallResponseDto> {
+    return this.api.post<HallResponseDto>(`/halls/${id}/enable`);
+  }
 }

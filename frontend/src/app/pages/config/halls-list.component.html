@@ -21,7 +21,7 @@
     @for (h of pageItems(); track h.id) {
       <article class="ev-card" data-testid="hall-card">
         <div class="ev-card-top">
-          <span class="badge badge-{{ h.status }}" data-testid="hall-status">{{ h.status | statusLabel }}</span>
+          <span class="badge badge-{{ displayState(h) }}" data-testid="hall-status">{{ displayState(h) | statusLabel }}</span>
           <span class="ev-card-top-spacer"></span>
           @if (h.status === 'draft') {
             <button type="button" class="btn small icon-only primary" (click)="askPublish(h)" data-testid="hall-publish" [title]="'config.halls.publishTitle' | translate" [attr.aria-label]="'config.halls.publish' | translate">
@@ -38,14 +38,33 @@
         @if (h.address) { <span class="muted small">{{ h.address }}</span> }
         @if (h.lat != null && h.lng != null) { <span class="muted small">{{ h.lat }}, {{ h.lng }}</span> }
         <div class="ev-card-actions">
-          @if (h.status === 'draft') {
+          @if (!h.hidden) {
+            <button type="button" class="btn small" (click)="hide(h)" data-testid="hall-hide" [title]="'config.halls.hideTitle' | translate">
+              <app-icon name="hide" /> {{ 'common.hide' | translate }}
+            </button>
+          } @else {
+            <button type="button" class="btn small" (click)="unhide(h)" data-testid="hall-unhide" [title]="'config.halls.showTitle' | translate">
+              <app-icon name="view" /> {{ 'common.show' | translate }}
+            </button>
+          }
+          @if (!h.disabled) {
+            <button type="button" class="btn small" (click)="disable(h)" data-testid="hall-disable" [title]="'config.halls.disableTitle' | translate">
+              <app-icon name="cancel" /> {{ 'config.halls.disable' | translate }}
+            </button>
+          } @else {
+            <button type="button" class="btn small" (click)="enable(h)" data-testid="hall-enable" [title]="'config.halls.enableTitle' | translate">
+              <app-icon name="activate" /> {{ 'config.halls.enable' | translate }}
+            </button>
+          }
+          @if (canEditState(h)) {
             <button type="button" class="btn small" (click)="editHall(h)" data-testid="hall-edit" [title]="'config.halls.editTitle' | translate">
               <app-icon name="edit" /> {{ 'common.edit' | translate }}
             </button>
-            <button type="button" class="btn small danger" (click)="askRemove(h)" data-testid="hall-remove" [title]="'config.halls.removeTitle' | translate">
-              <app-icon name="delete" /> {{ 'common.delete' | translate }}
-            </button>
           }
+          <button type="button" class="btn small danger" (click)="askRemove(h)" [disabled]="!canDelete(h)" data-testid="hall-remove"
+            [title]="(canDelete(h) ? 'config.halls.removeTitle' : 'config.halls.deleteBlocked') | translate">
+            <app-icon name="delete" /> {{ 'common.delete' | translate }}
+          </button>
         </div>
       </article>
     }
