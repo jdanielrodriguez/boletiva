@@ -307,6 +307,61 @@ export class EventCashTransferDto {
   transferredAt!: string;
 }
 
+/** Cuerpo de la devolución por cancelación/suspensión (F1). */
+export class EventRefundDto {
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description:
+      'Orden concreta a devolver. Si se omite, se devuelven TODAS las órdenes pagadas del evento.',
+  })
+  @IsOptional()
+  @IsUUID()
+  orderId?: string;
+}
+
+/** Resultado por orden dentro de la devolución (F1). */
+export class RefundedOrderDto {
+  @ApiProperty({ format: 'uuid' })
+  orderId!: string;
+
+  @ApiProperty({ format: 'uuid', description: 'Comprador al que se acreditó el neto' })
+  buyerId!: string;
+
+  @ApiProperty({ type: String, example: '100.00', description: 'Neto acreditado a su wallet' })
+  net!: string;
+
+  @ApiProperty({ example: 'refunded', description: 'Estado final de la orden' })
+  status!: string;
+}
+
+/** Respuesta de la devolución por cancelación/suspensión del evento (F1). */
+export class EventRefundResultDto {
+  @ApiProperty({ format: 'uuid' })
+  eventId!: string;
+
+  @ApiProperty({ example: 'GTQ' })
+  currency!: string;
+
+  @ApiProperty({ example: 3, description: 'Órdenes efectivamente devueltas en esta llamada' })
+  refundedOrders!: number;
+
+  @ApiProperty({
+    example: 1,
+    description: 'Órdenes omitidas por ya estar devueltas (solo en modo "todas"; idempotencia)',
+  })
+  skipped!: number;
+
+  @ApiProperty({
+    type: String,
+    example: '300.00',
+    description: 'Suma del neto acreditado a los compradores (el servicio NO se devuelve)',
+  })
+  totalNetRefunded!: string;
+
+  @ApiProperty({ type: () => RefundedOrderDto, isArray: true })
+  orders!: RefundedOrderDto[];
+}
+
 /** Un movimiento del feed de facturación (ingreso/egreso). */
 export class MovementResponseDto {
   @ApiProperty({ description: 'id sintético estable', example: 'order:8f…' })

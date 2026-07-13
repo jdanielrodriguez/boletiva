@@ -25,9 +25,12 @@ import { Role } from '@prisma/client';
 import { CheckoutService } from './checkout.service';
 import { OrdersService } from './orders.service';
 import { SettlementService } from './settlement.service';
+import { EventRefundsService } from './event-refunds.service';
 import {
   CheckoutDto,
   EventCashTransferDto,
+  EventRefundDto,
+  EventRefundResultDto,
   EventSettlementDto,
   EventTransactionPageDto,
   MovementsResponseDto,
@@ -44,6 +47,7 @@ export class OrdersController {
     private readonly checkout: CheckoutService,
     private readonly orders: OrdersService,
     private readonly settlement: SettlementService,
+    private readonly eventRefunds: EventRefundsService,
   ) {}
 
   @Get('events/:eventId/settlement')
@@ -73,6 +77,26 @@ export class OrdersController {
     @Headers('user-agent') userAgent?: string,
   ) {
     return this.settlement.finalizeAndTransfer(eventId, user, ip, userAgent);
+  }
+
+  @Post('events/:eventId/refunds')
+  @Roles(Role.admin)
+  @HttpCode(200)
+  @ApiOperation({
+    summary:
+      'Tramita devoluciones por cancelación/suspensión del evento (SOLO admin). Acredita ' +
+      'SOLO el NETO del boleto a la wallet del comprador (la cuota de servicio no se ' +
+      'devuelve). Con body.orderId devuelve una orden; sin él, todas las pagadas. Idempotente.',
+  })
+  @ApiOkResponse({ type: EventRefundResultDto })
+  refundEvent(
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+    @Body() dto: EventRefundDto,
+    @CurrentUser() user: AuthUser,
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent?: string,
+  ) {
+    return this.eventRefunds.refund(eventId, user, { orderId: dto.orderId }, ip, userAgent);
   }
 
   @Get('events/:eventId/transactions')
