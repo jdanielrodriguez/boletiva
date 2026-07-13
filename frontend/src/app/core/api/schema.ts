@@ -1327,6 +1327,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{eventId}/refunds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tramita devoluciones por cancelación/suspensión del evento (SOLO admin). Acredita SOLO el NETO del boleto a la wallet del comprador (la cuota de servicio no se devuelve). Con body.orderId devuelve una orden; sin él, todas las pagadas. Idempotente. */
+        post: operations["OrdersController_refundEvent_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{eventId}/transactions": {
         parameters: {
             query?: never;
@@ -1423,108 +1440,6 @@ export interface paths {
         get: operations["OrdersController_ledgerChain_v1"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/events/{eventId}/reservations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Crea una reserva ANÓNIMA y compartible (sin login) */
-        post: operations["ReservationsController_create_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/reservations/{token}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Ver una reserva por su token (desde el link compartido) */
-        get: operations["ReservationsController_getByToken_v1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/reservations/{token}/checkout": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Paga una reserva: crea la orden a nombre del usuario logueado */
-        post: operations["ReservationsController_checkout_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/orders/{id}/payment-options": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Opciones de pago del checkout: pasarelas + plazos de cuotas disponibles */
-        get: operations["PaymentsController_paymentOptions_v1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/orders/{id}/pay": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Inicia el pago de una orden (webhook-first; wallet/mixto) */
-        post: operations["PaymentsController_pay_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/payments/webhook": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Webhook de la pasarela (firma HMAC; idempotente) */
-        post: operations["PaymentsController_webhook_v1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1815,6 +1730,108 @@ export interface paths {
         put?: never;
         /** Emite un token de PUERTA corto/fresco acotado al evento (SafeTix) */
         post: operations["GateAccessController_gateToken_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{eventId}/reservations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Crea una reserva ANÓNIMA y compartible (sin login) */
+        post: operations["ReservationsController_create_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reservations/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ver una reserva por su token (desde el link compartido) */
+        get: operations["ReservationsController_getByToken_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reservations/{token}/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Paga una reserva: crea la orden a nombre del usuario logueado */
+        post: operations["ReservationsController_checkout_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/{id}/payment-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Opciones de pago del checkout: pasarelas + plazos de cuotas disponibles */
+        get: operations["PaymentsController_paymentOptions_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/{id}/pay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Inicia el pago de una orden (webhook-first; wallet/mixto) */
+        post: operations["PaymentsController_pay_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Webhook de la pasarela (firma HMAC; idempotente) */
+        post: operations["PaymentsController_webhook_v1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3350,6 +3367,11 @@ export interface components {
             slug: string;
             /** @example Una noche inolvidable */
             description?: string | null;
+            /**
+             * Format: uuid
+             * @description Salón/venue reutilizable asignado al evento (null = dirección escrita a mano). Se persiste al elegirlo en el editor y queda ligado al evento.
+             */
+            hallId?: string | null;
             /** @example Estadio Nacional, Ciudad de Guatemala */
             address?: string | null;
             /**
@@ -3477,6 +3499,11 @@ export interface components {
             slug: string;
             /** @example Una noche inolvidable */
             description?: string | null;
+            /**
+             * Format: uuid
+             * @description Salón/venue reutilizable asignado al evento (null = dirección escrita a mano). Se persiste al elegirlo en el editor y queda ligado al evento.
+             */
+            hallId?: string | null;
             /** @example Estadio Nacional, Ciudad de Guatemala */
             address?: string | null;
             /**
@@ -3579,6 +3606,11 @@ export interface components {
             slug: string;
             /** @example Una noche inolvidable */
             description?: string | null;
+            /**
+             * Format: uuid
+             * @description Salón/venue reutilizable asignado al evento (null = dirección escrita a mano). Se persiste al elegirlo en el editor y queda ligado al evento.
+             */
+            hallId?: string | null;
             /** @example Estadio Nacional, Ciudad de Guatemala */
             address?: string | null;
             /**
@@ -3722,6 +3754,11 @@ export interface components {
             slug: string;
             /** @example Una noche inolvidable */
             description?: string | null;
+            /**
+             * Format: uuid
+             * @description Salón/venue reutilizable asignado al evento (null = dirección escrita a mano). Se persiste al elegirlo en el editor y queda ligado al evento.
+             */
+            hallId?: string | null;
             /** @example Estadio Nacional, Ciudad de Guatemala */
             address?: string | null;
             /**
@@ -3936,6 +3973,11 @@ export interface components {
             slug: string;
             /** @example Una noche inolvidable */
             description?: string | null;
+            /**
+             * Format: uuid
+             * @description Salón/venue reutilizable asignado al evento (null = dirección escrita a mano). Se persiste al elegirlo en el editor y queda ligado al evento.
+             */
+            hallId?: string | null;
             /** @example Estadio Nacional, Ciudad de Guatemala */
             address?: string | null;
             /**
@@ -4113,6 +4155,11 @@ export interface components {
             slug: string;
             /** @example Una noche inolvidable */
             description?: string | null;
+            /**
+             * Format: uuid
+             * @description Salón/venue reutilizable asignado al evento (null = dirección escrita a mano). Se persiste al elegirlo en el editor y queda ligado al evento.
+             */
+            hallId?: string | null;
             /** @example Estadio Nacional, Ciudad de Guatemala */
             address?: string | null;
             /**
@@ -4867,6 +4914,11 @@ export interface components {
              * @example 4104.00
              */
             iva: string;
+            /**
+             * @description Neto ya devuelto a compradores (órdenes reembolsadas por cancelación/suspensión). Informativo: estas órdenes ya NO cuentan en los montos de arriba (solo agregan las pagadas).
+             * @example 0.00
+             */
+            refundsIssued: string;
         };
         EventCashTransferDto: {
             /** Format: uuid */
@@ -4892,6 +4944,54 @@ export interface components {
             status: string;
             /** Format: date-time */
             transferredAt: string;
+        };
+        EventRefundDto: {
+            /**
+             * Format: uuid
+             * @description Orden concreta a devolver. Si se omite, se devuelven TODAS las órdenes pagadas del evento.
+             */
+            orderId?: string;
+        };
+        RefundedOrderDto: {
+            /** Format: uuid */
+            orderId: string;
+            /**
+             * Format: uuid
+             * @description Comprador al que se acreditó el neto
+             */
+            buyerId: string;
+            /**
+             * @description Neto acreditado a su wallet
+             * @example 100.00
+             */
+            net: string;
+            /**
+             * @description Estado final de la orden
+             * @example refunded
+             */
+            status: string;
+        };
+        EventRefundResultDto: {
+            /** Format: uuid */
+            eventId: string;
+            /** @example GTQ */
+            currency: string;
+            /**
+             * @description Órdenes efectivamente devueltas en esta llamada
+             * @example 3
+             */
+            refundedOrders: number;
+            /**
+             * @description Órdenes omitidas por ya estar devueltas (solo en modo "todas"; idempotencia)
+             * @example 1
+             */
+            skipped: number;
+            /**
+             * @description Suma del neto acreditado a los compradores (el servicio NO se devuelve)
+             * @example 300.00
+             */
+            totalNetRefunded: string;
+            orders: components["schemas"]["RefundedOrderDto"][];
         };
         EventTransactionDto: {
             /** Format: uuid */
@@ -5149,241 +5249,6 @@ export interface components {
              * @example true
              */
             chainValid: boolean;
-        };
-        ReservationQuantityDto: {
-            /**
-             * Format: uuid
-             * @description Localidad general
-             */
-            localityId: string;
-            /**
-             * @description Cantidad de cupos
-             * @example 2
-             */
-            quantity: number;
-        };
-        CreateReservationDto: {
-            /** @description Asientos numerados a reservar (1–50, de una o varias localidades) */
-            seatIds?: string[];
-            /**
-             * Format: uuid
-             * @description Atajo de una sola localidad general
-             */
-            localityId?: string;
-            /**
-             * @description Cantidad (con localityId)
-             * @example 2
-             */
-            quantity?: number;
-            /** @description Cupos por localidad general (permite varias localidades a la vez) */
-            quantities?: components["schemas"]["ReservationQuantityDto"][];
-        };
-        ReservationPriceDto: {
-            /** @example GTQ */
-            currency: string;
-            /** @example 100.00 */
-            net: string;
-            /** @example 16.48 */
-            serviceFee: string;
-            /** @example 13.20 */
-            iva: string;
-            /** @example 129.68 */
-            total: string;
-        };
-        ReservationItemDto: {
-            /** Format: uuid */
-            seatId: string;
-            /**
-             * @description Asiento/etiqueta del cupo
-             * @example 12
-             */
-            label: string;
-            /**
-             * @description Mesa o zona (si aplica)
-             * @example Mesa 3
-             */
-            section?: string | null;
-            /**
-             * @description Fila (si aplica)
-             * @example A
-             */
-            row?: string | null;
-            /** Format: uuid */
-            localityId: string;
-            /** @example General */
-            localityName: string;
-            price: components["schemas"]["ReservationPriceDto"];
-        };
-        ReservationResponseDto: {
-            /** @description Token firmado de la reserva (para compartir/pagar) */
-            token: string;
-            /** Format: uuid */
-            eventId: string;
-            /** @example Concierto de Apertura */
-            eventName: string;
-            /** @example concierto-de-apertura */
-            eventSlug: string;
-            /** Format: date-time */
-            startsAt: string;
-            /** @description true si la reserva sigue viva (holds vigentes) */
-            valid: boolean;
-            /**
-             * Format: date-time
-             * @description Cuándo expira la reserva
-             */
-            expiresAt?: string | null;
-            /** @example GTQ */
-            currency: string;
-            /** @example 259.36 */
-            total: string;
-            items: components["schemas"]["ReservationItemDto"][];
-        };
-        CheckoutReservationDto: {
-            /** @description NIT para facturación FEL; vacío = CF (consumidor final) */
-            billingNit?: string;
-            /** @description Nombre de facturación FEL */
-            billingName?: string;
-            /** @description Dirección de facturación FEL */
-            billingAddress?: string;
-        };
-        InstallmentOptionResponseDto: {
-            /**
-             * @description Número de cuotas (1 = pago único)
-             * @example 1
-             */
-            installments: number;
-            /**
-             * @description Total que paga el comprador
-             * @example 129.68
-             */
-            total: string;
-            /**
-             * @description Cuota por servicio (fusionada) del comprador
-             * @example 16.48
-             */
-            serviceFee: string;
-        };
-        GatewayPaymentOptionResponseDto: {
-            /** Format: uuid */
-            gatewayId: string;
-            /**
-             * @description Nombre de la pasarela
-             * @example Recurrente
-             */
-            name: string;
-            /**
-             * @description Proveedor técnico
-             * @example recurrente
-             */
-            provider: string;
-            /**
-             * @description Si es la pasarela default de plataforma
-             * @example true
-             */
-            isPlatformDefault: boolean;
-            /**
-             * @description Total en 1 pago (el comprador paga igual)
-             * @example 129.68
-             */
-            total: string;
-            /**
-             * @description Cuota por servicio (fusionada) en 1 pago
-             * @example 16.48
-             */
-            serviceFee: string;
-            /** @description Plazos disponibles (los de margen negativo se ocultan si absorbe la plataforma) */
-            installmentOptions: components["schemas"]["InstallmentOptionResponseDto"][];
-        };
-        PaymentOptionsResponseDto: {
-            /** Format: uuid */
-            orderId: string;
-            /** @example GTQ */
-            currency: string;
-            /**
-             * @description true = el promotor absorbe el costo de cuotas (libera todos los plazos)
-             * @example false
-             */
-            absorbedByPromoter: boolean;
-            gateways: components["schemas"]["GatewayPaymentOptionResponseDto"][];
-        };
-        PayOrderDto: {
-            /** @description Método/pasarela elegida (recotiza el total con su comisión); omitir usa la del evento */
-            gatewayId?: string;
-            /**
-             * @description Usar el saldo interno primero (pago mixto si no alcanza)
-             * @default false
-             */
-            useWallet: boolean;
-            /**
-             * @description Número de cuotas (Recurrente/Visacuotas: 3/6/12/18). Omitir o 1 = pago único. El comprador paga lo mismo; el costo de financiamiento lo absorbe la plataforma (o el promotor si el evento lo marca).
-             * @default 1
-             */
-            installments: number;
-        };
-        PayOrderResponseDto: {
-            /**
-             * Format: uuid
-             * @description ID del intento de pago
-             */
-            paymentId: string;
-            /** @description Referencia del pago en la pasarela */
-            providerRef: string;
-            /**
-             * @description Estado del intento de pago
-             * @example pending
-             * @enum {string}
-             */
-            status: "pending" | "succeeded" | "failed" | "refunded";
-            /**
-             * @description Método de pago
-             * @example gateway
-             * @enum {string}
-             */
-            method: "gateway" | "wallet" | "mixed";
-            /**
-             * @description Monto cobrado por la pasarela
-             * @example 129.68
-             */
-            amount: string;
-            /**
-             * @description Monto cubierto con saldo interno
-             * @example 0.00
-             */
-            walletAmount: string;
-            /**
-             * @description Cuotas confirmadas (eco de la selección)
-             * @example 1
-             */
-            installments?: number;
-            /** @description URL para completar el pago en la pasarela (ausente si el wallet cubre todo) */
-            paymentUrl?: string;
-        };
-        WebhookDto: {
-            /** @description ID del evento en la pasarela (idempotencia) */
-            id: string;
-            /** @enum {string} */
-            type: "payment.succeeded" | "payment.failed" | "payment.refunded" | "payment.chargeback";
-            /** @description Referencia del pago en la pasarela */
-            providerRef: string;
-            /** @description Marca de tiempo del evento en la pasarela (ISO 8601) */
-            occurredAt?: string;
-        };
-        WebhookResponseDto: {
-            /**
-             * @description Webhook recibido
-             * @example true
-             */
-            received: boolean;
-            /**
-             * @description true si el evento ya se había procesado (replay)
-             * @example false
-             */
-            duplicate?: boolean;
-            /**
-             * @description true si no hay un pago asociado a la referencia
-             * @example false
-             */
-            unknown?: boolean;
         };
         TicketEventSummaryDto: {
             /** @example Concierto de Apertura */
@@ -5909,6 +5774,241 @@ export interface components {
              * @description Evento al que queda acotado el token
              */
             gateEventId: string;
+        };
+        ReservationQuantityDto: {
+            /**
+             * Format: uuid
+             * @description Localidad general
+             */
+            localityId: string;
+            /**
+             * @description Cantidad de cupos
+             * @example 2
+             */
+            quantity: number;
+        };
+        CreateReservationDto: {
+            /** @description Asientos numerados a reservar (1–50, de una o varias localidades) */
+            seatIds?: string[];
+            /**
+             * Format: uuid
+             * @description Atajo de una sola localidad general
+             */
+            localityId?: string;
+            /**
+             * @description Cantidad (con localityId)
+             * @example 2
+             */
+            quantity?: number;
+            /** @description Cupos por localidad general (permite varias localidades a la vez) */
+            quantities?: components["schemas"]["ReservationQuantityDto"][];
+        };
+        ReservationPriceDto: {
+            /** @example GTQ */
+            currency: string;
+            /** @example 100.00 */
+            net: string;
+            /** @example 16.48 */
+            serviceFee: string;
+            /** @example 13.20 */
+            iva: string;
+            /** @example 129.68 */
+            total: string;
+        };
+        ReservationItemDto: {
+            /** Format: uuid */
+            seatId: string;
+            /**
+             * @description Asiento/etiqueta del cupo
+             * @example 12
+             */
+            label: string;
+            /**
+             * @description Mesa o zona (si aplica)
+             * @example Mesa 3
+             */
+            section?: string | null;
+            /**
+             * @description Fila (si aplica)
+             * @example A
+             */
+            row?: string | null;
+            /** Format: uuid */
+            localityId: string;
+            /** @example General */
+            localityName: string;
+            price: components["schemas"]["ReservationPriceDto"];
+        };
+        ReservationResponseDto: {
+            /** @description Token firmado de la reserva (para compartir/pagar) */
+            token: string;
+            /** Format: uuid */
+            eventId: string;
+            /** @example Concierto de Apertura */
+            eventName: string;
+            /** @example concierto-de-apertura */
+            eventSlug: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** @description true si la reserva sigue viva (holds vigentes) */
+            valid: boolean;
+            /**
+             * Format: date-time
+             * @description Cuándo expira la reserva
+             */
+            expiresAt?: string | null;
+            /** @example GTQ */
+            currency: string;
+            /** @example 259.36 */
+            total: string;
+            items: components["schemas"]["ReservationItemDto"][];
+        };
+        CheckoutReservationDto: {
+            /** @description NIT para facturación FEL; vacío = CF (consumidor final) */
+            billingNit?: string;
+            /** @description Nombre de facturación FEL */
+            billingName?: string;
+            /** @description Dirección de facturación FEL */
+            billingAddress?: string;
+        };
+        InstallmentOptionResponseDto: {
+            /**
+             * @description Número de cuotas (1 = pago único)
+             * @example 1
+             */
+            installments: number;
+            /**
+             * @description Total que paga el comprador
+             * @example 129.68
+             */
+            total: string;
+            /**
+             * @description Cuota por servicio (fusionada) del comprador
+             * @example 16.48
+             */
+            serviceFee: string;
+        };
+        GatewayPaymentOptionResponseDto: {
+            /** Format: uuid */
+            gatewayId: string;
+            /**
+             * @description Nombre de la pasarela
+             * @example Recurrente
+             */
+            name: string;
+            /**
+             * @description Proveedor técnico
+             * @example recurrente
+             */
+            provider: string;
+            /**
+             * @description Si es la pasarela default de plataforma
+             * @example true
+             */
+            isPlatformDefault: boolean;
+            /**
+             * @description Total en 1 pago (el comprador paga igual)
+             * @example 129.68
+             */
+            total: string;
+            /**
+             * @description Cuota por servicio (fusionada) en 1 pago
+             * @example 16.48
+             */
+            serviceFee: string;
+            /** @description Plazos disponibles (los de margen negativo se ocultan si absorbe la plataforma) */
+            installmentOptions: components["schemas"]["InstallmentOptionResponseDto"][];
+        };
+        PaymentOptionsResponseDto: {
+            /** Format: uuid */
+            orderId: string;
+            /** @example GTQ */
+            currency: string;
+            /**
+             * @description true = el promotor absorbe el costo de cuotas (libera todos los plazos)
+             * @example false
+             */
+            absorbedByPromoter: boolean;
+            gateways: components["schemas"]["GatewayPaymentOptionResponseDto"][];
+        };
+        PayOrderDto: {
+            /** @description Método/pasarela elegida (recotiza el total con su comisión); omitir usa la del evento */
+            gatewayId?: string;
+            /**
+             * @description Usar el saldo interno primero (pago mixto si no alcanza)
+             * @default false
+             */
+            useWallet: boolean;
+            /**
+             * @description Número de cuotas (Recurrente/Visacuotas: 3/6/12/18). Omitir o 1 = pago único. El comprador paga lo mismo; el costo de financiamiento lo absorbe la plataforma (o el promotor si el evento lo marca).
+             * @default 1
+             */
+            installments: number;
+        };
+        PayOrderResponseDto: {
+            /**
+             * Format: uuid
+             * @description ID del intento de pago
+             */
+            paymentId: string;
+            /** @description Referencia del pago en la pasarela */
+            providerRef: string;
+            /**
+             * @description Estado del intento de pago
+             * @example pending
+             * @enum {string}
+             */
+            status: "pending" | "succeeded" | "failed" | "refunded";
+            /**
+             * @description Método de pago
+             * @example gateway
+             * @enum {string}
+             */
+            method: "gateway" | "wallet" | "mixed";
+            /**
+             * @description Monto cobrado por la pasarela
+             * @example 129.68
+             */
+            amount: string;
+            /**
+             * @description Monto cubierto con saldo interno
+             * @example 0.00
+             */
+            walletAmount: string;
+            /**
+             * @description Cuotas confirmadas (eco de la selección)
+             * @example 1
+             */
+            installments?: number;
+            /** @description URL para completar el pago en la pasarela (ausente si el wallet cubre todo) */
+            paymentUrl?: string;
+        };
+        WebhookDto: {
+            /** @description ID del evento en la pasarela (idempotencia) */
+            id: string;
+            /** @enum {string} */
+            type: "payment.succeeded" | "payment.failed" | "payment.refunded" | "payment.chargeback";
+            /** @description Referencia del pago en la pasarela */
+            providerRef: string;
+            /** @description Marca de tiempo del evento en la pasarela (ISO 8601) */
+            occurredAt?: string;
+        };
+        WebhookResponseDto: {
+            /**
+             * @description Webhook recibido
+             * @example true
+             */
+            received: boolean;
+            /**
+             * @description true si el evento ya se había procesado (replay)
+             * @example false
+             */
+            duplicate?: boolean;
+            /**
+             * @description true si no hay un pago asociado a la referencia
+             * @example false
+             */
+            unknown?: boolean;
         };
         WalletBalanceResponseDto: {
             /**
@@ -8610,6 +8710,33 @@ export interface operations {
             };
         };
     };
+    OrdersController_refundEvent_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                "user-agent": string;
+            };
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventRefundDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventRefundResultDto"];
+                };
+            };
+        };
+    };
     OrdersController_eventTransactions_v1: {
         parameters: {
             query?: {
@@ -8742,148 +8869,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrderLedgerChainDto"];
-                };
-            };
-        };
-    };
-    ReservationsController_create_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                eventId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateReservationDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReservationResponseDto"];
-                };
-            };
-        };
-    };
-    ReservationsController_getByToken_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                token: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReservationResponseDto"];
-                };
-            };
-        };
-    };
-    ReservationsController_checkout_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                token: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CheckoutReservationDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OrderResponseDto"];
-                };
-            };
-        };
-    };
-    PaymentsController_paymentOptions_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaymentOptionsResponseDto"];
-                };
-            };
-        };
-    };
-    PaymentsController_pay_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PayOrderDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PayOrderResponseDto"];
-                };
-            };
-        };
-    };
-    PaymentsController_webhook_v1: {
-        parameters: {
-            query?: never;
-            header: {
-                "x-webhook-signature": string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WebhookDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WebhookResponseDto"];
                 };
             };
         };
@@ -9280,6 +9265,148 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GateTokenDto"];
+                };
+            };
+        };
+    };
+    ReservationsController_create_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateReservationDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReservationResponseDto"];
+                };
+            };
+        };
+    };
+    ReservationsController_getByToken_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReservationResponseDto"];
+                };
+            };
+        };
+    };
+    ReservationsController_checkout_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckoutReservationDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderResponseDto"];
+                };
+            };
+        };
+    };
+    PaymentsController_paymentOptions_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOptionsResponseDto"];
+                };
+            };
+        };
+    };
+    PaymentsController_pay_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayOrderDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayOrderResponseDto"];
+                };
+            };
+        };
+    };
+    PaymentsController_webhook_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-webhook-signature": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebhookDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookResponseDto"];
                 };
             };
         };

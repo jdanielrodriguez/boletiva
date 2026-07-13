@@ -535,6 +535,9 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
     this.d.name.set(ev.name);
     this.d.description.set(ev.description ?? '');
     this.d.categoryId.set(ev.categoryId ?? '');
+    // Salón asignado (B3, v3.11): sin esto el select quedaba vacío al recargar y un
+    // re-guardado desasignaba el salón. Refleja el `hallId` persistido del evento.
+    this.d.hallId.set(ev.hallId ?? '');
     this.d.address.set(ev.address ?? '');
     this.d.lat.set(ev.lat ?? null);
     this.d.lng.set(ev.lng ?? null);
