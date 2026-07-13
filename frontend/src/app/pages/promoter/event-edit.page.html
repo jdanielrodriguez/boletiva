@@ -397,8 +397,30 @@
         @case ('cuentas') {
           <div class="card-block">
             <h2>{{ 'promoter.edit.accountsTitle' | translate }}</h2>
-            <app-event-settlement [eventId]="eventId()" [showSplit]="false" />
+            <app-event-settlement [eventId]="eventId()" [showSplit]="false" [reloadToken]="settlementReloadToken()" />
           </div>
+
+          <!-- Devoluciones (SOLO admin real): evento suspendido/cancelado. Devuelve
+               SOLO el neto a la wallet del comprador; la cuota de servicio no. -->
+          @if (canRefund()) {
+            <div class="card-block refunds-block" data-testid="refunds-block">
+              <h3>{{ 'promoter.edit.refundHeading' | translate }}</h3>
+              <p class="muted small">{{ 'promoter.edit.refundIntro' | translate }}</p>
+              @if (refundResult(); as r) {
+                <p class="cash-transfer-result" data-testid="refund-result" role="status">
+                  <app-icon name="accounts" />
+                  {{ 'promoter.edit.refundSummary' | translate: { refunded: r.refundedOrders, skipped: r.skipped, currency: r.currency, amount: r.totalNetRefunded } }}
+                </p>
+              }
+              @if (refundError(); as err) {
+                <p class="error" data-testid="refund-error">{{ err }}</p>
+              }
+              <button type="button" class="btn danger" [disabled]="refunding()" (click)="askRefundAll()" data-testid="ev-refund-all"
+                [title]="'promoter.edit.refundAllBtn' | translate">
+                <app-icon name="accounts" /> {{ refunding() ? ('promoter.edit.refunding' | translate) : ('promoter.edit.refundAllBtn' | translate) }}
+              </button>
+            </div>
+          }
 
           <div class="card-block" data-testid="tx-block">
             <h3>{{ 'promoter.tx.title' | translate }}</h3>
@@ -422,6 +444,7 @@
                       <th class="tx-num">{{ 'promoter.tx.colItems' | translate }}</th>
                       <th>{{ 'promoter.tx.colStatus' | translate }}</th>
                       <th class="tx-num">{{ 'promoter.tx.colTotal' | translate }}</th>
+                      @if (canRefund()) { <th>{{ 'promoter.edit.refundColAction' | translate }}</th> }
                     </tr>
                   </thead>
                   <tbody>
@@ -438,6 +461,18 @@
                         <td class="tx-num">{{ t.itemCount }}</td>
                         <td><span class="badge badge-{{ t.status }}">{{ t.status }}</span></td>
                         <td class="tx-num">{{ t.total | money }}</td>
+                        @if (canRefund()) {
+                          <td>
+                            @if (t.status === 'paid') {
+                              <button type="button" class="btn small danger" (click)="$event.stopPropagation(); askRefundOne(t)" [disabled]="refunding()"
+                                data-testid="ev-refund-one" [title]="'promoter.edit.refundBtn' | translate">
+                                <app-icon name="accounts" /> {{ 'promoter.edit.refundBtn' | translate }}
+                              </button>
+                            } @else {
+                              <span class="muted small">—</span>
+                            }
+                          </td>
+                        }
                       </tr>
                     }
                   </tbody>

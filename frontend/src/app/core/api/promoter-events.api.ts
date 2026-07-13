@@ -7,6 +7,7 @@ import type {
   CreateLocalityInput,
   EditUnlockTokenDto,
   EventCashTransferDto,
+  EventRefundResultDto,
   EventSettlementDto,
   EventTransactionPageDto,
   GatewayResponseDto,
@@ -106,6 +107,19 @@ export class PromoterEventsApi {
    */
   finalizeSettlement(id: string): Observable<EventCashTransferDto> {
     return this.api.post<EventCashTransferDto>(`/events/${id}/settlement/finalize`);
+  }
+
+  /**
+   * Tramita devoluciones por cancelación/suspensión del evento (SOLO admin).
+   * Acredita SOLO el NETO del boleto a la wallet del comprador (la cuota de
+   * servicio no se devuelve). Con `orderId` devuelve una orden; sin él (o `{}`),
+   * TODAS las pagadas. Idempotente. Requiere que el evento esté suspendido/cancelado.
+   */
+  refundEvent(id: string, orderId?: string): Observable<EventRefundResultDto> {
+    return this.api.post<EventRefundResultDto>(
+      `/events/${id}/refunds`,
+      orderId ? { orderId } : {},
+    );
   }
 
   /** Transacciones (órdenes) del evento, paginadas por keyset (?cursor&limit). */

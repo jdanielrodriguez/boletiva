@@ -23,6 +23,12 @@ export class EventSettlementComponent {
   readonly eventId = input.required<string>();
   /** true = mostrar el split interno completo (vista admin). */
   readonly showSplit = input(false);
+  /**
+   * Token de recarga (v3.11 · F1): cambiar su valor fuerza un re-fetch de la
+   * liquidación sin recrear el componente (p.ej. tras tramitar devoluciones, para
+   * reflejar `refundsIssued`). Default 0 = no recarga adicional.
+   */
+  readonly reloadToken = input(0);
 
   protected readonly data = signal<EventSettlementDto | null>(null);
   protected readonly loading = signal(true);
@@ -44,12 +50,16 @@ export class EventSettlementComponent {
   /** Último id ya solicitado (campo NO reactivo): evita re-fetch si el effect
    *  se re-ejecuta por cambios de detección → un solo fetch por evento. */
   private loadedId: string | null = null;
+  /** Último token de recarga aplicado (fuerza re-fetch al cambiar). */
+  private loadedToken = 0;
 
   constructor() {
     effect(() => {
       const id = this.eventId();
-      if (id && id !== this.loadedId) {
+      const token = this.reloadToken();
+      if (id && (id !== this.loadedId || token !== this.loadedToken)) {
         this.loadedId = id;
+        this.loadedToken = token;
         this.load(id);
       }
     });

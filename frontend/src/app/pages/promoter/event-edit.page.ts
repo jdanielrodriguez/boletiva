@@ -34,6 +34,7 @@ import { EventSeatMapComponent } from './event-seat-map.component';
 import type {
   CategoryResponseDto,
   EventCashTransferDto,
+  EventRefundResultDto,
   EventTransactionDto,
   GatewayResponseDto,
   HallResponseDto,
@@ -115,6 +116,18 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
   protected readonly isPublished = computed(() => this.event()?.status === 'published');
   protected readonly isSuspended = computed(() => this.event()?.status === 'suspended');
   protected readonly isFinished = computed(() => this.event()?.status === 'finished');
+  protected readonly isCancelled = computed(() => this.event()?.status === 'cancelled');
+  /**
+   * ¿Sesión impersonada? La impersonación hace que la sesión SEA el promotor y trae
+   * `impersonatedBy` (id del admin real) desde `/auth/me`.
+   */
+  protected readonly impersonating = computed(() => !!this.session.user()?.impersonatedBy);
+  /**
+   * ADMIN REAL: admin autenticado que NO está impersonando a un promotor (v3.11 ·
+   * F1/F2). Cuando impersona, el área financiera (finalizar / devoluciones) debe
+   * OCULTARSE; solo el admin real la ve.
+   */
+  protected readonly isAdminReal = computed(() => this.isAdmin() && !this.impersonating());
   /**
    * PUBLICABLE por ciclo de vida: solo un evento en borrador o suspendido admite el
    * botón Publicar / Volver a publicar. NO es un gate de permisos de edición (eso
@@ -322,16 +335,31 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
   });
   protected readonly canPublish = computed(() => this.publishBlock() === null);
 
-  // --- Cierre + transferencia de saldos de caja (SOLO admin, tab Cuentas) ---
+  // --- Cierre + transferencia de saldos de caja (SOLO admin REAL, tab Cuentas) ---
   protected readonly finalizing = signal(false);
   protected readonly cashResult = signal<EventCashTransferDto | null>(null);
   protected readonly cashError = signal<string | null>(null);
   /**
-   * Sección "finalizar y transferir" visible SOLO para admin cuando el evento está
-   * finalizado o suspendido. NUNCA se bloquea por el candado de edición.
+   * Sección "evento finalizado / pagar al promotor" visible SOLO para el admin REAL
+   * (no impersonando) cuando el evento está finalizado o suspendido. NUNCA se
+   * bloquea por el candado de edición; el promotor y la impersonación no la ven.
    */
   protected readonly canFinalizeCash = computed(
-    () => this.isAdmin() && !this.isNew() && (this.isFinished() || this.isSuspended()),
+    () => this.isAdminReal() && !this.isNew() && (this.isFinished() || this.isSuspended()),
+  );
+
+  // --- Devoluciones por cancelación/suspensión (SOLO admin REAL, tab Cuentas) ---
+  protected readonly refunding = signal(false);
+  protected readonly refundResult = signal<EventRefundResultDto | null>(null);
+  protected readonly refundError = signal<string | null>(null);
+  /** Token que fuerza recargar el settlement embebido tras devolver. */
+  protected readonly settlementReloadToken = signal(0);
+  /**
+   * Botones de devolución visibles SOLO para el admin REAL (no impersonando) y solo
+   * cuando el evento está suspendido o cancelado (requisito del backend).
+   */
+  protected readonly canRefund = computed(
+    () => this.isAdminReal() && !this.isNew() && (this.isSuspended() || this.isCancelled()),
   );
 
   // --- Guard de cambios sin guardar (datos + configuración) ---
@@ -1077,6 +1105,77 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
           status === 409
             ? this.translate.instant('promoter.edit.cashTransferAlready')
             : this.backendMessage(err, 'promoter.edit.cashTransferError'),
+        );
+      },
+    });
+  }
+
+  // --- Devoluciones por cancelación/suspensión (SOLO admin REAL) ---
+  /** Confirmación para devolver TODAS las órdenes pagadas del evento. */
+  protected askRefundAll(): void {
+    this.confirm.ask({
+      title: this.translate.instant('promoter.edit.refundAllTitle'),
+      message: this.translate.instant('promoter.edit.refundAllConfirm', {
+        name: this.event()?.name ?? this.translate.instant('promoter.edit.thisEvent'),
+      }),
+      confirmLabel: this.translate.instant('promoter.edit.refundAllBtn'),
+      confirmIcon: 'accounts',
+      titleIcon: 'accounts',
+      danger: true,
+      auditAction: 'event.refund.all',
+      auditResource: this.eventId(),
+      onConfirm: () => this.refund(),
+    });
+  }
+
+  /** Confirmación para devolver UNA orden concreta. */
+  protected askRefundOne(t: EventTransactionDto): void {
+    this.confirm.ask({
+      title: this.translate.instant('promoter.edit.refundOneTitle'),
+      message: this.translate.instant('promoter.edit.refundOneConfirm', {
+        buyer: t.buyerName || t.buyerEmail || this.translate.instant('promoter.tx.anonymous'),
+      }),
+      confirmLabel: this.translate.instant('promoter.edit.refundOneBtn'),
+      confirmIcon: 'accounts',
+      titleIcon: 'accounts',
+      danger: true,
+      auditAction: 'event.refund.one',
+      auditResource: t.id,
+      onConfirm: () => this.refund(t.id),
+    });
+  }
+
+  /**
+   * Tramita la devolución (una orden si `orderId`, o todas). Acredita SOLO el neto
+   * a la wallet de cada comprador. Tras completar refresca settlement + lista y
+   * muestra el resumen por toast.
+   */
+  private refund(orderId?: string): void {
+    this.refunding.set(true);
+    this.refundError.set(null);
+    this.api.refundEvent(this.eventId(), orderId).subscribe({
+      next: (res) => {
+        this.refunding.set(false);
+        this.refundResult.set(res);
+        this.toasts.success(
+          this.translate.instant('promoter.edit.refundDone', {
+            n: res.refundedOrders,
+            amount: res.totalNetRefunded,
+            currency: res.currency,
+          }),
+        );
+        // Refresca la liquidación embebida (refundsIssued) y la lista de transacciones.
+        this.settlementReloadToken.update((v) => v + 1);
+        this.loadTransactions();
+      },
+      error: (err) => {
+        this.refunding.set(false);
+        const status = (err as { status?: number })?.status;
+        // 409 = el evento no está suspendido/cancelado (mensaje claro); otros = backend.
+        this.refundError.set(
+          status === 409
+            ? this.translate.instant('promoter.edit.refundNotEligible')
+            : this.backendMessage(err, 'promoter.edit.refundError'),
         );
       },
     });

@@ -222,21 +222,41 @@ export const promoter = {
     // Sugerencia al chocar por conflicto (cambio de salón con boletos vendidos)
     suggestSuspendToReorg:
       'Para reorganizar el salón, la plantilla o los asientos, suspende primero el evento (el suspendido sí permite reconfigurar).',
-    // Cierre + transferencia de saldos de caja (SOLO admin) — v3.10 · GVI
-    cashTransferHeading: 'Finalizar evento y transferir saldos de caja',
+    // Cierre + transferencia de saldos de caja (SOLO admin REAL) — v3.10 · GVI / v3.11 · F2
+    cashTransferHeading: 'Evento finalizado — pagar al promotor',
     cashTransferIntro:
-      'Cierra el evento y transfiere su saldo neto de caja al wallet del promotor. Genera los asientos contables (partida doble) y marca el evento como finalizado. Es idempotente: no se puede transferir dos veces.',
-    cashTransferBtn: 'Finalizar y transferir al promotor',
+      'Marca el evento como finalizado y transfiere el total recaudado al wallet del promotor, cerrando el cobro. Genera los asientos contables (partida doble) y notifica al promotor por correo. Es idempotente: no se puede transferir dos veces.',
+    cashTransferBtn: 'Evento finalizado',
     cashTransferring: 'Transfiriendo…',
-    cashTransferTitle: 'Finalizar evento y transferir',
+    cashTransferTitle: 'Marcar evento finalizado',
     cashTransferConfirm:
-      '¿Cerrar "{{name}}" y transferir su saldo de caja al wallet del promotor? Esta acción es contable y no se puede deshacer.',
-    cashTransferConfirmBtn: 'Sí, finalizar y transferir',
-    cashTransferDone: 'Saldo de caja transferido al promotor.',
+      '¿Marcar "{{name}}" como finalizado y transferir el total recaudado al wallet del promotor? Se cerrará el cobro y se notificará al promotor por correo. Esta acción es contable y no se puede deshacer.',
+    cashTransferConfirmBtn: 'Sí, finalizar y pagar',
+    cashTransferDone: 'Total transferido al promotor. Se le notificó por correo.',
     cashTransferSummary: 'Transferido: {{currency}} {{amount}}',
     cashTransferState: 'Estado del evento: {{state}}',
     cashTransferAlready: 'El saldo de este evento ya fue transferido.',
     cashTransferError: 'No se pudo finalizar y transferir el saldo del evento.',
+    // Devoluciones por cancelación/suspensión (SOLO admin REAL) — v3.11 · F1
+    refundHeading: 'Devoluciones',
+    refundIntro:
+      'Como el evento está suspendido o cancelado, puedes tramitar la devolución a los compradores. Se acredita SOLO el NETO del boleto a la wallet de cada cliente; la cuota de servicio (plataforma + pasarela + IVA) no se reembolsa. Es idempotente.',
+    refundAllTitle: 'Devolver a todos',
+    refundAllConfirm:
+      '¿Tramitar la devolución de TODAS las órdenes pagadas de "{{name}}"? Se acreditará SOLO el neto del boleto a la wallet de cada comprador (la cuota de servicio no se devuelve).',
+    refundAllBtn: 'Tramitar devolución de todas',
+    refundOneTitle: 'Devolver esta orden',
+    refundOneConfirm:
+      '¿Devolver la orden de {{buyer}}? Se acreditará SOLO el neto del boleto a su wallet (la cuota de servicio no se devuelve).',
+    refundOneBtn: 'Sí, devolver',
+    refundBtn: 'Devolver',
+    refundColAction: 'Devolución',
+    refunding: 'Procesando devolución…',
+    refundDone: 'Devoluciones tramitadas: {{n}} · Neto acreditado: {{currency}} {{amount}}',
+    refundSummary:
+      'Devueltas: {{refunded}} · Omitidas (ya devueltas): {{skipped}} · Neto total: {{currency}} {{amount}}',
+    refundNotEligible: 'Solo se pueden tramitar devoluciones de un evento suspendido o cancelado.',
+    refundError: 'No se pudo tramitar la devolución.',
   },
 
   // --- Editor de asientos (Konva) ---

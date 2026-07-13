@@ -14,7 +14,7 @@ import { I18nService } from '../../core/i18n/i18n.service';
 import { EventEditPage } from './event-edit.page';
 
 /** Sesión de prueba: por defecto el promotor DUEÑO del evento (id 'owner-1'). */
-function sessionMock(user: { id: string; roles: string[] }): SessionStore {
+function sessionMock(user: { id: string; roles: string[]; impersonatedBy?: string }): SessionStore {
   return {
     user: () => user,
     hasRole: (r: string) => user.roles.includes(r),
@@ -52,7 +52,10 @@ describe('EventEditPage (v3)', () => {
     api: Record<string, unknown> = {},
     qp: Record<string, string> = {},
     paramId: string | null = 'e1',
-    session: { id: string; roles: string[] } = { id: 'owner-1', roles: ['promoter'] },
+    session: { id: string; roles: string[]; impersonatedBy?: string } = {
+      id: 'owner-1',
+      roles: ['promoter'],
+    },
     admin: Record<string, unknown> = {},
   ) {
     queryParams = qp;
@@ -966,6 +969,118 @@ describe('EventEditPage (v3)', () => {
     expect(
       (fixture.nativeElement as HTMLElement).querySelector('[data-testid="cash-transfer-error"]'),
     ).not.toBeNull();
+  });
+
+  // --- v3.11 · B3: el salón asignado se hidrata en el select ---
+  it('B3: al cargar un evento con hallId, el select de salón lo refleja', async () => {
+    await setup({
+      get: () => of({ ...EVENT, hallId: 'h1' }),
+    });
+    fixture.componentInstance['halls'].set([
+      { id: 'h1', name: 'Teatro', address: 'Zona 1', lat: 14.6, lng: -90.5, city: 'GT', notes: null, seatTemplateId: null, status: 'published', hidden: false, disabled: false, createdAt: '', updatedAt: '' },
+    ]);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    // El estado del formulario refleja el salón asignado…
+    expect(fixture.componentInstance['d'].hallId()).toBe('h1');
+    // …y el <select> lo muestra seleccionado.
+    const select = (fixture.nativeElement as HTMLElement).querySelector<HTMLSelectElement>('[data-testid="ed-hall"]');
+    expect(select?.value).toBe('h1');
+  });
+
+  it('B3: guardar reenvía el hallId hidratado (no lo desasigna)', async () => {
+    const update = jasmine.createSpy('u').and.returnValue(of({ ...EVENT, hallId: 'h1' }));
+    await setup({ update, get: () => of({ ...EVENT, hallId: 'h1' }) });
+    fixture.componentInstance['saveData']();
+    const arg = update.calls.mostRecent().args[1] as Record<string, unknown>;
+    expect(arg['hallId']).toBe('h1');
+  });
+
+  // --- v3.11 · F2: finalizar OCULTO al impersonar ---
+  it('F2: admin IMPERSONANDO NO ve la sección de finalizar/pagar', async () => {
+    await setup({ get: () => of({ ...EVENT, status: 'finished' }) }, {}, 'e1', {
+      id: 'owner-1',
+      roles: ['admin', 'promoter'],
+      impersonatedBy: 'admin-9',
+    });
+    fixture.componentInstance['selectTab']('cuentas');
+    fixture.detectChanges();
+    expect(inst()['isAdminReal']()).toBe(false);
+    expect(inst()['canFinalizeCash']()).toBe(false);
+    expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="cash-transfer"]')).toBeNull();
+  });
+
+  // --- v3.11 · F1: devoluciones (SOLO admin real, suspendido/cancelado) ---
+  it('F1: el PROMOTOR NO ve los botones de devolución', async () => {
+    await setup({ get: () => of({ ...EVENT, status: 'suspended' }) });
+    fixture.componentInstance['selectTab']('cuentas');
+    fixture.detectChanges();
+    expect(inst()['canRefund']()).toBe(false);
+    expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="refunds-block"]')).toBeNull();
+  });
+
+  it('F1: admin IMPERSONANDO NO ve los botones de devolución', async () => {
+    await setup({ get: () => of({ ...EVENT, status: 'cancelled' }) }, {}, 'e1', {
+      id: 'owner-1',
+      roles: ['admin', 'promoter'],
+      impersonatedBy: 'admin-9',
+    });
+    fixture.componentInstance['selectTab']('cuentas');
+    fixture.detectChanges();
+    expect(inst()['canRefund']()).toBe(false);
+  });
+
+  it('F1: admin real en evento suspendido ve el panel y "devolver todas" llama refundEvent sin orderId', async () => {
+    const refundEvent = jasmine.createSpy('r').and.returnValue(
+      of({ eventId: 'e1', currency: 'GTQ', refundedOrders: 3, skipped: 1, totalNetRefunded: '300.00', orders: [] }),
+    );
+    await setup({ refundEvent, get: () => of({ ...EVENT, status: 'suspended' }) }, {}, 'e1', {
+      id: 'admin-9',
+      roles: ['admin'],
+    });
+    fixture.componentInstance['selectTab']('cuentas');
+    fixture.detectChanges();
+    expect(inst()['canRefund']()).toBe(true);
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="refunds-block"]')).not.toBeNull();
+    fixture.componentInstance['askRefundAll']();
+    fixture.detectChanges();
+    fixture.componentInstance['confirm'].accept();
+    fixture.detectChanges();
+    expect(refundEvent).toHaveBeenCalledWith('e1', undefined);
+    expect(el.querySelector('[data-testid="refund-result"]')).not.toBeNull();
+    expect(lastToast()?.kind).toBe('success');
+  });
+
+  it('F1: "devolver" por orden llama refundEvent con el orderId', async () => {
+    const refundEvent = jasmine.createSpy('r').and.returnValue(
+      of({ eventId: 'e1', currency: 'GTQ', refundedOrders: 1, skipped: 0, totalNetRefunded: '100.00', orders: [] }),
+    );
+    await setup({ refundEvent, get: () => of({ ...EVENT, status: 'suspended' }) }, {}, 'e1', {
+      id: 'admin-9',
+      roles: ['admin'],
+    });
+    fixture.componentInstance['askRefundOne']({ id: 'o7', buyerName: 'Ana', buyerEmail: null } as never);
+    fixture.detectChanges();
+    fixture.componentInstance['confirm'].accept();
+    fixture.detectChanges();
+    expect(refundEvent).toHaveBeenCalledWith('e1', 'o7');
+  });
+
+  it('F1: 409 (no elegible) muestra mensaje claro', async () => {
+    const refundEvent = jasmine.createSpy('r').and.returnValue(throwError(() => ({ status: 409 })));
+    await setup({ refundEvent, get: () => of({ ...EVENT, status: 'suspended' }) }, {}, 'e1', {
+      id: 'admin-9',
+      roles: ['admin'],
+    });
+    fixture.componentInstance['selectTab']('cuentas');
+    fixture.detectChanges();
+    fixture.componentInstance['askRefundAll']();
+    fixture.detectChanges();
+    fixture.componentInstance['confirm'].accept();
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="refund-error"]')).not.toBeNull();
   });
 
   // --- i18n: cambiar el idioma traduce los textos ---

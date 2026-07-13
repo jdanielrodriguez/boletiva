@@ -223,21 +223,41 @@ export const promoter = {
     // Suggestion on a conflict (changing venue with sold tickets)
     suggestSuspendToReorg:
       'To reorganize the venue, template or seats, suspend the event first (a suspended event can be reconfigured).',
-    // Close event + transfer cash balances (ADMIN only) — v3.10 · GVI
-    cashTransferHeading: 'Finalize event and transfer cash balances',
+    // Close event + transfer cash balances (REAL ADMIN only) — v3.10 · GVI / v3.11 · F2
+    cashTransferHeading: 'Event finished — pay the promoter',
     cashTransferIntro:
-      "Close the event and transfer its net cash balance to the promoter's wallet. It posts the double-entry ledger entries and marks the event as finished. It is idempotent: it cannot be transferred twice.",
-    cashTransferBtn: 'Finalize and transfer to promoter',
+      "Marks the event as finished and transfers the total collected to the promoter's wallet, closing the cash flow. It posts the double-entry ledger entries and notifies the promoter by email. It is idempotent: it cannot be transferred twice.",
+    cashTransferBtn: 'Event finished',
     cashTransferring: 'Transferring…',
-    cashTransferTitle: 'Finalize event and transfer',
+    cashTransferTitle: 'Mark event as finished',
     cashTransferConfirm:
-      "Close \"{{name}}\" and transfer its cash balance to the promoter's wallet? This is an accounting action and cannot be undone.",
-    cashTransferConfirmBtn: 'Yes, finalize and transfer',
-    cashTransferDone: 'Cash balance transferred to the promoter.',
+      "Mark \"{{name}}\" as finished and transfer the total collected to the promoter's wallet? This closes the cash flow and notifies the promoter by email. This is an accounting action and cannot be undone.",
+    cashTransferConfirmBtn: 'Yes, finalize and pay',
+    cashTransferDone: 'Total transferred to the promoter. They were notified by email.',
     cashTransferSummary: 'Transferred: {{currency}} {{amount}}',
     cashTransferState: 'Event status: {{state}}',
     cashTransferAlready: "This event's balance has already been transferred.",
     cashTransferError: "Could not finalize and transfer the event's balance.",
+    // Refunds on cancellation/suspension (REAL ADMIN only) — v3.11 · F1
+    refundHeading: 'Refunds',
+    refundIntro:
+      'Since the event is suspended or cancelled, you can process refunds to buyers. Only the ticket NET is credited to each buyer\'s wallet; the service fee (platform + gateway + VAT) is not refunded. It is idempotent.',
+    refundAllTitle: 'Refund everyone',
+    refundAllConfirm:
+      'Process a refund for ALL paid orders of "{{name}}"? Only the ticket net will be credited to each buyer\'s wallet (the service fee is not refunded).',
+    refundAllBtn: 'Refund all orders',
+    refundOneTitle: 'Refund this order',
+    refundOneConfirm:
+      "Refund {{buyer}}'s order? Only the ticket net will be credited to their wallet (the service fee is not refunded).",
+    refundOneBtn: 'Yes, refund',
+    refundBtn: 'Refund',
+    refundColAction: 'Refund',
+    refunding: 'Processing refund…',
+    refundDone: 'Refunds processed: {{n}} · Net credited: {{currency}} {{amount}}',
+    refundSummary:
+      'Refunded: {{refunded}} · Skipped (already refunded): {{skipped}} · Total net: {{currency}} {{amount}}',
+    refundNotEligible: 'Refunds can only be processed for a suspended or cancelled event.',
+    refundError: 'Could not process the refund.',
   },
 
   // --- Seat editor (Konva) ---

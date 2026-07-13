@@ -109,6 +109,11 @@ export type EventSettlementDto = Schemas['EventSettlementDto'];
 export type EventTransactionDto = Schemas['EventTransactionDto'];
 export type EventTransactionPageDto = Schemas['EventTransactionPageDto'];
 
+// --- Devoluciones por cancelación/suspensión del evento (admin) ---
+export type EventRefundDto = Schemas['EventRefundDto'];
+export type EventRefundResultDto = Schemas['EventRefundResultDto'];
+export type RefundedOrderDto = Schemas['RefundedOrderDto'];
+
 // --- Pasarelas de pago (admin) ---
 export type GatewayResponseDto = Schemas['GatewayResponseDto'];
 export type CreateGatewayDto = Schemas['CreateGatewayDto'];
