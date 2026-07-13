@@ -189,6 +189,20 @@ export class Account {
   protected readonly withdrawals = signal<WithdrawalResponseDto[]>([]);
   protected readonly withdrawAmount = signal<number | null>(null);
   protected readonly withdrawing = signal(false);
+  /**
+   * ¿El usuario es "vendedor" (promotor/admin)? Determina la información del wallet
+   * y si ve los retiros: el backend responde 403 a un buyer en /wallet/withdrawals,
+   * así que el cliente NO debe ver "mis retiros" ni "solicitar retiro".
+   */
+  protected readonly isSellerRole = computed(() => this.session.hasAnyRole(['promoter', 'admin']));
+  /** Modal informativo del origen del saldo (contenido según rol). */
+  protected readonly showWalletInfo = signal(false);
+  protected openWalletInfo(): void {
+    this.showWalletInfo.set(true);
+  }
+  protected closeWalletInfo(): void {
+    this.showWalletInfo.set(false);
+  }
   /** Filtros de la tabla de retiros (estado/fecha). */
   protected readonly wdFilterStatus = signal<string>('');
   protected readonly wdFilterDate = signal<string>('');

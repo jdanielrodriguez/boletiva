@@ -33,6 +33,8 @@ interface Overrides {
   auth?: Record<string, unknown>;
   cardsApi?: Record<string, unknown>;
   section?: string;
+  /** Roles del usuario en sesión (default buyer). Los vendedores ven los retiros. */
+  roles?: string[];
 }
 
 describe('Account (mi cuenta)', () => {
@@ -43,6 +45,7 @@ describe('Account (mi cuenta)', () => {
 
   async function setup(o: Overrides = {}) {
     setUser = jasmine.createSpy('setUser');
+    const roles = o.roles ?? ['buyer'];
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
@@ -77,8 +80,9 @@ describe('Account (mi cuenta)', () => {
         {
           provide: SessionStore,
           useValue: {
-            user: () => ({ firstName: 'Ana', lastName: 'P', email: 'ana@correo.com' }),
+            user: () => ({ firstName: 'Ana', lastName: 'P', email: 'ana@correo.com', roles }),
             setUser,
+            hasAnyRole: (rs: string[]) => rs.some((r) => roles.includes(r)),
           },
         },
         {
@@ -183,21 +187,53 @@ describe('Account (mi cuenta)', () => {
     expect(note.toLowerCase()).toContain('tarjeta');
   });
 
-  it('solicitar retiro sin monto muestra toast warning', async () => {
+  it('el icono (i) del wallet abre el modal informativo del origen del saldo', async () => {
     await setup();
+    go('menu-wallet');
+    expect(el.querySelector('[data-testid="wallet-info-modal"]')).toBeNull();
+    go('wallet-source-tip');
+    const modal = el.querySelector('[data-testid="wallet-info-modal"]');
+    expect(modal).not.toBeNull();
+    // Cliente: menciona devoluciones/reventas y que NO se recarga con tarjeta.
+    expect(modal?.textContent?.toLowerCase()).toContain('devolución');
+    expect(modal?.textContent?.toLowerCase()).toContain('reventa');
+    go('wallet-info-close');
+    expect(el.querySelector('[data-testid="wallet-info-modal"]')).toBeNull();
+  });
+
+  it('CLIENTE (buyer) NO ve retiros ni el formulario, pero SÍ ve el saldo', async () => {
+    await setup({ roles: ['buyer'] });
+    go('menu-wallet');
+    expect(el.querySelector('[data-testid="wallet-balance"]')?.textContent).toContain('50.00');
+    // Sin retiros ni solicitud: el backend responde 403 a un buyer.
+    expect(el.querySelector('[data-testid="request-withdrawal"]')).toBeNull();
+    expect(el.querySelector('[data-testid="withdrawals-empty"]')).toBeNull();
+    expect(el.querySelector('[data-testid="withdrawals-list"]')).toBeNull();
+    // Pero sí conserva la mini-facturación de movimientos.
+    expect(el.querySelector('[data-testid="wallet-orders-empty"]')).not.toBeNull();
+  });
+
+  it('PROMOTOR sí ve el formulario de solicitar retiro', async () => {
+    await setup({ roles: ['promoter'] });
+    go('menu-wallet');
+    expect(el.querySelector('[data-testid="request-withdrawal"]')).not.toBeNull();
+  });
+
+  it('solicitar retiro sin monto muestra toast warning', async () => {
+    await setup({ roles: ['promoter'] });
     go('menu-wallet');
     go('request-withdrawal');
     expect(lastToast()?.kind).toBe('warning');
   });
 
   it('wallet muestra preview de comisión/neto al ingresar monto', async () => {
-    await setup();
+    await setup({ roles: ['promoter'] });
     go('menu-wallet');
     fixture.componentInstance['withdrawAmount'].set(100);
     fixture.detectChanges();
     const preview = el.querySelector('[data-testid="withdraw-preview"]')?.textContent ?? '';
-    expect(preview).toContain('6%'); // usuario sin rol promotor → 6%
-    expect(preview).toContain('94.00'); // neto estimado 100 - 6%
+    expect(preview).toContain('3%'); // promotor → 3%
+    expect(preview).toContain('97.00'); // neto estimado 100 - 3%
   });
 
   it('wallet: ver transacción navega a la vista de detalle de la orden', async () => {
@@ -212,7 +248,7 @@ describe('Account (mi cuenta)', () => {
 
   it('solicitar retiro con monto llama al API y notifica', async () => {
     const requestWithdrawal = jasmine.createSpy('req').and.returnValue(of({}));
-    await setup({ wallet: { requestWithdrawal } });
+    await setup({ roles: ['promoter'], wallet: { requestWithdrawal } });
     go('menu-wallet');
     fixture.componentInstance['withdrawAmount'].set(100);
     go('request-withdrawal');
@@ -317,7 +353,7 @@ describe('Account (mi cuenta)', () => {
   });
 
   it('wallet: sin retiros muestra estado vacío BONITO (empty-state)', async () => {
-    await setup();
+    await setup({ roles: ['promoter'] });
     go('menu-wallet');
     const empty = el.querySelector('[data-testid="withdrawals-empty"]');
     expect(empty).not.toBeNull();

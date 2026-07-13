@@ -290,6 +290,7 @@
                 type="button"
                 class="info-dot"
                 data-testid="wallet-source-tip"
+                (click)="openWalletInfo()"
                 [attr.aria-label]="'account.wallet.sourceTipAria' | translate"
                 [title]="'account.wallet.sourceTipTitle' | translate"
               >i</button>
@@ -330,6 +331,8 @@
             }
           </div>
 
+          <!-- Retiros: solo para roles vendedores (promotor/admin); el cliente no los ve -->
+          @if (isSellerRole()) {
           <!-- Luego la tabla de retiros con filtros -->
           <div class="card-block">
             <h3>{{ 'account.wallet.myWithdrawals' | translate }}</h3>
@@ -397,6 +400,7 @@
               </button>
             </form>
           </div>
+          }
         }
 
         @case ('activos') {
@@ -576,6 +580,20 @@
       }
     </div>
   </div>
+
+  @if (showWalletInfo()) {
+    <div class="modal-backdrop" data-testid="wallet-info-modal" (click)="closeWalletInfo()">
+      <div class="modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+        <h3>{{ 'account.wallet.infoTitle' | translate }}</h3>
+        <p>{{ (isSellerRole() ? 'account.wallet.infoSellerBody' : 'account.wallet.infoClientBody') | translate }}</p>
+        <div class="ev-card-actions">
+          <button type="button" class="btn primary" (click)="closeWalletInfo()" data-testid="wallet-info-close" [title]="'common.close' | translate">
+            <app-icon name="cancel" /> {{ 'common.close' | translate }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
 
   @if (transferTicket(); as tt) {
     <app-ticket-transfer-modal
