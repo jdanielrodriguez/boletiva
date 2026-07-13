@@ -1,6 +1,17 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../infra/prisma/prisma.service';
-import { SETTINGS_BY_KEY, SETTINGS_CATALOG, SettingDef } from './settings.catalog';
+import {
+  PUBLIC_CONFIG_KEYS,
+  SETTINGS_BY_KEY,
+  SETTINGS_CATALOG,
+  SettingDef,
+} from './settings.catalog';
+
+/** Config pública (sin login) que el frontend lee para render anónimo. */
+export interface PublicConfig {
+  allowVisitorLangSwitch: boolean;
+  showHomeCategories: boolean;
+}
 
 export interface SettingView {
   key: string;
@@ -27,6 +38,26 @@ export class SettingsService {
     });
     const byKey = new Map(rows.map((r) => [r.key, r.value]));
     return SETTINGS_CATALOG.map((def) => this.toView(def, byKey.get(def.key)));
+  }
+
+  /**
+   * Config pública que el frontend lee SIN login (render anónimo cacheable): flags
+   * booleanos de UI. Resuelve cada clave con su valor en BD o el default del catálogo.
+   */
+  async publicConfig(): Promise<PublicConfig> {
+    const keys = Object.values(PUBLIC_CONFIG_KEYS);
+    const rows = await this.prisma.setting.findMany({ where: { key: { in: keys } } });
+    const byKey = new Map(rows.map((r) => [r.key, r.value]));
+    const resolveBool = (key: string): boolean => {
+      const def = SETTINGS_BY_KEY.get(key);
+      const raw = byKey.get(key);
+      if (typeof raw === 'boolean') return raw;
+      return Boolean(def?.default);
+    };
+    return {
+      allowVisitorLangSwitch: resolveBool(PUBLIC_CONFIG_KEYS.allowVisitorLangSwitch),
+      showHomeCategories: resolveBool(PUBLIC_CONFIG_KEYS.showHomeCategories),
+    };
   }
 
   async get(key: string): Promise<SettingView> {

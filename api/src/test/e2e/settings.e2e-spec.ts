@@ -38,13 +38,45 @@ describe('Configuraciones (settings) e2e', () => {
   const http = () => request(app.getHttpServer());
   const bearer = (t: string) => ({ Authorization: `Bearer ${t}` });
 
-  it('admin lista el catálogo (10 claves, con value/default/type)', async () => {
+  it('admin lista el catálogo (12 claves, con value/default/type)', async () => {
     const res = await http().get('/api/v1/settings').set(bearer(adminToken)).expect(200);
-    expect(res.body.length).toBe(10);
+    expect(res.body.length).toBe(12);
     const item = res.body.find((s: { key: string }) => s.key === 'costshare.default_pct');
     expect(item).toBeDefined();
     expect(item.type).toBe('pct');
     expect(item).toHaveProperty('default');
+    // Los flags nuevos de UI están en el catálogo como bool con su default.
+    const lang = res.body.find((s: { key: string }) => s.key === 'i18n.allow_visitor_switch');
+    expect(lang).toMatchObject({ type: 'bool', default: false });
+    const cats = res.body.find((s: { key: string }) => s.key === 'home.show_categories');
+    expect(cats).toMatchObject({ type: 'bool', default: true });
+  });
+
+  it('GET /public/config: lectura SIN login → defaults (visitante sin idioma, categorías sí)', async () => {
+    const res = await http().get('/api/v1/public/config').expect(200);
+    expect(res.body).toMatchObject({ allowVisitorLangSwitch: false, showHomeCategories: true });
+  });
+
+  it('config pública refleja la edición admin de los flags (RBAC del PATCH incluido)', async () => {
+    // Un promotor no puede tocar los flags.
+    await http()
+      .patch('/api/v1/settings/i18n.allow_visitor_switch')
+      .set(bearer(promoterToken))
+      .send({ value: true })
+      .expect(403);
+    // El admin los activa/ajusta.
+    await http()
+      .patch('/api/v1/settings/i18n.allow_visitor_switch')
+      .set(bearer(adminToken))
+      .send({ value: true })
+      .expect(200);
+    await http()
+      .patch('/api/v1/settings/home.show_categories')
+      .set(bearer(adminToken))
+      .send({ value: false })
+      .expect(200);
+    const res = await http().get('/api/v1/public/config').expect(200);
+    expect(res.body).toMatchObject({ allowVisitorLangSwitch: true, showHomeCategories: false });
   });
 
   it('RBAC: sin token → 401; promotor → 403', async () => {

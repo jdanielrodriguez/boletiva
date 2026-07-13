@@ -86,7 +86,27 @@ export const SETTINGS_CATALOG: SettingDef[] = [
     default: true,
     description: 'Exigir autorización de admin para operar como promotor (false = modo pruebas, auto-aprueba)',
   },
+  {
+    key: 'i18n.allow_visitor_switch',
+    type: 'bool',
+    default: false,
+    description:
+      'Permitir que un VISITANTE (sin sesión) cambie el idioma con la barrita superior. ' +
+      'false = el visitante solo ve español. Un usuario logueado siempre ve su idioma.',
+  },
+  {
+    key: 'home.show_categories',
+    type: 'bool',
+    default: true,
+    description: 'Mostrar las categorías en la página principal (inicio).',
+  },
 ];
+
+/** Claves expuestas al frontend SIN login (config pública). */
+export const PUBLIC_CONFIG_KEYS = {
+  allowVisitorLangSwitch: 'i18n.allow_visitor_switch',
+  showHomeCategories: 'home.show_categories',
+} as const;
 
 export const SETTINGS_BY_KEY: Map<string, SettingDef> = new Map(
   SETTINGS_CATALOG.map((s) => [s.key, s]),

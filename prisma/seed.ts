@@ -67,6 +67,16 @@ async function seedSettings(): Promise<void> {
       value: 0,
       description: 'Cargo EXTRA por generar un pase de wallet (0 = sin cargo). Se reparte prom↔plat',
     },
+    {
+      key: 'i18n.allow_visitor_switch',
+      value: false,
+      description: 'Permitir que un visitante (sin sesión) cambie el idioma de la UI',
+    },
+    {
+      key: 'home.show_categories',
+      value: true,
+      description: 'Mostrar las categorías en la página principal (inicio)',
+    },
   ];
   for (const s of defaults) {
     await prisma.setting.upsert({
