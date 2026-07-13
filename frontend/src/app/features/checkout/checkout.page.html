@@ -188,7 +188,7 @@
                     @if (gw.installmentOptions.length > 1) {
                       <span class="gateway-badge">{{ 'checkout.installmentsBadge' | translate }}</span>
                     }
-                    @if (gw.isPlatformDefault) {
+                    @if (gw.recommended) {
                       <span class="gateway-badge default">{{ 'checkout.recommended' | translate }}</span>
                     }
                   </button>

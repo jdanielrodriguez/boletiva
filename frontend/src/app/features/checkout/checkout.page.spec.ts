@@ -124,6 +124,64 @@ describe('CheckoutPage', () => {
     });
   });
 
+  it('preselecciona la pasarela ASIGNADA al evento (recommended) aunque no sea la default', async () => {
+    const twoGateways = {
+      ...OPTIONS,
+      eventGatewayId: 'gw2',
+      gateways: [
+        { ...OPTIONS.gateways[0], gatewayId: 'gw1', isPlatformDefault: true, recommended: false },
+        {
+          gatewayId: 'gw2',
+          name: 'Pagalo',
+          provider: 'pagalo',
+          isPlatformDefault: false,
+          recommended: true,
+          total: '129.68',
+          serviceFee: '16.48',
+          installmentOptions: [{ installments: 1, total: '129.68', serviceFee: '16.48' }],
+        },
+      ],
+    };
+    orders = jasmine.createSpyObj<OrdersApi>('OrdersApi', ['get', 'paymentOptions', 'pay']);
+    orders.get.and.returnValue(of(ORDER as unknown as OrderResponseDto));
+    orders.paymentOptions.and.returnValue(
+      of(twoGateways as unknown as PaymentOptionsResponseDto),
+    );
+    orders.pay.and.returnValue(of({ status: 'pending' } as unknown as PayOrderResponseDto));
+    methods = jasmine.createSpyObj<PaymentMethodsApi>('PaymentMethodsApi', ['list']);
+    methods.list.and.returnValue(of([] as PaymentMethodResponseDto[]));
+    walletApi = jasmine.createSpyObj<WalletApi>('WalletApi', ['balance']);
+    walletApi.balance.and.returnValue(of({ balance: '0.00', currency: 'GTQ' } as WalletBalanceResponseDto));
+    sse = new Subject<OrderStreamEvent>();
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        provideRouter([]),
+        ...provideI18nTesting(),
+        { provide: OrdersApi, useValue: orders },
+        { provide: PaymentMethodsApi, useValue: methods },
+        { provide: WalletApi, useValue: walletApi },
+        { provide: OrderStreamService, useValue: { stream: () => sse.asObservable() } },
+        { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ orderId: 'o1' })) } },
+      ],
+    });
+    initI18nTesting();
+    fixture = TestBed.createComponent(CheckoutPage);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    el = fixture.nativeElement as HTMLElement;
+    // La opción marcada como recomendada (gw2) queda seleccionada; su badge se muestra.
+    const selected = el.querySelector('.gateway-option.selected .gateway-name');
+    expect(selected?.textContent).toContain('Pagalo');
+    (el.querySelector('[data-testid="pay-confirm"]') as HTMLButtonElement).click();
+    expect(orders.pay).toHaveBeenCalledWith('o1', {
+      gatewayId: 'gw2',
+      installments: 1,
+      useWallet: false,
+    });
+  });
+
   it('tras enviar el pago muestra el loading continuo mientras sigue pendiente', async () => {
     await setup();
     expect(el.querySelector('[data-testid="checkout-confirming"]')).toBeNull();

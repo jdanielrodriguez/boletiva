@@ -176,7 +176,13 @@ export class CheckoutPage implements OnDestroy {
       const d = this.data();
       if (!d || this.loaded()) return;
       this.status.set(d.order.status as OrderStatus);
-      const def = d.options.gateways.find((g) => g.isPlatformDefault) ?? d.options.gateways[0];
+      // Preselecciona la pasarela ASIGNADA al evento (recommended / eventGatewayId);
+      // si el backend no la marca, cae al default de plataforma o al primero.
+      const gws = d.options.gateways;
+      const eventGw =
+        gws.find((g) => g.recommended) ??
+        gws.find((g) => g.gatewayId === d.options.eventGatewayId);
+      const def = eventGw ?? gws.find((g) => g.isPlatformDefault) ?? gws[0];
       this.gatewayId.set(def?.gatewayId ?? null);
       this.loaded.set(true);
     });

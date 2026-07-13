@@ -1144,7 +1144,8 @@ export interface paths {
         };
         /** Asientos de la localidad */
         get: operations["SeatsController_list_v1"];
-        put?: never;
+        /** Reemplaza (migra) el mapa de asientos por un layout nuevo, conservando los vendidos */
+        put: operations["SeatsController_replace_v1"];
         /** Crea asientos en lote (con coordenadas opcionales) */
         post: operations["SeatsController_bulk_v1"];
         /** Elimina asientos por id */
@@ -1336,7 +1337,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Tramita devoluciones por cancelación/suspensión del evento (SOLO admin). Acredita SOLO el NETO del boleto a la wallet del comprador (la cuota de servicio no se devuelve). Con body.orderId devuelve una orden; sin él, todas las pagadas. Idempotente. */
+        /** Tramita devoluciones por cancelación/suspensión del evento (SOLO el PROMOTOR DUEÑO; un admin real está excluido, un admin impersonando al dueño sí puede). Acredita SOLO el NETO del boleto a la wallet del comprador (la cuota de servicio no se devuelve). Con body.orderId devuelve una orden; sin él, todas las pagadas. Idempotente. */
         post: operations["OrdersController_refundEvent_v1"];
         delete?: never;
         options?: never;
@@ -4910,6 +4911,11 @@ export interface components {
              */
             serviceFee: string;
             /**
+             * @description Servicios TOTALES que NO van al promotor (plataforma + pasarela + fijos + IVA). Identidad exacta: gross = services + net. El promotor ve: recaudado − servicios = neto.
+             * @example 9994.72
+             */
+            services: string;
+            /**
              * @description IVA recaudado
              * @example 4104.00
              */
@@ -5907,6 +5913,11 @@ export interface components {
              */
             isPlatformDefault: boolean;
             /**
+             * @description true = pasarela EFECTIVA/asignada al evento para esta orden. El frontend debe preseleccionarla en el checkout.
+             * @example true
+             */
+            recommended: boolean;
+            /**
              * @description Total en 1 pago (el comprador paga igual)
              * @example 129.68
              */
@@ -5929,6 +5940,12 @@ export interface components {
              * @example false
              */
             absorbedByPromoter: boolean;
+            /**
+             * Format: uuid
+             * @description Pasarela EFECTIVA/asignada al evento (congelada de la orden → congelada del evento → elegida por el promotor → default de plataforma). El frontend preselecciona el gateway cuyo id coincide (o el item con recommended:true). null si no hay ninguna configurada.
+             * @example a1b2c3d4-0000-0000-0000-000000000000
+             */
+            eventGatewayId: string | null;
             gateways: components["schemas"]["GatewayPaymentOptionResponseDto"][];
         };
         PayOrderDto: {
@@ -8357,6 +8374,31 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SeatsController_replace_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-edit-unlock"?: string;
+            };
+            path: {
+                localityId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkSeatsDto"];
+            };
+        };
         responses: {
             200: {
                 headers: {
