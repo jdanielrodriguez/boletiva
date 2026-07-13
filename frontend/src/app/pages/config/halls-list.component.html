@@ -1,5 +1,12 @@
 <div class="list-filters">
-  <input type="search" [attr.placeholder]="'config.halls.searchPlaceholder' | translate" [ngModel]="search()" (ngModelChange)="setSearch($event)" name="hallq" data-testid="hall-search" />
+  <app-search-field
+    [value]="search()"
+    (valueChange)="setSearch($event)"
+    (searched)="setSearch($event)"
+    [placeholder]="'config.halls.searchPlaceholder' | translate"
+    name="hallq"
+    testId="hall-search"
+  />
   <select [ngModel]="statusFilter()" (ngModelChange)="setStatus($event)" name="hallstatus" data-testid="hall-status-filter">
     <option value="">{{ 'common.statuses.all' | translate }}</option>
     @for (s of statusOptions; track s) { <option [value]="s">{{ s | statusLabel }}</option> }
@@ -22,7 +29,7 @@
             </button>
           } @else {
             <button type="button" class="btn small icon-only" (click)="unpublish(h)" data-testid="hall-unpublish" [title]="'config.halls.unpublishTitle' | translate" [attr.aria-label]="'config.halls.unpublish' | translate">
-              <app-icon name="reactivate" />
+              <app-icon name="draft" />
             </button>
           }
         </div>

@@ -11,6 +11,7 @@ import {
 import { IconComponent } from '../../shared/icon/icon.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
+import { SearchFieldComponent } from '../../shared/ui/search-field.component';
 import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
 import type { HallResponseDto } from '../../core/api/types';
 
@@ -34,6 +35,7 @@ const PAGE = 9;
     ConfirmDialogComponent,
     PagerComponent,
     EmptyStateComponent,
+    SearchFieldComponent,
   ],
   templateUrl: './halls-list.component.html',
 })

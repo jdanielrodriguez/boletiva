@@ -1,5 +1,12 @@
 <div class="list-filters">
-  <input type="search" [attr.placeholder]="'config.templates.searchPlaceholder' | translate" [ngModel]="search()" (ngModelChange)="setSearch($event)" name="tplq" data-testid="tpl-search" />
+  <app-search-field
+    [value]="search()"
+    (valueChange)="setSearch($event)"
+    (searched)="setSearch($event)"
+    [placeholder]="'config.templates.searchPlaceholder' | translate"
+    name="tplq"
+    testId="tpl-search"
+  />
   <select [ngModel]="statusFilter()" (ngModelChange)="setStatus($event)" name="tplstatus" data-testid="tpl-status-filter">
     <option value="">{{ 'common.statuses.all' | translate }}</option>
     @for (s of statusOptions; track s) { <option [value]="s">{{ s | statusLabel }}</option> }
@@ -23,7 +30,7 @@
             </button>
           } @else {
             <button type="button" class="btn small icon-only" (click)="unpublish(t)" data-testid="tpl-unpublish" [title]="'config.templates.unpublishTitle' | translate" [attr.aria-label]="'config.templates.unpublish' | translate">
-              <app-icon name="reactivate" />
+              <app-icon name="draft" />
             </button>
           }
         </div>
@@ -54,7 +61,7 @@
             </button>
           }
           @if (!t.isBuiltIn) {
-            @if (t.status === 'draft') {
+            @if (canEditState(t)) {
               <button type="button" class="btn small" (click)="editTemplate(t)" data-testid="tpl-edit" [title]="'config.templates.editTitle' | translate">
                 <app-icon name="edit" /> {{ 'common.edit' | translate }}
               </button>

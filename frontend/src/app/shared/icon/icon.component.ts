@@ -28,6 +28,7 @@ export type IconName =
   | 'lock'
   | 'alert'
   | 'help'
+  | 'draft'
   | 'banner';
 
 /**
@@ -169,6 +170,12 @@ export type IconName =
         <circle cx="12" cy="12" r="9" />
         <path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3" />
         <path d="M12 17h.01" />
+      }
+      @case ('draft') {
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+        <path d="M14 2v6h6" />
+        <path d="M9 13h6" />
+        <path d="M9 17h4" />
       }
     }
   </svg>`,

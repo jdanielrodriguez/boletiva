@@ -65,6 +65,7 @@ describe('TemplatesListComponent (v3.9 · B1)', () => {
     disable: (t: unknown) => void;
     newTemplate: () => void;
     editTemplate: (t: unknown) => void;
+    canEditState: (t: unknown) => boolean;
     askRemove: (t: unknown) => void;
     onConfirmAccept: () => void;
     openPreview: (t: unknown) => void;
@@ -153,6 +154,31 @@ describe('TemplatesListComponent (v3.9 · B1)', () => {
     const nav = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
     inst().editTemplate(TEMPLATES[1]);
     expect(nav).toHaveBeenCalledWith(['/configuracion/plantillas', 't2', 'editar']);
+  });
+
+  it('editar custom DESACTIVADA navega (paridad v3.10 · GII)', async () => {
+    await setup();
+    const nav = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    inst().editTemplate(TEMPLATES[3]);
+    expect(nav).toHaveBeenCalledWith(['/configuracion/plantillas', 't4', 'editar']);
+  });
+
+  it('canEditState: draft y disabled sí; built-in y publicada-visible no', async () => {
+    await setup();
+    expect(inst().canEditState(TEMPLATES[0])).toBe(false); // built-in publicada
+    expect(inst().canEditState(TEMPLATES[1])).toBe(true); // custom draft
+    expect(inst().canEditState(TEMPLATES[2])).toBe(false); // custom publicada oculta
+    expect(inst().canEditState(TEMPLATES[3])).toBe(true); // custom desactivada
+  });
+
+  it('muestra botón Editar para una plantilla desactivada', async () => {
+    await setup();
+    inst().setStatus('disabled');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const edit = el.querySelector('[data-testid="tpl-edit"]');
+    expect(edit).not.toBeNull();
   });
 
   it('publish/hide/disable llaman al API', async () => {
