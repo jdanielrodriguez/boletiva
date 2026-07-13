@@ -1,9 +1,11 @@
+import { HttpHeaders, HttpResponse } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { OrdersApi } from '../../core/api/orders.api';
 import { PaymentMethodsApi } from '../../core/api/payment-methods.api';
+import { PromoterEventsApi } from '../../core/api/promoter-events.api';
 import { TicketsApi } from '../../core/api/tickets.api';
 import { TransfersApi } from '../../core/api/transfers.api';
 import { UsersApi } from '../../core/api/users.api';
@@ -32,6 +34,7 @@ interface Overrides {
   users?: Record<string, unknown>;
   auth?: Record<string, unknown>;
   cardsApi?: Record<string, unknown>;
+  promoterEvents?: Record<string, unknown>;
   section?: string;
   /** Roles del usuario en sesión (default buyer). Los vendedores ven los retiros. */
   roles?: string[];
@@ -65,6 +68,23 @@ describe('Account (mi cuenta)', () => {
         { provide: TicketsApi, useValue: { list: () => of(TICKETS), media: () => of({}), transfer: () => of({}), ...o.tickets } as unknown as TicketsApi },
         { provide: OrdersApi, useValue: { list: () => of({ items: [], nextCursor: null }), movements: () => of({ items: [] }), ledgerChain: () => of({ orderId: 'o1', transactions: [], chainValid: true }), ...o.orders } as unknown as OrdersApi },
         { provide: TransfersApi, useValue: { claim: () => of({}), outgoing: () => of([]), cancel: () => of({}), ...o.transfers } as unknown as TransfersApi },
+        {
+          provide: PromoterEventsApi,
+          useValue: {
+            exportSettlement: () =>
+              of(
+                new HttpResponse<Blob>({
+                  body: new Blob(['x'], {
+                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                  }),
+                  headers: new HttpHeaders({
+                    'content-disposition': 'attachment; filename="liquidacion-evento.xlsx"',
+                  }),
+                }),
+              ),
+            ...o.promoterEvents,
+          } as unknown as PromoterEventsApi,
+        },
         { provide: UsersApi, useValue: { updateMe: () => of({ firstName: 'Ana' }), ...o.users } as unknown as UsersApi },
         {
           provide: PaymentMethodsApi,
@@ -521,6 +541,63 @@ describe('Account (mi cuenta)', () => {
     expect(list?.textContent).toContain('129.68');
     expect(list?.textContent).toContain('Devolución'); // kind refund traducido
     expect(list?.textContent).toContain('25.00'); // el ingreso
+  });
+
+  // W7: liquidación del promotor (movimiento event_settlement).
+  const SETTLEMENT = [
+    { id: 'settle:e9', direction: 'income', kind: 'event_settlement', amount: '5000.00', currency: 'GTQ', status: 'paid', eventName: 'Gran Concierto', eventId: 'e9', orderId: null, createdAt: '2026-07-10T10:00:00Z' },
+  ];
+
+  it('W7: liquidación se muestra como badge + título distinto y con los 2 botones', async () => {
+    await setup({ roles: ['promoter'], orders: { movements: () => of({ items: SETTLEMENT }) } });
+    go('menu-facturacion');
+    const list = el.querySelector('[data-testid="orders-list"]');
+    expect(el.querySelector('[data-testid="settlement-badge"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="settlement-title"]')?.textContent).toContain('Gran Concierto');
+    expect(el.querySelector('[data-testid="settlement-download"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="settlement-view-accounts"]')).not.toBeNull();
+    // No debe ofrecer los botones de compra normal (no hay orderId).
+    expect(list?.querySelector('[data-testid="ver-detalle"]')).toBeNull();
+  });
+
+  it('W7: "Descargar detalle" pide el .xlsx por evento (blob)', async () => {
+    const exportSettlement = jasmine.createSpy('export').and.returnValue(
+      of(new HttpResponse<Blob>({ body: new Blob(['x']), headers: new HttpHeaders() })),
+    );
+    // Evita la manipulación real del DOM/URL en el navegador de prueba.
+    spyOn(URL, 'createObjectURL').and.returnValue('blob:fake');
+    spyOn(URL, 'revokeObjectURL');
+    await setup({
+      roles: ['promoter'],
+      orders: { movements: () => of({ items: SETTLEMENT }) },
+      promoterEvents: { exportSettlement },
+    });
+    go('menu-facturacion');
+    go('settlement-download');
+    await fixture.whenStable();
+    expect(exportSettlement).toHaveBeenCalledWith('e9');
+  });
+
+  it('W7: "Descargar detalle" con error muestra toast', async () => {
+    const exportSettlement = jasmine.createSpy('export').and.returnValue(throwError(() => new Error('x')));
+    await setup({
+      roles: ['promoter'],
+      orders: { movements: () => of({ items: SETTLEMENT }) },
+      promoterEvents: { exportSettlement },
+    });
+    go('menu-facturacion');
+    go('settlement-download');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(lastToast()?.kind).toBe('error');
+  });
+
+  it('W7: "Ver detalle de cuentas" navega a la tab cuentas del evento', async () => {
+    await setup({ roles: ['promoter'], orders: { movements: () => of({ items: SETTLEMENT }) } });
+    const nav = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    go('menu-facturacion');
+    go('settlement-view-accounts');
+    expect(nav).toHaveBeenCalledWith(['/promotor/eventos', 'e9', 'editar'], { queryParams: { tab: 'cuentas' } });
   });
 
   it('facturación filtra por dirección (ingresos vs egresos)', async () => {

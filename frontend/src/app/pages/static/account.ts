@@ -1,5 +1,6 @@
-import { UpperCasePipe } from '@angular/common';
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { HttpResponse } from '@angular/common/http';
+import { DOCUMENT, UpperCasePipe, isPlatformBrowser } from '@angular/common';
+import { Component, PLATFORM_ID, computed, effect, inject, signal } from '@angular/core';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { I18nService } from '../../core/i18n/i18n.service';
@@ -11,6 +12,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { EMPTY, catchError, expand, of, reduce } from 'rxjs';
 import { OrdersApi } from '../../core/api/orders.api';
 import { PaymentMethodsApi } from '../../core/api/payment-methods.api';
+import { PromoterEventsApi } from '../../core/api/promoter-events.api';
 import { TicketsApi } from '../../core/api/tickets.api';
 import { TransfersApi } from '../../core/api/transfers.api';
 import { UsersApi } from '../../core/api/users.api';
@@ -106,6 +108,7 @@ export class Account {
   private readonly walletApi = inject(WalletApi);
   private readonly ticketsApi = inject(TicketsApi);
   private readonly ordersApi = inject(OrdersApi);
+  private readonly promoterEventsApi = inject(PromoterEventsApi);
   private readonly transfersApi = inject(TransfersApi);
   private readonly usersApi = inject(UsersApi);
   private readonly paymentMethodsApi = inject(PaymentMethodsApi);
@@ -115,6 +118,8 @@ export class Account {
   private readonly translate = inject(TranslateService);
   private readonly i18n = inject(I18nService);
   private readonly router = inject(Router);
+  private readonly document = inject(DOCUMENT);
+  private readonly platformId = inject(PLATFORM_ID);
 
   private readonly route = inject(ActivatedRoute);
   protected readonly section = signal<Section>('perfil');
@@ -732,6 +737,59 @@ export class Account {
   /** Abre la vista dedicada de detalle de la transacción (compra). */
   protected verCompra(orderId: string): void {
     void this.router.navigate(['/cuenta/transaccion', orderId]);
+  }
+
+  // --- Liquidación del promotor (W7) ---
+  /** Evento cuya liquidación se está descargando ahora (para el spinner del botón). */
+  protected readonly downloadingSettlement = signal<string | null>(null);
+
+  /**
+   * Descarga el detalle de la liquidación del evento en Excel (.xlsx). Como requiere
+   * auth (Bearer) y es binario, se pide con `responseType:'blob'` (pasa por el
+   * interceptor), se crea un objectURL y se dispara la descarga con un `<a download>`.
+   * Respeta el nombre del `Content-Disposition` si viene; si no, usa un nombre local.
+   * Solo navegador (SSR-safe).
+   */
+  protected downloadSettlement(eventId: string): void {
+    if (!isPlatformBrowser(this.platformId) || !eventId) return;
+    this.downloadingSettlement.set(eventId);
+    this.promoterEventsApi.exportSettlement(eventId).subscribe({
+      next: (res) => {
+        this.downloadingSettlement.set(null);
+        const blob = res.body;
+        if (!blob) {
+          this.toasts.error(this.translate.instant('account.billing.settlement.downloadError'));
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+        const a = this.document.createElement('a');
+        a.href = url;
+        a.download = this.filenameFrom(res) ?? `liquidacion-${eventId}.xlsx`;
+        this.document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      },
+      error: () => {
+        this.downloadingSettlement.set(null);
+        this.toasts.error(this.translate.instant('account.billing.settlement.downloadError'));
+      },
+    });
+  }
+
+  /** Extrae `filename="…"` del `Content-Disposition` (RFC-simple) si viene. */
+  private filenameFrom(res: HttpResponse<Blob>): string | null {
+    const cd = res.headers.get('content-disposition') ?? '';
+    const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(cd);
+    return match ? decodeURIComponent(match[1].trim()) : null;
+  }
+
+  /** Navega a la tab "Cuentas" del evento (liquidación) en el editor del promotor. */
+  protected verEventAccounts(eventId: string): void {
+    if (!eventId) return;
+    void this.router.navigate(['/promotor/eventos', eventId, 'editar'], {
+      queryParams: { tab: 'cuentas' },
+    });
   }
 
   // --- Boletos: media + transferencia ---

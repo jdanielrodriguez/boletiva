@@ -1,3 +1,4 @@
+import { HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiClient } from '../http/api-client.service';
@@ -98,6 +99,15 @@ export class PromoterEventsApi {
   /** Liquidación (cuentas) del evento sobre sus órdenes pagadas. */
   settlement(id: string): Observable<EventSettlementDto> {
     return this.api.get<EventSettlementDto>(`/events/${id}/settlement`);
+  }
+
+  /**
+   * Descarga el detalle de la liquidación del evento en Excel (.xlsx). Binario que
+   * exige auth (Bearer): pasa por el `authInterceptor`. Devuelve la respuesta
+   * completa para leer el nombre de archivo del `Content-Disposition`. Solo navegador.
+   */
+  exportSettlement(eventId: string): Observable<HttpResponse<Blob>> {
+    return this.api.getBlob(`/events/${eventId}/settlement/export.xlsx`);
   }
 
   /**

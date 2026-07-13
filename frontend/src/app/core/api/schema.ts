@@ -1311,6 +1311,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{eventId}/settlement/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Descarga el detalle de la liquidación del evento en Excel (.xlsx): boletos vendidos + desglose (neto/plataforma/pasarela/IVA) + totales (owner/admin). */
+        get: operations["OrdersController_exportSettlement_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{eventId}/settlement/finalize": {
         parameters: {
             query?: never;
@@ -5197,10 +5214,11 @@ export interface components {
              */
             direction: "income" | "expense";
             /**
-             * @description purchase = compra (egreso); refund/resale/sale = ingreso
+             * @description purchase = compra (egreso); refund/resale = ingreso al wallet; event_settlement = LIQUIDACIÓN al promotor al cerrar el evento (ingreso)
              * @example purchase
+             * @enum {string}
              */
-            kind: string;
+            kind: "purchase" | "refund" | "resale" | "event_settlement" | "other";
             /**
              * @description Monto absoluto
              * @example 129.68
@@ -5211,6 +5229,11 @@ export interface components {
             /** @description Estado: egresos = estado de la orden; ingresos = refunded/paid */
             status: string | null;
             eventName: string | null;
+            /**
+             * Format: uuid
+             * @description Evento asociado (navegar a sus cuentas; presente en la liquidación event_settlement)
+             */
+            eventId: string | null;
             /**
              * Format: uuid
              * @description Orden para abrir su detalle
@@ -8725,6 +8748,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EventSettlementDto"];
+                };
+            };
+        };
+    };
+    OrdersController_exportSettlement_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Archivo .xlsx (adjunto) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
                 };
             };
         };

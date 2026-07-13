@@ -80,7 +80,16 @@ export const account = {
       refund: 'Devolución',
       resale: 'Reventa',
       sale: 'Venta / liquidación',
+      event_settlement: 'Liquidación del evento',
       other: 'Movimiento',
+    },
+    settlement: {
+      label: 'Liquidación',
+      title: 'Liquidación — {{event}}',
+      download: 'Descargar detalle',
+      downloading: 'Descargando…',
+      viewAccounts: 'Ver detalle de cuentas del evento',
+      downloadError: 'No se pudo descargar el detalle. Intenta de nuevo.',
     },
   },
   chain: {

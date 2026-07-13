@@ -1203,6 +1203,16 @@ app-root {
 .invoice-card.is-income {
   border-left: 3px solid color-mix(in srgb, var(--pe-success) 60%, transparent);
 }
+/* Liquidación del promotor (W7): resáltala como algo especial, no una compra más. */
+.badge-settlement {
+  color: var(--pe-accent);
+  border-color: color-mix(in srgb, var(--pe-accent) 55%, transparent);
+  background: color-mix(in srgb, var(--pe-accent) 10%, transparent);
+  font-weight: 700;
+}
+.invoice-card.is-settlement {
+  border-left: 3px solid var(--pe-accent);
+}
 .movement-kind {
   font-weight: 600;
 }

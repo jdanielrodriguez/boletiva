@@ -221,13 +221,20 @@
           } @else {
             <div class="invoice-list" data-testid="orders-list">
               @for (m of pageMovements(); track m.id) {
-                <article class="invoice-card" [class.is-income]="m.direction === 'income'">
+                <article class="invoice-card" [class.is-income]="m.direction === 'income'" [class.is-settlement]="m.kind === 'event_settlement'">
                   <header class="invoice-head">
                     <div>
-                      <h3>{{ m.eventName ?? ('account.billing.movement' | translate) }}</h3>
+                      @if (m.kind === 'event_settlement') {
+                        <h3 data-testid="settlement-title">{{ 'account.billing.settlement.title' | translate: { event: m.eventName ?? ('account.billing.movement' | translate) } }}</h3>
+                      } @else {
+                        <h3>{{ m.eventName ?? ('account.billing.movement' | translate) }}</h3>
+                      }
                       <span class="muted">{{ m.createdAt | localizedDate: 'dd/MM/yyyy HH:mm' }}</span>
                     </div>
                     <div class="invoice-head-right">
+                      @if (m.kind === 'event_settlement') {
+                        <span class="badge badge-settlement" data-testid="settlement-badge">{{ 'account.billing.settlement.label' | translate }}</span>
+                      }
                       <span class="badge" [class.badge-income]="m.direction === 'income'" [class.badge-expense]="m.direction === 'expense'" data-testid="movement-dir">
                         {{ (m.direction === 'income' ? 'account.billing.income' : 'account.billing.expense') | translate }}
                       </span>
@@ -242,7 +249,14 @@
                     @if (m.status) {
                       <span class="badge badge-{{ m.status }}" data-testid="movement-status">{{ m.status | statusLabel }}</span>
                     }
-                    @if (m.orderId) {
+                    @if (m.kind === 'event_settlement' && m.eventId) {
+                      <button type="button" class="link-btn" (click)="downloadSettlement(m.eventId)" [disabled]="downloadingSettlement() === m.eventId" data-testid="settlement-download">
+                        {{ (downloadingSettlement() === m.eventId ? 'account.billing.settlement.downloading' : 'account.billing.settlement.download') | translate }}
+                      </button>
+                      <button type="button" class="link-btn" (click)="verEventAccounts(m.eventId)" data-testid="settlement-view-accounts">
+                        {{ 'account.billing.settlement.viewAccounts' | translate }}
+                      </button>
+                    } @else if (m.orderId) {
                       <button type="button" class="link-btn" (click)="verCompra(m.orderId)" data-testid="ver-detalle">
                         {{ 'account.billing.viewFullDetail' | translate }}
                       </button>

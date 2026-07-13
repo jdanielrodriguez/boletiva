@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { API_BASE_URL } from '../config/api.tokens';
@@ -49,6 +49,19 @@ export class ApiClient {
 
   delete<T>(path: string): Observable<T> {
     return this.http.delete<T>(this.url(path), { withCredentials: true });
+  }
+
+  /**
+   * Descarga un binario (p.ej. un .xlsx). Devuelve la respuesta completa para poder
+   * leer cabeceras como `Content-Disposition` (nombre del archivo). Pasa por el
+   * `authInterceptor` (Bearer) igual que el resto; solo tiene sentido en navegador.
+   */
+  getBlob(path: string): Observable<HttpResponse<Blob>> {
+    return this.http.get(this.url(path), {
+      withCredentials: true,
+      responseType: 'blob',
+      observe: 'response',
+    });
   }
 
   /** Petición genérica (p.ej. DELETE con cuerpo, que delete() no admite). */

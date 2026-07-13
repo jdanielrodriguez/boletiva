@@ -80,7 +80,16 @@ export const account = {
       refund: 'Refund',
       resale: 'Resale',
       sale: 'Sale / payout',
+      event_settlement: 'Event settlement',
       other: 'Movement',
+    },
+    settlement: {
+      label: 'Settlement',
+      title: 'Settlement — {{event}}',
+      download: 'Download detail',
+      downloading: 'Downloading…',
+      viewAccounts: 'View event accounts detail',
+      downloadError: 'Could not download the detail. Please try again.',
     },
   },
   chain: {
