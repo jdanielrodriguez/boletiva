@@ -69,27 +69,25 @@ describe('LangSwitcherComponent', () => {
     expect(i18n.lang()).toBe('es');
   });
 
-  it('visitante con el flag INACTIVO: el selector de idioma queda OCULTO (v3.11)', () => {
+  it('con el flag INACTIVO: el selector de idioma queda OCULTO (W10)', () => {
     setup(false);
     const el = fixture.nativeElement as HTMLElement;
-    // Sin permiso de visitante, el switcher no se renderiza en absoluto.
+    // Sin el flag, el switcher no se renderiza en absoluto.
     expect(el.querySelector('[data-testid="lang-switcher"]')).toBeNull();
     expect(el.querySelector('[data-testid="lang-en"]')).toBeNull();
     expect(i18n.lang()).toBe('es');
   });
 
-  it('usuario logueado SIEMPRE ve el selector aunque el flag esté inactivo', () => {
+  it('con el flag INACTIVO el selector queda OCULTO también para el logueado (W10)', () => {
     setup(false);
     const session = TestBed.inject(SessionStore);
     session.setUser({ id: 'u1', email: 'x@y.z', roles: ['buyer'], language: 'es' } as never);
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('[data-testid="lang-switcher"]')).not.toBeNull();
-    const en = el.querySelector('[data-testid="lang-en"]') as HTMLButtonElement;
-    expect(en.disabled).toBe(false);
+    expect(el.querySelector('[data-testid="lang-switcher"]')).toBeNull();
   });
 
-  it('con sesión iniciada persiste el idioma en BD (PATCH /users/me)', () => {
+  it('el toggle es EFÍMERO: NO persiste en BD (sin PATCH /users/me) (W1)', () => {
     setup(true);
     const http = TestBed.inject(HttpTestingController);
     const session = TestBed.inject(SessionStore);
@@ -97,9 +95,11 @@ describe('LangSwitcherComponent', () => {
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     (el.querySelector('[data-testid="lang-en"]') as HTMLButtonElement).click();
-    const req = http.expectOne((r) => r.url.endsWith('/users/me') && r.method === 'PATCH');
-    expect(req.request.body).toEqual({ language: 'en' });
-    req.flush({ id: 'u1', email: 'x@y.z', roles: ['buyer'], language: 'en' });
+    fixture.detectChanges();
+    // El idioma cambió en la sesión...
+    expect(i18n.lang()).toBe('en');
+    // ...pero NO se emitió ningún PATCH al perfil.
+    http.expectNone((r) => r.url.endsWith('/users/me') && r.method === 'PATCH');
     http.verify();
   });
 });

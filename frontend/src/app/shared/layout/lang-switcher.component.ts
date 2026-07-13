@@ -1,15 +1,14 @@
-import { ChangeDetectionStrategy, Component, Injector, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
-import { UsersApi } from '../../core/api/users.api';
-import { SessionStore } from '../../core/auth/session.store';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { PublicConfigStore } from '../../core/config/public-config.store';
 import type { Lang } from '../../core/i18n/i18n.types';
 
 /**
- * Selector de idioma con BANDERAS (para el header, disponible con o sin sesión):
+ * Selector de idioma con BANDERAS (para el header):
  * Guatemala 🇬🇹 = español (es-GT), EE. UU. 🇺🇸 = inglés (en-US). Un click cambia el
- * idioma al instante y persiste la preferencia. El idioma activo se resalta.
+ * idioma al instante SOLO en la sesión actual (efímero, W1): NO toca el perfil en
+ * BD. El idioma activo se resalta.
  *
  * Las banderas son SVG INLINE (no emoji): los emoji de bandera NO renderizan en
  * Windows ni en muchos Linux (aparecen como letras o cuadros). El SVG garantiza
@@ -21,9 +20,9 @@ import type { Lang } from '../../core/i18n/i18n.types';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe],
   template: `
-    <!-- v3.11 · B1: si el visitante no puede cambiar idioma (flag admin OFF y sin
-         sesión), el selector se OCULTA por completo (no solo deshabilitado). El
-         usuario logueado siempre lo ve. -->
+    <!-- W10: el selector se muestra SOLO si el flag admin allowVisitorLangSwitch
+         está activo — para TODOS (visitante y logueado). Flag OFF → oculto también
+         para el logueado (que cambia idioma únicamente desde su perfil). -->
     @if (canSwitch()) {
     <div class="lang-switcher" role="group" [attr.aria-label]="'shell.language' | translate" data-testid="lang-switcher">
       <button
@@ -123,36 +122,20 @@ import type { Lang } from '../../core/i18n/i18n.types';
 })
 export class LangSwitcherComponent {
   protected readonly i18n = inject(I18nService);
-  private readonly session = inject(SessionStore);
   private readonly publicConfig = inject(PublicConfigStore);
-  private readonly injector = inject(Injector);
 
   /**
-   * ¿Se permite cambiar idioma? (v3.10 · GI) El usuario logueado SIEMPRE puede
-   * (ajusta su propia preferencia). El visitante anónimo solo si el admin activó
-   * `allowVisitorLangSwitch`; si no, el selector queda deshabilitado (con tooltip)
-   * y la UI permanece en español.
+   * ¿Se muestra el selector? (W10) Depende SOLO del flag admin
+   * `allowVisitorLangSwitch`: flag ON → visible para todos (visitante y logueado);
+   * flag OFF → oculto para todos. El logueado cambia idioma desde su perfil.
    */
-  protected readonly canSwitch = computed(
-    () => this.session.isAuthenticated() || this.publicConfig.allowVisitorLangSwitch(),
-  );
+  protected readonly canSwitch = computed(() => this.publicConfig.allowVisitorLangSwitch());
 
   setLang(lang: Lang): void {
     if (!this.canSwitch()) return;
+    // EFÍMERO (W1): cambia el idioma SOLO de la sesión actual (i18n.use + localStorage
+    // del visitante). NO persiste en BD; el idioma del PERFIL sigue siendo la fuente
+    // persistente y se reaplica en el próximo login.
     this.i18n.use(lang);
-    // Si hay sesión, persiste también en BD: de lo contrario, al recargar,
-    // `ensureLoaded()` reaplicaría el idioma guardado del usuario y revertiría
-    // el toggle. Anónimos: basta con localStorage (lo hace `i18n.use`).
-    // `UsersApi` se resuelve DIFERIDO (solo con sesión) para no exigir HttpClient
-    // en los specs que montan el header sin proveerlo. Fire-and-forget.
-    const user = this.session.user();
-    if (user && user.language !== lang) {
-      this.injector.get(UsersApi).updateMe({ language: lang }).subscribe({
-        next: (updated) => this.session.setUser(updated),
-        error: () => {
-          /* sin persistencia en BD → el toggle igual aplicó en esta sesión */
-        },
-      });
-    }
   }
 }
