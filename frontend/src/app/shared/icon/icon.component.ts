@@ -29,6 +29,7 @@ export type IconName =
   | 'alert'
   | 'help'
   | 'draft'
+  | 'eraser'
   | 'banner';
 
 /**
@@ -176,6 +177,11 @@ export type IconName =
         <path d="M14 2v6h6" />
         <path d="M9 13h6" />
         <path d="M9 17h4" />
+      }
+      @case ('eraser') {
+        <path d="m7 21-4.3-4.3a1.7 1.7 0 0 1 0-2.4l9.6-9.6a1.7 1.7 0 0 1 2.4 0l5.6 5.6a1.7 1.7 0 0 1 0 2.4L13 21" />
+        <path d="M22 21H7" />
+        <path d="m5 11 9 9" />
       }
     }
   </svg>`,
