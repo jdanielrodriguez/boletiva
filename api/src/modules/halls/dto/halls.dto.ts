@@ -132,6 +132,12 @@ export class HallResponseDto {
   @ApiProperty({ enum: ContentStatus, description: 'Estado de publicación' })
   status!: ContentStatus;
 
+  @ApiProperty({ description: 'Oculto del selector del promotor' })
+  hidden!: boolean;
+
+  @ApiProperty({ description: 'Deshabilitado (prerequisito para eliminar)' })
+  disabled!: boolean;
+
   @ApiProperty({ format: 'date-time' })
   createdAt!: string;
 

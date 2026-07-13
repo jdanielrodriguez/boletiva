@@ -143,7 +143,7 @@ describe('Salones (halls) e2e', () => {
     await http().get('/api/v1/halls/all').set(bearer(promoterToken)).expect(403);
   });
 
-  it('borrar salón lo desvincula del evento (SetNull)', async () => {
+  it('borrar salón (deshabilitado) lo desvincula del evento (SetNull)', async () => {
     const hall = await http()
       .post('/api/v1/halls')
       .set(bearer(adminToken))
@@ -156,8 +156,102 @@ describe('Salones (halls) e2e', () => {
       .expect(201);
     createdEvents.push(ev.body.id);
 
+    // Regla v3.10: solo se elimina un salón deshabilitado.
+    await http().post(`/api/v1/halls/${hall.body.id}/disable`).set(bearer(adminToken)).expect(200);
     await http().delete(`/api/v1/halls/${hall.body.id}`).set(bearer(adminToken)).expect(200);
     const after = await prisma.event.findUnique({ where: { id: ev.body.id } });
     expect(after?.hallId).toBeNull();
+  });
+
+  it('salón nace con hidden/disabled en false', async () => {
+    const res = await http()
+      .post('/api/v1/halls')
+      .set(bearer(adminToken))
+      .send({ name: 'Salón Estados', city: 'Guatemala' })
+      .expect(201);
+    created.push(res.body.id);
+    expect(res.body.status).toBe('draft');
+    expect(res.body.hidden).toBe(false);
+    expect(res.body.disabled).toBe(false);
+  });
+
+  it('transiciones hide/unhide/disable/enable (admin) afectan el selector del promotor', async () => {
+    const id = created[created.length - 1];
+    // publicar → aparece
+    let r = await http().post(`/api/v1/halls/${id}/publish`).set(bearer(adminToken)).expect(200);
+    expect(r.body.status).toBe('published');
+    let list = await http().get('/api/v1/halls').set(bearer(promoterToken)).expect(200);
+    expect(list.body.some((h: { id: string }) => h.id === id)).toBe(true);
+    // ocultar → desaparece aunque siga publicado
+    r = await http().post(`/api/v1/halls/${id}/hide`).set(bearer(adminToken)).expect(200);
+    expect(r.body.hidden).toBe(true);
+    list = await http().get('/api/v1/halls').set(bearer(promoterToken)).expect(200);
+    expect(list.body.some((h: { id: string }) => h.id === id)).toBe(false);
+    // mostrar → vuelve a aparecer
+    r = await http().post(`/api/v1/halls/${id}/unhide`).set(bearer(adminToken)).expect(200);
+    expect(r.body.hidden).toBe(false);
+    list = await http().get('/api/v1/halls').set(bearer(promoterToken)).expect(200);
+    expect(list.body.some((h: { id: string }) => h.id === id)).toBe(true);
+    // deshabilitar → desaparece del selector aunque siga publicado
+    r = await http().post(`/api/v1/halls/${id}/disable`).set(bearer(adminToken)).expect(200);
+    expect(r.body.disabled).toBe(true);
+    list = await http().get('/api/v1/halls').set(bearer(promoterToken)).expect(200);
+    expect(list.body.some((h: { id: string }) => h.id === id)).toBe(false);
+    // habilitar → vuelve
+    r = await http().post(`/api/v1/halls/${id}/enable`).set(bearer(adminToken)).expect(200);
+    expect(r.body.disabled).toBe(false);
+  });
+
+  it('hide/unhide/disable/enable exigen admin (promotor/buyer → 403)', async () => {
+    const id = created[created.length - 1];
+    await http().post(`/api/v1/halls/${id}/hide`).set(bearer(promoterToken)).expect(403);
+    await http().post(`/api/v1/halls/${id}/unhide`).set(bearer(buyerToken)).expect(403);
+    await http().post(`/api/v1/halls/${id}/disable`).set(bearer(promoterToken)).expect(403);
+    await http().post(`/api/v1/halls/${id}/enable`).set(bearer(buyerToken)).expect(403);
+  });
+
+  it('transiciones sobre salón inexistente → 404', async () => {
+    const ghost = '00000000-0000-0000-0000-000000000000';
+    await http().post(`/api/v1/halls/${ghost}/hide`).set(bearer(adminToken)).expect(404);
+    await http().post(`/api/v1/halls/${ghost}/disable`).set(bearer(adminToken)).expect(404);
+  });
+
+  it('salón PUBLICADO no se puede editar (409); despublicar o deshabilitar lo libera', async () => {
+    const res = await http()
+      .post('/api/v1/halls')
+      .set(bearer(adminToken))
+      .send({ name: 'Salón Editable', city: 'Guatemala' })
+      .expect(201);
+    const id = res.body.id;
+    created.push(id);
+    // draft → editable
+    await http().patch(`/api/v1/halls/${id}`).set(bearer(adminToken)).send({ notes: 'a' }).expect(200);
+    // publicado → 409 al editar
+    await http().post(`/api/v1/halls/${id}/publish`).set(bearer(adminToken)).expect(200);
+    await http().patch(`/api/v1/halls/${id}`).set(bearer(adminToken)).send({ notes: 'b' }).expect(409);
+    // despublicar → editable de nuevo
+    await http().post(`/api/v1/halls/${id}/unpublish`).set(bearer(adminToken)).expect(200);
+    await http().patch(`/api/v1/halls/${id}`).set(bearer(adminToken)).send({ notes: 'c' }).expect(200);
+    // publicado + deshabilitado → editable (disabled manda)
+    await http().post(`/api/v1/halls/${id}/publish`).set(bearer(adminToken)).expect(200);
+    await http().post(`/api/v1/halls/${id}/disable`).set(bearer(adminToken)).expect(200);
+    await http().patch(`/api/v1/halls/${id}`).set(bearer(adminToken)).send({ notes: 'd' }).expect(200);
+  });
+
+  it('borrado exige DESHABILITAR primero: draft → 409, oculto → 409, deshabilitado → 200', async () => {
+    const res = await http()
+      .post('/api/v1/halls')
+      .set(bearer(adminToken))
+      .send({ name: 'Salón Descartable' })
+      .expect(201);
+    const id = res.body.id;
+    // draft (habilitado) → no se puede eliminar
+    await http().delete(`/api/v1/halls/${id}`).set(bearer(adminToken)).expect(409);
+    // solo oculto pero NO deshabilitado → sigue 409
+    await http().post(`/api/v1/halls/${id}/hide`).set(bearer(adminToken)).expect(200);
+    await http().delete(`/api/v1/halls/${id}`).set(bearer(adminToken)).expect(409);
+    // deshabilitado → 200
+    await http().post(`/api/v1/halls/${id}/disable`).set(bearer(adminToken)).expect(200);
+    await http().delete(`/api/v1/halls/${id}`).set(bearer(adminToken)).expect(200);
   });
 });

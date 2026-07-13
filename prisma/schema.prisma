@@ -1060,6 +1060,10 @@ model Hall {
   seatTemplateId String?  @map("seat_template_id") @db.Uuid
   /// v3.7: draft (solo admin) | published (visible en el selector del promotor).
   status         ContentStatus @default(draft)
+  /// v3.10: oculto del selector del promotor sin eliminarlo (reversible).
+  hidden         Boolean  @default(false)
+  /// v3.10: deshabilitado (prerequisito para poder ELIMINARlo). No sale al promotor.
+  disabled       Boolean  @default(false)
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 

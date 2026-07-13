@@ -85,10 +85,46 @@ export class HallsController {
     return this.halls.setStatus(id, ContentStatus.draft);
   }
 
+  @Post(':id/hide')
+  @Roles(Role.admin)
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Oculta un salón del selector del promotor (admin)' })
+  @ApiOkResponse({ type: HallResponseDto })
+  hide(@Param('id', ParseUUIDPipe) id: string) {
+    return this.halls.setHidden(id, true);
+  }
+
+  @Post(':id/unhide')
+  @Roles(Role.admin)
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Muestra de nuevo un salón oculto (admin)' })
+  @ApiOkResponse({ type: HallResponseDto })
+  unhide(@Param('id', ParseUUIDPipe) id: string) {
+    return this.halls.setHidden(id, false);
+  }
+
+  @Post(':id/disable')
+  @Roles(Role.admin)
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Deshabilita un salón (prerequisito para eliminar; admin)' })
+  @ApiOkResponse({ type: HallResponseDto })
+  disable(@Param('id', ParseUUIDPipe) id: string) {
+    return this.halls.setDisabled(id, true);
+  }
+
+  @Post(':id/enable')
+  @Roles(Role.admin)
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Habilita un salón deshabilitado (admin)' })
+  @ApiOkResponse({ type: HallResponseDto })
+  enable(@Param('id', ParseUUIDPipe) id: string) {
+    return this.halls.setDisabled(id, false);
+  }
+
   @Delete(':id')
   @Roles(Role.admin)
   @HttpCode(200)
-  @ApiOperation({ summary: 'Elimina un salón (admin; desvincula sus eventos)' })
+  @ApiOperation({ summary: 'Elimina un salón (admin; solo deshabilitado; desvincula sus eventos)' })
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.halls.remove(id);
   }

@@ -1,11 +1,17 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { ContentStatus, Hall } from '@prisma/client';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { ContentStatus, Hall, Prisma } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { CreateHallDto, UpdateHallDto } from './dto/halls.dto';
 
 /**
- * Salones/venues reutilizables (v3.5/v3.7). El admin los gestiona (estados
- * draft/published); cualquier promotor lista los PUBLICADOS para elegirlos al
+ * Salones/venues reutilizables (v3.5/v3.7/v3.10). El admin los gestiona con los
+ * mismos estados que las plantillas de asientos (draft/published + hidden +
+ * disabled); cualquier promotor lista los PUBLICADOS y visibles para elegirlos al
  * crear/editar un evento (prefija dirección/coordenadas y un layout base).
  */
 @Injectable()
@@ -17,10 +23,13 @@ export class HallsService {
     return this.prisma.hall.findMany({ orderBy: { name: 'asc' } });
   }
 
-  /** Lista para el selector del promotor: solo salones publicados. */
+  /**
+   * Lista para el selector del promotor: solo salones publicados, no ocultos y
+   * no deshabilitados. Los draft/hidden/disabled nunca salen al promotor.
+   */
   listPublished() {
     return this.prisma.hall.findMany({
-      where: { status: ContentStatus.published },
+      where: { status: ContentStatus.published, hidden: false, disabled: false },
       orderBy: { name: 'asc' },
     });
   }
@@ -55,7 +64,14 @@ export class HallsService {
   }
 
   async update(id: string, dto: UpdateHallDto) {
-    await this.get(id);
+    const hall = await this.get(id);
+    // Regla v3.10 (espejo de plantillas): solo se edita en borrador o
+    // deshabilitado. Un salón PUBLICADO se despublica/oculta/deshabilita primero.
+    if (hall.status === ContentStatus.published && !hall.disabled) {
+      throw new ConflictException(
+        'Un salón publicado no se puede editar; despublícalo o deshabilítalo primero',
+      );
+    }
     await this.assertSeatTemplate(dto.seatTemplateId);
     return this.prisma.hall.update({
       where: { id },
@@ -73,15 +89,36 @@ export class HallsService {
   }
 
   async remove(id: string) {
-    await this.get(id);
+    const hall = await this.get(id);
+    // Regla v3.10: solo se puede ELIMINAR un salón deshabilitado (espejo de las
+    // plantillas). Si sigue habilitado → 409 (primero hay que deshabilitarlo).
+    if (!hall.disabled) {
+      throw new ConflictException(
+        'Solo se puede eliminar un salón deshabilitado; deshabilítalo primero',
+      );
+    }
     // Desvincula los eventos que apuntan a este salón (onDelete: SetNull en el FK).
     await this.prisma.hall.delete({ where: { id } });
     return { id, deleted: true };
   }
 
   /** Cambia el estado de publicación (draft/published). */
-  async setStatus(id: string, status: ContentStatus) {
-    await this.get(id);
-    return this.prisma.hall.update({ where: { id }, data: { status } });
+  setStatus(id: string, status: ContentStatus) {
+    return this.transition(id, { status });
+  }
+
+  /** Oculta/muestra sin eliminar (reversible). */
+  setHidden(id: string, hidden: boolean) {
+    return this.transition(id, { hidden });
+  }
+
+  /** Deshabilita/habilita (deshabilitar es prerequisito para eliminar). */
+  setDisabled(id: string, disabled: boolean) {
+    return this.transition(id, { disabled });
+  }
+
+  private async transition(id: string, data: Prisma.HallUpdateInput) {
+    await this.get(id); // 404 si no existe
+    return this.prisma.hall.update({ where: { id }, data });
   }
 }

@@ -5694,7 +5694,7 @@
             "bearer": []
           }
         ],
-        "summary": "Elimina un salón (admin; desvincula sus eventos)",
+        "summary": "Elimina un salón (admin; solo deshabilitado; desvincula sus eventos)",
         "tags": [
           "halls"
         ]
@@ -5767,6 +5767,150 @@
           }
         ],
         "summary": "Regresa un salón a borrador (admin)",
+        "tags": [
+          "halls"
+        ]
+      }
+    },
+    "/api/v1/halls/{id}/hide": {
+      "post": {
+        "operationId": "HallsController_hide_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HallResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Oculta un salón del selector del promotor (admin)",
+        "tags": [
+          "halls"
+        ]
+      }
+    },
+    "/api/v1/halls/{id}/unhide": {
+      "post": {
+        "operationId": "HallsController_unhide_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HallResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Muestra de nuevo un salón oculto (admin)",
+        "tags": [
+          "halls"
+        ]
+      }
+    },
+    "/api/v1/halls/{id}/disable": {
+      "post": {
+        "operationId": "HallsController_disable_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HallResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Deshabilita un salón (prerequisito para eliminar; admin)",
+        "tags": [
+          "halls"
+        ]
+      }
+    },
+    "/api/v1/halls/{id}/enable": {
+      "post": {
+        "operationId": "HallsController_enable_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HallResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Habilita un salón deshabilitado (admin)",
         "tags": [
           "halls"
         ]
@@ -13022,6 +13166,14 @@
             ],
             "description": "Estado de publicación"
           },
+          "hidden": {
+            "type": "boolean",
+            "description": "Oculto del selector del promotor"
+          },
+          "disabled": {
+            "type": "boolean",
+            "description": "Deshabilitado (prerequisito para eliminar)"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -13041,6 +13193,8 @@
           "notes",
           "seatTemplateId",
           "status",
+          "hidden",
+          "disabled",
           "createdAt",
           "updatedAt"
         ]
