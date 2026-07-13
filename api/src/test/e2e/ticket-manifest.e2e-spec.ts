@@ -104,6 +104,9 @@ describe('Boletos: manifiesto offline + propagación (e2e)', () => {
     await prisma.webhookEvent.deleteMany({});
     await prisma.ledgerEntry.deleteMany({});
     await prisma.ledgerTransaction.deleteMany({});
+    // Borrar también las cuentas: dejarlas con su saldo cacheado (sin asientos) rompe
+    // el verifyChain GLOBAL de otras suites (balance ≠ suma de asientos).
+    await prisma.ledgerAccount.deleteMany({});
     await prisma.order.deleteMany({ where: { eventId } });
     await prisma.event.deleteMany({ where: { id: eventId } });
     await prisma.user.deleteMany({ where: { email: { contains: `_${stamp}@test.com` } } });
