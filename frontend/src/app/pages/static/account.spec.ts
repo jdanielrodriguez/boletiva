@@ -83,6 +83,7 @@ describe('Account (mi cuenta)', () => {
             user: () => ({ firstName: 'Ana', lastName: 'P', email: 'ana@correo.com', roles }),
             setUser,
             hasAnyRole: (rs: string[]) => rs.some((r) => roles.includes(r)),
+            hasRole: (r: string) => roles.includes(r),
           },
         },
         {
@@ -533,6 +534,31 @@ describe('Account (mi cuenta)', () => {
     list = el.querySelector('[data-testid="orders-list"]');
     expect(list?.textContent).toContain('Fiesta');
     expect(list?.textContent).not.toContain('Concierto');
+  });
+
+  it('P4: cliente SIN ingresos NO ve el filtro "Ingresos"', async () => {
+    const ONLY_EXPENSE = [
+      { id: 'order:o1', direction: 'expense', kind: 'purchase', amount: '129.68', currency: 'GTQ', status: 'paid', eventName: 'Fiesta', orderId: 'o1', createdAt: '2026-07-01T10:00:00Z' },
+    ];
+    await setup({ roles: ['buyer'], orders: { movements: () => of({ items: ONLY_EXPENSE }) } });
+    go('menu-facturacion');
+    expect(el.querySelector('[data-testid="dir-income"]')).toBeNull();
+    expect(el.querySelector('[data-testid="dir-expense"]')).not.toBeNull();
+  });
+
+  it('P4: cliente CON un ingreso (devolución) SÍ ve el filtro "Ingresos"', async () => {
+    await setup({ roles: ['buyer'], orders: { movements: () => of({ items: MOVEMENTS }) } });
+    go('menu-facturacion');
+    expect(el.querySelector('[data-testid="dir-income"]')).not.toBeNull();
+  });
+
+  it('P4: el promotor SIEMPRE ve el filtro "Ingresos" (aunque solo tenga egresos)', async () => {
+    const ONLY_EXPENSE = [
+      { id: 'order:o1', direction: 'expense', kind: 'purchase', amount: '129.68', currency: 'GTQ', status: 'paid', eventName: 'Fiesta', orderId: 'o1', createdAt: '2026-07-01T10:00:00Z' },
+    ];
+    await setup({ roles: ['promoter'], orders: { movements: () => of({ items: ONLY_EXPENSE }) } });
+    go('menu-facturacion');
+    expect(el.querySelector('[data-testid="dir-income"]')).not.toBeNull();
   });
 
   it('facturación: filtro sin coincidencias muestra vacío bonito', async () => {

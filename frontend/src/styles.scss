@@ -938,6 +938,13 @@ app-root {
 
 .filters .field {
   margin-bottom: 0;
+  min-width: 0; /* permite que la celda del grid encoja sin desbordar */
+}
+/* v3.11 · P3: el segmentado de "Tipo de movimiento" (Todos/Ingresos/Egresos)
+   ocupa su propia fila completa para no quedar apretado/cortado en una celda
+   angosta del grid de filtros. */
+.filters .field-dir {
+  grid-column: 1 / -1;
 }
 
 .filter-pill {
@@ -1203,6 +1210,8 @@ app-root {
 /* Control segmentado (filtro Todos / Ingresos / Egresos). */
 .seg {
   display: inline-flex;
+  flex-wrap: wrap; /* en pantallas muy angostas envuelve en vez de cortarse (P3) */
+  max-width: 100%;
   border: 1px solid var(--pe-border);
   border-radius: 999px;
   overflow: hidden;

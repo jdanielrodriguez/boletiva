@@ -169,11 +169,13 @@
             </p>
           } @else if (movements().length > 0) {
             <div class="filters" data-testid="billing-filters">
-              <div class="field">
+              <div class="field field-dir">
                 <label>{{ 'account.billing.movementType' | translate }}</label>
                 <div class="seg" role="group" [attr.aria-label]="'account.billing.movementType' | translate" data-testid="filter-dir">
                   <button type="button" [class.active]="movementDir() === ''" (click)="setMovementDir('')" data-testid="dir-all">{{ 'common.all' | translate }}</button>
-                  <button type="button" [class.active]="movementDir() === 'income'" (click)="setMovementDir('income')" data-testid="dir-income">{{ 'account.billing.income' | translate }}</button>
+                  @if (showIncomeFilter()) {
+                    <button type="button" [class.active]="movementDir() === 'income'" (click)="setMovementDir('income')" data-testid="dir-income">{{ 'account.billing.income' | translate }}</button>
+                  }
                   <button type="button" [class.active]="movementDir() === 'expense'" (click)="setMovementDir('expense')" data-testid="dir-expense">{{ 'account.billing.expense' | translate }}</button>
                 </div>
               </div>

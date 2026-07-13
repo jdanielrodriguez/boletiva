@@ -278,6 +278,14 @@ export class Account {
   protected readonly hasIncome = computed(() =>
     this.movements().some((m) => m.direction === 'income'),
   );
+  /**
+   * ¿Mostrar el filtro "Ingresos"? (P4) Promotores/admin siempre (cobran eventos,
+   * reembolsos, reventas). El CLIENTE (buyer) solo si tiene algún ingreso real
+   * (devolución o reventa recibida); si solo tiene compras, no tiene sentido.
+   */
+  protected readonly showIncomeFilter = computed(
+    () => this.session.hasRole('promoter') || this.session.hasRole('admin') || this.hasIncome(),
+  );
   /** Paginación de facturación (sobre los movimientos ya filtrados). */
   protected readonly billingPage = signal(1);
   protected readonly billingTotalPages = computed(() =>
