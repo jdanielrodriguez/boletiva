@@ -140,6 +140,15 @@ export class EventResponseDto {
   @ApiPropertyOptional({ nullable: true, example: 'Una noche inolvidable' })
   description!: string | null;
 
+  @ApiPropertyOptional({
+    format: 'uuid',
+    nullable: true,
+    description:
+      'Salón/venue reutilizable asignado al evento (null = dirección escrita a mano). ' +
+      'Se persiste al elegirlo en el editor y queda ligado al evento.',
+  })
+  hallId!: string | null;
+
   @ApiPropertyOptional({ nullable: true, example: 'Estadio Nacional, Ciudad de Guatemala' })
   address!: string | null;
 

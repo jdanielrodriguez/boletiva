@@ -643,6 +643,36 @@ describe('Eventos: gestión (e2e)', () => {
       expect(ev.lng).toBe(-90.5);
     });
 
+    it('B3: hallId se expone en la respuesta de crear y en /manage; un re-guardado sin hallId lo conserva', async () => {
+      const hall = await prisma.hall.create({
+        data: { name: `Hall B3 ${stamp}`, address: 'Zona 10', lat: 14.59, lng: -90.51 },
+      });
+      // Crear con salón → la respuesta lleva hallId.
+      const created = await http()
+        .post('/api/v1/events')
+        .set(bearer(promoterToken))
+        .send(body({ hallId: hall.id }))
+        .expect(201);
+      expect(created.body.hallId).toBe(hall.id);
+
+      // El detalle gestionable refleja el salón asignado (el frontend lo lee al recargar).
+      const manage = await http()
+        .get(`/api/v1/events/${created.body.id}/manage`)
+        .set(bearer(promoterToken))
+        .expect(200);
+      expect(manage.body.hallId).toBe(hall.id);
+
+      // Re-guardar SIN enviar hallId (solo cambia el nombre) NO lo desasigna.
+      const resaved = await http()
+        .patch(`/api/v1/events/${created.body.id}`)
+        .set(bearer(promoterToken))
+        .send({ name: `Ev B3 rename ${stamp}` })
+        .expect(200);
+      expect(resaved.body.hallId).toBe(hall.id);
+      const persisted = await prisma.event.findUniqueOrThrow({ where: { id: created.body.id } });
+      expect(persisted.hallId).toBe(hall.id);
+    });
+
     it('crear con hallId inexistente → 400', async () => {
       await http()
         .post('/api/v1/events')
