@@ -19,10 +19,9 @@
         name="q"
         testId="panel-search"
       />
-      <select [ngModel]="filterStatus()" (ngModelChange)="filterStatus.set($event); onFilterChange()" name="status" data-testid="panel-filter-status">
-        <option value="">{{ 'promoter.panel.allStatuses' | translate }}</option>
-        @for (s of statuses(); track s) {
-          <option [value]="s">{{ s | statusLabel }}</option>
+      <select [ngModel]="filterGroup()" (ngModelChange)="filterGroup.set($event); onFilterChange()" name="status" data-testid="panel-filter-status">
+        @for (o of filterOptions; track o.value) {
+          <option [value]="o.value">{{ o.key | translate }}</option>
         }
       </select>
     </div>

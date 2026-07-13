@@ -16,6 +16,14 @@ import type { MyEventListItemDto } from '../../core/api/types';
 const PAGE_SIZE = 9;
 
 /**
+ * Grupos de filtrado por estado (W8). Default = `upcoming` (futuros): oculta los que
+ * están en curso, suspendidos y pasados. `ongoing` = publicados ocurriendo ahora
+ * (startsAt ≤ ahora ≤ endsAt). `past` agrupa finished/cancelled y los concluidos por
+ * fecha. `all` no filtra.
+ */
+type EventFilterGroup = 'upcoming' | 'ongoing' | 'suspended' | 'past' | 'all';
+
+/**
  * Panel del promotor (F4/v3): gestiona SUS eventos en un grid de cards paginado.
  * Crear evento (borrador) + acciones por card (Publicar/Editar/Eliminar/Cancelar).
  * La edición profunda (localidades, asientos, banner, config, cuentas) vive en la
@@ -38,16 +46,44 @@ export class PromoterPanel {
   protected readonly pageSize = PAGE_SIZE;
   /** Búsqueda por nombre + filtro por estado (regla v3.2: toda lista los tiene). */
   protected readonly search = signal('');
-  protected readonly filterStatus = signal('');
+  /** Filtro por grupo de estado (W8). Default = futuros. */
+  protected readonly filterGroup = signal<EventFilterGroup>('upcoming');
+  /** Opciones FIJAS del filtro (label vía i18n). */
+  protected readonly filterOptions: { value: EventFilterGroup; key: string }[] = [
+    { value: 'upcoming', key: 'promoter.panel.filterUpcoming' },
+    { value: 'ongoing', key: 'promoter.panel.filterOngoing' },
+    { value: 'suspended', key: 'promoter.panel.filterSuspended' },
+    { value: 'past', key: 'promoter.panel.filterPast' },
+    { value: 'all', key: 'promoter.panel.filterAll' },
+  ];
 
-  /** Estados presentes (para el selector de filtro). */
-  protected readonly statuses = computed(() => [...new Set(this.events().map((e) => e.status))]);
-  /** Eventos tras aplicar búsqueda (nombre) + filtro de estado. */
+  /** Clasifica un evento en su grupo de filtro (por estado y fechas). */
+  private groupOf(e: MyEventListItemDto): EventFilterGroup {
+    if (e.status === 'suspended') return 'suspended';
+    if (e.status === 'finished' || e.status === 'cancelled') return 'past';
+    const now = Date.now();
+    const starts = new Date(e.startsAt).getTime();
+    const ends = new Date(e.endsAt).getTime();
+    // draft/published: "pasado" si ya concluyó por fecha.
+    if (!Number.isNaN(ends) && ends < now) return 'past';
+    // "En curso": publicado ocurriendo ahora (startsAt ≤ ahora ≤ endsAt).
+    if (
+      e.status === 'published' &&
+      !Number.isNaN(starts) &&
+      starts <= now &&
+      (Number.isNaN(ends) || ends >= now)
+    ) {
+      return 'ongoing';
+    }
+    return 'upcoming';
+  }
+
+  /** Eventos tras aplicar búsqueda (nombre) + filtro de grupo de estado. */
   protected readonly filtered = computed(() => {
     const q = this.search().trim().toLowerCase();
-    const st = this.filterStatus();
+    const group = this.filterGroup();
     return this.events().filter((e) => {
-      if (st && e.status !== st) return false;
+      if (group !== 'all' && this.groupOf(e) !== group) return false;
       if (q && !e.name.toLowerCase().includes(q)) return false;
       return true;
     });

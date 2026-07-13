@@ -64,14 +64,24 @@ describe('PromoterPanel (v3 grid)', () => {
     expect(cards[0].textContent).toContain('Fiesta');
   });
 
-  it('el filtro por estado limita el grid', async () => {
-    await setup();
-    (fixture.componentInstance as unknown as { filterStatus: { set: (v: string) => void } }).filterStatus.set('published');
+  it('el filtro por grupo de estado limita el grid (W8): default oculta suspendidos', async () => {
+    await setup({
+      mine: () =>
+        of([
+          { id: 'e1', name: 'Fiesta', slug: 'fiesta', status: 'draft', startsAt: '2028-08-15T02:00:00.000Z', endsAt: '2028-08-15T05:00:00.000Z', _count: { localities: 0 } },
+          { id: 'e3', name: 'Susp', slug: 'susp', status: 'suspended', startsAt: '2028-10-01T02:00:00.000Z', endsAt: '2028-10-01T05:00:00.000Z', _count: { localities: 2 } },
+        ]),
+    });
+    // Default 'active' → el suspendido queda oculto.
+    expect(el.querySelectorAll('[data-testid="ev-card"]').length).toBe(1);
+    expect(el.querySelector('[data-testid="events-grid"]')?.textContent).toContain('Fiesta');
+    // Cambiar el filtro a 'suspended' muestra solo el suspendido.
+    (fixture.componentInstance as unknown as { filterGroup: { set: (v: string) => void } }).filterGroup.set('suspended');
     (fixture.componentInstance as unknown as { onFilterChange: () => void }).onFilterChange();
     fixture.detectChanges();
     const cards = el.querySelectorAll('[data-testid="ev-card"]');
     expect(cards.length).toBe(1);
-    expect(cards[0].textContent).toContain('Show');
+    expect(cards[0].textContent).toContain('Susp');
   });
 
   it('búsqueda sin coincidencias muestra el estado vacío', async () => {
@@ -143,8 +153,12 @@ describe('PromoterPanel (v3 grid)', () => {
   it('un evento suspendido ofrece Publicar (re-publicar) y Cancelar (v3.7)', async () => {
     await setup({
       mine: () =>
-        of([{ id: 'e3', name: 'Susp', slug: 'susp', status: 'suspended', startsAt: '2028-10-01T02:00:00.000Z', _count: { localities: 2 } }]),
+        of([{ id: 'e3', name: 'Susp', slug: 'susp', status: 'suspended', startsAt: '2028-10-01T02:00:00.000Z', endsAt: '2028-10-01T05:00:00.000Z', _count: { localities: 2 } }]),
     });
+    // El default 'Futuros' oculta suspendidos; se cambia el filtro para verlo (W8).
+    (fixture.componentInstance as unknown as { filterGroup: { set: (v: string) => void } }).filterGroup.set('suspended');
+    (fixture.componentInstance as unknown as { onFilterChange: () => void }).onFilterChange();
+    fixture.detectChanges();
     expect(el.querySelector('[data-testid="ev-publish"]')).not.toBeNull();
     expect(el.querySelector('[data-testid="ev-cancel"]')).not.toBeNull();
     expect(el.querySelector('[data-testid="ev-suspend"]')).toBeNull();
