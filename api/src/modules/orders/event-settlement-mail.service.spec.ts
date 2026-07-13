@@ -23,7 +23,10 @@ describe('EventSettlementMailService (F4)', () => {
   };
 
   const make = (user: unknown) => {
-    const prisma = { user: { findUnique: jest.fn().mockResolvedValue(user) } };
+    const prisma = {
+      user: { findUnique: jest.fn().mockResolvedValue(user) },
+      event: { findUnique: jest.fn().mockResolvedValue({ name: 'Gran Show' }) },
+    };
     const mail = { sendTemplated: jest.fn().mockResolvedValue(undefined) };
     const queue = { registerHandler: jest.fn() };
     const settlement = { summaryForEvent: jest.fn().mockResolvedValue(summary) };

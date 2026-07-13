@@ -53,10 +53,15 @@ export class EventSettlementMailService implements OnModuleInit {
       this.logger.warn(`event-settlement: promotor ${job.promoterId} inexistente`);
       return;
     }
-    const s = await this.settlement.summaryForEvent(job.eventId, '');
+    // Resolvemos el NOMBRE real del evento (no el UUID) para asunto/cuerpo (D1 v3.11).
+    const event = await this.prisma.event.findUnique({
+      where: { id: job.eventId },
+      select: { name: true },
+    });
+    const eventName = event?.name || job.eventId;
+    const s = await this.settlement.summaryForEvent(job.eventId, eventName);
     const locale = resolveMailLocale(promoter.language);
     const t = mailStrings(locale).settlement;
-    const eventName = s.eventName || job.eventId;
 
     const row = (label: string, value: string, strong = false) => `
       <tr>
