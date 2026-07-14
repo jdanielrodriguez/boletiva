@@ -116,6 +116,12 @@ export type OccupancyDto = Schemas['OccupancyDto'];
 export type LocalityOccupancyDto = Schemas['LocalityOccupancyDto'];
 export type AttendanceDto = Schemas['AttendanceDto'];
 
+// --- Dashboard de alcance (salón / plantilla) ---
+export type ScopeDashboardDto = Schemas['ScopeDashboardDto'];
+export type ScopeSummaryDto = Schemas['ScopeSummaryDto'];
+export type ScopeTopEventDto = Schemas['ScopeTopEventDto'];
+export type ScopeOccupancyDto = Schemas['ScopeOccupancyDto'];
+
 // --- Devoluciones por cancelación/suspensión del evento (admin) ---
 export type EventRefundDto = Schemas['EventRefundDto'];
 export type EventRefundResultDto = Schemas['EventRefundResultDto'];

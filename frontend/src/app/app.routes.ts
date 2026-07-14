@@ -154,6 +154,13 @@ export const routes: Routes = [
     title: 'Editar salón — Pasa Eventos',
   },
   {
+    path: 'configuracion/salones/:id/dashboard',
+    loadComponent: () =>
+      import('./pages/config/hall-dashboard.page').then((m) => m.HallDashboardPage),
+    canActivate: [roleGuard('admin')],
+    title: 'Dashboard de salón — Pasa Eventos',
+  },
+  {
     // La LISTA de plantillas vive en `/configuracion?tab=plantillas` (v3.9 · B1).
     // Aquí solo quedan las páginas de creación/edición.
     path: 'configuracion/plantillas/nuevo',
@@ -168,6 +175,13 @@ export const routes: Routes = [
     canActivate: [roleGuard('admin')],
     canDeactivate: [unsavedChangesGuard],
     title: 'Editar plantilla — Pasa Eventos',
+  },
+  {
+    path: 'configuracion/plantillas/:id/dashboard',
+    loadComponent: () =>
+      import('./pages/config/template-dashboard.page').then((m) => m.TemplateDashboardPage),
+    canActivate: [roleGuard('admin')],
+    title: 'Dashboard de plantilla — Pasa Eventos',
   },
   {
     path: 'configuracion/promotores/:id/historial',

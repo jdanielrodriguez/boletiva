@@ -7,6 +7,8 @@ import {
 import { ContentStatus, Hall, Prisma } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { CreateHallDto, UpdateHallDto } from './dto/halls.dto';
+import { ScopeDashboardService } from '../analytics/scope-dashboard.service';
+import { ScopeDashboardDto } from '../analytics/dto/scope-dashboard.dto';
 
 /**
  * Salones/venues reutilizables (v3.5/v3.7/v3.10). El admin los gestiona con los
@@ -16,7 +18,20 @@ import { CreateHallDto, UpdateHallDto } from './dto/halls.dto';
  */
 @Injectable()
 export class HallsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly scope: ScopeDashboardService,
+  ) {}
+
+  /** Dashboard del salón: métricas agregadas sobre TODOS sus eventos (admin). */
+  async dashboard(id: string): Promise<ScopeDashboardDto> {
+    const hall = await this.prisma.hall.findUnique({
+      where: { id },
+      select: { id: true, name: true, events: { select: { id: true, name: true, status: true } } },
+    });
+    if (!hall) throw new NotFoundException('Salón no encontrado');
+    return this.scope.aggregate('hall', hall.id, hall.name, hall.events);
+  }
 
   /** Lista completa (admin): salones en cualquier estado. */
   list() {

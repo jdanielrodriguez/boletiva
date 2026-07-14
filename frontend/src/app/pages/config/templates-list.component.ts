@@ -102,6 +102,11 @@ export class TemplatesListComponent {
     void this.router.navigate(['/configuracion/plantillas', t.id, 'editar']);
   }
 
+  /** Abre el dashboard de la plantilla (métricas de los eventos que la usan). */
+  protected openDashboard(t: SeatTemplateResponseDto): void {
+    void this.router.navigate(['/configuracion/plantillas', t.id, 'dashboard']);
+  }
+
   // --- Transiciones de estado ---
   private transition(obs: ReturnType<SeatTemplatesApi['publish']>, msg: string): void {
     obs.subscribe({

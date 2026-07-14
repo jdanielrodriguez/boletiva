@@ -422,4 +422,28 @@ export const config = {
       'Lets a signed-out visitor switch the page language with the flags. When off, visitors see everything in Spanish (signed-in users always see their own language).',
     home_show_categories: 'Shows the category filters on the home page.',
   },
+
+  // --- Hall / template dashboards (separate page) ---
+  dash: {
+    viewDashboard: 'Dashboard',
+    hallTitle: 'Hall dashboard',
+    templateTitle: 'Template dashboard',
+    backHalls: 'Back to halls',
+    backTemplates: 'Back to templates',
+    loading: 'Loading dashboard…',
+    error: 'Could not load the dashboard.',
+    emptyTitle: 'No sales yet',
+    emptyBody: 'Once the linked events record sales you will see the metrics here.',
+    events: 'Events',
+    gross: 'Collected',
+    net: 'Net',
+    paidOrders: 'Orders',
+    ticketsSold: 'Tickets sold',
+    occupancy: 'Occupancy',
+    revenue: 'Revenue',
+    salesTitle: 'Sales per day',
+    topTitle: 'Top events by revenue',
+    event: 'Event',
+    sold: 'Sold',
+  },
 };

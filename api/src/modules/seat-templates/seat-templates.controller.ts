@@ -24,6 +24,7 @@ import {
   SeatTemplateResponseDto,
   UpdateSeatTemplateDto,
 } from './dto/seat-templates.dto';
+import { ScopeDashboardDto } from '../analytics/dto/scope-dashboard.dto';
 
 @ApiTags('seat-templates')
 @ApiBearerAuth()
@@ -55,6 +56,14 @@ export class SeatTemplatesController {
   @ApiOkResponse({ type: SeatTemplateResponseDto })
   get(@Param('id', ParseUUIDPipe) id: string) {
     return this.templates.get(id);
+  }
+
+  @Get(':id/dashboard')
+  @Roles(Role.admin)
+  @ApiOperation({ summary: 'Dashboard de la plantilla: métricas agregadas de los eventos que la usan (admin)' })
+  @ApiOkResponse({ type: ScopeDashboardDto })
+  dashboard(@Param('id', ParseUUIDPipe) id: string) {
+    return this.templates.dashboard(id);
   }
 
   @Post()

@@ -425,4 +425,28 @@ export const config = {
       'Permite que un visitante sin sesión cambie el idioma de la página con las banderas. Si está apagado, los visitantes ven todo en español (los usuarios con sesión siempre ven su idioma).',
     home_show_categories: 'Muestra los filtros de categoría en la página principal.',
   },
+
+  // --- Dashboards de salón / plantilla (página aparte) ---
+  dash: {
+    viewDashboard: 'Dashboard',
+    hallTitle: 'Dashboard del salón',
+    templateTitle: 'Dashboard de la plantilla',
+    backHalls: 'Volver a salones',
+    backTemplates: 'Volver a plantillas',
+    loading: 'Cargando dashboard…',
+    error: 'No se pudo cargar el dashboard.',
+    emptyTitle: 'Aún sin ventas',
+    emptyBody: 'Cuando los eventos vinculados registren ventas verás aquí las métricas.',
+    events: 'Eventos',
+    gross: 'Recaudado',
+    net: 'Neto',
+    paidOrders: 'Órdenes',
+    ticketsSold: 'Boletos vendidos',
+    occupancy: 'Ocupación',
+    revenue: 'Recaudado',
+    salesTitle: 'Ventas por día',
+    topTitle: 'Eventos con más recaudación',
+    event: 'Evento',
+    sold: 'Vendidos',
+  },
 };

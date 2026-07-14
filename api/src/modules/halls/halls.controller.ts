@@ -20,6 +20,7 @@ import { ContentStatus, Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { HallsService } from './halls.service';
 import { CreateHallDto, HallResponseDto, UpdateHallDto } from './dto/halls.dto';
+import { ScopeDashboardDto } from '../analytics/dto/scope-dashboard.dto';
 
 @ApiTags('halls')
 @ApiBearerAuth()
@@ -49,6 +50,14 @@ export class HallsController {
   @ApiOkResponse({ type: HallResponseDto })
   get(@Param('id', ParseUUIDPipe) id: string) {
     return this.halls.get(id);
+  }
+
+  @Get(':id/dashboard')
+  @Roles(Role.admin)
+  @ApiOperation({ summary: 'Dashboard del salón: métricas agregadas de todos sus eventos (admin)' })
+  @ApiOkResponse({ type: ScopeDashboardDto })
+  dashboard(@Param('id', ParseUUIDPipe) id: string) {
+    return this.halls.dashboard(id);
   }
 
   @Post()

@@ -2,6 +2,8 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import { ContentStatus, Prisma, SeatTemplate } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { CreateSeatTemplateDto, UpdateSeatTemplateDto } from './dto/seat-templates.dto';
+import { ScopeDashboardService, ScopeEvent } from '../analytics/scope-dashboard.service';
+import { ScopeDashboardDto } from '../analytics/dto/scope-dashboard.dto';
 
 /**
  * Plantillas de disposición de asientos (v3.5/v3.7). Registra los presets del editor
@@ -11,7 +13,33 @@ import { CreateSeatTemplateDto, UpdateSeatTemplateDto } from './dto/seat-templat
  */
 @Injectable()
 export class SeatTemplatesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly scope: ScopeDashboardService,
+  ) {}
+
+  /**
+   * Dashboard de la plantilla: métricas agregadas de los eventos que la usan (admin).
+   * La plantilla no enlaza eventos directo: se llega vía sus salones → eventos.
+   */
+  async dashboard(id: string): Promise<ScopeDashboardDto> {
+    const tpl = await this.prisma.seatTemplate.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        halls: { select: { events: { select: { id: true, name: true, status: true } } } },
+      },
+    });
+    if (!tpl) throw new NotFoundException('Plantilla no encontrada');
+    // Un evento pertenece a un solo salón, pero deduplicamos por seguridad.
+    const events = [
+      ...new Map(
+        tpl.halls.flatMap((h) => h.events).map((e): [string, ScopeEvent] => [e.id, e]),
+      ).values(),
+    ];
+    return this.scope.aggregate('template', tpl.id, tpl.name, events);
+  }
 
   /** Lista completa (admin): todas las plantillas en cualquier estado. */
   list() {

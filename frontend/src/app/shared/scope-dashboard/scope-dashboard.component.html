@@ -1,0 +1,79 @@
+<div class="dash" data-testid="scope-dashboard">
+  @if (data()?.name; as nm) {
+    <h2 class="scope-name" data-testid="scope-name">{{ nm }}</h2>
+  }
+  @if (loading()) {
+    <app-loading data-testid="scope-loading" [label]="'config.dash.loading' | translate" />
+  } @else if (error()) {
+    <app-empty-state
+      variant="billing"
+      data-testid="scope-error"
+      [title]="'common.errorLoading' | translate"
+      [subtitle]="'config.dash.error' | translate"
+    />
+  } @else if (isEmpty()) {
+    <app-empty-state
+      variant="billing"
+      data-testid="scope-empty"
+      [title]="'config.dash.emptyTitle' | translate"
+      [subtitle]="'config.dash.emptyBody' | translate"
+    />
+  }
+
+  @if (hasData() && data(); as d) {
+    <div class="dash-kpis" data-testid="scope-kpis">
+      <div class="kpi">
+        <span class="kpi-label">{{ 'config.dash.events' | translate }}</span>
+        <span class="kpi-value">{{ d.eventsCount }}</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-label">{{ 'config.dash.gross' | translate }}</span>
+        <span class="kpi-value">{{ currency() }} {{ d.summary.gross | money }}</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-label">{{ 'config.dash.net' | translate }}</span>
+        <span class="kpi-value accent">{{ currency() }} {{ d.summary.net | money }}</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-label">{{ 'config.dash.paidOrders' | translate }}</span>
+        <span class="kpi-value">{{ d.summary.paidOrders }}</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-label">{{ 'config.dash.ticketsSold' | translate }}</span>
+        <span class="kpi-value">{{ d.summary.ticketsSold }}</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-label">{{ 'config.dash.occupancy' | translate }}</span>
+        <span class="kpi-value">{{ d.occupancy.occupancyPct }}%</span>
+      </div>
+    </div>
+
+    <section class="dash-card" data-testid="scope-sales">
+      <h3>{{ 'config.dash.salesTitle' | translate }}</h3>
+      <app-chart [options]="salesOptions()" />
+    </section>
+
+    <section class="dash-card" data-testid="scope-top">
+      <h3>{{ 'config.dash.topTitle' | translate }}</h3>
+      <app-chart [options]="topEventsOptions()" />
+      <table class="dash-table">
+        <thead>
+          <tr>
+            <th>{{ 'config.dash.event' | translate }}</th>
+            <th class="num">{{ 'config.dash.sold' | translate }}</th>
+            <th class="num">{{ 'config.dash.gross' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (e of d.topEvents; track e.eventId) {
+            <tr>
+              <td>{{ e.name }}</td>
+              <td class="num">{{ e.ticketsSold }}</td>
+              <td class="num">{{ currency() }} {{ e.gross | money }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </section>
+  }
+</div>

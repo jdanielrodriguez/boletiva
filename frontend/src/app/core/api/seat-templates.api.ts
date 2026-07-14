@@ -3,6 +3,7 @@ import { Observable } from 'rxjs';
 import { ApiClient } from '../http/api-client.service';
 import type {
   CreateSeatTemplateDto,
+  ScopeDashboardDto,
   SeatTemplateResponseDto,
   UpdateSeatTemplateDto,
 } from './types';
@@ -26,6 +27,10 @@ export class SeatTemplatesApi {
   }
   get(id: string): Observable<SeatTemplateResponseDto> {
     return this.api.get<SeatTemplateResponseDto>(`/seat-templates/${id}`);
+  }
+  /** Dashboard de la plantilla: métricas de los eventos que la usan (admin). */
+  dashboard(id: string): Observable<ScopeDashboardDto> {
+    return this.api.get<ScopeDashboardDto>(`/seat-templates/${id}/dashboard`);
   }
   create(dto: CreateSeatTemplateDto): Observable<SeatTemplateResponseDto> {
     return this.api.post<SeatTemplateResponseDto>('/seat-templates', dto);

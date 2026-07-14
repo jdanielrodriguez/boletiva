@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiClient } from '../http/api-client.service';
-import type { CreateHallDto, HallResponseDto, UpdateHallDto } from './types';
+import type { CreateHallDto, HallResponseDto, ScopeDashboardDto, UpdateHallDto } from './types';
 
 /**
  * Salones/venues (v3.5). Un salón es un lugar con ubicación (mapa) y, opcionalmente,
@@ -22,6 +22,10 @@ export class HallsApi {
   }
   get(id: string): Observable<HallResponseDto> {
     return this.api.get<HallResponseDto>(`/halls/${id}`);
+  }
+  /** Dashboard del salón: métricas agregadas de todos sus eventos (admin). */
+  dashboard(id: string): Observable<ScopeDashboardDto> {
+    return this.api.get<ScopeDashboardDto>(`/halls/${id}/dashboard`);
   }
   create(dto: CreateHallDto): Observable<HallResponseDto> {
     return this.api.post<HallResponseDto>('/halls', dto);

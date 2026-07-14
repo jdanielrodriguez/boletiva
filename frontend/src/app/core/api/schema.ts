@@ -2325,6 +2325,23 @@ export interface paths {
         patch: operations["HallsController_update_v1"];
         trace?: never;
     };
+    "/api/v1/halls/{id}/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Dashboard del salón: métricas agregadas de todos sus eventos (admin) */
+        get: operations["HallsController_dashboard_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/halls/{id}/publish": {
         parameters: {
             query?: never;
@@ -2479,6 +2496,23 @@ export interface paths {
         head?: never;
         /** Actualiza una plantilla (admin; built-in bloqueada) */
         patch: operations["SeatTemplatesController_update_v1"];
+        trace?: never;
+    };
+    "/api/v1/seat-templates/{id}/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Dashboard de la plantilla: métricas agregadas de los eventos que la usan (admin) */
+        get: operations["SeatTemplatesController_dashboard_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/seat-templates/{id}/publish": {
@@ -6665,6 +6699,93 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
+        ScopeSummaryDto: {
+            /**
+             * @description Órdenes pagadas en el alcance
+             * @example 12
+             */
+            paidOrders: number;
+            /**
+             * @description Boletos vendidos (ítems activos pagados)
+             * @example 340
+             */
+            ticketsSold: number;
+            /**
+             * @description Total recaudado
+             * @example 44300.16
+             */
+            gross: string;
+            /**
+             * @description Neto de los promotores
+             * @example 34000.00
+             */
+            net: string;
+            /**
+             * @description Servicios (gross − net)
+             * @example 9500.00
+             */
+            services: string;
+            /**
+             * @description IVA recaudado
+             * @example 4104.00
+             */
+            iva: string;
+        };
+        ScopeOccupancyDto: {
+            /** @example 2000 */
+            totalCapacity: number;
+            /** @example 340 */
+            totalSold: number;
+            /** @example 17 */
+            occupancyPct: number;
+        };
+        ScopeTopEventDto: {
+            /** Format: uuid */
+            eventId: string;
+            /** @example Concierto de Apertura */
+            name: string;
+            /** @example published */
+            status: string;
+            /**
+             * @description Boletos vendidos del evento
+             * @example 180
+             */
+            ticketsSold: number;
+            /**
+             * @description Recaudado del evento
+             * @example 23200.00
+             */
+            gross: string;
+        };
+        ScopeDashboardDto: {
+            /**
+             * @example hall
+             * @enum {string}
+             */
+            scope: "hall" | "template";
+            /** Format: uuid */
+            id: string;
+            /** @example Estadio Nacional */
+            name: string;
+            /** @example GTQ */
+            currency: string;
+            /**
+             * @description Cantidad de eventos vinculados al alcance
+             * @example 8
+             */
+            eventsCount: number;
+            /**
+             * @description Eventos publicados
+             * @example 5
+             */
+            publishedCount: number;
+            summary: components["schemas"]["ScopeSummaryDto"];
+            /** @description Ventas por día agregadas del alcance */
+            salesOverTime: components["schemas"]["SalesPointDto"][];
+            occupancy: components["schemas"]["ScopeOccupancyDto"];
+            /** @description Eventos con más recaudación (top 5) */
+            topEvents: components["schemas"]["ScopeTopEventDto"][];
+        };
         CreateHallDto: {
             /**
              * @description Nombre del salón/venue
@@ -10476,6 +10597,27 @@ export interface operations {
             };
         };
     };
+    HallsController_dashboard_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScopeDashboardDto"];
+                };
+            };
+        };
+    };
     HallsController_publish_v1: {
         parameters: {
             query?: never;
@@ -10724,6 +10866,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SeatTemplateResponseDto"];
+                };
+            };
+        };
+    };
+    SeatTemplatesController_dashboard_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScopeDashboardDto"];
                 };
             };
         };

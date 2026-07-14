@@ -80,6 +80,11 @@ export class HallsListComponent {
     void this.router.navigate(['/configuracion/salones', h.id, 'editar']);
   }
 
+  /** Abre el dashboard del salón (métricas de todos sus eventos) en página aparte. */
+  protected openDashboard(h: HallResponseDto): void {
+    void this.router.navigate(['/configuracion/salones', h.id, 'dashboard']);
+  }
+
   // --- Publicar (con modal de confirmación, v3.9 · B3) ---
   protected askPublish(h: HallResponseDto): void {
     this.confirm.ask({
