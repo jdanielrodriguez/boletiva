@@ -276,10 +276,22 @@ describe('ConfigPage (v3, admin console)', () => {
     expect(makeGatewayDefault).toHaveBeenCalledWith('g2');
   });
 
+  it('sistema: BLOQUEADO solo permite definir default; editar/eliminar exigen desbloqueo', async () => {
+    await setup();
+    await selectTab('tab-sistema');
+    // make-default disponible aun bloqueado; editar y eliminar deshabilitados.
+    expect((el.querySelector('[data-testid="gw-edit"]') as HTMLButtonElement).disabled).toBe(true);
+    expect((el.querySelector('[data-testid="gw-delete"]') as HTMLButtonElement).disabled).toBe(true);
+    // editGateway es no-op sin desbloqueo.
+    fixture.componentInstance['editGateway'](GATEWAYS[1] as never);
+    expect(fixture.componentInstance['gatewayDraft']()).toBeNull();
+  });
+
   it('sistema: editar y guardar pasarela llama updateGateway', async () => {
     const updateGateway = jasmine.createSpy('ug').and.returnValue(of(GATEWAYS[1]));
     await setup({ updateGateway });
     await selectTab('tab-sistema');
+    fixture.componentInstance['unlockUnlocked'].set(true); // editar exige desbloqueo (candado)
     fixture.componentInstance['editGateway'](GATEWAYS[1] as never);
     fixture.detectChanges();
     fixture.componentInstance['patchDraft']('feePct', 0.06);
@@ -291,6 +303,7 @@ describe('ConfigPage (v3, admin console)', () => {
   it('sistema: JSON de cuotas inválido → warning y NO guarda', async () => {
     const updateGateway = jasmine.createSpy('ug').and.returnValue(of(GATEWAYS[1]));
     await setup({ updateGateway });
+    fixture.componentInstance['unlockUnlocked'].set(true);
     fixture.componentInstance['editGateway'](GATEWAYS[1] as never);
     fixture.componentInstance['patchDraft']('installmentRatesJson', 'no-json');
     fixture.componentInstance['saveGateway']();
@@ -391,6 +404,7 @@ describe('ConfigPage (v3, admin console)', () => {
   it('sistema: cambiar de tab CIERRA el form de edición de pasarela (punto 9)', async () => {
     await setup();
     await selectTab('tab-sistema');
+    fixture.componentInstance['unlockUnlocked'].set(true);
     fixture.componentInstance['editGateway'](GATEWAYS[1] as never);
     expect(fixture.componentInstance['gatewayDraft']()).not.toBeNull();
     await selectTab('tab-eventos');
@@ -440,6 +454,7 @@ describe('ConfigPage (v3, admin console)', () => {
   it('sistema: al editar una pasarela se oculta su botón Editar', async () => {
     await setup();
     await selectTab('tab-sistema');
+    fixture.componentInstance['unlockUnlocked'].set(true);
     // Antes de editar hay al menos un botón Editar visible.
     expect(el.querySelectorAll('[data-testid="gw-edit"]').length).toBeGreaterThan(0);
     fixture.componentInstance['editGateway'](GATEWAYS[1] as never);

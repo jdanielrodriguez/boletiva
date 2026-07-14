@@ -1,4 +1,4 @@
-import { escapeHtml, renderEmail } from './email-template';
+import { escapeHtml, renderEmail, EMAIL_THEMES } from './email-template';
 
 describe('email-template', () => {
   describe('escapeHtml', () => {
@@ -20,10 +20,13 @@ describe('email-template', () => {
       expect(html).toContain('Verifica tu correo');
       expect(html).toContain('<p>Hola mundo</p>');
       expect(html).toContain('Vista previa');
-      // Marca "pasa"+"eventos" y footer con el año actual.
-      expect(html).toContain('pasa');
-      expect(html).toContain('eventos');
+      // Marca "bolet"+"iva" y footer Boletiva con el año actual.
+      expect(html).toContain('>bolet<');
+      expect(html).toContain('>iva<');
+      expect(html).toContain('Boletiva');
       expect(html).toContain(String(new Date().getFullYear()));
+      // Sin paleta explícita: usa el tema por defecto (Pulso/noche, fondo oscuro).
+      expect(html).toContain('#0a0d13');
       // El texto plano deriva del cuerpo (sin etiquetas).
       expect(text).toContain('Verifica tu correo');
       expect(text).toContain('Hola mundo');
@@ -54,6 +57,16 @@ describe('email-template', () => {
         cta: { url: 'https://x.test', label: 'Ir' },
       });
       expect(html).not.toMatch(/{{\w+}}/);
+    });
+
+    it('adapta los colores a la paleta del tema (Marquesina/claro)', () => {
+      const { html } = renderEmail(
+        { title: 'T', bodyHtml: '<p>b</p>' },
+        EMAIL_THEMES['marquesina'],
+      );
+      expect(html).toContain('#f6f1e8'); // fondo claro
+      expect(html).toContain('#d1521f'); // acento cálido
+      expect(html).not.toContain('#0a0d13'); // NO el fondo oscuro de Pulso
     });
 
     it('escapa la URL/label del CTA (anti-inyección)', () => {

@@ -294,12 +294,13 @@
                       </button>
                     }
                     @if (gatewayDraft()?.id !== g.id) {
-                      <button type="button" class="btn small" (click)="editGateway(g)" data-testid="gw-edit" [title]="'config.system.editGatewayTitle' | translate">
+                      <button type="button" class="btn small" (click)="editGateway(g)" [disabled]="!unlockUnlocked()" data-testid="gw-edit"
+                        [title]="(unlockUnlocked() ? 'config.system.editGatewayTitle' : 'config.system.lockedEditTitle') | translate">
                         <app-icon name="edit" /> {{ 'common.edit' | translate }}
                       </button>
                     }
-                    <button type="button" class="btn small danger" (click)="askRemoveGateway(g)" [disabled]="!canDeleteGateway(g)" data-testid="gw-delete"
-                      [title]="(canDeleteGateway(g) ? 'config.system.deleteGatewayTitle' : 'config.system.deleteGatewayBlockedTitle') | translate">
+                    <button type="button" class="btn small danger" (click)="askRemoveGateway(g)" [disabled]="!unlockUnlocked() || !canDeleteGateway(g)" data-testid="gw-delete"
+                      [title]="(!unlockUnlocked() ? 'config.system.lockedEditTitle' : (canDeleteGateway(g) ? 'config.system.deleteGatewayTitle' : 'config.system.deleteGatewayBlockedTitle')) | translate">
                       <app-icon name="delete" /> {{ 'config.system.deleteGateway' | translate }}
                     </button>
                   </span>

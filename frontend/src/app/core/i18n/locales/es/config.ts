@@ -159,6 +159,7 @@ export const config = {
     makeDefault: 'Definir default',
     makeDefaultTitle: 'Definir como pasarela default',
     editGatewayTitle: 'Editar pasarela',
+    lockedEditTitle: 'Desbloquea (con el candado) para editar o eliminar; sin desbloquear solo puedes definir la pasarela por defecto',
     gwFeePctEdit: 'Comisión % (0.05)',
     gwMinCostShare: 'Cost-share mínimo (0–1)',
     gwInstallmentFixed: 'Fijo en cuotas (Q)',

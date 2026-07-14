@@ -258,6 +258,9 @@ textarea:focus {
   background: rgba(11, 12, 17, 0.72);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--pe-border);
+  /* El header es una superficie SIEMPRE oscura (en ambos temas) → su texto va claro
+     y fijo, no con --pe-text (que en el tema día es oscuro e ilegible aquí). */
+  color: #f5f6fa;
 }
 
 .brand {
@@ -283,7 +286,8 @@ textarea:focus {
 }
 
 .brand .brand-rest {
-  color: var(--pe-text);
+  /* «bolet» va claro sobre el header oscuro en ambos temas (no --pe-text). */
+  color: #f5f6fa;
   font-weight: 600;
 }
 
@@ -293,12 +297,12 @@ textarea:focus {
 }
 
 .site-nav a {
-  color: var(--pe-muted);
+  color: rgba(245, 246, 250, 0.72);
   font-weight: 500;
 }
 
 .site-nav a:hover {
-  color: var(--pe-text);
+  color: #f5f6fa;
 }
 
 .session-area {
@@ -309,7 +313,7 @@ textarea:focus {
 }
 
 .session-area .greeting {
-  color: var(--pe-muted);
+  color: rgba(245, 246, 250, 0.75);
 }
 
 /* Layout sticky: el footer siempre al fondo, crezca lo que crezca la página. */

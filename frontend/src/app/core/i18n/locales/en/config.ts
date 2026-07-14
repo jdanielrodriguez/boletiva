@@ -159,6 +159,7 @@ export const config = {
     makeDefault: 'Set default',
     makeDefaultTitle: 'Set as default gateway',
     editGatewayTitle: 'Edit gateway',
+    lockedEditTitle: 'Unlock (with the lock) to edit or delete; while locked you can only set the default gateway',
     gwFeePctEdit: 'Fee % (0.05)',
     gwMinCostShare: 'Minimum cost-share (0–1)',
     gwInstallmentFixed: 'Fixed for installments (Q)',

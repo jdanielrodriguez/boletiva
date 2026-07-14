@@ -537,6 +537,8 @@ export class ConfigPage {
 
   // Pasarelas — edición
   protected editGateway(g: GatewayResponseDto): void {
+    // Bloqueado: solo se puede "definir default"; editar exige desbloquear (OTP).
+    if (!this.unlockUnlocked()) return;
     this.gatewayDraft.set({
       id: g.id,
       name: g.name,
@@ -557,7 +559,7 @@ export class ConfigPage {
   }
   protected saveGateway(): void {
     const d = this.gatewayDraft();
-    if (!d) return;
+    if (!d || !this.unlockUnlocked()) return; // guardar exige desbloqueo
     let installmentRates: Record<string, number> | undefined;
     if (d.installmentRatesJson.trim()) {
       try {
