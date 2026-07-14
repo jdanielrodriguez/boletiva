@@ -54,8 +54,8 @@
               <app-icon name="edit" /> {{ 'common.edit' | translate }}
             </a>
             @if (ev.status === 'draft') {
-              <button type="button" class="btn small danger" (click)="askRemove(ev)" data-testid="ev-delete" [title]="'promoter.panel.deleteTitle' | translate">
-                <app-icon name="delete" /> {{ 'common.delete' | translate }}
+              <button type="button" class="btn small danger icon-only" (click)="askRemove(ev)" data-testid="ev-delete" [attr.aria-label]="'common.delete' | translate" [title]="'promoter.panel.deleteTitle' | translate">
+                <app-icon name="delete" />
               </button>
             }
             @if (ev.status === 'published') {

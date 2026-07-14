@@ -71,9 +71,10 @@
                 <app-icon name="edit" /> {{ 'common.edit' | translate }}
               </button>
             }
-            <button type="button" class="btn small danger" (click)="askRemove(t)" [disabled]="!canDelete(t)" data-testid="tpl-remove"
+            <button type="button" class="btn small danger icon-only" (click)="askRemove(t)" [disabled]="!canDelete(t)" data-testid="tpl-remove"
+              [attr.aria-label]="'common.delete' | translate"
               [title]="(canDelete(t) ? 'config.templates.removeTitle' : 'config.templates.deleteBlocked') | translate">
-              <app-icon name="delete" /> {{ 'common.delete' | translate }}
+              <app-icon name="delete" />
             </button>
           } @else {
             <span class="muted small" data-testid="tpl-builtin-note">{{ 'config.templates.builtInNote' | translate }}</span>

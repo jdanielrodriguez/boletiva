@@ -66,9 +66,10 @@
           <button type="button" class="btn small" (click)="openDashboard(h)" data-testid="hall-dashboard" [title]="'config.dash.hallTitle' | translate">
             <app-icon name="accounts" /> {{ 'config.dash.viewDashboard' | translate }}
           </button>
-          <button type="button" class="btn small danger" (click)="askRemove(h)" [disabled]="!canDelete(h)" data-testid="hall-remove"
+          <button type="button" class="btn small danger icon-only" (click)="askRemove(h)" [disabled]="!canDelete(h)" data-testid="hall-remove"
+            [attr.aria-label]="'common.delete' | translate"
             [title]="(canDelete(h) ? 'config.halls.removeTitle' : 'config.halls.deleteBlocked') | translate">
-            <app-icon name="delete" /> {{ 'common.delete' | translate }}
+            <app-icon name="delete" />
           </button>
         </div>
       </article>

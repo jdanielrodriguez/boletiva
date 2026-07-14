@@ -12,6 +12,7 @@ import { LoginModal } from '../../shared/login-modal/login-modal.component';
 import { ShareBox } from '../../shared/share-box/share-box.component';
 import { ReservationItems } from '../../shared/reservation-items/reservation-items.component';
 import { LoadingComponent } from '../../shared/ui/loading.component';
+import { IconComponent } from '../../shared/icon/icon.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { SeatMapComponent } from './seat-map.component';
 import { PurchaseService } from './purchase.service';
@@ -35,6 +36,7 @@ type Phase = 'select' | 'reserved' | 'expired';
     LoadingComponent,
     EmptyStateComponent,
     TranslatePipe,
+    IconComponent,
   ],
   templateUrl: './purchase.page.html',
   providers: [PurchaseService],

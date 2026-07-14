@@ -41,8 +41,8 @@
           </button>
         }
         @if (!isNew() && event()?.status === 'draft') {
-          <button type="button" class="btn danger" [disabled]="locked()" (click)="askRemove()" data-testid="delete-btn" [title]="'promoter.edit.deleteEventTitle' | translate">
-            <app-icon name="delete" /> {{ 'common.delete' | translate }}
+          <button type="button" class="btn danger icon-only" [disabled]="locked()" (click)="askRemove()" data-testid="delete-btn" [attr.aria-label]="'common.delete' | translate" [title]="'promoter.edit.deleteEventTitle' | translate">
+            <app-icon name="delete" />
           </button>
         }
         @if (isPublished()) {
@@ -216,8 +216,8 @@
                               <app-icon name="edit" /> {{ 'common.edit' | translate }}
                             </button>
                           }
-                          <button type="button" class="btn small danger" (click)="askRemoveLocality(l)" data-testid="loc-remove" [title]="'promoter.edit.deleteLocalityTitle' | translate">
-                            <app-icon name="delete" /> {{ 'common.delete' | translate }}
+                          <button type="button" class="btn small danger icon-only" (click)="askRemoveLocality(l)" data-testid="loc-remove" [attr.aria-label]="'common.delete' | translate" [title]="'promoter.edit.deleteLocalityTitle' | translate">
+                            <app-icon name="delete" />
                           </button>
                         }
                       </span>

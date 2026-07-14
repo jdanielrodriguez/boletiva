@@ -125,7 +125,7 @@
                   } @else {
                     <button type="button" class="link-btn" (click)="setDefaultCard(c.id)" data-testid="set-default-card">{{ 'account.methods.makeDefault' | translate }}</button>
                   }
-                  <button type="button" class="link-btn danger" (click)="askRemoveCard(c)" data-testid="remove-card" [title]="'account.methods.removeCardTitle' | translate">{{ 'common.delete' | translate }}</button>
+                  <button type="button" class="link-btn danger" (click)="askRemoveCard(c)" data-testid="remove-card" [attr.aria-label]="'common.delete' | translate" [title]="'account.methods.removeCardTitle' | translate"><app-icon name="delete" /></button>
                 </li>
               }
             </ul>
