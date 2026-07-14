@@ -1,0 +1,153 @@
+<section class="config-page">
+  <div class="page-head-row">
+    <app-back-link
+      link="/promotor"
+      testId="back-promoter"
+      [label]="'promoter.dash.back' | translate"
+    />
+  </div>
+
+  <div class="dash-head">
+    <h1>{{ 'promoter.dash.title' | translate }}</h1>
+    @if (data() && !isEmpty()) {
+      <button
+        type="button"
+        class="btn btn-outline"
+        (click)="downloadExcel()"
+        [disabled]="downloading()"
+        data-testid="pdash-export"
+      >
+        {{ (downloading() ? 'promoter.dash.exporting' : 'promoter.dash.export') | translate }}
+      </button>
+    }
+  </div>
+
+  <div class="dash" data-testid="promoter-dashboard">
+    @if (loading()) {
+      <app-loading data-testid="pdash-loading" [label]="'promoter.dash.loading' | translate" />
+    } @else if (error()) {
+      <app-empty-state
+        variant="billing"
+        data-testid="pdash-error"
+        [title]="'common.errorLoading' | translate"
+        [subtitle]="'promoter.dash.error' | translate"
+      />
+    } @else if (data()) {
+      @let d = data()!;
+      @if (isEmpty()) {
+        <p class="dash-preview-note" data-testid="pdash-preview">
+          {{ 'promoter.dash.previewNotice' | translate }}
+        </p>
+      }
+
+      <!-- KPIs de rentabilidad global -->
+      <div class="dash-kpis" data-testid="pdash-kpis">
+        <div class="kpi">
+          <span class="kpi-label">{{ 'promoter.dash.events' | translate }}</span>
+          <span class="kpi-value">{{ d.eventsCount }}</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">{{ 'promoter.dash.gross' | translate }}</span>
+          <span class="kpi-value">{{ currency() }} {{ d.summary.gross | money }}</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">{{ 'promoter.dash.net' | translate }}</span>
+          <span class="kpi-value accent">{{ currency() }} {{ d.summary.net | money }}</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">{{ 'promoter.dash.services' | translate }}</span>
+          <span class="kpi-value">{{ currency() }} {{ d.summary.services | money }}</span>
+        </div>
+        @if (isAdmin()) {
+          <div class="kpi">
+            <span class="kpi-label">{{ 'promoter.dash.iva' | translate }}</span>
+            <span class="kpi-value">{{ currency() }} {{ d.summary.iva | money }}</span>
+          </div>
+        }
+        <div class="kpi">
+          <span class="kpi-label">{{ 'promoter.dash.ticketsSold' | translate }}</span>
+          <span class="kpi-value">{{ d.summary.ticketsSold }}</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">{{ 'promoter.dash.occupancy' | translate }}</span>
+          <span class="kpi-value">{{ d.summary.occupancyPct }}%</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">{{ 'promoter.dash.checkedIn' | translate }}</span>
+          <span class="kpi-value">{{ d.summary.checkedIn }}</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">{{ 'promoter.dash.refunds' | translate }}</span>
+          <span class="kpi-value">{{ currency() }} {{ d.summary.refundsIssued | money }}</span>
+        </div>
+      </div>
+
+      <!-- Ventas en el tiempo -->
+      <section class="dash-card" data-testid="pdash-sales">
+        <h3>{{ 'promoter.dash.salesTitle' | translate }}</h3>
+        <app-chart [options]="salesOptions()" />
+      </section>
+
+      <!-- Tabla cruzada por dimensión -->
+      <section class="dash-card" data-testid="pdash-dimensions">
+        <div class="dim-head">
+          <h3>{{ 'promoter.dash.byDimension' | translate }}</h3>
+          <div class="dim-tabs" role="tablist">
+            @for (dim of dimensions; track dim) {
+              <button
+                type="button"
+                role="tab"
+                class="dim-tab"
+                [class.active]="selectedDim() === dim"
+                [attr.aria-selected]="selectedDim() === dim"
+                (click)="selectDim(dim)"
+                [attr.data-testid]="'pdash-dim-' + dim"
+              >
+                {{ dimLabel(dim) }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <app-chart [options]="dimChartOptions()" />
+
+        <div class="table-scroll">
+          <table class="dash-table" data-testid="pdash-table">
+            <thead>
+              <tr>
+                <th>{{ 'promoter.dash.group' | translate }}</th>
+                <th class="num">{{ 'promoter.dash.eventsCol' | translate }}</th>
+                <th class="num">{{ 'promoter.dash.sold' | translate }}</th>
+                <th class="num">{{ 'promoter.dash.gross' | translate }}</th>
+                <th class="num">{{ 'promoter.dash.net' | translate }}</th>
+                <th class="num">{{ 'promoter.dash.services' | translate }}</th>
+                <th class="num">{{ 'promoter.dash.refunds' | translate }}</th>
+                <th class="num">{{ 'promoter.dash.occupancy' | translate }}</th>
+                <th class="num">{{ 'promoter.dash.checkedIn' | translate }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (r of rows(); track r.key) {
+                <tr>
+                  <td>{{ r.label }}</td>
+                  <td class="num">{{ r.events }}</td>
+                  <td class="num">{{ r.ticketsSold }}</td>
+                  <td class="num">{{ currency() }} {{ r.gross | money }}</td>
+                  <td class="num accent">{{ currency() }} {{ r.net | money }}</td>
+                  <td class="num">{{ currency() }} {{ r.services | money }}</td>
+                  <td class="num">{{ currency() }} {{ r.refunds | money }}</td>
+                  <td class="num">{{ r.occupancyPct }}%</td>
+                  <td class="num">{{ r.checkedIn }}</td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="9" class="dim-empty">{{ 'promoter.dash.noRows' | translate }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+  </div>
+</section>

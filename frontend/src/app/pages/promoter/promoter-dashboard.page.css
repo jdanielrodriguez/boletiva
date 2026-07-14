@@ -1,0 +1,118 @@
+.dash-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.dash {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+.dash-preview-note {
+  margin: 0;
+  padding: 0.6rem 0.9rem;
+  border: 1px dashed var(--pe-accent, #c026d3);
+  border-radius: 10px;
+  background: var(--pe-accent-soft, rgba(192, 38, 211, 0.08));
+  color: var(--pe-accent, #c026d3);
+  font-size: 0.9rem;
+}
+.dash-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+.kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--pe-border, rgba(148, 163, 184, 0.25));
+  border-radius: 12px;
+  background: var(--pe-surface, rgba(148, 163, 184, 0.06));
+}
+.kpi-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  opacity: 0.7;
+}
+.kpi-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+.kpi-value.accent {
+  color: var(--pe-accent, #c026d3);
+}
+.dash-card {
+  border: 1px solid var(--pe-border, rgba(148, 163, 184, 0.25));
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+}
+.dash-card h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+.dim-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+.dim-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.dim-tab {
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--pe-border, rgba(148, 163, 184, 0.3));
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.dim-tab:hover {
+  border-color: var(--pe-accent, #c026d3);
+}
+.dim-tab.active {
+  background: var(--pe-accent, #c026d3);
+  border-color: var(--pe-accent, #c026d3);
+  color: #fff;
+}
+.table-scroll {
+  overflow-x: auto;
+  margin-top: 0.75rem;
+}
+.dash-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.dash-table th,
+.dash-table td {
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--pe-border, rgba(148, 163, 184, 0.2));
+  text-align: left;
+  white-space: nowrap;
+}
+.dash-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.dash-table .accent {
+  color: var(--pe-accent, #c026d3);
+  font-weight: 600;
+}
+.dim-empty {
+  text-align: center;
+  opacity: 0.6;
+  padding: 1rem;
+}

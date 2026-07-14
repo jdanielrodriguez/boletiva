@@ -122,6 +122,12 @@ export type ScopeSummaryDto = Schemas['ScopeSummaryDto'];
 export type ScopeTopEventDto = Schemas['ScopeTopEventDto'];
 export type ScopeOccupancyDto = Schemas['ScopeOccupancyDto'];
 
+// --- Dashboard GLOBAL del promotor (Fase 3) ---
+export type PromoterDashboardDto = Schemas['PromoterDashboardDto'];
+export type PromoterSummaryDto = Schemas['PromoterSummaryDto'];
+export type PromoterDimensionsDto = Schemas['PromoterDimensionsDto'];
+export type PromoterDimensionRowDto = Schemas['PromoterDimensionRowDto'];
+
 // --- Devoluciones por cancelación/suspensión del evento (admin) ---
 export type EventRefundDto = Schemas['EventRefundDto'];
 export type EventRefundResultDto = Schemas['EventRefundResultDto'];

@@ -2444,6 +2444,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/promoter/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Dashboard GLOBAL del promotor: KPIs de rentabilidad + ventas/día + tabla cruzada por evento/categoría/salón/estado/mes. El promotor ve el suyo; el admin puede ver el de cualquier promotor con ?promoterId=. */
+        get: operations["AnalyticsController_dashboardData_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/promoter/dashboard/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Descarga el dashboard global del promotor en Excel (.xlsx): hoja de KPIs + una hoja por dimensión (evento/categoría/salón/estado/mes). */
+        get: operations["AnalyticsController_exportDashboard_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/seat-templates": {
         parameters: {
             query?: never;
@@ -6846,6 +6880,162 @@ export interface components {
             /** @enum {string} */
             status?: "draft" | "published";
         };
+        PromoterSummaryDto: {
+            /**
+             * @description Órdenes pagadas (todos los eventos)
+             * @example 42
+             */
+            paidOrders: number;
+            /**
+             * @description Boletos vendidos (ítems activos pagados)
+             * @example 1280
+             */
+            ticketsSold: number;
+            /**
+             * @description Recaudado bruto
+             * @example 166080.00
+             */
+            gross: string;
+            /**
+             * @description Neto del promotor
+             * @example 128000.00
+             */
+            net: string;
+            /**
+             * @description Cuota de servicio (plataforma + pasarela + fijos, sin IVA)
+             * @example 28000.00
+             */
+            services: string;
+            /**
+             * @description Comisión de plataforma
+             * @example 12000.00
+             */
+            platformFee: string;
+            /**
+             * @description Comisión de pasarela
+             * @example 9000.00
+             */
+            gatewayFee: string;
+            /**
+             * @description Cargos fijos
+             * @example 7000.00
+             */
+            fixedFees: string;
+            /**
+             * @description IVA recaudado
+             * @example 15360.00
+             */
+            iva: string;
+            /**
+             * @description Órdenes reembolsadas
+             * @example 3
+             */
+            refundsCount: number;
+            /**
+             * @description Neto devuelto a compradores (órdenes reembolsadas)
+             * @example 3000.00
+             */
+            refundsIssued: string;
+            /**
+             * @description Aforo total de los eventos
+             * @example 1500
+             */
+            capacity: number;
+            /**
+             * @description Boletos con check-in (usados)
+             * @example 640
+             */
+            checkedIn: number;
+            /**
+             * @description Ocupación % (vendidos / aforo)
+             * @example 85.3
+             */
+            occupancyPct: number;
+        };
+        PromoterDimensionRowDto: {
+            /**
+             * @description Clave del grupo (id, estado, mes…)
+             * @example cat_uuid
+             */
+            key: string;
+            /**
+             * @description Etiqueta legible del grupo
+             * @example Conciertos
+             */
+            label: string;
+            /**
+             * @description Eventos en el grupo
+             * @example 3
+             */
+            events: number;
+            /**
+             * @description Boletos vendidos
+             * @example 420
+             */
+            ticketsSold: number;
+            /** @example 54460.00 */
+            gross: string;
+            /** @example 42000.00 */
+            net: string;
+            /** @example 9200.00 */
+            services: string;
+            /** @example 5040.00 */
+            iva: string;
+            /**
+             * @description Devoluciones (neto)
+             * @example 1000.00
+             */
+            refunds: string;
+            /**
+             * @description Aforo del grupo
+             * @example 500
+             */
+            capacity: number;
+            /**
+             * @description Boletos con check-in
+             * @example 84
+             */
+            checkedIn: number;
+            /**
+             * @description Ocupación % del grupo
+             * @example 84
+             */
+            occupancyPct: number;
+        };
+        PromoterDimensionsDto: {
+            /** @description Por evento */
+            event: components["schemas"]["PromoterDimensionRowDto"][];
+            /** @description Por categoría */
+            category: components["schemas"]["PromoterDimensionRowDto"][];
+            /** @description Por salón */
+            hall: components["schemas"]["PromoterDimensionRowDto"][];
+            /** @description Por estado del evento */
+            status: components["schemas"]["PromoterDimensionRowDto"][];
+            /** @description Por mes (YYYY-MM de inicio) */
+            month: components["schemas"]["PromoterDimensionRowDto"][];
+        };
+        PromoterDashboardDto: {
+            /** Format: uuid */
+            promoterId: string;
+            /** @example Promotora Central */
+            promoterName: string;
+            /** @example GTQ */
+            currency: string;
+            /**
+             * @description Total de eventos del promotor
+             * @example 8
+             */
+            eventsCount: number;
+            /**
+             * @description Eventos publicados
+             * @example 6
+             */
+            publishedCount: number;
+            summary: components["schemas"]["PromoterSummaryDto"];
+            /** @description Ventas por día (todos los eventos) */
+            salesOverTime: components["schemas"]["SalesPointDto"][];
+            dimensions: components["schemas"]["PromoterDimensionsDto"];
+        };
         SeatTemplateResponseDto: {
             /** Format: uuid */
             id: string;
@@ -10740,6 +10930,51 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HallResponseDto"];
+                };
+            };
+        };
+    };
+    AnalyticsController_dashboardData_v1: {
+        parameters: {
+            query?: {
+                /** @description Solo admin: promotor a inspeccionar */
+                promoterId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromoterDashboardDto"];
+                };
+            };
+        };
+    };
+    AnalyticsController_exportDashboard_v1: {
+        parameters: {
+            query?: {
+                /** @description Solo admin: promotor a inspeccionar */
+                promoterId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Archivo .xlsx (adjunto) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
                 };
             };
         };

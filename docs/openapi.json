@@ -6160,6 +6160,81 @@
         ]
       }
     },
+    "/api/v1/promoter/dashboard": {
+      "get": {
+        "operationId": "AnalyticsController_dashboardData_v1",
+        "parameters": [
+          {
+            "name": "promoterId",
+            "required": false,
+            "in": "query",
+            "description": "Solo admin: promotor a inspeccionar",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromoterDashboardDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Dashboard GLOBAL del promotor: KPIs de rentabilidad + ventas/día + tabla cruzada por evento/categoría/salón/estado/mes. El promotor ve el suyo; el admin puede ver el de cualquier promotor con ?promoterId=.",
+        "tags": [
+          "analytics"
+        ]
+      }
+    },
+    "/api/v1/promoter/dashboard/export.xlsx": {
+      "get": {
+        "operationId": "AnalyticsController_exportDashboard_v1",
+        "parameters": [
+          {
+            "name": "promoterId",
+            "required": false,
+            "in": "query",
+            "description": "Solo admin: promotor a inspeccionar",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Archivo .xlsx (adjunto)",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Descarga el dashboard global del promotor en Excel (.xlsx): hoja de KPIs + una hoja por dimensión (evento/categoría/salón/estado/mes).",
+        "tags": [
+          "analytics"
+        ]
+      }
+    },
     "/api/v1/seat-templates": {
       "get": {
         "operationId": "SeatTemplatesController_list_v1",
@@ -14141,6 +14216,269 @@
             ]
           }
         }
+      },
+      "PromoterSummaryDto": {
+        "type": "object",
+        "properties": {
+          "paidOrders": {
+            "type": "number",
+            "example": 42,
+            "description": "Órdenes pagadas (todos los eventos)"
+          },
+          "ticketsSold": {
+            "type": "number",
+            "example": 1280,
+            "description": "Boletos vendidos (ítems activos pagados)"
+          },
+          "gross": {
+            "type": "string",
+            "example": "166080.00",
+            "description": "Recaudado bruto"
+          },
+          "net": {
+            "type": "string",
+            "example": "128000.00",
+            "description": "Neto del promotor"
+          },
+          "services": {
+            "type": "string",
+            "example": "28000.00",
+            "description": "Cuota de servicio (plataforma + pasarela + fijos, sin IVA)"
+          },
+          "platformFee": {
+            "type": "string",
+            "example": "12000.00",
+            "description": "Comisión de plataforma"
+          },
+          "gatewayFee": {
+            "type": "string",
+            "example": "9000.00",
+            "description": "Comisión de pasarela"
+          },
+          "fixedFees": {
+            "type": "string",
+            "example": "7000.00",
+            "description": "Cargos fijos"
+          },
+          "iva": {
+            "type": "string",
+            "example": "15360.00",
+            "description": "IVA recaudado"
+          },
+          "refundsCount": {
+            "type": "number",
+            "example": 3,
+            "description": "Órdenes reembolsadas"
+          },
+          "refundsIssued": {
+            "type": "string",
+            "example": "3000.00",
+            "description": "Neto devuelto a compradores (órdenes reembolsadas)"
+          },
+          "capacity": {
+            "type": "number",
+            "example": 1500,
+            "description": "Aforo total de los eventos"
+          },
+          "checkedIn": {
+            "type": "number",
+            "example": 640,
+            "description": "Boletos con check-in (usados)"
+          },
+          "occupancyPct": {
+            "type": "number",
+            "example": 85.3,
+            "description": "Ocupación % (vendidos / aforo)"
+          }
+        },
+        "required": [
+          "paidOrders",
+          "ticketsSold",
+          "gross",
+          "net",
+          "services",
+          "platformFee",
+          "gatewayFee",
+          "fixedFees",
+          "iva",
+          "refundsCount",
+          "refundsIssued",
+          "capacity",
+          "checkedIn",
+          "occupancyPct"
+        ]
+      },
+      "PromoterDimensionRowDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "example": "cat_uuid",
+            "description": "Clave del grupo (id, estado, mes…)"
+          },
+          "label": {
+            "type": "string",
+            "example": "Conciertos",
+            "description": "Etiqueta legible del grupo"
+          },
+          "events": {
+            "type": "number",
+            "example": 3,
+            "description": "Eventos en el grupo"
+          },
+          "ticketsSold": {
+            "type": "number",
+            "example": 420,
+            "description": "Boletos vendidos"
+          },
+          "gross": {
+            "type": "string",
+            "example": "54460.00"
+          },
+          "net": {
+            "type": "string",
+            "example": "42000.00"
+          },
+          "services": {
+            "type": "string",
+            "example": "9200.00"
+          },
+          "iva": {
+            "type": "string",
+            "example": "5040.00"
+          },
+          "refunds": {
+            "type": "string",
+            "example": "1000.00",
+            "description": "Devoluciones (neto)"
+          },
+          "capacity": {
+            "type": "number",
+            "example": 500,
+            "description": "Aforo del grupo"
+          },
+          "checkedIn": {
+            "type": "number",
+            "example": 84,
+            "description": "Boletos con check-in"
+          },
+          "occupancyPct": {
+            "type": "number",
+            "example": 84,
+            "description": "Ocupación % del grupo"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "events",
+          "ticketsSold",
+          "gross",
+          "net",
+          "services",
+          "iva",
+          "refunds",
+          "capacity",
+          "checkedIn",
+          "occupancyPct"
+        ]
+      },
+      "PromoterDimensionsDto": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "description": "Por evento",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PromoterDimensionRowDto"
+            }
+          },
+          "category": {
+            "description": "Por categoría",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PromoterDimensionRowDto"
+            }
+          },
+          "hall": {
+            "description": "Por salón",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PromoterDimensionRowDto"
+            }
+          },
+          "status": {
+            "description": "Por estado del evento",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PromoterDimensionRowDto"
+            }
+          },
+          "month": {
+            "description": "Por mes (YYYY-MM de inicio)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PromoterDimensionRowDto"
+            }
+          }
+        },
+        "required": [
+          "event",
+          "category",
+          "hall",
+          "status",
+          "month"
+        ]
+      },
+      "PromoterDashboardDto": {
+        "type": "object",
+        "properties": {
+          "promoterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "promoterName": {
+            "type": "string",
+            "example": "Promotora Central"
+          },
+          "currency": {
+            "type": "string",
+            "example": "GTQ"
+          },
+          "eventsCount": {
+            "type": "number",
+            "example": 8,
+            "description": "Total de eventos del promotor"
+          },
+          "publishedCount": {
+            "type": "number",
+            "example": 6,
+            "description": "Eventos publicados"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/PromoterSummaryDto"
+          },
+          "salesOverTime": {
+            "description": "Ventas por día (todos los eventos)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SalesPointDto"
+            }
+          },
+          "dimensions": {
+            "$ref": "#/components/schemas/PromoterDimensionsDto"
+          }
+        },
+        "required": [
+          "promoterId",
+          "promoterName",
+          "currency",
+          "eventsCount",
+          "publishedCount",
+          "summary",
+          "salesOverTime",
+          "dimensions"
+        ]
       },
       "SeatTemplateResponseDto": {
         "type": "object",

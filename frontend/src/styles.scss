@@ -2800,6 +2800,7 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
   margin-bottom: 1rem;
 }
 .panel-header h1 { margin: 0 0 0.2rem; }
+.panel-header-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
 
 .form-grid {
   display: grid;

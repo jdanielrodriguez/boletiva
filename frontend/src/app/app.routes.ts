@@ -91,6 +91,13 @@ export const routes: Routes = [
     title: 'Panel del promotor — Pasa Eventos',
   },
   {
+    path: 'promotor/dashboard',
+    loadComponent: () =>
+      import('./pages/promoter/promoter-dashboard.page').then((m) => m.PromoterDashboardPage),
+    canActivate: [roleGuard('promoter', 'admin')],
+    title: 'Dashboard del promotor — Pasa Eventos',
+  },
+  {
     path: 'promotor/eventos/nuevo',
     loadComponent: () => import('./pages/promoter/event-edit.page').then((m) => m.EventEditPage),
     canActivate: [roleGuard('promoter', 'admin')],

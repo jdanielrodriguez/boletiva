@@ -4,9 +4,14 @@
       <h1>{{ 'promoter.panel.title' | translate }}</h1>
       <p class="muted">{{ 'promoter.panel.subtitle' | translate }}</p>
     </div>
-    <button type="button" class="btn primary" (click)="newEvent()" data-testid="toggle-create" [title]="'promoter.panel.newEvent' | translate">
-      <app-icon name="add" /> {{ 'promoter.panel.newEvent' | translate }}
-    </button>
+    <div class="panel-header-actions">
+      <a class="btn btn-outline" routerLink="/promotor/dashboard" data-testid="go-dashboard" [title]="'promoter.dash.title' | translate">
+        <app-icon name="accounts" /> {{ 'promoter.dash.title' | translate }}
+      </a>
+      <button type="button" class="btn primary" (click)="newEvent()" data-testid="toggle-create" [title]="'promoter.panel.newEvent' | translate">
+        <app-icon name="add" /> {{ 'promoter.panel.newEvent' | translate }}
+      </button>
+    </div>
   </div>
 
   @if (!loading() && events().length > 0) {
