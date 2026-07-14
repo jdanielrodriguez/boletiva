@@ -261,6 +261,7 @@ export const config = {
     publishError: 'No se pudo cambiar el estado del salón.',
     editTitle: 'Editar salón',
     editBlocked: 'Solo puedes editar un salón en borrador o deshabilitado.',
+    notEditableNote: 'Salón publicado (no editable)',
     removeTitle: 'Eliminar salón',
     disable: 'Deshabilitar',
     disableTitle: 'Deshabilitar (requisito para eliminar)',

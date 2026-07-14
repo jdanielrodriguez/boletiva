@@ -60,6 +60,8 @@
             <button type="button" class="btn small" (click)="editHall(h)" data-testid="hall-edit" [title]="'config.halls.editTitle' | translate">
               <app-icon name="edit" /> {{ 'common.edit' | translate }}
             </button>
+          } @else {
+            <span class="muted small" data-testid="hall-noteditable">{{ 'config.halls.notEditableNote' | translate }}</span>
           }
           <button type="button" class="btn small" (click)="openDashboard(h)" data-testid="hall-dashboard" [title]="'config.dash.hallTitle' | translate">
             <app-icon name="accounts" /> {{ 'config.dash.viewDashboard' | translate }}

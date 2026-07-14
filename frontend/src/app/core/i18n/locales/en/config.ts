@@ -261,6 +261,7 @@ export const config = {
     publishError: 'Could not change the venue status.',
     editTitle: 'Edit venue',
     editBlocked: 'You can only edit a draft or disabled venue.',
+    notEditableNote: 'Published venue (not editable)',
     removeTitle: 'Delete venue',
     disable: 'Disable',
     disableTitle: 'Disable (required before deleting)',
