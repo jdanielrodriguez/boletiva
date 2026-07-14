@@ -86,6 +86,35 @@
       </button>
     </aside>
 
+    @if (store.selectionItems().length > 0) {
+      <aside class="cart-items" data-testid="cart-items">
+        <h3>{{ 'purchase.yourSelection' | translate }}</h3>
+        <ul>
+          @for (it of store.selectionItems(); track it.key) {
+            <li data-testid="cart-item">
+              <span class="ci-label">
+                @if (it.kind === 'ga') { <strong>{{ it.qty }}×</strong> }
+                {{ it.label }}
+                @if (it.kind === 'seat' && it.localityName) { <em class="ci-loc">· {{ it.localityName }}</em> }
+              </span>
+              <span class="ci-amount">Q{{ it.amountDisplay }}</span>
+              <button
+                type="button"
+                class="ci-remove"
+                data-testid="remove-selection"
+                [disabled]="working()"
+                [attr.aria-label]="'purchase.removeItem' | translate: { name: it.label }"
+                [title]="'purchase.removeItem' | translate: { name: it.label }"
+                (click)="store.removeSelection(it)"
+              >
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round" /></svg>
+              </button>
+            </li>
+          }
+        </ul>
+      </aside>
+    }
+
     @if (phase() === 'expired') {
       <p class="warn" data-testid="purchase-expired">{{ 'purchase.expiredWarn' | translate }}</p>
     }

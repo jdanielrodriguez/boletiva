@@ -6,6 +6,7 @@ import { escapeHtml } from '../../infra/mail/email-template';
 import { formatEventDate, mailStrings, resolveMailLocale } from '../../infra/mail/mail-i18n';
 import { QueueService } from '../../infra/queue/queue.service';
 import { QUEUES } from '../../infra/queue/queue.constants';
+import { TicketMediaService } from './ticket-media.service';
 
 /** URL firmada de media del correo: holgada para sobrevivir a la bandeja del cliente. */
 const MAIL_MEDIA_URL_TTL = 7 * 24 * 3600;
@@ -26,6 +27,7 @@ export class TicketMailService implements OnModuleInit {
     private readonly mail: MailService,
     private readonly queue: QueueService,
     private readonly storage: StorageService,
+    private readonly media: TicketMediaService,
   ) {}
 
   onModuleInit(): void {
@@ -66,6 +68,7 @@ export class TicketMailService implements OnModuleInit {
         },
         tickets: {
           select: {
+            id: true,
             serial: true,
             qrKey: true,
             locality: { select: { name: true } },
@@ -78,6 +81,22 @@ export class TicketMailService implements OnModuleInit {
     if (!order) {
       this.logger.warn(`order-confirmation: orden ${orderId} inexistente`);
       return;
+    }
+
+    // El QR va ARRIBA del serial en cada tarjeta, pero la cola MEDIA (que genera el
+    // PNG y setea `qrKey`) es independiente de esta cola MAIL: si el correo gana la
+    // carrera, `qrKey` sería null y solo se vería el serial. Aseguramos la media de
+    // los boletos que falten generándola aquí de forma idempotente (mediaReadyAt) y
+    // recargando su `qrKey` antes de armar el correo. Nunca bloquea el pago (async).
+    const missing = order.tickets.filter((tk) => !tk.qrKey).map((tk) => tk.id);
+    if (missing.length > 0) {
+      await Promise.all(missing.map((id) => this.media.generate(id).catch(() => undefined)));
+      const refreshed = await this.prisma.ticket.findMany({
+        where: { id: { in: missing } },
+        select: { id: true, qrKey: true },
+      });
+      const byId = new Map(refreshed.map((r) => [r.id, r.qrKey]));
+      for (const tk of order.tickets) if (!tk.qrKey) tk.qrKey = byId.get(tk.id) ?? null;
     }
 
     // F3 (v3.11): el correo se renderiza en el IDIOMA del COMPRADOR (fallback es).

@@ -23,6 +23,8 @@ export const purchase = {
   quantityFor: 'Quantity for {{name}}',
   removeOne: 'Remove one',
   addOne: 'Add one',
+  yourSelection: 'Your selection',
+  removeItem: 'Remove {{name}}',
   soldOut: 'Sold out',
   expiredWarn: 'Your reservation expired. Please select your tickets again.',
   reserveError: 'We couldn’t reserve the tickets (someone else took them). Please try again.',

@@ -7,20 +7,27 @@ import { TicketMailService } from './ticket-mail.service';
  * tarjeta con banner/QR/asiento. El happy path e2e lo cubre el spec de tickets.
  */
 describe('TicketMailService (bordes)', () => {
-  const makeService = (order: unknown) => {
-    const prisma = { order: { findUnique: jest.fn().mockResolvedValue(order) } };
+  const makeService = (order: unknown, refreshed: unknown[] = []) => {
+    const prisma = {
+      order: { findUnique: jest.fn().mockResolvedValue(order) },
+      // Recarga de `qrKey` tras asegurar la media de los boletos que faltaban.
+      ticket: { findMany: jest.fn().mockResolvedValue(refreshed) },
+    };
     const mail = { sendTemplated: jest.fn().mockResolvedValue(undefined) };
     const queue = { registerHandler: jest.fn() };
     const storage = {
       signedGetUrl: jest.fn().mockImplementation((key: string) => Promise.resolve(`https://cdn/${key}`)),
     };
+    // La media se genera de forma idempotente si un boleto no tiene QR todavía.
+    const media = { generate: jest.fn().mockResolvedValue(undefined) };
     const service = new TicketMailService(
       prisma as never,
       mail as never,
       queue as never,
       storage as never,
+      media as never,
     );
-    return { service, prisma, mail, queue, storage };
+    return { service, prisma, mail, queue, storage, media };
   };
 
   it('orden inexistente → no envía correo ni lanza (job huérfano)', async () => {
@@ -97,7 +104,7 @@ describe('TicketMailService (bordes)', () => {
       total: { toFixed: (n: number) => (100).toFixed(n) },
       buyer: { email: 'en@test.com', firstName: 'Sam', language: 'en' },
       event: { name: 'Rock Night', startsAt: new Date('2026-08-15T02:00:00.000Z'), address: null, media: [] },
-      tickets: [{ serial: 'PE1.en.001', qrKey: null, locality: null, seat: null }],
+      tickets: [{ id: 't-en', serial: 'PE1.en.001', qrKey: null, locality: null, seat: null }],
     };
     const { service, mail } = makeService(order);
     await service.sendOrderConfirmation('o-en');
@@ -114,15 +121,41 @@ describe('TicketMailService (bordes)', () => {
       total: { toFixed: (n: number) => (50).toFixed(n) },
       buyer: { email: 'ga@test.com', firstName: 'Leo' },
       event: { name: 'Feria', startsAt: new Date('2026-09-01T00:00:00.000Z'), address: null, media: [] },
-      tickets: [{ serial: 'PE1.ga.001', qrKey: null, locality: null, seat: null }],
+      tickets: [{ id: 't-ga', serial: 'PE1.ga.001', qrKey: null, locality: null, seat: null }],
     };
-    const { service, mail, storage } = makeService(order);
+    // Aunque se intente generar la media, sigue sin QR (findMany devuelve null).
+    const { service, mail, storage, media } = makeService(order, [{ id: 't-ga', qrKey: null }]);
     await service.sendOrderConfirmation('o2');
     const input = mail.sendTemplated.mock.calls[0][2];
+    // Se intentó asegurar la media del boleto sin QR.
+    expect(media.generate).toHaveBeenCalledWith('t-ga');
     // No hay claves que firmar (ni banner ni QR).
     expect(storage.signedGetUrl).not.toHaveBeenCalled();
     expect(input.bodyHtml).not.toContain('<img');
     expect(input.bodyHtml).toContain('PE1.ga.001');
     expect(input.bodyHtml).toContain('Admisión general');
+  });
+
+  it('QR aún no listo al enviar → genera la media faltante y el QR SÍ aparece (arriba del serial)', async () => {
+    const order = {
+      total: { toFixed: (n: number) => (75).toFixed(n) },
+      buyer: { email: 'race@test.com', firstName: 'Río' },
+      event: { name: 'Show', startsAt: new Date('2026-09-01T00:00:00.000Z'), address: null, media: [] },
+      // La cola MAIL ganó la carrera: el boleto todavía no tiene qrKey.
+      tickets: [{ id: 't-race', serial: 'PE1.race.001', qrKey: null, locality: { name: 'General' }, seat: null }],
+    };
+    // Tras generar la media, la recarga ya trae el qrKey.
+    const { service, mail, storage, media } = makeService(order, [
+      { id: 't-race', qrKey: 'tickets/qr-race.png' },
+    ]);
+    await service.sendOrderConfirmation('o3');
+    expect(media.generate).toHaveBeenCalledWith('t-race');
+    const input = mail.sendTemplated.mock.calls[0][2];
+    // El QR firmado aparece (imagen) y el serial debajo.
+    expect(storage.signedGetUrl).toHaveBeenCalledWith('tickets/qr-race.png', expect.any(Number));
+    const html: string = input.bodyHtml;
+    expect(html).toContain('https://cdn/tickets/qr-race.png');
+    // El <img> del QR va ANTES del serial en el HTML.
+    expect(html.indexOf('qr-race.png')).toBeLessThan(html.indexOf('PE1.race.001'));
   });
 });

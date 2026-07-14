@@ -2482,6 +2482,76 @@ app-root {
   margin-top: 1rem;
 }
 
+/* --- Resumen removible de la selección (antes de reservar) --- */
+.cart-items {
+  margin: 0 0 1.25rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--pe-border);
+  border-radius: 12px;
+  background: var(--pe-surface);
+}
+
+.cart-items h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.cart-items ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.cart-items li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+  background: var(--pe-bg, rgba(148, 163, 184, 0.06));
+}
+
+.cart-items .ci-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.cart-items .ci-loc {
+  color: var(--pe-muted);
+  font-style: normal;
+}
+
+.cart-items .ci-amount {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cart-items .ci-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--pe-border);
+  background: transparent;
+  color: var(--pe-danger);
+  cursor: pointer;
+}
+
+.cart-items .ci-remove:hover:not(:disabled) {
+  background: var(--pe-danger-soft, rgba(225, 29, 72, 0.12));
+  border-color: var(--pe-danger-border, rgba(225, 29, 72, 0.4));
+}
+
+.cart-items .ci-remove:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* --- Filas de localidad (detalle) --- */
 .locality-rows {
   list-style: none;

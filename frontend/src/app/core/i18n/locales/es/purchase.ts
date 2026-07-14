@@ -23,6 +23,8 @@ export const purchase = {
   quantityFor: 'Cantidad para {{name}}',
   removeOne: 'Quitar uno',
   addOne: 'Agregar uno',
+  yourSelection: 'Tu selección',
+  removeItem: 'Quitar {{name}}',
   soldOut: 'Agotado',
   expiredWarn: 'Tu reserva expiró. Vuelve a seleccionar tus boletos.',
   reserveError: 'No se pudieron reservar los boletos (alguien más los tomó). Intenta de nuevo.',

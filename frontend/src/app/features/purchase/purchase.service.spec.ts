@@ -87,4 +87,26 @@ describe('PurchaseService', () => {
       done();
     });
   });
+
+  it('selectionItems desglosa toda la selección y removeSelection la quita 1 a 1', () => {
+    store.toggleSeat('s1'); // VIP A-1
+    store.setQuantity('ga', 3); // 3 generales
+    const items = store.selectionItems();
+    expect(items.length).toBe(2);
+    const seat = items.find((i) => i.kind === 'seat')!;
+    const ga = items.find((i) => i.kind === 'ga')!;
+    expect(seat.label).toBe('A-1');
+    expect(seat.localityName).toBe('VIP');
+    expect(seat.amountDisplay).toBe('129.68');
+    expect(ga.qty).toBe(3);
+    expect(ga.amountDisplay).toBe('291.78'); // 97.26 × 3
+    expect(store.totalCount()).toBe(4);
+    // Quitar el asiento numerado.
+    store.removeSelection(seat);
+    expect(store.selectionItems().some((i) => i.kind === 'seat')).toBe(false);
+    // Quitar la línea general completa.
+    store.removeSelection(ga);
+    expect(store.selectionItems().length).toBe(0);
+    expect(store.totalCount()).toBe(0);
+  });
 });

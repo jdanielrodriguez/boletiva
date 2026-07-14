@@ -12,6 +12,17 @@ import type {
 /** Tope anti-abuso por carrito (alineado con el backend). */
 export const MAX_PER_CART = 50;
 
+/** Una línea del resumen de selección (removible antes de reservar). */
+export interface SelectionItem {
+  key: string; // clave estable para @for track
+  kind: 'seat' | 'ga';
+  refId: string; // seatId (numerado) o localityId (general)
+  label: string; // etiqueta del asiento o nombre de la localidad
+  localityName: string;
+  qty: number; // 1 para asiento numerado; n para general
+  amountDisplay: string; // total de la línea (Q)
+}
+
 function toCents(price: string): number {
   return Math.round(parseFloat(price) * 100);
 }
@@ -93,6 +104,54 @@ export class PurchaseService {
   });
 
   readonly totalDisplay = computed(() => fromCents(this.totalCents()));
+
+  /**
+   * Resumen desglosado de TODA la selección (asientos numerados + cantidades
+   * generales) de TODAS las localidades, removible una a una antes de reservar.
+   * Resuelve el caso "seleccioné de más en otra localidad y no la veía".
+   */
+  readonly selectionItems = computed<SelectionItem[]>(() => {
+    const av = this.availability();
+    if (!av) return [];
+    const locById = new Map(av.localities.map((l) => [l.id, l]));
+    const seatById = new Map(av.seats.map((s) => [s.id, s]));
+    const items: SelectionItem[] = [];
+    for (const seatId of this.seatSel()) {
+      const s = seatById.get(seatId);
+      const loc = s ? locById.get(s.localityId) : undefined;
+      const cents = loc?.price ? toCents(loc.price.total) : 0;
+      items.push({
+        key: `seat:${seatId}`,
+        kind: 'seat',
+        refId: seatId,
+        label: s?.label ?? seatId.slice(0, 8),
+        localityName: loc?.name ?? '',
+        qty: 1,
+        amountDisplay: fromCents(cents),
+      });
+    }
+    for (const [locId, n] of this.qtySel()) {
+      if (n <= 0) continue;
+      const loc = locById.get(locId);
+      const cents = (loc?.price ? toCents(loc.price.total) : 0) * n;
+      items.push({
+        key: `ga:${locId}`,
+        kind: 'ga',
+        refId: locId,
+        label: loc?.name ?? locId.slice(0, 8),
+        localityName: loc?.name ?? '',
+        qty: n,
+        amountDisplay: fromCents(cents),
+      });
+    }
+    return items;
+  });
+
+  /** Quita una línea del resumen (un asiento numerado o toda una general). */
+  removeSelection(item: SelectionItem): void {
+    if (item.kind === 'seat') this.toggleSeat(item.refId);
+    else this.setQuantity(item.refId, 0);
+  }
 
   toggleSeat(seatId: string): void {
     const next = new Set(this.seatSel());
