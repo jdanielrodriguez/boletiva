@@ -164,8 +164,10 @@ button,
 
 button:hover:not(:disabled),
 .btn:hover:not(:disabled) {
-  border-color: #3a3f52;
-  background: #262a3a;
+  /* Hover por TOKENS (adapta al tema): tinte de acento sobre la superficie, no un
+     gris oscuro fijo (antes #262a3a oscurecía el botón en el tema claro). */
+  border-color: var(--pe-accent);
+  background: color-mix(in srgb, var(--pe-accent) 10%, var(--pe-surface-2));
 }
 
 button:active:not(:disabled) {
