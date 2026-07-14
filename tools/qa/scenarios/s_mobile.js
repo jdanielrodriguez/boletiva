@@ -1,4 +1,4 @@
-const {launch,newPage,login,sleep,clickText}=require('/app/lib.js');
+const {launch,newPage,login,sleep,clickText}=require('/app/tools/qa/scenarios/lib.js');
 (async()=>{
   const b=await launch(); const p=await newPage(b);
   await p.setViewport({width:390,height:844});

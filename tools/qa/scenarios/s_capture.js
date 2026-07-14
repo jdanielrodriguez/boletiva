@@ -1,4 +1,4 @@
-const {launch,newPage,login,sleep,clickText}=require('/app/lib.js');
+const {launch,newPage,login,sleep,clickText}=require('/app/tools/qa/scenarios/lib.js');
 const fs=require('fs');
 (async()=>{
   const b=await launch(); const p=await newPage(b);
