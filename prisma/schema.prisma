@@ -224,6 +224,11 @@ model User {
   // perfil y se aplica en el frontend por encima de la preferencia de localStorage.
   language     String     @default("es")
 
+  // Preferencia de FRANJA de tema del usuario (rebranding Boletiva): 'dia' | 'noche'
+  // | null (null = usa la franja por defecto de la plataforma). El tema concreto lo
+  // resuelve la asignación admin franja→tema. Solo aplica si el admin permite el switch.
+  themePref    String?    @map("theme_pref")
+
   // Verificación de correo (null = no verificado).
   emailVerifiedAt DateTime? @map("email_verified_at")
 

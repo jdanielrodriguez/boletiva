@@ -21,6 +21,7 @@
   </nav>
 
   <div class="session-area" data-testid="session-area">
+    <app-theme-switcher />
     <app-lang-switcher />
     @if (session.isAuthenticated()) {
       <span class="greeting" data-testid="session-greeting">{{ 'shell.greeting' | translate: { name: session.user()?.firstName } }}</span>

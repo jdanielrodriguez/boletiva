@@ -1,34 +1,38 @@
 /* =====================================================================
-   Pasa Eventos — Design System (branding)
-   Concepto: "lo que pasa" + "pásala bien" + "tu pase". Eventos en vivo, GT.
-   Paleta: fondo frío casi-negro, primario violeta→magenta, acento teal.
+   Boletiva — Design System (branding · «tu boletera activa»)
+   SISTEMA DE TEMAS: cada tema es un BLOQUE de tokens; los componentes
+   solo usan var(--pe-*), nunca un color suelto → cambiar de tema NO
+   reescribe nada, y agregar un tema es copiar un bloque.
+     · Tokens NO-color (radius/tamaños) viven una vez en :root.
+     · Tokens de COLOR se definen por tema: :root (= Pulso/noche, default)
+       y [data-theme="marquesina"] (día, claro). data-theme lo estampa el
+       ThemeService (y un script anti-parpadeo en index.html).
+   TOKENS SEMÁNTICOS: --pe-accent (plataforma: enlaces/CTA suave/breadcrumb),
+   --pe-danger (rechazar/eliminar), --pe-success (aprobar/publicado),
+   --pe-warning (aviso), cada uno con -strong/-soft/-border.
    ===================================================================== */
+
+/* Tokens independientes del tema. */
 :root {
-  --pe-bg: #0b0c11;
-  --pe-bg-elev: #12141c;
-  --pe-surface: #191c26;
-  --pe-surface-2: #212433;
-  --pe-border: #2a2e3c;
-  --pe-text: #f5f6fa;
-  --pe-muted: #9aa0b0;
+  --pe-radius: 14px;
+  --pe-radius-sm: 10px;
+}
 
-  --pe-primary: #7b5cff;
+/* ---- TEMA «Pulso» (NOCHE, default) — tech oscuro azul→magenta ---- */
+:root,
+:root[data-theme='pulso'] {
+  --pe-bg: #0a0d13;
+  --pe-bg-elev: #10141c;
+  --pe-surface: #161b24;
+  --pe-surface-2: #1e2530;
+  --pe-border: #262d39;
+  --pe-text: #eef2f7;
+  --pe-muted: #9aa4b3;
+
+  --pe-primary: #2f6bff;
   --pe-primary-2: #e14eca;
-  --pe-teal: #1fd6a6;
+  --pe-teal: #14b88a;
 
-  /* ===================================================================
-     TOKENS SEMÁNTICOS (v3.8 · G1) — mapeo token → uso
-     El diseño CAMBIARÁ a futuro: para rediseñar SOLO se tocan estos
-     tokens, nunca colores sueltos en botones/badges/toasts.
-       --pe-accent  → color de PLATAFORMA (rosa-morado brillante): breadcrumb
-                      "volver", enlaces destacados, CTA suave.
-       --pe-danger  → PELIGRO virado a rosa-morado (NO rojo puro): botones
-                      rechazar/suspender/eliminar/revocar, badges negativos.
-       --pe-success → ÉXITO: aprobar/activar/publicado, badges positivos.
-       --pe-warning → AVISO: mantenimiento/oculto/pendiente, badges neutros.
-     Cada familia trae -strong (fondo sólido), -soft (fondo tenue) y
-     -border (borde translúcido) derivados con color-mix.
-     =================================================================== */
   --pe-accent: #e14eca;
   --pe-accent-strong: #f06be0;
   --pe-accent-soft: color-mix(in srgb, var(--pe-accent) 16%, transparent);
@@ -47,19 +51,60 @@
   --pe-warning-strong: #d97706;
   --pe-warning-soft: color-mix(in srgb, var(--pe-warning) 16%, transparent);
   --pe-warning-border: color-mix(in srgb, var(--pe-warning) 45%, transparent);
-  --pe-warning-ink: #1a1205; /* texto sobre fondo sólido de aviso */
-  /* Alias retro-compatible: código viejo usa var(--pe-warn, …). */
+  --pe-warning-ink: #1a1205;
   --pe-warn: var(--pe-warning);
 
-  --pe-grad: linear-gradient(135deg, #7b5cff 0%, #e14eca 100%);
-  --pe-grad-soft: linear-gradient(135deg, rgba(123, 92, 255, 0.16), rgba(225, 78, 202, 0.16));
+  --pe-grad: linear-gradient(135deg, #2f6bff 0%, #e14eca 100%);
+  --pe-grad-soft: linear-gradient(135deg, rgba(47, 107, 255, 0.16), rgba(225, 78, 202, 0.16));
 
-  --pe-radius: 14px;
-  --pe-radius-sm: 10px;
   --pe-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-  --pe-glow: 0 8px 24px rgba(123, 92, 255, 0.35);
+  --pe-glow: 0 8px 24px rgba(47, 107, 255, 0.35);
 
   color-scheme: dark;
+}
+
+/* ---- TEMA «Marquesina» (DÍA, claro) — cálido ámbar→coral sobre crema ---- */
+:root[data-theme='marquesina'] {
+  --pe-bg: #f6f1e8;
+  --pe-bg-elev: #fffdf8;
+  --pe-surface: #fffdf8;
+  --pe-surface-2: #efe7d8;
+  --pe-border: #e6dcc9;
+  --pe-text: #241826;
+  --pe-muted: #6b5c52;
+
+  --pe-primary: #f2802a;
+  --pe-primary-2: #ff5470;
+  --pe-teal: #0f9d74;
+
+  --pe-accent: #d1521f;
+  --pe-accent-strong: #b8431a;
+  --pe-accent-soft: color-mix(in srgb, var(--pe-accent) 14%, transparent);
+
+  --pe-danger: #d83a4e;
+  --pe-danger-strong: #c02338;
+  --pe-danger-soft: color-mix(in srgb, var(--pe-danger) 12%, transparent);
+  --pe-danger-border: color-mix(in srgb, var(--pe-danger) 40%, transparent);
+
+  --pe-success: #0f9d74;
+  --pe-success-strong: #0b7d5c;
+  --pe-success-soft: color-mix(in srgb, var(--pe-success) 14%, transparent);
+  --pe-success-border: color-mix(in srgb, var(--pe-success) 40%, transparent);
+
+  --pe-warning: #c77f14;
+  --pe-warning-strong: #a8660a;
+  --pe-warning-soft: color-mix(in srgb, var(--pe-warning) 16%, transparent);
+  --pe-warning-border: color-mix(in srgb, var(--pe-warning) 40%, transparent);
+  --pe-warning-ink: #fffdf8;
+  --pe-warn: var(--pe-warning);
+
+  --pe-grad: linear-gradient(135deg, #f2802a 0%, #ff5470 100%);
+  --pe-grad-soft: linear-gradient(135deg, rgba(242, 128, 42, 0.14), rgba(255, 84, 112, 0.14));
+
+  --pe-shadow: 0 10px 30px rgba(60, 40, 20, 0.12);
+  --pe-glow: 0 8px 24px rgba(255, 84, 112, 0.28);
+
+  color-scheme: light;
 }
 
 * {

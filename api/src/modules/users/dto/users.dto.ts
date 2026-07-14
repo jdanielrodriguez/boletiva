@@ -14,6 +14,10 @@ import {
 /** Idiomas soportados por la UI (preferencia persistida del usuario). */
 export const SUPPORTED_LANGUAGES = ['es', 'en'] as const;
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
+
+/** Franjas de tema que el usuario puede preferir (el tema concreto lo resuelve el admin). */
+export const THEME_FRANJAS = ['dia', 'noche'] as const;
+export type ThemeFranja = (typeof THEME_FRANJAS)[number];
 import { PageQueryDto } from '../../../common/dto/page-query.dto';
 
 /** Query admin de usuarios: paginación keyset + búsqueda. */
@@ -64,6 +68,15 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsIn(SUPPORTED_LANGUAGES)
   language?: SupportedLanguage;
+
+  @ApiPropertyOptional({
+    description: 'Preferencia de franja de tema (día/noche). El tema concreto lo resuelve el admin.',
+    enum: THEME_FRANJAS,
+    example: 'noche',
+  })
+  @IsOptional()
+  @IsIn(THEME_FRANJAS)
+  themePref?: ThemeFranja;
 }
 
 export class UpdateUserRolesDto {

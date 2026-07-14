@@ -4,6 +4,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../../core/auth/auth.service';
 import { SessionStore } from '../../core/auth/session.store';
 import { LangSwitcherComponent } from './lang-switcher.component';
+import { ThemeSwitcherComponent } from './theme-switcher.component';
 
 /**
  * Cabecera con navegación y área de sesión. El estado se hidrata en el cliente
@@ -13,7 +14,7 @@ import { LangSwitcherComponent } from './lang-switcher.component';
  */
 @Component({
   selector: 'app-header',
-  imports: [RouterLink, TranslatePipe, LangSwitcherComponent],
+  imports: [RouterLink, TranslatePipe, LangSwitcherComponent, ThemeSwitcherComponent],
   templateUrl: './header.html',
 })
 export class Header {

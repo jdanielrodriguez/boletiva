@@ -42,6 +42,7 @@ export interface PublicUser {
   emailVerified: boolean;
   twoFactorMethod: User['twoFactorMethod'];
   language: string;
+  themePref: string | null;
 }
 
 export type LoginResult =
@@ -77,6 +78,7 @@ export class AuthService {
       emailVerified: user.emailVerifiedAt != null,
       twoFactorMethod: user.twoFactorMethod,
       language: user.language,
+      themePref: user.themePref,
     };
   }
 

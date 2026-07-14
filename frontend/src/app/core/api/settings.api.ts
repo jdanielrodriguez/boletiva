@@ -18,7 +18,7 @@ export class SettingsApi {
   get(key: string): Observable<SettingViewDto> {
     return this.api.get<SettingViewDto>(`/settings/${encodeURIComponent(key)}`);
   }
-  update(key: string, value: number | boolean): Observable<SettingViewDto> {
+  update(key: string, value: number | boolean | string): Observable<SettingViewDto> {
     return this.api.patch<SettingViewDto>(`/settings/${encodeURIComponent(key)}`, { value });
   }
 }

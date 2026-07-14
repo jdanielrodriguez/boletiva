@@ -403,6 +403,18 @@ export const config = {
     promoters_require_approval: 'Exigir aprobación de promotores',
     i18n_allow_visitor_switch: 'Cambio de idioma para visitantes',
     home_show_categories: 'Mostrar categorías en el inicio',
+    theme_slot_noche: 'Tema de la franja Noche',
+    theme_slot_dia: 'Tema de la franja Día',
+    theme_default_franja: 'Franja por defecto',
+    theme_allow_visitor_switch: 'Botón de cambio de tema',
+  },
+
+  /** Opciones de settings tipo enum (temas y franjas). */
+  settingOptions: {
+    pulso: 'Pulso (noche · tech)',
+    marquesina: 'Marquesina (día · cálido)',
+    dia: 'Día',
+    noche: 'Noche',
   },
 
   /** Descripciones amigables de cada setting. */
@@ -425,6 +437,11 @@ export const config = {
     i18n_allow_visitor_switch:
       'Permite que un visitante sin sesión cambie el idioma de la página con las banderas. Si está apagado, los visitantes ven todo en español (los usuarios con sesión siempre ven su idioma).',
     home_show_categories: 'Muestra los filtros de categoría en la página principal.',
+    theme_slot_noche: 'Tema que se muestra en la franja Noche (el admin puede voltear día↔noche).',
+    theme_slot_dia: 'Tema que se muestra en la franja Día (el admin puede voltear día↔noche).',
+    theme_default_franja: 'Franja que ve un visitante o un usuario sin preferencia guardada.',
+    theme_allow_visitor_switch:
+      'Muestra el botón de cambio de tema (día/noche) a todos. Si está apagado, solo el admin define el tema y nadie más lo cambia.',
   },
 
   // --- Dashboards de salón / plantilla (página aparte) ---

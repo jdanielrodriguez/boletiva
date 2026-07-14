@@ -9,10 +9,22 @@ import {
   SettingDef,
 } from './settings.catalog';
 
+/** Asignación de temas a franjas + control del switch (rebranding Boletiva). */
+export interface ThemeConfig {
+  /** Tema (clave de bloque de tokens) por franja. */
+  slots: { dia: string; noche: string };
+  /** Franja por defecto (visitante / usuario sin preferencia). */
+  defaultFranja: string;
+  /** Si false, solo el admin define el tema y nadie ve el botón de cambio. */
+  allowVisitorSwitch: boolean;
+}
+
 /** Config pública (sin login) que el frontend lee para render anónimo. */
 export interface PublicConfig {
   allowVisitorLangSwitch: boolean;
   showHomeCategories: boolean;
+  /** Temas por franja + switch, para resolver el tema en SSR sin parpadeo. */
+  theme: ThemeConfig;
   /** Qué integraciones externas están configuradas (para gating de UI). */
   capabilities: Record<IntegrationService, boolean>;
   /** Site key pública de reCAPTCHA (vacía si no está configurada). */
@@ -21,10 +33,11 @@ export interface PublicConfig {
 
 export interface SettingView {
   key: string;
-  value: number | boolean;
-  default: number | boolean;
+  value: number | boolean | string;
+  default: number | boolean | string;
   type: string;
   description: string;
+  options?: string[];
   fallbackOnly: boolean;
 }
 
@@ -64,9 +77,23 @@ export class SettingsService {
       if (typeof raw === 'boolean') return raw;
       return Boolean(def?.default);
     };
+    const resolveEnum = (key: string): string => {
+      const def = SETTINGS_BY_KEY.get(key);
+      const raw = byKey.get(key);
+      if (typeof raw === 'string' && def?.options?.includes(raw)) return raw;
+      return String(def?.default);
+    };
     return {
       allowVisitorLangSwitch: resolveBool(PUBLIC_CONFIG_KEYS.allowVisitorLangSwitch),
       showHomeCategories: resolveBool(PUBLIC_CONFIG_KEYS.showHomeCategories),
+      theme: {
+        slots: {
+          dia: resolveEnum(PUBLIC_CONFIG_KEYS.themeSlotDia),
+          noche: resolveEnum(PUBLIC_CONFIG_KEYS.themeSlotNoche),
+        },
+        defaultFranja: resolveEnum(PUBLIC_CONFIG_KEYS.themeDefaultFranja),
+        allowVisitorSwitch: resolveBool(PUBLIC_CONFIG_KEYS.themeAllowVisitorSwitch),
+      },
       capabilities: this.integrations.capabilities(),
       recaptchaSiteKey: this.config.get<string>('recaptcha.siteKey') ?? '',
     };
@@ -94,19 +121,28 @@ export class SettingsService {
 
   private toView(def: SettingDef, value: unknown): SettingView {
     const resolved =
-      value === undefined || value === null ? def.default : (value as number | boolean);
+      value === undefined || value === null ? def.default : (value as number | boolean | string);
     return {
       key: def.key,
       value: resolved,
       default: def.default,
       type: def.type,
       description: def.description,
+      options: def.options,
       fallbackOnly: def.fallbackOnly ?? false,
     };
   }
 
   /** Valida el valor según el tipo del catálogo; lanza 400 con mensaje claro. */
-  private validate(def: SettingDef, raw: unknown): number | boolean {
+  private validate(def: SettingDef, raw: unknown): number | boolean | string {
+    if (def.type === 'enum') {
+      if (typeof raw !== 'string' || !def.options?.includes(raw)) {
+        throw new BadRequestException(
+          `${def.key} debe ser uno de: ${(def.options ?? []).join(', ')}`,
+        );
+      }
+      return raw;
+    }
     if (def.type === 'bool') {
       if (typeof raw !== 'boolean') throw new BadRequestException(`${def.key} debe ser booleano`);
       return raw;

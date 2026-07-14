@@ -7,18 +7,25 @@
  * schedule. Los demás knobs (cost-share, wallet, promotores, transferencias,
  * cuotas) SÍ se leen en vivo de aquí.
  */
-export type SettingType = 'pct' | 'int' | 'bool';
+export type SettingType = 'pct' | 'int' | 'bool' | 'enum';
 
 export interface SettingDef {
   key: string;
   type: SettingType;
-  default: number | boolean;
+  default: number | boolean | string;
   description: string;
   min?: number;
   max?: number;
+  /** Valores permitidos para `type: 'enum'` (string). */
+  options?: string[];
   /** true = fallback informativo (el motor de precios prioriza el fee_schedule). */
   fallbackOnly?: boolean;
 }
+
+/** Temas de UI disponibles (rebranding Boletiva). Extensible: agregar aquí + su bloque de tokens en styles.scss. */
+export const THEME_KEYS = ['pulso', 'marquesina'] as const;
+/** Franjas horarias a las que el admin asigna un tema. */
+export const THEME_FRANJAS = ['dia', 'noche'] as const;
 
 export const SETTINGS_CATALOG: SettingDef[] = [
   {
@@ -100,12 +107,45 @@ export const SETTINGS_CATALOG: SettingDef[] = [
     default: true,
     description: 'Mostrar las categorías en la página principal (inicio).',
   },
+  {
+    key: 'theme.slot.noche',
+    type: 'enum',
+    default: 'pulso',
+    options: [...THEME_KEYS],
+    description: 'Tema asignado a la franja NOCHE (el admin puede voltear día↔noche).',
+  },
+  {
+    key: 'theme.slot.dia',
+    type: 'enum',
+    default: 'marquesina',
+    options: [...THEME_KEYS],
+    description: 'Tema asignado a la franja DÍA (el admin puede voltear día↔noche).',
+  },
+  {
+    key: 'theme.default_franja',
+    type: 'enum',
+    default: 'noche',
+    options: [...THEME_FRANJAS],
+    description: 'Franja por defecto de la plataforma (la que ve un visitante o un usuario sin preferencia).',
+  },
+  {
+    key: 'theme.allow_visitor_switch',
+    type: 'bool',
+    default: true,
+    description:
+      'Mostrar el botón de cambio de tema (día/noche) a todos. ' +
+      'false = solo el admin define el tema y nadie más lo cambia.',
+  },
 ];
 
 /** Claves expuestas al frontend SIN login (config pública). */
 export const PUBLIC_CONFIG_KEYS = {
   allowVisitorLangSwitch: 'i18n.allow_visitor_switch',
   showHomeCategories: 'home.show_categories',
+  themeSlotNoche: 'theme.slot.noche',
+  themeSlotDia: 'theme.slot.dia',
+  themeDefaultFranja: 'theme.default_franja',
+  themeAllowVisitorSwitch: 'theme.allow_visitor_switch',
 } as const;
 
 export const SETTINGS_BY_KEY: Map<string, SettingDef> = new Map(

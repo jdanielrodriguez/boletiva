@@ -2916,6 +2916,12 @@ export interface components {
              */
             language: "es" | "en";
             /**
+             * @description Preferencia de franja de tema (día/noche); null = default de la plataforma
+             * @example noche
+             * @enum {string|null}
+             */
+            themePref?: "dia" | "noche" | null;
+            /**
              * Format: uuid
              * @description Solo en /auth/me bajo un token de IMPERSONACIÓN (v3.8): id del admin que actúa como este usuario. El frontend lo usa para el banner "estás viendo como X".
              */
@@ -3209,6 +3215,12 @@ export interface components {
              * @enum {string}
              */
             language?: "es" | "en";
+            /**
+             * @description Preferencia de franja de tema (día/noche). El tema concreto lo resuelve el admin.
+             * @example noche
+             * @enum {string}
+             */
+            themePref?: "dia" | "noche";
         };
         UserResponseDto: {
             /**
@@ -3261,6 +3273,12 @@ export interface components {
              * @enum {string}
              */
             language: "es" | "en";
+            /**
+             * @description Preferencia de franja de tema (día/noche); null = usa el default de la plataforma
+             * @example noche
+             * @enum {string|null}
+             */
+            themePref?: "dia" | "noche" | null;
             /**
              * Format: date-time
              * @description Fecha del último inicio de sesión
@@ -7101,21 +7119,23 @@ export interface components {
             /** @example costshare.default_pct */
             key: string;
             /** @example 0 */
-            value: number | boolean;
+            value: number | boolean | string;
             /** @example 0 */
-            default: number | boolean;
+            default: number | boolean | string;
             /** @enum {string} */
-            type: "pct" | "int" | "bool";
+            type: "pct" | "int" | "bool" | "enum";
             description: string;
+            /** @description Valores permitidos (solo type=enum). */
+            options?: string[];
             /** @description true = el motor de precios prioriza el fee_schedule sobre este valor */
             fallbackOnly: boolean;
         };
         UpdateSettingDto: {
             /**
-             * @description Nuevo valor (number para pct/int, boolean para bool). Validado contra el catálogo.
+             * @description Nuevo valor (number para pct/int, boolean para bool, string para enum). Validado contra el catálogo.
              * @example 0.1
              */
-            value: number | boolean;
+            value: number | boolean | string;
         };
         PublicConfigDto: {
             /**
@@ -7147,6 +7167,18 @@ export interface components {
              * @example
              */
             recaptchaSiteKey: string;
+            /**
+             * @description Asignación de temas por franja + control del switch de tema.
+             * @example {
+             *       "slots": {
+             *         "dia": "marquesina",
+             *         "noche": "pulso"
+             *       },
+             *       "defaultFranja": "noche",
+             *       "allowVisitorSwitch": true
+             *     }
+             */
+            theme: Record<string, never>;
         };
         MaintenanceStatusDto: {
             /** @description true si la plataforma está en mantenimiento */

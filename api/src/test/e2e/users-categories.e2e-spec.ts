@@ -82,6 +82,32 @@ describe('Users + Categories (e2e)', () => {
     expect(back.body.language).toBe('es');
   });
 
+  it('PATCH /users/me persiste la preferencia de franja de tema (día/noche)', async () => {
+    const upd = await http()
+      .patch('/api/v1/users/me')
+      .set(bearer(buyerToken))
+      .send({ themePref: 'dia' })
+      .expect(200);
+    expect(upd.body.themePref).toBe('dia');
+
+    const me = await http().get('/api/v1/auth/me').set(bearer(buyerToken)).expect(200);
+    expect(me.body.themePref).toBe('dia');
+
+    // Franja inválida → 400.
+    await http()
+      .patch('/api/v1/users/me')
+      .set(bearer(buyerToken))
+      .send({ themePref: 'tarde' })
+      .expect(400);
+
+    // Restaura (noche = default) para no afectar a otros specs seriales.
+    await http()
+      .patch('/api/v1/users/me')
+      .set(bearer(buyerToken))
+      .send({ themePref: 'noche' })
+      .expect(200);
+  });
+
   it('PATCH /users/me con idioma no soportado → 400', async () => {
     await http()
       .patch('/api/v1/users/me')

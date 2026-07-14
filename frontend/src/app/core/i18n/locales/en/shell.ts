@@ -25,6 +25,8 @@ export const shell = {
   langEsShort: 'ES',
   langEnShort: 'EN',
   langLocked: 'Language switching is not available for visitors',
+  themeToDay: 'Switch to day theme',
+  themeToNight: 'Switch to night theme',
   verifyTitle: 'Verify your email',
   verifyBody: 'We sent you a confirmation link. You need to verify your email to buy, create or transfer tickets.',
   verifyRedirecting: 'Taking you home…',

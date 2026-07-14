@@ -15,6 +15,7 @@ import { ImpersonationService } from './core/auth/impersonation.service';
 import { MaintenanceStore } from './core/maintenance/maintenance.store';
 import { LoadingStore } from './core/ui/loading.store';
 import { I18nService } from './core/i18n/i18n.service';
+import { ThemeService, type Franja } from './core/theme/theme.service';
 import { PublicConfigStore } from './core/config/public-config.store';
 
 @Component({
@@ -40,12 +41,14 @@ export class App {
   private readonly maintenance = inject(MaintenanceStore);
   private readonly loading = inject(LoadingStore);
   private readonly i18n = inject(I18nService);
+  private readonly theme = inject(ThemeService);
   private readonly publicConfig = inject(PublicConfigStore);
   private readonly impersonation = inject(ImpersonationService);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
 
   /** Guard: la decisión de idioma inicial se aplica una sola vez. */
   private langDecided = false;
+  private themeDecided = false;
 
   protected readonly maintMessage = this.maintenance.message;
 
@@ -117,6 +120,34 @@ export class App {
           this.i18n.use(lang);
         } else if (this.publicConfig.allowVisitorLangSwitch()) {
           this.i18n.hydratePreference();
+        }
+      });
+
+      // Decisión de TEMA inicial (rebranding Boletiva), análoga a la de idioma:
+      //  - usuario logueado → su franja de BD (themePref) si la tiene;
+      //  - visitante → su franja guardada (cookie) si el admin permite el switch;
+      //  - si no → la franja por defecto de la plataforma.
+      // Luego, ante un cambio de asignación admin (slots) SIN F5, se reaplica la
+      // franja vigente para resolver el nuevo tema (respeta un toggle en sesión).
+      effect(() => {
+        const themeCfg = this.publicConfig.theme(); // se rastrea → reacciona a cambios admin
+        if (!this.session.loaded() || !this.publicConfig.loaded()) return;
+        if (!this.themeDecided) {
+          this.themeDecided = true;
+          // Switch apagado → SOLO el admin manda: se ignora cualquier preferencia
+          // (de perfil o cookie) y todos ven la franja por defecto de la plataforma.
+          if (!themeCfg.allowVisitorSwitch) {
+            this.theme.hydrate(null);
+            return;
+          }
+          const pref = this.session.user()?.themePref;
+          if (pref === 'dia' || pref === 'noche') {
+            this.theme.hydrate(pref as Franja);
+          } else {
+            this.theme.hydratePreference();
+          }
+        } else {
+          this.theme.reapply(); // cambió la asignación admin → re-resolver el tema
         }
       });
     }

@@ -84,6 +84,14 @@ export class PublicUserResponseDto {
   language!: string;
 
   @ApiPropertyOptional({
+    description: 'Preferencia de franja de tema (día/noche); null = default de la plataforma',
+    enum: ['dia', 'noche'],
+    example: 'noche',
+    nullable: true,
+  })
+  themePref?: string | null;
+
+  @ApiPropertyOptional({
     format: 'uuid',
     description:
       'Solo en /auth/me bajo un token de IMPERSONACIÓN (v3.8): id del admin que actúa ' +

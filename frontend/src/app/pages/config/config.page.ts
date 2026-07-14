@@ -101,10 +101,13 @@ export class ConfigPage {
    */
   private static readonly PUBLIC_CONFIG_SETTERS: Record<
     string,
-    (store: PublicConfigStore, v: boolean) => void
+    (store: PublicConfigStore, v: number | boolean | string) => void
   > = {
-    'i18n.allow_visitor_switch': (s, v) => s.setAllowVisitorLangSwitch(v),
-    'home.show_categories': (s, v) => s.setShowHomeCategories(v),
+    'i18n.allow_visitor_switch': (s, v) => s.setAllowVisitorLangSwitch(Boolean(v)),
+    'home.show_categories': (s, v) => s.setShowHomeCategories(Boolean(v)),
+    'theme.slot.dia': (s, v) => s.setThemeSlot('dia', String(v)),
+    'theme.slot.noche': (s, v) => s.setThemeSlot('noche', String(v)),
+    'theme.allow_visitor_switch': (s, v) => s.setThemeAllowVisitorSwitch(Boolean(v)),
   };
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -805,7 +808,7 @@ export class ConfigPage {
 
   // --- Configuraciones del sistema (catálogo) — dentro del tab Sistema ---
   protected readonly settings = signal<SettingViewDto[]>([]);
-  protected readonly settingEdits = signal<Record<string, number | boolean>>({});
+  protected readonly settingEdits = signal<Record<string, number | boolean | string>>({});
   private loadSettings(): void {
     this.settingsApi.list().subscribe({
       next: (s) => {
@@ -815,8 +818,14 @@ export class ConfigPage {
       error: () => this.toasts.error(this.translate.instant('config.settings.loadError')),
     });
   }
-  protected setSettingValue(key: string, value: number | boolean): void {
+  protected setSettingValue(key: string, value: number | boolean | string): void {
     this.settingEdits.update((e) => ({ ...e, [key]: value }));
+  }
+
+  /** Etiqueta traducible de una opción de un setting enum (p.ej. temas / franjas). */
+  protected settingOptionLabel(key: string, opt: string): string {
+    const label = this.translate.instant('config.settingOptions.' + opt);
+    return label === 'config.settingOptions.' + opt ? opt : label;
   }
   protected saveSetting(s: SettingViewDto): void {
     const value = this.settingEdits()[s.key];
@@ -826,7 +835,7 @@ export class ConfigPage {
         // W2/W10: si el setting mapea a la config pública, refleja el cambio al
         // instante en el store (switcher/categorías) sin recargar la página.
         const setter = ConfigPage.PUBLIC_CONFIG_SETTERS[updated.key];
-        if (setter) setter(this.publicConfig, Boolean(updated.value));
+        if (setter) setter(this.publicConfig, updated.value);
         this.toasts.success(this.translate.instant('config.settings.saved', { key: s.key }));
       },
       error: () => this.toasts.error(this.translate.instant('config.settings.saveError')),

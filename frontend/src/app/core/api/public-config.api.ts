@@ -2,12 +2,24 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiClient } from '../http/api-client.service';
 
+/** Asignación de temas a franjas + control del switch (rebranding Boletiva). */
+export interface ThemeConfig {
+  /** Tema (clave de bloque de tokens) por franja. */
+  slots: { dia: string; noche: string };
+  /** Franja por defecto (visitante o usuario sin preferencia). */
+  defaultFranja: string;
+  /** Si false, solo el admin define el tema y nadie ve el botón de cambio. */
+  allowVisitorSwitch: boolean;
+}
+
 /** Config pública de la plataforma (contrato del backend, SIN login). */
 export interface PublicConfig {
   /** ¿Puede un visitante SIN sesión cambiar el idioma con la barra superior? */
   allowVisitorLangSwitch: boolean;
   /** ¿Se muestran las categorías en la página principal? */
   showHomeCategories: boolean;
+  /** Asignación de tema por franja + switch (para resolver el tema en el cliente). */
+  theme?: ThemeConfig;
   /** Site key pública de reCAPTCHA v3 (vacía = deshabilitado, no se carga). */
   recaptchaSiteKey?: string;
 }

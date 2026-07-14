@@ -403,6 +403,18 @@ export const config = {
     promoters_require_approval: 'Require promoter approval',
     i18n_allow_visitor_switch: 'Language switch for visitors',
     home_show_categories: 'Show categories on home',
+    theme_slot_noche: 'Night slot theme',
+    theme_slot_dia: 'Day slot theme',
+    theme_default_franja: 'Default slot',
+    theme_allow_visitor_switch: 'Theme switch button',
+  },
+
+  /** Enum setting options (themes and slots). */
+  settingOptions: {
+    pulso: 'Pulso (night · tech)',
+    marquesina: 'Marquesina (day · warm)',
+    dia: 'Day',
+    noche: 'Night',
   },
 
   /** Friendly descriptions per setting. */
@@ -422,6 +434,11 @@ export const config = {
     i18n_allow_visitor_switch:
       'Lets a signed-out visitor switch the page language with the flags. When off, visitors see everything in Spanish (signed-in users always see their own language).',
     home_show_categories: 'Shows the category filters on the home page.',
+    theme_slot_noche: 'Theme shown in the Night slot (admin can swap day↔night).',
+    theme_slot_dia: 'Theme shown in the Day slot (admin can swap day↔night).',
+    theme_default_franja: 'Slot seen by a visitor or a user without a saved preference.',
+    theme_allow_visitor_switch:
+      'Shows the day/night theme switch to everyone. When off, only the admin sets the theme and no one else can change it.',
   },
 
   // --- Hall / template dashboards (separate page) ---

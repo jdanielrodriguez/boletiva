@@ -3,12 +3,13 @@ import { IsDefined } from 'class-validator';
 
 export class UpdateSettingDto {
   @ApiProperty({
-    description: 'Nuevo valor (number para pct/int, boolean para bool). Validado contra el catálogo.',
-    oneOf: [{ type: 'number' }, { type: 'boolean' }],
+    description:
+      'Nuevo valor (number para pct/int, boolean para bool, string para enum). Validado contra el catálogo.',
+    oneOf: [{ type: 'number' }, { type: 'boolean' }, { type: 'string' }],
     example: 0.1,
   })
   @IsDefined()
-  value!: number | boolean;
+  value!: number | boolean | string;
 }
 
 export class PublicConfigDto {
@@ -43,23 +44,36 @@ export class PublicConfigDto {
     example: '',
   })
   recaptchaSiteKey!: string;
+
+  @ApiProperty({
+    description: 'Asignación de temas por franja + control del switch de tema.',
+    example: { slots: { dia: 'marquesina', noche: 'pulso' }, defaultFranja: 'noche', allowVisitorSwitch: true },
+  })
+  theme!: {
+    slots: { dia: string; noche: string };
+    defaultFranja: string;
+    allowVisitorSwitch: boolean;
+  };
 }
 
 export class SettingViewDto {
   @ApiProperty({ example: 'costshare.default_pct' })
   key!: string;
 
-  @ApiProperty({ oneOf: [{ type: 'number' }, { type: 'boolean' }], example: 0 })
-  value!: number | boolean;
+  @ApiProperty({ oneOf: [{ type: 'number' }, { type: 'boolean' }, { type: 'string' }], example: 0 })
+  value!: number | boolean | string;
 
-  @ApiProperty({ oneOf: [{ type: 'number' }, { type: 'boolean' }], example: 0 })
-  default!: number | boolean;
+  @ApiProperty({ oneOf: [{ type: 'number' }, { type: 'boolean' }, { type: 'string' }], example: 0 })
+  default!: number | boolean | string;
 
-  @ApiProperty({ enum: ['pct', 'int', 'bool'] })
+  @ApiProperty({ enum: ['pct', 'int', 'bool', 'enum'] })
   type!: string;
 
   @ApiProperty()
   description!: string;
+
+  @ApiProperty({ required: false, type: [String], description: 'Valores permitidos (solo type=enum).' })
+  options?: string[];
 
   @ApiProperty({ description: 'true = el motor de precios prioriza el fee_schedule sobre este valor' })
   fallbackOnly!: boolean;

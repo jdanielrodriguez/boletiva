@@ -25,6 +25,8 @@ export const shell = {
   langEsShort: 'ES',
   langEnShort: 'EN',
   langLocked: 'El cambio de idioma no está disponible para visitantes',
+  themeToDay: 'Cambiar a tema de día',
+  themeToNight: 'Cambiar a tema de noche',
   verifyTitle: 'Verifica tu correo',
   verifyBody: 'Te enviamos un enlace de confirmación. Necesitas verificar tu correo para comprar, crear o transferir boletos.',
   verifyRedirecting: 'Te llevamos al inicio…',

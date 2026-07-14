@@ -71,6 +71,14 @@ export class UserResponseDto {
   language!: string;
 
   @ApiPropertyOptional({
+    description: 'Preferencia de franja de tema (día/noche); null = usa el default de la plataforma',
+    enum: ['dia', 'noche'],
+    example: 'noche',
+    nullable: true,
+  })
+  themePref?: string | null;
+
+  @ApiPropertyOptional({
     type: String,
     format: 'date-time',
     nullable: true,

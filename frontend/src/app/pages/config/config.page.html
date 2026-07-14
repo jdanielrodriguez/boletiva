@@ -428,6 +428,12 @@
                       [label]="(settingEdits()[s.key] ? 'config.settings.enabled' : 'config.settings.disabled') | translate"
                       [testId]="'setting-input-' + s.key"
                     />
+                  } @else if (s.type === 'enum') {
+                    <select [ngModel]="settingEdits()[s.key]" (ngModelChange)="setSettingValue(s.key, $event)" [name]="'set-' + s.key" [attr.data-testid]="'setting-input-' + s.key">
+                      @for (opt of s.options || []; track opt) {
+                        <option [value]="opt">{{ settingOptionLabel(s.key, opt) }}</option>
+                      }
+                    </select>
                   } @else {
                     <input type="number" step="0.01" [ngModel]="settingEdits()[s.key]" (ngModelChange)="setSettingValue(s.key, +$event)" [name]="'set-' + s.key" [attr.data-testid]="'setting-input-' + s.key" />
                   }

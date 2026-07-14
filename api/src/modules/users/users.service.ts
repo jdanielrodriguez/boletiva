@@ -15,6 +15,7 @@ const publicSelect = {
   roles: true,
   status: true,
   language: true,
+  themePref: true,
   lastLoginAt: true,
   createdAt: true,
 } satisfies Prisma.UserSelect;

@@ -38,9 +38,9 @@ describe('Configuraciones (settings) e2e', () => {
   const http = () => request(app.getHttpServer());
   const bearer = (t: string) => ({ Authorization: `Bearer ${t}` });
 
-  it('admin lista el catálogo (12 claves, con value/default/type)', async () => {
+  it('admin lista el catálogo (16 claves, con value/default/type)', async () => {
     const res = await http().get('/api/v1/settings').set(bearer(adminToken)).expect(200);
-    expect(res.body.length).toBe(12);
+    expect(res.body.length).toBe(16);
     const item = res.body.find((s: { key: string }) => s.key === 'costshare.default_pct');
     expect(item).toBeDefined();
     expect(item.type).toBe('pct');
@@ -50,11 +50,48 @@ describe('Configuraciones (settings) e2e', () => {
     expect(lang).toMatchObject({ type: 'bool', default: false });
     const cats = res.body.find((s: { key: string }) => s.key === 'home.show_categories');
     expect(cats).toMatchObject({ type: 'bool', default: true });
+    // Los settings de tema son enum con sus opciones (rebranding Boletiva).
+    const slotNoche = res.body.find((s: { key: string }) => s.key === 'theme.slot.noche');
+    expect(slotNoche).toMatchObject({ type: 'enum', default: 'pulso' });
+    expect(slotNoche.options).toEqual(['pulso', 'marquesina']);
   });
 
-  it('GET /public/config: lectura SIN login → defaults (visitante sin idioma, categorías sí)', async () => {
+  it('GET /public/config: SIN login → defaults + asignación de tema por franja', async () => {
     const res = await http().get('/api/v1/public/config').expect(200);
     expect(res.body).toMatchObject({ allowVisitorLangSwitch: false, showHomeCategories: true });
+    expect(res.body.theme).toMatchObject({
+      slots: { dia: 'marquesina', noche: 'pulso' },
+      defaultFranja: 'noche',
+      allowVisitorSwitch: true,
+    });
+  });
+
+  it('enum (tema): admin voltea las franjas y /public/config lo refleja; valor inválido → 400', async () => {
+    // Voltear: noche → marquesina, día → pulso.
+    await http()
+      .patch('/api/v1/settings/theme.slot.noche')
+      .set(bearer(adminToken))
+      .send({ value: 'marquesina' })
+      .expect(200);
+    await http()
+      .patch('/api/v1/settings/theme.slot.dia')
+      .set(bearer(adminToken))
+      .send({ value: 'pulso' })
+      .expect(200);
+    const res = await http().get('/api/v1/public/config').expect(200);
+    expect(res.body.theme.slots).toMatchObject({ dia: 'pulso', noche: 'marquesina' });
+    // Valor fuera del enum → 400.
+    await http()
+      .patch('/api/v1/settings/theme.slot.noche')
+      .set(bearer(adminToken))
+      .send({ value: 'inexistente' })
+      .expect(400);
+    // Tipo incorrecto (number a un enum) → 400.
+    await http()
+      .patch('/api/v1/settings/theme.default_franja')
+      .set(bearer(adminToken))
+      .send({ value: 5 })
+      .expect(400);
   });
 
   it('config pública refleja la edición admin de los flags (RBAC del PATCH incluido)', async () => {

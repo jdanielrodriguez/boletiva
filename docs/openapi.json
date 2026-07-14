@@ -7201,6 +7201,16 @@
             ],
             "example": "es"
           },
+          "themePref": {
+            "type": "string",
+            "description": "Preferencia de franja de tema (día/noche); null = default de la plataforma",
+            "enum": [
+              "dia",
+              "noche"
+            ],
+            "example": "noche",
+            "nullable": true
+          },
           "impersonatedBy": {
             "type": "string",
             "format": "uuid",
@@ -7713,6 +7723,15 @@
               "en"
             ],
             "example": "es"
+          },
+          "themePref": {
+            "type": "string",
+            "description": "Preferencia de franja de tema (día/noche). El tema concreto lo resuelve el admin.",
+            "enum": [
+              "dia",
+              "noche"
+            ],
+            "example": "noche"
           }
         }
       },
@@ -7788,6 +7807,16 @@
               "en"
             ],
             "example": "es"
+          },
+          "themePref": {
+            "type": "string",
+            "description": "Preferencia de franja de tema (día/noche); null = usa el default de la plataforma",
+            "enum": [
+              "dia",
+              "noche"
+            ],
+            "example": "noche",
+            "nullable": true
           },
           "lastLoginAt": {
             "type": "string",
@@ -14637,6 +14666,9 @@
               },
               {
                 "type": "boolean"
+              },
+              {
+                "type": "string"
               }
             ],
             "example": 0
@@ -14648,6 +14680,9 @@
               },
               {
                 "type": "boolean"
+              },
+              {
+                "type": "string"
               }
             ],
             "example": 0
@@ -14657,11 +14692,19 @@
             "enum": [
               "pct",
               "int",
-              "bool"
+              "bool",
+              "enum"
             ]
           },
           "description": {
             "type": "string"
+          },
+          "options": {
+            "description": "Valores permitidos (solo type=enum).",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "fallbackOnly": {
             "type": "boolean",
@@ -14681,13 +14724,16 @@
         "type": "object",
         "properties": {
           "value": {
-            "description": "Nuevo valor (number para pct/int, boolean para bool). Validado contra el catálogo.",
+            "description": "Nuevo valor (number para pct/int, boolean para bool, string para enum). Validado contra el catálogo.",
             "oneOf": [
               {
                 "type": "number"
               },
               {
                 "type": "boolean"
+              },
+              {
+                "type": "string"
               }
             ],
             "example": 0.1
@@ -14729,13 +14775,26 @@
             "type": "string",
             "description": "Site key pública de reCAPTCHA (vacía si no está configurada).",
             "example": ""
+          },
+          "theme": {
+            "type": "object",
+            "description": "Asignación de temas por franja + control del switch de tema.",
+            "example": {
+              "slots": {
+                "dia": "marquesina",
+                "noche": "pulso"
+              },
+              "defaultFranja": "noche",
+              "allowVisitorSwitch": true
+            }
           }
         },
         "required": [
           "allowVisitorLangSwitch",
           "showHomeCategories",
           "capabilities",
-          "recaptchaSiteKey"
+          "recaptchaSiteKey",
+          "theme"
         ]
       },
       "MaintenanceStatusDto": {

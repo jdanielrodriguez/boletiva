@@ -77,6 +77,26 @@ async function seedSettings(): Promise<void> {
       value: true,
       description: 'Mostrar las categorías en la página principal (inicio)',
     },
+    {
+      key: 'theme.slot.noche',
+      value: 'pulso',
+      description: 'Tema asignado a la franja NOCHE (el admin puede voltear día↔noche)',
+    },
+    {
+      key: 'theme.slot.dia',
+      value: 'marquesina',
+      description: 'Tema asignado a la franja DÍA (el admin puede voltear día↔noche)',
+    },
+    {
+      key: 'theme.default_franja',
+      value: 'noche',
+      description: 'Franja por defecto (visitante o usuario sin preferencia)',
+    },
+    {
+      key: 'theme.allow_visitor_switch',
+      value: true,
+      description: 'Mostrar el botón de cambio de tema (día/noche) a todos (false = solo admin)',
+    },
   ];
   for (const s of defaults) {
     await prisma.setting.upsert({

@@ -1,5 +1,12 @@
 import { Injectable, Injector, inject, signal } from '@angular/core';
-import { PublicConfigApi } from '../api/public-config.api';
+import { PublicConfigApi, ThemeConfig } from '../api/public-config.api';
+
+/** Asignación de tema por defecto (mientras llega /public/config): noche→pulso, día→marquesina. */
+const DEFAULT_THEME: ThemeConfig = {
+  slots: { dia: 'marquesina', noche: 'pulso' },
+  defaultFranja: 'noche',
+  allowVisitorSwitch: true,
+};
 
 /**
  * Estado reactivo de la config pública (signals, zoneless). Fuente única de verdad
@@ -20,11 +27,14 @@ export class PublicConfigStore {
 
   private readonly _allowVisitorLangSwitch = signal(false);
   private readonly _showHomeCategories = signal(true);
+  private readonly _theme = signal<ThemeConfig>(DEFAULT_THEME);
   private readonly _recaptchaSiteKey = signal('');
   private readonly _loaded = signal(false);
 
   readonly allowVisitorLangSwitch = this._allowVisitorLangSwitch.asReadonly();
   readonly showHomeCategories = this._showHomeCategories.asReadonly();
+  /** Asignación de tema por franja + switch (rebranding Boletiva). */
+  readonly theme = this._theme.asReadonly();
   /** Site key pública de reCAPTCHA v3 ('' = deshabilitado; RecaptchaService la lee). */
   readonly recaptchaSiteKey = this._recaptchaSiteKey.asReadonly();
   /** true una vez resuelta (o fallida) la consulta inicial. */
@@ -50,6 +60,7 @@ export class PublicConfigStore {
       next: (c) => {
         this._allowVisitorLangSwitch.set(c.allowVisitorLangSwitch);
         this._showHomeCategories.set(c.showHomeCategories);
+        if (c.theme) this._theme.set(c.theme);
         this._recaptchaSiteKey.set(c.recaptchaSiteKey ?? '');
         this._loaded.set(true);
       },
@@ -67,5 +78,12 @@ export class PublicConfigStore {
   }
   setShowHomeCategories(value: boolean): void {
     this._showHomeCategories.set(value);
+  }
+  /** Reasignar un tema a una franja o togglear el switch sin F5 (consola admin). */
+  setThemeSlot(franja: 'dia' | 'noche', theme: string): void {
+    this._theme.update((t) => ({ ...t, slots: { ...t.slots, [franja]: theme } }));
+  }
+  setThemeAllowVisitorSwitch(value: boolean): void {
+    this._theme.update((t) => ({ ...t, allowVisitorSwitch: value }));
   }
 }
