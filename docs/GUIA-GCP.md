@@ -235,10 +235,154 @@ secret de reCAPTCHA es válida, y chequea el formato del par OAuth.
 
 ---
 
-## 6. Para el deploy (más adelante, no ahora)
+## 6. Almacenamiento en GCP (el "S3 de GCP" = Google Cloud Storage)
 
-Cuando pasemos al pipeline (GitHub Actions → Cloud Run), además habilitarás **Secret Manager**,
-**Cloud Run Admin**, **Artifact Registry** y **Cloud Build**, y crearás una **Service Account de
-deploy** + **Workload Identity Federation** para GitHub. Todos los secretos de arriba se cargan en
-**Secret Manager** e se inyectan a Cloud Run con `--set-secrets` (nunca en el repo). Detalle en
-[DESPLIEGUE.md](DESPLIEGUE.md) y §5 de [INTEGRACIONES-CREDENCIALES.md](INTEGRACIONES-CREDENCIALES.md).
+> **Cómo lo consume el software HOY:** el `StorageService` del backend usa el **SDK de S3**
+> (`@aws-sdk/client-s3`) y lee SIEMPRE el bloque de variables `S3_*` (`storage.s3`). En local eso
+> apunta a LocalStack; en prod se apunta a **GCS por su API compatible con S3**. El SDK **nativo**
+> de GCS (con `GCS_SERVICE_ACCOUNT_JSON`) está previsto para una ola futura y **aún NO se consume**
+> — o sea, para correr en GCS hoy se usan **claves HMAC de interoperabilidad**, no el JSON de la
+> cuenta de servicio. (Las variables `GCS_*`/`STORAGE_PROVIDER` ya existen para esa futura ola.)
+
+### 6.1 Crear el bucket
+1. **APIs y servicios → Biblioteca** → habilita **Cloud Storage API**.
+2. **Cloud Storage → Buckets → Crear**: nombre único global (p.ej. `pasaeventos-prod`), región
+   `us-central1`, acceso **uniforme** (uniform bucket-level access). Anota el nombre → `S3_BUCKET`.
+
+### 6.2 Claves HMAC de interoperabilidad (lo que el código necesita hoy)
+GCS habla S3 con **claves HMAC** ligadas a una cuenta de servicio.
+1. Crea (o reutiliza) una **cuenta de servicio** de storage, p.ej. `storage-app@boletera-502405.iam.gserviceaccount.com`,
+   y dale el rol **Storage Object Admin** (`roles/storage.objectAdmin`) sobre el bucket (o el proyecto).
+2. **Cloud Storage → Configuración → Interoperabilidad → Claves de acceso para cuentas de servicio →
+   Crear clave para una cuenta de servicio**: elige la SA anterior. Se genera un **Access key** y un
+   **Secret**. Cópialos.
+3. En prod, estas variables (que el `StorageService` sí lee) apuntan a GCS:
+
+| Variable | Valor |
+|---|---|
+| `STORAGE_PROVIDER` | `gcs` (informativo; el adaptador activo sigue siendo el S3) |
+| `S3_ENDPOINT` | `https://storage.googleapis.com` |
+| `S3_PUBLIC_ENDPOINT` | *(vacío — GCS ya es público-firmable)* |
+| `S3_REGION` | `us-central1` (o `auto`) |
+| `S3_BUCKET` | nombre del bucket |
+| `S3_ACCESS_KEY_ID` | **Access key HMAC** |
+| `S3_SECRET_ACCESS_KEY` | **Secret HMAC** |
+| `S3_FORCE_PATH_STYLE` | `false` (GCS usa virtual-hosted style) |
+
+4. **CORS del bucket** (para que el navegador suba el banner por PUT firmado): aplica una política
+   CORS que permita `PUT` desde tu dominio. Con gcloud:
+   ```bash
+   gcloud storage buckets update gs://<bucket> --cors-file=cors.json
+   # cors.json: [{"origin":["https://pasaeventos.com"],"method":["GET","PUT"],
+   #             "responseHeader":["Content-Type"],"maxAgeSeconds":3600}]
+   ```
+
+> Las llaves HMAC son secretos → van a **Secret Manager**, no al repo.
+
+---
+
+## 7. Workload Identity Federation (WIF) — CI de GitHub sin llaves estáticas
+
+**Qué es:** en vez de exportar una llave JSON de service account a GitHub (antipatrón), WIF deja que
+GitHub Actions se autentique en GCP con un **token OIDC efímero** que emite el propio GitHub. GCP
+confía en ese token y deja "impersonar" a una cuenta de servicio de deploy por el tiempo del job.
+
+### 7.1 Qué proveedor elegir (tu pregunta)
+Al crear el **Workload Identity Pool** y "agregar proveedor", GCP pregunta el tipo:
+**AWS · OIDC · SAML**. → **Elige `OIDC`** (GitHub Actions emite tokens **OIDC**; AWS es para roles de
+AWS y SAML para IdPs corporativos).
+
+### 7.2 Datos del proveedor OIDC
+- **Issuer (URL):** `https://token.actions.githubusercontent.com`
+- **Audiencia:** deja la default (o `https://github.com/<TU_ORG>`).
+- **Mapeo de atributos** (assertion del token OIDC → atributos de Google):
+  - `google.subject` = `assertion.sub`
+  - `attribute.repository` = `assertion.repository`
+  - `attribute.repository_owner` = `assertion.repository_owner`
+  - `attribute.ref` = `assertion.ref`  *(opcional, para restringir por rama)*
+- **Condición de atributos** (CLAVE — sin esto, cualquier repo podría impersonar tu SA):
+  `assertion.repository == 'TU_ORG/TU_REPO'`  (o `assertion.repository_owner == 'TU_ORG'`).
+
+### 7.3 Pasos gcloud (paso a paso)
+```bash
+PROJECT=boletera-502405
+PROJNUM=$(gcloud projects describe $PROJECT --format='value(projectNumber)')
+REPO=TU_ORG/TU_REPO                       # p.ej. jdanielrodriguez/pasaeventos
+SA=deploy@$PROJECT.iam.gserviceaccount.com
+
+# 1) Pool
+gcloud iam workload-identity-pools create github-pool \
+  --project=$PROJECT --location=global --display-name="GitHub Actions"
+
+# 2) Proveedor OIDC (issuer + mapeo + condición al repo)
+gcloud iam workload-identity-pools providers create-oidc github-provider \
+  --project=$PROJECT --location=global --workload-identity-pool=github-pool \
+  --display-name="GitHub OIDC" \
+  --issuer-uri="https://token.actions.githubusercontent.com" \
+  --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.repository_owner=assertion.repository_owner" \
+  --attribute-condition="assertion.repository=='$REPO'"
+
+# 3) Service account de deploy + roles mínimos
+gcloud iam service-accounts create deploy --project=$PROJECT --display-name="CI Deploy"
+for ROLE in roles/run.admin roles/artifactregistry.writer roles/iam.serviceAccountUser \
+            roles/secretmanager.secretAccessor roles/storage.admin; do
+  gcloud projects add-iam-policy-binding $PROJECT --member="serviceAccount:$SA" --role="$ROLE"
+done
+
+# 4) Permitir que el repo (vía el pool) impersone la SA de deploy
+gcloud iam service-accounts add-iam-policy-binding $SA --project=$PROJECT \
+  --role=roles/iam.workloadIdentityUser \
+  --member="principalSet://iam.googleapis.com/projects/$PROJNUM/locations/global/workloadIdentityPools/github-pool/attribute.repository/$REPO"
+```
+El **provider name** que usarán los workflows es:
+`projects/$PROJNUM/locations/global/workloadIdentityPools/github-pool/providers/github-provider`.
+
+### 7.4 Cómo queda el workflow (reemplaza la llave por WIF)
+```yaml
+permissions:
+  contents: read
+  id-token: write            # ← necesario para pedir el token OIDC
+steps:
+  - uses: google-github-actions/auth@v2
+    with:
+      workload_identity_provider: projects/PROJNUM/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+      service_account: deploy@boletera-502405.iam.gserviceaccount.com
+  # (ya NO se usa credentials_json / secrets.GCP_SA_KEY)
+```
+
+---
+
+## 8. Ligar el proyecto con GCP para poder lanzar (paso a paso)
+
+Orden sugerido (marca lo que ya exista y sáltalo):
+1. **Seleccionar proyecto:** `gcloud config set project boletera-502405`.
+2. **Habilitar APIs:**
+   ```bash
+   gcloud services enable run.googleapis.com artifactregistry.googleapis.com \
+     cloudbuild.googleapis.com secretmanager.googleapis.com iamcredentials.googleapis.com \
+     storage.googleapis.com
+   ```
+3. **Artifact Registry** (repo docker que usan los workflows):
+   ```bash
+   gcloud artifacts repositories create pasaeventos-backend \
+     --repository-format=docker --location=us-central1
+   ```
+4. **Secret Manager:** crear los secretos de runtime (uno por variable sensible). Ej.:
+   ```bash
+   printf '%s' "postgres://..." | gcloud secrets create pasaeventos-database-url --data-file=-
+   ```
+   (JWT_*, APP_ENCRYPTION_KEY, TICKET_SIGNING_SEED, MAIL_PASS, S3 HMAC, GOOGLE_WALLET_*, RECAPTCHA_*,
+   PAGALO_*/RECURRENTE_* cuando existan…). Los workflows los inyectan con `--set-secrets`.
+5. **WIF** (§7) — pool + provider OIDC + SA de deploy + binding al repo.
+6. **Ajustar los workflows** a `boletera-502405` (`GCP_PROJECT` y la ruta de Artifact Registry) y
+   cambiar la auth a WIF (§7.4). Registrar en GitHub la variable `PROD_API_URL` y el secreto
+   `DEPLOY_ADMIN_TOKEN` (JWT de un admin, para la página de mantenimiento del release de prod).
+7. **Cloud Run:** el primer deploy lo hacen los workflows (`staging.yml` en `develop`,
+   `release-prod.yml` en `master`) creando los servicios `pasaeventos-api-staging` y
+   `pasaeventos-api`. Topología objetivo: **api** (HTTP) · **worker** (BullMQ) · **ingest**
+   (validación masiva RabbitMQ).
+8. **Lanzar:** push/merge a `develop` → verifica staging → push/merge a `master` → release a prod.
+
+> Nota: la provisión de infra (pasos 2–5) la coordina el arquitecto/DevOps (gcloud/Terraform).
+> Esta guía es para entender y reproducir el "cableado". Detalle adicional en
+> [DESPLIEGUE.md](DESPLIEGUE.md) y §5 de [INTEGRACIONES-CREDENCIALES.md](INTEGRACIONES-CREDENCIALES.md).
