@@ -148,7 +148,7 @@
               <form class="stacked-form" (ngSubmit)="addCard()">
                 <div class="field">
                   <label for="card-number">{{ 'account.methods.cardNumber' | translate }}</label>
-                  <input id="card-number" type="text" inputmode="numeric" autocomplete="cc-number" placeholder="4242 4242 4242 4242" [ngModel]="cardNumberDisplay()" (ngModelChange)="onCardNumberInput($event)" name="ccnumber" data-testid="card-number" [attr.aria-invalid]="cardNumber().length > 0 && !cardNumberValid()" />
+                  <input id="card-number" type="text" inputmode="numeric" autocomplete="cc-number" placeholder="4242 4242 4242 4242" [attr.maxlength]="cardNumberDisplayMaxLen()" [ngModel]="cardNumberDisplay()" (ngModelChange)="onCardNumberInput($event)" name="ccnumber" data-testid="card-number" [attr.aria-invalid]="cardNumber().length > 0 && !cardNumberValid()" />
                   @if (cardNumber().length > 0) {
                     @if (cardBrandRecognized()) {
                       <span class="card-brand-badge" data-testid="card-brand">{{ ('account.methods.brand.' + cardBrand()) | translate }}</span>

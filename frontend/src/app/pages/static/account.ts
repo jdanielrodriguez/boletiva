@@ -199,6 +199,16 @@ export class Account {
   protected readonly cardNumberDisplay = computed(() =>
     Account.formatCardNumber(this.cardNumber(), this.cardBrand()),
   );
+  /**
+   * Largo MÁXIMO del texto mostrado (dígitos + espacios): Amex 15+2 = 17; resto
+   * 16+3 = 19. Se enlaza al `maxlength` del input para que el navegador NO deje
+   * teclear más caracteres. Sin esto, al llegar al tope el valor saneado coincide
+   * con el previo → el signal no cambia → Angular no re-pinta el input → el caracter
+   * de más quedaba visible.
+   */
+  protected readonly cardNumberDisplayMaxLen = computed(() =>
+    this.cardBrand() === 'amex' ? 17 : 19,
+  );
 
   /** Año actual en 2 dígitos (para validar la expiración). */
   private static readonly currentYY = new Date().getFullYear() % 100;
