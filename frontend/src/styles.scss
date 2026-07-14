@@ -961,7 +961,7 @@ app-root {
   padding: 0.75rem 1rem;
   border: 1px solid var(--pe-border);
   border-radius: var(--pe-radius-sm);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--pe-surface);
 }
 
 .method-brand {
@@ -1017,7 +1017,7 @@ app-root {
   border: 1px solid var(--pe-border);
   border-radius: var(--pe-radius);
   padding: 1rem 1.1rem;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--pe-surface);
 }
 
 .invoice-head {
@@ -1073,7 +1073,7 @@ app-root {
   margin: 0.85rem 0 0;
   padding: 0.85rem;
   border-radius: var(--pe-radius-sm);
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--pe-surface-2);
   border: 1px solid var(--pe-border);
   display: grid;
   gap: 0.5rem;
@@ -1135,7 +1135,7 @@ app-root {
   padding: 0.45rem 0.6rem;
   border-radius: var(--pe-radius-sm);
   border-left: 3px solid var(--pe-border);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--pe-surface-2);
   font-size: 0.85rem;
 }
 
@@ -1355,7 +1355,7 @@ app-root {
   border-radius: var(--pe-radius);
   padding: 1.25rem;
   margin-bottom: 1.25rem;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--pe-surface);
 }
 
 .card-block h3 {
@@ -1441,7 +1441,7 @@ app-root {
   border: 1px solid var(--pe-border);
   border-radius: var(--pe-radius);
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--pe-surface);
 }
 
 .event-card.is-past {
@@ -2909,7 +2909,9 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
 .ev-card-name:hover { color: var(--pe-primary); }
 .tpl-title-row { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
 .tpl-title-row > strong { min-width: 0; }
-.ev-card-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; }
+/* margin-top:auto fija las acciones al FONDO de la card (el grid estira todas a la
+   misma altura) → los botones quedan alineados aunque una card tenga menos/deshabilitados. */
+.ev-card-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: auto; padding-top: 0.6rem; }
 .ev-card-actions .btn.small { flex: 1 1 auto; justify-content: center; min-width: 96px; }
 /* Barra superior del editor: acciones alineadas a la derecha y CENTRADAS
    verticalmente (W5) → el botón/chip de desbloqueo queda a la misma altura que
@@ -3216,8 +3218,10 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
   height: 42px;
   padding: 0;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  /* Círculo oscuro sólido + glifo blanco → visible sobre CUALQUIER fondo (póster con
+     o sin banner, tema día claro o noche oscuro). Antes 0.35 se perdía en el tema día. */
+  background: rgba(0, 0, 0, 0.62);
   color: #fff;
   backdrop-filter: blur(4px);
 }
