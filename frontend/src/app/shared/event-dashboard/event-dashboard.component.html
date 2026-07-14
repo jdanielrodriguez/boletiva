@@ -1,0 +1,113 @@
+<div class="dash" data-testid="event-dashboard">
+  @if (loading()) {
+    <app-loading data-testid="dash-loading" [label]="'promoter.dash.loading' | translate" />
+  } @else if (error()) {
+    <app-empty-state
+      variant="billing"
+      data-testid="dash-error"
+      [title]="'common.errorLoading' | translate"
+      [subtitle]="'promoter.dash.error' | translate"
+    />
+  } @else if (isEmpty()) {
+    <app-empty-state
+      variant="billing"
+      data-testid="dash-empty"
+      [title]="'promoter.dash.emptyTitle' | translate"
+      [subtitle]="'promoter.dash.emptyBody' | translate"
+    />
+  }
+
+  @if (hasData() && data(); as d) {
+    <!-- KPIs -->
+    <div class="dash-kpis" data-testid="dash-kpis">
+      <div class="kpi">
+        <span class="kpi-label">{{ 'promoter.dash.gross' | translate }}</span>
+        <span class="kpi-value">{{ currency() }} {{ d.summary.gross | money }}</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-label">{{ 'promoter.dash.net' | translate }}</span>
+        <span class="kpi-value accent">{{ currency() }} {{ d.summary.net | money }}</span>
+      </div>
+      @if (showSplit()) {
+        <div class="kpi">
+          <span class="kpi-label">{{ 'promoter.dash.services' | translate }}</span>
+          <span class="kpi-value">{{ currency() }} {{ services() | money }}</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">{{ 'promoter.dash.iva' | translate }}</span>
+          <span class="kpi-value">{{ currency() }} {{ d.summary.iva | money }}</span>
+        </div>
+      }
+      <div class="kpi">
+        <span class="kpi-label">{{ 'promoter.dash.paidOrders' | translate }}</span>
+        <span class="kpi-value">{{ d.summary.paidOrders }}</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-label">{{ 'promoter.dash.ticketsSold' | translate }}</span>
+        <span class="kpi-value">{{ d.summary.ticketsSold }}</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-label">{{ 'promoter.dash.occupancy' | translate }}</span>
+        <span class="kpi-value">{{ d.occupancy.occupancyPct }}%</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-label">{{ 'promoter.dash.checkin' | translate }}</span>
+        <span class="kpi-value">{{ d.attendance.checkedInPct }}%</span>
+      </div>
+    </div>
+
+    <!-- Ventas por día -->
+    <section class="dash-card" data-testid="dash-sales">
+      <h3>{{ 'promoter.dash.salesTitle' | translate }}</h3>
+      <app-chart [options]="salesOptions()" />
+    </section>
+
+    <div class="dash-grid">
+      <!-- Ocupación por localidad -->
+      <section class="dash-card" data-testid="dash-occupancy">
+        <h3>{{ 'promoter.dash.occupancyTitle' | translate }}</h3>
+        <app-chart [options]="occupancyOptions()" />
+        <table class="dash-table">
+          <thead>
+            <tr>
+              <th>{{ 'promoter.dash.locality' | translate }}</th>
+              <th class="num">{{ 'promoter.dash.sold' | translate }}</th>
+              <th class="num">{{ 'promoter.dash.capacity' | translate }}</th>
+              <th class="num">%</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (l of d.occupancy.byLocality; track l.localityId) {
+              <tr>
+                <td>{{ l.name }}</td>
+                <td class="num">{{ l.sold }}</td>
+                <td class="num">{{ l.capacity }}</td>
+                <td class="num">{{ l.occupancyPct }}%</td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr>
+              <td>{{ 'promoter.dash.total' | translate }}</td>
+              <td class="num">{{ d.occupancy.totalSold }}</td>
+              <td class="num">{{ d.occupancy.totalCapacity }}</td>
+              <td class="num">{{ d.occupancy.occupancyPct }}%</td>
+            </tr>
+          </tfoot>
+        </table>
+      </section>
+
+      <!-- Asistencia -->
+      <section class="dash-card" data-testid="dash-attendance">
+        <h3>{{ 'promoter.dash.attendanceTitle' | translate }}</h3>
+        <app-chart [options]="attendanceOptions()" />
+        <ul class="dash-att">
+          <li><span>{{ 'promoter.dash.valid' | translate }}</span><b>{{ d.attendance.valid }}</b></li>
+          <li><span>{{ 'promoter.dash.used' | translate }}</span><b>{{ d.attendance.used }}</b></li>
+          <li><span>{{ 'promoter.dash.transferred' | translate }}</span><b>{{ d.attendance.transferred }}</b></li>
+          <li><span>{{ 'promoter.dash.revoked' | translate }}</span><b>{{ d.attendance.revoked }}</b></li>
+        </ul>
+      </section>
+    </div>
+  }
+</div>

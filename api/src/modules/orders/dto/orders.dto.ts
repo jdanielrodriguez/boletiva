@@ -310,6 +310,103 @@ export class EventSettlementDto {
   refundsIssued!: string;
 }
 
+export class SalesPointDto {
+  @ApiProperty({ example: '2026-07-01', description: 'Día (YYYY-MM-DD)' })
+  day!: string;
+
+  @ApiProperty({ example: 12, description: 'Órdenes pagadas ese día' })
+  orders!: number;
+
+  @ApiProperty({ type: String, example: '1556.16', description: 'Recaudado ese día (dinero exacto)' })
+  revenue!: string;
+}
+
+export class LocalityOccupancyDto {
+  @ApiProperty({ format: 'uuid' })
+  localityId!: string;
+
+  @ApiProperty({ example: 'General' })
+  name!: string;
+
+  @ApiProperty({ example: 'general', enum: ['seated', 'general'] })
+  kind!: string;
+
+  @ApiProperty({ example: 500, description: 'Aforo de la localidad' })
+  capacity!: number;
+
+  @ApiProperty({ example: 342, description: 'Vendidos (ítems activos de órdenes pagadas)' })
+  sold!: number;
+
+  @ApiProperty({ example: 68.4, description: 'Porcentaje de ocupación' })
+  occupancyPct!: number;
+}
+
+export class OccupancyDto {
+  @ApiProperty({ example: 1000 })
+  totalCapacity!: number;
+
+  @ApiProperty({ example: 684 })
+  totalSold!: number;
+
+  @ApiProperty({ example: 68.4 })
+  occupancyPct!: number;
+
+  @ApiProperty({ type: [LocalityOccupancyDto] })
+  byLocality!: LocalityOccupancyDto[];
+}
+
+export class AttendanceDto {
+  @ApiProperty({ example: 684, description: 'Total de boletos del evento (todos los estados)' })
+  totalTickets!: number;
+
+  @ApiProperty({ example: 500, description: 'Boletos válidos (aún sin usar)' })
+  valid!: number;
+
+  @ApiProperty({ example: 180, description: 'Boletos usados (check-in realizado)' })
+  used!: number;
+
+  @ApiProperty({ example: 3, description: 'Boletos transferidos (el pase original quedó inservible)' })
+  transferred!: number;
+
+  @ApiProperty({ example: 1, description: 'Boletos revocados (reembolso/contracargo)' })
+  revoked!: number;
+
+  @ApiProperty({ example: 26.5, description: '% de check-in sobre boletos vigentes (válidos + usados)' })
+  checkedInPct!: number;
+}
+
+export class EventDashboardDto {
+  @ApiProperty({ format: 'uuid' })
+  eventId!: string;
+
+  @ApiProperty({ example: 'Concierto de Apertura' })
+  eventName!: string;
+
+  @ApiProperty({ example: 'GTQ' })
+  currency!: string;
+
+  @ApiProperty({ example: 'published', enum: ['draft', 'published', 'suspended', 'cancelled', 'finished'] })
+  status!: string;
+
+  @ApiProperty({ type: String, nullable: true, example: '2026-08-01T02:00:00.000Z' })
+  startsAt!: string | null;
+
+  @ApiProperty({ type: String, nullable: true, example: '2026-08-01T05:00:00.000Z' })
+  endsAt!: string | null;
+
+  @ApiProperty({ type: EventSettlementDto, description: 'KPIs financieros (reutiliza la liquidación)' })
+  summary!: EventSettlementDto;
+
+  @ApiProperty({ type: [SalesPointDto], description: 'Ventas por día (órdenes pagadas)' })
+  salesOverTime!: SalesPointDto[];
+
+  @ApiProperty({ type: OccupancyDto, description: 'Ocupación por localidad' })
+  occupancy!: OccupancyDto;
+
+  @ApiProperty({ type: AttendanceDto, description: 'Asistencia / check-in' })
+  attendance!: AttendanceDto;
+}
+
 export class EventCashTransferDto {
   @ApiProperty({ format: 'uuid' })
   eventId!: string;

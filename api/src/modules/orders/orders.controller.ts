@@ -30,9 +30,11 @@ import { OrdersService } from './orders.service';
 import { SettlementService } from './settlement.service';
 import { SettlementExportService } from './settlement-export.service';
 import { EventRefundsService } from './event-refunds.service';
+import { EventDashboardService } from './event-dashboard.service';
 import {
   CheckoutDto,
   EventCashTransferDto,
+  EventDashboardDto,
   EventRefundDto,
   EventRefundResultDto,
   EventSettlementDto,
@@ -54,6 +56,7 @@ export class OrdersController {
     private readonly settlement: SettlementService,
     private readonly settlementExport: SettlementExportService,
     private readonly eventRefunds: EventRefundsService,
+    private readonly eventDashboard: EventDashboardService,
   ) {}
 
   @Get('events/:eventId/settlement')
@@ -65,6 +68,19 @@ export class OrdersController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.settlement.forEvent(eventId, user);
+  }
+
+  @Get('events/:eventId/dashboard')
+  @Roles(Role.promoter, Role.admin)
+  @ApiOperation({
+    summary: 'Dashboard del evento: KPIs financieros + ventas/día + ocupación + asistencia (owner/admin)',
+  })
+  @ApiOkResponse({ type: EventDashboardDto })
+  eventDashboardData(
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.eventDashboard.forEvent(eventId, user);
   }
 
   @Get('events/:eventId/settlement/export.xlsx')

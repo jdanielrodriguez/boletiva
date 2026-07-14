@@ -394,6 +394,35 @@ export const promoter = {
     note: 'Recibes el <strong>neto</strong>; la cuota por servicio (plataforma + pasarela) y el IVA los cobra la plataforma y el fisco. El total cobrado al público es la suma de todo.',
   },
 
+  // --- Dashboard analítico del evento (tab Dashboard) ---
+  dash: {
+    loading: 'Cargando dashboard…',
+    error: 'No se pudo cargar el dashboard del evento.',
+    emptyTitle: 'Aún sin ventas',
+    emptyBody: 'Cuando se concrete la primera compra verás aquí las gráficas y métricas del evento.',
+    gross: 'Recaudado',
+    net: 'Neto del promotor',
+    services: 'Servicios',
+    iva: 'IVA',
+    paidOrders: 'Órdenes',
+    ticketsSold: 'Boletos vendidos',
+    occupancy: 'Ocupación',
+    checkin: 'Check-in',
+    revenue: 'Recaudado',
+    orders: 'Órdenes',
+    salesTitle: 'Ventas por día',
+    occupancyTitle: 'Ocupación por localidad',
+    attendanceTitle: 'Asistencia',
+    locality: 'Localidad',
+    sold: 'Vendidos',
+    capacity: 'Aforo',
+    total: 'Total',
+    valid: 'Válidos',
+    used: 'Ingresados',
+    transferred: 'Transferidos',
+    revoked: 'Anulados',
+  },
+
   // --- Mapa combinado (solo lectura) del evento ---
   seatMap: {
     title: 'Mapa de asientos del evento',

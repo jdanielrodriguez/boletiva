@@ -1311,6 +1311,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{eventId}/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Dashboard del evento: KPIs financieros + ventas/día + ocupación + asistencia (owner/admin) */
+        get: operations["OrdersController_eventDashboardData_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{eventId}/settlement/export.xlsx": {
         parameters: {
             query?: never;
@@ -4959,6 +4976,115 @@ export interface components {
              * @example 0.00
              */
             refundsIssued: string;
+        };
+        SalesPointDto: {
+            /**
+             * @description Día (YYYY-MM-DD)
+             * @example 2026-07-01
+             */
+            day: string;
+            /**
+             * @description Órdenes pagadas ese día
+             * @example 12
+             */
+            orders: number;
+            /**
+             * @description Recaudado ese día (dinero exacto)
+             * @example 1556.16
+             */
+            revenue: string;
+        };
+        LocalityOccupancyDto: {
+            /** Format: uuid */
+            localityId: string;
+            /** @example General */
+            name: string;
+            /**
+             * @example general
+             * @enum {string}
+             */
+            kind: "seated" | "general";
+            /**
+             * @description Aforo de la localidad
+             * @example 500
+             */
+            capacity: number;
+            /**
+             * @description Vendidos (ítems activos de órdenes pagadas)
+             * @example 342
+             */
+            sold: number;
+            /**
+             * @description Porcentaje de ocupación
+             * @example 68.4
+             */
+            occupancyPct: number;
+        };
+        OccupancyDto: {
+            /** @example 1000 */
+            totalCapacity: number;
+            /** @example 684 */
+            totalSold: number;
+            /** @example 68.4 */
+            occupancyPct: number;
+            byLocality: components["schemas"]["LocalityOccupancyDto"][];
+        };
+        AttendanceDto: {
+            /**
+             * @description Total de boletos del evento (todos los estados)
+             * @example 684
+             */
+            totalTickets: number;
+            /**
+             * @description Boletos válidos (aún sin usar)
+             * @example 500
+             */
+            valid: number;
+            /**
+             * @description Boletos usados (check-in realizado)
+             * @example 180
+             */
+            used: number;
+            /**
+             * @description Boletos transferidos (el pase original quedó inservible)
+             * @example 3
+             */
+            transferred: number;
+            /**
+             * @description Boletos revocados (reembolso/contracargo)
+             * @example 1
+             */
+            revoked: number;
+            /**
+             * @description % de check-in sobre boletos vigentes (válidos + usados)
+             * @example 26.5
+             */
+            checkedInPct: number;
+        };
+        EventDashboardDto: {
+            /** Format: uuid */
+            eventId: string;
+            /** @example Concierto de Apertura */
+            eventName: string;
+            /** @example GTQ */
+            currency: string;
+            /**
+             * @example published
+             * @enum {string}
+             */
+            status: "draft" | "published" | "suspended" | "cancelled" | "finished";
+            /** @example 2026-08-01T02:00:00.000Z */
+            startsAt: string | null;
+            /** @example 2026-08-01T05:00:00.000Z */
+            endsAt: string | null;
+            /** @description KPIs financieros (reutiliza la liquidación) */
+            summary: components["schemas"]["EventSettlementDto"];
+            /** @description Ventas por día (órdenes pagadas) */
+            salesOverTime: components["schemas"]["SalesPointDto"][];
+            /** @description Ocupación por localidad */
+            occupancy: components["schemas"]["OccupancyDto"];
+            /** @description Asistencia / check-in */
+            attendance: components["schemas"]["AttendanceDto"];
         };
         EventCashTransferDto: {
             /** Format: uuid */
@@ -8795,6 +8921,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EventSettlementDto"];
+                };
+            };
+        };
+    };
+    OrdersController_eventDashboardData_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventDashboardDto"];
                 };
             };
         };

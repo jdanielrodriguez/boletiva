@@ -109,6 +109,13 @@ export type EventSettlementDto = Schemas['EventSettlementDto'];
 export type EventTransactionDto = Schemas['EventTransactionDto'];
 export type EventTransactionPageDto = Schemas['EventTransactionPageDto'];
 
+// --- Dashboard analítico por evento ---
+export type EventDashboardDto = Schemas['EventDashboardDto'];
+export type SalesPointDto = Schemas['SalesPointDto'];
+export type OccupancyDto = Schemas['OccupancyDto'];
+export type LocalityOccupancyDto = Schemas['LocalityOccupancyDto'];
+export type AttendanceDto = Schemas['AttendanceDto'];
+
 // --- Devoluciones por cancelación/suspensión del evento (admin) ---
 export type EventRefundDto = Schemas['EventRefundDto'];
 export type EventRefundResultDto = Schemas['EventRefundResultDto'];

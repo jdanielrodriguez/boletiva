@@ -3230,6 +3230,42 @@
         ]
       }
     },
+    "/api/v1/events/{eventId}/dashboard": {
+      "get": {
+        "operationId": "OrdersController_eventDashboardData_v1",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventDashboardDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Dashboard del evento: KPIs financieros + ventas/día + ocupación + asistencia (owner/admin)",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
     "/api/v1/events/{eventId}/settlement/export.xlsx": {
       "get": {
         "operationId": "OrdersController_exportSettlement_v1",
@@ -10585,6 +10621,228 @@
           "services",
           "iva",
           "refundsIssued"
+        ]
+      },
+      "SalesPointDto": {
+        "type": "object",
+        "properties": {
+          "day": {
+            "type": "string",
+            "example": "2026-07-01",
+            "description": "Día (YYYY-MM-DD)"
+          },
+          "orders": {
+            "type": "number",
+            "example": 12,
+            "description": "Órdenes pagadas ese día"
+          },
+          "revenue": {
+            "type": "string",
+            "example": "1556.16",
+            "description": "Recaudado ese día (dinero exacto)"
+          }
+        },
+        "required": [
+          "day",
+          "orders",
+          "revenue"
+        ]
+      },
+      "LocalityOccupancyDto": {
+        "type": "object",
+        "properties": {
+          "localityId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "example": "General"
+          },
+          "kind": {
+            "type": "string",
+            "example": "general",
+            "enum": [
+              "seated",
+              "general"
+            ]
+          },
+          "capacity": {
+            "type": "number",
+            "example": 500,
+            "description": "Aforo de la localidad"
+          },
+          "sold": {
+            "type": "number",
+            "example": 342,
+            "description": "Vendidos (ítems activos de órdenes pagadas)"
+          },
+          "occupancyPct": {
+            "type": "number",
+            "example": 68.4,
+            "description": "Porcentaje de ocupación"
+          }
+        },
+        "required": [
+          "localityId",
+          "name",
+          "kind",
+          "capacity",
+          "sold",
+          "occupancyPct"
+        ]
+      },
+      "OccupancyDto": {
+        "type": "object",
+        "properties": {
+          "totalCapacity": {
+            "type": "number",
+            "example": 1000
+          },
+          "totalSold": {
+            "type": "number",
+            "example": 684
+          },
+          "occupancyPct": {
+            "type": "number",
+            "example": 68.4
+          },
+          "byLocality": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LocalityOccupancyDto"
+            }
+          }
+        },
+        "required": [
+          "totalCapacity",
+          "totalSold",
+          "occupancyPct",
+          "byLocality"
+        ]
+      },
+      "AttendanceDto": {
+        "type": "object",
+        "properties": {
+          "totalTickets": {
+            "type": "number",
+            "example": 684,
+            "description": "Total de boletos del evento (todos los estados)"
+          },
+          "valid": {
+            "type": "number",
+            "example": 500,
+            "description": "Boletos válidos (aún sin usar)"
+          },
+          "used": {
+            "type": "number",
+            "example": 180,
+            "description": "Boletos usados (check-in realizado)"
+          },
+          "transferred": {
+            "type": "number",
+            "example": 3,
+            "description": "Boletos transferidos (el pase original quedó inservible)"
+          },
+          "revoked": {
+            "type": "number",
+            "example": 1,
+            "description": "Boletos revocados (reembolso/contracargo)"
+          },
+          "checkedInPct": {
+            "type": "number",
+            "example": 26.5,
+            "description": "% de check-in sobre boletos vigentes (válidos + usados)"
+          }
+        },
+        "required": [
+          "totalTickets",
+          "valid",
+          "used",
+          "transferred",
+          "revoked",
+          "checkedInPct"
+        ]
+      },
+      "EventDashboardDto": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "eventName": {
+            "type": "string",
+            "example": "Concierto de Apertura"
+          },
+          "currency": {
+            "type": "string",
+            "example": "GTQ"
+          },
+          "status": {
+            "type": "string",
+            "example": "published",
+            "enum": [
+              "draft",
+              "published",
+              "suspended",
+              "cancelled",
+              "finished"
+            ]
+          },
+          "startsAt": {
+            "type": "string",
+            "nullable": true,
+            "example": "2026-08-01T02:00:00.000Z"
+          },
+          "endsAt": {
+            "type": "string",
+            "nullable": true,
+            "example": "2026-08-01T05:00:00.000Z"
+          },
+          "summary": {
+            "description": "KPIs financieros (reutiliza la liquidación)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EventSettlementDto"
+              }
+            ]
+          },
+          "salesOverTime": {
+            "description": "Ventas por día (órdenes pagadas)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SalesPointDto"
+            }
+          },
+          "occupancy": {
+            "description": "Ocupación por localidad",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OccupancyDto"
+              }
+            ]
+          },
+          "attendance": {
+            "description": "Asistencia / check-in",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AttendanceDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "eventId",
+          "eventName",
+          "currency",
+          "status",
+          "startsAt",
+          "endsAt",
+          "summary",
+          "salesOverTime",
+          "occupancy",
+          "attendance"
         ]
       },
       "EventCashTransferDto": {

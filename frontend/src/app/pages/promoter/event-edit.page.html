@@ -495,9 +495,13 @@
         }
 
         @case ('dashboard') {
-          <div class="card-block" data-testid="dashboard-placeholder">
+          <div class="card-block" data-testid="dashboard-panel">
             <h2>{{ 'promoter.edit.dashboardTitle' | translate }}</h2>
-            <p class="muted">{{ 'promoter.edit.dashboardSoon' | translate }}</p>
+            @if (!isNew() && eventId()) {
+              <app-event-dashboard [eventId]="eventId()" [showSplit]="isAdmin()" />
+            } @else {
+              <p class="muted">{{ 'promoter.edit.dashboardSoon' | translate }}</p>
+            }
           </div>
         }
       }

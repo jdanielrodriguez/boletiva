@@ -10,6 +10,7 @@ import type {
   EventCashTransferDto,
   EventRefundResultDto,
   EventSettlementDto,
+  EventDashboardDto,
   EventTransactionPageDto,
   GatewayResponseDto,
   GenerateBannerDto,
@@ -99,6 +100,11 @@ export class PromoterEventsApi {
   /** Liquidación (cuentas) del evento sobre sus órdenes pagadas. */
   settlement(id: string): Observable<EventSettlementDto> {
     return this.api.get<EventSettlementDto>(`/events/${id}/settlement`);
+  }
+
+  /** Dashboard del evento: KPIs + ventas/día + ocupación + asistencia (owner/admin). */
+  dashboard(id: string): Observable<EventDashboardDto> {
+    return this.api.get<EventDashboardDto>(`/events/${id}/dashboard`);
   }
 
   /**

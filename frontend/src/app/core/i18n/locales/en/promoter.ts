@@ -395,6 +395,35 @@ export const promoter = {
     note: 'You receive the <strong>net</strong>; the service fee (platform + gateway) and VAT are collected by the platform and the tax authority. The total charged to the public is the sum of everything.',
   },
 
+  // --- Event analytics dashboard (Dashboard tab) ---
+  dash: {
+    loading: 'Loading dashboard…',
+    error: 'Could not load the event dashboard.',
+    emptyTitle: 'No sales yet',
+    emptyBody: 'Once the first purchase is completed you will see the event charts and metrics here.',
+    gross: 'Collected',
+    net: 'Promoter net',
+    services: 'Services',
+    iva: 'VAT',
+    paidOrders: 'Orders',
+    ticketsSold: 'Tickets sold',
+    occupancy: 'Occupancy',
+    checkin: 'Check-in',
+    revenue: 'Revenue',
+    orders: 'Orders',
+    salesTitle: 'Sales per day',
+    occupancyTitle: 'Occupancy by locality',
+    attendanceTitle: 'Attendance',
+    locality: 'Locality',
+    sold: 'Sold',
+    capacity: 'Capacity',
+    total: 'Total',
+    valid: 'Valid',
+    used: 'Checked in',
+    transferred: 'Transferred',
+    revoked: 'Revoked',
+  },
+
   // --- Combined (read-only) event seat map ---
   seatMap: {
     title: 'Event seat map',

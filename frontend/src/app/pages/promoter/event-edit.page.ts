@@ -15,6 +15,7 @@ import { ToastService } from '../../core/ui/toast.service';
 import { ConfirmController } from '../../shared/confirm-dialog/confirm-controller';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { EventSettlementComponent } from '../../shared/event-settlement/event-settlement.component';
+import { EventDashboardComponent } from '../../shared/event-dashboard/event-dashboard.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { BackLinkComponent } from '../../shared/ui/back-link.component';
 import { LockChipComponent } from '../../shared/ui/lock-chip.component';
@@ -68,6 +69,7 @@ function toLocalInput(iso: string | null | undefined): string {
     FormsModule,
     RouterLink,
     EventSettlementComponent,
+    EventDashboardComponent,
     EventSeatMapComponent,
     IconComponent,
     BackLinkComponent,
