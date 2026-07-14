@@ -121,7 +121,7 @@ export class SettlementExportService {
     }>,
   ): Promise<Buffer> {
     const wb = new ExcelJS.Workbook();
-    wb.creator = 'Pasa Eventos';
+    wb.creator = 'Boletiva';
     wb.created = new Date();
 
     // --- Hoja Resumen ---

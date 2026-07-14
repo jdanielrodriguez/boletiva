@@ -12,7 +12,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 })
 export class ShareBox {
   readonly url = input.required<string>();
-  readonly title = input('Te comparto esta reserva de boletos en Pasa Eventos');
+  readonly title = input('Te comparto esta reserva de boletos en Boletiva');
 
   protected readonly copied = signal(false);
 

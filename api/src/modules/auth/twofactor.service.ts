@@ -26,7 +26,7 @@ export class TwoFactorService {
       where: { id: userId },
       data: { totpPendingSecret: this.encryption.encrypt(secret) },
     });
-    const otpauthUrl = authenticator.keyuri(user.email, 'Pasa Eventos', secret);
+    const otpauthUrl = authenticator.keyuri(user.email, 'Boletiva', secret);
     const qrDataUrl = await QRCode.toDataURL(otpauthUrl);
     return { otpauthUrl, qrDataUrl, secret };
   }

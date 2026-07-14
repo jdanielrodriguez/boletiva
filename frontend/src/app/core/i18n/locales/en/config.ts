@@ -417,6 +417,17 @@ export const config = {
     noche: 'Night',
   },
 
+  /** Theme preview collapsible (end of the System tab). */
+  themePreview: {
+    heading: 'Theme preview',
+    hint: 'This is how each theme looks. Use it to decide which one to assign to the day and night slots.',
+    active: 'Active',
+    unassigned: 'Unassigned',
+    sampleChip: 'Presale',
+    sampleTitle: 'Sample concert',
+    sampleCta: 'Buy',
+  },
+
   /** Friendly descriptions per setting. */
   settingDescriptions: {
     pricing_platform_fee_pct: 'Fee the platform charges on the promoter net.',

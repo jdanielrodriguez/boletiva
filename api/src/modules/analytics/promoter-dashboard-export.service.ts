@@ -72,7 +72,7 @@ export class PromoterDashboardExportService {
 
   private async buildWorkbook(d: PromoterDashboardDto): Promise<Buffer> {
     const wb = new ExcelJS.Workbook();
-    wb.creator = 'Pasa Eventos';
+    wb.creator = 'Boletiva';
     wb.created = new Date();
 
     // --- Hoja Resumen (KPIs globales) ---

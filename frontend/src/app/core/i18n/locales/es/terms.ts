@@ -4,21 +4,21 @@
  * componente `Terms` itera `sections` (encabezado + párrafos + viñetas).
  */
 export const terms = {
-  metaTitle: 'Términos y Condiciones — Pasa Eventos',
+  metaTitle: 'Términos y Condiciones — Boletiva',
   metaDescription:
-    'Términos y Condiciones de uso de Pasa Eventos: compra de boletos, reembolsos, transferencias, validación, wallet, promotores y facturación en Guatemala.',
+    'Términos y Condiciones de uso de Boletiva: compra de boletos, reembolsos, transferencias, validación, wallet, promotores y facturación en Guatemala.',
   title: 'Términos y Condiciones',
   lastUpdated: 'Última actualización: 10 de julio de 2026',
   intro:
-    'Estos Términos y Condiciones (los «Términos») regulan el acceso y uso de la plataforma Pasa Eventos, un servicio de venta y validación de boletos para eventos en Guatemala. Al crear una cuenta, comprar un boleto o utilizar cualquier función de la plataforma, aceptas estos Términos en su totalidad. Si no estás de acuerdo, por favor no utilices el servicio.',
+    'Estos Términos y Condiciones (los «Términos») regulan el acceso y uso de la plataforma Boletiva, un servicio de venta y validación de boletos para eventos en Guatemala. Al crear una cuenta, comprar un boleto o utilizar cualquier función de la plataforma, aceptas estos Términos en su totalidad. Si no estás de acuerdo, por favor no utilices el servicio.',
   tocTitle: 'Contenido',
   sections: [
     {
       id: 'plataforma',
       heading: '1. La plataforma y su objeto',
       paragraphs: [
-        'Pasa Eventos es una plataforma tecnológica que permite a organizadores de eventos («promotores») publicar y vender boletos, y a los usuarios («compradores») adquirirlos, recibirlos, transferirlos y presentarlos para su validación en el acceso al evento.',
-        'Pasa Eventos actúa como intermediario tecnológico entre el promotor y el comprador. El promotor es el único responsable de la realización, contenido, calidad, fechas, horarios y condiciones del evento. Pasa Eventos no organiza los eventos ni garantiza su celebración.',
+        'Boletiva es una plataforma tecnológica que permite a organizadores de eventos («promotores») publicar y vender boletos, y a los usuarios («compradores») adquirirlos, recibirlos, transferirlos y presentarlos para su validación en el acceso al evento.',
+        'Boletiva actúa como intermediario tecnológico entre el promotor y el comprador. El promotor es el único responsable de la realización, contenido, calidad, fechas, horarios y condiciones del evento. Boletiva no organiza los eventos ni garantiza su celebración.',
       ],
     },
     {
@@ -89,8 +89,8 @@ export const terms = {
       id: 'promotor',
       heading: '9. Rol de promotor',
       paragraphs: [
-        'Cualquier usuario puede solicitar ser promotor. La condición de promotor requiere aprobación de Pasa Eventos y puede ser suspendida o revocada por incumplimiento de estos Términos.',
-        'El promotor es responsable de la información y legalidad de sus eventos, del cumplimiento de las obligaciones frente a los asistentes y de las autorizaciones que correspondan. Pasa Eventos cobra una comisión de plataforma sobre las ventas y liquida al promotor el neto correspondiente, conforme a las condiciones y los plazos acordados.',
+        'Cualquier usuario puede solicitar ser promotor. La condición de promotor requiere aprobación de Boletiva y puede ser suspendida o revocada por incumplimiento de estos Términos.',
+        'El promotor es responsable de la información y legalidad de sus eventos, del cumplimiento de las obligaciones frente a los asistentes y de las autorizaciones que correspondan. Boletiva cobra una comisión de plataforma sobre las ventas y liquida al promotor el neto correspondiente, conforme a las condiciones y los plazos acordados.',
         'El promotor se obliga a no publicar eventos ilícitos, fraudulentos o que infrinjan derechos de terceros, y a responder frente a los compradores por cualquier reclamo relacionado con la realización del evento.',
       ],
     },
@@ -114,7 +114,7 @@ export const terms = {
       id: 'propiedad',
       heading: '12. Propiedad intelectual',
       paragraphs: [
-        'La marca, el software, el diseño, los textos y demás elementos de la plataforma pertenecen a Pasa Eventos o a sus licenciantes y están protegidos por la ley. No se concede ningún derecho sobre ellos más allá del uso normal del servicio.',
+        'La marca, el software, el diseño, los textos y demás elementos de la plataforma pertenecen a Boletiva o a sus licenciantes y están protegidos por la ley. No se concede ningún derecho sobre ellos más allá del uso normal del servicio.',
         'El contenido publicado por los promotores (imágenes, descripciones, banners) es responsabilidad de quien lo publica, quien declara contar con los derechos necesarios para su uso.',
       ],
     },
@@ -122,8 +122,8 @@ export const terms = {
       id: 'responsabilidad',
       heading: '13. Limitación de responsabilidad',
       paragraphs: [
-        'Pasa Eventos provee la plataforma «tal cual» y hace esfuerzos razonables por mantenerla disponible y segura, sin garantizar una operación ininterrumpida o libre de errores.',
-        'Pasa Eventos no es responsable por la realización, suspensión, cambios o calidad de los eventos, que son responsabilidad exclusiva del promotor. En la medida permitida por la ley, la responsabilidad de Pasa Eventos frente a un usuario por una operación se limita al monto de la cuota de servicio efectivamente cobrada en esa operación.',
+        'Boletiva provee la plataforma «tal cual» y hace esfuerzos razonables por mantenerla disponible y segura, sin garantizar una operación ininterrumpida o libre de errores.',
+        'Boletiva no es responsable por la realización, suspensión, cambios o calidad de los eventos, que son responsabilidad exclusiva del promotor. En la medida permitida por la ley, la responsabilidad de Boletiva frente a un usuario por una operación se limita al monto de la cuota de servicio efectivamente cobrada en esa operación.',
       ],
     },
     {

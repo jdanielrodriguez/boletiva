@@ -15,7 +15,7 @@ export const transfer = {
     ticketSerial: 'Boleto {{serial}}',
     point1: 'Transferir es regalar tu boleto a otra persona.',
     point2: 'Al transferir, tu boleto ACTUAL queda inservible: se re-emite con un nuevo QR a nombre del destinatario.',
-    point3: 'El destinatario recibe un código que debe canjear en Pasa Eventos.',
+    point3: 'El destinatario recibe un código que debe canjear en Boletiva.',
     point4: 'Una vez que la otra persona canjea el código, la transferencia no se puede deshacer.',
     confirmYes: 'Sí, transferir',
     sending: 'Generando código…',
@@ -28,7 +28,7 @@ export const transfer = {
     emailPlaceholder: 'correo@ejemplo.com',
     shareByEmail: 'Enviar por correo',
     recipientHint: 'La persona debe pegar este código en "Reclamar boleto" para importarlo a su cuenta.',
-    emailSubject: 'Te regalo un boleto en Pasa Eventos',
+    emailSubject: 'Te regalo un boleto en Boletiva',
     emailBody: 'Te comparto un boleto. Usa este código para reclamarlo: {{code}}\n\nCánjealo aquí: {{url}}',
   },
 };

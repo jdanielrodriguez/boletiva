@@ -14,7 +14,7 @@ export const becomePromoter = {
   sending: 'Enviando…',
   infoTitle: '¿Qué es un promotor?',
   infoLead:
-    'Un promotor es quien organiza y vende eventos en Pasa Eventos. Antes de continuar, esto es lo que podrás hacer:',
+    'Un promotor es quien organiza y vende eventos en Boletiva. Antes de continuar, esto es lo que podrás hacer:',
   infoCan1: 'Crear y publicar eventos con banner y mapa de asientos.',
   infoCan2: 'Definir tus localidades, precios y comisiones (siempre transparentes).',
   infoCan3: 'Vender boletos digitales validables en la puerta.',

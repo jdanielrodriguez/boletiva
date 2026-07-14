@@ -117,15 +117,15 @@ const ES: MailStrings = {
   promoter: {
     teamNote: 'Nota del equipo:',
     pending: {
-      subject: 'Recibimos tu solicitud de promotor — Pasa Eventos',
+      subject: 'Recibimos tu solicitud de promotor — Boletiva',
       title: 'Recibimos tu solicitud',
       preheader: 'Tu solicitud para ser promotor está en revisión.',
       body: (hi) =>
-        `<p style="margin:0 0 12px 0;">${hi} recibimos tu solicitud para operar como <strong>promotor</strong> en Pasa Eventos.</p>
+        `<p style="margin:0 0 12px 0;">${hi} recibimos tu solicitud para operar como <strong>promotor</strong> en Boletiva.</p>
         <p style="margin:0 0 12px 0;">Nuestro equipo la revisará y <strong>te contactará pronto</strong> con el resultado. No necesitas hacer nada más por ahora.</p>`,
     },
     approved: {
-      subject: '¡Tu cuenta de promotor fue aprobada! — Pasa Eventos',
+      subject: '¡Tu cuenta de promotor fue aprobada! — Boletiva',
       title: '¡Cuenta de promotor aprobada!',
       preheader: 'Ya puedes crear y publicar tus eventos.',
       body: (hi) =>
@@ -133,7 +133,7 @@ const ES: MailStrings = {
         <p style="margin:0 0 12px 0;">Ya puedes crear y publicar eventos, cargar tu mapa de asientos y empezar a vender. Si ya habías iniciado sesión, cierra sesión y vuelve a entrar para refrescar tus permisos.</p>`,
     },
     rejected: {
-      subject: 'Sobre tu solicitud de promotor — Pasa Eventos',
+      subject: 'Sobre tu solicitud de promotor — Boletiva',
       title: 'Sobre tu solicitud de promotor',
       preheader: 'Novedades sobre tu solicitud de promotor.',
       body: (hi) =>
@@ -141,7 +141,7 @@ const ES: MailStrings = {
         <p style="margin:0 0 12px 0;">Si crees que se trata de un error o quieres más información, contáctanos y con gusto te ayudamos.</p>`,
     },
     suspended: {
-      subject: 'Tu cuenta de promotor fue suspendida — Pasa Eventos',
+      subject: 'Tu cuenta de promotor fue suspendida — Boletiva',
       title: 'Cuenta de promotor suspendida',
       preheader: 'Tu cuenta de promotor fue suspendida.',
       body: (hi) =>
@@ -193,15 +193,15 @@ const EN: MailStrings = {
   promoter: {
     teamNote: 'Team note:',
     pending: {
-      subject: 'We received your promoter application — Pasa Eventos',
+      subject: 'We received your promoter application — Boletiva',
       title: 'We received your application',
       preheader: 'Your promoter application is under review.',
       body: (hi) =>
-        `<p style="margin:0 0 12px 0;">${hi} we received your application to operate as a <strong>promoter</strong> on Pasa Eventos.</p>
+        `<p style="margin:0 0 12px 0;">${hi} we received your application to operate as a <strong>promoter</strong> on Boletiva.</p>
         <p style="margin:0 0 12px 0;">Our team will review it and <strong>get back to you soon</strong> with the outcome. There is nothing else you need to do for now.</p>`,
     },
     approved: {
-      subject: 'Your promoter account was approved! — Pasa Eventos',
+      subject: 'Your promoter account was approved! — Boletiva',
       title: 'Promoter account approved!',
       preheader: 'You can now create and publish your events.',
       body: (hi) =>
@@ -209,7 +209,7 @@ const EN: MailStrings = {
         <p style="margin:0 0 12px 0;">You can now create and publish events, upload your seat map and start selling. If you were already signed in, sign out and back in to refresh your permissions.</p>`,
     },
     rejected: {
-      subject: 'About your promoter application — Pasa Eventos',
+      subject: 'About your promoter application — Boletiva',
       title: 'About your promoter application',
       preheader: 'An update on your promoter application.',
       body: (hi) =>
@@ -217,7 +217,7 @@ const EN: MailStrings = {
         <p style="margin:0 0 12px 0;">If you believe this is a mistake or would like more information, please contact us and we will be glad to help.</p>`,
     },
     suspended: {
-      subject: 'Your promoter account was suspended — Pasa Eventos',
+      subject: 'Your promoter account was suspended — Boletiva',
       title: 'Promoter account suspended',
       preheader: 'Your promoter account was suspended.',
       body: (hi) =>

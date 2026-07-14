@@ -15,6 +15,7 @@ import { SettingsApi } from '../../core/api/settings.api';
 import { AuditApi } from '../../core/api/audit.api';
 import { ImpersonationService } from '../../core/auth/impersonation.service';
 import { PublicConfigStore } from '../../core/config/public-config.store';
+import { ThemeService } from '../../core/theme/theme.service';
 import { ToastService } from '../../core/ui/toast.service';
 import { ConfirmController } from '../../shared/confirm-dialog/confirm-controller';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
@@ -93,6 +94,7 @@ export class ConfigPage {
   private readonly audit = inject(AuditApi);
   private readonly impersonation = inject(ImpersonationService);
   private readonly publicConfig = inject(PublicConfigStore);
+  private readonly theme = inject(ThemeService);
   private readonly toasts = inject(ToastService);
 
   /**
@@ -193,8 +195,6 @@ export class ConfigPage {
   });
 
   // --- Sistema ---
-  protected readonly requireApproval = signal<boolean | null>(null);
-  protected readonly defaultPct = signal<number | null>(null);
   protected readonly gateways = signal<GatewayResponseDto[]>([]);
   protected readonly gatewayDraft = signal<GatewayDraft | null>(null);
   /** Buscador de pasarelas (filtro por nombre). */
@@ -271,7 +271,7 @@ export class ConfigPage {
     this.tab.set(t);
     if (t === 'eventos' && this.events().length === 0) this.loadEvents();
     if (t === 'promotores') this.loadPromoters();
-    if (t === 'sistema' && this.requireApproval() === null) this.loadSystem();
+    if (t === 'sistema' && this.settings().length === 0) this.loadSystem();
     if (t === 'invitaciones' && this.invitations().length === 0) this.loadInvitations();
   }
 
@@ -520,48 +520,18 @@ export class ConfigPage {
   }
 
   // --- Sistema ---
+  // "Autorización de promotores" y "Reparto de gastos por defecto" YA NO tienen bloque
+  // propio: son settings normales del catálogo (`promoters.require_approval` bool y
+  // `costshare.default_pct` pct), editables en el grid. El tab Sistema arranca por las
+  // PASARELAS (arriba) y luego el grid de configuraciones.
   private loadSystem(): void {
-    this.admin.getRequireApproval().subscribe({
-      next: (r) => this.requireApproval.set(r.requireApproval),
-      error: () => this.requireApproval.set(null),
-    });
-    this.admin.getDefaultPct().subscribe({
-      next: (r) => this.defaultPct.set(r.defaultPct),
-      error: () => this.defaultPct.set(null),
-    });
     this.loadGateways();
-    this.loadSettings(); // punto 10: configuraciones bajo pasarelas (mismo tab)
+    this.loadSettings();
   }
   private loadGateways(): void {
     this.admin.listGateways().subscribe({
       next: (g) => this.gateways.set(g),
       error: () => this.gateways.set([]),
-    });
-  }
-  protected toggleRequireApproval(): void {
-    const next = !this.requireApproval();
-    this.admin.setRequireApproval(next).subscribe({
-      next: (r) => {
-        this.requireApproval.set(r.requireApproval);
-        this.toasts.success(
-          this.translate.instant(next ? 'config.system.approvalRequired' : 'config.system.testModeOn'),
-        );
-      },
-      error: () => this.toasts.error(this.translate.instant('config.system.approvalError')),
-    });
-  }
-  protected saveDefaultPct(value: string): void {
-    const pct = Number(value);
-    if (Number.isNaN(pct) || pct < 0 || pct > 1) {
-      this.toasts.warning(this.translate.instant('config.system.defaultShareRange'));
-      return;
-    }
-    this.admin.setDefaultPct(pct).subscribe({
-      next: () => {
-        this.defaultPct.set(pct);
-        this.toasts.success(this.translate.instant('config.system.defaultShareUpdated'));
-      },
-      error: () => this.toasts.error(this.translate.instant('config.system.defaultShareError')),
     });
   }
 
@@ -826,6 +796,24 @@ export class ConfigPage {
   protected settingOptionLabel(key: string, opt: string): string {
     const label = this.translate.instant('config.settingOptions.' + opt);
     return label === 'config.settingOptions.' + opt ? opt : label;
+  }
+
+  // --- Vista previa de temas (collapsable al final de Sistema) ---
+  /** Temas registrados = opciones del setting enum de franja (en sync con el backend). */
+  protected readonly themeKeys = computed<string[]>(() => {
+    const s = this.settings().find((x) => x.key === 'theme.slot.noche');
+    return (s?.options ?? []) as string[];
+  });
+  /** Tema actualmente aplicado (para marcar "activo" en la vista previa). */
+  protected readonly themeActive = computed(() => this.theme.theme());
+  /** A qué franja(s) está asignado un tema (según lo editado en el grid). */
+  protected themeAssignedLabel(themeKey: string): string {
+    const dia = this.settingEdits()['theme.slot.dia'];
+    const noche = this.settingEdits()['theme.slot.noche'];
+    const parts: string[] = [];
+    if (dia === themeKey) parts.push(this.translate.instant('config.settingOptions.dia'));
+    if (noche === themeKey) parts.push(this.translate.instant('config.settingOptions.noche'));
+    return parts.length ? parts.join(' · ') : this.translate.instant('config.themePreview.unassigned');
   }
   protected saveSetting(s: SettingViewDto): void {
     const value = this.settingEdits()[s.key];

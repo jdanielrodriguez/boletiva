@@ -302,9 +302,9 @@ export class AuthService {
       },
     });
     const origin = (this.config.get<string[]>('cors.origins') ?? [])[0] ?? '';
-    await this.safeSend(user.email, 'Recupera tu contraseña — Pasa Eventos', {
+    await this.safeSend(user.email, 'Recupera tu contraseña — Boletiva', {
       title: 'Recupera tu contraseña',
-      preheader: 'Restablece la contraseña de tu cuenta en Pasa Eventos.',
+      preheader: 'Restablece la contraseña de tu cuenta en Boletiva.',
       bodyHtml: `<p style="margin:0 0 12px 0;">Recibimos una solicitud para restablecer tu contraseña. El enlace es válido por 1 hora.</p>
         <p class="pe-muted" style="margin:0;font-size:14px;color:#6b6b76;">Si no fuiste tú, ignora este correo: tu contraseña no cambiará.</p>`,
       cta: { url: `${origin}/reset-password?token=${raw}`, label: 'Restablecer contraseña' },
@@ -363,7 +363,7 @@ export class AuthService {
   private async sendNewDeviceAlert(user: User, ctx: DeviceContext): Promise<void> {
     const ip = escapeHtml(ctx.ip ?? 'desconocida');
     const ua = escapeHtml(ctx.userAgent ?? 'dispositivo desconocido');
-    await this.safeSend(user.email, 'Nuevo inicio de sesión — Pasa Eventos', {
+    await this.safeSend(user.email, 'Nuevo inicio de sesión — Boletiva', {
       title: 'Nuevo inicio de sesión',
       preheader: 'Detectamos un acceso desde un nuevo dispositivo.',
       bodyHtml: `<p style="margin:0 0 12px 0;">Hola ${escapeHtml(user.firstName)}, detectamos un inicio de sesión desde un nuevo dispositivo.</p>

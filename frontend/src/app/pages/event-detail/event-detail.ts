@@ -85,9 +85,9 @@ export class EventDetail {
   }
 
   private applySeo(ev: PublicEventDetailDto): void {
-    const description = ev.description?.slice(0, 300) ?? `Boletos para ${ev.name} en Pasa Eventos.`;
+    const description = ev.description?.slice(0, 300) ?? `Boletos para ${ev.name} en Boletiva.`;
     this.seo.apply({
-      title: `${ev.name} — Pasa Eventos`,
+      title: `${ev.name} — Boletiva`,
       description,
       path: `/eventos/${ev.slug}`,
       type: 'event',
@@ -99,7 +99,7 @@ export class EventDetail {
   private applyNotFound(slug: string): void {
     if (this.responseInit) this.responseInit.status = 404;
     this.seo.apply({
-      title: 'Evento no encontrado — Pasa Eventos',
+      title: 'Evento no encontrado — Boletiva',
       description: 'El evento que buscas no existe o ya no está disponible.',
       path: `/eventos/${slug}`,
       noindex: true,

@@ -14,7 +14,7 @@ export const becomePromoter = {
   sending: 'Sending…',
   infoTitle: 'What is a promoter?',
   infoLead:
-    'A promoter organizes and sells events on Pasa Eventos. Before you continue, here is what you will be able to do:',
+    'A promoter organizes and sells events on Boletiva. Before you continue, here is what you will be able to do:',
   infoCan1: 'Create and publish events with a banner and seat map.',
   infoCan2: 'Set your localities, prices and fees (always transparent).',
   infoCan3: 'Sell digital tickets validated at the gate.',

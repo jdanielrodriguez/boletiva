@@ -102,8 +102,8 @@ const BASE = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "ht
       </table>
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px;">
         <tr><td class="pe-footer" style="padding:24px 16px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;line-height:1.6;color:#8a8a94;text-align:center;">
-          &copy; {{year}} Pasa Eventos &middot; Guatemala<br />
-          Este es un correo automático de tu cuenta en Pasa Eventos; por favor no respondas a este mensaje.<br />
+          &copy; {{year}} Boletiva &middot; Guatemala<br />
+          Este es un correo automático de tu cuenta en Boletiva; por favor no respondas a este mensaje.<br />
           Si no reconoces esta actividad, contáctanos.
         </td></tr>
       </table>
@@ -124,7 +124,7 @@ export function renderEmail(input: RenderInput): { html: string; text: string } 
 
   const bodyText = input.bodyText ?? htmlToText(input.bodyHtml);
   const ctaText = input.cta ? `\n\n${input.cta.label}: ${input.cta.url}` : '';
-  const text = `pasaeventos\n\n${input.title}\n\n${bodyText}${ctaText}\n\n—\n© ${year} Pasa Eventos · Guatemala\nCorreo automático de tu cuenta; no respondas a este mensaje.`;
+  const text = `boletiva\n\n${input.title}\n\n${bodyText}${ctaText}\n\n—\n© ${year} Boletiva · Guatemala\nCorreo automático de tu cuenta; no respondas a este mensaje.`;
 
   return { html, text };
 }

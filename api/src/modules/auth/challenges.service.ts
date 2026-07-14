@@ -107,27 +107,27 @@ export class ChallengesService {
     const origin = this.origin();
     const templates: Record<ChallengePurpose, { subject: string; intro: string; path: string }> = {
       email_verify: {
-        subject: 'Verifica tu correo — Pasa Eventos',
+        subject: 'Verifica tu correo — Boletiva',
         intro: 'Verifica tu correo para activar tu cuenta.',
         path: '/verify-email',
       },
       passwordless: {
-        subject: 'Tu enlace de acceso — Pasa Eventos',
+        subject: 'Tu enlace de acceso — Boletiva',
         intro: 'Usa este enlace o código para iniciar sesión.',
         path: '/passwordless',
       },
       twofa_email: {
-        subject: 'Tu código de verificación — Pasa Eventos',
+        subject: 'Tu código de verificación — Boletiva',
         intro: 'Código de verificación en dos pasos.',
         path: '/2fa',
       },
       gateway_unlock: {
-        subject: 'Código para agregar una pasarela — Pasa Eventos',
+        subject: 'Código para agregar una pasarela — Boletiva',
         intro: 'Confirma que autorizas agregar una nueva pasarela de pago.',
         path: '/configuracion',
       },
       event_edit_unlock: {
-        subject: 'Código para editar un evento — Pasa Eventos',
+        subject: 'Código para editar un evento — Boletiva',
         intro: 'Confirma que autorizas editar este evento como administrador.',
         path: '/admin/eventos',
       },
@@ -141,7 +141,7 @@ export class ChallengesService {
       <p class="pe-muted" style="margin:14px 0 0 0;font-size:14px;color:#6b6b76;">Válido por poco tiempo. Si no lo solicitaste, ignora este correo.</p>`;
     try {
       await this.mail.sendTemplated(email, t.subject, {
-        title: t.subject.replace(' — Pasa Eventos', ''),
+        title: t.subject.replace(' — Boletiva', ''),
         preheader: t.intro,
         bodyHtml,
         bodyText: `${t.intro}\nTu código: ${code} (válido por poco tiempo).`,

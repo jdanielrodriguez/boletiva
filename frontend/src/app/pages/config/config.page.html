@@ -198,33 +198,6 @@
       <h2>{{ 'config.system.heading' | translate }}</h2>
 
       <div class="card-block">
-        <h3>{{ 'config.system.approvalHeading' | translate }}</h3>
-        @if (requireApproval() === null) {
-          <p class="muted">{{ 'common.loading' | translate }}</p>
-        } @else {
-          <p class="muted">{{ (requireApproval() ? 'config.system.approvalOn' : 'config.system.approvalOff') | translate }}</p>
-          <app-switch
-            [checked]="!!requireApproval()"
-            (checkedChange)="toggleRequireApproval()"
-            [label]="'config.system.requireApproval' | translate"
-            [ariaLabel]="'config.system.approvalToggleTitle' | translate"
-            testId="toggle-require-approval"
-          />
-        }
-      </div>
-
-      <div class="card-block">
-        <h3>{{ 'config.system.defaultShareHeading' | translate }}</h3>
-        <p class="muted">{{ 'config.system.defaultShareHint' | translate }}</p>
-        <div class="field inline">
-          <input type="number" min="0" max="1" step="0.05" [ngModel]="defaultPct()" (ngModelChange)="defaultPct.set($event)" name="defpct" #dp data-testid="default-pct" />
-          <button type="button" class="btn small primary icon-only" (click)="saveDefaultPct(dp.value)" data-testid="save-default-pct" [title]="'config.system.saveDefaultShareTitle' | translate" [attr.aria-label]="'config.system.saveDefaultShareTitle' | translate">
-            <app-icon name="disk" />
-          </button>
-        </div>
-      </div>
-
-      <div class="card-block">
         <h3>{{ 'config.system.gatewaysHeading' | translate }}</h3>
 
         <!-- Punto 8: "Agregar pasarela" deshabilitado hasta autorizar + candado -->
@@ -449,6 +422,32 @@
           <p class="muted" data-testid="settings-empty">{{ 'config.settings.loading' | translate }}</p>
         }
       </div>
+
+      <!-- Vista previa de cada tema (para decidir la asignación día/noche cuando haya más). -->
+      @if (themeKeys().length > 0) {
+        <details class="theme-previews" data-testid="theme-previews">
+          <summary data-testid="theme-previews-toggle">{{ 'config.themePreview.heading' | translate }}</summary>
+          <p class="tp-hint">{{ 'config.themePreview.hint' | translate }}</p>
+          <div class="tp-grid">
+            @for (tk of themeKeys(); track tk) {
+              <div class="tp-card" [attr.data-theme]="tk" [attr.data-testid]="'tp-card-' + tk">
+                <div class="tp-head">
+                  <span class="tp-name">
+                    {{ settingOptionLabel('theme.slot.noche', tk) }}
+                    @if (themeActive() === tk) { <span class="tp-active">{{ 'config.themePreview.active' | translate }}</span> }
+                  </span>
+                  <span class="tp-assigned">{{ themeAssignedLabel(tk) }}</span>
+                </div>
+                <div class="tp-body">
+                  <span class="tp-chip">{{ 'config.themePreview.sampleChip' | translate }}</span>
+                  <div class="tp-title">{{ 'config.themePreview.sampleTitle' | translate }}</div>
+                  <button type="button" class="tp-btn" tabindex="-1" aria-hidden="true">{{ 'config.themePreview.sampleCta' | translate }}</button>
+                </div>
+              </div>
+            }
+          </div>
+        </details>
+      }
     }
 
     @case ('invitaciones') {

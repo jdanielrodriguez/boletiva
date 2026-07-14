@@ -57,8 +57,8 @@ async function bootstrap(): Promise<void> {
   // Swagger (no en prod).
   if (!isProd && process.env.DISABLE_SWAGGER !== 'true') {
     const doc = new DocumentBuilder()
-      .setTitle('Pasa Eventos API')
-      .setDescription('API de la boletera Pasa Eventos')
+      .setTitle('Boletiva API')
+      .setDescription('API de la boletera Boletiva')
       .setVersion('1.0')
       .addBearerAuth()
       .build();

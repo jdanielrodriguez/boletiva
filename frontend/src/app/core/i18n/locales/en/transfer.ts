@@ -15,7 +15,7 @@ export const transfer = {
     ticketSerial: 'Ticket {{serial}}',
     point1: 'Transferring means gifting your ticket to someone else.',
     point2: 'Once transferred, your CURRENT ticket becomes unusable: it is re-issued with a new QR under the recipient’s name.',
-    point3: 'The recipient gets a code they must redeem on Pasa Eventos.',
+    point3: 'The recipient gets a code they must redeem on Boletiva.',
     point4: 'Once the other person redeems the code, the transfer cannot be undone.',
     confirmYes: 'Yes, transfer',
     sending: 'Generating code…',
@@ -28,7 +28,7 @@ export const transfer = {
     emailPlaceholder: 'email@example.com',
     shareByEmail: 'Send by email',
     recipientHint: 'The recipient must paste this code into "Claim ticket" to import it into their account.',
-    emailSubject: 'I’m gifting you a ticket on Pasa Eventos',
+    emailSubject: 'I’m gifting you a ticket on Boletiva',
     emailBody: 'I’m sharing a ticket with you. Use this code to claim it: {{code}}\n\nRedeem it here: {{url}}',
   },
 };

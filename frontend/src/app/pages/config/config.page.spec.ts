@@ -259,23 +259,13 @@ describe('ConfigPage (v3, admin console)', () => {
     expect(filter.value).toBe('pending');
   });
 
-  it('sistema: carga pasarelas y alterna require-approval', async () => {
-    const setRequireApproval = jasmine.createSpy('sra').and.returnValue(of({ requireApproval: false }));
-    await setup({ setRequireApproval });
+  it('sistema: las PASARELAS quedan arriba (autorización y reparto ahora son settings del grid)', async () => {
+    await setup();
     await selectTab('tab-sistema');
+    // Pasarelas primero; ya NO existen los bloques standalone de aprobación/reparto.
     expect(el.querySelector('[data-testid="gateways-list"]')?.textContent).toContain('Recurrente');
-    click('toggle-require-approval');
-    expect(setRequireApproval).toHaveBeenCalledWith(false);
-  });
-
-  it('sistema: guardar reparto por defecto (válido persiste; inválido → warning)', async () => {
-    const setDefaultPct = jasmine.createSpy('sd').and.returnValue(of({}));
-    await setup({ setDefaultPct });
-    await selectTab('tab-sistema');
-    fixture.componentInstance['saveDefaultPct']('0.4');
-    expect(setDefaultPct).toHaveBeenCalledWith(0.4);
-    fixture.componentInstance['saveDefaultPct']('2');
-    expect(lastToast()?.kind).toBe('warning');
+    expect(el.querySelector('[data-testid="toggle-require-approval"]')).toBeNull();
+    expect(el.querySelector('[data-testid="default-pct"]')).toBeNull();
   });
 
   it('sistema: definir default llama makeGatewayDefault', async () => {

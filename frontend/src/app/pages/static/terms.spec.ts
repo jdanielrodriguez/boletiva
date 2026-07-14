@@ -42,7 +42,7 @@ describe('Terms (v3.6 — contenido legal ES/EN)', () => {
 
   it('fija el título de la pestaña (SEO) en español', async () => {
     await setup();
-    expect(TestBed.inject(Title).getTitle()).toBe('Términos y Condiciones — Pasa Eventos');
+    expect(TestBed.inject(Title).getTitle()).toBe('Términos y Condiciones — Boletiva');
   });
 
   it('al cambiar a inglés re-renderiza el contenido y el título', async () => {
@@ -53,6 +53,6 @@ describe('Terms (v3.6 — contenido legal ES/EN)', () => {
     fixture.detectChanges();
     expect(el.querySelector('h1')?.textContent).toContain('Terms and Conditions');
     expect(el.querySelectorAll('.legal-section').length).toBe(16);
-    expect(TestBed.inject(Title).getTitle()).toBe('Terms and Conditions — Pasa Eventos');
+    expect(TestBed.inject(Title).getTitle()).toBe('Terms and Conditions — Boletiva');
   });
 });

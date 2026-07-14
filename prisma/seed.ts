@@ -389,7 +389,7 @@ async function seedDemoEvent(promoterId: string, categoryId: string): Promise<vo
     data: {
       promoterId,
       categoryId,
-      name: 'Evento Demo Pasa Eventos',
+      name: 'Evento Demo Boletiva',
       slug,
       description: 'Evento de ejemplo generado por el seed.',
       address: 'Ciudad de Guatemala',

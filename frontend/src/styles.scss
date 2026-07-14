@@ -18,9 +18,11 @@
   --pe-radius-sm: 10px;
 }
 
-/* ---- TEMA «Pulso» (NOCHE, default) — tech oscuro azul→magenta ---- */
+/* ---- TEMA «Pulso» (NOCHE, default) — tech oscuro azul→magenta ----
+   Selector por ATRIBUTO (no :root[...]) para que los tokens apliquen tanto al
+   <html> activo como a un CONTENEDOR de vista previa (data-theme scoped). */
 :root,
-:root[data-theme='pulso'] {
+[data-theme='pulso'] {
   --pe-bg: #0a0d13;
   --pe-bg-elev: #10141c;
   --pe-surface: #161b24;
@@ -64,7 +66,7 @@
 }
 
 /* ---- TEMA «Marquesina» (DÍA, claro) — cálido ámbar→coral sobre crema ---- */
-:root[data-theme='marquesina'] {
+[data-theme='marquesina'] {
   --pe-bg: #f6f1e8;
   --pe-bg-elev: #fffdf8;
   --pe-surface: #fffdf8;
@@ -2329,6 +2331,9 @@ app-root {
   margin: 0.25rem 0 0;
   font-size: 2rem;
   font-weight: 800;
+  /* La leyenda va SIEMPRE sobre un overlay oscuro → texto claro en ambos temas
+     (no usar --pe-text, que en el tema día es oscuro e ilegible aquí). */
+  color: #fff;
 }
 
 .hero-cat {
@@ -3621,6 +3626,15 @@ button.danger {
   flex-direction: column;
   gap: 0.5rem;
   height: 100%;
+  /* Cada configuración es una TARJETA delimitada: se ve dónde empieza y termina,
+     así el control de una no parece pertenecer a la de al lado. */
+  border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius-sm);
+  background: var(--pe-surface);
+  padding: 0.9rem 1rem;
+}
+.setting-card:hover {
+  border-color: color-mix(in srgb, var(--pe-accent) 40%, var(--pe-border));
 }
 .setting-card .setting-head {
   display: flex;
@@ -3660,6 +3674,110 @@ button.danger {
   .settings-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* --- Collapsable de vista previa de temas (final de Configuración → Sistema) --- */
+.theme-previews {
+  margin-top: 1rem;
+  border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius-sm);
+  background: var(--pe-surface);
+}
+.theme-previews > summary {
+  cursor: pointer;
+  padding: 0.85rem 1rem;
+  font-weight: 700;
+  list-style: none;
+}
+.theme-previews > summary::-webkit-details-marker {
+  display: none;
+}
+.theme-previews > summary::before {
+  content: '▸';
+  display: inline-block;
+  margin-right: 0.5rem;
+  color: var(--pe-accent);
+  transition: transform 0.15s ease;
+}
+.theme-previews[open] > summary::before {
+  transform: rotate(90deg);
+}
+.theme-previews .tp-hint {
+  margin: 0 1rem 0.75rem;
+  color: var(--pe-muted);
+  font-size: 0.88rem;
+}
+.theme-previews .tp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.85rem;
+  padding: 0 1rem 1rem;
+}
+/* Cada tarjeta APLICA los tokens de su tema (data-theme scoped). */
+.tp-card {
+  border-radius: var(--pe-radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--pe-border);
+  background: var(--pe-bg);
+  color: var(--pe-text);
+}
+.tp-card .tp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.65rem 0.8rem;
+}
+.tp-card .tp-name {
+  font-weight: 800;
+}
+.tp-card .tp-assigned {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pe-muted);
+}
+.tp-card .tp-body {
+  margin: 0 0.8rem 0.8rem;
+  padding: 0.8rem;
+  border-radius: var(--pe-radius-sm);
+  background: var(--pe-surface);
+  border: 1px solid var(--pe-border);
+}
+.tp-card .tp-chip {
+  display: inline-block;
+  font-size: 0.66rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--pe-grad);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.tp-card .tp-title {
+  font-weight: 800;
+  margin: 0.5rem 0 0.6rem;
+}
+.tp-card .tp-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 0.5rem 0.9rem;
+  font-weight: 800;
+  font-size: 0.82rem;
+  color: #fff;
+  background: var(--pe-grad);
+  cursor: default;
+}
+.tp-card .tp-active {
+  display: inline-block;
+  font-size: 0.66rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  margin-left: 0.4rem;
+  color: var(--pe-teal);
+  border: 1px solid color-mix(in srgb, var(--pe-teal) 45%, transparent);
 }
 
 /* Fila del toggle "Invitar" (form oculto por defecto). */

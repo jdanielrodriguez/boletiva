@@ -1,5 +1,5 @@
 /**
- * E2E de Pasa Eventos con Puppeteer contra el stack REAL (frontend SSR + API +
+ * E2E de Boletiva con Puppeteer contra el stack REAL (frontend SSR + API +
  * MailHog). Valida cada funcionalidad del frontend de cara al usuario:
  * catálogo, hero, filtros, detalle+SEO, 404, login con 2FA (OTP leído de
  * MailHog) y la compra completa (selección → reserva → checkout → pago por SSE).

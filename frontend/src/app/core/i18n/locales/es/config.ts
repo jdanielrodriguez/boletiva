@@ -417,6 +417,17 @@ export const config = {
     noche: 'Noche',
   },
 
+  /** Collapsable de vista previa de temas (final del tab Sistema). */
+  themePreview: {
+    heading: 'Vista previa de temas',
+    hint: 'Así se ve cada tema. Úsalo para decidir cuál asignar a la franja de día y de noche.',
+    active: 'Activo',
+    unassigned: 'Sin asignar',
+    sampleChip: 'Preventa',
+    sampleTitle: 'Concierto de ejemplo',
+    sampleCta: 'Comprar',
+  },
+
   /** Descripciones amigables de cada setting. */
   settingDescriptions: {
     pricing_platform_fee_pct: 'Comisión que cobra la plataforma sobre el neto del promotor.',

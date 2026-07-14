@@ -4,21 +4,21 @@
  * The `Terms` component iterates `sections` (heading + paragraphs + bullets).
  */
 export const terms = {
-  metaTitle: 'Terms and Conditions — Pasa Eventos',
+  metaTitle: 'Terms and Conditions — Boletiva',
   metaDescription:
-    'Pasa Eventos Terms and Conditions: ticket purchases, refunds, transfers, gate validation, wallet, promoters and billing in Guatemala.',
+    'Boletiva Terms and Conditions: ticket purchases, refunds, transfers, gate validation, wallet, promoters and billing in Guatemala.',
   title: 'Terms and Conditions',
   lastUpdated: 'Last updated: July 10, 2026',
   intro:
-    'These Terms and Conditions (the “Terms”) govern access to and use of the Pasa Eventos platform, a service for selling and validating tickets to events in Guatemala. By creating an account, purchasing a ticket, or using any feature of the platform, you accept these Terms in full. If you do not agree, please do not use the service.',
+    'These Terms and Conditions (the “Terms”) govern access to and use of the Boletiva platform, a service for selling and validating tickets to events in Guatemala. By creating an account, purchasing a ticket, or using any feature of the platform, you accept these Terms in full. If you do not agree, please do not use the service.',
   tocTitle: 'Contents',
   sections: [
     {
       id: 'plataforma',
       heading: '1. The platform and its purpose',
       paragraphs: [
-        'Pasa Eventos is a technology platform that lets event organizers (“promoters”) publish and sell tickets, and lets users (“buyers”) purchase, receive, transfer, and present them for validation at the event entrance.',
-        'Pasa Eventos acts as a technology intermediary between the promoter and the buyer. The promoter is solely responsible for the delivery, content, quality, dates, times, and conditions of the event. Pasa Eventos does not organize events and does not guarantee that they will take place.',
+        'Boletiva is a technology platform that lets event organizers (“promoters”) publish and sell tickets, and lets users (“buyers”) purchase, receive, transfer, and present them for validation at the event entrance.',
+        'Boletiva acts as a technology intermediary between the promoter and the buyer. The promoter is solely responsible for the delivery, content, quality, dates, times, and conditions of the event. Boletiva does not organize events and does not guarantee that they will take place.',
       ],
     },
     {
@@ -89,8 +89,8 @@ export const terms = {
       id: 'promotor',
       heading: '9. Promoter role',
       paragraphs: [
-        'Any user may apply to become a promoter. Promoter status requires approval from Pasa Eventos and may be suspended or revoked for breach of these Terms.',
-        'The promoter is responsible for the accuracy and legality of its events, for meeting its obligations to attendees, and for obtaining any required authorizations. Pasa Eventos charges a platform commission on sales and settles the corresponding net amount to the promoter, according to the agreed conditions and timelines.',
+        'Any user may apply to become a promoter. Promoter status requires approval from Boletiva and may be suspended or revoked for breach of these Terms.',
+        'The promoter is responsible for the accuracy and legality of its events, for meeting its obligations to attendees, and for obtaining any required authorizations. Boletiva charges a platform commission on sales and settles the corresponding net amount to the promoter, according to the agreed conditions and timelines.',
         'The promoter agrees not to publish unlawful, fraudulent, or infringing events, and to be answerable to buyers for any claim related to the delivery of the event.',
       ],
     },
@@ -114,7 +114,7 @@ export const terms = {
       id: 'propiedad',
       heading: '12. Intellectual property',
       paragraphs: [
-        'The brand, software, design, texts, and other elements of the platform belong to Pasa Eventos or its licensors and are protected by law. No rights over them are granted beyond normal use of the service.',
+        'The brand, software, design, texts, and other elements of the platform belong to Boletiva or its licensors and are protected by law. No rights over them are granted beyond normal use of the service.',
         'Content published by promoters (images, descriptions, banners) is the responsibility of whoever publishes it, who represents that they hold the rights necessary for its use.',
       ],
     },
@@ -122,8 +122,8 @@ export const terms = {
       id: 'responsabilidad',
       heading: '13. Limitation of liability',
       paragraphs: [
-        'Pasa Eventos provides the platform “as is” and makes reasonable efforts to keep it available and secure, without guaranteeing uninterrupted or error-free operation.',
-        'Pasa Eventos is not responsible for the delivery, suspension, changes, or quality of events, which are the promoter’s sole responsibility. To the extent permitted by law, Pasa Eventos’s liability to a user for a transaction is limited to the amount of the service fee actually charged on that transaction.',
+        'Boletiva provides the platform “as is” and makes reasonable efforts to keep it available and secure, without guaranteeing uninterrupted or error-free operation.',
+        'Boletiva is not responsible for the delivery, suspension, changes, or quality of events, which are the promoter’s sole responsibility. To the extent permitted by law, Boletiva’s liability to a user for a transaction is limited to the amount of the service fee actually charged on that transaction.',
       ],
     },
     {

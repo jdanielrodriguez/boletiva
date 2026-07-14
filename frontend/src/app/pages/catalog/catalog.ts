@@ -159,7 +159,7 @@ export class Catalog {
   private applySeo(category: string | null, search: string | null): void {
     const suffix = category ? ` · ${category}` : search ? ` · "${search}"` : '';
     this.seo.apply({
-      title: `Eventos${suffix} — Pasa Eventos`,
+      title: `Eventos${suffix} — Boletiva`,
       description: 'Descubre y compra boletos para los mejores eventos en Guatemala.',
       path: '/',
       type: 'website',
