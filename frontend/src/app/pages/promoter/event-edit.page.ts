@@ -944,6 +944,7 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
 
   // --- Banner: elegir imagen → PREVIEW (no sube todavía) ---
   protected onBannerFile(event: Event): void {
+    if (this.locked()) return; // edición bloqueada (admin sin desbloquear)
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
@@ -970,6 +971,7 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
 
   /** Guarda el preview: ejecuta la subida real y lo lleva a la posición del banner. */
   protected saveBannerPreview(): void {
+    if (this.locked()) return; // edición bloqueada (admin sin desbloquear)
     const file = this.pendingBannerFile();
     if (!file) return;
     const localUrl = this.pendingBannerUrl();

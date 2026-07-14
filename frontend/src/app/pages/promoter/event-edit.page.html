@@ -298,9 +298,9 @@
             <div class="banner-option" data-testid="banner-upload">
               <h3>{{ 'promoter.edit.bannerUploadTitle' | translate }}</h3>
               <p class="muted small">{{ 'promoter.edit.bannerUploadHint' | translate }}</p>
-              <label class="btn" [class.disabled]="uploadingBanner()">
+              <label class="btn" [class.disabled]="uploadingBanner() || locked()">
                 <app-icon name="add" /> {{ uploadingBanner() ? ('promoter.edit.uploading' | translate) : ('promoter.edit.chooseImage' | translate) }}
-                <input type="file" accept="image/*" hidden (change)="onBannerFile($event)" data-testid="bn-file" [disabled]="uploadingBanner()" />
+                <input type="file" accept="image/*" hidden (change)="onBannerFile($event)" data-testid="bn-file" [disabled]="uploadingBanner() || locked()" />
               </label>
             </div>
 
@@ -313,7 +313,7 @@
                   <img [src]="purl" [alt]="'promoter.edit.bannerAlt' | translate" data-testid="bn-preview-img" />
                 </div>
                 <div class="loc-form-actions">
-                  <button type="button" class="btn primary" [disabled]="uploadingBanner()" (click)="saveBannerPreview()" data-testid="bn-preview-save" [title]="'common.save' | translate">
+                  <button type="button" class="btn primary" [disabled]="uploadingBanner() || locked()" (click)="saveBannerPreview()" data-testid="bn-preview-save" [title]="'common.save' | translate">
                     <app-icon name="save" /> {{ uploadingBanner() ? ('promoter.edit.uploading' | translate) : ('common.save' | translate) }}
                   </button>
                   <button type="button" class="btn" [disabled]="uploadingBanner()" (click)="cancelBannerPreview()" data-testid="bn-preview-cancel" [title]="'common.cancel' | translate">
@@ -327,7 +327,7 @@
 
             <!-- Opción B: generar con IA (form dentro de un desplegable) -->
             <div class="banner-option" data-testid="banner-ai">
-              <button type="button" class="btn" (click)="toggleAiForm()" data-testid="bn-ai-toggle" [attr.aria-expanded]="showAiForm()"
+              <button type="button" class="btn" (click)="toggleAiForm()" data-testid="bn-ai-toggle" [attr.aria-expanded]="showAiForm()" [disabled]="locked()"
                 [title]="'promoter.edit.generateAiTitle' | translate">
                 <app-icon name="banner" /> {{ 'promoter.edit.generateWithAi' | translate }} {{ showAiForm() ? '▲' : '▼' }}
               </button>
