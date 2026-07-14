@@ -55,6 +55,11 @@ import { FelModule } from './modules/fel/fel.module';
       load: [configuration],
       validationSchema: envValidationSchema,
       validationOptions: { abortEarly: false },
+      // En test IGNORA el archivo `.env`: las vars de infra ya vienen inyectadas por
+      // el `env_file` de docker a process.env, y `jest.env.ts` neutraliza las
+      // credenciales de integración ANTES del boot. Sin esto, dotenv re-leería el
+      // `.env` del desarrollador y repoblaría las llaves reales → tests no-herméticos.
+      ignoreEnvFile: process.env.NODE_ENV === 'test',
     }),
     LoggerModule.forRootAsync({
       inject: [ConfigService],

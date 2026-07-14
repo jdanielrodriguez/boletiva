@@ -14,6 +14,7 @@ function makeConfig(overrides: Partial<Record<string, unknown>> = {}) {
       google: { issuerId: '', serviceAccountJson: '' },
     },
     recaptcha: { siteKey: '', secretKey: '', minScore: 0.5, disabled: false },
+    oauth: { google: { clientId: '', clientSecret: '' } },
     ...overrides,
   };
   return {
@@ -32,6 +33,7 @@ describe('IntegrationsService (capacidades por env)', () => {
       fel: false,
       appleWallet: false,
       googleWallet: false,
+      googleOAuth: false,
       recaptcha: false,
     });
   });
@@ -88,5 +90,16 @@ describe('IntegrationsService (capacidades por env)', () => {
       makeConfig({ recaptcha: { siteKey: 'pub', secretKey: 'sec', minScore: 0.5, disabled: true } }),
     );
     expect(off.available('recaptcha')).toBe(false);
+  });
+
+  it('googleOAuth: disponible solo con clientId + clientSecret', () => {
+    const partial = new IntegrationsService(
+      makeConfig({ oauth: { google: { clientId: 'abc.apps.googleusercontent.com', clientSecret: '' } } }),
+    );
+    expect(partial.available('googleOAuth')).toBe(false);
+    const full = new IntegrationsService(
+      makeConfig({ oauth: { google: { clientId: 'abc.apps.googleusercontent.com', clientSecret: 'GOCSPX-xxx' } } }),
+    );
+    expect(full.available('googleOAuth')).toBe(true);
   });
 });

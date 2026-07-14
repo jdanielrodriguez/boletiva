@@ -4,6 +4,16 @@ const up = () => Promise.resolve(true);
 const down = () => Promise.resolve(false);
 const boom = () => Promise.reject(new Error('conn refused'));
 
+const caps = {
+  recurrente: false,
+  pagalo: false,
+  fel: false,
+  appleWallet: false,
+  googleWallet: true,
+  googleOAuth: false,
+  recaptcha: false,
+};
+
 function build(overrides: Partial<Record<string, () => Promise<boolean>>> = {}) {
   const pings = { postgres: up, redis: up, mail: up, storage: up, rabbit: up, ...overrides };
   return new HealthService(
@@ -12,6 +22,7 @@ function build(overrides: Partial<Record<string, () => Promise<boolean>>> = {}) 
     { ping: pings.mail } as any,
     { ping: pings.storage } as any,
     { ping: pings.rabbit } as any,
+    { capabilities: () => caps } as any,
   );
 }
 
@@ -29,6 +40,15 @@ describe('HealthService', () => {
     expect(report.checks.postgres.ok).toBe(true);
     expect(typeof report.checks.postgres.latencyMs).toBe('number');
     expect(report.uptimeSeconds).toBeGreaterThanOrEqual(0);
+    // Las integraciones se reportan pero NO afectan el status.
+    expect(report.integrations).toEqual(caps);
+  });
+
+  it('reporta las capacidades de integraciones sin afectar el status', async () => {
+    const report = await build().check();
+    expect(report.status).toBe('ok');
+    expect(report.integrations.googleWallet).toBe(true);
+    expect(report.integrations.recaptcha).toBe(false);
   });
 
   it('reporta status "error" si una dependencia devuelve false', async () => {

@@ -7,6 +7,10 @@ se necesitan, cómo conseguirlas y cómo obtener el ambiente de pruebas (sandbox
 > ⚠️ Los portales y requisitos de cada proveedor cambian. Antes de integrar, confirmar contra la
 > documentación vigente del proveedor. Aquí se marca lo que hay que **pedir/generar** y dónde.
 
+> 👉 **Para toda la parte de Google (crear el proyecto GCP, qué APIs habilitar y obtener las
+> credenciales de Google Wallet / reCAPTCHA / OAuth) hay una guía click-a-click con el mapeo exacto
+> valor→variable en [GUIA-GCP.md](GUIA-GCP.md).**
+
 ## Cómo funciona el gating (implementado)
 
 Todas las integraciones se **activan por variables de entorno**. El registro central

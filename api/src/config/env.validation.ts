@@ -61,8 +61,10 @@ export const envValidationSchema = Joi.object({
     .length(64)
     .default('9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08'),
 
-  // Google OAuth (opcional; si falta, el login con Google queda deshabilitado)
+  // Google OAuth (opcional; si falta, el login con Google queda deshabilitado).
+  // Disponible = clientId + clientSecret (ambos los emite la consola de credenciales).
   GOOGLE_CLIENT_ID: Joi.string().allow('').optional(),
+  GOOGLE_CLIENT_SECRET: Joi.string().allow('').optional(),
 
   // Pagos (Ola 3)
   PAYMENT_PROVIDER: Joi.string().default('simulator'),

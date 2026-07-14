@@ -4,6 +4,10 @@ import { RedisService } from '../infra/redis/redis.service';
 import { MailService } from '../infra/mail/mail.service';
 import { StorageService } from '../infra/storage/storage.service';
 import { RabbitService } from '../infra/messaging/rabbit.service';
+import {
+  IntegrationsService,
+  IntegrationService,
+} from '../infra/integrations/integrations.service';
 
 export interface CheckResult {
   ok: boolean;
@@ -15,7 +19,13 @@ export interface HealthReport {
   status: 'ok' | 'error';
   uptimeSeconds: number;
   timestamp: string;
+  // Dependencias de infraestructura (postgres/redis/rabbit/storage/mail): su fallo
+  // baja el status a 'error' (503).
   checks: Record<string, CheckResult>;
+  // Integraciones externas configurables por env: true = credenciales presentes y
+  // el servicio está levantado; false = sin configurar (se ignora). NO afecta el
+  // status del health (una integración apagada es un estado válido, no un fallo).
+  integrations: Record<IntegrationService, boolean>;
 }
 
 @Injectable()
@@ -26,6 +36,7 @@ export class HealthService {
     private readonly mail: MailService,
     private readonly storage: StorageService,
     private readonly rabbit: RabbitService,
+    private readonly integrations: IntegrationsService,
   ) {}
 
   private async timed(fn: () => Promise<boolean>): Promise<CheckResult> {
@@ -55,6 +66,7 @@ export class HealthService {
       uptimeSeconds: Math.round(process.uptime()),
       timestamp: new Date().toISOString(),
       checks,
+      integrations: this.integrations.capabilities(),
     };
   }
 }

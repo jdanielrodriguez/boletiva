@@ -9,6 +9,7 @@ export type IntegrationService =
   | 'fel'
   | 'appleWallet'
   | 'googleWallet'
+  | 'googleOAuth'
   | 'recaptcha';
 
 /** Nombre legible por servicio (para el mensaje de "no disponible"). */
@@ -18,6 +19,7 @@ const LABELS: Record<IntegrationService, string> = {
   fel: 'la facturación electrónica (FEL)',
   appleWallet: 'Apple Wallet',
   googleWallet: 'Google Wallet',
+  googleOAuth: 'el login con Google',
   recaptcha: 'la verificación reCAPTCHA',
 };
 
@@ -62,6 +64,10 @@ export class IntegrationsService {
         const g = this.get('wallet').google;
         return !!(g.issuerId && g.serviceAccountJson);
       }
+      case 'googleOAuth': {
+        const o = this.get('oauth').google;
+        return !!(o.clientId && o.clientSecret);
+      }
       case 'recaptcha': {
         const c = this.get('recaptcha');
         // Disponible = hay secret y NO está desactivado. Desactivado (o sin secret)
@@ -91,6 +97,7 @@ export class IntegrationsService {
       fel: this.available('fel'),
       appleWallet: this.available('appleWallet'),
       googleWallet: this.available('googleWallet'),
+      googleOAuth: this.available('googleOAuth'),
       recaptcha: this.available('recaptcha'),
     };
   }

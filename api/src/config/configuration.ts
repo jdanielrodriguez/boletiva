@@ -34,7 +34,7 @@ export interface AppConfig {
     impersonationTtl: number;
   };
   security: { encryptionKey: string };
-  oauth: { google: { clientId: string } };
+  oauth: { google: { clientId: string; clientSecret: string } };
   payment: {
     provider: string;
     webhookSecret: string;
@@ -167,7 +167,12 @@ export const configuration = (): AppConfig => {
       impersonationTtl: parseInt(process.env.IMPERSONATION_TOKEN_TTL ?? '1800', 10),
     },
     security: { encryptionKey: process.env.APP_ENCRYPTION_KEY as string },
-    oauth: { google: { clientId: process.env.GOOGLE_CLIENT_ID ?? '' } },
+    oauth: {
+      google: {
+        clientId: process.env.GOOGLE_CLIENT_ID ?? '',
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
+      },
+    },
     payment: {
       provider: process.env.PAYMENT_PROVIDER ?? 'simulator',
       webhookSecret: process.env.PAYMENT_WEBHOOK_SECRET ?? 'dev-webhook-secret-change-me',
