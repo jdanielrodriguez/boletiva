@@ -9,9 +9,11 @@ import { DevicesService } from './devices.service';
 import { TwoFactorService } from './twofactor.service';
 import { GoogleAuthService } from './google.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { CaptchaModule } from '../../infra/captcha/captcha.module';
+import { CaptchaGuard } from '../../common/guards/captcha.guard';
 
 @Module({
-  imports: [PassportModule, JwtModule.register({})],
+  imports: [PassportModule, JwtModule.register({}), CaptchaModule],
   controllers: [AuthController],
   providers: [
     AuthService,
@@ -21,6 +23,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     TwoFactorService,
     GoogleAuthService,
     JwtStrategy,
+    CaptchaGuard,
   ],
   exports: [AuthService, TokensService, DevicesService, TwoFactorService, ChallengesService],
 })

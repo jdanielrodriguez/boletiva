@@ -7,6 +7,21 @@ se necesitan, cómo conseguirlas y cómo obtener el ambiente de pruebas (sandbox
 > ⚠️ Los portales y requisitos de cada proveedor cambian. Antes de integrar, confirmar contra la
 > documentación vigente del proveedor. Aquí se marca lo que hay que **pedir/generar** y dónde.
 
+## Cómo funciona el gating (implementado)
+
+Todas las integraciones se **activan por variables de entorno**. El registro central
+`IntegrationsService` (`api/src/infra/integrations/`) decide si cada servicio está DISPONIBLE:
+
+- **Variable vacía → el servicio se IGNORA** (no se activa; no rompe nada).
+- **Se intenta usar un servicio no configurado → 503 "Servicio no disponible"** (`assertAvailable`).
+- `GET /api/v1/public/config` expone `capabilities` (qué está disponible) + `recaptchaSiteKey`,
+  para que el **frontend** habilite/oculte UI según lo configurado.
+
+Estado por integración (a hoy): **Pagalo, Google Wallet y reCAPTCHA = value-ready** (solo poner
+valores). **Recurrente, FEL y Apple Wallet = env-only** (variables definidas; responden 503 hasta
+completar la integración compleja). El **simulador** de pagos y el **stub** de wallet siguen siendo
+el default (sin credenciales; sostienen dev/test/E2E). Todas las variables viven en `.env.example`.
+
 ---
 
 ## 1. Recurrente (pasarela principal — GTQ)
@@ -124,25 +139,38 @@ Sandbox/pruebas: la cuenta de emisor arranca en **modo demo/test** (los pases mu
 
 ---
 
-## 4. Pagalo (pasarela alternativa / failover — GT)
+## 4. Pagalo / PagaloCard (pasarela alternativa / failover — GT) — VALUE-READY
 
-**Qué es:** pasarela de pagos guatemalteca, se integra como **failover** de Recurrente detrás del
-mismo puerto `PaymentProvider` (así el sistema conmuta de proveedor sin tocar el dominio).
+**Qué es:** pasarela guatemalteca (PagaloCard). Integrada como **failover** detrás del puerto
+`PaymentProvider` (`PagaloPaymentProvider`), seleccionable por config `PAYMENT_PROVIDER=pagalo`
+(default sigue siendo el simulador). Contrato real extraído del legacy `ticketera`/`tiketera` y
+validado contra `https://docs.pagalo.co/`.
 
-### Credenciales que se necesitan
-- Credenciales de **API/comercio** (client id/secret o api key + secret) para **pruebas** y **producción**.
-- **Webhook secret** para verificar notificaciones.
+### Contrato real (implementado)
+- Endpoint: `POST https://{DOMINIO}/api/v1/integracion/{CREDENCIAL}` (sandbox `DOMINIO=sandbox.pagalocard.com`).
+- Body (form) con campos JSON-string: `empresa` = `{ key_public, key_secret, idenEmpresa }`;
+  `cliente` = `{ codigo, firstName, lastName, street1, country:'GT', city, state, email, ipAddress,
+  Total, currency:'GTQ', postalCode, phone, deviceFingerprintID }`; `tarjetaPagalo` = **token opaco
+  del SDK cliente** (PCI) o datos de tarjeta; `detalle` = `{ id_producto, cantidad, nombre, precio,
+  Subtotal }`. Como el flujo es **webhook-first**, al aprobar sincrónicamente el provider entrega un
+  webhook `payment.succeeded` firmado in-process → dispara el fulfillment sin cambios (en prod
+  PagaloCard puede además notificar a `/payments/webhook`).
+
+### Variables (`.env`) — vacío = NO DISPONIBLE (503)
+- `PAGALO_CREDENCIAL` (segmento de la URL), `PAGALO_DOMINIO` (host), `PAGALO_ESTADO` (sandbox|produccion)
+  → **los tiene el usuario** para sandbox.
+- `PAGALO_KEY_PUBLIC`, `PAGALO_KEY_SECRET`, `PAGALO_IDEN_EMPRESA` → llaves de empresa, **desde GCP
+  Secret Manager**. `PAGALO_WEBHOOK_SECRET` opcional.
 
 ### Cómo obtenerlas
-1. Solicitar **cuenta de comercio** con Pagalo (`pagalo.gt`) y firmar el contrato con el adquirente.
-2. Completar KYC del negocio (NIT, patente, cuenta bancaria GT).
-3. En el panel del comercio: obtener credenciales de **sandbox** primero y, tras validar, las de
-   **producción**; registrar la URL de webhook.
+1. Cuenta de comercio PagaloCard + KYC (NIT, patente, cuenta bancaria GT); el proveedor entrega la
+   **Credencial**, el **dominio** y el **estado** (sandbox/prod), y las **llaves de empresa**.
+2. Guardar las llaves de empresa en GCP Secret Manager; poner credencial/dominio/estado en el `.env`.
 
 ### Sandbox / pruebas
-- Panel de comercio en **modo sandbox** con credenciales y tarjetas de prueba.
-- Para tests automatizados: mismo simulador/puerto `PaymentProvider`; se agrega un provider
-  `PagaloPaymentProvider` seleccionable por `payment_gateways.provider`.
+- `PAGALO_DOMINIO=sandbox.pagalocard.com` + credencial de sandbox + tarjetas de prueba de PagaloCard.
+- Tests automatizados: siguen con el **simulador** (default); el `PagaloPaymentProvider` se cubre con
+  unit tests mockeando `fetch`.
 
 ---
 

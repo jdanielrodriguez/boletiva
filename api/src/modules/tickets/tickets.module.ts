@@ -19,7 +19,8 @@ import { ValidationIngestService } from './validation-ingest.service';
 import { ValidationIngestController } from './validation-ingest.controller';
 import { WalletPassService } from './wallet/wallet-pass.service';
 import { WALLET_PROVIDER } from './wallet/wallet-provider';
-import { StubWalletProvider } from './wallet/stub-wallet.provider';
+import { walletProviderFactory } from './wallet/wallet-provider.factory';
+import { IntegrationsService } from '../../infra/integrations/integrations.service';
 
 /**
  * Boletos (Ola 4): emisión (Ed25519 + TOTP) encolada tras el pago, generación de
@@ -47,19 +48,17 @@ import { StubWalletProvider } from './wallet/stub-wallet.provider';
     TicketTransferService,
     ValidationIngestService,
     WalletPassService,
-    // Proveedor de wallet elegido por config (hoy solo 'stub'; Google/Apple detrás
-    // del mismo puerto cuando haya certificados/credenciales).
+    // Proveedor de wallet elegido por config (`wallet.provider`):
+    //  - 'stub'   → sandbox sin certificados (default; no rompe E2E).
+    //  - 'google' → Google Wallet real (value-ready: issuerId + service account).
+    //  - 'apple'  → Apple Wallet (503 sin certificados de Apple Developer).
+    //  - 'auto'   → usa google/apple si están disponibles; si no, cae al stub.
+    // Google/Apple viven detrás del mismo puerto; sin credenciales devuelven 503
+    // al PEDIR el pase (no al arrancar).
     {
       provide: WALLET_PROVIDER,
-      inject: [ConfigService, StorageService],
-      useFactory: (config: ConfigService, storage: StorageService) => {
-        const provider = config.get<string>('wallet.provider') ?? 'stub';
-        switch (provider) {
-          case 'stub':
-          default:
-            return new StubWalletProvider(storage);
-        }
-      },
+      inject: [ConfigService, StorageService, IntegrationsService],
+      useFactory: walletProviderFactory,
     },
   ],
   exports: [TicketsService],

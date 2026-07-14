@@ -1,0 +1,102 @@
+# ==============================================================================
+# test.yml — Pruebas backend + frontend en CADA push (cualquier rama) y en PR.
+#
+# Objetivo: garantizar código PRÍSTINO antes de cualquier merge/deploy.
+# Es el ÚNICO workflow que corre en ramas normales.
+#
+# También es REUTILIZABLE (`workflow_call`): staging.yml y release-prod.yml lo
+# invocan como gate previo al despliegue (no se duplican los pasos de prueba).
+#
+# No requiere ningún secret: solo levanta el stack local con Docker y corre las
+# suites (backend en el contenedor; frontend directo en el runner con Chrome).
+# ==============================================================================
+name: Test
+
+on:
+  push: # cualquier rama
+  pull_request:
+  workflow_call: # invocable desde staging.yml / release-prod.yml
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  # ----------------------------------------------------------------------------
+  # Backend: levanta el stack (postgres/redis/rabbit/mailhog/localstack) con
+  # docker-compose, espera health, siembra la BD y corre lint + unit + smoke E2E.
+  # ----------------------------------------------------------------------------
+  backend-test:
+    name: Backend (lint + unit + smoke)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Copiar .env.example a .env
+        run: cp .env.example .env
+
+      - name: Construir imágenes y levantar el stack de pruebas
+        run: make init-test
+
+      - name: Esperar health de la API (valida postgres, redis, rabbitmq, storage y mail)
+        run: |
+          for i in $(seq 1 90); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/api/v1/health || true)
+            if [ "$code" = "200" ]; then echo "API + dependencias OK"; exit 0; fi
+            echo "Esperando a la API... ($i)"; sleep 2
+          done
+          echo "La API no quedó sana a tiempo"; docker logs pasaeventos_api || true; exit 1
+
+      - name: Seed base de datos
+        run: docker exec pasaeventos_api npm run db:seed
+
+      - name: Lint backend
+        run: docker exec pasaeventos_api npx nx lint api
+
+      - name: Unit tests (con coverage)
+        run: make test
+
+      - name: Smoke E2E (HTTP + navegador headless)
+        run: make smoke
+
+      - name: Logs de la API si falla
+        if: failure()
+        run: docker logs pasaeventos_api || true
+
+  # ----------------------------------------------------------------------------
+  # Frontend: Angular 20. Corre directo en el runner (no en Docker) con el
+  # Chrome preinstalado de ubuntu-latest. schema.ts del SDK ya está commiteado
+  # (no depende de /docs/openapi.json en CI).
+  # ----------------------------------------------------------------------------
+  frontend-test:
+    name: Frontend (lint + karma headless)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      # Karma usa ChromeHeadlessCI (--no-sandbox); apunta al Chrome del runner.
+      CHROME_BIN: /usr/bin/google-chrome
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci --legacy-peer-deps
+
+      - name: Lint frontend
+        run: npm run lint
+
+      - name: Unit tests (karma headless)
+        run: npm test -- --watch=false

@@ -1,0 +1,189 @@
+# ==============================================================================
+# release-prod.yml — Despliegue a PRODUCCIÓN al hacer push/merge a `master`
+# (típicamente al mergear una rama release/*).
+#
+# Orden estricto:
+#   (a) correr TODAS las pruebas (reutiliza test.yml)
+#   (b) activar la PÁGINA DE MANTENIMIENTO en prod (PATCH /admin/maintenance)
+#   (c) build + deploy a Cloud Run (prod)
+#   (d) crear y pushear el TAG final (vX.Y.Z)
+#   (e) quitar el mantenimiento
+#   + limpieza `if: always()`: si algo falla tras (b), intenta quitar el
+#     mantenimiento igualmente para no dejar prod bloqueada.
+#
+# ── Secrets de repo requeridos ──
+#   GCP_SA_KEY          JSON del service account de despliegue (ver staging.yml).
+#                       Si falta, TODO el deploy se SALTA (no falla) con aviso.
+#   DEPLOY_ADMIN_TOKEN  JWT de acceso de un usuario ADMIN, usado como Bearer para
+#                       llamar PATCH /api/v1/admin/maintenance en prod.
+#                       Cómo obtenerlo: loguearse como admin contra la API de prod
+#                       (POST /api/v1/auth/login → 2fa/verify) y copiar el
+#                       `accessToken`. OJO: el access token es de vida corta; para
+#                       CI conviene un usuario admin de despliegue con TTL amplio o
+#                       renovar el secret periódicamente. Si NO está configurado, se
+#                       OMITE el toggle de mantenimiento (deploy sigue, con aviso).
+#
+# ── Variables de repo (Settings → Variables) ──
+#   PROD_API_URL  Base URL de la API de prod, p.ej. https://api.pasaeventos.com
+#                 (sin barra final). Necesaria para el toggle de mantenimiento.
+#
+# ── Secretos de PROD en GCP Secret Manager ── ver docs/DESPLIEGUE.md §3
+#   pasaeventos-database-url, pasaeventos-redis-url, pasaeventos-amqp-url,
+#   pasaeventos-mail-pass, pasaeventos-jwt-access-secret,
+#   pasaeventos-jwt-refresh-secret, pasaeventos-gcs-sa-json
+#
+# ── Constantes ── proyecto pasa-eventos · región us-central1 ·
+#   servicio Cloud Run pasaeventos-api · imagen tag = versión detectada.
+# ==============================================================================
+name: Release & Deploy Prod
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  actions: read
+  contents: write # necesita pushear el tag de release
+
+env:
+  GCP_PROJECT: pasa-eventos
+  GCP_REGION: us-central1
+  SERVICE: pasaeventos-api
+  IMAGE_REPO: us-central1-docker.pkg.dev/pasa-eventos/pasaeventos-backend/api
+
+jobs:
+  # (a) Gate de calidad — reutiliza el workflow de pruebas completo.
+  test:
+    uses: ./.github/workflows/test.yml
+
+  # ¿Hay credenciales de GCP? (secrets.* no se pueden usar en `if:` de job).
+  guard:
+    name: Comprobar credenciales GCP
+    runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.check.outputs.deploy }}
+    steps:
+      - id: check
+        env:
+          KEY: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          if [ -n "$KEY" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::GCP_SA_KEY no configurado → se salta el deploy a producción."
+          fi
+
+  deploy-prod:
+    name: Maintenance → Build/Deploy → Tag → Restore
+    needs: [test, guard]
+    if: needs.guard.outputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    env:
+      PROD_API_URL: ${{ vars.PROD_API_URL }}
+      DEPLOY_ADMIN_TOKEN: ${{ secrets.DEPLOY_ADMIN_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # historial completo para detectar la versión / tags
+
+      # (d-pre) Detectar la versión del tag: rama release/*, mensaje de commit,
+      #         o incrementar el patch del último tag.
+      - name: Detectar versión del release
+        id: version
+        run: |
+          branch=$(git branch -r --sort=-committerdate | grep -E 'origin/release[/-]v?([0-9]+\.[0-9]+\.[0-9]+)' | head -n1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)
+          if [ -n "$branch" ]; then
+            tag="v$branch"
+            echo "Versión detectada de rama release remota: $tag"
+          else
+            merge_version=$(git log -1 --pretty=%B | grep -oE 'release[/-]v?([0-9]+\.[0-9]+\.[0-9]+)' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)
+            if [ -n "$merge_version" ]; then
+              tag="v$merge_version"
+              echo "Versión detectada del mensaje de commit: $tag"
+            else
+              last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+              IFS='.' read -r v1 v2 v3 <<< "${last_tag#v}"
+              tag="v$((v1)).$((v2)).$((v3+1))"
+              echo "Sin rama/commit de release → incremento patch: $tag"
+            fi
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Autenticar en GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Configurar gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT }}
+
+      # (b) MANTENIMIENTO ON. No bloquea el deploy si el toggle falla (solo avisa).
+      - name: Activar página de mantenimiento (prod)
+        run: |
+          if [ -z "$DEPLOY_ADMIN_TOKEN" ] || [ -z "$PROD_API_URL" ]; then
+            echo "::warning::DEPLOY_ADMIN_TOKEN o PROD_API_URL ausente → no se activa mantenimiento."
+            exit 0
+          fi
+          code=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
+            "$PROD_API_URL/api/v1/admin/maintenance" \
+            -H "Authorization: Bearer $DEPLOY_ADMIN_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"enabled":true,"message":"Estamos desplegando una actualización. Volvemos en unos minutos."}' || true)
+          echo "PATCH maintenance(on) → HTTP $code"
+          if [ "$code" != "200" ]; then
+            echo "::warning::No se pudo activar el mantenimiento (HTTP $code); el deploy continúa."
+          fi
+
+      # (c) Build + deploy a prod.
+      - name: Construir imagen (Artifact Registry) — tag ${{ steps.version.outputs.tag }}
+        run: |
+          gcloud builds submit \
+            --tag "${IMAGE_REPO}:${{ steps.version.outputs.tag }}"
+
+      - name: Deploy a Cloud Run (prod)
+        run: |
+          gcloud run deploy "${SERVICE}" \
+            --image "${IMAGE_REPO}:${{ steps.version.outputs.tag }}" \
+            --region "${GCP_REGION}" \
+            --platform managed \
+            --allow-unauthenticated \
+            --memory=2Gi --cpu=2 --concurrency=200 --min-instances=1 --max-instances=20 \
+            --set-env-vars=NODE_ENV=production,STORAGE_PROVIDER=gcs,GCLOUD_PROJECT_ID=${GCP_PROJECT},GCS_BUCKET=pasaeventos-prod-media,CORS_ORIGINS=https://pasaeventos.com \
+            --set-secrets=DATABASE_URL=pasaeventos-database-url:latest,REDIS_URL=pasaeventos-redis-url:latest,AMQP_URL=pasaeventos-amqp-url:latest,MAIL_PASS=pasaeventos-mail-pass:latest,JWT_ACCESS_SECRET=pasaeventos-jwt-access-secret:latest,JWT_REFRESH_SECRET=pasaeventos-jwt-refresh-secret:latest,GCS_SERVICE_ACCOUNT_JSON=pasaeventos-gcs-sa-json:latest
+
+      # (d) Crear y pushear el tag final (solo si el deploy fue exitoso).
+      - name: Crear y pushear el tag de release
+        run: |
+          tag="${{ steps.version.outputs.tag }}"
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          if git rev-parse "$tag" >/dev/null 2>&1; then
+            echo "El tag $tag ya existe; no se recrea."
+          else
+            git tag "$tag"
+            git push origin "$tag"
+            echo "Tag $tag creado y pusheado."
+          fi
+
+      # (e) MANTENIMIENTO OFF — `if: always()`: se ejecuta en éxito y también si
+      #     algún paso anterior falló tras activarlo (no deja prod bloqueada).
+      - name: Quitar página de mantenimiento (prod)
+        if: always()
+        run: |
+          if [ -z "$DEPLOY_ADMIN_TOKEN" ] || [ -z "$PROD_API_URL" ]; then
+            echo "Sin token/URL → no hay mantenimiento que quitar."
+            exit 0
+          fi
+          code=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
+            "$PROD_API_URL/api/v1/admin/maintenance" \
+            -H "Authorization: Bearer $DEPLOY_ADMIN_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"enabled":false}' || true)
+          echo "PATCH maintenance(off) → HTTP $code"
+          if [ "$code" != "200" ]; then
+            echo "::error::No se pudo QUITAR el mantenimiento (HTTP $code). ¡Revisar prod manualmente!"
+          fi

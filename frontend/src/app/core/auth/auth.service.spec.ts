@@ -121,15 +121,22 @@ describe('AuthService', () => {
     });
   });
 
-  it('changePassword / forgotPassword / resetPassword delegan en el SDK', () => {
+  it('changePassword / resetPassword delegan en el SDK (síncronos)', () => {
     api.changePassword.and.returnValue(of({ message: 'ok' }) as never);
-    api.forgotPassword.and.returnValue(of({ message: 'ok' }) as never);
     api.resetPassword.and.returnValue(of({ message: 'ok' }) as never);
     auth.changePassword({ currentPassword: 'a', newPassword: 'bbbbbbbb' }).subscribe();
-    auth.forgotPassword({ email: 'a@x.com' }).subscribe();
     auth.resetPassword({ token: 't', password: 'bbbbbbbb' }).subscribe();
     expect(api.changePassword).toHaveBeenCalled();
-    expect(api.forgotPassword).toHaveBeenCalled();
     expect(api.resetPassword).toHaveBeenCalled();
+  });
+
+  // forgotPassword pasa por el captcha (execute() es una Promesa) → es asíncrono.
+  it('forgotPassword obtiene el token de captcha y delega en el SDK', (done) => {
+    api.forgotPassword.and.returnValue(of({ message: 'ok' }) as never);
+    auth.forgotPassword({ email: 'a@x.com' }).subscribe(() => {
+      // Sin site key en test, el token es '' → el backend OMITE la verificación.
+      expect(api.forgotPassword).toHaveBeenCalledWith({ email: 'a@x.com' }, '');
+      done();
+    });
   });
 });

@@ -1,0 +1,97 @@
+# ==============================================================================
+# staging.yml — Despliegue a STAGING al hacer push/merge a `develop`.
+#
+# Flujo: 1) corre TODAS las pruebas (reutiliza test.yml) → 2) si pasan y hay
+# credenciales de GCP, construye la imagen y despliega a Cloud Run (staging).
+#
+# ── Secrets de repo requeridos (Settings → Secrets and variables → Actions) ──
+#   GCP_SA_KEY   JSON del service account de despliegue
+#                (github-actions-deployer@…: Cloud Run Admin, Cloud Build Editor,
+#                 Artifact Registry Writer, Service Account User, Secret Accessor).
+#                Si NO está configurado, el deploy se SALTA (no falla) con aviso.
+#
+# ── Secretos de STAGING en GCP Secret Manager (los inyecta Cloud Run) ──
+#   pasaeventos-staging-database-url, pasaeventos-staging-redis-url,
+#   pasaeventos-staging-amqp-url, pasaeventos-staging-mail-pass,
+#   pasaeventos-staging-jwt-access-secret, pasaeventos-staging-jwt-refresh-secret,
+#   pasaeventos-staging-gcs-sa-json
+#   (créalos con el script de docs/DESPLIEGUE.md §3 apuntando a .env.staging).
+#
+# ── Variables/constantes ── proyecto pasa-eventos · región us-central1 ·
+#   servicio Cloud Run pasaeventos-api-staging · imagen tag develop-<sha>.
+# ==============================================================================
+name: Deploy Staging
+
+on:
+  push:
+    branches:
+      - develop
+
+permissions:
+  actions: read
+  contents: read
+
+env:
+  GCP_PROJECT: pasa-eventos
+  GCP_REGION: us-central1
+  SERVICE: pasaeventos-api-staging
+  IMAGE_REPO: us-central1-docker.pkg.dev/pasa-eventos/pasaeventos-backend/api
+
+jobs:
+  # 1) Gate de calidad: reutiliza el workflow de pruebas completo.
+  test:
+    uses: ./.github/workflows/test.yml
+
+  # 2) ¿Hay credenciales de GCP? Determina si el deploy corre o se salta.
+  #    (No se puede usar `secrets.*` en un `if:` de job → se resuelve aquí.)
+  guard:
+    name: Comprobar credenciales GCP
+    runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.check.outputs.deploy }}
+    steps:
+      - id: check
+        env:
+          KEY: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          if [ -n "$KEY" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::GCP_SA_KEY no configurado → se salta el deploy a staging."
+          fi
+
+  # 3) Build + deploy a Cloud Run (staging). Solo si pruebas OK y hay credenciales.
+  deploy-staging:
+    name: Build & Deploy (staging)
+    needs: [test, guard]
+    if: needs.guard.outputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Autenticar en GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Configurar gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT }}
+
+      - name: Construir imagen (Artifact Registry) — tag develop-<sha>
+        run: |
+          gcloud builds submit \
+            --tag "${IMAGE_REPO}:develop-${GITHUB_SHA}"
+
+      - name: Deploy a Cloud Run (staging)
+        run: |
+          gcloud run deploy "${SERVICE}" \
+            --image "${IMAGE_REPO}:develop-${GITHUB_SHA}" \
+            --region "${GCP_REGION}" \
+            --platform managed \
+            --allow-unauthenticated \
+            --memory=1Gi --cpu=1 --concurrency=100 --min-instances=0 --max-instances=5 \
+            --set-env-vars=NODE_ENV=staging,STORAGE_PROVIDER=gcs,GCLOUD_PROJECT_ID=${GCP_PROJECT},GCS_BUCKET=pasaeventos-staging-media \
+            --set-secrets=DATABASE_URL=pasaeventos-staging-database-url:latest,REDIS_URL=pasaeventos-staging-redis-url:latest,AMQP_URL=pasaeventos-staging-amqp-url:latest,MAIL_PASS=pasaeventos-staging-mail-pass:latest,JWT_ACCESS_SECRET=pasaeventos-staging-jwt-access-secret:latest,JWT_REFRESH_SECRET=pasaeventos-staging-jwt-refresh-secret:latest,GCS_SERVICE_ACCOUNT_JSON=pasaeventos-staging-gcs-sa-json:latest

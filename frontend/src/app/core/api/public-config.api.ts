@@ -8,6 +8,8 @@ export interface PublicConfig {
   allowVisitorLangSwitch: boolean;
   /** ¿Se muestran las categorías en la página principal? */
   showHomeCategories: boolean;
+  /** Site key pública de reCAPTCHA v3 (vacía = deshabilitado, no se carga). */
+  recaptchaSiteKey?: string;
 }
 
 /**

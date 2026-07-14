@@ -13875,11 +13875,33 @@
             "type": "boolean",
             "description": "Si se muestran las categorías en la página principal.",
             "example": true
+          },
+          "capabilities": {
+            "type": "object",
+            "description": "Integraciones externas configuradas y disponibles (gating de UI).",
+            "example": {
+              "recurrente": false,
+              "pagalo": false,
+              "fel": false,
+              "appleWallet": false,
+              "googleWallet": false,
+              "recaptcha": false
+            },
+            "additionalProperties": {
+              "type": "boolean"
+            }
+          },
+          "recaptchaSiteKey": {
+            "type": "string",
+            "description": "Site key pública de reCAPTCHA (vacía si no está configurada).",
+            "example": ""
           }
         },
         "required": [
           "allowVisitorLangSwitch",
-          "showHomeCategories"
+          "showHomeCategories",
+          "capabilities",
+          "recaptchaSiteKey"
         ]
       },
       "MaintenanceStatusDto": {

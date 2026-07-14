@@ -6691,6 +6691,25 @@ export interface components {
              * @example true
              */
             showHomeCategories: boolean;
+            /**
+             * @description Integraciones externas configuradas y disponibles (gating de UI).
+             * @example {
+             *       "recurrente": false,
+             *       "pagalo": false,
+             *       "fel": false,
+             *       "appleWallet": false,
+             *       "googleWallet": false,
+             *       "recaptcha": false
+             *     }
+             */
+            capabilities: {
+                [key: string]: boolean;
+            };
+            /**
+             * @description Site key pública de reCAPTCHA (vacía si no está configurada).
+             * @example
+             */
+            recaptchaSiteKey: string;
         };
         MaintenanceStatusDto: {
             /** @description true si la plataforma está en mantenimiento */

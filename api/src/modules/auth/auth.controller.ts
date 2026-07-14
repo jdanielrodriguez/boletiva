@@ -9,6 +9,7 @@ import {
   Req,
   Res,
   UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiAcceptedResponse,
@@ -22,6 +23,8 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
 import { Public } from '../../common/decorators/public.decorator';
+import { RequireCaptcha } from '../../common/decorators/require-captcha.decorator';
+import { CaptchaGuard } from '../../common/guards/captcha.guard';
 import { AllowDuringMaintenance } from '../../common/decorators/maintenance.decorator';
 import { AuthUser, CurrentUser } from '../../common/decorators/current-user.decorator';
 import { MessageResponseDto } from '../../common/dto/response.dto';
@@ -112,6 +115,8 @@ export class AuthController {
   // ---- Registro / login ----
 
   @Public()
+  @UseGuards(CaptchaGuard)
+  @RequireCaptcha('signup')
   @Post('signup')
   @ApiOperation({ summary: 'Registro con correo y contraseña (envía verificación)' })
   @ApiCreatedResponse({ type: SignupResponseDto })
@@ -124,6 +129,8 @@ export class AuthController {
   }
 
   @Public()
+  @UseGuards(CaptchaGuard)
+  @RequireCaptcha('login')
   @Post('login')
   @HttpCode(200)
   @ApiOperation({ summary: 'Login por contraseña (puede requerir 2FA en dispositivo nuevo)' })
@@ -286,6 +293,8 @@ export class AuthController {
   }
 
   @Public()
+  @UseGuards(CaptchaGuard)
+  @RequireCaptcha('forgot_password')
   @Post('forgot-password')
   @HttpCode(202)
   @ApiOperation({ summary: 'Solicita recuperación de contraseña' })

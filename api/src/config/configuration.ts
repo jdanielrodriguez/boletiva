@@ -52,7 +52,62 @@ export interface AppConfig {
   // Desbloqueo de edición de evento por ADMIN (v3.5): TTL en segundos del token que
   // devuelve la verificación del OTP (default 5 min).
   editUnlock: { ttl: number };
-  wallet: { provider: string };
+  wallet: {
+    provider: string;
+    // Apple Wallet (.pkpass): env-only por ahora (requiere Apple Developer). Si falta
+    // algún campo, el servicio de pase Apple queda NO DISPONIBLE (503 al pedirlo).
+    apple: {
+      passTypeId: string;
+      teamId: string;
+      certP12Base64: string; // certificado Pass Type ID (.p12) en base64
+      certPassword: string;
+      wwdrBase64: string; // Apple WWDR cert en base64
+    };
+    // Google Wallet: value-ready. Con issuerId + service account JSON firma el JWT
+    // de "Guardar en Google Wallet". Si falta → NO DISPONIBLE.
+    google: { issuerId: string; serviceAccountJson: string };
+  };
+  // Pasarela Recurrente (principal). Env-only por ahora (pagos complejos): si falta
+  // apiKey/apiSecret el proveedor queda NO DISPONIBLE (503 al intentar cobrar con él).
+  recurrente: {
+    apiKey: string;
+    apiSecret: string;
+    webhookSecret: string;
+    baseUrl: string;
+  };
+  // Pasarela Pagalo (failover). Value-ready (modelo real pagalocard). Endpoint:
+  // POST https://{dominio}/api/v1/integracion/{credencial}. `credencial`, `dominio`
+  // y `estado` (sandbox/produccion) los tiene el usuario; las llaves de empresa
+  // (keyPublic/keySecret/idenEmpresa) vienen de GCP Secret Manager.
+  pagalo: {
+    credencial: string; // segmento de integración en la URL
+    dominio: string; // host, p.ej. sandbox.pagalocard.com
+    estado: string; // 'sandbox' | 'produccion'
+    keyPublic: string;
+    keySecret: string;
+    idenEmpresa: string;
+    webhookSecret: string;
+  };
+  // FEL (certificador SAT). Env-only por ahora: sin credenciales el certificador
+  // queda NO DISPONIBLE (la factura no bloquea la entrega; se encola y reintenta).
+  fel: {
+    certifier: string; // proveedor: infile | digifact | guatefacturas | ...
+    apiUser: string;
+    apiKey: string;
+    requestorNit: string; // NIT del emisor (plataforma)
+    baseUrl: string;
+  };
+  // reCAPTCHA (anti-abuso). Value-ready: con secretKey verifica los tokens contra
+  // Google. `disabled` (o falta de secretKey) OMITE la verificación → NO bloquea
+  // pruebas (E2E/dev). En prod se exige secretKey y disabled=false.
+  recaptcha: {
+    siteKey: string; // pública (va al frontend)
+    secretKey: string; // privada (verificación server-side)
+    minScore: number; // v3: score mínimo aceptado
+    disabled: boolean;
+  };
+  // GCP (deploy / Secret Manager / wallet). projectId + region para las Actions.
+  gcp: { projectId: string; region: string };
   retention: { enabled: boolean; days: number };
   cors: { origins: string[] };
 }
@@ -145,7 +200,53 @@ export const configuration = (): AppConfig => {
     },
     // Pases de wallet (Google/Apple). 'stub' = simulador sin certificados de
     // terceros (los E2E no dependen de Apple Developer / Google Wallet API).
-    wallet: { provider: process.env.WALLET_PROVIDER ?? 'stub' },
+    wallet: {
+      provider: process.env.WALLET_PROVIDER ?? 'stub',
+      apple: {
+        passTypeId: process.env.APPLE_WALLET_PASS_TYPE_ID ?? '',
+        teamId: process.env.APPLE_WALLET_TEAM_ID ?? '',
+        certP12Base64: process.env.APPLE_WALLET_CERT_P12_BASE64 ?? '',
+        certPassword: process.env.APPLE_WALLET_CERT_PASSWORD ?? '',
+        wwdrBase64: process.env.APPLE_WALLET_WWDR_BASE64 ?? '',
+      },
+      google: {
+        issuerId: process.env.GOOGLE_WALLET_ISSUER_ID ?? '',
+        serviceAccountJson: process.env.GOOGLE_WALLET_SERVICE_ACCOUNT_JSON ?? '',
+      },
+    },
+    recurrente: {
+      apiKey: process.env.RECURRENTE_API_KEY ?? '',
+      apiSecret: process.env.RECURRENTE_API_SECRET ?? '',
+      webhookSecret: process.env.RECURRENTE_WEBHOOK_SECRET ?? '',
+      baseUrl: process.env.RECURRENTE_BASE_URL ?? 'https://app.recurrente.com/api',
+    },
+    pagalo: {
+      credencial: process.env.PAGALO_CREDENCIAL ?? '',
+      dominio: process.env.PAGALO_DOMINIO ?? 'sandbox.pagalocard.com',
+      estado: process.env.PAGALO_ESTADO ?? 'sandbox',
+      keyPublic: process.env.PAGALO_KEY_PUBLIC ?? '',
+      keySecret: process.env.PAGALO_KEY_SECRET ?? '',
+      idenEmpresa: process.env.PAGALO_IDEN_EMPRESA ?? '',
+      webhookSecret: process.env.PAGALO_WEBHOOK_SECRET ?? '',
+    },
+    fel: {
+      certifier: process.env.FEL_CERTIFIER ?? '',
+      apiUser: process.env.FEL_API_USER ?? '',
+      apiKey: process.env.FEL_API_KEY ?? '',
+      requestorNit: process.env.FEL_REQUESTOR_NIT ?? '',
+      baseUrl: process.env.FEL_BASE_URL ?? '',
+    },
+    recaptcha: {
+      siteKey: process.env.RECAPTCHA_SITE_KEY ?? '',
+      secretKey: process.env.RECAPTCHA_SECRET_KEY ?? '',
+      minScore: parseFloat(process.env.RECAPTCHA_MIN_SCORE ?? '0.5'),
+      // Se desactiva explícitamente, o implícitamente en test, o si no hay secretKey.
+      disabled: bool(process.env.RECAPTCHA_DISABLED, env === 'test'),
+    },
+    gcp: {
+      projectId: process.env.GCLOUD_PROJECT_ID ?? '',
+      region: process.env.GCP_REGION ?? 'us-central1',
+    },
     // Retención/privacidad: job programado (desactivado por defecto y en test) que
     // anonimiza PII de usuarios cuyos eventos concluyeron hace más de `days`.
     retention: {

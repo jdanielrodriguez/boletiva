@@ -226,6 +226,16 @@ El frontend Angular 20 SSR vive en `feature/frontend-core-v1` (sin subir; el mer
 
 Todo en `feature/backend-core-v1`, **sin subir**. Se cumplió la condición del arquitecto (BullMQ adelantado: toda tarea pesada se encola tras asentar el pago). Pendientes derivados para próximas olas: (b) el **frontend debe ser hiper-transparente** al recotizar por método (evitar que parezca cargo oculto); (c) la **gestión de certificados Apple Developer (.pkpass) y aprobación de Google Wallet API** corre en paralelo — el `WalletProvider` ya está con **stub/sandbox** para no bloquear (los proveedores reales se conectan detrás del mismo puerto cuando lleguen las credenciales). **Siguiente: Ola 5** (transferencias + chain-of-custody + validación offline con manifiesto + propagación de revocaciones).
 
+### Fase de INTEGRACIONES — scaffolding config-gated COMPLETO (2026-07-13, sin subir)
+Todas las integraciones externas se **activan por env** vía `IntegrationsService` (`api/src/infra/integrations/`): **variable vacía → servicio ignorado; usarlo sin config → 503 "Servicio no disponible"**. `GET /api/v1/public/config` expone `capabilities` + `recaptchaSiteKey` (gating de UI). Variables en `.env.example`; tutoriales en `docs/INTEGRACIONES-CREDENCIALES.md`.
+- **Pagalo (VALUE-READY)** detrás de `PaymentProvider` (`PagaloPaymentProvider`): contrato real pagalocard (`POST https://{dominio}/api/v1/integracion/{credencial}`), webhook-first. Factory por `PAYMENT_PROVIDER` (default **simulador**). **Recurrente (ENV-ONLY)** → 503 sin credenciales.
+- **Google Wallet (VALUE-READY)** (JWT RS256) + **Apple Wallet (ENV-ONLY)** detrás de `WalletProvider` (default **stub**).
+- **FEL (ENV-ONLY, `modules/fel`)**: `FelCertifier` + stub + `FelService` async (cola `FEL`, **nunca bloquea la entrega**), **doble factura** plataforma/promotor (2º juego = TODO migración schema), **fallback NIT→CF**, correlation id. Hook listo; aún NO auto-invocado desde payments.
+- **reCAPTCHA (VALUE-READY, `infra/captcha`)**: `@RequireCaptcha()`+`CaptchaGuard` en signup/login/forgot; si no configurado **OMITE** (no bloquea test/dev, `RECAPTCHA_DISABLED=true` en test). Frontend `RecaptchaService` (SSR-safe).
+- **GitHub Actions**: `test.yml` (cada push+PR, back+front), `staging.yml` (develop), `release-prod.yml` (master→mantenimiento→deploy→tag→quita-mantenimiento). Secrets: `GCP_SA_KEY`, `DEPLOY_ADMIN_TOKEN`, var `PROD_API_URL`.
+- ⚠️ **node_modules de los contenedores = volúmenes anónimos**; tras `make start`/`make down` reinstalar (`docker exec <c> npm install --legacy-peer-deps`) o `make rebuild` (exceljs + deps de wallet/captcha).
+- Features futuras (modo test, modo tour, captcha en todos los formularios): ver memoria `backlog-features-futuras`.
+
 ## Consideraciones transversales de producción (no olvidar)
 - **Reembolsos/contracargos:** al recibir webhook de contracargo/reembolso → invalidar boleto al instante, asentar en el ledger inmutable y **propagar la revocación** a los validadores offline (delta de sincronización). Diseño en Ola 3, propagación en Ola 5.
 - **Pruebas de carga (on-sale):** stress test del flujo hold(Redis)+commit(Postgres FOR UPDATE) con **k6/Artillery/Gatling** en local/staging antes de prod; demostrar 0 doble-venta bajo miles de req/s. Empieza en Ola 2, se refuerza en Ola 6.

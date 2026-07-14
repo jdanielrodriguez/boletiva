@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
-import { EMPTY, Observable, catchError, tap } from 'rxjs';
+import { EMPTY, Observable, catchError, from, switchMap, tap } from 'rxjs';
 import { AuthApi } from '../api/auth.api';
+import { RecaptchaService } from '../security/recaptcha.service';
 import type {
   AuthSessionResponseDto,
   ChangePasswordDto,
@@ -30,6 +31,7 @@ export class AuthService {
   private readonly session = inject(SessionStore);
   private readonly impersonation = inject(ImpersonationService);
   private readonly i18n = inject(I18nService);
+  private readonly recaptcha = inject(RecaptchaService);
 
   /**
    * Login por contraseña. Si el backend responde `ok` con tokens, arranca la
@@ -37,7 +39,10 @@ export class AuthService {
    * pida el segundo factor.
    */
   login(dto: LoginDto): Observable<LoginResponseDto> {
-    return this.authApi.login(dto).pipe(tap((res) => this.applyLogin(res)));
+    return from(this.recaptcha.execute('login')).pipe(
+      switchMap((token) => this.authApi.login(dto, token)),
+      tap((res) => this.applyLogin(res)),
+    );
   }
 
   /** Completa el login de 2 pasos con el segundo factor. */
@@ -47,7 +52,8 @@ export class AuthService {
 
   /** Registro; el backend devuelve usuario + tokens (correo aún sin verificar). */
   signup(dto: SignupDto): Observable<SignupResponseDto> {
-    return this.authApi.signup(dto).pipe(
+    return from(this.recaptcha.execute('signup')).pipe(
+      switchMap((token) => this.authApi.signup(dto, token)),
       tap((res) => {
         this.tokens.setAccessToken(res.tokens.accessToken);
         this.session.setUser(res.user);
@@ -80,7 +86,9 @@ export class AuthService {
 
   /** Solicita el enlace de recuperación (flujo no autenticado). */
   forgotPassword(dto: ForgotPasswordDto): Observable<MessageResponseDto> {
-    return this.authApi.forgotPassword(dto);
+    return from(this.recaptcha.execute('forgot_password')).pipe(
+      switchMap((token) => this.authApi.forgotPassword(dto, token)),
+    );
   }
 
   /** Restablece la contraseña con el token del correo (flujo no autenticado). */

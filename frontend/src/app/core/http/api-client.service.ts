@@ -10,6 +10,8 @@ type QueryParams = Record<string, string | number | boolean | undefined | null>;
 interface RequestOptions {
   /** No oscurecer la pantalla con el overlay de carga global (sondeo de fondo). */
   silent?: boolean;
+  /** Cabeceras extra (p.ej. `x-captcha-token`). Vacías/ausentes se ignoran. */
+  headers?: Record<string, string>;
 }
 
 /**
@@ -36,6 +38,7 @@ export class ApiClient {
       params: this.params(query),
       withCredentials: true,
       context: opts?.silent ? silentContext() : undefined,
+      headers: opts?.headers,
     });
   }
 

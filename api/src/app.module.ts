@@ -8,6 +8,7 @@ import { configuration } from './config/configuration';
 import { envValidationSchema } from './config/env.validation';
 import { PrismaModule } from './infra/prisma/prisma.module';
 import { CryptoModule } from './infra/crypto/crypto.module';
+import { IntegrationsModule } from './infra/integrations/integrations.module';
 import { RedisModule } from './infra/redis/redis.module';
 import { QueueModule } from './infra/queue/queue.module';
 import { MailModule } from './infra/mail/mail.module';
@@ -44,6 +45,7 @@ import { MaintenanceModule } from './modules/maintenance/maintenance.module';
 import { MaintenanceGuard } from './modules/maintenance/maintenance.guard';
 import { AuditModule } from './modules/audit/audit.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { FelModule } from './modules/fel/fel.module';
 
 @Module({
   imports: [
@@ -80,6 +82,7 @@ import { AdminModule } from './modules/admin/admin.module';
     }),
     PrismaModule,
     CryptoModule,
+    IntegrationsModule,
     RedisModule,
     QueueModule,
     MailModule,
@@ -112,6 +115,7 @@ import { AdminModule } from './modules/admin/admin.module';
     MaintenanceModule,
     AuditModule,
     AdminModule,
+    FelModule,
   ],
   providers: [
     // Orden importa: autentica (JWT) → corta si hay mantenimiento (503, salvo admin

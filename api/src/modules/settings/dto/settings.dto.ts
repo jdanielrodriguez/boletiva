@@ -23,6 +23,26 @@ export class PublicConfigDto {
     example: true,
   })
   showHomeCategories!: boolean;
+
+  @ApiProperty({
+    description: 'Integraciones externas configuradas y disponibles (gating de UI).',
+    example: {
+      recurrente: false,
+      pagalo: false,
+      fel: false,
+      appleWallet: false,
+      googleWallet: false,
+      recaptcha: false,
+    },
+    additionalProperties: { type: 'boolean' },
+  })
+  capabilities!: Record<string, boolean>;
+
+  @ApiProperty({
+    description: 'Site key pública de reCAPTCHA (vacía si no está configurada).',
+    example: '',
+  })
+  recaptchaSiteKey!: string;
 }
 
 export class SettingViewDto {

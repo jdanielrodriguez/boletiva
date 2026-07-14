@@ -20,10 +20,13 @@ export class PublicConfigStore {
 
   private readonly _allowVisitorLangSwitch = signal(false);
   private readonly _showHomeCategories = signal(true);
+  private readonly _recaptchaSiteKey = signal('');
   private readonly _loaded = signal(false);
 
   readonly allowVisitorLangSwitch = this._allowVisitorLangSwitch.asReadonly();
   readonly showHomeCategories = this._showHomeCategories.asReadonly();
+  /** Site key pública de reCAPTCHA v3 ('' = deshabilitado; RecaptchaService la lee). */
+  readonly recaptchaSiteKey = this._recaptchaSiteKey.asReadonly();
   /** true una vez resuelta (o fallida) la consulta inicial. */
   readonly loaded = this._loaded.asReadonly();
 
@@ -47,6 +50,7 @@ export class PublicConfigStore {
       next: (c) => {
         this._allowVisitorLangSwitch.set(c.allowVisitorLangSwitch);
         this._showHomeCategories.set(c.showHomeCategories);
+        this._recaptchaSiteKey.set(c.recaptchaSiteKey ?? '');
         this._loaded.set(true);
       },
       error: () => this._loaded.set(true),

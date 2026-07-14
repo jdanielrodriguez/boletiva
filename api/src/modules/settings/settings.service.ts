@@ -1,5 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { IntegrationsService, IntegrationService } from '../../infra/integrations/integrations.service';
 import {
   PUBLIC_CONFIG_KEYS,
   SETTINGS_BY_KEY,
@@ -11,6 +13,10 @@ import {
 export interface PublicConfig {
   allowVisitorLangSwitch: boolean;
   showHomeCategories: boolean;
+  /** Qué integraciones externas están configuradas (para gating de UI). */
+  capabilities: Record<IntegrationService, boolean>;
+  /** Site key pública de reCAPTCHA (vacía si no está configurada). */
+  recaptchaSiteKey: string;
 }
 
 export interface SettingView {
@@ -29,7 +35,11 @@ export interface SettingView {
  */
 @Injectable()
 export class SettingsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly integrations: IntegrationsService,
+    private readonly config: ConfigService,
+  ) {}
 
   /** Lista el catálogo completo con el valor actual (default si no está en BD). */
   async list(): Promise<SettingView[]> {
@@ -57,6 +67,8 @@ export class SettingsService {
     return {
       allowVisitorLangSwitch: resolveBool(PUBLIC_CONFIG_KEYS.allowVisitorLangSwitch),
       showHomeCategories: resolveBool(PUBLIC_CONFIG_KEYS.showHomeCategories),
+      capabilities: this.integrations.capabilities(),
+      recaptchaSiteKey: this.config.get<string>('recaptcha.siteKey') ?? '',
     };
   }
 
