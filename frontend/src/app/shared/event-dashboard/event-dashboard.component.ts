@@ -35,6 +35,15 @@ const PALETTE = {
         flex-direction: column;
         gap: 1rem;
       }
+      .dash-preview-note {
+        margin: 0;
+        padding: 0.6rem 0.9rem;
+        border: 1px dashed var(--pe-accent, #c026d3);
+        border-radius: 10px;
+        background: var(--pe-accent-soft, rgba(192, 38, 211, 0.08));
+        color: var(--pe-accent, #c026d3);
+        font-size: 0.9rem;
+      }
       .dash-kpis {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -159,15 +168,19 @@ export class EventDashboardComponent {
     return (Number(d.gross) - Number(d.net)).toFixed(2);
   });
 
-  /** Sin órdenes pagadas → estado "aún sin ventas". */
+  /**
+   * Sin órdenes pagadas → aún NO hay ventas. NO oculta el dashboard: se muestra en
+   * cero (vista previa) con un aviso, para que el promotor vea cómo se verá.
+   */
   protected readonly isEmpty = computed(() => {
     const d = this.data();
     return !this.loading() && !this.error() && !!d && d.summary.paidOrders === 0;
   });
-  protected readonly hasData = computed(() => {
-    const d = this.data();
-    return !this.loading() && !this.error() && !!d && d.summary.paidOrders > 0;
-  });
+
+  /** Texto de las gráficas cuando no hay datos (preview vacío amable). */
+  private noData(): { text: string } {
+    return { text: this.t.instant('promoter.dash.noData') };
+  }
 
   // ---- Opciones de las gráficas (ApexCharts) ----
 
@@ -191,6 +204,7 @@ export class EventDashboardComponent {
       dataLabels: { enabled: false },
       legend: { position: 'top' },
       grid: { borderColor: 'rgba(148,163,184,0.2)' },
+      noData: this.noData(),
     };
   });
 
@@ -206,6 +220,7 @@ export class EventDashboardComponent {
       dataLabels: { enabled: true, formatter: (v: number) => `${v}%` },
       legend: { show: false },
       grid: { borderColor: 'rgba(148,163,184,0.2)' },
+      noData: this.noData(),
     };
   });
 
@@ -224,6 +239,7 @@ export class EventDashboardComponent {
       colors: [PALETTE.accent2, PALETTE.success, PALETTE.warning, PALETTE.danger],
       legend: { position: 'bottom' },
       dataLabels: { enabled: true },
+      noData: this.noData(),
     };
   });
 }

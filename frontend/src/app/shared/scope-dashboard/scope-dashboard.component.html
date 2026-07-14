@@ -11,16 +11,11 @@
       [title]="'common.errorLoading' | translate"
       [subtitle]="'config.dash.error' | translate"
     />
-  } @else if (isEmpty()) {
-    <app-empty-state
-      variant="billing"
-      data-testid="scope-empty"
-      [title]="'config.dash.emptyTitle' | translate"
-      [subtitle]="'config.dash.emptyBody' | translate"
-    />
-  }
-
-  @if (hasData() && data(); as d) {
+  } @else if (data()) {
+    @let d = data()!;
+    @if (isEmpty()) {
+      <p class="dash-preview-note" data-testid="scope-preview">{{ 'config.dash.previewNotice' | translate }}</p>
+    }
     <div class="dash-kpis" data-testid="scope-kpis">
       <div class="kpi">
         <span class="kpi-label">{{ 'config.dash.events' | translate }}</span>

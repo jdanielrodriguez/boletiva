@@ -98,11 +98,12 @@ describe('EventDashboardComponent', () => {
     expect(kpis).toContain('39.60'); // IVA
   });
 
-  it('estado vacío cuando no hay órdenes pagadas', async () => {
+  it('sin ventas → vista previa: aviso + dashboard en cero (KPIs visibles)', async () => {
     await setup(() => of({ ...DATA, summary: { ...DATA.summary, paidOrders: 0 } }), false);
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('[data-testid="dash-empty"]')).not.toBeNull();
-    expect(el.querySelector('[data-testid="dash-kpis"]')).toBeNull();
+    // Aviso de vista previa presente y el dashboard SÍ se muestra (no se oculta).
+    expect(el.querySelector('[data-testid="dash-preview"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="dash-kpis"]')).not.toBeNull();
   });
 
   it('estado de error si el endpoint falla', async () => {

@@ -68,10 +68,10 @@ describe('ScopeDashboardComponent', () => {
     expect(top).toContain('Feria');
   });
 
-  it('estado vacío cuando no hay ventas', async () => {
+  it('sin ventas → vista previa: aviso + dashboard en cero (KPIs visibles)', async () => {
     await setup('template', () => of({ ...DATA, summary: { ...DATA.summary, paidOrders: 0 } }));
-    expect(fixture.nativeElement.querySelector('[data-testid="scope-empty"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('[data-testid="scope-kpis"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="scope-preview"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="scope-kpis"]')).not.toBeNull();
   });
 
   it('estado de error si el endpoint falla', async () => {

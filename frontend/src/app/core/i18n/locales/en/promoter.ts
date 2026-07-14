@@ -401,6 +401,8 @@ export const promoter = {
     error: 'Could not load the event dashboard.',
     emptyTitle: 'No sales yet',
     emptyBody: 'Once the first purchase is completed you will see the event charts and metrics here.',
+    previewNotice: 'No sales yet. This is a preview of your dashboard: it will fill in automatically with the first purchase.',
+    noData: 'No data yet',
     gross: 'Collected',
     net: 'Promoter net',
     services: 'Services',

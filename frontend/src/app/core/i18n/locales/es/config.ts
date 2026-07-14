@@ -437,6 +437,8 @@ export const config = {
     error: 'No se pudo cargar el dashboard.',
     emptyTitle: 'Aún sin ventas',
     emptyBody: 'Cuando los eventos vinculados registren ventas verás aquí las métricas.',
+    previewNotice: 'Aún no hay ventas en este alcance. Vista previa del dashboard: se llenará automáticamente cuando los eventos vendan.',
+    noData: 'Sin datos todavía',
     events: 'Eventos',
     gross: 'Recaudado',
     net: 'Neto',

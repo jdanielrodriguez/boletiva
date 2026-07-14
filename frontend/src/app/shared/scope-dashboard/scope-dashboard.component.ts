@@ -32,6 +32,15 @@ const PALETTE = {
         flex-direction: column;
         gap: 1rem;
       }
+      .dash-preview-note {
+        margin: 0;
+        padding: 0.6rem 0.9rem;
+        border: 1px dashed var(--pe-accent, #c026d3);
+        border-radius: 10px;
+        background: var(--pe-accent-soft, rgba(192, 38, 211, 0.08));
+        color: var(--pe-accent, #c026d3);
+        font-size: 0.9rem;
+      }
       .dash-kpis {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -128,15 +137,19 @@ export class ScopeDashboardComponent {
 
   protected readonly currency = computed(() => this.data()?.currency ?? 'GTQ');
 
-  /** Sin eventos vinculados o sin ventas → estado vacío. */
+  /**
+   * Sin ventas aún: NO oculta el dashboard, se muestra en cero (vista previa) con un
+   * aviso, para que se vea cómo lucirá cuando los eventos del alcance vendan.
+   */
   protected readonly isEmpty = computed(() => {
     const d = this.data();
     return !this.loading() && !this.error() && !!d && d.summary.paidOrders === 0;
   });
-  protected readonly hasData = computed(() => {
-    const d = this.data();
-    return !this.loading() && !this.error() && !!d && d.summary.paidOrders > 0;
-  });
+
+  /** Texto de las gráficas vacías (preview amable). */
+  private noData(): { text: string } {
+    return { text: this.t.instant('config.dash.noData') };
+  }
 
   protected readonly salesOptions = computed<ChartOptions>(() => {
     const pts = this.data()?.salesOverTime ?? [];
@@ -150,6 +163,7 @@ export class ScopeDashboardComponent {
       fill: { type: 'gradient', opacity: 0.35 },
       dataLabels: { enabled: false },
       grid: { borderColor: 'rgba(148,163,184,0.2)' },
+      noData: this.noData(),
     };
   });
 
@@ -164,6 +178,7 @@ export class ScopeDashboardComponent {
       dataLabels: { enabled: false },
       legend: { show: false },
       grid: { borderColor: 'rgba(148,163,184,0.2)' },
+      noData: this.noData(),
     };
   });
 }

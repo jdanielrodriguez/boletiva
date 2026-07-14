@@ -434,6 +434,8 @@ export const config = {
     error: 'Could not load the dashboard.',
     emptyTitle: 'No sales yet',
     emptyBody: 'Once the linked events record sales you will see the metrics here.',
+    previewNotice: 'No sales in this scope yet. Dashboard preview: it will fill in automatically once the events sell.',
+    noData: 'No data yet',
     events: 'Events',
     gross: 'Collected',
     net: 'Net',

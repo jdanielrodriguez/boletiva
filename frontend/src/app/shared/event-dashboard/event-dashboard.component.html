@@ -8,16 +8,12 @@
       [title]="'common.errorLoading' | translate"
       [subtitle]="'promoter.dash.error' | translate"
     />
-  } @else if (isEmpty()) {
-    <app-empty-state
-      variant="billing"
-      data-testid="dash-empty"
-      [title]="'promoter.dash.emptyTitle' | translate"
-      [subtitle]="'promoter.dash.emptyBody' | translate"
-    />
-  }
-
-  @if (hasData() && data(); as d) {
+  } @else if (data()) {
+    @let d = data()!;
+    @if (isEmpty()) {
+      <!-- Vista previa: sin ventas aún, se muestra el dashboard en cero -->
+      <p class="dash-preview-note" data-testid="dash-preview">{{ 'promoter.dash.previewNotice' | translate }}</p>
+    }
     <!-- KPIs -->
     <div class="dash-kpis" data-testid="dash-kpis">
       <div class="kpi">

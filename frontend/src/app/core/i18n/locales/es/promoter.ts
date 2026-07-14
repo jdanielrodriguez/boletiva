@@ -400,6 +400,8 @@ export const promoter = {
     error: 'No se pudo cargar el dashboard del evento.',
     emptyTitle: 'Aún sin ventas',
     emptyBody: 'Cuando se concrete la primera compra verás aquí las gráficas y métricas del evento.',
+    previewNotice: 'Aún no hay ventas. Esta es una vista previa de tu dashboard: se llenará automáticamente con la primera compra.',
+    noData: 'Sin datos todavía',
     gross: 'Recaudado',
     net: 'Neto del promotor',
     services: 'Servicios',
