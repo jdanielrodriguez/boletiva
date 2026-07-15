@@ -212,9 +212,9 @@ export class TicketMediaService implements OnModuleInit {
         .fillColor('#ffffff')
         .font('Helvetica-Bold')
         .fontSize(26)
-        .text('pasa', M, heroH - 52, { continued: true })
+        .text('bolet', M, heroH - 52, { continued: true })
         .fillColor('#c4b5fd')
-        .text('eventos');
+        .text('iva');
       doc
         .fillColor('#ffffff')
         .font('Helvetica')

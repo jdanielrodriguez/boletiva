@@ -41,6 +41,6 @@ describe('StubBannerProvider', () => {
 
   it('sin prompt cae al tagline de marca', async () => {
     const img = await provider.generate({ eventName: 'Show' });
-    expect(img.body.toString('utf8')).toContain('pasa eventos');
+    expect(img.body.toString('utf8')).toContain('boletiva');
   });
 });

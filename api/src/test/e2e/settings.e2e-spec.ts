@@ -22,6 +22,23 @@ describe('Configuraciones (settings) e2e', () => {
     adminToken = await login(app, SEED.admin);
     promoterToken = await login(app, SEED.promoter);
     snapshot = await prisma.setting.findMany();
+    // Determinismo: borra los flags/temas que otras suites pudieron dejar cambiados
+    // (la suite serial comparte BD) → publicConfig cae a los defaults del catálogo, así
+    // los asserts de "defaults" no dependen del estado previo. El afterAll restaura todo.
+    await prisma.setting.deleteMany({
+      where: {
+        key: {
+          in: [
+            'i18n.allow_visitor_switch',
+            'home.show_categories',
+            'theme.slot.dia',
+            'theme.slot.noche',
+            'theme.default_franja',
+            'theme.allow_visitor_switch',
+          ],
+        },
+      },
+    });
   });
 
   afterAll(async () => {

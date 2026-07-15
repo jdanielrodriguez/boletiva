@@ -43,7 +43,7 @@ export class StubBannerProvider implements BannerProvider {
 
   async generate(prompt: BannerPrompt): Promise<BannerImage> {
     const lines = wrap(prompt.eventName || 'Evento');
-    const cat = prompt.categoryName ? xml(prompt.categoryName.toUpperCase()) : 'PASA EVENTOS';
+    const cat = prompt.categoryName ? xml(prompt.categoryName.toUpperCase()) : 'BOLETIVA';
     const [c0, c1, c2] = PALETTES[prompt.template ?? 'aurora'] ?? PALETTES.aurora;
     const titleSpans = lines
       .map((l, i) => `<tspan x="600" dy="${i === 0 ? 0 : 72}">${xml(l)}</tspan>`)
@@ -52,7 +52,7 @@ export class StubBannerProvider implements BannerProvider {
     // instrucción de forma visible; el proveedor real la interpreta con IA.
     const tagline = prompt.prompt
       ? xml(prompt.prompt.trim().slice(0, 60))
-      : 'pasa eventos';
+      : 'boletiva';
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="628" viewBox="0 0 1200 628">
   <defs>
     <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">

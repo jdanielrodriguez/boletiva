@@ -123,7 +123,7 @@ export const configuration = (): AppConfig => {
     isDev: env === 'development',
     isTest: env === 'test',
     port: parseInt(process.env.PORT ?? '8080', 10),
-    appName: process.env.APP_NAME ?? 'PasaEventos',
+    appName: process.env.APP_NAME ?? 'Boletiva',
     database: { url: process.env.DATABASE_URL as string },
     redis: { url: process.env.REDIS_URL as string },
     // inline: el ingest de validación se aplica síncrono (tests deterministas y sin

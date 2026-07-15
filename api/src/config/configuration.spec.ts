@@ -42,6 +42,6 @@ describe('configuration()', () => {
     delete process.env.APP_NAME;
     const c = configuration();
     expect(c.port).toBe(8080);
-    expect(c.appName).toBe('PasaEventos');
+    expect(c.appName).toBe('Boletiva');
   });
 });

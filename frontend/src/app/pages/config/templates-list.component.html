@@ -65,18 +65,19 @@
               <app-icon name="activate" /> {{ 'config.templates.enable' | translate }}
             </button>
           }
-          @if (!t.isBuiltIn) {
-            @if (canEditState(t)) {
-              <button type="button" class="btn small" (click)="editTemplate(t)" data-testid="tpl-edit" [title]="'config.templates.editTitle' | translate">
-                <app-icon name="edit" /> {{ 'common.edit' | translate }}
-              </button>
-            }
-            <button type="button" class="btn small danger icon-only" (click)="askRemove(t)" [disabled]="!canDelete(t)" data-testid="tpl-remove"
-              [attr.aria-label]="'common.delete' | translate"
-              [title]="(canDelete(t) ? 'config.templates.removeTitle' : 'config.templates.deleteBlocked') | translate">
-              <app-icon name="delete" />
+          @if (canEditState(t)) {
+            <button type="button" class="btn small" (click)="editTemplate(t)" data-testid="tpl-edit" [title]="'config.templates.editTitle' | translate">
+              <app-icon name="edit" /> {{ 'common.edit' | translate }}
             </button>
-          } @else {
+          }
+          <!-- Eliminar SIEMPRE visible (paridad con salones): deshabilitado si es del
+               sistema o no está deshabilitada, con tooltip que explica por qué. -->
+          <button type="button" class="btn small danger icon-only" (click)="askRemove(t)" [disabled]="!canDelete(t)" data-testid="tpl-remove"
+            [attr.aria-label]="'common.delete' | translate"
+            [title]="(t.isBuiltIn ? 'config.templates.builtInNote' : (canDelete(t) ? 'config.templates.removeTitle' : 'config.templates.deleteBlocked')) | translate">
+            <app-icon name="delete" />
+          </button>
+          @if (t.isBuiltIn) {
             <span class="muted small" data-testid="tpl-builtin-note">{{ 'config.templates.builtInNote' | translate }}</span>
           }
           <button type="button" class="btn small" (click)="openDashboard(t)" data-testid="tpl-dashboard" [title]="'config.dash.templateTitle' | translate">

@@ -452,6 +452,110 @@ async function seedDemoEvent(promoterId: string, categoryId: string): Promise<vo
   });
 }
 
+/**
+ * Evento PASADO ya concluido (endsAt en el pasado) con boletos PAGADOS por el cliente.
+ * Sirve para demostrar la LIQUIDACIÓN de caja sin tener que suspender un evento: un
+ * evento publicado cuya fecha ya pasó es elegible para `settlement/finalize`. Deja el
+ * snapshot financiero en las órdenes (server-authoritative) para que la liquidación
+ * transfiera el neto del promotor; los boletos aparecen en "Boletos pasados" del cliente.
+ * NOTA: no pre-asienta el pago en el ledger (el seed no usa LedgerService); al finalizar,
+ * el ledger registra el traslado del neto → wallet (chain válido). Idempotente por slug.
+ */
+async function seedPastSoldEvent(
+  promoterId: string,
+  categoryId: string,
+  buyerId: string,
+): Promise<void> {
+  const slug = 'evento-pasado-liquidable';
+  if (await prisma.event.findUnique({ where: { slug } })) return;
+
+  const event = await prisma.event.create({
+    data: {
+      promoterId,
+      categoryId,
+      name: 'Concierto de Prueba (concluido)',
+      slug,
+      description: 'Evento ya concluido con ventas, listo para generar la liquidación.',
+      address: 'Ciudad de Guatemala',
+      lat: 14.6349,
+      lng: -90.5069,
+      startsAt: new Date('2026-06-01T20:00:00-06:00'),
+      endsAt: new Date('2026-06-01T23:00:00-06:00'),
+      status: 'published', // concluido por FECHA (endsAt pasado) → elegible para liquidar
+    },
+  });
+
+  const general = await prisma.locality.create({
+    data: {
+      eventId: event.id,
+      name: 'General',
+      slug: 'general',
+      kind: 'general',
+      desiredNet: 75,
+      capacity: 100,
+    },
+  });
+  await prisma.seat.createMany({
+    data: Array.from({ length: 100 }, (_, i) => ({ localityId: general.id, label: `GA-${i + 1}` })),
+    skipDuplicates: true,
+  });
+
+  // Orden PAGADA del cliente: 2 boletos generales. Snapshot coherente
+  // (total = net + platformFee + fixedFees + iva + gatewayFee).
+  const perTicket = { net: 75, platformFee: 7.5, iva: 9.9, gatewayFee: 5.1, total: 97.5 };
+  const order = await prisma.order.create({
+    data: {
+      buyerId,
+      eventId: event.id,
+      status: 'paid',
+      net: '150.00',
+      platformFee: '15.00',
+      fixedFees: '0.00',
+      taxableBase: '165.00',
+      iva: '19.80',
+      gatewayFee: '10.20',
+      total: '195.00',
+      paidAt: new Date('2026-05-20T12:00:00-06:00'),
+    },
+  });
+  const items = await Promise.all(
+    [1, 2].map((n) =>
+      prisma.orderItem.create({
+        data: {
+          orderId: order.id,
+          localityId: general.id,
+          label: `GA-${n}`,
+          net: perTicket.net.toFixed(2),
+          total: perTicket.total.toFixed(2),
+          quote: {},
+          quoteHash: `seed-past-${n}`,
+          active: true,
+        },
+      }),
+    ),
+  );
+
+  // Un boleto emitido por línea (aparecen en "Boletos pasados" del cliente).
+  await Promise.all(
+    items.map((it, i) =>
+      prisma.ticket.create({
+        data: {
+          orderItemId: it.id,
+          orderId: order.id,
+          eventId: event.id,
+          localityId: general.id,
+          ownerId: buyerId,
+          status: 'valid',
+          serial: `SEED-PAST-${i + 1}`,
+          totpSecret: 'seed',
+          signature: 'seed',
+          signingKeyId: 'seed',
+        },
+      }),
+    ),
+  );
+}
+
 async function main(): Promise<void> {
   await seedSettings();
   await seedFeeSchedule();
@@ -461,6 +565,11 @@ async function main(): Promise<void> {
   const users = await seedUsers();
   const categories = await seedCategories(users['admin@pasaeventos.com']);
   await seedDemoEvent(users['promotor@pasaeventos.com'], categories['Concierto']);
+  await seedPastSoldEvent(
+    users['promotor@pasaeventos.com'],
+    categories['Concierto'],
+    users['cliente@pasaeventos.com'],
+  );
 
   const [settings, userCount, catCount, eventCount, hallCount, tplCount] = await Promise.all([
     prisma.setting.count(),
