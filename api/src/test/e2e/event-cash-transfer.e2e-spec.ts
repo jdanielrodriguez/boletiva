@@ -116,6 +116,15 @@ describe('Finalizar evento y transferir caja (e2e)', () => {
     expect(ev.status).toBe('finished');
     expect(ev.cashTransferredAt).not.toBeNull();
     expect((await ledger.verifyChain()).ok).toBe(true);
+
+    // La liquidación aparece en el historial del promotor (kind=settlement + monto).
+    const hist = await http()
+      .get(`/api/v1/promoters/${promoterId}/history`)
+      .set(bearer(adminToken))
+      .expect(200);
+    const settle = hist.body.find((h: { kind: string }) => h.kind === 'settlement');
+    expect(settle).toBeDefined();
+    expect(settle.amount).toBe('100.00');
   });
 
   it('idempotente: transferir dos veces el mismo evento → 409', async () => {

@@ -2,7 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import { AdminApi, PromoterStatusEventDto } from '../../core/api/admin.api';
+import { AdminApi, PromoterHistoryItemDto } from '../../core/api/admin.api';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { ToastService } from '../../core/ui/toast.service';
 import { IconComponent } from '../../shared/icon/icon.component';
@@ -11,7 +11,6 @@ import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { LoadingComponent } from '../../shared/ui/loading.component';
 import { SearchFieldComponent } from '../../shared/ui/search-field.component';
 
-type StatusValue = PromoterStatusEventDto['statusTo'];
 
 /**
  * Historial de estados de un promotor en PÁGINA dedicada (v3.6, roleGuard admin).
@@ -45,7 +44,7 @@ export class PromoterHistoryPage {
     this.route.snapshot.queryParamMap.get('name') ?? '',
   );
   protected readonly loading = signal(true);
-  protected readonly events = signal<PromoterStatusEventDto[]>([]);
+  protected readonly events = signal<PromoterHistoryItemDto[]>([]);
 
   /** Búsqueda libre (por motivo o estado). */
   protected readonly search = signal('');
@@ -56,7 +55,7 @@ export class PromoterHistoryPage {
 
   /** Estados destino presentes en el historial (para el selector de filtro). */
   protected readonly availableStatuses = computed(() =>
-    [...new Set(this.events().map((e) => e.statusTo))].sort(),
+    [...new Set(this.events().map((e) => e.statusTo).filter((s): s is string => !!s))].sort(),
   );
 
   protected readonly filtered = computed(() => {
@@ -65,7 +64,8 @@ export class PromoterHistoryPage {
     const list = this.events().filter((e) => {
       if (st && e.statusTo !== st) return false;
       if (!q) return true;
-      const hay = `${e.statusFrom} ${e.statusTo} ${e.reason ?? ''}`.toLowerCase();
+      const hay =
+        `${e.statusFrom ?? ''} ${e.statusTo ?? ''} ${e.reason ?? ''} ${e.eventName ?? ''}`.toLowerCase();
       return hay.includes(q);
     });
     const dir = this.sortDesc() ? -1 : 1;
@@ -96,7 +96,7 @@ export class PromoterHistoryPage {
     this.sortDesc.update((v) => !v);
   }
 
-  protected statusLabel(s: StatusValue): string {
-    return this.translate.instant('promoterHistory.status.' + s);
+  protected statusLabel(s: string | null): string {
+    return s ? this.translate.instant('promoterHistory.status.' + s) : '';
   }
 }

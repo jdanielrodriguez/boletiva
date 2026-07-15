@@ -12,6 +12,8 @@ export const promoterHistory = {
   colAdmin: 'Executed by',
   colReason: 'Reason',
   system: 'System',
+  settlement: 'Settlement',
+  transferred: 'transferred to wallet',
   noMatch: 'No change matches the filter.',
   noMatchHint: 'Adjust the search or status filter to see more results.',
   status: {

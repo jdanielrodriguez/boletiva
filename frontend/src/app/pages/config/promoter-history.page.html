@@ -39,15 +39,24 @@
           </thead>
           <tbody>
             @for (e of filtered(); track e.id) {
-              <tr data-testid="ph-row">
+              <tr data-testid="ph-row" [attr.data-kind]="e.kind">
                 <td class="muted small">{{ e.createdAt | localizedDate: 'd MMM y, HH:mm' }}</td>
-                <td class="ph-change">
-                  <span class="badge badge-{{ e.statusFrom }}">{{ statusLabel(e.statusFrom) }}</span>
-                  <span class="ph-arrow">→</span>
-                  <span class="badge badge-{{ e.statusTo }}">{{ statusLabel(e.statusTo) }}</span>
-                </td>
-                <td class="muted small">{{ e.adminId ? e.adminId : ('promoterHistory.system' | translate) }}</td>
-                <td>{{ e.reason || '—' }}</td>
+                @if (e.kind === 'settlement') {
+                  <td class="ph-change">
+                    <span class="badge badge-approved" data-testid="ph-settlement">{{ 'promoterHistory.settlement' | translate }}</span>
+                    @if (e.eventName) { <span class="ph-event">{{ e.eventName }}</span> }
+                  </td>
+                  <td class="muted small">{{ 'promoterHistory.system' | translate }}</td>
+                  <td><strong>Q{{ e.amount }}</strong> {{ 'promoterHistory.transferred' | translate }}</td>
+                } @else {
+                  <td class="ph-change">
+                    <span class="badge badge-{{ e.statusFrom }}">{{ statusLabel(e.statusFrom) }}</span>
+                    <span class="ph-arrow">→</span>
+                    <span class="badge badge-{{ e.statusTo }}">{{ statusLabel(e.statusTo) }}</span>
+                  </td>
+                  <td class="muted small">{{ e.adminId ? e.adminId : ('promoterHistory.system' | translate) }}</td>
+                  <td>{{ e.reason || '—' }}</td>
+                }
               </tr>
             }
           </tbody>

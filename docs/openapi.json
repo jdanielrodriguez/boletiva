@@ -2108,7 +2108,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/PromoterStatusEventDto"
+                    "$ref": "#/components/schemas/PromoterHistoryItemDto"
                   }
                 }
               }
@@ -10018,61 +10018,66 @@
           }
         }
       },
-      "PromoterStatusEventDto": {
+      "PromoterHistoryItemDto": {
         "type": "object",
         "properties": {
           "id": {
             "type": "string",
             "format": "uuid"
           },
-          "promoterId": {
+          "kind": {
             "type": "string",
-            "format": "uuid"
+            "enum": [
+              "status",
+              "settlement"
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
           },
           "adminId": {
             "type": "string",
             "format": "uuid",
             "nullable": true,
-            "description": "Admin que ejecutó (null = sistema)"
+            "description": "Admin que ejecutó (solo status; null = sistema)"
           },
           "statusFrom": {
             "type": "string",
-            "enum": [
-              "none",
-              "pending",
-              "approved",
-              "rejected",
-              "suspended"
-            ]
+            "nullable": true,
+            "description": "Estado origen (solo status)"
           },
           "statusTo": {
             "type": "string",
-            "enum": [
-              "none",
-              "pending",
-              "approved",
-              "rejected",
-              "suspended"
-            ]
+            "nullable": true,
+            "description": "Estado destino (solo status)"
           },
           "reason": {
             "type": "string",
             "nullable": true,
-            "description": "Motivo de la transición"
+            "description": "Motivo / memo"
           },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
+          "eventName": {
+            "type": "string",
+            "nullable": true,
+            "description": "Evento liquidado (solo settlement)"
+          },
+          "amount": {
+            "type": "string",
+            "nullable": true,
+            "description": "Neto transferido en GTQ (solo settlement)"
           }
         },
         "required": [
           "id",
-          "promoterId",
+          "kind",
+          "createdAt",
           "adminId",
           "statusFrom",
           "statusTo",
           "reason",
-          "createdAt"
+          "eventName",
+          "amount"
         ]
       },
       "SetPromoterNoteDto": {

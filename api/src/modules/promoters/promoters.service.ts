@@ -140,13 +140,65 @@ export class PromotersService {
     return this.summarize(updated);
   }
 
-  /** Historial append-only de transiciones de estado de un promotor (admin). */
+  /**
+   * Historial del promotor (admin): línea de tiempo unificada de dos tipos de evento
+   * (`kind`): transiciones de ESTADO (`promoter_status_events`) y LIQUIDACIONES de caja
+   * (cierre de evento que transfirió su neto al wallet del promotor, del ledger
+   * `event_cash_transfer`). Ordenado por fecha desc. Append-only en ambos casos.
+   */
   async history(id: string) {
     await this.getUser(id); // 404 si no existe
-    return this.prisma.promoterStatusEvent.findMany({
+
+    const statusEvents = await this.prisma.promoterStatusEvent.findMany({
       where: { promoterId: id },
       orderBy: { createdAt: 'desc' },
     });
+
+    // Liquidaciones: eventos del promotor con caja transferida + su asiento en el ledger.
+    const settledEvents = await this.prisma.event.findMany({
+      where: { promoterId: id, cashTransferredAt: { not: null } },
+      select: { id: true, name: true },
+    });
+    const eventById = new Map(settledEvents.map((e) => [e.id, e.name]));
+    const transfers = settledEvents.length
+      ? await this.prisma.ledgerTransaction.findMany({
+          where: { kind: 'event_cash_transfer', refType: 'event', refId: { in: [...eventById.keys()] } },
+          include: { entries: true },
+          orderBy: { createdAt: 'desc' },
+        })
+      : [];
+
+    const statusItems = statusEvents.map((e) => ({
+      id: e.id,
+      kind: 'status' as const,
+      createdAt: e.createdAt,
+      adminId: e.adminId as string | null,
+      statusFrom: e.statusFrom as string | null,
+      statusTo: e.statusTo as string | null,
+      reason: e.reason,
+      eventName: null as string | null,
+      amount: null as string | null,
+    }));
+
+    const settlementItems = transfers.map((t) => {
+      // El asiento positivo (a user_wallet) es el neto transferido al promotor.
+      const credited = t.entries.reduce((max, en) => (Number(en.amount) > max ? Number(en.amount) : max), 0);
+      return {
+        id: t.id,
+        kind: 'settlement' as const,
+        createdAt: t.createdAt,
+        adminId: null as string | null,
+        statusFrom: null as string | null,
+        statusTo: null as string | null,
+        reason: t.memo ?? null,
+        eventName: (t.refId && eventById.get(t.refId)) || null,
+        amount: credited.toFixed(2),
+      };
+    });
+
+    return [...statusItems, ...settlementItems].sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+    );
   }
 
   /** Asienta una transición en el historial append-only (nunca se edita/borra). */

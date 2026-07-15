@@ -26,7 +26,7 @@ import {
   PromoterDecisionDto,
   PromoterInternalNoteResponseDto,
   PromoterListItemDto,
-  PromoterStatusEventDto,
+  PromoterHistoryItemDto,
   PromoterStatusResponseDto,
   RequireApprovalResponseDto,
   SetPromoterNoteDto,
@@ -120,7 +120,7 @@ export class PromotersController {
   @Get(':id/history')
   @Roles(Role.admin)
   @ApiOperation({ summary: 'Historial append-only de estados de un promotor (admin)' })
-  @ApiOkResponse({ type: PromoterStatusEventDto, isArray: true })
+  @ApiOkResponse({ type: PromoterHistoryItemDto, isArray: true })
   history(@Param('id', ParseUUIDPipe) id: string) {
     return this.promoters.history(id);
   }

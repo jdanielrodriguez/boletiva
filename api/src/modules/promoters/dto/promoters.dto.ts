@@ -128,3 +128,36 @@ export class PromoterStatusEventDto {
   @ApiProperty({ format: 'date-time' })
   createdAt!: Date;
 }
+
+/**
+ * Ítem del historial del promotor: unifica transiciones de ESTADO (`kind:'status'`) y
+ * LIQUIDACIONES de caja (`kind:'settlement'`, con `eventName` + `amount` transferido).
+ */
+export class PromoterHistoryItemDto {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty({ enum: ['status', 'settlement'] })
+  kind!: 'status' | 'settlement';
+
+  @ApiProperty({ format: 'date-time' })
+  createdAt!: Date;
+
+  @ApiProperty({ format: 'uuid', nullable: true, description: 'Admin que ejecutó (solo status; null = sistema)' })
+  adminId!: string | null;
+
+  @ApiProperty({ type: String, nullable: true, description: 'Estado origen (solo status)' })
+  statusFrom!: string | null;
+
+  @ApiProperty({ type: String, nullable: true, description: 'Estado destino (solo status)' })
+  statusTo!: string | null;
+
+  @ApiProperty({ type: String, nullable: true, description: 'Motivo / memo' })
+  reason!: string | null;
+
+  @ApiProperty({ type: String, nullable: true, description: 'Evento liquidado (solo settlement)' })
+  eventName!: string | null;
+
+  @ApiProperty({ type: String, nullable: true, description: 'Neto transferido en GTQ (solo settlement)' })
+  amount!: string | null;
+}

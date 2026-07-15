@@ -6,7 +6,7 @@ import type { CreateGatewayDto, Schemas, UpdateGatewayDto } from './types';
 export type PromoterListItemDto = Schemas['PromoterListItemDto'];
 export type AdminEventListItemDto = Schemas['AdminEventListItemDto'];
 export type GatewayResponseDto = Schemas['GatewayResponseDto'];
-export type PromoterStatusEventDto = Schemas['PromoterStatusEventDto'];
+export type PromoterHistoryItemDto = Schemas['PromoterHistoryItemDto'];
 export type PromoterCostShareDto = Schemas['PromoterCostSharePctResponseDto'];
 export type PromoterInternalNoteDto = Schemas['PromoterInternalNoteResponseDto'];
 
@@ -44,8 +44,8 @@ export class AdminApi {
     return this.api.post(`/promoters/${id}/suspend`, { note });
   }
   /** Historial append-only de transiciones de estado de un promotor. */
-  promoterHistory(id: string): Observable<PromoterStatusEventDto[]> {
-    return this.api.get<PromoterStatusEventDto[]>(`/promoters/${id}/history`);
+  promoterHistory(id: string): Observable<PromoterHistoryItemDto[]> {
+    return this.api.get<PromoterHistoryItemDto[]>(`/promoters/${id}/history`);
   }
   getRequireApproval(): Observable<{ requireApproval: boolean }> {
     return this.api.get<{ requireApproval: boolean }>('/promoters/settings');

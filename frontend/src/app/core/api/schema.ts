@@ -4590,24 +4590,28 @@ export interface components {
             /** @description Motivo de rechazo/suspensión */
             note?: string;
         };
-        PromoterStatusEventDto: {
+        PromoterHistoryItemDto: {
             /** Format: uuid */
             id: string;
-            /** Format: uuid */
-            promoterId: string;
-            /**
-             * Format: uuid
-             * @description Admin que ejecutó (null = sistema)
-             */
-            adminId: string | null;
             /** @enum {string} */
-            statusFrom: "none" | "pending" | "approved" | "rejected" | "suspended";
-            /** @enum {string} */
-            statusTo: "none" | "pending" | "approved" | "rejected" | "suspended";
-            /** @description Motivo de la transición */
-            reason: string | null;
+            kind: "status" | "settlement";
             /** Format: date-time */
             createdAt: string;
+            /**
+             * Format: uuid
+             * @description Admin que ejecutó (solo status; null = sistema)
+             */
+            adminId: string | null;
+            /** @description Estado origen (solo status) */
+            statusFrom: string | null;
+            /** @description Estado destino (solo status) */
+            statusTo: string | null;
+            /** @description Motivo / memo */
+            reason: string | null;
+            /** @description Evento liquidado (solo settlement) */
+            eventName: string | null;
+            /** @description Neto transferido en GTQ (solo settlement) */
+            amount: string | null;
         };
         SetPromoterNoteDto: {
             /** @description Nota interna del admin (máx 2000). null/omitir = borra la nota. */
@@ -8676,7 +8680,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PromoterStatusEventDto"][];
+                    "application/json": components["schemas"]["PromoterHistoryItemDto"][];
                 };
             };
         };
