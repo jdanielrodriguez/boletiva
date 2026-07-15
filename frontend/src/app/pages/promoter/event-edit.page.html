@@ -590,7 +590,7 @@
         } @else {
           <p class="muted small">{{ 'promoter.edit.unlockCodePrompt' | translate }}</p>
           <label class="field"><span>{{ 'promoter.edit.fieldCode' | translate }}</span>
-            <input type="text" maxlength="6" inputmode="numeric" [ngModel]="unlockCode()" (ngModelChange)="unlockCode.set($event)" name="unlockcode" data-testid="unlock-code" />
+            <app-otp-input [length]="6" [disabled]="unlocking()" [value]="unlockCode()" (valueChange)="unlockCode.set($event)" data-testid="unlock-code" />
           </label>
           <div class="ev-card-actions">
             <button type="button" class="btn primary" [disabled]="unlocking()" (click)="verifyUnlock()" data-testid="unlock-verify" [title]="'promoter.edit.validateCodeTitle' | translate">

@@ -259,7 +259,7 @@
                 </div>
               } @else {
                 <label class="field"><span>{{ 'config.system.unlockCodeLabel' | translate }}</span>
-                  <input type="text" maxlength="6" inputmode="numeric" [ngModel]="unlockCode()" (ngModelChange)="unlockCode.set($event)" name="unlockcode" data-testid="gw-unlock-code" />
+                  <app-otp-input [length]="6" [value]="unlockCode()" (valueChange)="unlockCode.set($event)" data-testid="gw-unlock-code" />
                 </label>
                 <div class="ev-card-actions modal-actions">
                   <button type="button" class="btn primary" (click)="confirmUnlock()" data-testid="gw-unlock-confirm" [title]="'config.system.validateCode' | translate">

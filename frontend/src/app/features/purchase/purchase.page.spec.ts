@@ -88,6 +88,9 @@ describe('PurchasePage', () => {
     fixture.detectChanges();
     (el.querySelector('[data-testid="reserve-btn"]') as HTMLButtonElement).click();
     fixture.detectChanges();
+    // Reservar pide confirmación de la selección → aceptar en el modal.
+    (el.querySelector('[data-testid="confirm-accept"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
 
     expect(reservations.create).toHaveBeenCalledWith('ev1', {
       quantities: [{ localityId: 'ga', quantity: 2 }],
@@ -102,6 +105,8 @@ describe('PurchasePage', () => {
     (el.querySelector('[data-testid="qty-plus"]') as HTMLButtonElement).click();
     fixture.detectChanges();
     (el.querySelector('[data-testid="reserve-btn"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    (el.querySelector('[data-testid="confirm-accept"]') as HTMLButtonElement).click();
     fixture.detectChanges();
     (el.querySelector('[data-testid="pay-btn"]') as HTMLButtonElement).click();
     fixture.detectChanges();

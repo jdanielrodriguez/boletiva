@@ -86,35 +86,6 @@
       </button>
     </aside>
 
-    @if (store.selectionItems().length > 0) {
-      <aside class="cart-items" data-testid="cart-items">
-        <h3>{{ 'purchase.yourSelection' | translate }}</h3>
-        <ul>
-          @for (it of store.selectionItems(); track it.key) {
-            <li data-testid="cart-item">
-              <span class="ci-label">
-                @if (it.kind === 'ga') { <strong>{{ it.qty }}×</strong> }
-                {{ it.label }}
-                @if (it.kind === 'seat' && it.localityName) { <em class="ci-loc">· {{ it.localityName }}</em> }
-              </span>
-              <span class="ci-amount">Q{{ it.amountDisplay }}</span>
-              <button
-                type="button"
-                class="ci-remove"
-                data-testid="remove-selection"
-                [disabled]="working()"
-                [attr.aria-label]="'purchase.removeItem' | translate: { name: it.label }"
-                [title]="'purchase.removeItem' | translate: { name: it.label }"
-                (click)="store.removeSelection(it)"
-              >
-                <app-icon name="delete" />
-              </button>
-            </li>
-          }
-        </ul>
-      </aside>
-    }
-
     @if (phase() === 'expired') {
       <p class="warn" data-testid="purchase-expired">{{ 'purchase.expiredWarn' | translate }}</p>
     }
@@ -187,9 +158,52 @@
         }
       </section>
     }
+
+    <!-- La lista de seleccionados va DEBAJO del mapa: así seleccionar un asiento no
+         empuja el mapa hacia abajo (antes estaba arriba y crecía sobre el mapa). -->
+    @if (store.selectionItems().length > 0) {
+      <aside class="cart-items" data-testid="cart-items">
+        <h3>{{ 'purchase.yourSelection' | translate }}</h3>
+        <ul>
+          @for (it of store.selectionItems(); track it.key) {
+            <li data-testid="cart-item">
+              <span class="ci-label">
+                @if (it.kind === 'ga') { <strong>{{ it.qty }}×</strong> }
+                {{ it.label }}
+                @if (it.kind === 'seat' && it.localityName) { <em class="ci-loc">· {{ it.localityName }}</em> }
+              </span>
+              <span class="ci-amount">Q{{ it.amountDisplay }}</span>
+              <button
+                type="button"
+                class="ci-remove"
+                data-testid="remove-selection"
+                [disabled]="working()"
+                [attr.aria-label]="'purchase.removeItem' | translate: { name: it.label }"
+                [title]="'purchase.removeItem' | translate: { name: it.label }"
+                (click)="store.removeSelection(it)"
+              >
+                <app-icon name="delete" />
+              </button>
+            </li>
+          }
+        </ul>
+      </aside>
+    }
   }
 
   @if (showLogin()) {
     <app-login-modal (loggedIn)="onLoggedIn()" (dismiss)="showLogin.set(false)" />
+  }
+
+  @if (confirm.request(); as cf) {
+    <app-confirm-dialog
+      [title]="cf.title"
+      [message]="cf.message"
+      [confirmLabel]="cf.confirmLabel ?? ''"
+      [confirmIcon]="cf.confirmIcon ?? 'activate'"
+      [titleIcon]="cf.titleIcon"
+      (accept)="confirm.accept()"
+      (cancelled)="confirm.cancel()"
+    />
   }
 </section>

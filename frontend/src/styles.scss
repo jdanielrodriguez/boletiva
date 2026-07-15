@@ -3224,11 +3224,10 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
   padding: 0;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.35);
-  /* Círculo oscuro sólido + glifo blanco → visible sobre CUALQUIER fondo (póster con
-     o sin banner, tema día claro o noche oscuro). Antes 0.35 se perdía en el tema día. */
-  background: rgba(0, 0, 0, 0.62);
+  /* Círculo oscuro CASI OPACO + glifo blanco → visible sobre CUALQUIER fondo (póster
+     con o sin banner, tema día/noche) sin depender de transparencia ni backdrop-filter. */
+  background: #14151c;
   color: #fff;
-  backdrop-filter: blur(4px);
 }
 .icon-btn:hover {
   background: var(--pe-primary);

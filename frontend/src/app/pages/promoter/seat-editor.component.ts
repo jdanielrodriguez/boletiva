@@ -337,11 +337,16 @@ export class SeatEditorComponent {
   // ---- Render Konva (solo navegador) --------------------------------------
 
   private extents(): { width: number; height: number } {
+    // Ancho DISPONIBLE = el del contenedor padre (Konva sobreescribe el inline width
+    // del propio host, por eso se mide el padre): el lienzo llena el 100% del ancho
+    // aun VACÍO → se puede dibujar en toda la superficie. Crece si los asientos exceden.
+    const el = this.host()?.nativeElement;
+    const avail = Math.max(420, el?.parentElement?.clientWidth ?? el?.clientWidth ?? 420);
     const pts = this.draft();
-    if (pts.length === 0) return { width: 420, height: 200 };
+    if (pts.length === 0) return { width: avail, height: 300 };
     const maxX = Math.max(...pts.map((s) => s.x));
     const maxY = Math.max(...pts.map((s) => s.y));
-    return { width: Math.max(420, maxX + PAD * 2), height: Math.max(200, maxY + PAD * 2) };
+    return { width: Math.max(avail, maxX + PAD * 2), height: Math.max(300, maxY + PAD * 2) };
   }
 
   private draw(): void {

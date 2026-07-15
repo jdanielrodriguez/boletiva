@@ -23,6 +23,8 @@ export const purchase = {
   quantityFor: 'Quantity for {{name}}',
   removeOne: 'Remove one',
   addOne: 'Add one',
+  confirmReserveTitle: 'Confirm reservation',
+  confirmReserveMessage: 'You are about to reserve {{n}} ticket(s) for a total of {{total}}. You will have a few minutes to complete payment. Confirm your selection?',
   yourSelection: 'Your selection',
   removeItem: 'Remove {{name}}',
   soldOut: 'Sold out',

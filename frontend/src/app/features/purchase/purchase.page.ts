@@ -8,6 +8,8 @@ import { EventsApi } from '../../core/api/events.api';
 import { SessionStore } from '../../core/auth/session.store';
 import { SITE_URL } from '../../core/config/api.tokens';
 import type { LocalityAvailabilityDto } from '../../core/api/types';
+import { ConfirmController } from '../../shared/confirm-dialog/confirm-controller';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { LoginModal } from '../../shared/login-modal/login-modal.component';
 import { ShareBox } from '../../shared/share-box/share-box.component';
 import { ReservationItems } from '../../shared/reservation-items/reservation-items.component';
@@ -37,6 +39,7 @@ type Phase = 'select' | 'reserved' | 'expired';
     EmptyStateComponent,
     TranslatePipe,
     IconComponent,
+    ConfirmDialogComponent,
   ],
   templateUrl: './purchase.page.html',
   providers: [PurchaseService],
@@ -49,6 +52,7 @@ export class PurchasePage implements OnDestroy {
   private readonly siteUrl = inject(SITE_URL);
   private readonly translate = inject(TranslateService);
   protected readonly store = inject(PurchaseService);
+  protected readonly confirm = new ConfirmController();
 
   protected readonly phase = signal<Phase>('select');
   protected readonly secondsLeft = signal(0);
@@ -114,8 +118,24 @@ export class PurchasePage implements OnDestroy {
     this.store.setQuantity(loc.id, n);
   }
 
-  /** Reservar NO exige login: crea la reserva anónima compartible. */
+  /** Confirmación de la selección antes de reservar (pide OK con el resumen). */
   protected reserve(): void {
+    if (this.store.totalCount() === 0 || this.working()) return;
+    this.confirm.ask({
+      title: this.translate.instant('purchase.confirmReserveTitle'),
+      message: this.translate.instant('purchase.confirmReserveMessage', {
+        n: this.store.totalCount(),
+        total: this.store.totalDisplay(),
+      }),
+      confirmLabel: this.translate.instant('purchase.reserve'),
+      confirmIcon: 'activate',
+      titleIcon: 'seats',
+      onConfirm: () => this.doReserve(),
+    });
+  }
+
+  /** Reservar NO exige login: crea la reserva anónima compartible. */
+  private doReserve(): void {
     if (this.store.totalCount() === 0) return;
     this.working.set(true);
     this.error.set(null);

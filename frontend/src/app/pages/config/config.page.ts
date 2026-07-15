@@ -27,6 +27,7 @@ import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { InfoTooltipComponent } from '../../shared/ui/info-tooltip.component';
 import { LockChipComponent } from '../../shared/ui/lock-chip.component';
 import { SwitchComponent } from '../../shared/ui/switch.component';
+import { OtpInputComponent } from '../../shared/ui/otp-input/otp-input.component';
 import { HallsListComponent } from './halls-list.component';
 import { TemplatesListComponent } from './templates-list.component';
 import type {
@@ -81,6 +82,7 @@ const INV_PAGE = 9;
     InfoTooltipComponent,
     LockChipComponent,
     SwitchComponent,
+    OtpInputComponent,
     HallsListComponent,
     TemplatesListComponent,
     SearchFieldComponent,

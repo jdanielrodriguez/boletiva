@@ -17,6 +17,7 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dial
 import { EventSettlementComponent } from '../../shared/event-settlement/event-settlement.component';
 import { EventDashboardComponent } from '../../shared/event-dashboard/event-dashboard.component';
 import { IconComponent } from '../../shared/icon/icon.component';
+import { OtpInputComponent } from '../../shared/ui/otp-input/otp-input.component';
 import { BackLinkComponent } from '../../shared/ui/back-link.component';
 import { LockChipComponent } from '../../shared/ui/lock-chip.component';
 import { SwitchComponent } from '../../shared/ui/switch.component';
@@ -72,6 +73,7 @@ function toLocalInput(iso: string | null | undefined): string {
     EventDashboardComponent,
     EventSeatMapComponent,
     IconComponent,
+    OtpInputComponent,
     BackLinkComponent,
     LockChipComponent,
     SwitchComponent,
