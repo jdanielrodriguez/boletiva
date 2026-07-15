@@ -1302,6 +1302,9 @@ app-root {
 .seg {
   display: inline-flex;
   flex-wrap: wrap; /* en pantallas muy angostas envuelve en vez de cortarse (P3) */
+  /* No estirar a todo el ancho del campo (el .field es flex-column → stretch por
+     defecto): el band mide solo lo que ocupan los tipos de movimiento disponibles. */
+  align-self: flex-start;
   max-width: 100%;
   border: 1px solid var(--pe-border);
   border-radius: 999px;
