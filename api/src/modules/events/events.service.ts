@@ -139,6 +139,21 @@ export class EventsService {
     return exists ? slugWithSuffix(name, Date.now().toString(36).slice(-4)) : base;
   }
 
+  /**
+   * Ciclo de vida por FECHA: un evento se vende y se muestra en el inicio solo mientras
+   * está publicado y NO ha iniciado (`startsAt` en el futuro). Al iniciar pasa a "en
+   * curso" (fuera del inicio, ventas cerradas, el promotor valida boletos) y al terminar
+   * queda "concluido" (listo para liquidar). `salesOpen` = fuente de verdad de la venta.
+   */
+  private salesOpen(event: { status: string; startsAt: Date }): boolean {
+    return event.status === 'published' && event.startsAt.getTime() > Date.now();
+  }
+  private assertSalesOpen(event: { status: string; startsAt: Date }): void {
+    if (!this.salesOpen(event)) {
+      throw new ConflictException('Las ventas de este evento están cerradas');
+    }
+  }
+
   async listPublic(params: {
     skip?: number;
     take?: number;
@@ -148,6 +163,8 @@ export class EventsService {
     const { skip = 0, take = 20, categorySlug, search } = params;
     const where: Prisma.EventWhereInput = {
       status: 'published',
+      // Solo eventos por venir: los que ya iniciaron (en curso) o concluyeron no van al inicio.
+      startsAt: { gt: new Date() },
       ...(categorySlug ? { category: { slug: categorySlug } } : {}),
       ...(search ? { name: { contains: search, mode: 'insensitive' } } : {}),
     };
@@ -190,6 +207,8 @@ export class EventsService {
       include: { localities: { orderBy: { name: 'asc' } } },
     });
     if (!event) throw new NotFoundException('Evento no encontrado');
+    // Ventas cerradas si el evento ya inició o concluyó → no se puede comprar.
+    this.assertSalesOpen(event);
 
     const seatMap = await this.prisma.seatMap.findFirst({ where: { eventId, active: true } });
 
@@ -366,7 +385,7 @@ export class EventsService {
   /** Eventos destacados (slider del inicio), ordenados por prioridad ascendente. */
   async listPromoted(take = 10) {
     const events = await this.prisma.event.findMany({
-      where: { status: 'published', promotedPriority: { not: null } },
+      where: { status: 'published', promotedPriority: { not: null }, startsAt: { gt: new Date() } },
       orderBy: { promotedPriority: 'asc' },
       take: Math.min(take, 20),
       include: { category: true, media: { orderBy: { position: 'asc' } } },

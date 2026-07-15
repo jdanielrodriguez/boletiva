@@ -26,7 +26,14 @@
 
     <section class="event-localities">
       <h2>{{ 'eventDetail.localities' | translate }}</h2>
-      @if (localities().length > 0) {
+      @if (!salesOpen()) {
+        <app-empty-state
+          variant="tickets"
+          data-testid="event-sales-closed"
+          [title]="'eventDetail.salesClosedTitle' | translate"
+          [subtitle]="'eventDetail.salesClosed' | translate"
+        />
+      } @else if (localities().length > 0) {
         <ul class="locality-rows">
           @for (loc of localities(); track loc.id) {
             <li>

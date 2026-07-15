@@ -170,6 +170,25 @@ describe('Eventos: gestión (e2e)', () => {
     await http().get(`/api/v1/events/${draft.slug}`).expect(404); // draft no publicado
   });
 
+  it('ciclo de vida por fecha: un evento ya iniciado NO va al inicio y cierra ventas', async () => {
+    // Publicado pero con fecha PASADA (en curso/concluido).
+    const past = await prisma.event.create({
+      data: {
+        promoterId,
+        name: `Ev Pasado ${stamp}`,
+        slug: `ev-pasado-${stamp}`,
+        startsAt: new Date('2020-01-01T20:00:00-06:00'),
+        endsAt: new Date('2020-01-01T23:00:00-06:00'),
+        status: 'published',
+      },
+    });
+    // NO aparece en el listado público (solo eventos por venir).
+    const list = await http().get('/api/v1/events?take=100').expect(200);
+    expect(list.body.items.some((e: { id: string }) => e.id === past.id)).toBe(false);
+    // Ventas cerradas: la disponibilidad responde 409.
+    await http().get(`/api/v1/events/${past.id}/availability`).expect(409);
+  });
+
   describe('Admin crea evento a nombre de un promotor (v3.8)', () => {
     it('admin con promoterId aprobado → evento del promotor + createdByAdminId auditado', async () => {
       // Nombre por defecto `Ev …` para que el afterAll (limpia por nombre) lo borre

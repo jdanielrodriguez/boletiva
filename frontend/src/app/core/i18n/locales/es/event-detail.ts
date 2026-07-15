@@ -10,6 +10,8 @@ export const eventDetail = {
   perTicket: 'por boleto',
   priceTbd: 'Precio por definir',
   noLocalities: 'Aún no hay localidades publicadas.',
+  salesClosedTitle: 'Ventas cerradas',
+  salesClosed: 'Las ventas de este evento ya cerraron.',
   noLocalitiesHint: 'El organizador todavía no configuró las entradas de este evento.',
   loading: 'Cargando evento…',
   notFoundTitle: 'Evento no encontrado',

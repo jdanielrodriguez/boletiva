@@ -69,6 +69,11 @@ export class EventDetail {
   );
 
   protected readonly event = computed(() => this.data()?.ev ?? null);
+  /** Ventas abiertas solo si el evento aún no inició (coherente con el backend). */
+  protected readonly salesOpen = computed(() => {
+    const ev = this.event();
+    return !ev || new Date(ev.startsAt).getTime() > Date.now();
+  });
   protected readonly localities = computed<LocalityAvailabilityDto[]>(
     () => this.data()?.av.localities ?? [],
   );

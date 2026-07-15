@@ -10,6 +10,8 @@ export const eventDetail = {
   perTicket: 'per ticket',
   priceTbd: 'Price to be defined',
   noLocalities: 'No sections published yet.',
+  salesClosedTitle: 'Sales closed',
+  salesClosed: 'Ticket sales for this event are closed.',
   noLocalitiesHint: 'The organizer has not set up tickets for this event yet.',
   loading: 'Loading event…',
   notFoundTitle: 'Event not found',

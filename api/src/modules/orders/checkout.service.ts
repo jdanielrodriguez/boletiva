@@ -121,9 +121,13 @@ export class CheckoutService {
     // sostiene el lock de fila (evita un deadlock de pool bajo alta concurrencia).
     const event = await this.prisma.event.findUnique({
       where: { id: eventId },
-      select: { id: true, gatewayId: true, frozenGatewayId: true, ivaOnNet: true },
+      select: { id: true, gatewayId: true, frozenGatewayId: true, ivaOnNet: true, status: true, startsAt: true },
     });
     if (!event) throw new BadRequestException('El evento no existe');
+    // Ventas cerradas si el evento ya inició o concluyó (o no está publicado).
+    if (event.status !== 'published' || event.startsAt.getTime() <= Date.now()) {
+      throw new ConflictException('Las ventas de este evento están cerradas');
+    }
     const fees = await this.pricing.resolveFeesForEvent(event);
 
     try {
