@@ -1686,7 +1686,10 @@ app-root {
   gap: 1.1rem;
 }
 
-.event-card a {
+/* `:not(.icon-btn)`: el estilo de "toda la tarjeta es un enlace" NO debe pisar a los
+   botones de ícono (descarga/compartir del póster de boletos, que van dentro de una
+   .event-card). Antes les daba fondo --pe-surface → blanco e ilegible en el tema día. */
+.event-card a:not(.icon-btn) {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
@@ -1698,9 +1701,9 @@ app-root {
   transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
 }
 
-.event-card a:hover {
+.event-card a:not(.icon-btn):hover {
   transform: translateY(-3px);
-  border-color: #3a3f52;
+  border-color: var(--pe-accent);
   box-shadow: var(--pe-shadow);
 }
 
