@@ -147,6 +147,9 @@ async function main() {
     await waitSel(page, '[data-testid="qty-plus"]');
     await page.click('[data-testid="qty-plus"]');
     await page.click('[data-testid="reserve-btn"]');
+    // Reservar pide confirmación de la selección → aceptar en el modal.
+    await waitSel(page, '[data-testid="confirm-accept"]', 8000);
+    await page.click('[data-testid="confirm-accept"]');
     await waitSel(page, '[data-testid="share-box"]', 15000);
     const wa = await page.$eval('.share-btn.wa', (a) => a.href);
     const m = decodeURIComponent(wa).match(/\/reserva\/[^\s]+/);
@@ -203,6 +206,8 @@ async function main() {
       { timeout: 5000 },
     );
     await page.click('[data-testid="reserve-btn"]');
+    await waitSel(page, '[data-testid="confirm-accept"]', 8000);
+    await page.click('[data-testid="confirm-accept"]');
     await waitSel(page, '[data-testid="countdown"]', 15000);
   });
 
