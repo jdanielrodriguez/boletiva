@@ -141,6 +141,17 @@ export class Account {
   protected readonly phone = signal((this.session.user() as { phone?: string })?.phone ?? '');
   protected readonly savingProfile = signal(false);
 
+  // --- Foto de perfil (opcional) ---
+  protected readonly pendingAvatarFile = signal<File | null>(null);
+  protected readonly pendingAvatarUrl = signal<string | null>(null);
+  protected readonly uploadingAvatar = signal(false);
+  /** Iniciales para el placeholder cuando no hay foto. */
+  protected readonly avatarInitials = computed(() => {
+    const u = this.session.user();
+    const ini = `${u?.firstName?.[0] ?? ''}${u?.lastName?.[0] ?? ''}`.trim();
+    return (ini || u?.email?.[0] || '?').toUpperCase();
+  });
+
   // --- Preferencia de idioma persistente en BD (v3.7) ---
   /** Idioma persistido del usuario (o el idioma activo si aún no tiene). */
   protected readonly persistedLang = computed<Lang>(() => {
@@ -711,6 +722,67 @@ export class Account {
           this.toasts.error(this.translate.instant('account.toast.profileError'));
         },
       });
+  }
+
+  /** Elige archivo → valida imagen → muestra preview local (aún NO sube). */
+  protected onAvatarFile(event: Event): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      this.toasts.error(this.translate.instant('account.profile.photoImageError'));
+      return;
+    }
+    const prev = this.pendingAvatarUrl();
+    if (prev) URL.revokeObjectURL(prev);
+    this.pendingAvatarFile.set(file);
+    this.pendingAvatarUrl.set(URL.createObjectURL(file));
+  }
+
+  /** Descarta el preview sin subir. */
+  protected cancelAvatar(): void {
+    const url = this.pendingAvatarUrl();
+    if (url) URL.revokeObjectURL(url);
+    this.pendingAvatarFile.set(null);
+    this.pendingAvatarUrl.set(null);
+  }
+
+  /** Sube la foto (presign→PUT→confirma) y actualiza la sesión. */
+  protected saveAvatar(): void {
+    const file = this.pendingAvatarFile();
+    if (!file || this.uploadingAvatar()) return;
+    this.uploadingAvatar.set(true);
+    this.usersApi.uploadAvatar(file).subscribe({
+      next: (user) => {
+        this.session.setUser(user);
+        this.uploadingAvatar.set(false);
+        this.cancelAvatar();
+        this.toasts.success(this.translate.instant('account.profile.photoSaved'));
+      },
+      error: () => {
+        this.uploadingAvatar.set(false);
+        this.toasts.error(this.translate.instant('account.profile.photoError'));
+      },
+    });
+  }
+
+  /** Quita la foto de perfil actual. */
+  protected removeAvatar(): void {
+    if (this.uploadingAvatar()) return;
+    this.uploadingAvatar.set(true);
+    this.usersApi.clearAvatar().subscribe({
+      next: (user) => {
+        this.session.setUser(user);
+        this.uploadingAvatar.set(false);
+        this.toasts.info(this.translate.instant('account.profile.photoRemoved'));
+      },
+      error: () => {
+        this.uploadingAvatar.set(false);
+        this.toasts.error(this.translate.instant('account.profile.photoError'));
+      },
+    });
   }
 
   // --- Cambio de contraseña ---

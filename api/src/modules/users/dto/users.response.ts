@@ -6,6 +6,14 @@ import { Role, UserStatus } from '@prisma/client';
  * `publicSelect`). NUNCA expone `passwordHash`, secretos TOTP ni tokens.
  * Solo documentación para el OpenAPI/SDK; no altera el runtime.
  */
+export class AvatarPresignResultDto {
+  @ApiProperty({ description: 'Key del objeto en storage (se envía luego a PATCH /users/me/avatar)' })
+  key!: string;
+
+  @ApiProperty({ description: 'URL firmada para el PUT directo del archivo al storage' })
+  uploadUrl!: string;
+}
+
 export class UserResponseDto {
   @ApiProperty({
     type: String,

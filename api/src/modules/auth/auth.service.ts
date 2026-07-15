@@ -18,6 +18,7 @@ import { ChallengesService } from './challenges.service';
 import { DevicesService, DeviceContext } from './devices.service';
 import { TwoFactorService } from './twofactor.service';
 import { GoogleAuthService } from './google.service';
+import { StorageService } from '../../infra/storage/storage.service';
 import {
   ChangePasswordDto,
   ForgotPasswordDto,
@@ -63,16 +64,22 @@ export class AuthService {
     private readonly devices: DevicesService,
     private readonly twofactor: TwoFactorService,
     private readonly google: GoogleAuthService,
+    private readonly storage: StorageService,
   ) {}
 
-  private toPublic(user: User): PublicUser {
+  private async toPublic(user: User): Promise<PublicUser> {
+    // La foto de perfil se firma al leer (patrón event-media): si hay `avatarKey`
+    // (foto subida) se genera una URL firmada; si no, se usa `avatarUrl` (externa).
+    const avatarUrl = user.avatarKey
+      ? await this.storage.signedGetUrl(user.avatarKey, 6 * 60 * 60)
+      : user.avatarUrl;
     return {
       id: user.id,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
       phone: user.phone,
-      avatarUrl: user.avatarUrl,
+      avatarUrl,
       roles: user.roles,
       status: user.status,
       emailVerified: user.emailVerifiedAt != null,
@@ -107,7 +114,7 @@ export class AuthService {
     await this.challenges.issue(user.id, user.email, 'email_verify', { withMagicLink: true });
     await this.devices.touch(user.id, ctx);
     const tokens = await this.tokens.issuePair(user, ctx);
-    return { user: this.toPublic(user), tokens };
+    return { user: await this.toPublic(user), tokens };
   }
 
   async login(dto: LoginDto, ctx: DeviceContext): Promise<LoginResult> {
@@ -124,7 +131,7 @@ export class AuthService {
     if (!user.emailVerifiedAt) {
       await this.challenges.issue(user.id, user.email, 'email_verify', { withMagicLink: true });
       const tokens = await this.tokens.issuePair(user, ctx);
-      return { status: 'ok', user: this.toPublic(user), tokens };
+      return { status: 'ok', user: await this.toPublic(user), tokens };
     }
 
     // Email verificado: 2FA obligatorio en dispositivos no confiables.
@@ -140,7 +147,7 @@ export class AuthService {
     }
 
     const tokens = await this.tokens.issuePair(user, ctx);
-    return { status: 'ok', user: this.toPublic(user), tokens };
+    return { status: 'ok', user: await this.toPublic(user), tokens };
   }
 
   async verifyTwoFactor(preauthToken: string, code: string, ctx: DeviceContext) {
@@ -155,7 +162,7 @@ export class AuthService {
     await this.devices.trust(user.id, ctx);
     if (!wasTrusted) await this.sendNewDeviceAlert(user, ctx);
     const tokens = await this.tokens.issuePair(user, ctx);
-    return { status: 'ok' as const, user: this.toPublic(user), tokens };
+    return { status: 'ok' as const, user: await this.toPublic(user), tokens };
   }
 
   // ---- Verificación de correo ---------------------------------------------
@@ -183,7 +190,7 @@ export class AuthService {
       where: { id: userId },
       data: { emailVerifiedAt: new Date() },
     });
-    return this.toPublic(user);
+    return await this.toPublic(user);
   }
 
   // ---- Passwordless (magic link + código) ---------------------------------
@@ -221,7 +228,7 @@ export class AuthService {
     });
     await this.devices.trust(user.id, ctx);
     const tokens = await this.tokens.issuePair(user, ctx);
-    return { status: 'ok' as const, user: this.toPublic(user), tokens };
+    return { status: 'ok' as const, user: await this.toPublic(user), tokens };
   }
 
   private async notYetVerified(userId: string): Promise<boolean> {
@@ -266,7 +273,7 @@ export class AuthService {
     });
     await this.devices.trust(user.id, ctx); // Google es un factor fuerte
     const tokens = await this.tokens.issuePair(user, ctx);
-    return { status: 'ok' as const, user: this.toPublic(user), tokens };
+    return { status: 'ok' as const, user: await this.toPublic(user), tokens };
   }
 
   get googleEnabled(): boolean {
@@ -286,7 +293,7 @@ export class AuthService {
   async me(userId: string): Promise<PublicUser> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException();
-    return this.toPublic(user);
+    return await this.toPublic(user);
   }
 
   async forgotPassword(dto: ForgotPasswordDto): Promise<void> {

@@ -92,8 +92,7 @@ describe('Invitación de promotores (e2e)', () => {
     expect(mail.subject).toMatch(/promotor/i);
     // Lleva el enlace de registro con el token y la marca de la plantilla.
     expect(mail.body).toContain(`/registro?token=${token}`);
-    expect(mail.body.toLowerCase()).toContain('pasa');
-    expect(mail.body.toLowerCase()).toContain('eventos');
+    expect(mail.body.toLowerCase()).toContain('boletiva');
   });
 
   it('peek público devuelve el correo del token (para precargar el registro)', async () => {

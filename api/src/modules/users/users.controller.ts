@@ -1,16 +1,18 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UsersService } from './users.service';
 import {
+  AvatarPresignDto,
+  SetAvatarDto,
   UpdateProfileDto,
   UpdateUserRolesDto,
   UpdateUserStatusDto,
   UserListQueryDto,
 } from './dto/users.dto';
-import { UserPageResponseDto, UserResponseDto } from './dto/users.response';
+import { AvatarPresignResultDto, UserPageResponseDto, UserResponseDto } from './dto/users.response';
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -23,6 +25,27 @@ export class UsersController {
   @ApiOkResponse({ type: UserResponseDto })
   updateMe(@CurrentUser('userId') userId: string, @Body() dto: UpdateProfileDto) {
     return this.users.updateProfile(userId, dto);
+  }
+
+  @Post('me/avatar/presign')
+  @ApiOperation({ summary: 'URL firmada para subir la foto de perfil (opcional)' })
+  @ApiOkResponse({ type: AvatarPresignResultDto })
+  presignAvatar(@CurrentUser('userId') userId: string, @Body() dto: AvatarPresignDto) {
+    return this.users.presignAvatar(userId, dto);
+  }
+
+  @Patch('me/avatar')
+  @ApiOperation({ summary: 'Confirma la foto de perfil subida (key del presign)' })
+  @ApiOkResponse({ type: UserResponseDto })
+  setAvatar(@CurrentUser('userId') userId: string, @Body() dto: SetAvatarDto) {
+    return this.users.setAvatar(userId, dto);
+  }
+
+  @Delete('me/avatar')
+  @ApiOperation({ summary: 'Quita la foto de perfil' })
+  @ApiOkResponse({ type: UserResponseDto })
+  clearAvatar(@CurrentUser('userId') userId: string) {
+    return this.users.clearAvatar(userId);
   }
 
   @Get()

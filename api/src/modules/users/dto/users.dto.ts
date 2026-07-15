@@ -79,6 +79,25 @@ export class UpdateProfileDto {
   themePref?: ThemeFranja;
 }
 
+export class AvatarPresignDto {
+  @ApiProperty({ description: 'Nombre del archivo (para derivar la extensión)', example: 'foto.jpg' })
+  @IsString()
+  @MaxLength(200)
+  filename!: string;
+
+  @ApiProperty({ description: 'MIME type de la imagen', example: 'image/jpeg' })
+  @IsString()
+  @MaxLength(100)
+  contentType!: string;
+}
+
+export class SetAvatarDto {
+  @ApiProperty({ description: 'Key del objeto subido (devuelta por el presign)', example: 'avatars/uuid/xxx.jpg' })
+  @IsString()
+  @MaxLength(300)
+  key!: string;
+}
+
 export class UpdateUserRolesDto {
   @ApiProperty({
     enum: Role,

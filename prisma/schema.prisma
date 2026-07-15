@@ -229,6 +229,12 @@ model User {
   // resuelve la asignación admin franja→tema. Solo aplica si el admin permite el switch.
   themePref    String?    @map("theme_pref")
 
+  // Foto de perfil (opcional). Se guarda la KEY del objeto en storage (patrón
+  // event-media: firmar al leer); `avatarUrl` de las respuestas se firma en caliente
+  // con `StorageService.signedGetUrl`. `avatarUrl` (columna) queda para URLs externas
+  // heredadas / Google; si hay `avatarKey` tiene prioridad.
+  avatarKey    String?    @map("avatar_key")
+
   // Verificación de correo (null = no verificado).
   emailVerifiedAt DateTime? @map("email_verified_at")
 

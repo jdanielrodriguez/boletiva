@@ -446,6 +446,41 @@ export interface paths {
         patch: operations["UsersController_updateMe_v1"];
         trace?: never;
     };
+    "/api/v1/users/me/avatar/presign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** URL firmada para subir la foto de perfil (opcional) */
+        post: operations["UsersController_presignAvatar_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Quita la foto de perfil */
+        delete: operations["UsersController_clearAvatar_v1"];
+        options?: never;
+        head?: never;
+        /** Confirma la foto de perfil subida (key del presign) */
+        patch: operations["UsersController_setAvatar_v1"];
+        trace?: never;
+    };
     "/api/v1/users": {
         parameters: {
             query?: never;
@@ -3291,6 +3326,31 @@ export interface components {
              * @example 2026-07-01T09:00:00.000Z
              */
             createdAt: string;
+        };
+        AvatarPresignDto: {
+            /**
+             * @description Nombre del archivo (para derivar la extensión)
+             * @example foto.jpg
+             */
+            filename: string;
+            /**
+             * @description MIME type de la imagen
+             * @example image/jpeg
+             */
+            contentType: string;
+        };
+        AvatarPresignResultDto: {
+            /** @description Key del objeto en storage (se envía luego a PATCH /users/me/avatar) */
+            key: string;
+            /** @description URL firmada para el PUT directo del archivo al storage */
+            uploadUrl: string;
+        };
+        SetAvatarDto: {
+            /**
+             * @description Key del objeto subido (devuelta por el presign)
+             * @example avatars/uuid/xxx.jpg
+             */
+            key: string;
         };
         UserPageResponseDto: {
             /** @description Usuarios de la página */
@@ -7807,6 +7867,71 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["UpdateProfileDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponseDto"];
+                };
+            };
+        };
+    };
+    UsersController_presignAvatar_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AvatarPresignDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AvatarPresignResultDto"];
+                };
+            };
+        };
+    };
+    UsersController_clearAvatar_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponseDto"];
+                };
+            };
+        };
+    };
+    UsersController_setAvatar_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetAvatarDto"];
             };
         };
         responses: {

@@ -765,6 +765,105 @@
         ]
       }
     },
+    "/api/v1/users/me/avatar/presign": {
+      "post": {
+        "operationId": "UsersController_presignAvatar_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvatarPresignDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvatarPresignResultDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "URL firmada para subir la foto de perfil (opcional)",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/v1/users/me/avatar": {
+      "patch": {
+        "operationId": "UsersController_setAvatar_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetAvatarDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Confirma la foto de perfil subida (key del presign)",
+        "tags": [
+          "users"
+        ]
+      },
+      "delete": {
+        "operationId": "UsersController_clearAvatar_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Quita la foto de perfil",
+        "tags": [
+          "users"
+        ]
+      }
+    },
     "/api/v1/users": {
       "get": {
         "operationId": "UsersController_list_v1",
@@ -7840,6 +7939,55 @@
           "status",
           "language",
           "createdAt"
+        ]
+      },
+      "AvatarPresignDto": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string",
+            "description": "Nombre del archivo (para derivar la extensión)",
+            "example": "foto.jpg"
+          },
+          "contentType": {
+            "type": "string",
+            "description": "MIME type de la imagen",
+            "example": "image/jpeg"
+          }
+        },
+        "required": [
+          "filename",
+          "contentType"
+        ]
+      },
+      "AvatarPresignResultDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Key del objeto en storage (se envía luego a PATCH /users/me/avatar)"
+          },
+          "uploadUrl": {
+            "type": "string",
+            "description": "URL firmada para el PUT directo del archivo al storage"
+          }
+        },
+        "required": [
+          "key",
+          "uploadUrl"
+        ]
+      },
+      "SetAvatarDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Key del objeto subido (devuelta por el presign)",
+            "example": "avatars/uuid/xxx.jpg"
+          }
+        },
+        "required": [
+          "key"
         ]
       },
       "UserPageResponseDto": {

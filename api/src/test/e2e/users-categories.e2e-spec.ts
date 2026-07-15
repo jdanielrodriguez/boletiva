@@ -116,6 +116,51 @@ describe('Users + Categories (e2e)', () => {
       .expect(400);
   });
 
+  it('foto de perfil: presign → set → /auth/me firma la URL → clear', async () => {
+    const me = await http().get('/api/v1/auth/me').set(bearer(buyerToken)).expect(200);
+    const userId = me.body.id as string;
+
+    // presign de una imagen → key bajo el prefijo del usuario + URL de subida.
+    const pre = await http()
+      .post('/api/v1/users/me/avatar/presign')
+      .set(bearer(buyerToken))
+      .send({ filename: 'foto.png', contentType: 'image/png' })
+      .expect(201);
+    expect(pre.body.key).toContain(`avatars/${userId}/`);
+    expect(typeof pre.body.uploadUrl).toBe('string');
+
+    // presign de un no-imagen → 400.
+    await http()
+      .post('/api/v1/users/me/avatar/presign')
+      .set(bearer(buyerToken))
+      .send({ filename: 'x.pdf', contentType: 'application/pdf' })
+      .expect(400);
+
+    // set con una key AJENA (otro usuario) → 400.
+    await http()
+      .patch('/api/v1/users/me/avatar')
+      .set(bearer(buyerToken))
+      .send({ key: 'avatars/00000000-0000-0000-0000-000000000000/x.png' })
+      .expect(400);
+
+    // set con la key propia → avatarUrl firmada (contiene la key).
+    const set = await http()
+      .patch('/api/v1/users/me/avatar')
+      .set(bearer(buyerToken))
+      .send({ key: pre.body.key })
+      .expect(200);
+    expect(set.body.avatarUrl).toContain(`avatars/${userId}/`);
+    expect(set.body).not.toHaveProperty('avatarKey'); // nunca se expone la key
+
+    // /auth/me re-firma la URL al leer.
+    const me2 = await http().get('/api/v1/auth/me').set(bearer(buyerToken)).expect(200);
+    expect(me2.body.avatarUrl).toContain(`avatars/${userId}/`);
+
+    // clear → avatarUrl null.
+    const cleared = await http().delete('/api/v1/users/me/avatar').set(bearer(buyerToken)).expect(200);
+    expect(cleared.body.avatarUrl).toBeNull();
+  });
+
   it('GET /users (admin) lista y busca; no-admin → 403', async () => {
     const list = await http().get('/api/v1/users?search=admin').set(bearer(adminToken)).expect(200);
     expect(Array.isArray(list.body.items ?? list.body)).toBe(true);

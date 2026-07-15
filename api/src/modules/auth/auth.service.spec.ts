@@ -59,6 +59,8 @@ describe('AuthService (ramas de borde, unit)', () => {
     };
     const twofactor = { verify: jest.fn(), startChallenge: jest.fn() };
     const google = { verify: jest.fn(), enabled: true };
+    // El avatar se firma al leer; sin avatarKey devuelve avatarUrl tal cual.
+    const storage = { signedGetUrl: jest.fn().mockResolvedValue('https://signed/avatar') };
     const service = new AuthService(
       prisma as never,
       tokens as never,
@@ -69,6 +71,7 @@ describe('AuthService (ramas de borde, unit)', () => {
       devices as never,
       twofactor as never,
       google as never,
+      storage as never,
     );
     return { prisma, tokens, mail, jwt, challenges, devices, twofactor, google, service };
   };

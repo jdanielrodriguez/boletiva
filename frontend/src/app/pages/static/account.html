@@ -17,6 +17,49 @@
           <h2>{{ 'account.nav.profile' | translate }}</h2>
           <p class="muted account-email">{{ session.user()?.email }}</p>
 
+          <!-- Foto de perfil (opcional): subir → preview → guardar/cancelar; o quitar. -->
+          <div class="card-block">
+            <h3>{{ 'account.profile.photo' | translate }}</h3>
+            <div class="avatar-row" data-testid="avatar-section">
+              <div class="avatar-preview">
+                @if (pendingAvatarUrl(); as p) {
+                  <img [src]="p" [alt]="'account.profile.photo' | translate" data-testid="avatar-preview-img" />
+                } @else if (session.user()?.avatarUrl) {
+                  <img [src]="session.user()?.avatarUrl" [alt]="'account.profile.photo' | translate" data-testid="avatar-current" />
+                } @else {
+                  <span class="avatar-initials" aria-hidden="true">{{ avatarInitials() }}</span>
+                }
+              </div>
+              <div class="avatar-controls">
+                @if (pendingAvatarUrl()) {
+                  <p class="muted small">{{ 'account.profile.photoPreviewHint' | translate }}</p>
+                  <div class="avatar-actions">
+                    <button type="button" class="btn primary" [disabled]="uploadingAvatar()" (click)="saveAvatar()" data-testid="avatar-save">
+                      <app-icon name="save" /> {{ (uploadingAvatar() ? 'account.profile.saving' : 'common.save') | translate }}
+                    </button>
+                    <button type="button" class="btn" [disabled]="uploadingAvatar()" (click)="cancelAvatar()" data-testid="avatar-cancel">
+                      <app-icon name="cancel" /> {{ 'common.cancel' | translate }}
+                    </button>
+                  </div>
+                } @else {
+                  <div class="avatar-actions">
+                    <label class="btn" [class.disabled]="uploadingAvatar()">
+                      <app-icon name="add" /> {{ 'account.profile.photoChoose' | translate }}
+                      <input type="file" accept="image/*" hidden (change)="onAvatarFile($event)" data-testid="avatar-file" [disabled]="uploadingAvatar()" />
+                    </label>
+                    @if (session.user()?.avatarUrl) {
+                      <button type="button" class="btn danger icon-only" [disabled]="uploadingAvatar()" (click)="removeAvatar()" data-testid="avatar-remove"
+                        [attr.aria-label]="'common.delete' | translate" [title]="'account.profile.photoRemove' | translate">
+                        <app-icon name="delete" />
+                      </button>
+                    }
+                  </div>
+                  <p class="muted small">{{ 'account.profile.photoHint' | translate }}</p>
+                }
+              </div>
+            </div>
+          </div>
+
           <div class="card-block">
             <h3>{{ 'account.profile.yourData' | translate }}</h3>
             <form class="stacked-form" (ngSubmit)="saveProfile()">

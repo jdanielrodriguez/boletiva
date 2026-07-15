@@ -8,6 +8,7 @@ import { HallsApi } from './halls.api';
 import { MediaApi } from './media.api';
 import { PromoterEventsApi } from './promoter-events.api';
 import { SeatTemplatesApi } from './seat-templates.api';
+import { UsersApi } from './users.api';
 
 const BASE = 'http://api.test/api/v1';
 
@@ -275,6 +276,37 @@ describe('SDK — contrato de rutas (2)', () => {
       register.flush({ key: 'K1', id: 'm1' });
 
       expect(result?.key).toBe('K1');
+    });
+  });
+
+  describe('UsersApi — avatar', () => {
+    let u: UsersApi;
+    beforeEach(() => (u = TestBed.inject(UsersApi)));
+
+    it('uploadAvatar encadena presign → PUT al storage → confirma la key', () => {
+      const file = new File(['x'], 'foto.png', { type: 'image/png' });
+      let result: { id?: string } | undefined;
+      u.uploadAvatar(file).subscribe((r) => (result = r as { id?: string }));
+
+      const presign = on((r) => r.url === `${BASE}/users/me/avatar/presign` && r.method === 'POST');
+      expect(presign.request.body).toEqual({ filename: 'foto.png', contentType: 'image/png' });
+      presign.flush({ key: 'avatars/u1/x.png', uploadUrl: 'https://s3/put-av' });
+
+      const put = on((r) => r.url === 'https://s3/put-av' && r.method === 'PUT');
+      expect(put.request.headers.get('Content-Type')).toBe('image/png');
+      put.flush({});
+
+      const confirm = on((r) => r.url === `${BASE}/users/me/avatar` && r.method === 'PATCH');
+      expect(confirm.request.body).toEqual({ key: 'avatars/u1/x.png' });
+      confirm.flush({ id: 'u1', avatarUrl: 'https://s3/get-av' });
+
+      expect(result?.id).toBe('u1');
+    });
+
+    it('clearAvatar hace DELETE /users/me/avatar', () => {
+      u.clearAvatar().subscribe();
+      const req = on((r) => r.url === `${BASE}/users/me/avatar` && r.method === 'DELETE');
+      req.flush({ id: 'u1', avatarUrl: null });
     });
   });
 });
