@@ -162,11 +162,13 @@ export class TicketsService implements OnModuleInit {
         name: true,
         slug: true,
         startsAt: true,
+        endsAt: true,
         media: { where: { kind: 'cover' as const }, orderBy: { position: 'asc' as const }, take: 1, select: { key: true } },
       },
     },
     locality: { select: { name: true } },
     seat: { select: { label: true } },
+    orderItem: { select: { total: true } },
   } satisfies Prisma.TicketInclude;
 
   /** Boletos del usuario autenticado (keyset por `(issuedAt, id)` desc). */
@@ -369,9 +371,10 @@ export class TicketsService implements OnModuleInit {
       pdfKey: string | null;
       mediaReadyAt: Date | null;
       eventId: string;
-      event?: { name: string; slug: string; startsAt: Date; media?: { key: string }[] } | null;
+      event?: { name: string; slug: string; startsAt: Date; endsAt: Date; media?: { key: string }[] } | null;
       locality?: { name: string } | null;
       seat?: { label: string } | null;
+      orderItem?: { total: unknown } | null;
     },
     bannerByKey?: Map<string, string>,
   ) {
@@ -385,8 +388,11 @@ export class TicketsService implements OnModuleInit {
       localityId: t.localityId,
       localityName: t.locality?.name ?? null,
       seatLabel: t.seat?.label ?? null,
+      amount: t.orderItem?.total != null ? String(t.orderItem.total) : null,
       eventId: t.eventId,
-      event: t.event ? { name: t.event.name, slug: t.event.slug, startsAt: t.event.startsAt } : undefined,
+      event: t.event
+        ? { name: t.event.name, slug: t.event.slug, startsAt: t.event.startsAt, endsAt: t.event.endsAt }
+        : undefined,
       // Banner del evento (firmado) para el boleto estilo póster; null si no hay cover.
       eventBannerUrl: (coverKey && bannerByKey?.get(coverKey)) ?? null,
       mediaReady: t.mediaReadyAt != null,

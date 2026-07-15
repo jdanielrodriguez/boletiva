@@ -460,11 +460,17 @@ export class Account {
     ),
     { initialValue: { items: [] } as TicketPageResponseDto },
   );
+  /** Un boleto es PASADO si su evento ya concluyó (endsAt < ahora) o ya no es usable
+   *  (usado/revocado/transferido). ACTIVO = usable y su evento aún no terminó. */
+  private isPastTicket(t: TicketResponseDto): boolean {
+    const ended = !!t.event?.endsAt && new Date(t.event.endsAt).getTime() < Date.now();
+    return ended || t.status !== 'valid';
+  }
   protected readonly activos = computed(() =>
-    (this.ticketsData().items ?? []).filter((t: TicketResponseDto) => t.status === 'valid'),
+    (this.ticketsData().items ?? []).filter((t: TicketResponseDto) => !this.isPastTicket(t)),
   );
   protected readonly pasados = computed(() =>
-    (this.ticketsData().items ?? []).filter((t: TicketResponseDto) => t.status === 'used'),
+    (this.ticketsData().items ?? []).filter((t: TicketResponseDto) => this.isPastTicket(t)),
   );
   /**
    * Filtra por una compra concreta cuando llega `?order=` (deep-link tras pagar

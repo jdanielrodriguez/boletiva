@@ -5593,6 +5593,11 @@ export interface components {
              * @example 2026-08-15T02:00:00.000Z
              */
             startsAt: string;
+            /**
+             * Format: date-time
+             * @example 2026-08-15T05:00:00.000Z
+             */
+            endsAt: string;
         };
         TicketResponseDto: {
             /**
@@ -5620,6 +5625,11 @@ export interface components {
              * @description Orden que originó el boleto (enlace a facturación)
              */
             orderId: string;
+            /**
+             * @description Precio pagado por este boleto (total de su línea de orden), en GTQ
+             * @example 97.50
+             */
+            amount?: string | null;
             /**
              * Format: uuid
              * @description Localidad del boleto

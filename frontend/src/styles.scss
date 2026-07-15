@@ -1344,9 +1344,16 @@ app-root {
 
 .ticket-list li {
   display: flex;
-  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
   padding: 0.5rem 0;
   border-bottom: 1px solid var(--pe-border);
+}
+.ticket-list .ticket-amount {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--pe-text);
 }
 
 /* Bloques de formulario dentro de la cuenta */

@@ -18,6 +18,9 @@ export class TicketEventSummaryDto {
 
   @ApiProperty({ type: String, format: 'date-time', example: '2026-08-15T02:00:00.000Z' })
   startsAt!: string;
+
+  @ApiProperty({ type: String, format: 'date-time', example: '2026-08-15T05:00:00.000Z' })
+  endsAt!: string;
 }
 
 /** Resumen de un boleto tal como lo retorna `TicketsService.toSummary`. */
@@ -41,6 +44,14 @@ export class TicketResponseDto {
 
   @ApiProperty({ format: 'uuid', description: 'Orden que originó el boleto (enlace a facturación)' })
   orderId!: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    example: '97.50',
+    description: 'Precio pagado por este boleto (total de su línea de orden), en GTQ',
+  })
+  amount?: string | null;
 
   @ApiProperty({ format: 'uuid', description: 'Localidad del boleto' })
   localityId!: string;

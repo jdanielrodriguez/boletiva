@@ -665,7 +665,11 @@
                       </div>
                       <ul class="ticket-list">
                         @for (t of og.tickets; track t.id) {
-                          <li><span>{{ t.serial }}</span><span class="muted">{{ t.localityName ?? ('account.general' | translate) }}@if (t.seatLabel) { · {{ 'account.tickets.seat' | translate }} {{ t.seatLabel }}}</span></li>
+                          <li>
+                            <span>{{ t.serial }}</span>
+                            <span class="muted">{{ t.localityName ?? ('account.general' | translate) }}@if (t.seatLabel) { · {{ 'account.tickets.seat' | translate }} {{ t.seatLabel }}}</span>
+                            @if (t.amount) { <span class="ticket-amount">Q{{ t.amount }}</span> }
+                          </li>
                         }
                       </ul>
                     </div>

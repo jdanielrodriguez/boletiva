@@ -11931,12 +11931,18 @@
             "type": "string",
             "format": "date-time",
             "example": "2026-08-15T02:00:00.000Z"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-08-15T05:00:00.000Z"
           }
         },
         "required": [
           "name",
           "slug",
-          "startsAt"
+          "startsAt",
+          "endsAt"
         ]
       },
       "TicketResponseDto": {
@@ -11972,6 +11978,12 @@
             "type": "string",
             "format": "uuid",
             "description": "Orden que originó el boleto (enlace a facturación)"
+          },
+          "amount": {
+            "type": "string",
+            "nullable": true,
+            "example": "97.50",
+            "description": "Precio pagado por este boleto (total de su línea de orden), en GTQ"
           },
           "localityId": {
             "type": "string",
