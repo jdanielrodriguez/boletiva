@@ -23,6 +23,7 @@ describe('CheckoutService.translate (contrato de errores)', () => {
     {} as never,
     {} as never,
     {} as never,
+    { get: () => 5 } as never,
   );
   const translate = (e: unknown): Error =>
     (service as unknown as { translate(e: unknown): Error }).translate(e);

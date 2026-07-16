@@ -8,6 +8,7 @@ import {
   ServiceUnavailableException,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
 import { SpanStatusCode } from '@opentelemetry/api';
 import Decimal from 'decimal.js';
@@ -41,12 +42,17 @@ interface LockedSeat {
 export class CheckoutService {
   private readonly logger = new Logger(CheckoutService.name);
 
+  private readonly maxPendingPerBuyer: number;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly pricing: PricingService,
     private readonly stream: StreamService,
-  ) {}
+    config: ConfigService,
+  ) {
+    this.maxPendingPerBuyer = config.get<number>('orders.maxPendingPerBuyer') ?? 5;
+  }
 
   private holdKey(eventId: string, seatId: string): string {
     return `hold:${eventId}:${seatId}`;
@@ -109,6 +115,18 @@ export class CheckoutService {
     const seatIds = [...new Set(rawSeatIds)];
     if (seatIds.length === 0) {
       throw new BadRequestException('Debes indicar al menos un asiento');
+    }
+
+    // Anti-abuso (2.2): tope de órdenes PENDIENTES no vencidas por comprador. Sin esto
+    // un usuario podría crear muchas órdenes `pending` que amarran asientos como `sold`
+    // sin pagar. El sweeper de vencidas + este tope acotan el daño.
+    const activePending = await this.prisma.order.count({
+      where: { buyerId, status: 'pending', expiresAt: { gt: new Date() } },
+    });
+    if (activePending >= this.maxPendingPerBuyer) {
+      throw new ConflictException(
+        `Tienes ${activePending} órdenes pendientes de pago. Complétalas o cancélalas antes de crear otra.`,
+      );
     }
 
     // Capa 1: respetar holds ajenos. Si el asiento está reservado por otra
@@ -296,6 +314,9 @@ export class CheckoutService {
       const holders = await client.mget(...keys);
       const mine = keys.filter((_, i) => holders[i] === buyerId);
       if (mine.length) await client.del(...mine);
+      // Descuenta del tope simultáneo del holder (seat-hold `hold:owner:<id>`): tras
+      // vender, esos asientos ya no cuentan para su cupo de reservas concurrentes.
+      await client.srem(`hold:owner:${buyerId}`, ...seatIds).catch(() => undefined);
     } catch (e) {
       // No es crítico: el TTL los libera igual. Solo registramos.
       this.logger.warn(`No se pudieron liberar holds tras el commit: ${String(e)}`);

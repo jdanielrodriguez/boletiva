@@ -11,6 +11,12 @@ import { checkoutTracer } from '../../infra/observability/tracing';
 
 export const DEFAULT_HOLD_TTL = 600; // 10 minutos
 
+// Tope de asientos en reserva SIMULTÁNEA por holder (usuario o reserva anónima). Evita
+// que una cuenta verificada acapare todo el aforo con holds en bucle (hallazgo 1.1).
+// Generoso para compras legítimas (el tope de GA por localidad ya es 50); un abusador
+// llena el set rápido y queda bloqueado hasta que sus holds venzan/se liberen.
+export const MAX_HELD_SEATS_PER_HOLDER = 50;
+
 // Lua atómico: reserva TODOS los asientos o NINGUNO (todos-o-nada).
 // KEYS = llaves de asiento; ARGV[1] = holderId; ARGV[2] = ttl (s).
 // Devuelve 0 si reservó todos, o el índice (1-based) del primer asiento ocupado.
@@ -78,6 +84,35 @@ export class SeatHoldService {
     return `hold:${eventId}:${seatId}`;
   }
 
+  /** Set de asientos que un holder tiene en reserva ahora (para el tope simultáneo). */
+  private ownerSetKey(holderId: string): string {
+    return `hold:owner:${holderId}`;
+  }
+
+  /**
+   * Contabiliza los asientos recién tomados en el set del holder y aplica el tope
+   * simultáneo. Si al sumarlos se excede, hace ROLLBACK (libera los recién tomados) y
+   * lanza 409 → nadie puede acaparar el aforo con holds en bucle.
+   */
+  private async trackAndCap(
+    holderId: string,
+    eventId: string,
+    seatIds: string[],
+    ttlSeconds: number,
+  ): Promise<void> {
+    const client = this.redis.getClient();
+    const setKey = this.ownerSetKey(holderId);
+    await client.sadd(setKey, ...seatIds);
+    await client.expire(setKey, ttlSeconds);
+    const count = await client.scard(setKey);
+    if (count > MAX_HELD_SEATS_PER_HOLDER) {
+      await this.release(eventId, seatIds, holderId); // libera lo recién tomado + SREM
+      throw new ConflictException(
+        `Máximo ${MAX_HELD_SEATS_PER_HOLDER} asientos en reserva a la vez. Completa o cancela los actuales.`,
+      );
+    }
+  }
+
   /**
    * Reserva temporal (hold) de asientos en Redis con TTL. Verifica en BD que los
    * asientos existen, pertenecen al evento y están disponibles, y luego los toma
@@ -115,6 +150,9 @@ export class SeatHoldService {
   ): Promise<HoldResult> {
     const unique = [...new Set(seatIds)];
     if (unique.length === 0) throw new BadRequestException('Debes indicar al menos un asiento');
+    if (unique.length > MAX_HELD_SEATS_PER_HOLDER) {
+      throw new BadRequestException(`Máximo ${MAX_HELD_SEATS_PER_HOLDER} asientos por reserva`);
+    }
 
     // Validación en BD (fuente de verdad del inventario, indexada por localidad/estado).
     const seats = await this.prisma.seat.findMany({
@@ -136,6 +174,8 @@ export class SeatHoldService {
     if (res !== 0) {
       throw new ConflictException('Algún asiento ya está reservado por otra persona');
     }
+
+    await this.trackAndCap(holderId, eventId, unique, ttlSeconds);
 
     return {
       seatIds: unique,
@@ -198,6 +238,9 @@ export class SeatHoldService {
     if (!Number.isInteger(quantity) || quantity < 1) {
       throw new BadRequestException('La cantidad debe ser un entero positivo');
     }
+    if (quantity > MAX_HELD_SEATS_PER_HOLDER) {
+      throw new BadRequestException(`Máximo ${MAX_HELD_SEATS_PER_HOLDER} cupos por reserva`);
+    }
 
     const locality = await this.prisma.locality.findFirst({
       where: { id: localityId, eventId },
@@ -231,6 +274,7 @@ export class SeatHoldService {
     }
 
     const seatIds = chosen.map((idx) => candidates[idx - 1].id);
+    await this.trackAndCap(holderId, eventId, seatIds, ttlSeconds);
     return {
       seatIds,
       holderId,
@@ -245,11 +289,14 @@ export class SeatHoldService {
     seatIds: string[],
     holderId: string,
   ): Promise<{ released: number }> {
-    const keys = [...new Set(seatIds)].map((id) => this.key(eventId, id));
+    const unique = [...new Set(seatIds)];
+    const keys = unique.map((id) => this.key(eventId, id));
     if (keys.length === 0) return { released: 0 };
     const released = (await this.redis
       .getClient()
       .eval(RELEASE_SCRIPT, keys.length, ...keys, holderId)) as number;
+    // Descuenta del tope simultáneo del holder (idempotente si no estaban).
+    await this.redis.getClient().srem(this.ownerSetKey(holderId), ...unique).catch(() => undefined);
     return { released };
   }
 

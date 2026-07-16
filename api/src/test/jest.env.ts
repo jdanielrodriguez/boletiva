@@ -22,6 +22,9 @@ process.env.RESERVATION_ANON_LIMIT = process.env.RESERVATION_ANON_LIMIT ?? 'fals
 // Rate-limit global OFF por defecto en test (los e2e disparan ráfagas desde una IP).
 // La suite dedicada lo enciende en su beforeAll.
 process.env.RATE_LIMIT_ENABLED = process.env.RATE_LIMIT_ENABLED ?? 'false';
+// Tope de órdenes pending por comprador: alto en test (las suites acumulan órdenes
+// pending del mismo comprador). La suite dedicada lo baja para probar el límite.
+process.env.ORDERS_MAX_PENDING_PER_BUYER = process.env.ORDERS_MAX_PENDING_PER_BUYER ?? '1000';
 
 // Neutraliza TODAS las credenciales de integración externa: la suite debe ser
 // HERMÉTICA e independiente de lo que tenga el `.env` del desarrollador. Sin esto,

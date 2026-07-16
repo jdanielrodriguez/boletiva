@@ -183,23 +183,30 @@ describe('Admisión general (GA) por filas (e2e)', () => {
   });
 
   it('commit GA con los seatIds del hold reusa el camino de asientos → 201, precio exacto', async () => {
-    const locId = await createGaLocality(5);
-    const hold = await http()
-      .post(`/api/v1/events/${eventId}/holds`)
-      .set(bearer(buyerAToken))
-      .send({ localityId: locId, quantity: 2 })
-      .expect(201);
-    const res = await http()
-      .post(`/api/v1/events/${eventId}/orders`)
-      .set(bearer(buyerAToken))
-      .send({ seatIds: hold.body.seatIds })
-      .expect(201);
-    expect(res.body.items).toHaveLength(2);
-    expect(money(res.body.net)).toBe('200.00');
-    expect(money(res.body.total)).toBe('259.36'); // 2 * 129.68 (neto 100)
-    for (const id of hold.body.seatIds) {
-      const s = await prisma.seat.findUniqueOrThrow({ where: { id } });
-      expect(s.status).toBe('sold');
+    const locId = await createGaLocality(5); // aforo se configura en draft
+    // El commit exige el evento publicado y con ventas abiertas (ciclo de vida por
+    // fecha): se publica para vender (startsAt futuro) y se restaura draft al final.
+    await prisma.event.update({ where: { id: eventId }, data: { status: 'published' } });
+    try {
+      const hold = await http()
+        .post(`/api/v1/events/${eventId}/holds`)
+        .set(bearer(buyerAToken))
+        .send({ localityId: locId, quantity: 2 })
+        .expect(201);
+      const res = await http()
+        .post(`/api/v1/events/${eventId}/orders`)
+        .set(bearer(buyerAToken))
+        .send({ seatIds: hold.body.seatIds })
+        .expect(201);
+      expect(res.body.items).toHaveLength(2);
+      expect(money(res.body.net)).toBe('200.00');
+      expect(money(res.body.total)).toBe('259.36'); // 2 * 129.68 (neto 100)
+      for (const id of hold.body.seatIds) {
+        const s = await prisma.seat.findUniqueOrThrow({ where: { id } });
+        expect(s.status).toBe('sold');
+      }
+    } finally {
+      await prisma.event.update({ where: { id: eventId }, data: { status: 'draft' } });
     }
   });
 
@@ -278,7 +285,9 @@ describe('Admisión general (GA) por filas (e2e)', () => {
   // ---- 0 SOBREVENTA bajo concurrencia (sin fila caliente) -----------------
 
   it('0 SOBREVENTA: 25 flujos concurrentes sobre 10 cupos → exactamente 10 vendidos', async () => {
-    const locId = await createGaLocality(10);
+    const locId = await createGaLocality(10); // aforo en draft
+    // Se publica para permitir el commit (ventas abiertas, startsAt futuro).
+    await prisma.event.update({ where: { id: eventId }, data: { status: 'published' } });
     const K = 25;
     // Cada intento: hold por cantidad 1 y, si lo consigue, commit. Se ejercen los
     // servicios (capa autoritativa) para evitar flakiness del socket HTTP.
