@@ -1,5 +1,8 @@
-import { Injectable, MessageEvent } from '@nestjs/common';
+import { Injectable, Logger, MessageEvent, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
+import type { Redis } from 'ioredis';
 import { Observable, Subject, filter, map, merge, of } from 'rxjs';
+import { RedisService } from '../../infra/redis/redis.service';
 
 type StreamKind = 'order' | 'seat' | 'wallet';
 
@@ -9,6 +12,8 @@ interface StreamEvent {
   eventId?: string;
   userId?: string;
   data: unknown;
+  /** Id de la instancia que originó el evento (para no re-entregar el propio). */
+  origin?: string;
 }
 
 /** Datos mínimos de una orden para armar su stream (dueño + evento). */
@@ -18,27 +23,68 @@ export interface OrderStreamRef {
   eventId: string;
 }
 
+/** Canal de Redis pub/sub para el fan-out de eventos SSE entre instancias. */
+const CHANNEL = 'stream:events';
+
 /**
- * Bus de eventos en proceso (RxJS) para push por SSE, evitando polling. Los
- * servicios publican cambios (`order`/`seat`/`wallet`) y el endpoint SSE se
- * suscribe filtrando por orden/evento/usuario.
+ * Bus de eventos para push por SSE (sin polling). Los servicios publican cambios
+ * (`order`/`seat`/`wallet`); el endpoint SSE se suscribe filtrando por orden/evento/usuario.
  *
- * NOTA de producción (multi-instancia Cloud Run): este bus es por-instancia. Para
- * fan-out entre instancias, publicar/suscribir sobre Redis pub/sub detrás de la
- * misma interfaz (los clientes se reconectan a cualquier instancia). Documentado.
+ * M2 (multi-instancia Cloud Run): `emit*` entrega LOCAL de inmediato (a los clientes SSE
+ * de ESTA instancia) Y PUBLICA en un canal Redis para las OTRAS instancias. Cada instancia
+ * se SUSCRIBE (conexión dedicada) y reinyecta en su Subject SOLO los eventos ajenos (por
+ * `origin`), evitando doble entrega en el origen. Así el webhook que confirma el pago en la
+ * instancia A llega al cliente SSE pegado a la B. Sin Redis (o si falla el publish) queda la
+ * entrega local → degradado a por-instancia, nunca rompe. `redis` es opcional (unit tests).
  */
 @Injectable()
-export class StreamService {
+export class StreamService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(StreamService.name);
   private readonly subject = new Subject<StreamEvent>();
+  private subscriber?: Redis;
+  private readonly instanceId = randomUUID();
+
+  constructor(private readonly redis?: RedisService) {}
+
+  async onModuleInit(): Promise<void> {
+    if (!this.redis) return;
+    try {
+      this.subscriber = this.redis.getClient().duplicate();
+      this.subscriber.on('message', (_channel, message) => {
+        try {
+          const event = JSON.parse(message) as StreamEvent;
+          if (event.origin !== this.instanceId) this.subject.next(event); // solo ajenos
+        } catch {
+          /* mensaje corrupto → ignorar */
+        }
+      });
+      await this.subscriber.subscribe(CHANNEL);
+    } catch (e) {
+      this.logger.warn(`SSE pub/sub no disponible (degradado a por-instancia): ${String(e)}`);
+    }
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    await this.subscriber?.quit().catch(() => undefined);
+  }
+
+  private emit(event: StreamEvent): void {
+    this.subject.next(event); // entrega local inmediata (clientes de esta instancia)
+    // Fan-out a las otras instancias (best-effort). No re-entrega aquí (origin propio).
+    this.redis
+      ?.getClient()
+      .publish(CHANNEL, JSON.stringify({ ...event, origin: this.instanceId }))
+      .catch(() => undefined);
+  }
 
   emitOrder(orderId: string, data: unknown): void {
-    this.subject.next({ kind: 'order', orderId, data });
+    this.emit({ kind: 'order', orderId, data });
   }
   emitSeat(eventId: string, data: unknown): void {
-    this.subject.next({ kind: 'seat', eventId, data });
+    this.emit({ kind: 'seat', eventId, data });
   }
   emitWallet(userId: string, data: unknown): void {
-    this.subject.next({ kind: 'wallet', userId, data });
+    this.emit({ kind: 'wallet', userId, data });
   }
 
   /**

@@ -1,9 +1,33 @@
-import { Controller, MessageEvent, NotFoundException, Param, ParseUUIDPipe, Sse } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiProduces, ApiProperty, ApiTags } from '@nestjs/swagger';
+import {
+  Controller,
+  Headers,
+  HttpCode,
+  MessageEvent,
+  NotFoundException,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Query,
+  Sse,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiProduces,
+  ApiProperty,
+  ApiTags,
+} from '@nestjs/swagger';
 import { OrderStatus } from '@prisma/client';
+import { randomBytes } from 'node:crypto';
 import { Observable } from 'rxjs';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { RedisService } from '../../infra/redis/redis.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { Public } from '../../common/decorators/public.decorator';
 import { SkipRateLimit } from '../../common/rate-limit/rate-limit.decorator';
 import { StreamService } from './stream.service';
 
@@ -23,19 +47,63 @@ export class OrderStreamSnapshotDto {
   total!: string;
 }
 
+/** Ticket efímero de un solo uso para abrir el SSE sin poner el access token en la URL. */
+export class StreamTicketDto {
+  @ApiProperty({ description: 'Ticket de un solo uso (pásalo como ?ticket= al abrir el SSE)' })
+  ticket!: string;
+
+  @ApiProperty({ description: 'Segundos de validez', example: 60 })
+  expiresIn!: number;
+}
+
+const TICKET_TTL_S = 60;
+
 @ApiTags('stream')
 @Controller()
 export class StreamController {
-  constructor(private readonly prisma: PrismaService, private readonly stream: StreamService) {}
+  private readonly jwtSecret: string;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly stream: StreamService,
+    private readonly redis: RedisService,
+    private readonly jwt: JwtService,
+    config: ConfigService,
+  ) {
+    this.jwtSecret = config.getOrThrow<string>('jwt.accessSecret');
+  }
 
   /**
-   * Server-Sent Events del checkout: estado de la orden (pending→paid/…), deltas de
-   * asientos del evento y `wallet` del comprador — push sin polling. Auth por
-   * `?access_token=` (EventSource no envía headers); solo el dueño (IDOR→404).
+   * H4: emite un TICKET de un solo uso (Redis, 60 s) acotado a esta orden y usuario, para
+   * abrir el SSE sin exponer el access token (900 s) en la URL/logs de Cloud Run/LB.
+   * Requiere sesión (Bearer en header, no en URL) y ser el dueño de la orden (IDOR→404).
    */
-  @Sse('orders/:id/stream')
+  @Post('orders/:id/stream-ticket')
+  @HttpCode(200)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Emite un ticket de un solo uso para abrir el SSE de la orden' })
+  @ApiOkResponse({ type: StreamTicketDto })
+  async streamTicket(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser('userId') userId: string,
+  ): Promise<StreamTicketDto> {
+    const order = await this.prisma.order.findUnique({ where: { id }, select: { buyerId: true } });
+    if (!order || order.buyerId !== userId) throw new NotFoundException('Orden no encontrada');
+    const ticket = randomBytes(24).toString('base64url');
+    await this.redis.getClient().set(`sse:ticket:${ticket}`, `${id}:${userId}`, 'EX', TICKET_TTL_S);
+    return { ticket, expiresIn: TICKET_TTL_S };
+  }
+
+  /**
+   * Stream SSE del checkout: estado de la orden (pending→paid/…), deltas de asientos del
+   * evento y `wallet` del comprador — push sin polling. Auth por `?ticket=` (preferido: de
+   * un solo uso, ver stream-ticket) o, por compatibilidad, `?access_token=`/Bearer
+   * (EventSource no envía headers). Solo el dueño (IDOR→404).
+   */
+  @Public()
   @SkipRateLimit()
-  @ApiOperation({ summary: 'Stream SSE del checkout (order/seat/wallet). Auth: ?access_token=' })
+  @Sse('orders/:id/stream')
+  @ApiOperation({ summary: 'Stream SSE del checkout (order/seat/wallet). Auth: ?ticket= (o ?access_token=)' })
   @ApiProduces('text/event-stream')
   @ApiOkResponse({
     description:
@@ -45,8 +113,13 @@ export class StreamController {
   })
   async orderStream(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser('userId') userId: string,
+    @Query('ticket') ticket?: string,
+    @Query('access_token') accessToken?: string,
+    @Headers('authorization') authorization?: string,
   ): Promise<Observable<MessageEvent>> {
+    const userId = await this.resolveUserId(id, ticket, accessToken, authorization);
+    if (!userId) throw new UnauthorizedException('Se requiere un ticket o token válido');
+
     const order = await this.prisma.order.findUnique({
       where: { id },
       select: { id: true, buyerId: true, eventId: true, status: true, total: true },
@@ -60,5 +133,28 @@ export class StreamController {
       userId,
       snapshot,
     );
+  }
+
+  /** Resuelve el userId desde el ticket de un solo uso o, como fallback, un JWT válido. */
+  private async resolveUserId(
+    orderId: string,
+    ticket?: string,
+    accessToken?: string,
+    authorization?: string,
+  ): Promise<string | null> {
+    if (ticket) {
+      // GETDEL: consume el ticket (un solo uso). Debe corresponder a ESTA orden.
+      const raw = await this.redis.getClient().getdel(`sse:ticket:${ticket}`).catch(() => null);
+      if (!raw) return null;
+      const [ordId, uid] = raw.split(':');
+      return ordId === orderId && uid ? uid : null;
+    }
+    const jwt = accessToken || (authorization?.startsWith('Bearer ') ? authorization.slice(7) : '');
+    if (!jwt) return null;
+    try {
+      return this.jwt.verify<{ sub?: string }>(jwt, { secret: this.jwtSecret }).sub ?? null;
+    } catch {
+      return null;
+    }
   }
 }

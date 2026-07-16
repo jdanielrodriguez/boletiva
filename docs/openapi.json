@@ -4246,10 +4246,19 @@
         ]
       }
     },
-    "/api/v1/checkins/batch": {
+    "/api/v1/events/{eventId}/checkins/batch": {
       "post": {
         "operationId": "ValidationIngestController_batch_v1",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -4277,7 +4286,7 @@
             "bearer": []
           }
         ],
-        "summary": "Ingesta un lote de check-ins offline (bus RabbitMQ)",
+        "summary": "Ingesta un lote de check-ins offline del evento (operador asignado)",
         "tags": [
           "validation-ingest"
         ]
@@ -5761,6 +5770,42 @@
         ]
       }
     },
+    "/api/v1/orders/{id}/stream-ticket": {
+      "post": {
+        "operationId": "StreamController_streamTicket_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreamTicketDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Emite un ticket de un solo uso para abrir el SSE de la orden",
+        "tags": [
+          "stream"
+        ]
+      }
+    },
     "/api/v1/orders/{id}/stream": {
       "get": {
         "operationId": "StreamController_orderStream_v1",
@@ -5769,6 +5814,30 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ticket",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "access_token",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
             "schema": {
               "type": "string"
             }
@@ -5786,7 +5855,7 @@
             }
           }
         },
-        "summary": "Stream SSE del checkout (order/seat/wallet). Auth: ?access_token=",
+        "summary": "Stream SSE del checkout (order/seat/wallet). Auth: ?ticket= (o ?access_token=)",
         "tags": [
           "stream"
         ]
@@ -14058,6 +14127,24 @@
         "required": [
           "anonymized",
           "days"
+        ]
+      },
+      "StreamTicketDto": {
+        "type": "object",
+        "properties": {
+          "ticket": {
+            "type": "string",
+            "description": "Ticket de un solo uso (pásalo como ?ticket= al abrir el SSE)"
+          },
+          "expiresIn": {
+            "type": "number",
+            "description": "Segundos de validez",
+            "example": 60
+          }
+        },
+        "required": [
+          "ticket",
+          "expiresIn"
         ]
       },
       "OrderStreamSnapshotDto": {

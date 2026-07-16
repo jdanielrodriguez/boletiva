@@ -9,6 +9,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Role } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { RedisService } from '../../infra/redis/redis.service';
 
 /**
  * Privacidad y retención de datos (Ola 6). Anonimiza (seudonimiza) la PII de un
@@ -29,7 +30,11 @@ export class RetentionService implements OnModuleInit, OnModuleDestroy {
   private readonly enabled: boolean;
   private readonly days: number;
 
-  constructor(private readonly prisma: PrismaService, config: ConfigService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+    config: ConfigService,
+  ) {
     this.enabled = config.get<boolean>('retention.enabled') ?? false;
     this.days = config.get<number>('retention.days') ?? 365;
   }
@@ -38,7 +43,11 @@ export class RetentionService implements OnModuleInit, OnModuleDestroy {
     if (!this.enabled) return; // apagado en test y por defecto
     const DAY_MS = 24 * 3600 * 1000;
     this.timer = setInterval(() => {
-      this.runRetention().catch((e) => this.logger.error(`Retención falló: ${e.message}`));
+      // M1: lock distribuido (10 min) → una sola instancia de Cloud Run anonimiza por día.
+      void this.redis.tryLock('retention', 10 * 60 * 1000).then((got) => {
+        if (!got) return;
+        return this.runRetention().catch((e) => this.logger.error(`Retención falló: ${e.message}`));
+      });
     }, DAY_MS);
     this.logger.log(`Job de retención activo (cada 24h, ${this.days} días)`);
   }

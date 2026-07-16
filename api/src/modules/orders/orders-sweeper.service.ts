@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnApplicationBootstrap, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { RedisService } from '../../infra/redis/redis.service';
 import { StreamService } from '../stream/stream.service';
 
 /**
@@ -28,6 +29,7 @@ export class OrdersSweeperService implements OnApplicationBootstrap, OnModuleDes
   constructor(
     private readonly prisma: PrismaService,
     private readonly stream: StreamService,
+    private readonly redis: RedisService,
     config: ConfigService,
   ) {
     this.enabled = config.get<boolean>('orders.sweeperEnabled') ?? true;
@@ -37,7 +39,11 @@ export class OrdersSweeperService implements OnApplicationBootstrap, OnModuleDes
   onApplicationBootstrap(): void {
     if (!this.enabled) return; // apagado en test y con ORDERS_SWEEPER_ENABLED=false
     this.timer = setInterval(() => {
-      this.sweepExpired().catch((e) => this.logger.error(`Sweeper de órdenes falló: ${e.message}`));
+      // M1: lock distribuido → en Cloud Run multi-instancia solo UNA barre por tick.
+      void this.redis.tryLock('orders-sweeper', Math.floor(this.intervalMs * 0.9)).then((got) => {
+        if (!got) return;
+        return this.sweepExpired().catch((e) => this.logger.error(`Sweeper de órdenes falló: ${e.message}`));
+      });
     }, this.intervalMs);
     this.logger.log(`Sweeper de órdenes pending activo (cada ${this.intervalMs}ms)`);
   }

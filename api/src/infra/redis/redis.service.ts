@@ -37,4 +37,19 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     const res = await this.client.ping();
     return res === 'PONG';
   }
+
+  /**
+   * Lock distribuido best-effort (SET NX PX). Devuelve true si ESTA instancia lo tomó.
+   * Úsalo para que jobs periódicos (sweeper/retención) corran en UNA sola instancia de
+   * Cloud Run por tick, no en las N. Fail-open ante fallo de Redis (deja correr) para no
+   * bloquear la única instancia cuando Redis parpadea. El lock caduca solo (px).
+   */
+  async tryLock(key: string, ttlMs: number): Promise<boolean> {
+    try {
+      const res = await this.client.set(`lock:${key}`, '1', 'PX', ttlMs, 'NX');
+      return res === 'OK';
+    } catch {
+      return true; // fail-open: mejor correr una vez de más que no correr nunca
+    }
+  }
 }

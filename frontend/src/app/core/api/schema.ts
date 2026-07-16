@@ -1737,7 +1737,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/checkins/batch": {
+    "/api/v1/events/{eventId}/checkins/batch": {
         parameters: {
             query?: never;
             header?: never;
@@ -1746,7 +1746,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Ingesta un lote de check-ins offline (bus RabbitMQ) */
+        /** Ingesta un lote de check-ins offline del evento (operador asignado) */
         post: operations["ValidationIngestController_batch_v1"];
         delete?: never;
         options?: never;
@@ -2273,6 +2273,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/{id}/stream-ticket": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Emite un ticket de un solo uso para abrir el SSE de la orden */
+        post: operations["StreamController_streamTicket_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders/{id}/stream": {
         parameters: {
             query?: never;
@@ -2280,7 +2297,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Stream SSE del checkout (order/seat/wallet). Auth: ?access_token= */
+        /** Stream SSE del checkout (order/seat/wallet). Auth: ?ticket= (o ?access_token=) */
         get: operations["StreamController_orderStream_v1"];
         put?: never;
         post?: never;
@@ -6779,6 +6796,15 @@ export interface components {
             /** @description Días de corte usados */
             days: number;
         };
+        StreamTicketDto: {
+            /** @description Ticket de un solo uso (pásalo como ?ticket= al abrir el SSE) */
+            ticket: string;
+            /**
+             * @description Segundos de validez
+             * @example 60
+             */
+            expiresIn: number;
+        };
         OrderStreamSnapshotDto: {
             /**
              * Format: uuid
@@ -10037,7 +10063,9 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                eventId: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -10921,10 +10949,36 @@ export interface operations {
             };
         };
     };
-    StreamController_orderStream_v1: {
+    StreamController_streamTicket_v1: {
         parameters: {
             query?: never;
             header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StreamTicketDto"];
+                };
+            };
+        };
+    };
+    StreamController_orderStream_v1: {
+        parameters: {
+            query: {
+                ticket: string;
+                access_token: string;
+            };
+            header: {
+                authorization: string;
+            };
             path: {
                 id: string;
             };
