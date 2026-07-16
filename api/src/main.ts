@@ -11,6 +11,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { assertProductionSecurity } from './common/security/assert-prod-security';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -19,6 +20,10 @@ async function bootstrap(): Promise<void> {
 
   // Logger estructurado (pino) como logger de Nest.
   app.useLogger(app.get(Logger));
+
+  // Fail-fast en PROD: secretos con default de dev, trust proxy mal parametrizado o
+  // CORS '*' con credenciales → aborta el arranque (auditoría dual C1/C2/M5).
+  assertProductionSecurity(config);
 
   // Seguridad y transporte.
   // Ocultar la tecnología (v3.8): quitar el fingerprint `X-Powered-By: Express`
