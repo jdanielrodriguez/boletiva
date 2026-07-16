@@ -205,14 +205,21 @@ describe('Pagos en cuotas (e2e)', () => {
     expect(money(q.installmentSurcharge)).toBe('3.95');
   });
 
-  it('18 cuotas (14%): la plataforma puede quedar con margen NEGATIVo (sin buffer)', async () => {
+  it('H2: 18 cuotas dejaría a la plataforma en margen NEGATIVO y la absorbe ella → 400 (no vende a pérdida)', async () => {
+    // Antes se pagaba y la plataforma comía la pérdida (-1.86). Ahora `/pay` reaplica el
+    // mismo filtro que oculta el plazo en payment-options: plazo negativo no absorbido
+    // por el promotor → 400. La orden sigue pendiente (no se cobró).
     const o = await order(platEventId, platSeats[2]);
+    await pay(o.id, { installments: 18 }).expect(400);
+    expect((await prisma.order.findUniqueOrThrow({ where: { id: o.id } })).status).toBe('pending');
+  });
+
+  it('18 cuotas SÍ se permiten si las absorbe el PROMOTOR (su neto baja, plataforma intacta)', async () => {
+    const o = await order(promEventId, promSeats[3]);
     await pay(o.id, { installments: 18 }).expect(201);
     const up = await prisma.order.findUniqueOrThrow({ where: { id: o.id } });
-    expect(money(up.gatewayFee)).toBe('20.45'); // 131.79*0.14 + 2
-    expect(money(up.platformFee)).toBe('-1.86'); // 10 − (20.45 − 8.59) (plataforma pierde)
+    expect(money(up.platformFee)).toBe('10.00'); // plataforma intacta
     expect(money(up.total)).toBe('131.79');
-    expect(money(up.net)).toBe('100.00');
   });
 
   it('ledger balanceado tras confirmar el pago en cuotas (webhook succeeded)', async () => {

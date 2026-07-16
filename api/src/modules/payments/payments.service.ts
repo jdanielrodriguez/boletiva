@@ -449,6 +449,12 @@ export class PaymentsService {
         },
       });
     });
+    // H2: si el plazo dejaría a la PLATAFORMA en margen negativo y NO lo absorbe el
+    // promotor, se rechaza — mismo criterio que oculta esos plazos en paymentOptions.
+    // Impide pagar por un plazo "oculto" y que la plataforma coma la pérdida.
+    if (plan && !plan.absorbedByPromoter && sum.platform.lt(0)) {
+      throw new BadRequestException('Ese plazo de cuotas no está disponible para esta orden');
+    }
     await this.prisma.$transaction([
       ...itemUpdates,
       this.prisma.order.update({

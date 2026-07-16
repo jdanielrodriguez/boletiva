@@ -9,7 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { RedisService } from '../../infra/redis/redis.service';
-import { SeatHoldService } from '../inventory/seat-hold.service';
+import { SeatHoldService, MAX_HELD_SEATS_PER_HOLDER } from '../inventory/seat-hold.service';
 import { CheckoutService, BillingInput } from '../orders/checkout.service';
 import { PricingService } from '../pricing/pricing.service';
 import { CreateReservationDto } from './dto/reservations.dto';
@@ -18,12 +18,14 @@ import { CreateReservationDto } from './dto/reservations.dto';
  * claro que la reserva se mantiene por 10 minutos. */
 const RESERVATION_TTL = 600;
 
-/** Contexto de la petición para el anti-abuso por IP (visitantes sin login). */
+/** Contexto de la petición para el anti-abuso de reservas. */
 export interface ReservationContext {
-  /** IP del cliente (X-Forwarded-For primero). null si no se pudo determinar. */
+  /** IP real del cliente (req.ip según trust proxy). null si no se pudo determinar. */
   ip: string | null;
-  /** true si la petición trae un usuario autenticado (accountable → sin límite). */
+  /** true si la petición trae un usuario autenticado. */
   isUser: boolean;
+  /** Id del usuario autenticado (si isUser) — para el cap de asientos por CUENTA. */
+  userId?: string | null;
 }
 
 interface TokenPayload {
@@ -72,6 +74,39 @@ export class ReservationsService {
   }
   private limitApplies(ctx: ReservationContext): ctx is ReservationContext & { ip: string } {
     return this.anonLimitEnabled && !ctx.isUser && !!ctx.ip;
+  }
+
+  /**
+   * Clave del cap de asientos en reserva por IDENTIDAD ESTABLE (cuenta si hay login,
+   * si no la IP). NO usa el `rid` (que cambia por reserva) → cierra H1: un usuario
+   * logueado no puede estrenar 50 asientos limpios por cada reserva en bucle. null si
+   * no hay identidad utilizable (no aplica el cap).
+   */
+  private seatCapKey(ctx: ReservationContext): string | null {
+    if (ctx.isUser && ctx.userId) return `res:seats:u:${ctx.userId}`;
+    if (ctx.ip) return `res:seats:ip:${ctx.ip}`;
+    return null;
+  }
+
+  /**
+   * Contabiliza los asientos recién reservados contra el tope por identidad y hace
+   * rollback (libera lo tomado bajo `rid`) si se excede. Igual espíritu que el cap de
+   * holds, pero por cuenta/IP y a través de TODAS las reservas (no por rid).
+   */
+  private async capReservedSeats(ctx: ReservationContext, eventId: string, held: string[], rid: string) {
+    const key = this.seatCapKey(ctx);
+    if (!key || held.length === 0) return;
+    const client = this.redis.getClient();
+    await client.sadd(key, ...held);
+    await client.expire(key, RESERVATION_TTL);
+    if ((await client.scard(key)) > MAX_HELD_SEATS_PER_HOLDER) {
+      await client.srem(key, ...held).catch(() => undefined);
+      await this.holds.release(eventId, held, rid).catch(() => undefined);
+      throw new HttpException(
+        `Máximo ${MAX_HELD_SEATS_PER_HOLDER} asientos en reserva a la vez. Completa o cancela los actuales.`,
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
   }
 
   // --- Token firmado (integridad, no secreto): base64url(payload).hmac ---
@@ -147,6 +182,10 @@ export class ReservationsService {
       throw e;
     }
 
+    // Cap de asientos reservados por identidad estable (cuenta o IP) — cierra H1.
+    // Aplica a logueados y anónimos; hace rollback de lo recién tomado si excede.
+    await this.capReservedSeats(ctx, eventId, held, rid);
+
     // Marca la reserva activa de esta IP (misma vida que el hold → se auto-libera).
     if (this.limitApplies(ctx)) {
       await this.redis
@@ -169,6 +208,9 @@ export class ReservationsService {
     const { rid, eventId, seatIds } = this.verify(token);
     if (seatIds.length > 0) {
       await this.holds.release(eventId, seatIds, rid).catch(() => undefined);
+      // Descuenta del cap de asientos reservados por identidad (cierra H1).
+      const capKey = this.seatCapKey(ctx);
+      if (capKey) await this.redis.getClient().srem(capKey, ...seatIds).catch(() => undefined);
     }
     if (this.limitApplies(ctx)) {
       const client = this.redis.getClient();

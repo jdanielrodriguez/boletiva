@@ -53,16 +53,18 @@ export class ReservationsController {
     const ip = clientIp(req);
 
     let isUser = false;
+    let userId: string | null = null;
     const auth = req.headers.authorization;
     if (auth?.startsWith('Bearer ')) {
       try {
-        this.jwt.verify(auth.slice(7), { secret: this.jwtSecret });
+        const payload = this.jwt.verify<{ sub?: string }>(auth.slice(7), { secret: this.jwtSecret });
         isUser = true;
+        userId = payload?.sub ?? null;
       } catch {
         isUser = false; // token inválido/expirado = visitante para el límite
       }
     }
-    return { ip, isUser };
+    return { ip, isUser, userId };
   }
 
   @Public()
