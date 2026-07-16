@@ -77,6 +77,24 @@
                 <label for="pf-phone">{{ 'account.profile.phone' | translate }}</label>
                 <input id="pf-phone" type="tel" [ngModel]="phone()" (ngModelChange)="phone.set($event)" name="phone" maxlength="30" autocomplete="tel" />
               </div>
+              <!-- Facturación (FEL): NIT necesario para facturar; DPI opcional. -->
+              <div class="field-row">
+                <div class="field">
+                  <label for="pf-nit">{{ 'account.profile.nit' | translate }}</label>
+                  <input id="pf-nit" type="text" [ngModel]="nit()" (ngModelChange)="nit.set($event)" name="nit" maxlength="20" data-testid="pf-nit" [placeholder]="'account.profile.nitPlaceholder' | translate" />
+                </div>
+                <div class="field">
+                  <label for="pf-dpi">{{ 'account.profile.dpi' | translate }}</label>
+                  <input id="pf-dpi" type="text" [ngModel]="dpi()" (ngModelChange)="dpi.set($event)" name="dpi" maxlength="20" data-testid="pf-dpi" [placeholder]="'account.profile.dpiPlaceholder' | translate" />
+                </div>
+              </div>
+              <div class="field">
+                <label for="pf-bname">{{ 'account.profile.billingName' | translate }}</label>
+                <input id="pf-bname" type="text" [ngModel]="billingName()" (ngModelChange)="billingName.set($event)" name="billingName" maxlength="150" data-testid="pf-bname" />
+              </div>
+              @if (nitMissing()) {
+                <p class="warn" data-testid="pf-nit-missing">{{ 'account.profile.nitMissing' | translate }}</p>
+              }
               <button type="submit" class="primary" [disabled]="savingProfile()" data-testid="save-profile" [title]="'account.profile.saveChanges' | translate">
                 <app-icon name="save" /> {{ (savingProfile() ? 'account.profile.saving' : 'account.profile.saveChanges') | translate }}
               </button>

@@ -27,6 +27,7 @@ export const shell = {
   langLocked: 'Language switching is not available for visitors',
   themeToDay: 'Switch to day theme',
   themeToNight: 'Switch to night theme',
+  testModeBanner: "🧪 Test mode: payments run in SANDBOX (no real charges). Use test cards like 4242 4242 4242 4242.",
   verifyTitle: 'Verify your email',
   verifyBody: 'We sent you a confirmation link. You need to verify your email to buy, create or transfer tickets.',
   verifyRedirecting: 'Taking you home…',

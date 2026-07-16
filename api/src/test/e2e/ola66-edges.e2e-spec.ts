@@ -5,6 +5,7 @@ import { PrismaService } from '../../infra/prisma/prisma.service';
 import { LedgerService } from '../../modules/ledger/ledger.service';
 import { clearMail, createTestApp, lastEmailCode, SEED } from './utils';
 import { hmacSha256, sha256 } from '../../common/utils/crypto';
+import { PLATFORM_FEE_PCT, toFeeString } from '../../config/pricing-defaults';
 
 const money = (v: unknown) => new Decimal(v as string).toFixed(2);
 const SECRET = process.env.PAYMENT_WEBHOOK_SECRET ?? 'dev-webhook-secret-change-me';
@@ -60,6 +61,9 @@ describe('Ola 6.6 edge cases (e2e)', () => {
     promoterId = promoter.id;
     // Cuotas habilitadas (cost-share ≥ 0.3) para el test de race; se ajusta dentro.
     await prisma.user.update({ where: { id: promoterId }, data: { costSharePct: '0.50000' } });
+    // Fija el schedule a 10% durante la suite (edges de Q2/cuotas necesitan margen amplio;
+    // independiente de la perilla global). Se restaura en afterAll.
+    await prisma.feeSchedule.updateMany({ where: { active: true }, data: { platformFeePct: '0.10000' } });
 
     token = await loginTrusted(SEED.buyer, 'e66-buyer');
     adminToken = await loginTrusted(SEED.admin, 'e66-admin');
@@ -125,6 +129,7 @@ describe('Ola 6.6 edge cases (e2e)', () => {
 
   afterAll(async () => {
     await prisma.user.update({ where: { id: promoterId }, data: { costSharePct: null } });
+    await prisma.feeSchedule.updateMany({ where: { active: true }, data: { platformFeePct: toFeeString(PLATFORM_FEE_PCT) } });
     await prisma.payment.deleteMany({ where: { order: { eventId } } });
     await prisma.webhookEvent.deleteMany({});
     await prisma.ticket.deleteMany({ where: { order: { eventId } } });

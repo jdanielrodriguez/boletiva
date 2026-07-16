@@ -263,6 +263,14 @@ model User {
   // usar pasarelas reales (anclados a Sandbox) para no contaminar métricas de prod.
   isTestUser Boolean @default(false) @map("is_test_user")
 
+  // Datos de FACTURACIÓN del usuario (FEL). `nit` se prellena en el checkout y es
+  // necesario para facturar (si se borra, el frontend avisa). `billingName` es el
+  // nombre fiscal (idealmente autocompletado por el NIT). `dpi` es OPCIONAL.
+  // El NIT por defecto para consumidor final es 'CF' (se aplica en el checkout si falta).
+  nit         String? @map("nit")
+  billingName String? @map("billing_name")
+  dpi         String? @map("dpi")
+
   // Privacidad/retención (Ola 6): sello de anonimización (seudonimización de PII
   // preservando el ledger). null = datos personales intactos.
   anonymizedAt DateTime? @map("anonymized_at")

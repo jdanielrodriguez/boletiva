@@ -69,7 +69,7 @@ describe('Configuraciones (settings) e2e', () => {
     const lang = res.body.find((s: { key: string }) => s.key === 'i18n.allow_visitor_switch');
     expect(lang).toMatchObject({ type: 'bool', default: false });
     const cats = res.body.find((s: { key: string }) => s.key === 'home.show_categories');
-    expect(cats).toMatchObject({ type: 'bool', default: true });
+    expect(cats).toMatchObject({ type: 'bool', default: false });
     // Los settings de tema son enum con sus opciones (rebranding Boletiva).
     const slotNoche = res.body.find((s: { key: string }) => s.key === 'theme.slot.noche');
     expect(slotNoche).toMatchObject({ type: 'enum', default: 'pulso' });
@@ -78,11 +78,11 @@ describe('Configuraciones (settings) e2e', () => {
 
   it('GET /public/config: SIN login → defaults + asignación de tema por franja', async () => {
     const res = await http().get('/api/v1/public/config').expect(200);
-    expect(res.body).toMatchObject({ allowVisitorLangSwitch: false, showHomeCategories: true });
+    expect(res.body).toMatchObject({ allowVisitorLangSwitch: false, showHomeCategories: false });
     expect(res.body.theme).toMatchObject({
       slots: { dia: 'marquesina', noche: 'pulso' },
-      defaultFranja: 'noche',
-      allowVisitorSwitch: true,
+      defaultFranja: 'dia',
+      allowVisitorSwitch: false,
       autoByHour: false,
       dayStartHour: 6,
       dayEndHour: 18,

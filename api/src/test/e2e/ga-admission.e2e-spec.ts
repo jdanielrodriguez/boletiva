@@ -7,6 +7,7 @@ import { SeatHoldService } from '../../modules/inventory/seat-hold.service';
 import { CheckoutService } from '../../modules/orders/checkout.service';
 import { createTestApp, SEED } from './utils';
 import { sha256 } from '../../common/utils/crypto';
+import { CANON } from './canon';
 
 const money = (v: unknown): string => new Decimal(v as string).toFixed(2);
 
@@ -200,7 +201,7 @@ describe('Admisión general (GA) por filas (e2e)', () => {
         .expect(201);
       expect(res.body.items).toHaveLength(2);
       expect(money(res.body.net)).toBe('200.00');
-      expect(money(res.body.total)).toBe('259.36'); // 2 * 129.68 (neto 100)
+      expect(money(res.body.total)).toBe(CANON.x(2)); // 2 boletos (neto 100)
       for (const id of hold.body.seatIds) {
         const s = await prisma.seat.findUniqueOrThrow({ where: { id } });
         expect(s.status).toBe('sold');

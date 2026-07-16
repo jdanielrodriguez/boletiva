@@ -5,6 +5,7 @@ import { PrismaService } from '../../infra/prisma/prisma.service';
 import { PricingService } from '../../modules/pricing/pricing.service';
 import { createTestApp, SEED } from './utils';
 import { sha256 } from '../../common/utils/crypto';
+import { CANON } from './canon';
 
 const money = (v: unknown) => new Decimal(v as string).toFixed(2);
 
@@ -69,16 +70,16 @@ describe('Precios dinámicos: pasarela por evento + IVA (e2e)', () => {
   it('IVA sobre el neto (default true): 100 → 129.68', async () => {
     const ev = await makeEvent('iva-on');
     const q = await pricing.quoteForEvent(100, ev);
-    expect(money(q.total)).toBe('129.68');
-    expect(money(q.iva)).toBe('13.20'); // (100+10) * 0.12
+    expect(money(q.total)).toBe(CANON.total);
+    expect(money(q.iva)).toBe(CANON.iva); // IVA sobre (neto + comisión plataforma)
   });
 
   it('IVA solo sobre plataforma (ivaOnNet=false): el promotor ya pagó IVA', async () => {
     const ev = await makeEvent('iva-off', { ivaOnNet: false });
     const q = await pricing.quoteForEvent(100, ev);
     // base IVA = solo comisión plataforma (10) → iva 1.20; pre = 111.20; /0.95 = 117.05
-    expect(money(q.iva)).toBe('1.20');
-    expect(money(q.total)).toBe('117.05');
+    expect(money(q.iva)).toBe('0.60'); // @5% ivaOnNet=false: IVA solo sobre la comisión de plataforma (5)
+    expect(money(q.total)).toBe('111.16'); // @5%
     expect(money(q.net)).toBe('100.00'); // el neto se conserva
   });
 
@@ -94,7 +95,7 @@ describe('Precios dinámicos: pasarela por evento + IVA (e2e)', () => {
     const ev = await makeEvent('gw10', { gatewayId: gw.id });
     const q = await pricing.quoteForEvent(100, ev);
     // pre = 123.20; /(1-0.10) = 136.89
-    expect(money(q.total)).toBe('136.89');
+    expect(money(q.total)).toBe('130.67'); // @5% (pasarela 10%)
   });
 
   it('congelado: tras la primera compra el precio no cambia aunque cambie la default', async () => {
@@ -112,7 +113,7 @@ describe('Precios dinámicos: pasarela por evento + IVA (e2e)', () => {
       .set({ Authorization: `Bearer ${token}` })
       .send({ seatIds: [seat.id] })
       .expect(201);
-    expect(money(res.body.total)).toBe('129.68');
+    expect(money(res.body.total)).toBe(CANON.total);
 
     // El evento quedó congelado a la Sandbox (0.05).
     const frozen = await prisma.event.findUniqueOrThrow({ where: { id: ev.id } });
@@ -128,7 +129,7 @@ describe('Precios dinámicos: pasarela por evento + IVA (e2e)', () => {
       },
     });
     const q = await pricing.quoteForEvent(100, frozen);
-    expect(money(q.total)).toBe('129.68'); // congelado (sigue 0.05)
+    expect(money(q.total)).toBe(CANON.total); // congelado
     void gw20;
   });
 

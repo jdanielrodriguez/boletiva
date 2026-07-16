@@ -65,6 +65,15 @@ export class App {
   private readonly isAdmin = computed(() => this.session.roles().includes('admin'));
 
   /**
+   * Banner persistente de MODO PRUEBA: el usuario es de prueba (invitado en modo test)
+   * → sus eventos usan la pasarela Sandbox y no hay cargos reales. Se muestra en toda la
+   * app para que quede claro que está en un entorno de pruebas (tarjetas 4242, etc.).
+   */
+  protected readonly showTestBanner = computed(
+    () => this.isBrowser && this.session.user()?.isTestUser === true,
+  );
+
+  /**
    * Arranque en el navegador: tapamos con el loader mientras NO sepamos (a) el
    * estado de mantenimiento y (b) quién es el usuario (si hay marca de sesión).
    * Así evitamos el PARPADEO de la pantalla de login/contenido antes de decidir si

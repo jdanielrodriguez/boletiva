@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { createTestApp, login, restoreEnv, SEED } from './utils';
+import { CANON } from './canon';
 
 /**
  * Reservas ANÓNIMAS y COMPARTIBLES: crear sin login (hold bajo el token),
@@ -77,7 +78,7 @@ describe('Reservas anónimas compartibles (e2e)', () => {
     expect(typeof res.body.token).toBe('string');
     expect(res.body.valid).toBe(true);
     expect(res.body.items.length).toBe(2);
-    expect(res.body.total).toBe('259.36'); // 2 × 129.68
+    expect(res.body.total).toBe(CANON.x(2)); // 2 boletos
     expect(res.body.expiresAt).toBeTruthy();
   });
 
@@ -95,7 +96,7 @@ describe('Reservas anónimas compartibles (e2e)', () => {
     const res = await http().get(`/api/v1/reservations/${c.body.token}`).expect(200);
     expect(res.body.valid).toBe(true);
     expect(res.body.eventId).toBe(eventId);
-    expect(res.body.total).toBe('129.68');
+    expect(res.body.total).toBe(CANON.total);
   });
 
   it('token manipulado → 400 (integridad HMAC)', async () => {
@@ -117,6 +118,6 @@ describe('Reservas anónimas compartibles (e2e)', () => {
       .expect(201);
     expect(res.body.status).toBe('pending');
     expect(res.body.items.length).toBe(2);
-    expect(res.body.total).toBe('259.36');
+    expect(res.body.total).toBe(CANON.x(2));
   });
 });

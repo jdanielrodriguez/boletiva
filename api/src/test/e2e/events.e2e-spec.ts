@@ -4,6 +4,7 @@ import { PrismaService } from '../../infra/prisma/prisma.service';
 import { RedisService } from '../../infra/redis/redis.service';
 import { createTestApp, SEED } from './utils';
 import { sha256 } from '../../common/utils/crypto';
+import { CANON } from './canon';
 
 /**
  * Cobertura de endpoints de gestión de eventos (la mayoría de suites crean eventos
@@ -591,7 +592,7 @@ describe('Eventos: gestión (e2e)', () => {
 
       const plat = res.body.localities.find((l: { id: string }) => l.id === seated.id);
       expect(plat.price.net).toBe('100.00');
-      expect(plat.price.total).toBe('129.68'); // server-authoritative
+      expect(plat.price.total).toBe(CANON.total); // server-authoritative
       expect(plat.price).toHaveProperty('serviceFee');
       expect(plat.available).toBe(1); // s1 libre; s2 reservado en Redis no cuenta
 

@@ -179,6 +179,12 @@ export class CheckoutService {
     // Fallar rápido si otro commit tiene el lock demasiado tiempo (no colgar).
     await tx.$executeRawUnsafe(`SET LOCAL lock_timeout = '${LOCK_TIMEOUT_MS}ms'`);
 
+    // Facturación por defecto del comprador (prefill si el checkout no la trae).
+    const buyerBilling = await tx.user.findUnique({
+      where: { id: buyerId },
+      select: { nit: true, billingName: true },
+    });
+
     // Capa 2: bloquear las filas de asiento. FOR UPDATE OF s bloquea solo `seats`.
     // Los parámetros se castean a uuid: Prisma los envía como texto y Postgres no
     // compara uuid = text implícitamente (además, así se usa el índice PK).
@@ -262,8 +268,10 @@ export class CheckoutService {
         feeScheduleId: fees.scheduleId,
         feeScheduleVersion: fees.version,
         feeGatewayId: fees.gatewayId,
-        billingNit: nit && nit.length > 0 ? nit : 'CF',
-        billingName: billing?.name?.trim() || null,
+        // Prefill del perfil: si el checkout no trae NIT/nombre, usa los del comprador
+        // (facturación guardada). Sin NIT → 'CF' (consumidor final).
+        billingNit: nit && nit.length > 0 ? nit : buyerBilling?.nit || 'CF',
+        billingName: billing?.name?.trim() || buyerBilling?.billingName || null,
         billingAddress: billing?.address?.trim() || null,
         expiresAt: new Date(Date.now() + PAYMENT_WINDOW_MS),
         items: { create: itemsData },

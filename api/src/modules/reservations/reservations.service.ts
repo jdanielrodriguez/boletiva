@@ -94,6 +94,10 @@ export class ReservationsService {
    * holds, pero por cuenta/IP y a través de TODAS las reservas (no por rid).
    */
   private async capReservedSeats(ctx: ReservationContext, eventId: string, held: string[], rid: string) {
+    // Logueado: el cap SIEMPRE aplica (H1, accountable pero acotado). Anónimo (por IP):
+    // solo si el anti-abuso de reservas está activo (mismo gate que la regla de 1 reserva)
+    // → con el límite OFF (tests) no hay tope por IP y no se acumula entre suites.
+    if (!ctx.isUser && !this.anonLimitEnabled) return;
     const key = this.seatCapKey(ctx);
     if (!key || held.length === 0) return;
     const client = this.redis.getClient();

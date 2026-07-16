@@ -77,6 +77,39 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsIn(THEME_FRANJAS)
   themePref?: ThemeFranja;
+
+  @ApiPropertyOptional({
+    description: 'NIT para facturación (FEL). Vacío = sin NIT (se factura como CF). Necesario para facturar a nombre.',
+    example: '1234567-8',
+    maxLength: 20,
+    nullable: true,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  nit?: string | null;
+
+  @ApiPropertyOptional({
+    description: 'Nombre fiscal para la factura (idealmente autocompletado por el NIT).',
+    example: 'Juan Pérez',
+    maxLength: 150,
+    nullable: true,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(150)
+  billingName?: string | null;
+
+  @ApiPropertyOptional({
+    description: 'DPI (opcional). No requerido para facturar.',
+    example: '2954812340101',
+    maxLength: 20,
+    nullable: true,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  dpi?: string | null;
 }
 
 export class AvatarPresignDto {

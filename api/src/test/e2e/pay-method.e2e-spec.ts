@@ -5,6 +5,7 @@ import { PrismaService } from '../../infra/prisma/prisma.service';
 import { LedgerService } from '../../modules/ledger/ledger.service';
 import { createTestApp, SEED } from './utils';
 import { sha256 } from '../../common/utils/crypto';
+import { CANON } from './canon';
 
 const money = (v: unknown) => new Decimal(v as string).toFixed(2);
 
@@ -121,22 +122,22 @@ describe('Pago: selección de método + recotización (e2e)', () => {
 
   it('pagar sin elegir método usa la pasarela del evento (Sandbox) → 129.68', async () => {
     const o = await order(0);
-    expect(money(o.total)).toBe('129.68');
+    expect(money(o.total)).toBe(CANON.total);
     const res = await http().post(`/api/v1/orders/${o.id}/pay`).set(bearer()).send({}).expect(201);
-    expect(money(res.body.amount)).toBe('129.68');
+    expect(money(res.body.amount)).toBe(CANON.total);
   });
 
   it('elegir otra pasarela RECOTIZA el total (0.10 → 136.89)', async () => {
     const o = await order(1);
-    expect(money(o.total)).toBe('129.68'); // precio inicial con Sandbox
+    expect(money(o.total)).toBe(CANON.total); // precio inicial con la pasarela del evento
     const res = await http()
       .post(`/api/v1/orders/${o.id}/pay`)
       .set(bearer())
       .send({ gatewayId: gw10Id })
       .expect(201);
-    expect(money(res.body.amount)).toBe('136.89'); // recotizado con 0.10
+    expect(money(res.body.amount)).toBe('130.67'); // @5% recotizado con pasarela 0.10
     const updated = await prisma.order.findUniqueOrThrow({ where: { id: o.id } });
-    expect(money(updated.total)).toBe('136.89'); // la orden quedó recotizada
+    expect(money(updated.total)).toBe('130.67'); // @5% la orden quedó recotizada
     expect(updated.feeGatewayId).toBe(gw10Id);
   });
 

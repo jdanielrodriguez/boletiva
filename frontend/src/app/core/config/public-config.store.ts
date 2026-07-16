@@ -4,8 +4,8 @@ import { PublicConfigApi, ThemeConfig } from '../api/public-config.api';
 /** Asignación de tema por defecto (mientras llega /public/config): noche→pulso, día→marquesina. */
 const DEFAULT_THEME: ThemeConfig = {
   slots: { dia: 'marquesina', noche: 'pulso' },
-  defaultFranja: 'noche',
-  allowVisitorSwitch: true,
+  defaultFranja: 'dia', // default de plataforma: franja DÍA
+  allowVisitorSwitch: false, // botón de cambio de tema OFF por defecto
   autoByHour: false,
   dayStartHour: 6,
   dayEndHour: 18,
@@ -29,7 +29,7 @@ export class PublicConfigStore {
   private readonly injector = inject(Injector);
 
   private readonly _allowVisitorLangSwitch = signal(false);
-  private readonly _showHomeCategories = signal(true);
+  private readonly _showHomeCategories = signal(false); // categorías ocultas en inicio por defecto
   private readonly _theme = signal<ThemeConfig>(DEFAULT_THEME);
   private readonly _recaptchaSiteKey = signal('');
   private readonly _loaded = signal(false);

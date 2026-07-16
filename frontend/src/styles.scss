@@ -3911,6 +3911,17 @@ button.danger {
   gap: 1rem;
   flex-wrap: wrap;
 }
+/* Banner persistente de MODO PRUEBA (usuario de test): pagos en sandbox. */
+.test-mode-banner {
+  background: var(--pe-warning-soft, rgba(217, 119, 6, 0.15));
+  color: var(--pe-warning-strong, #b45309);
+  border-bottom: 1px solid var(--pe-warning-border, rgba(217, 119, 6, 0.4));
+  text-align: center;
+  padding: 0.4rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
 /* Advertencia anti-abuso de reservas anónimas (429) en la página de compra. */
 .reserve-blocked {
   display: flex;

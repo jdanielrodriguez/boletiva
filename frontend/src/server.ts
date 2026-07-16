@@ -26,11 +26,15 @@ const CSP = [
   "base-uri 'self'",
   "object-src 'none'",
   "frame-ancestors 'none'",
-  "img-src 'self' data: https:",
+  // Imágenes/QRs/banners vienen de storage por URL firmada (local: http://localhost:45660;
+  // prod: GCS https). Se permite http: y https: y blob:/data: para no bloquear los assets.
+  "img-src 'self' data: blob: https: http:",
+  "media-src 'self' blob: https: http:",
   "font-src 'self' data:",
   "style-src 'self' 'unsafe-inline'",
   "script-src 'self' 'unsafe-inline'",
-  "connect-src 'self' http://localhost:8080 https:",
+  // API + SSE + storage (local http, prod https).
+  "connect-src 'self' https: http:",
 ].join('; ');
 
 app.use((_req, res, next) => {

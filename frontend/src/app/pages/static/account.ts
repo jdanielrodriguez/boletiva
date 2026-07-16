@@ -139,6 +139,12 @@ export class Account {
   protected readonly firstName = signal(this.session.user()?.firstName ?? '');
   protected readonly lastName = signal(this.session.user()?.lastName ?? '');
   protected readonly phone = signal((this.session.user() as { phone?: string })?.phone ?? '');
+  // Facturación (FEL): NIT necesario para facturar; DPI opcional.
+  protected readonly nit = signal((this.session.user() as { nit?: string })?.nit ?? '');
+  protected readonly billingName = signal((this.session.user() as { billingName?: string })?.billingName ?? '');
+  protected readonly dpi = signal((this.session.user() as { dpi?: string })?.dpi ?? '');
+  /** Aviso: sin NIT no se puede facturar a nombre (se factura como CF). */
+  protected readonly nitMissing = computed(() => this.nit().trim().length === 0);
   protected readonly savingProfile = signal(false);
 
   // --- Foto de perfil (opcional) ---
@@ -716,6 +722,10 @@ export class Account {
         firstName: this.firstName() || undefined,
         lastName: this.lastName() || undefined,
         phone: this.phone() || undefined,
+        // null (no undefined) para PERMITIR borrar: si el usuario vacía el NIT, se limpia.
+        nit: this.nit().trim() || null,
+        billingName: this.billingName().trim() || null,
+        dpi: this.dpi().trim() || null,
       })
       .subscribe({
         next: (user) => {

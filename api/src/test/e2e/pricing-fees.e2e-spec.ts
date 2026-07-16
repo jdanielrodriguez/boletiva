@@ -4,6 +4,8 @@ import Decimal from 'decimal.js';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { createTestApp, SEED } from './utils';
 import { sha256 } from '../../common/utils/crypto';
+import { CANON } from './canon';
+import { PLATFORM_FEE_PCT } from '../../config/pricing-defaults';
 
 /** Normaliza dinero/porcentaje a comparación numérica exacta. */
 const eq = (v: unknown, n: number) => expect(new Decimal(v as string).toNumber()).toBe(n);
@@ -94,7 +96,7 @@ describe('Comisiones versionadas (fee_schedules) + FEL (e2e)', () => {
       .set(bearer(buyerToken))
       .expect(200);
     expect(res.body.version).toBe(1);
-    eq(res.body.platformFeePct, 0.1);
+    eq(res.body.platformFeePct, PLATFORM_FEE_PCT);
     eq(res.body.gatewayFeePct, 0.05);
     eq(res.body.ivaPct, 0.12);
     expect(res.body.active).toBe(true);
@@ -113,7 +115,7 @@ describe('Comisiones versionadas (fee_schedules) + FEL (e2e)', () => {
       .set(bearer(buyerToken))
       .expect(200);
     expect(res.body.feeScheduleVersion).toBe(1);
-    expect(res.body.quote.total).toBe('129.68');
+    expect(res.body.quote.total).toBe(CANON.total);
     expect(res.body.quote.net).toBe('100.00');
   });
 
@@ -129,7 +131,7 @@ describe('Comisiones versionadas (fee_schedules) + FEL (e2e)', () => {
     expect(res.body.billingNit).toBe('CF');
     expect(res.body.billingName).toBeNull();
     expect(res.body.feeScheduleVersion).toBe(1);
-    expect(res.body.total).toBe('129.68');
+    expect(res.body.total).toBe(CANON.total);
   });
 
   it('checkout CON billing → NIT normalizado (mayúsculas/trim) y datos guardados', async () => {
@@ -204,9 +206,9 @@ describe('Comisiones versionadas (fee_schedules) + FEL (e2e)', () => {
       .get(`/api/v1/orders/${baselineOrderId}`)
       .set(bearer(buyerToken))
       .expect(200);
-    expect(order.body.total).toBe('129.68'); // sigue con el precio de v1
+    expect(order.body.total).toBe(CANON.total); // sigue con el precio de v1
     expect(order.body.feeScheduleVersion).toBe(1);
-    expect(order.body.items[0].quote.total).toBe('129.68'); // snapshot intacto
+    expect(order.body.items[0].quote.total).toBe(CANON.total); // snapshot intacto
   });
 
   it('una compra nueva ya usa v2 (141.47, versión 2)', async () => {

@@ -26,6 +26,7 @@ const USER: PublicUserResponseDto = {
   status: 'active',
   emailVerified: false,
   twoFactorMethod: 'email',
+  isTestUser: false,
   language: 'es',
 };
 const TOKENS: TokenPairResponseDto = { accessToken: 'acc', refreshToken: 'ref', expiresIn: 900 };

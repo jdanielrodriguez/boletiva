@@ -4,6 +4,7 @@ import { PrismaService } from '../../infra/prisma/prisma.service';
 import { LedgerService } from '../../modules/ledger/ledger.service';
 import { createTestApp, SEED } from './utils';
 import { hmacSha256, sha256 } from '../../common/utils/crypto';
+import { CANON } from './canon';
 
 const SECRET = process.env.PAYMENT_WEBHOOK_SECRET ?? 'dev-webhook-secret-change-me';
 const sign = (id: string, type: string, ref: string) => hmacSha256(SECRET, `${id}.${type}.${ref}`);
@@ -135,7 +136,7 @@ describe('Pagos: PaymentProvider + webhooks (e2e)', () => {
     const res = await pay(orderId).expect(201);
     expect(res.body.status).toBe('pending');
     expect(res.body.providerRef).toMatch(/^simulator_/);
-    expect(res.body.amount).toBe('129.68');
+    expect(res.body.amount).toBe(CANON.total);
     expect(res.body.paymentUrl).toContain('sim://checkout/');
     const order = await prisma.order.findUniqueOrThrow({ where: { id: orderId } });
     expect(order.status).toBe('pending'); // no se confirma en la iniciación
@@ -185,9 +186,9 @@ describe('Pagos: PaymentProvider + webhooks (e2e)', () => {
       ).balance.toString();
     const SYS = '00000000-0000-0000-0000-000000000000';
     expect(await bal('promoter_payable', promoterId)).toBe('100');
-    expect(await bal('platform_revenue', SYS)).toBe('10');
-    expect(await bal('tax_payable', SYS)).toBe('13.2');
-    expect(await bal('gateway_clearing', SYS)).toBe('-123.2');
+    expect(await bal('platform_revenue', SYS)).toBe('5'); // @5%
+    expect(await bal('tax_payable', SYS)).toBe('12.6'); // @5%
+    expect(await bal('gateway_clearing', SYS)).toBe('-117.6'); // @5% (-inflow)
     expect((await ledger.verifyChain()).ok).toBe(true);
   });
 

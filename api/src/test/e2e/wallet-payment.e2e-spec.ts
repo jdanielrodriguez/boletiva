@@ -4,6 +4,7 @@ import { PrismaService } from '../../infra/prisma/prisma.service';
 import { LedgerService } from '../../modules/ledger/ledger.service';
 import { createTestApp, SEED } from './utils';
 import { hmacSha256, sha256 } from '../../common/utils/crypto';
+import { CANON } from './canon';
 
 const SECRET = process.env.PAYMENT_WEBHOOK_SECRET ?? 'dev-webhook-secret-change-me';
 const sign = (id: string, type: string, ref: string) => hmacSha256(SECRET, `${id}.${type}.${ref}`);
@@ -160,13 +161,13 @@ describe('Wallet + pago mixto (e2e)', () => {
     const res = await pay(orderId, tokenA, true).expect(201);
     expect(res.body.status).toBe('succeeded'); // estado del PAGO
     expect(res.body.method).toBe('wallet');
-    expect(res.body.walletAmount).toBe('129.68');
+    expect(res.body.walletAmount).toBe(CANON.total);
 
     const o = await prisma.order.findUniqueOrThrow({ where: { id: orderId } });
     expect(o.status).toBe('paid'); // la ORDEN quedó pagada al instante
-    // 200 - 129.68 = 70.32
+    // @5% 200 - 123.79 = 76.21
     const wallet = await http().get('/api/v1/wallet').set(bearer(tokenA)).expect(200);
-    expect(wallet.body.balance).toBe('70.32');
+    expect(wallet.body.balance).toBe('76.21'); // @5%
     expect((await ledger.verifyChain()).ok).toBe(true);
   });
 
@@ -176,7 +177,7 @@ describe('Wallet + pago mixto (e2e)', () => {
     expect(res.body.method).toBe('mixed');
     expect(res.body.status).toBe('pending');
     expect(res.body.walletAmount).toBe('50.00');
-    expect(res.body.amount).toBe('79.68'); // 129.68 - 50
+    expect(res.body.amount).toBe((parseFloat(CANON.total) - 50).toFixed(2)); // total - 50
 
     // El saldo quedó reservado (payment_holding), wallet a 0.
     const w1 = await http().get('/api/v1/wallet').set(bearer(tokenB)).expect(200);

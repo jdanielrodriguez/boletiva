@@ -1,5 +1,12 @@
 import { PrismaClient, PromoterStatus, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import {
+  BASE_FIXED_FEES,
+  GATEWAY_FEE_PCT,
+  IVA_PCT,
+  PLATFORM_FEE_PCT,
+  toFeeString,
+} from '../api/src/config/pricing-defaults';
 
 const prisma = new PrismaClient();
 
@@ -109,19 +116,22 @@ async function seedSettings(): Promise<void> {
 
 /** Tabla de comisiones v1 (activa), coherente con los settings de precios. */
 async function seedFeeSchedule(): Promise<void> {
-  const existing = await prisma.feeSchedule.findFirst();
-  if (existing) return; // ya versionado; no re-crear
-  await prisma.feeSchedule.create({
-    data: {
-      version: 1,
-      label: 'Comisiones base (seed)',
-      platformFeePct: '0.10000',
-      gatewayFeePct: '0.05000',
-      ivaPct: '0.12000',
-      fixedFees: '0.00',
-      active: true,
-    },
-  });
+  // ÚNICA perilla: lee de pricing-defaults.ts (mismo valor que el setting). UPSERT del v1
+  // → un reseed SIEMPRE deja el schedule activo coherente con la perilla (si ya existía a
+  // 10% y bajamos la perilla a 5%, el reseed lo actualiza; antes se saltaba y quedaba viejo).
+  const data = {
+    platformFeePct: toFeeString(PLATFORM_FEE_PCT),
+    gatewayFeePct: toFeeString(GATEWAY_FEE_PCT),
+    ivaPct: toFeeString(IVA_PCT),
+    fixedFees: BASE_FIXED_FEES.toFixed(2),
+    active: true,
+  };
+  const existing = await prisma.feeSchedule.findFirst({ where: { version: 1 } });
+  if (existing) {
+    await prisma.feeSchedule.update({ where: { id: existing.id }, data });
+  } else {
+    await prisma.feeSchedule.create({ data: { version: 1, label: 'Comisiones base (seed)', ...data } });
+  }
 }
 
 /**
@@ -184,17 +194,18 @@ async function seedGateway(): Promise<void> {
       },
     });
   }
-  // Default de plataforma = Sandbox (simulador, 5% sin fijo): precio canónico para
-  // demo/tests. Recurrente/Pagalo quedan como opciones seleccionables (cuotas). El
-  // comprador igual puede elegir Recurrente en el checkout. Una sola default (índice
-  // parcial). En producción se designa la pasarela real como default.
+  // Default de plataforma = RECURRENTE (5% sin fijo en seed → mismo precio canónico
+  // 129.68 que Sandbox): es la pasarela real por defecto fuera de modo test. Los
+  // usuarios de PRUEBA (isTestUser) quedan anclados a Sandbox por código
+  // (events/payments.resolveGateway), así que en modo test se cobra por Sandbox.
+  // Una sola default (índice parcial). Pagalo/Sandbox quedan seleccionables.
   await prisma.$transaction([
     prisma.paymentGateway.updateMany({
-      where: { isPlatformDefault: true, name: { not: 'Sandbox' } },
+      where: { isPlatformDefault: true, name: { not: 'Recurrente' } },
       data: { isPlatformDefault: false },
     }),
     prisma.paymentGateway.updateMany({
-      where: { name: 'Sandbox' },
+      where: { name: 'Recurrente' },
       data: { isPlatformDefault: true, status: 'active' },
     }),
   ]);

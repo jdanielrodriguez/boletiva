@@ -1,6 +1,11 @@
 @if (showAdminBanner()) {
   <app-maintenance-banner />
 }
+@if (showTestBanner()) {
+  <div class="test-mode-banner" role="status" data-testid="test-mode-banner">
+    {{ 'shell.testModeBanner' | translate }}
+  </div>
+}
 <app-impersonation-banner />
 <app-header />
 <main class="site-main">

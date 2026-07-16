@@ -28,7 +28,7 @@ describe('Reserva anónima: XFF spoofeado se ignora sin trust proxy (e2e)', () =
     prisma = app.get(PrismaService);
     redis = app.get(RedisService);
     // Limpia claves anti-abuso de corridas previas (el socket loopback se comparte).
-    const existing = await redis.getClient().keys('res:ip:*');
+    const existing = await redis.getClient().keys('res:*');
     if (existing.length) await redis.getClient().del(...existing);
     const promoter = await prisma.user.findUniqueOrThrow({ where: { email: SEED.promoter } });
     const event = await prisma.event.create({
@@ -54,7 +54,7 @@ describe('Reserva anónima: XFF spoofeado se ignora sin trust proxy (e2e)', () =
   afterAll(async () => {
     // Limpia la clave del socket real (loopback) que use este entorno.
     const c = redis.getClient();
-    const keys = await c.keys('res:ip:*');
+    const keys = await c.keys('res:*');
     if (keys.length) await c.del(...keys);
     await prisma.order.deleteMany({ where: { eventId } });
     await prisma.event.deleteMany({ where: { id: eventId } });

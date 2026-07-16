@@ -7467,6 +7467,29 @@
             "example": "noche",
             "nullable": true
           },
+          "isTestUser": {
+            "type": "boolean",
+            "description": "Usuario de PRUEBA (invitado en modo test): eventos anclados a Sandbox, sin cargos reales",
+            "example": false
+          },
+          "nit": {
+            "type": "string",
+            "description": "NIT de facturación (FEL)",
+            "example": "1234567-8",
+            "nullable": true
+          },
+          "billingName": {
+            "type": "string",
+            "description": "Nombre fiscal para la factura",
+            "example": "Juan Pérez",
+            "nullable": true
+          },
+          "dpi": {
+            "type": "string",
+            "description": "DPI (opcional)",
+            "example": "2954812340101",
+            "nullable": true
+          },
           "impersonatedBy": {
             "type": "string",
             "format": "uuid",
@@ -7481,7 +7504,8 @@
           "status",
           "emailVerified",
           "twoFactorMethod",
-          "language"
+          "language",
+          "isTestUser"
         ]
       },
       "TokenPairResponseDto": {
@@ -7988,6 +8012,27 @@
               "noche"
             ],
             "example": "noche"
+          },
+          "nit": {
+            "type": "string",
+            "description": "NIT para facturación (FEL). Vacío = sin NIT (se factura como CF). Necesario para facturar a nombre.",
+            "example": "1234567-8",
+            "maxLength": 20,
+            "nullable": true
+          },
+          "billingName": {
+            "type": "string",
+            "description": "Nombre fiscal para la factura (idealmente autocompletado por el NIT).",
+            "example": "Juan Pérez",
+            "maxLength": 150,
+            "nullable": true
+          },
+          "dpi": {
+            "type": "string",
+            "description": "DPI (opcional). No requerido para facturar.",
+            "example": "2954812340101",
+            "maxLength": 20,
+            "nullable": true
           }
         }
       },

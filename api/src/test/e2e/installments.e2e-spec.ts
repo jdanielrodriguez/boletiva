@@ -5,6 +5,7 @@ import { PrismaService } from '../../infra/prisma/prisma.service';
 import { LedgerService } from '../../modules/ledger/ledger.service';
 import { createTestApp, SEED } from './utils';
 import { hmacSha256, sha256 } from '../../common/utils/crypto';
+import { PLATFORM_FEE_PCT, toFeeString } from '../../config/pricing-defaults';
 
 const money = (v: unknown) => new Decimal(v as string).toFixed(2);
 const SECRET = process.env.PAYMENT_WEBHOOK_SECRET ?? 'dev-webhook-secret-change-me';
@@ -52,6 +53,10 @@ describe('Pagos en cuotas (e2e)', () => {
     // fija su cost-share por encima para que el suite sea determinista sin depender
     // del default global (que puede ser 0). Se restaura en afterAll.
     await prisma.user.update({ where: { id: promoterId }, data: { costSharePct: '0.50000' } });
+    // Esta suite prueba la ABSORCIÓN del financiamiento (cuotas), que necesita un margen
+    // de plataforma amplio; se fija el schedule activo a 10% durante la suite para que su
+    // lógica sea estable e INDEPENDIENTE de la perilla global (pricing-defaults). Se restaura.
+    await prisma.feeSchedule.updateMany({ where: { active: true }, data: { platformFeePct: '0.10000' } });
     token = await loginTrusted(SEED.buyer, 'inst-buyer');
 
     const emailB = `inst_b_${stamp}@test.com`;
@@ -131,6 +136,7 @@ describe('Pagos en cuotas (e2e)', () => {
 
   afterAll(async () => {
     await prisma.user.update({ where: { id: promoterId }, data: { costSharePct: null } });
+    await prisma.feeSchedule.updateMany({ where: { active: true }, data: { platformFeePct: toFeeString(PLATFORM_FEE_PCT) } });
     const ids = [platEventId, promEventId];
     await prisma.payment.deleteMany({ where: { order: { eventId: { in: ids } } } });
     await prisma.webhookEvent.deleteMany({});

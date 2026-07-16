@@ -7,6 +7,8 @@
  * schedule. Los demás knobs (cost-share, wallet, promotores, transferencias,
  * cuotas) SÍ se leen en vivo de aquí.
  */
+import { GATEWAY_FEE_PCT, IVA_PCT, PLATFORM_FEE_PCT } from '../../config/pricing-defaults';
+
 export type SettingType = 'pct' | 'int' | 'bool' | 'enum';
 
 export interface SettingDef {
@@ -31,35 +33,35 @@ export const SETTINGS_CATALOG: SettingDef[] = [
   {
     key: 'pricing.platform_fee_pct',
     type: 'pct',
-    default: 0.1,
+    default: PLATFORM_FEE_PCT, // ÚNICA perilla (pricing-defaults.ts). El seed la usa.
     description: 'Comisión de plataforma sobre el neto del promotor (fallback; el motor usa el fee_schedule activo)',
     fallbackOnly: true,
   },
   {
     key: 'pricing.gateway_fee_pct',
     type: 'pct',
-    default: 0.05,
+    default: GATEWAY_FEE_PCT,
     description: 'Comisión de la pasarela sobre el total cobrado (fallback; el motor usa el fee_schedule activo)',
     fallbackOnly: true,
   },
   {
     key: 'pricing.iva_pct',
     type: 'pct',
-    default: 0.12,
+    default: IVA_PCT,
     description: 'IVA Guatemala sobre la base gravable (fallback; el motor usa el fee_schedule activo)',
     fallbackOnly: true,
   },
   {
     key: 'wallet.withdraw_fee_promoter_pct',
     type: 'pct',
-    default: 0.03,
+    default: 0.05,
     description: 'Comisión de retiro de saldo interno para promotores',
   },
   {
     key: 'wallet.withdraw_fee_user_pct',
     type: 'pct',
-    default: 0.06,
-    description: 'Comisión de retiro para usuarios (el doble que promotor)',
+    default: 0,
+    description: 'Comisión de retiro para usuarios (0 = el cliente no retira, no aplica comisión)',
   },
   {
     key: 'wallet.pass_fee',
@@ -104,7 +106,7 @@ export const SETTINGS_CATALOG: SettingDef[] = [
   {
     key: 'home.show_categories',
     type: 'bool',
-    default: true,
+    default: false,
     description: 'Mostrar las categorías en la página principal (inicio).',
   },
   {
@@ -124,14 +126,14 @@ export const SETTINGS_CATALOG: SettingDef[] = [
   {
     key: 'theme.default_franja',
     type: 'enum',
-    default: 'noche',
+    default: 'dia',
     options: [...THEME_FRANJAS],
     description: 'Franja por defecto de la plataforma (la que ve un visitante o un usuario sin preferencia).',
   },
   {
     key: 'theme.allow_visitor_switch',
     type: 'bool',
-    default: true,
+    default: false,
     description:
       'Mostrar el botón de cambio de tema (día/noche) a todos. ' +
       'false = solo el admin define el tema y nadie más lo cambia.',

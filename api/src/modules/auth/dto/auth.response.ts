@@ -91,6 +91,21 @@ export class PublicUserResponseDto {
   })
   themePref?: string | null;
 
+  @ApiProperty({
+    description: 'Usuario de PRUEBA (invitado en modo test): eventos anclados a Sandbox, sin cargos reales',
+    example: false,
+  })
+  isTestUser!: boolean;
+
+  @ApiPropertyOptional({ description: 'NIT de facturación (FEL)', example: '1234567-8', nullable: true })
+  nit?: string | null;
+
+  @ApiPropertyOptional({ description: 'Nombre fiscal para la factura', example: 'Juan Pérez', nullable: true })
+  billingName?: string | null;
+
+  @ApiPropertyOptional({ description: 'DPI (opcional)', example: '2954812340101', nullable: true })
+  dpi?: string | null;
+
   @ApiPropertyOptional({
     format: 'uuid',
     description:

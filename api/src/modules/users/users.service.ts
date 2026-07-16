@@ -20,6 +20,10 @@ const publicSelect = {
   status: true,
   language: true,
   themePref: true,
+  isTestUser: true,
+  nit: true,
+  billingName: true,
+  dpi: true,
   lastLoginAt: true,
   createdAt: true,
 } satisfies Prisma.UserSelect;

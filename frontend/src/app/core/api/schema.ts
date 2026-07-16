@@ -3009,6 +3009,26 @@ export interface components {
              */
             themePref?: "dia" | "noche" | null;
             /**
+             * @description Usuario de PRUEBA (invitado en modo test): eventos anclados a Sandbox, sin cargos reales
+             * @example false
+             */
+            isTestUser: boolean;
+            /**
+             * @description NIT de facturación (FEL)
+             * @example 1234567-8
+             */
+            nit?: string | null;
+            /**
+             * @description Nombre fiscal para la factura
+             * @example Juan Pérez
+             */
+            billingName?: string | null;
+            /**
+             * @description DPI (opcional)
+             * @example 2954812340101
+             */
+            dpi?: string | null;
+            /**
              * Format: uuid
              * @description Solo en /auth/me bajo un token de IMPERSONACIÓN (v3.8): id del admin que actúa como este usuario. El frontend lo usa para el banner "estás viendo como X".
              */
@@ -3308,6 +3328,21 @@ export interface components {
              * @enum {string}
              */
             themePref?: "dia" | "noche";
+            /**
+             * @description NIT para facturación (FEL). Vacío = sin NIT (se factura como CF). Necesario para facturar a nombre.
+             * @example 1234567-8
+             */
+            nit?: string | null;
+            /**
+             * @description Nombre fiscal para la factura (idealmente autocompletado por el NIT).
+             * @example Juan Pérez
+             */
+            billingName?: string | null;
+            /**
+             * @description DPI (opcional). No requerido para facturar.
+             * @example 2954812340101
+             */
+            dpi?: string | null;
         };
         UserResponseDto: {
             /**

@@ -4,6 +4,7 @@ import { PrismaService } from '../../infra/prisma/prisma.service';
 import { LedgerService } from '../../modules/ledger/ledger.service';
 import { createTestApp, SEED } from './utils';
 import { hmacSha256, sha256 } from '../../common/utils/crypto';
+import { CANON } from './canon';
 
 const SECRET = process.env.PAYMENT_WEBHOOK_SECRET ?? 'dev-webhook-secret-change-me';
 const sign = (id: string, type: string, ref: string) => hmacSha256(SECRET, `${id}.${type}.${ref}`);
@@ -158,7 +159,7 @@ describe('Reembolsos y contracargos (e2e)', () => {
     expect(await bal('promoter_payable', promoterId)).toBe('0');
     expect(await bal('platform_revenue', SYS)).toBe('0');
     expect(await bal('tax_payable', SYS)).toBe('0');
-    expect(await walletBalance(tokenR)).toBe('123.20'); // 129.68 - 6.48 (fee no reembolsable)
+    expect(await walletBalance(tokenR)).toBe(CANON.inflow); // total - gatewayFee (fee no reembolsable)
     expect((await ledger.verifyChain()).ok).toBe(true);
   });
 
@@ -167,7 +168,7 @@ describe('Reembolsos y contracargos (e2e)', () => {
     const res = await webhook('ref_r1', 'payment.refunded', 'irrelevante').expect(200);
     expect(res.body.duplicate).toBe(true);
     expect(await prisma.ledgerTransaction.count()).toBe(before);
-    expect(await walletBalance(tokenR)).toBe('123.20'); // sin recrédito
+    expect(await walletBalance(tokenR)).toBe(CANON.inflow); // sin recrédito
   });
 
   it('contracargo → orden refunded, asiento liberado; NO se acredita al wallet', async () => {
@@ -201,7 +202,7 @@ describe('Reembolsos y contracargos (e2e)', () => {
     expect(items.some((i) => i.direction === 'expense' && i.kind === 'purchase')).toBe(true);
     const refund = items.find((i) => i.direction === 'income' && i.kind === 'refund');
     expect(refund).toBeDefined();
-    expect(refund?.amount).toBe('123.20');
+    expect(refund?.amount).toBe(CANON.inflow);
     // v3.7: los ingresos de devolución llevan un `status` coherente ('refunded')
     // para poder filtrar la facturación por estado igual que los egresos.
     expect(refund?.status).toBe('refunded');
@@ -221,6 +222,6 @@ describe('Reembolsos y contracargos (e2e)', () => {
     await webhook('ref_r_unpaid', 'payment.refunded', p.body.providerRef).expect(200);
     const o = await prisma.order.findUniqueOrThrow({ where: { id: orderId } });
     expect(o.status).toBe('pending'); // intacta
-    expect(await walletBalance(tokenR)).toBe('123.20'); // sin cambios
+    expect(await walletBalance(tokenR)).toBe(CANON.inflow); // sin cambios
   });
 });
