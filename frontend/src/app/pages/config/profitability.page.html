@@ -1,0 +1,78 @@
+<section class="config-page">
+  <div class="page-head-row">
+    <app-back-link link="/configuracion" [queryParams]="{ tab: 'eventos' }" testId="back-config" [label]="'config.profit.back' | translate" />
+  </div>
+
+  <div class="dash-head">
+    <h1>{{ 'config.profit.title' | translate }}</h1>
+    @if (data() && !isEmpty()) {
+      <button type="button" class="btn btn-outline" (click)="downloadExcel()" [disabled]="downloading()" data-testid="profit-export">
+        {{ (downloading() ? 'config.profit.exporting' : 'config.profit.export') | translate }}
+      </button>
+    }
+  </div>
+  <p class="muted">{{ 'config.profit.intro' | translate }}</p>
+
+  <div class="dash" data-testid="profitability">
+    @if (loading()) {
+      <app-loading data-testid="profit-loading" [label]="'config.profit.loading' | translate" />
+    } @else if (error()) {
+      <app-empty-state variant="billing" data-testid="profit-error" [title]="'common.errorLoading' | translate" [subtitle]="'config.profit.error' | translate" />
+    } @else if (isEmpty()) {
+      <app-empty-state variant="billing" data-testid="profit-empty" [title]="'config.profit.emptyTitle' | translate" [subtitle]="'config.profit.emptySubtitle' | translate" />
+    } @else if (data()) {
+      @let d = data()!;
+      <div class="dash-kpis" data-testid="profit-kpis">
+        <div class="kpi"><span class="kpi-label">{{ 'config.profit.gross' | translate }}</span><span class="kpi-value">{{ currency() }} {{ d.gross | money }}</span></div>
+        <div class="kpi"><span class="kpi-label">{{ 'config.profit.platformProfit' | translate }}</span><span class="kpi-value accent">{{ currency() }} {{ d.platformFee | money }}</span></div>
+        <div class="kpi"><span class="kpi-label">{{ 'config.profit.effectivePct' | translate }}</span><span class="kpi-value">{{ d.platformPct }}%</span></div>
+        <div class="kpi"><span class="kpi-label">{{ 'config.profit.net' | translate }}</span><span class="kpi-value">{{ currency() }} {{ d.net | money }}</span></div>
+        <div class="kpi"><span class="kpi-label">{{ 'config.profit.gateway' | translate }}</span><span class="kpi-value">{{ currency() }} {{ d.gatewayFee | money }}</span></div>
+        <div class="kpi"><span class="kpi-label">{{ 'config.profit.iva' | translate }}</span><span class="kpi-value">{{ currency() }} {{ d.iva | money }}</span></div>
+      </div>
+
+      <section class="dash-card">
+        <h3>{{ 'config.profit.profitByEvent' | translate }}</h3>
+        <app-chart [options]="chartOptions()" />
+      </section>
+
+      <section class="dash-card">
+        <h3>{{ 'config.profit.tableTitle' | translate }}</h3>
+        <div class="table-scroll">
+          <table class="dash-table" data-testid="profit-table">
+            <thead>
+              <tr>
+                <th>{{ 'config.profit.event' | translate }}</th>
+                <th>{{ 'config.profit.promoter' | translate }}</th>
+                <th>{{ 'config.profit.status' | translate }}</th>
+                <th class="num">{{ 'config.profit.sold' | translate }}</th>
+                <th class="num">{{ 'config.profit.gross' | translate }}</th>
+                <th class="num">{{ 'config.profit.net' | translate }}</th>
+                <th class="num">{{ 'config.profit.platformProfit' | translate }}</th>
+                <th class="num">{{ 'config.profit.pct' | translate }}</th>
+                <th class="num">{{ 'config.profit.gateway' | translate }}</th>
+                <th class="num">{{ 'config.profit.iva' | translate }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (e of d.events; track e.eventId) {
+                <tr>
+                  <td>{{ e.name }}</td>
+                  <td class="muted">{{ e.promoterName }}</td>
+                  <td>{{ statusLabel(e.status) }}</td>
+                  <td class="num">{{ e.ticketsSold }}</td>
+                  <td class="num">{{ currency() }} {{ e.gross | money }}</td>
+                  <td class="num">{{ currency() }} {{ e.net | money }}</td>
+                  <td class="num accent">{{ currency() }} {{ e.platformFee | money }}</td>
+                  <td class="num"><strong>{{ e.platformPct }}%</strong></td>
+                  <td class="num">{{ currency() }} {{ e.gatewayFee | money }}</td>
+                  <td class="num">{{ currency() }} {{ e.iva | money }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+  </div>
+</section>

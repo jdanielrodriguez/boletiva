@@ -2513,6 +2513,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/analytics/profitability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rentabilidad de la plataforma por evento (admin): reparto (bruto/neto/ganancia/pasarela/IVA) + % de comisión de plataforma EFECTIVO por evento, comparables. */
+        get: operations["AdminAnalyticsController_overview_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/analytics/profitability/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Descarga la rentabilidad por evento en Excel (.xlsx) (admin). */
+        get: operations["AdminAnalyticsController_export_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/seat-templates": {
         parameters: {
             query?: never;
@@ -7128,6 +7162,81 @@ export interface components {
             salesOverTime: components["schemas"]["SalesPointDto"][];
             dimensions: components["schemas"]["PromoterDimensionsDto"];
         };
+        AdminProfitabilityRowDto: {
+            /** Format: uuid */
+            eventId: string;
+            /** @example Concierto de Apertura */
+            name: string;
+            /** @example Promotora Central */
+            promoterName: string;
+            /** @example finished */
+            status: string;
+            /**
+             * @description Boletos vendidos (ítems activos pagados)
+             * @example 180
+             */
+            ticketsSold: number;
+            /**
+             * @description Recaudado bruto
+             * @example 23342.40
+             */
+            gross: string;
+            /**
+             * @description Neto del promotor
+             * @example 18000.00
+             */
+            net: string;
+            /**
+             * @description Ganancia de la plataforma (comisión)
+             * @example 1800.00
+             */
+            platformFee: string;
+            /**
+             * @description Comisión de la pasarela
+             * @example 1200.00
+             */
+            gatewayFee: string;
+            /**
+             * @description IVA recaudado
+             * @example 2160.00
+             */
+            iva: string;
+            /**
+             * @description Comisión de plataforma EFECTIVA aplicada = platformFee / net (%). Varía por evento.
+             * @example 10
+             */
+            platformPct: number;
+        };
+        AdminProfitabilityDto: {
+            /** @example GTQ */
+            currency: string;
+            /** @example 8 */
+            eventsCount: number;
+            /** @example 42 */
+            paidOrders: number;
+            /** @example 1280 */
+            ticketsSold: number;
+            /** @example 166080.00 */
+            gross: string;
+            /** @example 128000.00 */
+            net: string;
+            /**
+             * @description Ganancia total de la plataforma
+             * @example 12800.00
+             */
+            platformFee: string;
+            /** @example 9600.00 */
+            gatewayFee: string;
+            /** @example 15360.00 */
+            iva: string;
+            /**
+             * @description Comisión de plataforma efectiva global (platformFee/net %).
+             * @example 10
+             */
+            platformPct: number;
+            /** @description Por evento, ordenado por ganancia desc */
+            events: components["schemas"]["AdminProfitabilityRowDto"][];
+        };
         SeatTemplateResponseDto: {
             /** Format: uuid */
             id: string;
@@ -11133,6 +11242,45 @@ export interface operations {
                 /** @description Solo admin: promotor a inspeccionar */
                 promoterId?: string;
             };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Archivo .xlsx (adjunto) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                };
+            };
+        };
+    };
+    AdminAnalyticsController_overview_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminProfitabilityDto"];
+                };
+            };
+        };
+    };
+    AdminAnalyticsController_export_v1: {
+        parameters: {
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;

@@ -2,7 +2,10 @@ import { Module } from '@nestjs/common';
 import { ScopeDashboardService } from './scope-dashboard.service';
 import { PromoterDashboardService } from './promoter-dashboard.service';
 import { PromoterDashboardExportService } from './promoter-dashboard-export.service';
+import { AdminProfitabilityService } from './admin-profitability.service';
+import { AdminProfitabilityExportService } from './admin-profitability-export.service';
 import { AnalyticsController } from './analytics.controller';
+import { AdminAnalyticsController } from './admin-analytics.controller';
 
 /**
  * Analítica reutilizable (solo-lectura). Expone `ScopeDashboardService` para agregar
@@ -13,8 +16,14 @@ import { AnalyticsController } from './analytics.controller';
  * `PromoterDashboardService` + export a Excel).
  */
 @Module({
-  controllers: [AnalyticsController],
-  providers: [ScopeDashboardService, PromoterDashboardService, PromoterDashboardExportService],
+  controllers: [AnalyticsController, AdminAnalyticsController],
+  providers: [
+    ScopeDashboardService,
+    PromoterDashboardService,
+    PromoterDashboardExportService,
+    AdminProfitabilityService,
+    AdminProfitabilityExportService,
+  ],
   exports: [ScopeDashboardService],
 })
 export class AnalyticsModule {}

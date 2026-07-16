@@ -198,6 +198,12 @@ export const routes: Routes = [
     title: 'Historial del promotor — Boletiva',
   },
   {
+    path: 'configuracion/rentabilidad',
+    loadComponent: () => import('./pages/config/profitability.page').then((m) => m.ProfitabilityPage),
+    canActivate: [roleGuard('admin')],
+    title: 'Rentabilidad por evento — Boletiva',
+  },
+  {
     path: 'cuenta/configuracion',
     loadComponent: () => import('./pages/static/account').then((m) => m.Account),
     canActivate: [authGuard],

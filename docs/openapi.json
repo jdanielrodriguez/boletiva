@@ -6334,6 +6334,61 @@
         ]
       }
     },
+    "/api/v1/admin/analytics/profitability": {
+      "get": {
+        "operationId": "AdminAnalyticsController_overview_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminProfitabilityDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rentabilidad de la plataforma por evento (admin): reparto (bruto/neto/ganancia/pasarela/IVA) + % de comisión de plataforma EFECTIVO por evento, comparables.",
+        "tags": [
+          "analytics"
+        ]
+      }
+    },
+    "/api/v1/admin/analytics/profitability/export.xlsx": {
+      "get": {
+        "operationId": "AdminAnalyticsController_export_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Archivo .xlsx (adjunto)",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Descarga la rentabilidad por evento en Excel (.xlsx) (admin).",
+        "tags": [
+          "analytics"
+        ]
+      }
+    },
     "/api/v1/seat-templates": {
       "get": {
         "operationId": "SeatTemplatesController_list_v1",
@@ -14672,6 +14727,142 @@
           "summary",
           "salesOverTime",
           "dimensions"
+        ]
+      },
+      "AdminProfitabilityRowDto": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "example": "Concierto de Apertura"
+          },
+          "promoterName": {
+            "type": "string",
+            "example": "Promotora Central"
+          },
+          "status": {
+            "type": "string",
+            "example": "finished"
+          },
+          "ticketsSold": {
+            "type": "number",
+            "example": 180,
+            "description": "Boletos vendidos (ítems activos pagados)"
+          },
+          "gross": {
+            "type": "string",
+            "example": "23342.40",
+            "description": "Recaudado bruto"
+          },
+          "net": {
+            "type": "string",
+            "example": "18000.00",
+            "description": "Neto del promotor"
+          },
+          "platformFee": {
+            "type": "string",
+            "example": "1800.00",
+            "description": "Ganancia de la plataforma (comisión)"
+          },
+          "gatewayFee": {
+            "type": "string",
+            "example": "1200.00",
+            "description": "Comisión de la pasarela"
+          },
+          "iva": {
+            "type": "string",
+            "example": "2160.00",
+            "description": "IVA recaudado"
+          },
+          "platformPct": {
+            "type": "number",
+            "example": 10,
+            "description": "Comisión de plataforma EFECTIVA aplicada = platformFee / net (%). Varía por evento."
+          }
+        },
+        "required": [
+          "eventId",
+          "name",
+          "promoterName",
+          "status",
+          "ticketsSold",
+          "gross",
+          "net",
+          "platformFee",
+          "gatewayFee",
+          "iva",
+          "platformPct"
+        ]
+      },
+      "AdminProfitabilityDto": {
+        "type": "object",
+        "properties": {
+          "currency": {
+            "type": "string",
+            "example": "GTQ"
+          },
+          "eventsCount": {
+            "type": "number",
+            "example": 8
+          },
+          "paidOrders": {
+            "type": "number",
+            "example": 42
+          },
+          "ticketsSold": {
+            "type": "number",
+            "example": 1280
+          },
+          "gross": {
+            "type": "string",
+            "example": "166080.00"
+          },
+          "net": {
+            "type": "string",
+            "example": "128000.00"
+          },
+          "platformFee": {
+            "type": "string",
+            "example": "12800.00",
+            "description": "Ganancia total de la plataforma"
+          },
+          "gatewayFee": {
+            "type": "string",
+            "example": "9600.00"
+          },
+          "iva": {
+            "type": "string",
+            "example": "15360.00"
+          },
+          "platformPct": {
+            "type": "number",
+            "example": 10,
+            "description": "Comisión de plataforma efectiva global (platformFee/net %)."
+          },
+          "events": {
+            "description": "Por evento, ordenado por ganancia desc",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminProfitabilityRowDto"
+            }
+          }
+        },
+        "required": [
+          "currency",
+          "eventsCount",
+          "paidOrders",
+          "ticketsSold",
+          "gross",
+          "net",
+          "platformFee",
+          "gatewayFee",
+          "iva",
+          "platformPct",
+          "events"
         ]
       },
       "SeatTemplateResponseDto": {

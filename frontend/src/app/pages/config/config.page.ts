@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import {
@@ -86,6 +86,7 @@ const INV_PAGE = 9;
     HallsListComponent,
     TemplatesListComponent,
     SearchFieldComponent,
+    RouterLink,
   ],
   templateUrl: './config.page.html',
 })

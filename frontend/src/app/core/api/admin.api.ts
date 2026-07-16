@@ -1,8 +1,11 @@
+import { HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiClient } from '../http/api-client.service';
 import type { CreateGatewayDto, Schemas, UpdateGatewayDto } from './types';
 
+export type AdminProfitabilityDto = Schemas['AdminProfitabilityDto'];
+export type AdminProfitabilityRowDto = Schemas['AdminProfitabilityRowDto'];
 export type PromoterListItemDto = Schemas['PromoterListItemDto'];
 export type AdminEventListItemDto = Schemas['AdminEventListItemDto'];
 export type GatewayResponseDto = Schemas['GatewayResponseDto'];
@@ -106,5 +109,13 @@ export class AdminApi {
   // --- Eventos (todos) ---
   listAllEvents(): Observable<AdminEventListItemDto[]> {
     return this.api.get<AdminEventListItemDto[]>('/events/all');
+  }
+
+  // --- Rentabilidad por evento (Fase 4) ---
+  profitability(): Observable<AdminProfitabilityDto> {
+    return this.api.get<AdminProfitabilityDto>('/admin/analytics/profitability');
+  }
+  exportProfitability(): Observable<HttpResponse<Blob>> {
+    return this.api.getBlob('/admin/analytics/profitability/export.xlsx');
   }
 }

@@ -12,7 +12,12 @@
 
   @switch (tab()) {
     @case ('eventos') {
-      <h2>{{ 'config.events.heading' | translate }}</h2>
+      <div class="section-head-row">
+        <h2>{{ 'config.events.heading' | translate }}</h2>
+        <a class="btn btn-outline" routerLink="/configuracion/rentabilidad" data-testid="link-profitability">
+          {{ 'config.profit.title' | translate }}
+        </a>
+      </div>
       <div class="filters-row">
         <label class="field"><span>{{ 'common.search' | translate }}</span>
           <app-search-field [value]="eventSearch()" (valueChange)="setEventSearch($event)" (searched)="setEventSearch($event)"
