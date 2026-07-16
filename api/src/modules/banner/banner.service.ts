@@ -52,6 +52,9 @@ export class BannerService {
     const key = `events/${eventId}/banner-${randomToken(8)}.${image.ext}`;
     await this.storage.putObject(key, image.body, image.contentType);
 
+    // H6: el cover se REEMPLAZA (no se acumula). Borra los covers previos del evento
+    // → generar banners en bucle no infla objetos/filas sin control.
+    await this.prisma.eventMedia.deleteMany({ where: { eventId, kind: 'cover' } });
     const media = await this.prisma.eventMedia.create({
       data: { eventId, key, kind: 'cover', position: 0 },
     });

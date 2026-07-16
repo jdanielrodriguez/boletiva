@@ -81,7 +81,21 @@ import { FelModule } from './modules/fel/fel.module';
             transport: isProd
               ? undefined
               : { target: 'pino-pretty', options: { singleLine: true } },
-            redact: ['req.headers.authorization', 'req.headers.cookie'],
+            // No filtrar credenciales/tokens ni PII sensible a los logs (B1).
+            redact: [
+              'req.headers.authorization',
+              'req.headers.cookie',
+              'req.headers["x-webhook-signature"]',
+              'res.headers["set-cookie"]',
+              'req.body.password',
+              'req.body.currentPassword',
+              'req.body.newPassword',
+              'req.body.code',
+              'req.body.refreshToken',
+              'req.body.preauthToken',
+              'req.body.token',
+              'req.query.access_token',
+            ],
             customProps: () => ({ context: 'HTTP' }),
           },
         };

@@ -75,10 +75,11 @@ describe('Banner con IA (e2e)', () => {
     expect(media.some((m) => m.kind === 'cover')).toBe(true);
   });
 
-  it('regenerar crea otro banner (no falla)', async () => {
+  it('regenerar REEMPLAZA el cover (no acumula — H6)', async () => {
     await http().post(`/api/v1/events/${eventId}/banner`).set(bearer(promoterToken)).expect(201);
-    const media = await prisma.eventMedia.findMany({ where: { eventId } });
-    expect(media.length).toBeGreaterThanOrEqual(2);
+    // El cover previo se borra: siempre hay exactamente uno (no crece sin control).
+    const covers = await prisma.eventMedia.findMany({ where: { eventId, kind: 'cover' } });
+    expect(covers.length).toBe(1);
   });
 
   it('un comprador (buyer) no puede generar banner → 403 (RBAC)', async () => {

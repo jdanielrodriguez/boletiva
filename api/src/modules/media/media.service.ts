@@ -7,6 +7,9 @@ import { slugify } from '../../common/utils/slug';
 import { EventsService } from '../events/events.service';
 import { PresignUploadDto, RegisterMediaDto } from './dto/media.dto';
 
+/** Tope de archivos de media por evento (anti-abuso de storage, H6). */
+const MAX_MEDIA_PER_EVENT = 30;
+
 @Injectable()
 export class MediaService {
   constructor(
@@ -34,6 +37,11 @@ export class MediaService {
     // Impide registrar objetos arbitrarios del bucket o de OTRO evento.
     if (!dto.key.startsWith(`events/${eventId}/`)) {
       throw new BadRequestException('La key de la media no corresponde a este evento');
+    }
+    // H6: tope de media por evento (evita crecimiento ilimitado de objetos/filas).
+    const count = await this.prisma.eventMedia.count({ where: { eventId } });
+    if (count >= MAX_MEDIA_PER_EVENT) {
+      throw new BadRequestException(`Máximo ${MAX_MEDIA_PER_EVENT} archivos de media por evento`);
     }
     return this.prisma.eventMedia.create({
       data: {

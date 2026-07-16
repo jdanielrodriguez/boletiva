@@ -40,12 +40,27 @@ export interface AuditView {
 export class AuditService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // NOTA: el `payload` (jsonb) NO entra en el hash. Postgres jsonb NORMALIZA el
-  // orden de claves al almacenar, así que `JSON.stringify(readback)` no coincidiría
-  // con el del write y la verificación sería flaky (mismo motivo por el que la
-  // cadena de custodia excluye su `meta`). El hash liga los campos de NO-REPUDIO
-  // (userId, acción, recurso, IP, user-agent, timestamp), suficientes para probar
-  // "usted, desde esta IP, dio click en confirmar en este instante".
+  // Serialización CANÓNICA (claves ordenadas recursivamente) → estable ante el
+  // reordenamiento de claves que hace Postgres jsonb al almacenar. Así el digest del
+  // payload calculado al escribir coincide con el del readback al verificar (M4:
+  // antes el payload se excluía del hash por miedo a esa flakiness → era alterable
+  // sin romper verifyChain). null/undefined → cadena vacía estable.
+  private canonical(value: unknown): string {
+    if (value === null || value === undefined) return '';
+    if (Array.isArray(value)) return `[${value.map((v) => this.canonical(v)).join(',')}]`;
+    if (typeof value === 'object') {
+      const obj = value as Record<string, unknown>;
+      return `{${Object.keys(obj)
+        .sort()
+        .map((k) => `${JSON.stringify(k)}:${this.canonical(obj[k])}`)
+        .join(',')}}`;
+    }
+    return JSON.stringify(value);
+  }
+
+  // El hash liga los campos de NO-REPUDIO (userId/acción/recurso/IP/UA/timestamp) MÁS
+  // un digest canónico del payload → un actor con escritura en BD no puede alterar el
+  // contenido del registro sin romper verifyChain.
   private computeHash(p: {
     prevHash: string;
     seq: bigint;
@@ -55,6 +70,7 @@ export class AuditService {
     ip: string | null;
     userAgent: string | null;
     createdAt: Date;
+    payload: unknown;
   }): string {
     return sha256(
       [
@@ -66,6 +82,7 @@ export class AuditService {
         p.ip ?? '',
         p.userAgent ?? '',
         p.createdAt.toISOString(),
+        sha256(this.canonical(p.payload)),
       ].join('|'),
     );
   }
@@ -103,6 +120,7 @@ export class AuditService {
         ip,
         userAgent,
         createdAt: created.createdAt,
+        payload: input.payload ?? null,
       });
       await tx.auditEvent.update({ where: { id: created.id }, data: { hash } });
     });
@@ -148,6 +166,7 @@ export class AuditService {
         ip: e.ip,
         userAgent: e.userAgent,
         createdAt: e.createdAt,
+        payload: e.payload ?? null,
       });
       if (e.prevHash !== prev || e.hash !== expected) {
         return { ok: false, brokenAt: e.seq.toString() };

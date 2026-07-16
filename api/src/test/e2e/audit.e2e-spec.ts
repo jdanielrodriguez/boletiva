@@ -104,4 +104,19 @@ describe('Bitácora de auditoría (audit) e2e', () => {
     expect(res.body.ok).toBe(false);
     expect(res.body.brokenAt).toBe(target.seq.toString());
   });
+
+  it('M4: alterar el PAYLOAD también rompe la cadena (el hash incluye su digest)', async () => {
+    await clearAudit();
+    await http()
+      .post('/api/v1/audit/confirm')
+      .set(bearer(adminToken))
+      .send({ action: 'promoter.suspend', resource: 'p-9', payload: { note: 'original' } })
+      .expect(200);
+    const target = await prisma.auditEvent.findFirstOrThrow({ orderBy: { seq: 'asc' } });
+    // Solo se manipula el payload (antes esto NO rompía verifyChain).
+    await prisma.auditEvent.update({ where: { id: target.id }, data: { payload: { note: 'ALTERADO' } } });
+    const res = await http().get('/api/v1/audit/verify').set(bearer(adminToken)).expect(200);
+    expect(res.body.ok).toBe(false);
+    expect(res.body.brokenAt).toBe(target.seq.toString());
+  });
 });
