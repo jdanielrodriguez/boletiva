@@ -1,6 +1,8 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
+  HttpStatus,
   Injectable,
   Logger,
   UnauthorizedException,
@@ -19,6 +21,7 @@ import { DevicesService, DeviceContext } from './devices.service';
 import { TwoFactorService } from './twofactor.service';
 import { GoogleAuthService } from './google.service';
 import { StorageService } from '../../infra/storage/storage.service';
+import { RateLimitService } from '../../common/rate-limit/rate-limit.service';
 import {
   ChangePasswordDto,
   ForgotPasswordDto,
@@ -65,7 +68,15 @@ export class AuthService {
     private readonly twofactor: TwoFactorService,
     private readonly google: GoogleAuthService,
     private readonly storage: StorageService,
+    private readonly rateLimit: RateLimitService,
   ) {}
+
+  // Lockout de login por CUENTA (defensa contra fuerza bruta distribuida por muchas IPs;
+  // el rate-limit por IP cubre el flood desde una sola). Ventana + máx. fallos.
+  private static readonly LOGIN_LOCK_WINDOW_SEC = 900; // 15 min
+  private static readonly LOGIN_MAX_FAILS = 10;
+  private static readonly TWOFA_LOCK_WINDOW_SEC = 300; // 5 min
+  private static readonly TWOFA_MAX_FAILS = 5;
 
   private async toPublic(user: User): Promise<PublicUser> {
     // La foto de perfil se firma al leer (patrón event-media): si hay `avatarKey`
@@ -119,10 +130,24 @@ export class AuthService {
 
   async login(dto: LoginDto, ctx: DeviceContext): Promise<LoginResult> {
     const email = dto.email.toLowerCase().trim();
+    // Lockout por cuenta: si acumuló demasiados fallos recientes → 429 (no revela si el
+    // correo existe; aplica igual a inexistentes para no filtrar por temporización).
+    const failKey = `login-fail:${email}`;
+    if ((await this.rateLimit.count(failKey)) >= AuthService.LOGIN_MAX_FAILS) {
+      throw new HttpException(
+        'Demasiados intentos fallidos. Espera unos minutos o restablece tu contraseña.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
     const user = await this.prisma.user.findUnique({ where: { email } });
     const ok = user?.passwordHash && (await bcrypt.compare(dto.password, user.passwordHash));
-    if (!user || !ok) throw new UnauthorizedException('Credenciales inválidas');
+    if (!user || !ok) {
+      await this.rateLimit.register(failKey, AuthService.LOGIN_LOCK_WINDOW_SEC);
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
     if (user.status !== 'active') throw new UnauthorizedException('Cuenta inactiva');
+    // Login válido → resetea el contador de fallos de esta cuenta.
+    await this.rateLimit.clear(failKey);
 
     await this.prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
     const { device } = await this.devices.touch(user.id, ctx);
@@ -158,7 +183,22 @@ export class AuthService {
     // este dispositivo se está confiando ahora → es el momento correcto de avisar
     // del "nuevo inicio de sesión" (ya autenticado, no un mero intento).
     const wasTrusted = await this.devices.isKnownTrusted(user.id, ctx);
-    await this.twofactor.verify(user, code); // lanza si el código es inválido → no se avisa
+    // Cap de intentos del segundo factor (defensa de fuerza bruta del código, sobre todo
+    // TOTP, cuyo verificador no lleva contador propio). 5 fallos → bloquea por la ventana.
+    const failKey = `2fa-fail:${user.id}`;
+    if ((await this.rateLimit.count(failKey)) >= AuthService.TWOFA_MAX_FAILS) {
+      throw new HttpException(
+        'Demasiados intentos del segundo factor. Vuelve a iniciar sesión.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+    try {
+      await this.twofactor.verify(user, code); // lanza si el código es inválido → no se avisa
+    } catch (e) {
+      await this.rateLimit.register(failKey, AuthService.TWOFA_LOCK_WINDOW_SEC);
+      throw e;
+    }
+    await this.rateLimit.clear(failKey);
     await this.devices.trust(user.id, ctx);
     if (!wasTrusted) await this.sendNewDeviceAlert(user, ctx);
     const tokens = await this.tokens.issuePair(user, ctx);

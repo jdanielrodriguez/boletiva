@@ -30,6 +30,44 @@ export class RateLimitService {
     return this.enabled;
   }
 
+  /**
+   * Contador actual de una clave (0 si no existe o el rate-limit está apagado). Para
+   * lockouts (p.ej. fallos de login por cuenta) donde se quiere consultar sin incrementar.
+   */
+  async count(key: string): Promise<number> {
+    if (!this.enabled) return 0;
+    try {
+      const v = await this.redis.getClient().get(`rl:${key}`);
+      return v ? parseInt(v, 10) : 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  /** Incrementa una clave (fija la expiración en el 1er golpe) y devuelve el nuevo valor. */
+  async register(key: string, windowSec: number): Promise<number> {
+    if (!this.enabled) return 0;
+    try {
+      const client = this.redis.getClient();
+      const rkey = `rl:${key}`;
+      const n = await client.incr(rkey);
+      if (n === 1) await client.expire(rkey, windowSec);
+      return n;
+    } catch {
+      return 0;
+    }
+  }
+
+  /** Borra una clave (p.ej. al loguear con éxito, resetea el contador de fallos). */
+  async clear(key: string): Promise<void> {
+    if (!this.enabled) return;
+    try {
+      await this.redis.getClient().del(`rl:${key}`);
+    } catch {
+      /* best-effort */
+    }
+  }
+
   /** Registra un golpe y dice si excede el `limit` dentro de la ventana `windowSec`. */
   async hit(key: string, limit: number, windowSec: number): Promise<RateLimitResult> {
     if (!this.enabled) return { allowed: true, retryAfter: 0 };

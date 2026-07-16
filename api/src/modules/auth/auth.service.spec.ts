@@ -61,6 +61,12 @@ describe('AuthService (ramas de borde, unit)', () => {
     const google = { verify: jest.fn(), enabled: true };
     // El avatar se firma al leer; sin avatarKey devuelve avatarUrl tal cual.
     const storage = { signedGetUrl: jest.fn().mockResolvedValue('https://signed/avatar') };
+    // Rate-limit desactivado en los unit tests: count=0 (nunca bloquea), register/clear no-op.
+    const rateLimit = {
+      count: jest.fn().mockResolvedValue(0),
+      register: jest.fn().mockResolvedValue(0),
+      clear: jest.fn().mockResolvedValue(undefined),
+    };
     const service = new AuthService(
       prisma as never,
       tokens as never,
@@ -72,8 +78,9 @@ describe('AuthService (ramas de borde, unit)', () => {
       twofactor as never,
       google as never,
       storage as never,
+      rateLimit as never,
     );
-    return { prisma, tokens, mail, jwt, challenges, devices, twofactor, google, service };
+    return { prisma, tokens, mail, jwt, challenges, devices, twofactor, google, rateLimit, service };
   };
 
   const ctx = { ip: '1.2.3.4', userAgent: 'jest' };

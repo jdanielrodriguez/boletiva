@@ -24,6 +24,7 @@ import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
 import { Public } from '../../common/decorators/public.decorator';
 import { RequireCaptcha } from '../../common/decorators/require-captcha.decorator';
+import { RateLimit } from '../../common/rate-limit/rate-limit.decorator';
 import { CaptchaGuard } from '../../common/guards/captcha.guard';
 import { AllowDuringMaintenance } from '../../common/decorators/maintenance.decorator';
 import { AuthUser, CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -117,6 +118,7 @@ export class AuthController {
   @Public()
   @UseGuards(CaptchaGuard)
   @RequireCaptcha('signup')
+  @RateLimit({ limit: 5, windowSec: 60 })
   @Post('signup')
   @ApiOperation({ summary: 'Registro con correo y contraseña (envía verificación)' })
   @ApiCreatedResponse({ type: SignupResponseDto })
@@ -131,6 +133,7 @@ export class AuthController {
   @Public()
   @UseGuards(CaptchaGuard)
   @RequireCaptcha('login')
+  @RateLimit({ limit: 10, windowSec: 60 })
   @Post('login')
   @HttpCode(200)
   @ApiOperation({ summary: 'Login por contraseña (puede requerir 2FA en dispositivo nuevo)' })
@@ -144,6 +147,7 @@ export class AuthController {
   }
 
   @Public()
+  @RateLimit({ limit: 10, windowSec: 60 })
   @Post('2fa/verify')
   @HttpCode(200)
   @ApiOperation({ summary: 'Completa el login enviando el segundo factor' })
@@ -180,6 +184,7 @@ export class AuthController {
   }
 
   @Public()
+  @RateLimit({ limit: 3, windowSec: 60 })
   @Post('resend-verification')
   @HttpCode(202)
   @ApiOperation({ summary: 'Reenvía el correo de verificación' })
@@ -192,6 +197,7 @@ export class AuthController {
   // ---- Passwordless ----
 
   @Public()
+  @RateLimit({ limit: 3, windowSec: 60 })
   @Post('passwordless/request')
   @HttpCode(202)
   @ApiOperation({ summary: 'Solicita acceso solo con correo (enlace + código)' })
@@ -202,6 +208,7 @@ export class AuthController {
   }
 
   @Public()
+  @RateLimit({ limit: 10, windowSec: 60 })
   @Post('passwordless/verify')
   @HttpCode(200)
   @ApiOperation({ summary: 'Entra con el código enviado al correo' })
@@ -295,6 +302,7 @@ export class AuthController {
   @Public()
   @UseGuards(CaptchaGuard)
   @RequireCaptcha('forgot_password')
+  @RateLimit({ limit: 5, windowSec: 60 })
   @Post('forgot-password')
   @HttpCode(202)
   @ApiOperation({ summary: 'Solicita recuperación de contraseña' })

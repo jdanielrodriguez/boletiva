@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Post } f
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RequireVerifiedEmail } from '../../common/decorators/verified-email.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RateLimit } from '../../common/rate-limit/rate-limit.decorator';
 import { TicketTransferService } from './ticket-transfer.service';
 import { ClaimTransferDto } from './dto/tickets.dto';
 import {
@@ -18,6 +19,7 @@ export class TicketTransfersController {
 
   @Post('claim')
   @RequireVerifiedEmail()
+  @RateLimit({ limit: 10, windowSec: 60 })
   @HttpCode(200)
   @ApiOperation({ summary: 'Canjea un código de transferencia (destinatario verificado)' })
   @ApiOkResponse({ type: TransferClaimedDto })
