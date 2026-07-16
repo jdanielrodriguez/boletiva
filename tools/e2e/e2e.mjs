@@ -74,10 +74,9 @@ async function otpFromMail() {
 }
 
 /**
- * Limpia las claves del anti-abuso de reservas anónimas (`res:ip:*`). En local todo
- * corre desde una sola IP de contenedor, así que una reserva anónima de una corrida
- * previa dejaría bloqueada la 1ª reserva de la siguiente (429). Best-effort: si no
- * hay ioredis/Redis, se ignora.
+ * Limpia las claves de anti-abuso (`res:ip:*` reservas y `rl:*` rate-limit). En local
+ * todo corre desde una sola IP de contenedor, así que los contadores de una corrida
+ * previa bloquearían la siguiente (429). Best-effort: si no hay ioredis/Redis, se ignora.
  */
 async function flushReservationLimit() {
   try {
@@ -87,7 +86,7 @@ async function flushReservationLimit() {
       maxRetriesPerRequest: 1,
     });
     await client.connect();
-    const keys = await client.keys('res:ip:*');
+    const keys = [...(await client.keys('res:ip:*')), ...(await client.keys('rl:*'))];
     if (keys.length) await client.del(...keys);
     await client.quit();
   } catch {

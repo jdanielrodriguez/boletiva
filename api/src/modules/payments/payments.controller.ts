@@ -9,6 +9,7 @@ import {
 import { Public } from '../../common/decorators/public.decorator';
 import { RequireVerifiedEmail } from '../../common/decorators/verified-email.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { SkipRateLimit } from '../../common/rate-limit/rate-limit.decorator';
 import { PaymentsService } from './payments.service';
 import {
   PaymentOptionsResponseDto,
@@ -53,6 +54,7 @@ export class PaymentsController {
 
   @Post('payments/webhook')
   @Public()
+  @SkipRateLimit()
   @HttpCode(200)
   @ApiOperation({ summary: 'Webhook de la pasarela (firma HMAC; idempotente)' })
   @ApiOkResponse({ type: WebhookResponseDto })

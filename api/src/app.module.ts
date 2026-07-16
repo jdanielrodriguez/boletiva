@@ -15,6 +15,8 @@ import { MailModule } from './infra/mail/mail.module';
 import { StorageModule } from './infra/storage/storage.module';
 import { RabbitModule } from './infra/messaging/rabbit.module';
 import { HealthModule } from './health/health.module';
+import { RateLimitModule } from './common/rate-limit/rate-limit.module';
+import { RateLimitGuard } from './common/rate-limit/rate-limit.guard';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 import { VerifiedEmailGuard } from './modules/auth/guards/verified-email.guard';
@@ -89,6 +91,7 @@ import { FelModule } from './modules/fel/fel.module';
     CryptoModule,
     IntegrationsModule,
     RedisModule,
+    RateLimitModule,
     QueueModule,
     MailModule,
     StorageModule,
@@ -123,8 +126,10 @@ import { FelModule } from './modules/fel/fel.module';
     FelModule,
   ],
   providers: [
-    // Orden importa: autentica (JWT) → corta si hay mantenimiento (503, salvo admin
-    // o rutas allowlisted) → autoriza por rol → exige correo verificado.
+    // Orden importa: rate-limit por IP PRIMERO (frena floods antes de autenticar) →
+    // autentica (JWT) → corta si hay mantenimiento (503, salvo admin o rutas
+    // allowlisted) → autoriza por rol → exige correo verificado.
+    { provide: APP_GUARD, useClass: RateLimitGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: MaintenanceGuard },
     { provide: APP_GUARD, useClass: RolesGuard },

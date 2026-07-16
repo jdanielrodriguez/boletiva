@@ -19,6 +19,9 @@ process.env.RABBIT_INLINE = process.env.RABBIT_INLINE ?? 'true';
 // crean muchas reservas seguidas desde el mismo loopback). La suite dedicada lo
 // enciende en su beforeAll (config se relee al construir cada app de test).
 process.env.RESERVATION_ANON_LIMIT = process.env.RESERVATION_ANON_LIMIT ?? 'false';
+// Rate-limit global OFF por defecto en test (los e2e disparan ráfagas desde una IP).
+// La suite dedicada lo enciende en su beforeAll.
+process.env.RATE_LIMIT_ENABLED = process.env.RATE_LIMIT_ENABLED ?? 'false';
 
 // Neutraliza TODAS las credenciales de integración externa: la suite debe ser
 // HERMÉTICA e independiente de lo que tenga el `.env` del desarrollador. Sin esto,

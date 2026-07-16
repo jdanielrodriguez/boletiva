@@ -62,6 +62,9 @@ export interface AppConfig {
   // Anti-abuso de reservas ANÓNIMAS (visitantes sin login): 1 reserva activa por IP
   // + cooldown tras cancelar. TTL en segundos (default 1 h). limitEnabled apaga la regla.
   reservation: { anonLimitEnabled: boolean; anonCooldownSeconds: number };
+  // Rate-limiting por IP (Redis). enabled apaga TODO (OFF en test). globalPerMinute =
+  // techo por IP por minuto para cualquier endpoint sin límite específico.
+  rateLimit: { enabled: boolean; globalPerMinute: number };
   wallet: {
     provider: string;
     // Apple Wallet (.pkpass): env-only por ahora (requiere Apple Developer). Si falta
@@ -231,6 +234,11 @@ export const configuration = (): AppConfig => {
       // OFF en test (los e2e crean muchas reservas anónimas seguidas).
       anonLimitEnabled: (process.env.RESERVATION_ANON_LIMIT ?? 'true').toLowerCase() !== 'false',
       anonCooldownSeconds: parseInt(process.env.RESERVATION_ANON_COOLDOWN_SECONDS ?? '3600', 10), // 1 h
+    },
+    rateLimit: {
+      // OFF en test (los e2e disparan muchas peticiones seguidas desde una IP).
+      enabled: (process.env.RATE_LIMIT_ENABLED ?? 'true').toLowerCase() !== 'false',
+      globalPerMinute: parseInt(process.env.RATE_LIMIT_GLOBAL_PER_MIN ?? '300', 10),
     },
     // Pases de wallet (Google/Apple). 'stub' = simulador sin certificados de
     // terceros (los E2E no dependen de Apple Developer / Google Wallet API).

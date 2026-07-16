@@ -4,10 +4,12 @@ import { Response } from 'express';
 import { HealthService } from './health.service';
 import { Public } from '../common/decorators/public.decorator';
 import { AllowDuringMaintenance } from '../common/decorators/maintenance.decorator';
+import { SkipRateLimit } from '../common/rate-limit/rate-limit.decorator';
 
 @ApiTags('health')
 @Public()
 @AllowDuringMaintenance()
+@SkipRateLimit()
 @Controller('health')
 export class HealthController {
   constructor(private readonly health: HealthService) {}

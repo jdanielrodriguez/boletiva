@@ -4,6 +4,7 @@ import { OrderStatus } from '@prisma/client';
 import { Observable } from 'rxjs';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { SkipRateLimit } from '../../common/rate-limit/rate-limit.decorator';
 import { StreamService } from './stream.service';
 
 /**
@@ -33,6 +34,7 @@ export class StreamController {
    * `?access_token=` (EventSource no envía headers); solo el dueño (IDOR→404).
    */
   @Sse('orders/:id/stream')
+  @SkipRateLimit()
   @ApiOperation({ summary: 'Stream SSE del checkout (order/seat/wallet). Auth: ?access_token=' })
   @ApiProduces('text/event-stream')
   @ApiOkResponse({
