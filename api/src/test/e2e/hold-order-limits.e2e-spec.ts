@@ -57,6 +57,12 @@ describe('Topes de holds y órdenes pending por usuario (e2e)', () => {
       .send({ email: SEED.buyer, password: 'Password123' })
       .expect(200);
     token = login.body.tokens.accessToken;
+    // Parte de cero: otras suites de la corrida serial usan SEED.buyer vía /holds y
+    // dejan poblado su set de cap `hold:owner:<buyerId>` (TTL 10 min) → limpiarlo aquí
+    // para que el tope de 50 asientos simultáneos se mida limpio.
+    const stale = await redis.getClient().keys('hold:owner:*');
+    if (stale.length) await redis.getClient().del(...stale);
+    await redis.getClient().del(`res:seats:u:${buyerId}`);
   });
 
   afterAll(async () => {
