@@ -25,6 +25,8 @@ process.env.RATE_LIMIT_ENABLED = process.env.RATE_LIMIT_ENABLED ?? 'false';
 // Tope de órdenes pending por comprador: alto en test (las suites acumulan órdenes
 // pending del mismo comprador). La suite dedicada lo baja para probar el límite.
 process.env.ORDERS_MAX_PENDING_PER_BUYER = process.env.ORDERS_MAX_PENDING_PER_BUYER ?? '1000';
+// Sweeper de órdenes pending vencidas OFF en test (las suites gestionan las órdenes).
+process.env.ORDERS_SWEEPER_ENABLED = process.env.ORDERS_SWEEPER_ENABLED ?? 'false';
 
 // Neutraliza TODAS las credenciales de integración externa: la suite debe ser
 // HERMÉTICA e independiente de lo que tenga el `.env` del desarrollador. Sin esto,

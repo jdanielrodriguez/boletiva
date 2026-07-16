@@ -65,8 +65,13 @@ export interface AppConfig {
   // Rate-limiting por IP (Redis). enabled apaga TODO (OFF en test). globalPerMinute =
   // techo por IP por minuto para cualquier endpoint sin límite específico.
   rateLimit: { enabled: boolean; globalPerMinute: number };
-  // Órdenes: tope de órdenes PENDIENTES de pago por comprador (anti-abuso 2.2).
-  orders: { maxPendingPerBuyer: number };
+  // Órdenes: tope de pending por comprador (2.2) + sweeper de vencidas (2.1) que
+  // libera los asientos de órdenes `pending` que no se pagaron dentro de la ventana.
+  orders: {
+    maxPendingPerBuyer: number;
+    sweeperEnabled: boolean;
+    sweeperIntervalMs: number;
+  };
   wallet: {
     provider: string;
     // Apple Wallet (.pkpass): env-only por ahora (requiere Apple Developer). Si falta
@@ -244,6 +249,9 @@ export const configuration = (): AppConfig => {
     },
     orders: {
       maxPendingPerBuyer: parseInt(process.env.ORDERS_MAX_PENDING_PER_BUYER ?? '5', 10),
+      // OFF en test (los e2e manejan las órdenes explícitamente).
+      sweeperEnabled: (process.env.ORDERS_SWEEPER_ENABLED ?? 'true').toLowerCase() !== 'false',
+      sweeperIntervalMs: parseInt(process.env.ORDERS_SWEEPER_INTERVAL_MS ?? '60000', 10),
     },
     // Pases de wallet (Google/Apple). 'stub' = simulador sin certificados de
     // terceros (los E2E no dependen de Apple Developer / Google Wallet API).

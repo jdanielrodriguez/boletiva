@@ -9,6 +9,7 @@ import { SettlementExportService } from './settlement-export.service';
 import { EventRefundsService } from './event-refunds.service';
 import { EventSettlementMailService } from './event-settlement-mail.service';
 import { EventDashboardService } from './event-dashboard.service';
+import { OrdersSweeperService } from './orders-sweeper.service';
 
 @Module({
   imports: [PricingModule, TicketsModule],
@@ -16,6 +17,7 @@ import { EventDashboardService } from './event-dashboard.service';
   providers: [
     CheckoutService,
     OrdersService,
+    OrdersSweeperService,
     SettlementService,
     SettlementExportService,
     EventRefundsService,
