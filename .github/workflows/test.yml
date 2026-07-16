@@ -100,3 +100,23 @@ jobs:
 
       - name: Unit tests (karma headless)
         run: npm test -- --watch=false
+
+  # ----------------------------------------------------------------------------
+  # Auditoría de dependencias (supply chain). NO bloqueante por ahora (hay CVEs
+  # heredados por triar); documenta la exposición en cada push. Cambiar a
+  # bloqueante (quitar continue-on-error) cuando el árbol esté limpio a `high`.
+  # ----------------------------------------------------------------------------
+  audit:
+    name: npm audit (supply chain)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Audit backend (root)
+        run: npm audit --omit=dev --audit-level=high
+      - name: Audit frontend
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=high

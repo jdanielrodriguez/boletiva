@@ -13,6 +13,37 @@ const app = express();
 const angularApp = new AngularNodeAppEngine();
 
 /**
+ * Cabeceras de seguridad del ORIGEN que sirve el HTML/JS de sesión (auditoría A3).
+ * El helmet del API solo protege el origen del API (JSON); el SSR de Angular no emitía
+ * ninguna. Añadimos anti-clickjacking, nosniff, HSTS, Referrer-Policy y una CSP. La CSP
+ * permite `'unsafe-inline'` en script/style porque Angular SSR inyecta estilos inline y
+ * el index.html lleva un script anti-parpadeo inline; aun así bloquea scripts de OTROS
+ * orígenes y el embebido en iframes (frame-ancestors 'none'). `connect-src` incluye el
+ * API (mismo host:8080 en local; en prod el mismo dominio). Endurecer a nonce = follow-up.
+ */
+const CSP = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "frame-ancestors 'none'",
+  "img-src 'self' data: https:",
+  "font-src 'self' data:",
+  "style-src 'self' 'unsafe-inline'",
+  "script-src 'self' 'unsafe-inline'",
+  "connect-src 'self' http://localhost:8080 https:",
+].join('; ');
+
+app.use((_req, res, next) => {
+  res.setHeader('Content-Security-Policy', CSP);
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  next();
+});
+
+/**
  * Example Express Rest API endpoints can be defined here.
  * Uncomment and define endpoints as necessary.
  *
