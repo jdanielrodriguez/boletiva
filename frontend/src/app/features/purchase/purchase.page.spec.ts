@@ -4,6 +4,7 @@ import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/route
 import { of, throwError } from 'rxjs';
 import { EventsApi } from '../../core/api/events.api';
 import { ReservationsApi } from '../../core/api/reservations.api';
+import { BillingApi } from '../../core/api/billing.api';
 import { AuthService } from '../../core/auth/auth.service';
 import { SessionStore } from '../../core/auth/session.store';
 import { SITE_URL } from '../../core/config/api.tokens';
@@ -53,8 +54,9 @@ describe('PurchasePage', () => {
         ...provideI18nTesting(),
         { provide: EventsApi, useValue: events },
         { provide: ReservationsApi, useValue: reservations },
+        { provide: BillingApi, useValue: { nitName: () => of({ available: false, name: null }) } },
         { provide: SITE_URL, useValue: 'http://localhost:4200' },
-        { provide: SessionStore, useValue: { ensureLoaded: () => of(null), isEmailVerified: () => false } },
+        { provide: SessionStore, useValue: { ensureLoaded: () => of(null), isEmailVerified: () => false, user: () => null } },
         { provide: AuthService, useValue: {} },
         {
           provide: ActivatedRoute,

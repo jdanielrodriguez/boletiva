@@ -64,6 +64,25 @@ export class FelService implements OnModuleInit {
     this.queue.registerHandler(QUEUES.FEL, (name, data) => this.handle(name, data));
   }
 
+  /**
+   * Busca el NOMBRE fiscal por NIT (para autollenar el checkout). CONFIG-GATED:
+   * - FEL desactivado → `{ available: false, name: null }`: el frontend deja escribir el nombre.
+   * - FEL activo → consulta el padrón (best-effort). Si encuentra, el frontend autollena y
+   *   BLOQUEA el input; si no, deja escribir. NUNCA lanza (no debe romper el checkout).
+   */
+  async lookupReceptorName(nit: string): Promise<{ available: boolean; name: string | null }> {
+    const clean = nit?.trim();
+    if (!clean || clean.toUpperCase() === 'CF') return { available: this.integrations.available('fel'), name: null };
+    if (!this.integrations.available('fel') || !this.certifier.lookupName) {
+      return { available: false, name: null };
+    }
+    try {
+      return { available: true, name: await this.certifier.lookupName(clean) };
+    } catch {
+      return { available: true, name: null };
+    }
+  }
+
   private async handle(name: string, data: unknown): Promise<void> {
     if (name !== JOB_CERTIFY_ORDER) return; // cola propia, pero defensivo por si se comparte
     const job = data as CertifyOrderJob;

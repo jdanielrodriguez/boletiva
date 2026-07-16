@@ -193,9 +193,9 @@ export class PurchaseService {
   }
 
   /** Paga la reserva (requiere sesión): crea la orden a nombre del usuario. */
-  checkout(): Observable<OrderResponseDto> {
+  checkout(billing?: { billingNit?: string; billingName?: string }): Observable<OrderResponseDto> {
     const token = this.reservation()?.token ?? '';
-    return this.reservations.checkout(token);
+    return this.reservations.checkout(token, billing);
   }
 
   /**

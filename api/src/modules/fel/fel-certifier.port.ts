@@ -92,4 +92,12 @@ export interface FelCertifier {
    * reintenta el job con backoff).
    */
   certify(input: FelInvoiceInput): Promise<FelCertResult>;
+
+  /**
+   * Consulta el NOMBRE del contribuyente por NIT en el padrón del SAT (vía certificador),
+   * para autollenar el nombre de facturación en el checkout. OPCIONAL: si el certificador
+   * no lo soporta (o la integración FEL está desactivada) no se llama. Devuelve null si no
+   * se encuentra. NUNCA lanza para no romper el checkout (best-effort).
+   */
+  lookupName?(nit: string): Promise<string | null>;
 }

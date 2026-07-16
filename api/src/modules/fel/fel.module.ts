@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { FelService } from './fel.service';
 import { FEL_CERTIFIER } from './fel-certifier.port';
 import { StubFelCertifier } from './stub-fel-certifier';
+import { BillingController } from './billing.controller';
 
 /**
  * Facturación electrónica (FEL, SAT Guatemala) — Ola de integraciones.
@@ -15,6 +16,7 @@ import { StubFelCertifier } from './stub-fel-certifier';
  * asentar el pago (encolar, sin bloquear el webhook).
  */
 @Module({
+  controllers: [BillingController],
   providers: [
     FelService,
     { provide: FEL_CERTIFIER, useClass: StubFelCertifier },

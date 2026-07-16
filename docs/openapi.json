@@ -7311,6 +7311,42 @@
           "admin"
         ]
       }
+    },
+    "/api/v1/billing/nit-name": {
+      "get": {
+        "operationId": "BillingController_lookup_v1",
+        "parameters": [
+          {
+            "name": "nit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NitNameLookupDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Nombre fiscal por NIT (autollenar facturación; config-gated por FEL)",
+        "tags": [
+          "billing"
+        ]
+      }
     }
   },
   "info": {
@@ -15535,6 +15571,26 @@
           "expiresIn",
           "impersonatedBy",
           "user"
+        ]
+      },
+      "NitNameLookupDto": {
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "description": "¿La consulta FEL está disponible? (false = escribe el nombre a mano)",
+            "example": false
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre fiscal encontrado (null = no encontrado o FEL off)",
+            "example": null,
+            "nullable": true
+          }
+        },
+        "required": [
+          "available",
+          "name"
         ]
       }
     }
