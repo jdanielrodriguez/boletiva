@@ -21,6 +21,7 @@ import type { Request } from 'express';
 import { Public } from '../../common/decorators/public.decorator';
 import { RequireVerifiedEmail } from '../../common/decorators/verified-email.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { clientIp } from '../../common/utils/client-ip';
 import { OrderResponseDto } from '../orders/dto/orders.dto';
 import { ReservationContext, ReservationsService } from './reservations.service';
 import {
@@ -43,15 +44,13 @@ export class ReservationsController {
   }
 
   /**
-   * Contexto anti-abuso: IP del cliente (X-Forwarded-For primero, para funcionar
-   * detrás de Cloud Run/LB) + si la petición trae un access token VÁLIDO (usuario
+   * Contexto anti-abuso: IP REAL del cliente (`req.ip` según `trust proxy`, no
+   * spoofeable vía XFF) + si la petición trae un access token VÁLIDO (usuario
    * accountable → sin límite por IP). La ruta es @Public, así que el guard no puebla
    * req.user; verificamos el Bearer aquí de forma best-effort.
    */
   private ctxFrom(req: Request): ReservationContext {
-    const xff = (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim();
-    const raw = xff || req.ip || req.socket?.remoteAddress || null;
-    const ip = raw ? raw.replace(/^::ffff:/, '') : null;
+    const ip = clientIp(req);
 
     let isUser = false;
     const auth = req.headers.authorization;

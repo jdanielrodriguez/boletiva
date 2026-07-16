@@ -33,7 +33,14 @@ export interface AppConfig {
     refreshTtl: number;
     impersonationTtl: number;
   };
-  security: { encryptionKey: string };
+  security: {
+    encryptionKey: string;
+    // Config de `trust proxy` de Express: cuántos proxies confiables hay DELANTE de la
+    // app (Cloud Run/LB) para que `req.ip` sea la IP REAL del cliente y no sea spoofeable
+    // vía X-Forwarded-For. Número de hops, boolean, o lista de subredes. Default false
+    // (dev/local, sin proxy → usa el socket). En prod GCP: número de proxies (p.ej. 1-2).
+    trustProxy: boolean | number | string;
+  };
   oauth: { google: { clientId: string; clientSecret: string } };
   payment: {
     provider: string;
@@ -115,6 +122,17 @@ export interface AppConfig {
   cors: { origins: string[] };
 }
 
+/** Parseo del env TRUST_PROXY → valor aceptado por `app.set('trust proxy', …)`. */
+function parseTrustProxy(raw: string | undefined): boolean | number | string {
+  if (raw === undefined || raw === '') return false;
+  const lower = raw.toLowerCase();
+  if (lower === 'true') return true;
+  if (lower === 'false') return false;
+  const n = Number(raw);
+  if (Number.isInteger(n) && n >= 0) return n;
+  return raw; // lista de subredes/hosts confiables (p.ej. "loopback, 10.0.0.0/8")
+}
+
 export const configuration = (): AppConfig => {
   const env = (process.env.NODE_ENV ?? 'development') as AppConfig['env'];
   const bool = (v: string | undefined, def = false) =>
@@ -169,7 +187,10 @@ export const configuration = (): AppConfig => {
       // Token de IMPERSONACIÓN (soporte, v3.8): vida corta (default 30 min).
       impersonationTtl: parseInt(process.env.IMPERSONATION_TOKEN_TTL ?? '1800', 10),
     },
-    security: { encryptionKey: process.env.APP_ENCRYPTION_KEY as string },
+    security: {
+      encryptionKey: process.env.APP_ENCRYPTION_KEY as string,
+      trustProxy: parseTrustProxy(process.env.TRUST_PROXY),
+    },
     oauth: {
       google: {
         clientId: process.env.GOOGLE_CLIENT_ID ?? '',

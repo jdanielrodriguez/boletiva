@@ -26,6 +26,11 @@ async function bootstrap(): Promise<void> {
   // no regalar a un atacante el mapa exacto de versiones/CVEs). helmet añade además
   // CSP, HSTS, X-Frame-Options, nosniff, etc. La CSP por defecto convive con Swagger.
   app.getHttpAdapter().getInstance().disable('x-powered-by');
+  // `trust proxy`: hace que Express resuelva `req.ip` a la IP REAL del cliente detrás
+  // de los proxies de GCP (Cloud Run/LB) en vez del último hop, y — configurado al
+  // número correcto de proxies — evita que un cliente falsee su IP metiendo entradas
+  // en X-Forwarded-For (base del rate-limit y del anti-abuso de reservas por IP).
+  app.getHttpAdapter().getInstance().set('trust proxy', config.get('security.trustProxy') ?? false);
   app.use(helmet());
   app.use(compression());
   app.enableCors({

@@ -1,4 +1,5 @@
 import { INestApplication, ValidationPipe, VersioningType } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../../app.module';
@@ -8,6 +9,9 @@ import { AllExceptionsFilter } from '../../common/filters/all-exceptions.filter'
 export async function createTestApp(): Promise<INestApplication> {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
   const app = moduleRef.createNestApplication({ logger: false });
+  // Espeja main.ts: resuelve `req.ip` según `trust proxy` (controlable por TRUST_PROXY
+  // en los tests que ejercitan el anti-abuso por IP).
+  app.getHttpAdapter().getInstance().set('trust proxy', app.get(ConfigService).get('security.trustProxy') ?? false);
   app.setGlobalPrefix('api');
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
   app.useGlobalPipes(
@@ -50,6 +54,16 @@ export const SEED = {
   promoter: 'promotor@pasaeventos.com',
   buyer: 'cliente@pasaeventos.com',
 };
+
+/**
+ * Restaura una variable de entorno a su valor previo tras un test que la sobreescribió.
+ * Si el valor previo era `undefined`, la BORRA (asignar `undefined` la volvería el string
+ * 'undefined' y contaminaría a otras suites de la corrida serial).
+ */
+export function restoreEnv(key: string, prev: string | undefined): void {
+  if (prev === undefined) delete process.env[key];
+  else process.env[key] = prev;
+}
 
 // ---- Helpers de correo (MailHog) para probar códigos/enlaces ----
 import axios from 'axios';

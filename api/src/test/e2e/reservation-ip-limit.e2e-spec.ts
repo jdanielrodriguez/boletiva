@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { RedisService } from '../../infra/redis/redis.service';
-import { createTestApp, login, SEED } from './utils';
+import { createTestApp, login, restoreEnv, SEED } from './utils';
 
 /**
  * Anti-abuso de reservas ANÓNIMAS por IP (visitantes sin login): 1 reserva activa
@@ -20,10 +20,14 @@ describe('Límite de reserva por IP (visitantes) (e2e)', () => {
   const stamp = Date.now();
   const prevLimit = process.env.RESERVATION_ANON_LIMIT;
   const prevCooldown = process.env.RESERVATION_ANON_COOLDOWN_SECONDS;
+  const prevTrustProxy = process.env.TRUST_PROXY;
 
   beforeAll(async () => {
     process.env.RESERVATION_ANON_LIMIT = 'true';
     process.env.RESERVATION_ANON_COOLDOWN_SECONDS = '2'; // cooldown corto para el test
+    // Detrás de un proxy confiable: Express resuelve req.ip desde XFF → cada IP de
+    // prueba se trata distinta. El caso anti-spoof (sin trust proxy) va en su suite.
+    process.env.TRUST_PROXY = 'true';
     app = await createTestApp();
     prisma = app.get(PrismaService);
     redis = app.get(RedisService);
@@ -60,8 +64,9 @@ describe('Límite de reserva por IP (visitantes) (e2e)', () => {
     );
     await prisma.order.deleteMany({ where: { eventId } });
     await prisma.event.deleteMany({ where: { id: eventId } });
-    process.env.RESERVATION_ANON_LIMIT = prevLimit;
-    process.env.RESERVATION_ANON_COOLDOWN_SECONDS = prevCooldown;
+    restoreEnv('RESERVATION_ANON_LIMIT', prevLimit);
+    restoreEnv('RESERVATION_ANON_COOLDOWN_SECONDS', prevCooldown);
+    restoreEnv('TRUST_PROXY', prevTrustProxy);
     await app.close();
   });
 

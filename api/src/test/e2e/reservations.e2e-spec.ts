@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '../../infra/prisma/prisma.service';
-import { createTestApp, login, SEED } from './utils';
+import { createTestApp, login, restoreEnv, SEED } from './utils';
 
 /**
  * Reservas ANÓNIMAS y COMPARTIBLES: crear sin login (hold bajo el token),
@@ -17,8 +17,12 @@ describe('Reservas anónimas compartibles (e2e)', () => {
   let vipSeatId: string;
   let buyerToken: string;
   let stamp: number;
+  const prevLimit = process.env.RESERVATION_ANON_LIMIT;
 
   beforeAll(async () => {
+    // Esta suite crea muchas reservas anónimas desde el mismo loopback: fuerza el
+    // anti-abuso por IP OFF (aislado de suites que lo encienden en la corrida serial).
+    process.env.RESERVATION_ANON_LIMIT = 'false';
     app = await createTestApp();
     prisma = app.get(PrismaService);
     stamp = Date.now();
@@ -60,6 +64,7 @@ describe('Reservas anónimas compartibles (e2e)', () => {
   afterAll(async () => {
     await prisma.order.deleteMany({ where: { eventId } });
     await prisma.event.deleteMany({ where: { id: eventId } });
+    restoreEnv('RESERVATION_ANON_LIMIT', prevLimit);
     await app.close();
   });
 
