@@ -41,6 +41,7 @@ describe('Boletos: manifiesto offline + propagación (e2e)', () => {
         slug: `man-${stamp}`,
         startsAt: new Date('2028-03-01T20:00:00-06:00'),
         endsAt: new Date('2028-03-01T23:00:00-06:00'),
+        status: 'published', // ventas abiertas (fecha futura) para poder comprar
       },
     });
     eventId = event.id;

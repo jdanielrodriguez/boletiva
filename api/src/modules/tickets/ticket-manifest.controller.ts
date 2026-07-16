@@ -2,6 +2,7 @@ import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { RateLimit } from '../../common/rate-limit/rate-limit.decorator';
 import { AuthUser, CurrentUser } from '../../common/decorators/current-user.decorator';
 import { TicketSyncService } from './ticket-sync.service';
 import { GateAccessService } from './gate-access.service';
@@ -18,6 +19,7 @@ export class TicketManifestController {
 
   @Get()
   @Roles(Role.gate_operator, Role.admin)
+  @RateLimit({ limit: 60, windowSec: 60 })
   @ApiOperation({
     summary:
       'Manifiesto firmado de validación offline (delta desde ?since). Requiere token de PUERTA del evento; expira (SafeTix).',

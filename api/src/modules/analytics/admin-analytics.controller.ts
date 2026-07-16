@@ -9,6 +9,7 @@ import {
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { RateLimit } from '../../common/rate-limit/rate-limit.decorator';
 import { AdminProfitabilityService } from './admin-profitability.service';
 import { AdminProfitabilityExportService } from './admin-profitability-export.service';
 import { AdminProfitabilityDto } from './dto/admin-profitability.dto';
@@ -35,6 +36,7 @@ export class AdminAnalyticsController {
   }
 
   @Get('profitability/export.xlsx')
+  @RateLimit({ limit: 20, windowSec: 60 })
   @ApiProduces('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
   @ApiOperation({ summary: 'Descarga la rentabilidad por evento en Excel (.xlsx) (admin).' })
   @ApiOkResponse({

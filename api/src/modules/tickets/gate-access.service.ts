@@ -122,4 +122,20 @@ export class GateAccessService {
     });
     if (!assigned) throw new ForbiddenException('Tu asignación a este evento fue revocada');
   }
+
+  /**
+   * Enforcement de CHECK-IN (hallazgo 8.1): un operador solo valida/marca boletos de
+   * un evento al que está ASIGNADO. Admin pasa. Sin asignación → 403 (así un operador
+   * del Evento A no puede marcar `used` boletos del Evento B). Nota: exigir además el
+   * token de puerta (`gateEventId`) es un endurecimiento adicional futuro.
+   */
+  async assertAssignedToEvent(eventId: string, user: AuthUser): Promise<void> {
+    if (user.roles.includes(Role.admin)) return;
+    const assigned = await this.prisma.gateAssignment.findUnique({
+      where: { eventId_operatorId: { eventId, operatorId: user.userId } },
+    });
+    if (!assigned) {
+      throw new ForbiddenException('No estás asignado a este evento para validar boletos');
+    }
+  }
 }

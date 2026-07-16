@@ -13,6 +13,8 @@ export interface CheckinItem {
   serial: string;
   gateId?: string;
   checkedInAt?: string;
+  /** Evento al que está acotado el lote (8.1): un serial de otro evento → invalid. */
+  eventId?: string;
 }
 
 export type CheckinOutcome = 'checked_in' | 'already_used' | 'not_found' | 'invalid';
@@ -53,8 +55,8 @@ export class ValidationIngestService implements OnModuleInit {
    * Envía un lote de check-ins. Inline → aplica y devuelve la reconciliación;
    * async → publica al bus y devuelve lo aceptado (el consumidor reconcilia).
    */
-  async submit(items: CheckinItem[], gateId?: string) {
-    const stamped = items.map((i) => ({ ...i, gateId: i.gateId ?? gateId }));
+  async submit(items: CheckinItem[], eventId?: string, gateId?: string) {
+    const stamped = items.map((i) => ({ ...i, gateId: i.gateId ?? gateId, eventId: eventId ?? i.eventId }));
     if (this.inline) {
       return { mode: 'inline' as const, ...(await this.ingestBatch(stamped)) };
     }
@@ -88,6 +90,12 @@ export class ValidationIngestService implements OnModuleInit {
     if (item.checkedInAt) {
       const parsed = new Date(item.checkedInAt);
       if (!Number.isNaN(parsed.getTime())) at = parsed;
+    }
+
+    // 8.1: el lote está acotado a un evento; un serial de OTRO evento no se valida.
+    if (item.eventId && ticket.eventId !== item.eventId) {
+      await this.recordConflict(ticket, item, 'wrong_event', at);
+      return 'invalid';
     }
 
     if (ticket.status === TicketStatus.revoked || ticket.status === TicketStatus.transferred) {

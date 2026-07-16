@@ -22,6 +22,7 @@ import {
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { Public } from '../../common/decorators/public.decorator';
+import { RateLimit } from '../../common/rate-limit/rate-limit.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RequireVerifiedEmail } from '../../common/decorators/verified-email.decorator';
 import { AuthUser, CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -97,6 +98,7 @@ export class EventsController {
   }
 
   @Public()
+  @RateLimit({ limit: 60, windowSec: 60 })
   @Get(':eventId/availability')
   @ApiOperation({
     summary: 'Disponibilidad para comprar: mapa + localidades (con precio) + asientos',

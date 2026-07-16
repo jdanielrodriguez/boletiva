@@ -79,6 +79,8 @@ describe('Boletos: emisión + media + validación (e2e)', () => {
       where: { id: sOp.body.user.id },
       data: { emailVerifiedAt: new Date(), roles: ['gate_operator'] },
     });
+    // 8.1: el operador valida en puerta solo si está asignado al evento.
+    await prisma.gateAssignment.create({ data: { eventId, operatorId: sOp.body.user.id } });
     operatorToken = await loginTrusted(emailOp, 'tkt-devOp');
     adminToken = await loginTrusted(SEED.admin, 'tkt-devAdmin');
   });

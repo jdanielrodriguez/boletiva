@@ -13,6 +13,7 @@ import { TicketSigningService } from './ticket-signing.service';
 import { TicketCryptoService, TicketIdentity } from './ticket-crypto.service';
 import { TicketCustodyService } from './ticket-custody.service';
 import { TicketSyncService } from './ticket-sync.service';
+import { GateAccessService } from './gate-access.service';
 
 export type VerifyResult =
   | {
@@ -44,6 +45,7 @@ export class TicketsService implements OnModuleInit {
     private readonly queue: QueueService,
     private readonly custody: TicketCustodyService,
     private readonly sync: TicketSyncService,
+    private readonly gateAccess: GateAccessService,
   ) {}
 
   onModuleInit(): void {
@@ -260,7 +262,7 @@ export class TicketsService implements OnModuleInit {
    * estado. Si `checkIn`, marca el boleto como usado de forma atómica (una única
    * entrada por boleto, a prueba de doble check-in concurrente).
    */
-  async verify(payload: string, checkIn = true, actorId?: string): Promise<VerifyResult> {
+  async verify(payload: string, checkIn = true, actor?: AuthUser): Promise<VerifyResult> {
     const parsed = this.crypto.parseQr(payload);
     if (!parsed) return { valid: false, reason: 'malformed' };
 
@@ -269,6 +271,10 @@ export class TicketsService implements OnModuleInit {
       include: { seat: { select: { label: true } } },
     });
     if (!ticket) return { valid: false, reason: 'not_found', serial: parsed.serial };
+
+    // 8.1: el operador debe estar asignado al evento del boleto (admin exento). Se
+    // valida tras resolver el boleto (su evento); un no asignado no valida ni marca.
+    if (actor) await this.gateAccess.assertAssignedToEvent(ticket.eventId, actor);
 
     const secret = this.encryption.decrypt(ticket.totpSecret);
     if (!this.crypto.verifyRotatingCode(parsed.code, secret)) {
@@ -312,7 +318,7 @@ export class TicketsService implements OnModuleInit {
       await this.custody.record({
         ticketId: ticket.id,
         type: 'checked_in',
-        actorId: actorId ?? null,
+        actorId: actor?.userId ?? null,
       });
       await this.sync.record(ticket.eventId, ticket.id, 'checked_in');
     }

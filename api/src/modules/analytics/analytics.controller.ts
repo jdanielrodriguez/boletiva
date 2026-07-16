@@ -10,6 +10,7 @@ import {
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { RateLimit } from '../../common/rate-limit/rate-limit.decorator';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user.decorator';
 import { PromoterDashboardService } from './promoter-dashboard.service';
 import { PromoterDashboardExportService } from './promoter-dashboard-export.service';
@@ -43,6 +44,7 @@ export class AnalyticsController {
 
   @Get('dashboard/export.xlsx')
   @Roles(Role.promoter, Role.admin)
+  @RateLimit({ limit: 20, windowSec: 60 })
   @ApiProduces('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
   @ApiOperation({
     summary:

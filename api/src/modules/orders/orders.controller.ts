@@ -24,6 +24,7 @@ import { RequireVerifiedEmail } from '../../common/decorators/verified-email.dec
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user.decorator';
 import { PageQueryDto } from '../../common/dto/page-query.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { RateLimit } from '../../common/rate-limit/rate-limit.decorator';
 import { Role } from '@prisma/client';
 import { CheckoutService } from './checkout.service';
 import { OrdersService } from './orders.service';
@@ -85,6 +86,7 @@ export class OrdersController {
 
   @Get('events/:eventId/settlement/export.xlsx')
   @Roles(Role.promoter, Role.admin)
+  @RateLimit({ limit: 20, windowSec: 60 })
   @ApiProduces('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
   @ApiOperation({
     summary:

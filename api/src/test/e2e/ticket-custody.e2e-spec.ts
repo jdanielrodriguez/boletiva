@@ -36,6 +36,7 @@ describe('Boletos: cadena de custodia (e2e)', () => {
         slug: `cust-${stamp}`,
         startsAt: new Date('2028-01-01T20:00:00-06:00'),
         endsAt: new Date('2028-01-01T23:00:00-06:00'),
+        status: 'published', // ventas abiertas (fecha futura) para poder comprar
       },
     });
     eventId = event.id;
@@ -64,6 +65,8 @@ describe('Boletos: cadena de custodia (e2e)', () => {
       where: { id: sOp.body.user.id },
       data: { emailVerifiedAt: new Date(), roles: ['gate_operator'] },
     });
+    // 8.1: el operador valida en puerta solo si está asignado al evento.
+    await prisma.gateAssignment.create({ data: { eventId, operatorId: sOp.body.user.id } });
     operatorToken = await loginTrusted(emailOp, 'cust-Op');
     adminToken = await loginTrusted(SEED.admin, 'cust-Admin');
   });

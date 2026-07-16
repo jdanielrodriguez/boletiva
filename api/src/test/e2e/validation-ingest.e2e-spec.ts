@@ -36,6 +36,7 @@ describe('Ingest de validación offline (e2e)', () => {
         slug: `ingest-${stamp}`,
         startsAt: new Date('2028-04-01T20:00:00-06:00'),
         endsAt: new Date('2028-04-01T23:00:00-06:00'),
+        status: 'published', // ventas abiertas (fecha futura) para poder comprar
       },
     });
     eventId = event.id;
@@ -58,6 +59,8 @@ describe('Ingest de validación offline (e2e)', () => {
       data: { emailVerifiedAt: new Date(), roles: ['gate_operator'] },
     });
     operatorToken = await loginTrusted(emailOp, 'ing-Op');
+    // 8.1: el operador debe estar ASIGNADO al evento para ingerir sus check-ins.
+    await prisma.gateAssignment.create({ data: { eventId, operatorId: sOp.body.user.id } });
     adminToken = await loginTrusted(SEED.admin, 'ing-Admin');
   });
 
@@ -115,7 +118,7 @@ describe('Ingest de validación offline (e2e)', () => {
   }
 
   const batch = (items: unknown[], token = operatorToken, gateId?: string) =>
-    http().post('/api/v1/checkins/batch').set(bearer(token)).send({ items, gateId });
+    http().post(`/api/v1/events/${eventId}/checkins/batch`).set(bearer(token)).send({ items, gateId });
 
   it('ingesta un lote de check-ins válidos → todos checked_in (modo inline)', async () => {
     const s0 = await issue(0);
@@ -165,7 +168,27 @@ describe('Ingest de validación offline (e2e)', () => {
   it('RBAC: un comprador no ingesta ni ve conflictos (403); sin token → 401', async () => {
     await batch([{ serial: 'x' }], buyerToken).expect(403);
     await http().get(`/api/v1/events/${eventId}/checkins/conflicts`).set(bearer(buyerToken)).expect(403);
-    await http().post('/api/v1/checkins/batch').send({ items: [] }).expect(401);
+    await http().post(`/api/v1/events/${eventId}/checkins/batch`).send({ items: [] }).expect(401);
+  });
+
+  it('8.1: un operador NO asignado a OTRO evento no puede ingerir sus check-ins (403)', async () => {
+    const promoter = await prisma.user.findUniqueOrThrow({ where: { email: SEED.promoter } });
+    const other = await prisma.event.create({
+      data: {
+        promoterId: promoter.id,
+        name: `ING2 ${stamp}`,
+        slug: `ing2-${stamp}`,
+        startsAt: new Date('2029-06-01T20:00:00-06:00'),
+        endsAt: new Date('2029-06-01T23:00:00-06:00'),
+        status: 'published',
+      },
+    });
+    await http()
+      .post(`/api/v1/events/${other.id}/checkins/batch`)
+      .set(bearer(operatorToken))
+      .send({ items: [{ serial: 'x' }] })
+      .expect(403);
+    await prisma.event.delete({ where: { id: other.id } });
   });
 
   // ---- Cobertura adicional (auditoría QA) ----
@@ -176,7 +199,7 @@ describe('Ingest de validación offline (e2e)', () => {
     // Un admin (no solo gate_operator) puede ingerir.
     const s6 = await issue(6);
     const asAdmin = await http()
-      .post('/api/v1/checkins/batch')
+      .post(`/api/v1/events/${eventId}/checkins/batch`)
       .set(bearer(adminToken))
       .send({ items: [{ serial: s6 }] })
       .expect(200);

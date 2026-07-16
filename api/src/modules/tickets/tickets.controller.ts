@@ -42,8 +42,8 @@ export class TicketsController {
   @HttpCode(200)
   @ApiOperation({ summary: 'Valida un QR en puerta (operador) — check-in dinámico' })
   @ApiOkResponse({ type: VerifyTicketResultDto })
-  verify(@Body() dto: VerifyTicketDto, @CurrentUser('userId') userId: string) {
-    return this.tickets.verify(dto.payload, dto.checkIn ?? true, userId);
+  verify(@Body() dto: VerifyTicketDto, @CurrentUser() user: AuthUser) {
+    return this.tickets.verify(dto.payload, dto.checkIn ?? true, user);
   }
 
   @Get(':id')
