@@ -1,4 +1,11 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  OnApplicationBootstrap,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PromoterStatus, Role, User } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { QueueService } from '../../infra/queue/queue.service';
@@ -14,11 +21,33 @@ const REQUIRE_KEY = 'promoters.require_approval';
  * = false) AUTO-APRUEBA al solicitar — útil para alpha/beta.
  */
 @Injectable()
-export class PromotersService {
+export class PromotersService implements OnApplicationBootstrap {
+  private readonly logger = new Logger(PromotersService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly queue: QueueService,
+    private readonly config: ConfigService,
   ) {}
+
+  /**
+   * 6.2: en PRODUCCIÓN, si el "modo pruebas" quedó activo (require_approval=false),
+   * CUALQUIER usuario se auto-aprueba como promotor y puede publicar eventos. Se avisa
+   * ruidosamente al arrancar para que no pase desapercibido (no bloquea el boot).
+   */
+  async onApplicationBootstrap(): Promise<void> {
+    if (!this.config.get<boolean>('isProd')) return;
+    try {
+      if (!(await this.requireApproval())) {
+        this.logger.warn(
+          '⚠️  SEGURIDAD: promoters.require_approval=FALSE en PRODUCCIÓN → cualquier usuario ' +
+            'se auto-aprueba como promotor. Actívalo salvo que sea intencional (alpha/beta).',
+        );
+      }
+    } catch {
+      /* no bloquear el arranque por un fallo de lectura del setting */
+    }
+  }
 
   /** Encola (cola MAIL) el correo del estado de promotor. Nunca bloquea/lanza. */
   private async notify(userId: string, status: PromoterMailStatus, note?: string | null) {

@@ -108,6 +108,19 @@ describe('Media de eventos (e2e)', () => {
     expect(after.body).toHaveLength(0);
   });
 
+  it('6.3: registrar una key FUERA del prefijo del evento → 400 (dueño)', async () => {
+    await http()
+      .post(`/api/v1/events/${eventId}/media`)
+      .set(bearer(promoterToken))
+      .send({ key: 'events/otro-evento/robada.jpg', kind: 'cover' })
+      .expect(400);
+    await http()
+      .post(`/api/v1/events/${eventId}/media`)
+      .set(bearer(promoterToken))
+      .send({ key: 'arbitraria.jpg', kind: 'cover' })
+      .expect(400);
+  });
+
   it('ownership: otro promotor no gestiona media de un evento ajeno → 403', async () => {
     await http()
       .post(`/api/v1/events/${eventId}/media/presign`)

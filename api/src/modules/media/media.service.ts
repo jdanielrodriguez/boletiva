@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { StorageService } from '../../infra/storage/storage.service';
@@ -18,8 +18,11 @@ export class MediaService {
   /** Devuelve una URL firmada de subida directa navegador→storage. */
   async presignUpload(eventId: string, dto: PresignUploadDto, user: AuthUser) {
     await this.events.getManaged(eventId, user);
+    // El tipo (image/* | video/*) ya lo valida el DTO; aquí la `key` va SIEMPRE bajo
+    // el prefijo del evento para que `register` pueda validarla (6.3).
     const safeName = slugify(dto.filename.replace(/\.[^.]+$/, ''));
     const ext = dto.filename.split('.').pop() ?? 'bin';
+    // La `key` va SIEMPRE bajo el prefijo del evento → register puede validarla.
     const key = `events/${eventId}/${randomUUID()}-${safeName}.${ext}`;
     const uploadUrl = await this.storage.signedPutUrl(key, dto.contentType);
     return { key, uploadUrl };
@@ -27,6 +30,11 @@ export class MediaService {
 
   async register(eventId: string, dto: RegisterMediaDto, user: AuthUser) {
     await this.events.getManaged(eventId, user);
+    // 6.3: la key debe pertenecer al prefijo del evento (la que devolvió presignUpload).
+    // Impide registrar objetos arbitrarios del bucket o de OTRO evento.
+    if (!dto.key.startsWith(`events/${eventId}/`)) {
+      throw new BadRequestException('La key de la media no corresponde a este evento');
+    }
     return this.prisma.eventMedia.create({
       data: {
         eventId,
