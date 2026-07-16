@@ -10,6 +10,7 @@ export const checkout = {
   expired: 'expirada',
   cancelled: 'cancelada',
   paymentMethod: 'Método de pago',
+  testCardHint: 'Modo prueba: usa la tarjeta 4242 4242 4242 4242, cualquier fecha futura y CVV 123. No se hace ningún cargo real.',
   loadingMethods: 'Cargando tus métodos de pago…',
   methodsError: 'No pudimos cargar tus métodos guardados. Puedes pagar con una tarjeta nueva.',
   payWithWallet: 'Pagar con mi saldo',

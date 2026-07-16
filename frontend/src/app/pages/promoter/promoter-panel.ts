@@ -4,6 +4,7 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { Router, RouterLink } from '@angular/router';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
+import { SessionStore } from '../../core/auth/session.store';
 import { ToastService } from '../../core/ui/toast.service';
 import { ConfirmController } from '../../shared/confirm-dialog/confirm-controller';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
@@ -36,9 +37,13 @@ type EventFilterGroup = 'upcoming' | 'ongoing' | 'suspended' | 'past' | 'all';
 })
 export class PromoterPanel {
   private readonly eventsApi = inject(PromoterEventsApi);
+  private readonly session = inject(SessionStore);
   private readonly toasts = inject(ToastService);
   private readonly router = inject(Router);
   private readonly translate = inject(TranslateService);
+
+  /** Promotor de PRUEBA → sus eventos van por Sandbox; se marcan con un chip TEST. */
+  protected readonly isTestUser = computed(() => this.session.user()?.isTestUser === true);
 
   protected readonly events = signal<MyEventListItemDto[]>([]);
   protected readonly loading = signal(true);

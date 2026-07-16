@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { Subject, of, throwError } from 'rxjs';
 import { OrderStreamEvent, OrderStreamService } from '../../core/api/order-stream.service';
+import { SessionStore } from '../../core/auth/session.store';
 import { OrdersApi } from '../../core/api/orders.api';
 import { PaymentMethodsApi } from '../../core/api/payment-methods.api';
 import type {
@@ -119,6 +120,7 @@ describe('CheckoutPage — ramas de pago y selección', () => {
         { provide: PaymentMethodsApi, useValue: methods },
         { provide: WalletApi, useValue: walletApi },
         { provide: OrderStreamService, useValue: { stream: () => sse.asObservable() } },
+        { provide: SessionStore, useValue: { user: () => null } },
         { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ orderId: 'o1' })) } },
       ],
     });

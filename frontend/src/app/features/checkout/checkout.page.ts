@@ -9,6 +9,7 @@ import { MoneyPipe } from '../../shared/money.pipe';
 import { ConfirmationSplashComponent } from '../../shared/ui/confirmation-splash.component';
 import { LoadingComponent } from '../../shared/ui/loading.component';
 import { OrderStreamService } from '../../core/api/order-stream.service';
+import { SessionStore } from '../../core/auth/session.store';
 import { OrdersApi } from '../../core/api/orders.api';
 import { PaymentMethodsApi } from '../../core/api/payment-methods.api';
 import { WalletApi } from '../../core/api/wallet.api';
@@ -57,7 +58,11 @@ export class CheckoutPage implements OnDestroy {
   private readonly walletApi = inject(WalletApi);
   private readonly stream = inject(OrderStreamService);
   private readonly translate = inject(TranslateService);
+  private readonly session = inject(SessionStore);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+
+  /** Modo prueba: muestra la ayuda de tarjetas de prueba (4242…) en el pago. */
+  protected readonly isTestUser = computed(() => this.session.user()?.isTestUser === true);
 
   protected readonly orderId = signal('');
   protected readonly loaded = signal(false);

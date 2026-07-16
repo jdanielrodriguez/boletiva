@@ -34,6 +34,10 @@
           <section class="pay-section">
             <h2>{{ 'checkout.paymentMethod' | translate }}</h2>
 
+            @if (isTestUser()) {
+              <p class="test-card-hint" data-testid="test-card-hint">🧪 {{ 'checkout.testCardHint' | translate }}</p>
+            }
+
             @if (methodsLoading()) {
               <p class="muted" data-testid="methods-loading">{{ 'checkout.loadingMethods' | translate }}</p>
             } @else {

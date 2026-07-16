@@ -3911,6 +3911,29 @@ button.danger {
   gap: 1rem;
   flex-wrap: wrap;
 }
+/* Ayuda de tarjeta de prueba en el checkout (modo prueba). */
+.test-card-hint {
+  background: var(--pe-warning-soft, rgba(217, 119, 6, 0.12));
+  color: var(--pe-warning-strong, #b45309);
+  border: 1px dashed var(--pe-warning-border, rgba(217, 119, 6, 0.4));
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+/* Chip "TEST" en tarjetas de evento del promotor de prueba. */
+.test-chip {
+  display: inline-block;
+  background: var(--pe-warning-strong, #b45309);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.4rem;
+  border-radius: 6px;
+  vertical-align: middle;
+}
+
 /* Banner persistente de MODO PRUEBA (usuario de test): pagos en sandbox. */
 .test-mode-banner {
   background: var(--pe-warning-soft, rgba(217, 119, 6, 0.15));

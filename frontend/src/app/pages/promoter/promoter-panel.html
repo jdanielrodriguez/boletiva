@@ -52,7 +52,10 @@
               <span class="ev-card-top-spacer" aria-hidden="true"></span>
             }
           </div>
-          <a class="ev-card-name" [routerLink]="['/promotor/eventos', ev.id, 'editar']" data-testid="ev-name-link">{{ ev.name }}</a>
+          <a class="ev-card-name" [routerLink]="['/promotor/eventos', ev.id, 'editar']" data-testid="ev-name-link">
+            @if (isTestUser()) { <span class="test-chip" data-testid="ev-test-chip">TEST</span> }
+            {{ ev.name }}
+          </a>
           <time class="muted small">{{ ev.startsAt | localizedDate: 'EEE d MMM y, HH:mm' }}</time>
           <div class="ev-card-actions">
             <a class="btn small" [routerLink]="['/promotor/eventos', ev.id, 'editar']" data-testid="ev-edit" [title]="'promoter.panel.editTitle' | translate">
