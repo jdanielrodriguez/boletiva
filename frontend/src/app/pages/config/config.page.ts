@@ -113,6 +113,7 @@ export class ConfigPage {
     'theme.slot.dia': (s, v) => s.setThemeSlot('dia', String(v)),
     'theme.slot.noche': (s, v) => s.setThemeSlot('noche', String(v)),
     'theme.allow_visitor_switch': (s, v) => s.setThemeAllowVisitorSwitch(Boolean(v)),
+    'theme.auto_by_hour': (s, v) => s.setThemeAutoByHour(Boolean(v)),
   };
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);

@@ -10,6 +10,12 @@ export interface ThemeConfig {
   defaultFranja: string;
   /** Si false, solo el admin define el tema y nadie ve el botón de cambio. */
   allowVisitorSwitch: boolean;
+  /** Tema AUTOMÁTICO por hora (GT): el reloj elige la franja y desactiva el botón. */
+  autoByHour?: boolean;
+  /** Hora (0–23, GT) en que empieza la franja DÍA (tema automático). */
+  dayStartHour?: number;
+  /** Hora (1–24, GT) en que termina la franja DÍA (tema automático). */
+  dayEndHour?: number;
 }
 
 /** Config pública de la plataforma (contrato del backend, SIN login). */

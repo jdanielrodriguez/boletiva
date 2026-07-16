@@ -47,12 +47,22 @@ export class PublicConfigDto {
 
   @ApiProperty({
     description: 'Asignación de temas por franja + control del switch de tema.',
-    example: { slots: { dia: 'marquesina', noche: 'pulso' }, defaultFranja: 'noche', allowVisitorSwitch: true },
+    example: {
+      slots: { dia: 'marquesina', noche: 'pulso' },
+      defaultFranja: 'noche',
+      allowVisitorSwitch: true,
+      autoByHour: false,
+      dayStartHour: 6,
+      dayEndHour: 18,
+    },
   })
   theme!: {
     slots: { dia: string; noche: string };
     defaultFranja: string;
     allowVisitorSwitch: boolean;
+    autoByHour: boolean;
+    dayStartHour: number;
+    dayEndHour: number;
   };
 }
 

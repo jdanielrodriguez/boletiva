@@ -6,6 +6,9 @@ const DEFAULT_THEME: ThemeConfig = {
   slots: { dia: 'marquesina', noche: 'pulso' },
   defaultFranja: 'noche',
   allowVisitorSwitch: true,
+  autoByHour: false,
+  dayStartHour: 6,
+  dayEndHour: 18,
 };
 
 /**
@@ -85,5 +88,9 @@ export class PublicConfigStore {
   }
   setThemeAllowVisitorSwitch(value: boolean): void {
     this._theme.update((t) => ({ ...t, allowVisitorSwitch: value }));
+  }
+  /** Encender/apagar el tema automático por hora sin F5 (consola admin). */
+  setThemeAutoByHour(value: boolean): void {
+    this._theme.update((t) => ({ ...t, autoByHour: value }));
   }
 }

@@ -25,7 +25,10 @@ describe('ThemeService', () => {
     theme = TestBed.inject(ThemeService);
   }
 
-  afterEach(() => document.documentElement.removeAttribute('data-theme'));
+  afterEach(() => {
+    theme?.stopAuto();
+    document.documentElement.removeAttribute('data-theme');
+  });
 
   it('init aplica la franja por defecto (noche → pulso) y estampa data-theme', () => {
     setup();
@@ -73,6 +76,29 @@ describe('ThemeService', () => {
   it('canSwitch refleja el flag admin', () => {
     setup({ ...CFG, allowVisitorSwitch: false });
     expect(theme.canSwitch()).toBe(false);
+  });
+
+  it('tema automático por hora: oculta el botón (canSwitch=false) aunque el switch esté ON', () => {
+    setup({ ...CFG, allowVisitorSwitch: true, autoByHour: true });
+    expect(theme.autoByHour()).toBe(true);
+    expect(theme.canSwitch()).toBe(false);
+  });
+
+  it('startAuto con franja DÍA todo el día (0–24) resuelve día→marquesina', () => {
+    setup({ ...CFG, autoByHour: true, dayStartHour: 0, dayEndHour: 24 });
+    theme.startAuto();
+    expect(theme.autoFranja()).toBe('dia');
+    expect(theme.franja()).toBe('dia');
+    expect(theme.theme()).toBe('marquesina');
+    expect(document.documentElement.getAttribute('data-theme')).toBe('marquesina');
+  });
+
+  it('startAuto con rango de día vacío (0–0) resuelve noche→pulso', () => {
+    setup({ ...CFG, autoByHour: true, dayStartHour: 0, dayEndHour: 0 });
+    theme.startAuto();
+    expect(theme.autoFranja()).toBe('noche');
+    expect(theme.franja()).toBe('noche');
+    expect(theme.theme()).toBe('pulso');
   });
 
   it('hydrate(null) fuerza la franja por defecto de la plataforma', () => {

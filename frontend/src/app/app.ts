@@ -132,6 +132,14 @@ export class App {
       effect(() => {
         const themeCfg = this.publicConfig.theme(); // se rastrea → reacciona a cambios admin
         if (!this.session.loaded() || !this.publicConfig.loaded()) return;
+        // Tema AUTOMÁTICO por hora: el reloj manda; se ignora cualquier preferencia y
+        // el botón de cambio se oculta (canSwitch=false). Idempotente ante cambios admin.
+        if (themeCfg.autoByHour) {
+          this.themeDecided = true;
+          this.theme.startAuto();
+          return;
+        }
+        this.theme.stopAuto(); // por si venía de modo automático (admin lo apagó)
         if (!this.themeDecided) {
           this.themeDecided = true;
           // Switch apagado → SOLO el admin manda: se ignora cualquier preferencia

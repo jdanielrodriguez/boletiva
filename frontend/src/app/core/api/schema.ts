@@ -7359,7 +7359,10 @@ export interface components {
              *         "noche": "pulso"
              *       },
              *       "defaultFranja": "noche",
-             *       "allowVisitorSwitch": true
+             *       "allowVisitorSwitch": true,
+             *       "autoByHour": false,
+             *       "dayStartHour": 6,
+             *       "dayEndHour": 18
              *     }
              */
             theme: Record<string, never>;

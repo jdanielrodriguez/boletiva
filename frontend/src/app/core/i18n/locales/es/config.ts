@@ -434,6 +434,9 @@ export const config = {
     theme_slot_dia: 'Tema de la franja Día',
     theme_default_franja: 'Franja por defecto',
     theme_allow_visitor_switch: 'Botón de cambio de tema',
+    theme_auto_by_hour: 'Tema automático por hora',
+    theme_day_start_hour: 'Hora de inicio del Día',
+    theme_day_end_hour: 'Hora de fin del Día',
   },
 
   /** Opciones de settings tipo enum (temas y franjas). */

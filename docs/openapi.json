@@ -15174,7 +15174,10 @@
                 "noche": "pulso"
               },
               "defaultFranja": "noche",
-              "allowVisitorSwitch": true
+              "allowVisitorSwitch": true,
+              "autoByHour": false,
+              "dayStartHour": 6,
+              "dayEndHour": 18
             }
           }
         },

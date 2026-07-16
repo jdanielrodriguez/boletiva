@@ -17,6 +17,12 @@ export interface ThemeConfig {
   defaultFranja: string;
   /** Si false, solo el admin define el tema y nadie ve el botón de cambio. */
   allowVisitorSwitch: boolean;
+  /** Tema automático por hora (GT): el reloj elige la franja y desactiva el botón. */
+  autoByHour: boolean;
+  /** Hora (0–23, GT) en que empieza la franja DÍA (tema automático). */
+  dayStartHour: number;
+  /** Hora (1–24, GT) en que termina la franja DÍA (tema automático). */
+  dayEndHour: number;
 }
 
 /** Config pública (sin login) que el frontend lee para render anónimo. */
@@ -83,6 +89,12 @@ export class SettingsService {
       if (typeof raw === 'string' && def?.options?.includes(raw)) return raw;
       return String(def?.default);
     };
+    const resolveInt = (key: string): number => {
+      const def = SETTINGS_BY_KEY.get(key);
+      const raw = byKey.get(key);
+      if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
+      return Number(def?.default);
+    };
     return {
       allowVisitorLangSwitch: resolveBool(PUBLIC_CONFIG_KEYS.allowVisitorLangSwitch),
       showHomeCategories: resolveBool(PUBLIC_CONFIG_KEYS.showHomeCategories),
@@ -93,6 +105,9 @@ export class SettingsService {
         },
         defaultFranja: resolveEnum(PUBLIC_CONFIG_KEYS.themeDefaultFranja),
         allowVisitorSwitch: resolveBool(PUBLIC_CONFIG_KEYS.themeAllowVisitorSwitch),
+        autoByHour: resolveBool(PUBLIC_CONFIG_KEYS.themeAutoByHour),
+        dayStartHour: resolveInt(PUBLIC_CONFIG_KEYS.themeDayStartHour),
+        dayEndHour: resolveInt(PUBLIC_CONFIG_KEYS.themeDayEndHour),
       },
       capabilities: this.integrations.capabilities(),
       recaptchaSiteKey: this.config.get<string>('recaptcha.siteKey') ?? '',

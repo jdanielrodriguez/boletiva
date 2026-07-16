@@ -30,10 +30,19 @@ export class ThemeService {
   /** Tema concreto resuelto (clave de bloque de tokens) según la asignación admin. */
   readonly theme = computed(() => this.resolve(this.franja()));
 
-  /** ¿Se muestra el botón de cambio de tema? (gate admin, igual que el de idioma). */
-  readonly canSwitch = computed(() => this.config.theme().allowVisitorSwitch);
+  /** Tema AUTOMÁTICO por hora: el reloj (GT) manda; nadie cambia manualmente. */
+  readonly autoByHour = computed(() => this.config.theme().autoByHour === true);
+
+  /**
+   * ¿Se muestra el botón de cambio de tema? Gate admin (igual que el de idioma) Y
+   * que NO esté el modo automático activo (con auto, el reloj decide → sin botón).
+   */
+  readonly canSwitch = computed(() => this.config.theme().allowVisitorSwitch && !this.autoByHour());
 
   readonly franjas = FRANJAS;
+
+  /** Timer del modo automático (navegador): re-evalúa la franja periódicamente. */
+  private autoTimer: ReturnType<typeof setInterval> | null = null;
 
   /** Resuelve la franja al tema asignado por el admin (fallback: pulso). */
   private resolve(franja: Franja): string {
@@ -81,6 +90,69 @@ export class ThemeService {
   /** Reaplica el tema tras un cambio de asignación admin o de config (misma franja). */
   reapply(): void {
     this.apply(this.franja(), false);
+  }
+
+  /**
+   * Franja según la HORA de Guatemala (tema automático). DÍA si la hora está en
+   * [dayStartHour, dayEndHour); NOCHE en el resto. Soporta rangos que cruzan la
+   * medianoche (p.ej. día 20→6 = noche invertida). SSR-safe (Intl corre en Node).
+   */
+  autoFranja(): Franja {
+    const cfg = this.config.theme();
+    const start = Number.isFinite(cfg.dayStartHour) ? (cfg.dayStartHour as number) : 6;
+    const end = Number.isFinite(cfg.dayEndHour) ? (cfg.dayEndHour as number) : 18;
+    let hour: number;
+    try {
+      hour = Number(
+        new Intl.DateTimeFormat('en-US', {
+          timeZone: 'America/Guatemala',
+          hour: 'numeric',
+          hour12: false,
+        }).format(new Date()),
+      );
+      if (hour === 24) hour = 0; // Intl puede devolver 24 a medianoche
+    } catch {
+      hour = new Date().getHours();
+    }
+    const isDay = start <= end ? hour >= start && hour < end : hour >= start || hour < end;
+    return isDay ? 'dia' : 'noche';
+  }
+
+  /**
+   * Enciende el tema AUTOMÁTICO: aplica la franja de la hora actual y re-evalúa cada
+   * minuto (navegador) para cruzar el umbral día↔noche sin recargar. Idempotente:
+   * reinicia el timer si ya estaba activo. No persiste preferencia (el reloj manda),
+   * pero sí deja el tema resuelto en la cookie anti-parpadeo.
+   */
+  startAuto(): void {
+    this.applyAutoNow();
+    if (!isPlatformBrowser(this.platformId)) return;
+    if (this.autoTimer) clearInterval(this.autoTimer);
+    this.autoTimer = setInterval(() => this.applyAutoNow(), 60_000);
+  }
+
+  /** Apaga el modo automático (detiene el timer). El tema vigente se conserva. */
+  stopAuto(): void {
+    if (this.autoTimer) {
+      clearInterval(this.autoTimer);
+      this.autoTimer = null;
+    }
+  }
+
+  private applyAutoNow(): void {
+    const franja = this.autoFranja();
+    this.franja.set(franja);
+    const theme = this.resolve(franja);
+    if (isPlatformBrowser(this.platformId)) {
+      this.document.documentElement.setAttribute('data-theme', theme);
+      // Solo la cookie de tema resuelto (anti-parpadeo); NO persistimos preferencia
+      // de franja, porque en modo automático el reloj decide, no el usuario.
+      try {
+        this.document.cookie = `${THEME_STORAGE_KEY}=${theme};path=/;max-age=31536000;SameSite=Lax`;
+      } catch {
+        /* sin persistencia → se corrige al primer tick */
+      }
+    }
   }
 
   private apply(franja: Franja, persist: boolean): void {

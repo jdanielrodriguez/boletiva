@@ -136,6 +136,30 @@ export const SETTINGS_CATALOG: SettingDef[] = [
       'Mostrar el botón de cambio de tema (día/noche) a todos. ' +
       'false = solo el admin define el tema y nadie más lo cambia.',
   },
+  {
+    key: 'theme.auto_by_hour',
+    type: 'bool',
+    default: false,
+    description:
+      'Cambiar el tema AUTOMÁTICAMENTE según la hora del día (zona America/Guatemala). ' +
+      'Si está activo, el botón de cambio de tema se DESACTIVA para todos (el reloj manda).',
+  },
+  {
+    key: 'theme.day_start_hour',
+    type: 'int',
+    default: 6,
+    min: 0,
+    max: 23,
+    description: 'Hora (0–23, GT) en que empieza la franja DÍA cuando el tema es automático.',
+  },
+  {
+    key: 'theme.day_end_hour',
+    type: 'int',
+    default: 18,
+    min: 1,
+    max: 24,
+    description: 'Hora (1–24, GT) en que termina la franja DÍA (a partir de ahí es NOCHE) con tema automático.',
+  },
 ];
 
 /** Claves expuestas al frontend SIN login (config pública). */
@@ -146,6 +170,9 @@ export const PUBLIC_CONFIG_KEYS = {
   themeSlotDia: 'theme.slot.dia',
   themeDefaultFranja: 'theme.default_franja',
   themeAllowVisitorSwitch: 'theme.allow_visitor_switch',
+  themeAutoByHour: 'theme.auto_by_hour',
+  themeDayStartHour: 'theme.day_start_hour',
+  themeDayEndHour: 'theme.day_end_hour',
 } as const;
 
 export const SETTINGS_BY_KEY: Map<string, SettingDef> = new Map(

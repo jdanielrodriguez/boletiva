@@ -35,6 +35,9 @@ describe('Configuraciones (settings) e2e', () => {
             'theme.slot.noche',
             'theme.default_franja',
             'theme.allow_visitor_switch',
+            'theme.auto_by_hour',
+            'theme.day_start_hour',
+            'theme.day_end_hour',
           ],
         },
       },
@@ -55,9 +58,9 @@ describe('Configuraciones (settings) e2e', () => {
   const http = () => request(app.getHttpServer());
   const bearer = (t: string) => ({ Authorization: `Bearer ${t}` });
 
-  it('admin lista el catálogo (16 claves, con value/default/type)', async () => {
+  it('admin lista el catálogo (19 claves, con value/default/type)', async () => {
     const res = await http().get('/api/v1/settings').set(bearer(adminToken)).expect(200);
-    expect(res.body.length).toBe(16);
+    expect(res.body.length).toBe(19);
     const item = res.body.find((s: { key: string }) => s.key === 'costshare.default_pct');
     expect(item).toBeDefined();
     expect(item.type).toBe('pct');
@@ -80,6 +83,9 @@ describe('Configuraciones (settings) e2e', () => {
       slots: { dia: 'marquesina', noche: 'pulso' },
       defaultFranja: 'noche',
       allowVisitorSwitch: true,
+      autoByHour: false,
+      dayStartHour: 6,
+      dayEndHour: 18,
     });
   });
 

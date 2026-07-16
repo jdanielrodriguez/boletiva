@@ -434,6 +434,9 @@ export const config = {
     theme_slot_dia: 'Day slot theme',
     theme_default_franja: 'Default slot',
     theme_allow_visitor_switch: 'Theme switch button',
+    theme_auto_by_hour: 'Auto theme by hour',
+    theme_day_start_hour: 'Day start hour',
+    theme_day_end_hour: 'Day end hour',
   },
 
   /** Enum setting options (themes and slots). */
@@ -477,6 +480,10 @@ export const config = {
     theme_default_franja: 'Slot seen by a visitor or a user without a saved preference.',
     theme_allow_visitor_switch:
       'Shows the day/night theme switch to everyone. When off, only the admin sets the theme and no one else can change it.',
+    theme_auto_by_hour:
+      'Switches the theme AUTOMATICALLY by time of day (America/Guatemala). When on, the theme toggle is disabled for everyone (the clock decides).',
+    theme_day_start_hour: 'Hour (0–23, GT) when the Day slot begins in auto theme mode.',
+    theme_day_end_hour: 'Hour (1–24, GT) when the Day slot ends (Night after that) in auto theme mode.',
   },
 
   // --- Hall / template dashboards (separate page) ---
