@@ -59,6 +59,14 @@ export class PurchasePage implements OnDestroy {
   protected readonly working = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly showLogin = signal(false);
+  /**
+   * Advertencia anti-abuso: un VISITANTE solo puede tener 1 reserva anónima activa
+   * (o está en cooldown tras cancelar). El backend responde 429; mostramos el porqué
+   * y ofrecemos iniciar sesión (con sesión NO hay límite → puede reservar de una).
+   */
+  protected readonly blocked = signal<string | null>(null);
+  /** Para qué se pidió el login: reintentar la reserva o continuar al pago. */
+  private loginIntent: 'reserve' | 'pay' = 'pay';
   protected readonly eventName = signal('');
   protected readonly loaded = signal(false);
   /** Falló la carga de la disponibilidad/mapa → vista de error (C2). */
@@ -139,6 +147,7 @@ export class PurchasePage implements OnDestroy {
     if (this.store.totalCount() === 0) return;
     this.working.set(true);
     this.error.set(null);
+    this.blocked.set(null);
     this.store.reserve().subscribe({
       next: (res) => {
         this.working.set(false);
@@ -146,17 +155,30 @@ export class PurchasePage implements OnDestroy {
         this.secondsLeft.set(this.remaining(res.expiresAt ?? null));
         this.store.clearSelection();
       },
-      error: () => {
+      error: (err: { status?: number; error?: { message?: string } }) => {
         this.working.set(false);
-        this.error.set(this.translate.instant('purchase.reserveError'));
+        // 429 = límite anti-abuso de reservas anónimas: NO es un error de sistema.
+        // Conservamos la selección para poder reintentar tras iniciar sesión.
+        if (err?.status === 429) {
+          this.blocked.set(err?.error?.message ?? this.translate.instant('purchase.reserveLimit'));
+        } else {
+          this.error.set(this.translate.instant('purchase.reserveError'));
+        }
       },
     });
+  }
+
+  /** Desde la advertencia 429: iniciar sesión para reservar de inmediato. */
+  protected loginToReserve(): void {
+    this.loginIntent = 'reserve';
+    this.showLogin.set(true);
   }
 
   /** Continuar al pago: el login se pide AQUÍ (modal), no antes. */
   protected continueToPay(): void {
     this.session.ensureLoaded().subscribe((user) => {
       if (!user || !this.session.isEmailVerified()) {
+        this.loginIntent = 'pay';
         this.showLogin.set(true);
         return;
       }
@@ -166,7 +188,13 @@ export class PurchasePage implements OnDestroy {
 
   protected onLoggedIn(): void {
     this.showLogin.set(false);
-    this.doCheckout();
+    // Con sesión ya no hay límite por IP: retomamos lo que el usuario quería.
+    if (this.loginIntent === 'reserve') {
+      this.blocked.set(null);
+      this.doReserve();
+    } else {
+      this.doCheckout();
+    }
   }
 
   private doCheckout(): void {
@@ -181,8 +209,11 @@ export class PurchasePage implements OnDestroy {
   }
 
   protected backToSelect(): void {
+    // Cancelar de verdad: libera los cupos en el backend e inicia el cooldown
+    // (anti-abuso). Fire-and-forget; el estado local se limpia de una.
+    this.store.cancel().subscribe({ error: () => undefined });
     this.phase.set('select');
-    this.store.reservation.set(null);
+    this.error.set(null);
   }
 
   private remaining(expiresAt: string | null): number {

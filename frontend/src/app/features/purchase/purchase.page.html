@@ -89,6 +89,15 @@
     @if (phase() === 'expired') {
       <p class="warn" data-testid="purchase-expired">{{ 'purchase.expiredWarn' | translate }}</p>
     }
+    @if (blocked()) {
+      <div class="warn reserve-blocked" data-testid="reserve-blocked" role="alert">
+        <p>{{ blocked() }}</p>
+        <p class="reserve-blocked-hint">{{ 'purchase.reserveLimitHint' | translate }}</p>
+        <button type="button" class="btn btn-outline" data-testid="reserve-login" (click)="loginToReserve()">
+          {{ 'purchase.reserveLimitLogin' | translate }}
+        </button>
+      </div>
+    }
     @if (error()) {
       <p class="error" data-testid="purchase-error">{{ error() }}</p>
     }

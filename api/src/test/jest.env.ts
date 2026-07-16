@@ -15,6 +15,10 @@ process.env.QUEUE_INLINE = process.env.QUEUE_INLINE ?? 'true';
 // Ingest de validación (RabbitMQ) también inline en tests: aplicación síncrona,
 // sin consumidor AMQP dejando handles abiertos.
 process.env.RABBIT_INLINE = process.env.RABBIT_INLINE ?? 'true';
+// Límite anti-abuso de reservas anónimas por IP: OFF por defecto en test (los e2e
+// crean muchas reservas seguidas desde el mismo loopback). La suite dedicada lo
+// enciende en su beforeAll (config se relee al construir cada app de test).
+process.env.RESERVATION_ANON_LIMIT = process.env.RESERVATION_ANON_LIMIT ?? 'false';
 
 // Neutraliza TODAS las credenciales de integración externa: la suite debe ser
 // HERMÉTICA e independiente de lo que tenga el `.env` del desarrollador. Sin esto,

@@ -3911,6 +3911,23 @@ button.danger {
   gap: 1rem;
   flex-wrap: wrap;
 }
+/* Advertencia anti-abuso de reservas anónimas (429) en la página de compra. */
+.reserve-blocked {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin: 0.75rem 0;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: var(--pe-warning-soft, rgba(217, 119, 6, 0.12));
+  border: 1px solid var(--pe-warning-border, rgba(217, 119, 6, 0.4));
+  color: var(--pe-warning-strong, #b45309);
+}
+.reserve-blocked .reserve-blocked-hint {
+  color: var(--pe-muted);
+  font-size: 0.9rem;
+}
 .back-link {
   display: inline-flex;
   align-items: center;

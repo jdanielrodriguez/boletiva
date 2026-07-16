@@ -1,5 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Observable, of, tap } from 'rxjs';
 import { ReservationsApi } from '../../core/api/reservations.api';
 import type {
   CreateReservationDto,
@@ -196,5 +196,16 @@ export class PurchaseService {
   checkout(): Observable<OrderResponseDto> {
     const token = this.reservation()?.token ?? '';
     return this.reservations.checkout(token);
+  }
+
+  /**
+   * Cancela la reserva actual en el backend (libera los cupos e inicia el cooldown
+   * anti-abuso para visitantes) y limpia el estado local. No falla si no hay token.
+   */
+  cancel(): Observable<{ cancelled: boolean }> {
+    const token = this.reservation()?.token ?? '';
+    this.reservation.set(null);
+    if (!token) return of({ cancelled: false });
+    return this.reservations.cancel(token);
   }
 }

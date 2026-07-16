@@ -1,7 +1,14 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { RedisService } from '../../infra/redis/redis.service';
 import { SeatHoldService } from '../inventory/seat-hold.service';
 import { CheckoutService, BillingInput } from '../orders/checkout.service';
 import { PricingService } from '../pricing/pricing.service';
@@ -10,6 +17,14 @@ import { CreateReservationDto } from './dto/reservations.dto';
 /** TTL de una reserva compartible: 10 min (igual que el hold), para que quede
  * claro que la reserva se mantiene por 10 minutos. */
 const RESERVATION_TTL = 600;
+
+/** Contexto de la petición para el anti-abuso por IP (visitantes sin login). */
+export interface ReservationContext {
+  /** IP del cliente (X-Forwarded-For primero). null si no se pudo determinar. */
+  ip: string | null;
+  /** true si la petición trae un usuario autenticado (accountable → sin límite). */
+  isUser: boolean;
+}
 
 interface TokenPayload {
   rid: string;
@@ -29,15 +44,34 @@ interface TokenPayload {
 @Injectable()
 export class ReservationsService {
   private readonly secret: string;
+  private readonly anonLimitEnabled: boolean;
+  private readonly anonCooldownSeconds: number;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly holds: SeatHoldService,
     private readonly checkout: CheckoutService,
     private readonly pricing: PricingService,
+    private readonly redis: RedisService,
     config: ConfigService,
   ) {
     this.secret = config.getOrThrow<string>('jwt.accessSecret');
+    this.anonLimitEnabled = config.get<boolean>('reservation.anonLimitEnabled') ?? true;
+    this.anonCooldownSeconds = config.get<number>('reservation.anonCooldownSeconds') ?? 3600;
+  }
+
+  // --- Anti-abuso por IP (solo VISITANTES sin login) ----------------------
+  // Un visitante puede tener UNA sola reserva anónima activa a la vez (evita que
+  // bloqueen boletos "por joder"). Tras cancelarla, hay un cooldown antes de poder
+  // crear otra. Los usuarios logueados (accountable por su cuenta) no tienen límite.
+  private activeKey(ip: string): string {
+    return `res:ip:active:${ip}`;
+  }
+  private cooldownKey(ip: string): string {
+    return `res:ip:cooldown:${ip}`;
+  }
+  private limitApplies(ctx: ReservationContext): ctx is ReservationContext & { ip: string } {
+    return this.anonLimitEnabled && !ctx.isUser && !!ctx.ip;
   }
 
   // --- Token firmado (integridad, no secreto): base64url(payload).hmac ---
@@ -66,7 +100,7 @@ export class ReservationsService {
    * localidades: asientos numerados + cupos generales, todo bajo el mismo `rid`.
    * Si algún hold falla, libera lo ya tomado (todo-o-nada a nivel de reserva).
    */
-  async create(eventId: string, dto: CreateReservationDto) {
+  async create(eventId: string, dto: CreateReservationDto, ctx: ReservationContext = { ip: null, isUser: false }) {
     const quantities = [
       ...(dto.localityId && dto.quantity ? [{ localityId: dto.localityId, quantity: dto.quantity }] : []),
       ...(dto.quantities ?? []),
@@ -74,6 +108,27 @@ export class ReservationsService {
     const hasSeats = !!(dto.seatIds && dto.seatIds.length > 0);
     if (!hasSeats && quantities.length === 0) {
       throw new BadRequestException('Indica asientos (seatIds) o cantidades por localidad');
+    }
+
+    // Anti-abuso por IP (visitantes): cooldown activo o reserva ya en curso → 429.
+    if (this.limitApplies(ctx)) {
+      const client = this.redis.getClient();
+      const [onCooldown, hasActive] = await Promise.all([
+        client.exists(this.cooldownKey(ctx.ip)),
+        client.exists(this.activeKey(ctx.ip)),
+      ]);
+      if (onCooldown) {
+        throw new HttpException(
+          'Cancelaste una reserva hace poco. Espera un momento o inicia sesión para reservar de nuevo.',
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+      if (hasActive) {
+        throw new HttpException(
+          'Ya tienes una reserva activa. Complétala, cancélala o inicia sesión para reservar más.',
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
     }
 
     const rid = randomUUID();
@@ -92,9 +147,39 @@ export class ReservationsService {
       throw e;
     }
 
+    // Marca la reserva activa de esta IP (misma vida que el hold → se auto-libera).
+    if (this.limitApplies(ctx)) {
+      await this.redis
+        .getClient()
+        .set(this.activeKey(ctx.ip), rid, 'EX', RESERVATION_TTL)
+        .catch(() => undefined);
+    }
+
     const exp = Date.now() + RESERVATION_TTL * 1000;
     const token = this.sign({ rid, eventId, seatIds: held, exp });
     return this.summarize(token, eventId, held, rid);
+  }
+
+  /**
+   * Cancela una reserva anónima: libera los cupos en Redis y, para visitantes,
+   * limpia la marca de reserva activa e inicia el cooldown antes de poder crear
+   * otra (anti-abuso). Idempotente: cancelar dos veces no falla.
+   */
+  async cancel(token: string, ctx: ReservationContext = { ip: null, isUser: false }) {
+    const { rid, eventId, seatIds } = this.verify(token);
+    if (seatIds.length > 0) {
+      await this.holds.release(eventId, seatIds, rid).catch(() => undefined);
+    }
+    if (this.limitApplies(ctx)) {
+      const client = this.redis.getClient();
+      await client.del(this.activeKey(ctx.ip)).catch(() => undefined);
+      if (this.anonCooldownSeconds > 0) {
+        await client
+          .set(this.cooldownKey(ctx.ip), '1', 'EX', this.anonCooldownSeconds)
+          .catch(() => undefined);
+      }
+    }
+    return { cancelled: true };
   }
 
   /** Resumen de una reserva por token (para verla desde el link compartido). */

@@ -73,7 +73,30 @@ async function otpFromMail() {
   throw new Error('no llegó el OTP a MailHog');
 }
 
+/**
+ * Limpia las claves del anti-abuso de reservas anónimas (`res:ip:*`). En local todo
+ * corre desde una sola IP de contenedor, así que una reserva anónima de una corrida
+ * previa dejaría bloqueada la 1ª reserva de la siguiente (429). Best-effort: si no
+ * hay ioredis/Redis, se ignora.
+ */
+async function flushReservationLimit() {
+  try {
+    const { default: Redis } = await import('ioredis');
+    const client = new Redis(process.env.REDIS_URL || 'redis://pasaeventos_redis:6379', {
+      lazyConnect: true,
+      maxRetriesPerRequest: 1,
+    });
+    await client.connect();
+    const keys = await client.keys('res:ip:*');
+    if (keys.length) await client.del(...keys);
+    await client.quit();
+  } catch {
+    /* sin Redis disponible → el feature no está activo o no aplica */
+  }
+}
+
 async function main() {
+  await flushReservationLimit();
   const browser = await puppeteer.launch({
     executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser',
     headless: 'new',

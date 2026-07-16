@@ -25,6 +25,11 @@ export class ReservationsApi {
     return this.api.get<ReservationResponseDto>(`/reservations/${token}`);
   }
 
+  /** Cancela la reserva: libera los cupos e inicia el cooldown (visitantes). */
+  cancel(token: string): Observable<{ cancelled: boolean }> {
+    return this.api.delete<{ cancelled: boolean }>(`/reservations/${token}`);
+  }
+
   checkout(token: string, body: CheckoutReservationDto = {}): Observable<OrderResponseDto> {
     return this.api.post<OrderResponseDto>(`/reservations/${token}/checkout`, body);
   }

@@ -1851,7 +1851,8 @@ export interface paths {
         get: operations["ReservationsController_getByToken_v1"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** Cancela una reserva anónima (libera los cupos e inicia cooldown) */
+        delete: operations["ReservationsController_cancel_v1"];
         options?: never;
         head?: never;
         patch?: never;
@@ -10204,6 +10205,29 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReservationResponseDto"];
+                };
+            };
+        };
+    };
+    ReservationsController_cancel_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        cancelled?: boolean;
+                    };
                 };
             };
         };

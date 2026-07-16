@@ -11,6 +11,10 @@ services:
       - NODE_ENV=development
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
+      # Anti-abuso de reservas anónimas ON (feature). En prod el cooldown es 1 h;
+      # en local lo bajamos a 2 min para poder probarlo sin esperar tanto.
+      - RESERVATION_ANON_LIMIT=true
+      - RESERVATION_ANON_COOLDOWN_SECONDS=120
     ports:
       - '8080:8080'
     # Instala dependencias en CADA arranque (capta cambios de package.json) antes de

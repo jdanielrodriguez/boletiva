@@ -52,6 +52,9 @@ export interface AppConfig {
   // Desbloqueo de edición de evento por ADMIN (v3.5): TTL en segundos del token que
   // devuelve la verificación del OTP (default 5 min).
   editUnlock: { ttl: number };
+  // Anti-abuso de reservas ANÓNIMAS (visitantes sin login): 1 reserva activa por IP
+  // + cooldown tras cancelar. TTL en segundos (default 1 h). limitEnabled apaga la regla.
+  reservation: { anonLimitEnabled: boolean; anonCooldownSeconds: number };
   wallet: {
     provider: string;
     // Apple Wallet (.pkpass): env-only por ahora (requiere Apple Developer). Si falta
@@ -202,6 +205,11 @@ export const configuration = (): AppConfig => {
     },
     editUnlock: {
       ttl: parseInt(process.env.EVENT_EDIT_UNLOCK_TTL ?? '300', 10), // 5 min
+    },
+    reservation: {
+      // OFF en test (los e2e crean muchas reservas anónimas seguidas).
+      anonLimitEnabled: (process.env.RESERVATION_ANON_LIMIT ?? 'true').toLowerCase() !== 'false',
+      anonCooldownSeconds: parseInt(process.env.RESERVATION_ANON_COOLDOWN_SECONDS ?? '3600', 10), // 1 h
     },
     // Pases de wallet (Google/Apple). 'stub' = simulador sin certificados de
     // terceros (los E2E no dependen de Apple Developer / Google Wallet API).

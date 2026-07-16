@@ -1,7 +1,7 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { EventsApi } from '../../core/api/events.api';
 import { ReservationsApi } from '../../core/api/reservations.api';
 import { AuthService } from '../../core/auth/auth.service';
@@ -42,8 +42,9 @@ describe('PurchasePage', () => {
     const events = jasmine.createSpyObj<EventsApi>('EventsApi', ['getBySlug', 'availability']);
     events.getBySlug.and.returnValue(of(EVENT as unknown as PublicEventDetailDto));
     events.availability.and.returnValue(of(AVAIL as unknown as EventAvailabilityDto));
-    reservations = jasmine.createSpyObj<ReservationsApi>('ReservationsApi', ['create', 'getByToken', 'checkout']);
+    reservations = jasmine.createSpyObj<ReservationsApi>('ReservationsApi', ['create', 'getByToken', 'checkout', 'cancel']);
     reservations.create.and.returnValue(of(RESERVATION as unknown as ReservationResponseDto));
+    reservations.cancel.and.returnValue(of({ cancelled: true }));
 
     TestBed.configureTestingModule({
       providers: [
@@ -109,6 +110,31 @@ describe('PurchasePage', () => {
     (el.querySelector('[data-testid="confirm-accept"]') as HTMLButtonElement).click();
     fixture.detectChanges();
     (el.querySelector('[data-testid="pay-btn"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(el.querySelector('[data-testid="login-modal"]')).not.toBeNull();
+  });
+
+  it('reserva bloqueada por límite (429): muestra advertencia + CTA de login', async () => {
+    await setup();
+    reservations.create.and.returnValue(
+      throwError(() => ({ status: 429, error: { message: 'Ya tienes una reserva activa.' } })),
+    );
+    (el.querySelector('[data-testid="qty-plus"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    (el.querySelector('[data-testid="reserve-btn"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    (el.querySelector('[data-testid="confirm-accept"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const blocked = el.querySelector('[data-testid="reserve-blocked"]');
+    expect(blocked).not.toBeNull();
+    expect(blocked?.textContent).toContain('Ya tienes una reserva activa.');
+    // NO es un error de sistema y la selección se conserva.
+    expect(el.querySelector('[data-testid="purchase-error"]')).toBeNull();
+
+    // Al iniciar sesión desde la advertencia, reintenta la reserva (ya con sesión).
+    reservations.create.and.returnValue(of(RESERVATION as unknown as ReservationResponseDto));
+    (el.querySelector('[data-testid="reserve-login"]') as HTMLButtonElement).click();
     fixture.detectChanges();
     expect(el.querySelector('[data-testid="login-modal"]')).not.toBeNull();
   });
