@@ -512,3 +512,92 @@ gcloud logging read \
 
 > Cada respuesta de error lleva un `requestId` (también en el header `x-request-id`): búscalo en los logs
 > con `... AND jsonPayload.requestId="<id>"` para reconstruir una petición puntual sin ruido.
+
+---
+
+## 12. AWS SES — correo transaccional en PROD (dev sigue con MailHog)
+
+En **dev NO se toca nada**: MailHog captura todos los correos (no sale ninguno real).
+SES es **solo para prod**. El código ya encola TODO correo (cola MAIL/BullMQ) y usa
+Nodemailer por SMTP → SES entra por variables `MAIL_*`, sin cambios de código.
+
+> Nota de costo: SES cuesta **USD $0.10 por cada 1.000 correos** (tu cuenta AWS no es
+> nueva → sin free tier, pero el gasto en alpha es de centavos). No hay mensualidad.
+
+### 12.1 Verificar el dominio (SPF/DKIM/DMARC) — obligatorio para entregar
+1. AWS Console → **SES** (elige la **región**, p.ej. `us-east-1`; la usarás en `MAIL_HOST`).
+2. **Configuration → Identities → Create identity → Domain** = `boletiva.com`.
+3. Activa **Easy DKIM** → SES te da **3 registros CNAME**; agrégalos en el DNS del dominio
+   (hoy en Hostinger). SES también sugiere el **SPF** (TXT `v=spf1 include:amazonses.com ~all`).
+4. Agrega **DMARC** (TXT en `_dmarc.boletiva.com`): `v=DMARC1; p=none; rua=mailto:dmarc@boletiva.com`.
+5. Espera a que la identidad quede **Verified** (minutos–horas según DNS).
+
+### 12.2 Salir del sandbox (production access)
+Toda cuenta SES arranca en **sandbox** (solo 200/día y solo a direcciones verificadas).
+SES → **Account dashboard → Request production access**: describe el caso de uso
+(correos transaccionales de una boletera: verificación, reset, confirmación de compra),
+tasa esperada baja, y manejo de bounces/quejas. Aprobación típica **24–48 h**.
+
+### 12.3 Crear credenciales SMTP
+SES → **SMTP settings → Create SMTP credentials** (crea un IAM user con permiso
+`ses:SendRawEmail`). Guarda el **SMTP username** y **SMTP password** (¡se muestran una
+sola vez!). **No** son el Access Key/Secret de AWS; son específicos de SMTP.
+
+### 12.4 Variables en prod
+No-secretas (env vars de Cloud Run) y secretas (Secret Manager):
+```bash
+# env vars:
+MAIL_HOST=email-smtp.us-east-1.amazonaws.com   # región donde verificaste el dominio
+MAIL_PORT=587                                   # STARTTLS
+MAIL_SECURE=false                               # true solo con el puerto 465
+MAIL_FROM="Boletiva <no-reply@boletiva.com>"    # debe ser del dominio verificado
+# secretos (Secret Manager): ver DESPLIEGUE.md §3
+MAIL_USER=<SMTP username>
+MAIL_PASS=<SMTP password>
+```
+Crea los secretos y añádelos al deploy:
+```bash
+printf '%s' "$MAIL_USER" | gcloud secrets create pasaeventos-mail-user --data-file=- --project=boletera-502405
+printf '%s' "$MAIL_PASS" | gcloud secrets create pasaeventos-mail-pass --data-file=- --project=boletera-502405
+# en el gcloud run deploy: --set-secrets=...,MAIL_USER=pasaeventos-mail-user:latest,MAIL_PASS=pasaeventos-mail-pass:latest
+# y en --set-env-vars: MAIL_HOST=...,MAIL_PORT=587,MAIL_SECURE=false,MAIL_FROM=...
+```
+
+### 12.5 Probar el envío en prod
+Tras desplegar: dispara un signup/reset y revisa el **SES → Reputation / Sending
+statistics** (o pon un `rua` de DMARC). Un rebote/queja alto baja tu reputación; SES
+avisa por correo.
+
+---
+
+## 13. Encender / apagar lo que se cobra (ventanas de prueba alpha)
+
+Idea: **prender** todo para una ventana de pruebas y **apagarlo** mientras arreglas,
+para no pagar de más. Lo que cobra por estar encendido: **Cloud SQL** (lo más caro),
+**Cloud Run** (si `min-instances≥1`) y **Memorystore**. SES/GCS/Secret Manager cobran
+por uso (casi nada en reposo) → no hace falta apagarlos.
+
+### 13.1 APAGAR (mientras arreglas)
+```bash
+P=boletera-502405; REGION=us-central1
+# Cloud SQL: DETENER (deja de cobrar cómputo; conserva los datos y el storage)
+gcloud sql instances patch pasaeventos-pg --activation-policy=NEVER --project=$P
+# Cloud Run: a cero instancias (no cobra en reposo; el 1er request tendrá cold start)
+gcloud run services update pasaeventos-api --min-instances=0 --region=$REGION --project=$P
+# (opcional, ahorro máximo) Memorystore no se puede "pausar": para no pagarlo hay que
+# BORRAR la instancia y recrearla luego (los holds/colas se pierden; en alpha da igual):
+# gcloud redis instances delete pasaeventos-redis --region=$REGION --project=$P
+```
+
+### 13.2 ENCENDER (para la ventana de prueba)
+```bash
+P=boletera-502405; REGION=us-central1
+gcloud sql instances patch pasaeventos-pg --activation-policy=ALWAYS --project=$P
+gcloud run services update pasaeventos-api --min-instances=1 --region=$REGION --project=$P
+# si borraste Redis, recrearlo (ver §8) y actualizar el secreto pasaeventos-redis-url.
+```
+
+> Regla práctica alpha: para reducir el gasto **sin** perder el entorno, **detén solo
+> Cloud SQL** y deja Cloud Run en `min-instances=0`. Encenderlo de nuevo es 1 comando y
+> ~1–2 min. Estos comandos se pueden envolver en `make prod-up` / `make prod-down` cuando
+> la infra exista (hoy la provisiona DevOps).
