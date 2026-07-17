@@ -15,16 +15,22 @@ process.env.QUEUE_INLINE = process.env.QUEUE_INLINE ?? 'true';
 // Ingest de validación (RabbitMQ) también inline en tests: aplicación síncrona,
 // sin consumidor AMQP dejando handles abiertos.
 process.env.RABBIT_INLINE = process.env.RABBIT_INLINE ?? 'true';
+// Baselines anti-abuso: se FUERZAN (no `??`) en cada archivo. setupFiles corre antes
+// del beforeAll de cada suite, así que forzar aquí garantiza que TODA suite arranque
+// desde la baseline aunque una suite previa haya dejado un valor filtrado (p.ej. su
+// afterAll lanzó antes de `restoreEnv` bajo contención de CI). Las suites dedicadas
+// siguen sobrescribiendo en su beforeAll (posterior a setupFiles) y restauran a esta
+// baseline. Con `??` una fuga se propagaba a las suites siguientes → flaky CI-only
+// (checkout/installments veían el tope de órdenes en 2 y fallaban con 409).
+//
 // Límite anti-abuso de reservas anónimas por IP: OFF por defecto en test (los e2e
-// crean muchas reservas seguidas desde el mismo loopback). La suite dedicada lo
-// enciende en su beforeAll (config se relee al construir cada app de test).
-process.env.RESERVATION_ANON_LIMIT = process.env.RESERVATION_ANON_LIMIT ?? 'false';
+// crean muchas reservas seguidas desde el mismo loopback).
+process.env.RESERVATION_ANON_LIMIT = 'false';
 // Rate-limit global OFF por defecto en test (los e2e disparan ráfagas desde una IP).
-// La suite dedicada lo enciende en su beforeAll.
-process.env.RATE_LIMIT_ENABLED = process.env.RATE_LIMIT_ENABLED ?? 'false';
+process.env.RATE_LIMIT_ENABLED = 'false';
 // Tope de órdenes pending por comprador: alto en test (las suites acumulan órdenes
 // pending del mismo comprador). La suite dedicada lo baja para probar el límite.
-process.env.ORDERS_MAX_PENDING_PER_BUYER = process.env.ORDERS_MAX_PENDING_PER_BUYER ?? '1000';
+process.env.ORDERS_MAX_PENDING_PER_BUYER = '1000';
 // Sweeper de órdenes pending vencidas OFF en test (las suites gestionan las órdenes).
 process.env.ORDERS_SWEEPER_ENABLED = process.env.ORDERS_SWEEPER_ENABLED ?? 'false';
 
