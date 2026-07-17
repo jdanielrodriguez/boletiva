@@ -59,7 +59,7 @@ describe('ThemeService', () => {
     const initial = document.createElement('link');
     initial.setAttribute('rel', 'icon');
     initial.setAttribute('type', 'image/svg+xml');
-    initial.setAttribute('href', 'favicon.svg?v=2');
+    initial.setAttribute('href', 'favicon.svg?v=3');
     document.head.appendChild(initial);
     const currentHref = () =>
       document.head
@@ -68,10 +68,10 @@ describe('ThemeService', () => {
     try {
       setup();
       theme.use('dia'); // marquesina
-      expect(currentHref()).toBe('favicon-marquesina.svg?v=2');
+      expect(currentHref()).toBe('favicon-marquesina.svg?v=3');
       expect(initial.isConnected).toBe(false); // el link viejo se quitó (Chrome refresca)
       theme.use('noche'); // pulso
-      expect(currentHref()).toBe('favicon.svg?v=2');
+      expect(currentHref()).toBe('favicon.svg?v=3');
     } finally {
       document.head
         .querySelectorAll('link[rel="icon"][type="image/svg+xml"]')

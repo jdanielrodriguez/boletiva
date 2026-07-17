@@ -139,37 +139,51 @@ export class ThemeService {
     }
   }
 
-  /** Favicon SVG por tema (los demás archivos —.ico, apple-touch— quedan fijos). */
-  private static readonly FAVICON_BY_THEME: Record<string, string> = {
-    pulso: 'favicon.svg',
-    marquesina: 'favicon-marquesina.svg',
+  /** Favicon (svg + ico) por tema. */
+  private static readonly FAVICON_BY_THEME: Record<string, { svg: string; ico: string }> = {
+    pulso: { svg: 'favicon.svg', ico: 'favicon.ico' },
+    marquesina: { svg: 'favicon-marquesina.svg', ico: 'favicon-marquesina.ico' },
   };
 
-  /** Último archivo de favicon aplicado (evita re-crear el link sin cambio → sin flicker). */
-  private currentFaviconFile: string | null = null;
+  /** Último tema de favicon aplicado (evita re-crear los links sin cambio → sin flicker). */
+  private currentFaviconTheme: string | null = null;
 
   /**
-   * Cambia el favicon SVG al del tema activo (solo navegador). Los navegadores
-   * modernos prefieren el `<link rel=icon type=image/svg+xml>`, así el icono de la
-   * pestaña acompaña al tema. Chrome NO refresca el favicon si solo se cambia el
-   * `href` de un link existente → hay que QUITAR el link y crear uno nuevo.
+   * Cambia el favicon (svg + ico) al del tema activo (solo navegador). Chrome NO
+   * refresca el favicon si solo se cambia el `href` de un link existente → hay que
+   * QUITAR el link y crear uno nuevo. El anti-parpadeo del index.html ya lo fija al
+   * tema cacheado antes del paint; esto lo re-sincroniza si el tema cambia en vivo.
    */
   private syncFavicon(theme: string): void {
     if (!isPlatformBrowser(this.platformId)) return;
-    const file = ThemeService.FAVICON_BY_THEME[theme] ?? 'favicon.svg';
-    if (file === this.currentFaviconFile) return; // mismo icono → no tocar
-    this.currentFaviconFile = file;
+    if (theme === this.currentFaviconTheme) return; // mismo tema → no tocar
+    this.currentFaviconTheme = theme;
     const head = this.document.head;
     if (!head) return;
-    // Quita los links de icono SVG previos y añade uno nuevo (fuerza el refresco).
+    const set = ThemeService.FAVICON_BY_THEME[theme] ?? ThemeService.FAVICON_BY_THEME['pulso'];
+    this.replaceIconLink(head, 'image/svg+xml', set.svg);
+    this.replaceIconLink(head, 'image/x-icon', set.ico);
+  }
+
+  /** Reemplaza (quita + crea) el `<link rel=icon>` de un tipo por el archivo dado. */
+  private replaceIconLink(head: HTMLElement, type: string, file: string): void {
     head
-      .querySelectorAll('link[rel="icon"][type="image/svg+xml"]')
+      .querySelectorAll(`link[rel="icon"][type="${type}"]`)
       .forEach((l) => l.remove());
     const link = this.document.createElement('link');
     link.setAttribute('rel', 'icon');
-    link.setAttribute('type', 'image/svg+xml');
-    link.setAttribute('href', `${file}?v=2`);
+    link.setAttribute('type', type);
+    link.setAttribute('href', `${file}?v=3`);
     head.appendChild(link);
+  }
+
+  /** Escribe la cookie del tema resuelto (para el anti-parpadeo del index.html). */
+  private writeThemeCookie(theme: string): void {
+    try {
+      this.document.cookie = `${THEME_STORAGE_KEY}=${theme};path=/;max-age=31536000;SameSite=Lax`;
+    } catch {
+      /* sin cookies → se corrige al aplicar el tema en cada carga */
+    }
   }
 
   private applyAutoNow(): void {
@@ -196,6 +210,9 @@ export class ThemeService {
     if (isPlatformBrowser(this.platformId)) {
       this.document.documentElement.setAttribute('data-theme', theme);
       this.syncFavicon(theme);
+      // Cookie del tema SIEMPRE (aunque no se persista la preferencia de franja): así
+      // la próxima carga fija el favicon correcto en el anti-parpadeo, sin el quirk.
+      this.writeThemeCookie(theme);
       if (persist) this.persist(next, theme);
     }
   }
