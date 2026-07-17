@@ -145,16 +145,31 @@ export class ThemeService {
     marquesina: 'favicon-marquesina.svg',
   };
 
+  /** Último archivo de favicon aplicado (evita re-crear el link sin cambio → sin flicker). */
+  private currentFaviconFile: string | null = null;
+
   /**
    * Cambia el favicon SVG al del tema activo (solo navegador). Los navegadores
    * modernos prefieren el `<link rel=icon type=image/svg+xml>`, así el icono de la
-   * pestaña acompaña al tema. Si no encuentra el link (SSR), no hace nada.
+   * pestaña acompaña al tema. Chrome NO refresca el favicon si solo se cambia el
+   * `href` de un link existente → hay que QUITAR el link y crear uno nuevo.
    */
   private syncFavicon(theme: string): void {
     if (!isPlatformBrowser(this.platformId)) return;
     const file = ThemeService.FAVICON_BY_THEME[theme] ?? 'favicon.svg';
-    const link = this.document.querySelector<HTMLLinkElement>('link[rel="icon"][type="image/svg+xml"]');
-    if (link) link.setAttribute('href', `${file}?v=2`);
+    if (file === this.currentFaviconFile) return; // mismo icono → no tocar
+    this.currentFaviconFile = file;
+    const head = this.document.head;
+    if (!head) return;
+    // Quita los links de icono SVG previos y añade uno nuevo (fuerza el refresco).
+    head
+      .querySelectorAll('link[rel="icon"][type="image/svg+xml"]')
+      .forEach((l) => l.remove());
+    const link = this.document.createElement('link');
+    link.setAttribute('rel', 'icon');
+    link.setAttribute('type', 'image/svg+xml');
+    link.setAttribute('href', `${file}?v=2`);
+    head.appendChild(link);
   }
 
   private applyAutoNow(): void {

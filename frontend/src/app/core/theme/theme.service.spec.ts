@@ -55,20 +55,27 @@ describe('ThemeService', () => {
     expect(theme.franja()).toBe('noche');
   });
 
-  it('cambia el favicon SVG según el tema activo (marquesina↔pulso)', () => {
-    const link = document.createElement('link');
-    link.setAttribute('rel', 'icon');
-    link.setAttribute('type', 'image/svg+xml');
-    link.setAttribute('href', 'favicon.svg?v=2');
-    document.head.appendChild(link);
+  it('cambia el favicon SVG según el tema activo (marquesina↔pulso), recreando el link', () => {
+    const initial = document.createElement('link');
+    initial.setAttribute('rel', 'icon');
+    initial.setAttribute('type', 'image/svg+xml');
+    initial.setAttribute('href', 'favicon.svg?v=2');
+    document.head.appendChild(initial);
+    const currentHref = () =>
+      document.head
+        .querySelector('link[rel="icon"][type="image/svg+xml"]')
+        ?.getAttribute('href');
     try {
       setup();
       theme.use('dia'); // marquesina
-      expect(link.getAttribute('href')).toBe('favicon-marquesina.svg?v=2');
+      expect(currentHref()).toBe('favicon-marquesina.svg?v=2');
+      expect(initial.isConnected).toBe(false); // el link viejo se quitó (Chrome refresca)
       theme.use('noche'); // pulso
-      expect(link.getAttribute('href')).toBe('favicon.svg?v=2');
+      expect(currentHref()).toBe('favicon.svg?v=2');
     } finally {
-      link.remove();
+      document.head
+        .querySelectorAll('link[rel="icon"][type="image/svg+xml"]')
+        .forEach((l) => l.remove());
     }
   });
 
