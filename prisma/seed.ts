@@ -23,28 +23,28 @@ async function seedSettings(): Promise<void> {
   const defaults: Array<{ key: string; value: unknown; description: string }> = [
     {
       key: 'pricing.platform_fee_pct',
-      value: 0.1,
-      description: 'Comisión de plataforma sobre el neto del promotor (0.10 = 10%)',
+      value: PLATFORM_FEE_PCT,
+      description: 'Comisión de plataforma sobre el neto del promotor (perilla única: pricing-defaults.ts)',
     },
     {
       key: 'pricing.gateway_fee_pct',
-      value: 0.05,
+      value: GATEWAY_FEE_PCT,
       description: 'Comisión de la pasarela sobre el total cobrado (0.05 = 5%)',
     },
     {
       key: 'pricing.iva_pct',
-      value: 0.12,
+      value: IVA_PCT,
       description: 'IVA Guatemala sobre la base gravable (neto + comisión plataforma)',
     },
     {
       key: 'wallet.withdraw_fee_promoter_pct',
-      value: 0.03,
-      description: 'Comisión de retiro de saldo interno para promotores',
+      value: 0.05,
+      description: 'Comisión de retiro de saldo interno para promotores (5%)',
     },
     {
       key: 'wallet.withdraw_fee_user_pct',
-      value: 0.06,
-      description: 'Comisión de retiro para usuarios (el doble que promotor)',
+      value: 0,
+      description: 'Comisión de retiro para usuarios (0 = el cliente no retira, sin cargo)',
     },
     {
       key: 'transfer.max_per_ticket_default',
@@ -81,7 +81,7 @@ async function seedSettings(): Promise<void> {
     },
     {
       key: 'home.show_categories',
-      value: true,
+      value: false,
       description: 'Mostrar las categorías en la página principal (inicio)',
     },
     {
@@ -96,19 +96,22 @@ async function seedSettings(): Promise<void> {
     },
     {
       key: 'theme.default_franja',
-      value: 'noche',
+      value: 'dia',
       description: 'Franja por defecto (visitante o usuario sin preferencia)',
     },
     {
       key: 'theme.allow_visitor_switch',
-      value: true,
+      value: false,
       description: 'Mostrar el botón de cambio de tema (día/noche) a todos (false = solo admin)',
     },
   ];
   for (const s of defaults) {
+    // BASELINE autoritativa: el seed impone SIEMPRE el valor deseado (update de
+    // `value`), no solo la descripción. Un `make seed` deja la config exactamente
+    // como aquí (antes solo tocaba la descripción → los valores viejos quedaban).
     await prisma.setting.upsert({
       where: { key: s.key },
-      update: { description: s.description },
+      update: { value: s.value as object, description: s.description },
       create: { key: s.key, value: s.value as object, description: s.description },
     });
   }

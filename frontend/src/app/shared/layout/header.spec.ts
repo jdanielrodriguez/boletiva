@@ -105,6 +105,28 @@ describe('Header', () => {
     expect(el.querySelector('[data-testid="config-link"]')).not.toBeNull();
   });
 
+  const cta = () => (fixture.nativeElement as HTMLElement).querySelector('[data-testid="become-promoter-link"]');
+
+  it('CTA "Conviértete en promotor": visible para visitante', async () => {
+    await setup({ authed: false, roles: [] });
+    expect(cta()).not.toBeNull();
+  });
+
+  it('CTA "Conviértete en promotor": visible para cliente logueado', async () => {
+    await setup({ authed: true, roles: [] });
+    expect(cta()).not.toBeNull();
+  });
+
+  it('CTA "Conviértete en promotor": oculto a promotor', async () => {
+    await setup({ authed: true, roles: ['promoter'] });
+    expect(cta()).toBeNull();
+  });
+
+  it('CTA "Conviértete en promotor": oculto a admin', async () => {
+    await setup({ authed: true, roles: ['admin'] });
+    expect(cta()).toBeNull();
+  });
+
   it('el saludo va FUERA del botón trigger', async () => {
     await setup();
     const el = fixture.nativeElement as HTMLElement;

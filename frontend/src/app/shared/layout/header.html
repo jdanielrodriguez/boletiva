@@ -24,6 +24,12 @@
   <div class="session-area" data-testid="session-area">
     <app-theme-switcher />
     <app-lang-switcher />
+    <!-- CTA "Conviértete en promotor": visitante Y cliente logueado; oculto a promotor/admin. -->
+    @if (!session.hasAnyRole(['promoter', 'admin'])) {
+      <a class="btn cta-promoter" routerLink="/conviertete-en-promotor" data-testid="become-promoter-link">{{
+        'shell.becomePromoter' | translate
+      }}</a>
+    }
     @if (session.isAuthenticated()) {
       <span class="greeting" data-testid="session-greeting">{{ 'shell.greeting' | translate: { name: session.user()?.firstName } }}</span>
       <div class="user-menu">
@@ -69,9 +75,6 @@
         }
       </div>
     } @else {
-      <a class="btn outline sm" routerLink="/conviertete-en-promotor" data-testid="become-promoter-link">{{
-        'shell.becomePromoter' | translate
-      }}</a>
       <a class="btn primary" routerLink="/login" data-testid="login-link">{{ 'shell.login' | translate }}</a>
     }
   </div>

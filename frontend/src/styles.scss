@@ -206,6 +206,29 @@ button.ghost {
   color: var(--pe-muted);
 }
 
+/* CTA "Conviértete en promotor": chip vistoso y theme-aware. Fondo tintado de
+   acento + borde de acento + texto fuerte → resalta en tema claro y oscuro sin
+   fundirse con el header, y se distingue del botón primario (login). */
+a.cta-promoter,
+.btn.cta-promoter {
+  background: var(--pe-accent-soft);
+  border: 1.5px solid var(--pe-accent);
+  color: var(--pe-accent-strong);
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0.5rem 1.1rem;
+  white-space: nowrap;
+  box-shadow: 0 1px 8px var(--pe-accent-soft);
+}
+a.cta-promoter:hover:not(:disabled),
+.btn.cta-promoter:hover:not(:disabled) {
+  background: var(--pe-accent);
+  border-color: var(--pe-accent);
+  color: #fff;
+  box-shadow: var(--pe-glow);
+  transform: translateY(-1px);
+}
+
 /* --- Inputs --- */
 input,
 select,

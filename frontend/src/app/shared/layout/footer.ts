@@ -38,6 +38,9 @@ import { SessionStore } from '../../core/auth/session.store';
               }}</a>
             }
           } @else {
+            <a class="footer-cta" routerLink="/conviertete-en-promotor">{{
+              'shell.becomePromoter' | translate
+            }}</a>
             <a routerLink="/login">{{ 'shell.login' | translate }}</a>
             <a routerLink="/registro">{{ 'shell.createAccount' | translate }}</a>
           }
