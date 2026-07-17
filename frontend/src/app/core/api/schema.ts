@@ -6761,6 +6761,8 @@ export interface components {
              * @example 2.00
              */
             installmentFixedFee: string | null;
+            /** @description Permitir pago en cuotas (false = solo 1 pago) */
+            installmentsEnabled: boolean;
             /** @description Referencia al secreto (Secret Manager/env), no el secreto */
             credentialsRef: string | null;
             /** @enum {string} */
@@ -6816,6 +6818,8 @@ export interface components {
              * @example 2
              */
             installmentFixedFee?: number;
+            /** @description Permitir pago en cuotas con esta pasarela (default true en BD). false = solo 1 pago. */
+            installmentsEnabled?: boolean;
             /** @description Referencia al secreto (Secret Manager/env), no el secreto */
             credentialsRef?: string;
             /** @default false */
@@ -6847,6 +6851,8 @@ export interface components {
             installmentRates?: Record<string, never>;
             /** @description Cargo fijo por transacción en cuotas (GTQ) */
             installmentFixedFee?: number;
+            /** @description Permitir pago en cuotas con esta pasarela. false = solo 1 pago. */
+            installmentsEnabled?: boolean;
             credentialsRef?: string;
             sandbox?: boolean;
         };

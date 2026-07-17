@@ -56,6 +56,7 @@ interface GatewayDraft {
   minCostSharePct: number;
   installmentFixedFee: number;
   installmentRatesJson: string;
+  installmentsEnabled: boolean;
   status: string;
 }
 
@@ -577,6 +578,7 @@ export class ConfigPage {
       minCostSharePct: Number(g.minCostSharePct),
       installmentFixedFee: Number(g.installmentFixedFee ?? 0),
       installmentRatesJson: g.installmentRates ? JSON.stringify(g.installmentRates) : '',
+      installmentsEnabled: g.installmentsEnabled ?? true,
       status: g.status,
     });
   }
@@ -607,6 +609,7 @@ export class ConfigPage {
         minCostSharePct: d.minCostSharePct,
         installmentFixedFee: d.installmentFixedFee,
         installmentRates,
+        installmentsEnabled: d.installmentsEnabled,
       })
       .subscribe({
         next: () => {

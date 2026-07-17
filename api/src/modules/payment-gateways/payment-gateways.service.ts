@@ -15,6 +15,7 @@ export interface CreateGatewayInput {
   minCostSharePct?: number;
   installmentRates?: Record<string, number>;
   installmentFixedFee?: number;
+  installmentsEnabled?: boolean;
   credentialsRef?: string;
   sandbox?: boolean;
 }
@@ -26,6 +27,7 @@ export interface UpdateGatewayInput {
   minCostSharePct?: number;
   installmentRates?: Record<string, number>;
   installmentFixedFee?: number;
+  installmentsEnabled?: boolean;
   credentialsRef?: string;
   sandbox?: boolean;
 }
@@ -98,6 +100,7 @@ export class PaymentGatewaysService {
             input.installmentFixedFee !== undefined
               ? new Prisma.Decimal(input.installmentFixedFee)
               : undefined,
+          installmentsEnabled: input.installmentsEnabled ?? undefined,
           credentialsRef: input.credentialsRef,
           sandbox: input.sandbox ?? false,
         },
@@ -145,6 +148,7 @@ export class PaymentGatewaysService {
             input.installmentFixedFee !== undefined
               ? new Prisma.Decimal(input.installmentFixedFee)
               : undefined,
+          installmentsEnabled: input.installmentsEnabled,
           credentialsRef: input.credentialsRef,
           sandbox: input.sandbox,
         },

@@ -158,6 +158,7 @@ async function seedGateway(): Promise<void> {
     transactionFixedFee?: string;
     installmentRates?: Record<string, number>;
     sandbox: boolean;
+    status?: 'active' | 'inactive';
   }> = [
     {
       name: 'Recurrente',
@@ -171,7 +172,9 @@ async function seedGateway(): Promise<void> {
       installmentRates: { '3': 0.08, '6': 0.09, '12': 0.1, '18': 0.14 },
       sandbox: true,
     },
-    { name: 'Pagalo', provider: 'simulator', feePct: '0.05000', sandbox: true },
+    // Pagalo INACTIVA por decisión de negocio (deuda pendiente con Pagalo): no debe
+    // ofrecerse hasta nuevo aviso. Sigue seleccionable solo si el admin la reactiva.
+    { name: 'Pagalo', provider: 'simulator', feePct: '0.05000', sandbox: true, status: 'inactive' },
     { name: 'Sandbox', provider: 'simulator', feePct: '0.05000', sandbox: true },
   ];
   for (const g of gateways) {
@@ -184,7 +187,7 @@ async function seedGateway(): Promise<void> {
         installmentRates: g.installmentRates ?? undefined,
         transactionFixedFee: g.transactionFixedFee ?? '0.00',
         minCostSharePct: '0.00000',
-        status: 'active',
+        status: g.status ?? 'active',
       },
       create: {
         name: g.name,
@@ -193,7 +196,7 @@ async function seedGateway(): Promise<void> {
         transactionFixedFee: g.transactionFixedFee ?? '0.00',
         installmentRates: g.installmentRates,
         sandbox: g.sandbox,
-        status: 'active',
+        status: g.status ?? 'active',
       },
     });
   }

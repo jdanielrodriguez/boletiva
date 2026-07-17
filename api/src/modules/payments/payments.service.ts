@@ -272,9 +272,12 @@ export class PaymentsService {
       const base = this.quoteOrderTotals(order.items, params);
       const options = [{ installments: 1, total: base.total, serviceFee: base.serviceFee }];
 
-      const rates = installmentsAllowed
-        ? (gw.installmentRates as Record<string, number> | null) ?? {}
-        : {};
+      // Cuotas solo si: el promotor las tiene habilitadas (cost-share) Y la pasarela
+      // las permite (perilla del admin). Si no, solo se ofrece 1 pago.
+      const rates =
+        installmentsAllowed && gw.installmentsEnabled
+          ? (gw.installmentRates as Record<string, number> | null) ?? {}
+          : {};
       const counts = Object.keys(rates)
         .map(Number)
         .filter((n) => Number.isInteger(n) && n >= 2)
@@ -420,6 +423,11 @@ export class PaymentsService {
     }
     if (installments > 1 && !(await this.costShare.installmentsAllowed(order.event.promoterId))) {
       throw new ConflictException('Las cuotas ya no están habilitadas para este evento');
+    }
+    // La pasarela puede tener las cuotas apagadas (perilla del admin) aunque el
+    // promotor las permita → no se puede cobrar en cuotas por ella.
+    if (installments > 1 && !gateway.installmentsEnabled) {
+      throw new ConflictException('Esta pasarela no permite pago en cuotas');
     }
     const params = await this.pricing.paramsForRequote(
       order.feeScheduleVersion,

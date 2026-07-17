@@ -14054,6 +14054,10 @@
             "example": "2.00",
             "description": "Cargo fijo por transacción en cuotas (GTQ). null = sin fijo."
           },
+          "installmentsEnabled": {
+            "type": "boolean",
+            "description": "Permitir pago en cuotas (false = solo 1 pago)"
+          },
           "credentialsRef": {
             "type": "string",
             "nullable": true,
@@ -14092,6 +14096,7 @@
           "minCostSharePct",
           "installmentRates",
           "installmentFixedFee",
+          "installmentsEnabled",
           "credentialsRef",
           "status",
           "isPlatformDefault",
@@ -14147,6 +14152,10 @@
             "description": "Cargo fijo por transacción en cuotas (GTQ, p.ej. 2)",
             "example": 2
           },
+          "installmentsEnabled": {
+            "type": "boolean",
+            "description": "Permitir pago en cuotas con esta pasarela (default true en BD). false = solo 1 pago."
+          },
           "credentialsRef": {
             "type": "string",
             "description": "Referencia al secreto (Secret Manager/env), no el secreto"
@@ -14196,6 +14205,10 @@
           "installmentFixedFee": {
             "type": "number",
             "description": "Cargo fijo por transacción en cuotas (GTQ)"
+          },
+          "installmentsEnabled": {
+            "type": "boolean",
+            "description": "Permitir pago en cuotas con esta pasarela. false = solo 1 pago."
           },
           "credentialsRef": {
             "type": "string"

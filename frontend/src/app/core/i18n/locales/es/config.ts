@@ -192,6 +192,7 @@ export const config = {
     gwMinCostShare: 'Cost-share mínimo (0–1)',
     gwInstallmentFixed: 'Fijo en cuotas (Q)',
     gwInstallmentRates: 'Tasas de cuotas (JSON)',
+    gwInstallmentsEnabled: 'Permitir pago en cuotas',
     saveGatewayTitle: 'Guardar cambios',
     cancelEditTitle: 'Cancelar edición',
     activate: 'Activar',

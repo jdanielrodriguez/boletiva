@@ -81,6 +81,13 @@ export class CreateGatewayDto {
   @Min(0)
   installmentFixedFee?: number;
 
+  @ApiPropertyOptional({
+    description: 'Permitir pago en cuotas con esta pasarela (default true en BD). false = solo 1 pago.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  installmentsEnabled?: boolean;
+
   @ApiPropertyOptional({ description: 'Referencia al secreto (Secret Manager/env), no el secreto' })
   @IsOptional()
   @IsString()
@@ -136,6 +143,13 @@ export class UpdateGatewayDto {
   @IsNumber()
   @Min(0)
   installmentFixedFee?: number;
+
+  @ApiPropertyOptional({
+    description: 'Permitir pago en cuotas con esta pasarela. false = solo 1 pago.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  installmentsEnabled?: boolean;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -210,6 +224,9 @@ export class GatewayResponseDto {
     description: 'Cargo fijo por transacción en cuotas (GTQ). null = sin fijo.',
   })
   installmentFixedFee!: string | null;
+
+  @ApiProperty({ description: 'Permitir pago en cuotas (false = solo 1 pago)' })
+  installmentsEnabled!: boolean;
 
   @ApiProperty({
     type: String,
