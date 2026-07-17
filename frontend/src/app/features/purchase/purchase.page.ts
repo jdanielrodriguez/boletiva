@@ -17,6 +17,7 @@ import { ReservationItems } from '../../shared/reservation-items/reservation-ite
 import { LoadingComponent } from '../../shared/ui/loading.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
+import { TourComponent, TourStep } from '../../shared/tour/tour.component';
 import { SeatMapComponent } from './seat-map.component';
 import { PurchaseService } from './purchase.service';
 
@@ -41,11 +42,18 @@ type Phase = 'select' | 'reserved' | 'expired';
     TranslatePipe,
     IconComponent,
     ConfirmDialogComponent,
+    TourComponent,
   ],
   templateUrl: './purchase.page.html',
   providers: [PurchaseService],
 })
 export class PurchasePage implements OnDestroy {
+  /** Tour de compra (logueados una vez; anónimos con activación aleatoria). */
+  protected readonly tourSteps: TourStep[] = [
+    { title: 'tour.purchase.welcomeTitle', body: 'tour.purchase.welcomeBody' },
+    { title: 'tour.purchase.reserveTitle', body: 'tour.purchase.reserveBody' },
+    { title: 'tour.purchase.payTitle', body: 'tour.purchase.payBody' },
+  ];
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly eventsApi = inject(EventsApi);

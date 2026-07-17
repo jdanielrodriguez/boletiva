@@ -34,6 +34,14 @@ export const tour = {
     buyTitle: 'Comprar',
     buyBody: 'Toca “Comprar” para elegir tus lugares en el mapa, reservarlos unos minutos y pagar de forma segura.',
   },
+  purchase: {
+    welcomeTitle: 'Elige tus lugares',
+    welcomeBody: 'Selecciona asientos en el mapa o la cantidad por localidad. El total se calcula al instante, todo incluido.',
+    reserveTitle: 'Reserva unos minutos',
+    reserveBody: 'Al reservar, tus lugares quedan apartados con una cuenta regresiva. Si cambias de idea, libéralos y elige otros.',
+    payTitle: 'Continúa al pago',
+    payBody: 'Cuando estés listo, “Continuar al pago” te lleva al checkout. Inicias sesión ahí si aún no lo has hecho.',
+  },
   checkout: {
     welcomeTitle: 'Pago seguro',
     welcomeBody: 'Últimos pasos para tu compra. El desglose es transparente: boleto + cuota de servicio + IVA.',

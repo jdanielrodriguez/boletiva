@@ -34,6 +34,14 @@ export const tour = {
     buyTitle: 'Buy',
     buyBody: 'Tap “Buy” to pick your spots on the map, hold them for a few minutes and pay securely.',
   },
+  purchase: {
+    welcomeTitle: 'Pick your spots',
+    welcomeBody: 'Choose seats on the map or a quantity per section. The total is computed instantly, all-in.',
+    reserveTitle: 'Hold them for a few minutes',
+    reserveBody: 'When you reserve, your spots are held with a countdown. Change your mind? Release them and pick others.',
+    payTitle: 'Continue to payment',
+    payBody: 'When ready, “Continue to payment” takes you to checkout. You sign in there if you haven’t yet.',
+  },
   checkout: {
     welcomeTitle: 'Secure checkout',
     welcomeBody: 'Final steps for your purchase. The breakdown is transparent: ticket + service fee + VAT.',
