@@ -6,7 +6,7 @@ import {
   OnApplicationBootstrap,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PromoterStatus, Role, User } from '@prisma/client';
+import { PromoterStatus, PromoterTier, Role, User } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { QueueService } from '../../infra/queue/queue.service';
 import { QUEUES } from '../../infra/queue/queue.constants';
@@ -76,14 +76,19 @@ export class PromotersService implements OnApplicationBootstrap {
   }
 
   /** Un usuario solicita ser promotor. Idempotente; auto-aprueba en modo pruebas. */
-  async apply(userId: string) {
+  async apply(userId: string, tier: PromoterTier = PromoterTier.free) {
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    // El plan elegido (free/premium) se guarda siempre (aunque ya esté aprobado, permite cambiarlo).
+    if (user.promoterTier !== tier) {
+      await this.prisma.user.update({ where: { id: userId }, data: { promoterTier: tier } });
+      user.promoterTier = tier;
+    }
     if (user.promoterStatus === PromoterStatus.approved) return this.summarize(user);
 
     if (!(await this.requireApproval())) {
       const updated = await this.grant(user); // modo pruebas → aprobado al instante
       await this.notify(userId, 'approved');
-      return this.summarize(updated);
+      return this.summarize({ ...updated, promoterTier: tier });
     }
     const updated = await this.prisma.user.update({
       where: { id: userId },
@@ -309,10 +314,12 @@ export class PromotersService implements OnApplicationBootstrap {
     promoterAppliedAt: Date | null;
     promoterDecidedAt: Date | null;
     promoterNote: string | null;
+    promoterTier?: PromoterTier;
   }) {
     return {
       id: u.id,
       promoterStatus: u.promoterStatus,
+      promoterTier: u.promoterTier ?? PromoterTier.free,
       promoterAppliedAt: u.promoterAppliedAt,
       promoterDecidedAt: u.promoterDecidedAt,
       promoterNote: u.promoterNote,

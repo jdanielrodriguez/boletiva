@@ -1,6 +1,40 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { PromoterStatus, Role } from '@prisma/client';
-import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
+import { PromoterStatus, PromoterTier, Role } from '@prisma/client';
+import { IsBoolean, IsEmail, IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+
+const TIERS = ['free', 'premium'] as const;
+
+/** Elección de plan al solicitar ser promotor (free/premium). */
+export class ApplyPromoterDto {
+  @ApiPropertyOptional({ description: 'Plan del promotor', enum: TIERS, example: 'free' })
+  @IsOptional()
+  @IsIn(TIERS)
+  tier?: PromoterTier;
+}
+
+/** Registro + alta como promotor en un solo paso (visitante sin sesión). */
+export class RegisterPromoterDto {
+  @ApiProperty({ description: 'Correo electrónico', example: 'promotor@correo.com' })
+  @IsEmail()
+  email!: string;
+
+  @ApiProperty({ description: 'Contraseña (8–72)', minLength: 8, maxLength: 72, example: 'Password123' })
+  @IsString()
+  @MinLength(8)
+  @MaxLength(72)
+  password!: string;
+
+  @ApiProperty({ description: 'Nombre', maxLength: 100, example: 'Ana' })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(100)
+  firstName!: string;
+
+  @ApiPropertyOptional({ description: 'Plan del promotor', enum: TIERS, example: 'free' })
+  @IsOptional()
+  @IsIn(TIERS)
+  tier?: PromoterTier;
+}
 
 export class PromoterDecisionDto {
   @ApiPropertyOptional({ description: 'Motivo de rechazo/suspensión' })
@@ -49,6 +83,9 @@ export class PromoterStatusResponseDto {
 
   @ApiProperty({ type: String, nullable: true, description: 'Motivo de rechazo/suspensión' })
   promoterNote!: string | null;
+
+  @ApiProperty({ enum: PromoterTier, description: 'Plan del promotor (free/premium)' })
+  promoterTier!: PromoterTier;
 }
 
 /** Resultado de fijar/borrar la nota interna de un promotor (admin, v3.8). */

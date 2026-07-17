@@ -20,7 +20,7 @@ const sign = (id: string, type: string, ref: string) => hmacSha256(SECRET, `${id
  *   4) race: el admin baja el cost-share del promotor entre el quote y el pago → 409;
  *   5) paradoja: la pasarela default no puede exigir cost-share (>0) → 409.
  */
-describe('Ola 6.6 edge cases (e2e)', () => {
+describe('Edge cases de precios/cuotas/pasarela (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let ledger: LedgerService;

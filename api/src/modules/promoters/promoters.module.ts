@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AuthModule } from '../auth/auth.module';
 import { PromotersController } from './promoters.controller';
 import { PromotersService } from './promoters.service';
 import { PromoterInvitationsController } from './promoter-invitations.controller';
@@ -9,6 +10,7 @@ import { PromoterMailService } from './promoter-mail.service';
  * el servicio para que Events verifique que solo un promotor aprobado (o admin)
  * puede operar. `PromoterMailService` envía los correos del ciclo (cola MAIL). */
 @Module({
+  imports: [AuthModule],
   controllers: [PromotersController, PromoterInvitationsController],
   providers: [PromotersService, PromoterInvitationsService, PromoterMailService],
   exports: [PromotersService],

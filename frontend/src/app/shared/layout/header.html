@@ -69,6 +69,9 @@
         }
       </div>
     } @else {
+      <a class="btn outline sm" routerLink="/conviertete-en-promotor" data-testid="become-promoter-link">{{
+        'shell.becomePromoter' | translate
+      }}</a>
       <a class="btn primary" routerLink="/login" data-testid="login-link">{{ 'shell.login' | translate }}</a>
     }
   </div>

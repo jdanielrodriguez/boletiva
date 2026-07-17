@@ -408,6 +408,53 @@ describe('Autorización de promotores (e2e)', () => {
       .expect(400);
   });
 
+  // ---- Plan del promotor (free/premium) + registro en un paso ----
+
+  it('apply con tier=premium queda registrado en el plan del promotor', async () => {
+    const u = await newVerifiedUser('tier');
+    const token = await loginTrusted(u.email, 'promo-tier');
+    const applied = await http()
+      .post('/api/v1/promoters/apply')
+      .set(bearer(token))
+      .send({ tier: 'premium' })
+      .expect(200);
+    expect(applied.body.promoterTier).toBe('premium');
+    const row = await prisma.user.findUniqueOrThrow({ where: { id: u.id } });
+    expect(row.promoterTier).toBe('premium');
+  });
+
+  it('apply sin tier usa free por defecto', async () => {
+    const u = await newVerifiedUser('tierdef');
+    const token = await loginTrusted(u.email, 'promo-tierdef');
+    const applied = await http().post('/api/v1/promoters/apply').set(bearer(token)).expect(200);
+    expect(applied.body.promoterTier).toBe('free');
+  });
+
+  it('POST /promoters/register (público): crea la cuenta y la deja como promotor pending', async () => {
+    const email = `promo_reg_${stamp}@test.com`;
+    const res = await http()
+      .post('/api/v1/promoters/register')
+      .send({ email, password: 'Password123', firstName: 'Reg', tier: 'premium' })
+      .expect(201);
+    expect(res.body.user.email).toBe(email);
+    expect(res.body.tokens.accessToken).toBeTruthy();
+    expect(res.body.promoter).toMatchObject({ promoterStatus: 'pending', promoterTier: 'premium' });
+  });
+
+  it('POST /promoters/register: correo duplicado → 409', async () => {
+    await http()
+      .post('/api/v1/promoters/register')
+      .send({ email: SEED.admin, password: 'Password123', firstName: 'Dup' })
+      .expect(409);
+  });
+
+  it('POST /promoters/register: payload inválido → 400', async () => {
+    await http()
+      .post('/api/v1/promoters/register')
+      .send({ email: 'no-es-correo', password: '123', firstName: '' })
+      .expect(400);
+  });
+
   it('validación: settings no booleano → 400; note >500 chars → 400', async () => {
     const u = await newVerifiedUser('val');
     await http()

@@ -859,6 +859,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/promoters/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Registro + alta como promotor en un paso (visitante). En modo pruebas queda aprobado al instante. */
+        post: operations["PromotersController_register_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/promoters/me": {
         parameters: {
             query?: never;
@@ -3068,6 +3085,12 @@ export interface components {
              */
             toursSeen: string[];
             /**
+             * @description Plan del promotor
+             * @example free
+             * @enum {string}
+             */
+            promoterTier: "free" | "premium";
+            /**
              * Format: uuid
              * @description Solo en /auth/me bajo un token de IMPERSONACIÓN (v3.8): id del admin que actúa como este usuario. El frontend lo usa para el banner "estás viendo como X".
              */
@@ -4655,6 +4678,14 @@ export interface components {
              */
             expiresAt: string;
         };
+        ApplyPromoterDto: {
+            /**
+             * @description Plan del promotor
+             * @example free
+             * @enum {string}
+             */
+            tier?: "free" | "premium";
+        };
         PromoterStatusResponseDto: {
             /** Format: uuid */
             id: string;
@@ -4672,6 +4703,34 @@ export interface components {
             promoterDecidedAt: string | null;
             /** @description Motivo de rechazo/suspensión */
             promoterNote: string | null;
+            /**
+             * @description Plan del promotor (free/premium)
+             * @enum {string}
+             */
+            promoterTier: "free" | "premium";
+        };
+        RegisterPromoterDto: {
+            /**
+             * @description Correo electrónico
+             * @example promotor@correo.com
+             */
+            email: string;
+            /**
+             * @description Contraseña (8–72)
+             * @example Password123
+             */
+            password: string;
+            /**
+             * @description Nombre
+             * @example Ana
+             */
+            firstName: string;
+            /**
+             * @description Plan del promotor
+             * @example free
+             * @enum {string}
+             */
+            tier?: "free" | "premium";
         };
         MyPromoterStatusResponseDto: {
             /** Format: uuid */
@@ -4690,6 +4749,11 @@ export interface components {
             promoterDecidedAt: string | null;
             /** @description Motivo de rechazo/suspensión */
             promoterNote: string | null;
+            /**
+             * @description Plan del promotor (free/premium)
+             * @enum {string}
+             */
+            promoterTier: "free" | "premium";
             /** @description true = se exige autorización de admin; false = modo pruebas */
             requireApproval: boolean;
         };
@@ -8764,7 +8828,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplyPromoterDto"];
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -8773,6 +8841,27 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PromoterStatusResponseDto"];
                 };
+            };
+        };
+    };
+    PromotersController_register_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterPromoterDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

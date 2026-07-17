@@ -9,8 +9,12 @@ import {
   Patch,
   Post,
   Query,
+  Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import type { Request, Response } from 'express';
 import {
   ApiBearerAuth,
   ApiOkResponse,
@@ -19,18 +23,24 @@ import {
 } from '@nestjs/swagger';
 import { PromoterStatus, Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { Public } from '../../common/decorators/public.decorator';
 import { RequireCaptcha } from '../../common/decorators/require-captcha.decorator';
 import { CaptchaGuard } from '../../common/guards/captcha.guard';
+import { RateLimit } from '../../common/rate-limit/rate-limit.decorator';
 import { RequireVerifiedEmail } from '../../common/decorators/verified-email.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { AuthService } from '../auth/auth.service';
+import { setRefreshCookie } from '../auth/refresh-cookie';
 import { PromotersService } from './promoters.service';
 import {
+  ApplyPromoterDto,
   MyPromoterStatusResponseDto,
   PromoterDecisionDto,
   PromoterInternalNoteResponseDto,
   PromoterListItemDto,
   PromoterHistoryItemDto,
   PromoterStatusResponseDto,
+  RegisterPromoterDto,
   RequireApprovalResponseDto,
   SetPromoterNoteDto,
   SetRequireApprovalDto,
@@ -40,7 +50,11 @@ import {
 @ApiBearerAuth()
 @Controller('promoters')
 export class PromotersController {
-  constructor(private readonly promoters: PromotersService) {}
+  constructor(
+    private readonly promoters: PromotersService,
+    private readonly auth: AuthService,
+    private readonly config: ConfigService,
+  ) {}
 
   @Post('apply')
   @UseGuards(CaptchaGuard)
@@ -49,8 +63,31 @@ export class PromotersController {
   @HttpCode(200)
   @ApiOperation({ summary: 'Solicita darse de alta como promotor (auto-aprueba en modo pruebas)' })
   @ApiOkResponse({ type: PromoterStatusResponseDto })
-  apply(@CurrentUser('userId') userId: string) {
-    return this.promoters.apply(userId);
+  apply(@CurrentUser('userId') userId: string, @Body() dto: ApplyPromoterDto) {
+    return this.promoters.apply(userId, dto.tier);
+  }
+
+  @Public()
+  @UseGuards(CaptchaGuard)
+  @RequireCaptcha('promoter_register')
+  @RateLimit({ limit: 5, windowSec: 60 })
+  @Post('register')
+  @HttpCode(201)
+  @ApiOperation({
+    summary: 'Registro + alta como promotor en un paso (visitante). En modo pruebas queda aprobado al instante.',
+  })
+  async register(
+    @Body() dto: RegisterPromoterDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const signup = await this.auth.signup(
+      { email: dto.email, password: dto.password, firstName: dto.firstName },
+      { deviceId: req.headers['x-device-id'] as string | undefined, userAgent: req.headers['user-agent'], ip: req.ip },
+    );
+    setRefreshCookie(res, this.config, signup.tokens?.refreshToken);
+    const promoter = await this.promoters.apply(signup.user.id, dto.tier);
+    return { ...signup, promoter };
   }
 
   @Get('me')

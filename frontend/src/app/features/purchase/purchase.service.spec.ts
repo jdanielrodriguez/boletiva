@@ -83,7 +83,7 @@ describe('PurchaseService', () => {
   it('checkout usa el token de la reserva', (done) => {
     store.reservation.set(RESERVATION);
     store.checkout().subscribe(() => {
-      expect(api.checkout).toHaveBeenCalledWith('tok-123');
+      expect(api.checkout).toHaveBeenCalledWith('tok-123', undefined);
       done();
     });
   });

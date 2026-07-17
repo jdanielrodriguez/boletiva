@@ -1,0 +1,165 @@
+<div class="bp-wrap">
+  @switch (view()) {
+    @case ('loading') {
+      <p class="auth-sub bp-center">{{ 'common.loading' | translate }}</p>
+    }
+    @case ('approved') {
+      <section class="auth-card bp-status">
+        <h1>{{ 'becomePromoter.title' | translate }}</h1>
+        <p class="auth-sub" data-testid="bp-approved">{{ 'becomePromoter.alreadyPromoter' | translate }}</p>
+        <a class="btn primary btn-block" routerLink="/promotor">{{ 'becomePromoter.goToPanel' | translate }}</a>
+      </section>
+    }
+    @case ('pending') {
+      <section class="auth-card bp-status">
+        <h1>{{ 'becomePromoter.title' | translate }}</h1>
+        <p class="auth-sub" data-testid="bp-pending">{{ 'becomePromoter.pending' | translate }}</p>
+        <a class="btn primary btn-block" routerLink="/cuenta">{{ 'becomePromoter.backToAccount' | translate }}</a>
+      </section>
+    }
+    @case ('plans') {
+      <header class="bp-head">
+        <h1>{{ 'becomePromoter.plansTitle' | translate }}</h1>
+        <p class="auth-sub">{{ 'becomePromoter.plansIntro' | translate }}</p>
+      </header>
+
+      @if (error()) {
+        <p class="form-error bp-center" data-testid="bp-error">{{ error() }}</p>
+      }
+
+      <div class="bp-plans">
+        @for (plan of plans; track plan.tier) {
+          <article class="bp-plan" [class.recommended]="plan.recommended" [attr.data-testid]="'bp-plan-' + plan.tier">
+            @if (plan.recommended) {
+              <span class="bp-badge">{{ 'becomePromoter.recommended' | translate }}</span>
+            }
+            <h2>{{ plan.nameKey | translate }}</h2>
+            <p class="bp-tagline">{{ plan.taglineKey | translate }}</p>
+            <p class="bp-price">
+              {{ plan.priceKey | translate }}
+              @if (plan.comingSoon) {
+                <span class="bp-soon">{{ 'becomePromoter.comingSoon' | translate }}</span>
+              }
+            </p>
+            <ul class="bp-features">
+              @for (f of plan.featureKeys; track f) {
+                <li><app-icon name="activate" [size]="16" /> {{ f | translate }}</li>
+              }
+            </ul>
+            @if (plan.tier === 'premium') {
+              <p class="bp-note">{{ 'becomePromoter.premiumNote' | translate }}</p>
+            }
+            <button
+              type="button"
+              class="btn btn-block"
+              [class.primary]="plan.recommended"
+              [attr.data-testid]="'bp-choose-' + plan.tier"
+              (click)="choosePlan(plan.tier)"
+            >
+              {{ 'becomePromoter.choose' | translate }}
+            </button>
+          </article>
+        }
+      </div>
+
+      @if (!loggedIn()) {
+        <p class="bp-center bp-guest-switch">
+          {{ 'becomePromoter.guestSwitch' | translate }}
+          <a routerLink="/login">{{ 'shell.login' | translate }}</a>
+        </p>
+      }
+    }
+  }
+</div>
+
+<!-- MODAL: instrucciones (usuario logueado) -->
+@if (showInfo()) {
+  <div class="modal-backdrop" data-testid="bp-info-modal">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="bp-info-title">
+      <div class="bp-modal-head">
+        <span class="bp-modal-icon" aria-hidden="true"><app-icon name="help" [size]="28" /></span>
+        <h2 id="bp-info-title">{{ 'becomePromoter.infoTitle' | translate }}</h2>
+      </div>
+      <p class="bp-modal-lead">{{ 'becomePromoter.infoLead' | translate }}</p>
+      <ul class="bp-benefits">
+        <li>{{ 'becomePromoter.infoCan1' | translate }}</li>
+        <li>{{ 'becomePromoter.infoCan2' | translate }}</li>
+        <li>{{ 'becomePromoter.infoCan3' | translate }}</li>
+        <li>{{ 'becomePromoter.infoCan4' | translate }}</li>
+      </ul>
+      <p class="bp-modal-ask">{{ 'becomePromoter.infoAsk' | translate }}</p>
+      <div class="ev-card-actions confirm-actions">
+        <button type="button" class="btn primary" data-testid="bp-info-confirm" [disabled]="working()" (click)="confirmApply()">
+          {{ working() ? ('becomePromoter.sending' | translate) : ('becomePromoter.infoYes' | translate) }}
+        </button>
+        <button type="button" class="btn" data-testid="bp-info-cancel" [disabled]="working()" (click)="showInfo.set(false)">
+          {{ 'becomePromoter.infoNo' | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- MODAL: registro de visitante (sin sesión) -->
+@if (showRegister()) {
+  <div class="modal-backdrop" data-testid="bp-register-modal">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="bp-reg-title">
+      <div class="bp-modal-head">
+        <span class="bp-modal-icon" aria-hidden="true"><app-icon name="accounts" [size]="28" /></span>
+        <h2 id="bp-reg-title">{{ 'becomePromoter.regTitle' | translate }}</h2>
+      </div>
+      <p class="bp-modal-lead">
+        {{ 'becomePromoter.selectedPlan' | translate }}:
+        <strong>{{ (selectedTier() === 'premium' ? 'becomePromoter.planPremiumName' : 'becomePromoter.planFreeName') | translate }}</strong>
+      </p>
+
+      @if (error()) {
+        <p class="form-error" data-testid="bp-reg-error">{{ error() }}</p>
+      }
+
+      <form (ngSubmit)="submitRegister()">
+        <div class="field">
+          <label for="reg-first">{{ 'becomePromoter.regFirstName' | translate }}</label>
+          <input id="reg-first" name="regFirst" type="text" autocomplete="given-name" data-testid="bp-reg-first"
+            [ngModel]="regFirstName()" (ngModelChange)="regFirstName.set($event)" />
+        </div>
+        <div class="field">
+          <label for="reg-email">{{ 'becomePromoter.regEmail' | translate }}</label>
+          <input id="reg-email" name="regEmail" type="email" autocomplete="email" data-testid="bp-reg-email"
+            [ngModel]="regEmail()" (ngModelChange)="regEmail.set($event)" />
+        </div>
+        <div class="field">
+          <label for="reg-pass">{{ 'becomePromoter.regPassword' | translate }}</label>
+          <input id="reg-pass" name="regPass" type="password" autocomplete="new-password" data-testid="bp-reg-pass"
+            [ngModel]="regPassword()" (ngModelChange)="regPassword.set($event)" />
+        </div>
+        <div class="ev-card-actions confirm-actions">
+          <button type="submit" class="btn primary" data-testid="bp-reg-submit" [disabled]="working()">
+            {{ working() ? ('becomePromoter.sending' | translate) : ('becomePromoter.regSubmit' | translate) }}
+          </button>
+          <button type="button" class="btn" data-testid="bp-reg-cancel" [disabled]="working()" (click)="showRegister.set(false)">
+            {{ 'becomePromoter.regCancel' | translate }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- MODAL: proceso iniciado (requiere aprobación del admin) -->
+@if (showStarted()) {
+  <div class="modal-backdrop" data-testid="bp-started-modal">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="bp-started-title">
+      <div class="bp-modal-head">
+        <span class="bp-modal-icon ok" aria-hidden="true"><app-icon name="activate" [size]="28" /></span>
+        <h2 id="bp-started-title">{{ 'becomePromoter.startedTitle' | translate }}</h2>
+      </div>
+      <p class="bp-modal-lead">{{ 'becomePromoter.startedBody' | translate }}</p>
+      <div class="ev-card-actions confirm-actions">
+        <button type="button" class="btn primary" data-testid="bp-started-close" (click)="closeStarted()">
+          {{ 'common.understood' | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

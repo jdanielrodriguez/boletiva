@@ -109,6 +109,9 @@ export class PublicUserResponseDto {
   @ApiProperty({ description: 'Tours de onboarding ya vistos', type: [String], example: [] })
   toursSeen!: string[];
 
+  @ApiProperty({ description: 'Plan del promotor', enum: ['free', 'premium'], example: 'free' })
+  promoterTier!: string;
+
   @ApiPropertyOptional({
     format: 'uuid',
     description:

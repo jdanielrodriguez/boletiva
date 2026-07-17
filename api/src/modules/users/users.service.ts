@@ -25,6 +25,7 @@ const publicSelect = {
   billingName: true,
   dpi: true,
   toursSeen: true,
+  promoterTier: true,
   lastLoginAt: true,
   createdAt: true,
 } satisfies Prisma.UserSelect;

@@ -1,4 +1,4 @@
-/** Página "Conviértete en promotor" (solicitud de autorización). Español. */
+/** Página "Conviértete en promotor" (planes + solicitud de autorización). Español. */
 export const becomePromoter = {
   title: 'Conviértete en promotor',
   intro:
@@ -32,4 +32,45 @@ export const becomePromoter = {
   msgSubmitted: 'Solicitud enviada. Un administrador la revisará pronto.',
   msgApproved: '¡Listo! Ya eres promotor.',
   msgError: 'No pudimos enviar tu solicitud. Inténtalo de nuevo.',
+
+  // --- Planes (free/premium) ---
+  plansTitle: 'Elige tu plan de promotor',
+  plansIntro: 'Empieza gratis y crece cuando lo necesites. Puedes cambiar de plan más adelante.',
+  recommended: 'Recomendado',
+  comingSoon: 'Próximamente',
+  choose: 'Elegir este plan',
+  perMonth: '/mes',
+  free: 'Gratis',
+
+  planFreeName: 'Promotor Free',
+  planFreeTagline: 'Todo lo esencial para empezar a vender.',
+  planFreePrice: 'Q0',
+  planFreeF1: 'Eventos ilimitados con mapa de asientos',
+  planFreeF2: 'Boletos digitales validables en puerta',
+  planFreeF3: 'Precios y comisiones transparentes',
+  planFreeF4: 'Liquidaciones y retiro de saldo',
+
+  planPremiumName: 'Promotor Premium',
+  planPremiumTagline: 'Más alcance, menos comisión y reportes avanzados.',
+  planPremiumPrice: 'Próximamente',
+  planPremiumF1: 'Todo lo del plan Free',
+  planPremiumF2: 'Comisión de plataforma reducida',
+  planPremiumF3: 'Eventos destacados con prioridad',
+  planPremiumF4: 'Dashboards y reportes avanzados',
+  planPremiumF5: 'Soporte prioritario',
+  premiumNote: 'Las funciones Premium se irán activando pronto; hoy solo registramos tu preferencia de plan.',
+
+  // --- Registro de visitante (sin sesión) ---
+  guestCta: 'Crea tu cuenta de promotor',
+  guestSwitch: '¿Ya tienes cuenta? Inicia sesión y vuelve aquí.',
+  regTitle: 'Crea tu cuenta de promotor',
+  regFirstName: 'Nombre',
+  regEmail: 'Correo electrónico',
+  regPassword: 'Contraseña',
+  regSubmit: 'Crear cuenta y continuar',
+  regHaveAccount: 'Ya tengo cuenta',
+  regCancel: 'Cancelar',
+  regError: 'No pudimos crear tu cuenta. Revisa los datos e inténtalo de nuevo.',
+  regCompleteFields: 'Completa nombre, correo y contraseña (mínimo 8 caracteres).',
+  selectedPlan: 'Plan seleccionado',
 };

@@ -28,6 +28,7 @@ const USER: PublicUserResponseDto = {
   twoFactorMethod: 'email',
   isTestUser: false,
   toursSeen: [],
+  promoterTier: 'free',
   language: 'es',
 };
 const TOKENS: TokenPairResponseDto = { accessToken: 'acc', refreshToken: 'ref', expiresIn: 900 };

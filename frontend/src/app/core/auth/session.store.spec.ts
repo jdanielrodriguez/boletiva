@@ -17,6 +17,7 @@ const USER: SessionUser = {
   twoFactorMethod: 'email',
   isTestUser: false,
   toursSeen: [],
+  promoterTier: 'free',
   language: 'es',
 } as SessionUser;
 

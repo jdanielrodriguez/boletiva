@@ -122,7 +122,8 @@ export const routes: Routes = [
     path: 'conviertete-en-promotor',
     loadComponent: () =>
       import('./pages/promoter/become-promoter.page').then((m) => m.BecomePromoterPage),
-    canActivate: [authGuard, verifiedEmailGuard],
+    // Sin guards: es una landing de PLANES abierta a visitantes; el propio
+    // componente decide (logueado → aplica; sin sesión → registro en un paso).
     title: 'Conviértete en promotor — Boletiva',
   },
   {

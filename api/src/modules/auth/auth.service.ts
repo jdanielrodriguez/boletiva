@@ -55,6 +55,8 @@ export interface PublicUser {
   dpi: string | null;
   /** Tours de onboarding ya vistos (para no repetirlos). */
   toursSeen: string[];
+  /** Plan del promotor (free/premium). */
+  promoterTier: string;
 }
 
 export type LoginResult =
@@ -110,6 +112,7 @@ export class AuthService {
       billingName: user.billingName,
       dpi: user.dpi,
       toursSeen: user.toursSeen,
+      promoterTier: user.promoterTier,
     };
   }
 

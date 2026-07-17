@@ -371,12 +371,12 @@ async function main() {
 
   await step('el cliente envía la solicitud de promotor (require_approval → pendiente)', async () => {
     await page.goto(`${FE}/conviertete-en-promotor`, { waitUntil: 'networkidle0' });
-    // Puede aparecer el form (primera vez) o ya el estado pendiente (corridas previas).
-    await waitSel(page, '[data-testid="bp-submit"], [data-testid="bp-pending"]', 12000);
-    if (await page.$('[data-testid="bp-submit"]')) {
-      // v3.8: ya no es one-click → abre la modal de instrucciones y hay que
-      // confirmar dentro (bp-info-confirm) para enviar la solicitud.
-      await page.click('[data-testid="bp-submit"]');
+    // Pantalla de PLANES (free/premium) la primera vez, o el estado pendiente
+    // en corridas previas. Elegir un plan estando logueado abre la modal de
+    // instrucciones; confirmar dentro (bp-info-confirm) envía la solicitud.
+    await waitSel(page, '[data-testid="bp-choose-free"], [data-testid="bp-pending"]', 12000);
+    if (await page.$('[data-testid="bp-choose-free"]')) {
+      await page.click('[data-testid="bp-choose-free"]');
       await waitSel(page, '[data-testid="bp-info-confirm"]', 12000);
       await page.click('[data-testid="bp-info-confirm"]');
     }

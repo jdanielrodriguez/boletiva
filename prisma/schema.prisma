@@ -172,6 +172,13 @@ enum PromoterStatus {
   suspended // autorización revocada por el admin
 }
 
+/// Plan del promotor (pantalla de pricing). `free` = plan actual con límites; `premium`
+/// = acceso a todo. El enforcement fino de límites por plan es incremental por feature.
+enum PromoterTier {
+  free
+  premium
+}
+
 /// Estado de una invitación de promotor por token (Ola F4).
 enum PromoterInvitationStatus {
   pending // enviada; el token sigue vigente
@@ -251,6 +258,7 @@ model User {
   // Autorización como promotor (Ola 4). Un usuario puede solicitar ser promotor;
   // un admin lo aprueba antes de que pueda operar (salvo en modo pruebas).
   promoterStatus    PromoterStatus @default(none) @map("promoter_status")
+  promoterTier      PromoterTier   @default(free) @map("promoter_tier")
   promoterAppliedAt DateTime?      @map("promoter_applied_at")
   promoterDecidedAt DateTime?      @map("promoter_decided_at")
   promoterNote      String?        @map("promoter_note") // motivo de rechazo/suspensión

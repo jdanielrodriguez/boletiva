@@ -95,6 +95,7 @@ export class SettingsService {
       if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
       return Number(def?.default);
     };
+    const caps = this.integrations.capabilities();
     return {
       allowVisitorLangSwitch: resolveBool(PUBLIC_CONFIG_KEYS.allowVisitorLangSwitch),
       showHomeCategories: resolveBool(PUBLIC_CONFIG_KEYS.showHomeCategories),
@@ -109,8 +110,11 @@ export class SettingsService {
         dayStartHour: resolveInt(PUBLIC_CONFIG_KEYS.themeDayStartHour),
         dayEndHour: resolveInt(PUBLIC_CONFIG_KEYS.themeDayEndHour),
       },
-      capabilities: this.integrations.capabilities(),
-      recaptchaSiteKey: this.config.get<string>('recaptcha.siteKey') ?? '',
+      capabilities: caps,
+      // Solo exponemos el site key si el captcha está REALMENTE habilitado. Si está
+      // desactivado (dev/test/`RECAPTCHA_DISABLED`), devolvemos '' → el frontend no
+      // intenta cargar el script de Google (evita error de CSP y llamadas inútiles).
+      recaptchaSiteKey: caps.recaptcha ? (this.config.get<string>('recaptcha.siteKey') ?? '') : '',
     };
   }
 
