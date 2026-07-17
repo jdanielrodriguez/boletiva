@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 import { PrismaService } from '../prisma/prisma.service';
+import { QueueService } from '../queue/queue.service';
+import { QUEUES } from '../queue/queue.constants';
 import {
   DEFAULT_EMAIL_PALETTE,
   EMAIL_THEMES,
@@ -11,9 +13,18 @@ import {
   type RenderInput,
 } from './email-template';
 
+/** Nombre del job genérico de la cola MAIL (envío de una plantilla ya resuelta). */
+const SEND_TEMPLATED_JOB = 'send-templated';
+
 /**
  * Servicio de correo (Nodemailer). MailHog en local; SMTP/SES/SendGrid en prod.
- * El envío transaccional real se agrega en olas posteriores (vía cola).
+ *
+ * TODO correo transaccional sale ENCOLADO (cola MAIL / BullMQ): `enqueueTemplated`
+ * empuja el job y retorna al instante — el envío SMTP real ocurre en el worker.
+ * Así el flujo que dispara el correo (signup, login, reset, invitación…) no se
+ * bloquea por el SMTP, se reintenta ante fallos, y se suaviza el ritmo para no
+ * saturar al proveedor ni caer en filtros de spam. `send`/`sendTemplated` (envío
+ * directo) quedan para el worker y el health-check; NO llamarlos desde el request.
  */
 @Injectable()
 export class MailService implements OnModuleInit {
@@ -24,6 +35,7 @@ export class MailService implements OnModuleInit {
   constructor(
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly queue: QueueService,
   ) {}
 
   /**
@@ -62,6 +74,26 @@ export class MailService implements OnModuleInit {
       secure: mail.secure,
       auth: mail.user ? { user: mail.user, pass: mail.pass } : undefined,
     });
+    // Consumidor de la cola MAIL para los correos genéricos ya plantillados
+    // (auth, invitaciones…). Otros emisores (confirmación de compra, avisos de
+    // promotor, liquidación) registran su propio handler y filtran por `name`.
+    this.queue.registerHandler(QUEUES.MAIL, (name, data) => this.handleQueue(name, data));
+  }
+
+  /**
+   * Encola el envío de un correo plantillado (cola MAIL). Retorna al instante:
+   * el SMTP real corre en el worker. Es la vía por defecto desde cualquier request
+   * (signup, login, reset, 2FA, invitaciones…) para no bloquear ni saturar el SMTP.
+   */
+  async enqueueTemplated(to: string, subject: string, input: RenderInput): Promise<void> {
+    await this.queue.enqueue(QUEUES.MAIL, SEND_TEMPLATED_JOB, { to, subject, input });
+  }
+
+  /** Handler de la cola MAIL: solo procesa el job genérico `send-templated`. */
+  private async handleQueue(name: string, data: unknown): Promise<void> {
+    if (name !== SEND_TEMPLATED_JOB) return; // ignora jobs de otros emisores
+    const { to, subject, input } = data as { to: string; subject: string; input: RenderInput };
+    await this.sendTemplated(to, subject, input);
   }
 
   async send(options: { to: string; subject: string; html: string; text?: string }): Promise<void> {
@@ -71,6 +103,8 @@ export class MailService implements OnModuleInit {
   /**
    * Envía un correo usando la plantilla base profesional (marca + footer + CTA).
    * Envuelve el contenido específico y produce multipart (HTML + texto plano).
+   * Envío DIRECTO (SMTP): lo usa el worker de la cola; desde un request usar
+   * `enqueueTemplated` para no bloquear.
    */
   async sendTemplated(to: string, subject: string, input: RenderInput): Promise<void> {
     const { html, text } = renderEmail(input, await this.resolvePalette());

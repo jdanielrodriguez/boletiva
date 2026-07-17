@@ -438,7 +438,7 @@ export class AuthService {
 
   private async safeSend(to: string, subject: string, input: RenderInput): Promise<void> {
     try {
-      await this.mail.sendTemplated(to, subject, input);
+      await this.mail.enqueueTemplated(to, subject, input);
     } catch (err) {
       this.logger.warn(`No se pudo enviar correo a ${to}: ${(err as Error).message}`);
     }

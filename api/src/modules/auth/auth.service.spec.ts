@@ -47,7 +47,7 @@ describe('AuthService (ramas de borde, unit)', () => {
       revoke: jest.fn(),
       revokeAllForUser: jest.fn(),
     };
-    const mail = { send: jest.fn().mockResolvedValue(undefined), sendTemplated: jest.fn().mockResolvedValue(undefined) };
+    const mail = { send: jest.fn().mockResolvedValue(undefined), enqueueTemplated: jest.fn().mockResolvedValue(undefined) };
     const config = { get: jest.fn(() => ['http://front.local']), getOrThrow: jest.fn(() => 'secret') };
     const jwt = { sign: jest.fn().mockReturnValue('preauth'), verify: jest.fn() };
     const challenges = { issue: jest.fn(), verifyCode: jest.fn(), verifyToken: jest.fn() };
@@ -134,7 +134,7 @@ describe('AuthService (ramas de borde, unit)', () => {
       expect(res.status).toBe('2fa_required');
       expect(twofactor.startChallenge).toHaveBeenCalled();
       // E2: el aviso de nuevo dispositivo se manda DESPUÉS de validar el 2FA, no aquí.
-      expect(mail.sendTemplated).not.toHaveBeenCalled();
+      expect(mail.enqueueTemplated).not.toHaveBeenCalled();
     });
 
     it('verificado + dispositivo no confiable pero conocido → 2fa_required sin aviso', async () => {
@@ -146,7 +146,7 @@ describe('AuthService (ramas de borde, unit)', () => {
       devices.isTrusted.mockReturnValue(false);
       const res = await service.login({ email: 'u1@x.com', password: 'ok' }, ctx);
       expect(res.status).toBe('2fa_required');
-      expect(mail.sendTemplated).not.toHaveBeenCalled();
+      expect(mail.enqueueTemplated).not.toHaveBeenCalled();
     });
 
     it('verificado + dispositivo confiable → ok con tokens', async () => {
@@ -181,7 +181,7 @@ describe('AuthService (ramas de borde, unit)', () => {
       expect(res.status).toBe('ok');
       expect(devices.trust).toHaveBeenCalled();
       // E2: el aviso de nuevo dispositivo se envía AHORA (tras validar el 2FA).
-      expect(mail.sendTemplated).toHaveBeenCalled();
+      expect(mail.enqueueTemplated).toHaveBeenCalled();
     });
 
     it('código 2FA inválido → lanza y NO envía aviso ni confía dispositivo', async () => {
@@ -193,7 +193,7 @@ describe('AuthService (ramas de borde, unit)', () => {
         BadRequestException,
       );
       expect(devices.trust).not.toHaveBeenCalled();
-      expect(mail.sendTemplated).not.toHaveBeenCalled();
+      expect(mail.enqueueTemplated).not.toHaveBeenCalled();
     });
 
     it('2FA correcto en dispositivo YA confiable → ok sin aviso duplicado', async () => {
@@ -204,7 +204,7 @@ describe('AuthService (ramas de borde, unit)', () => {
       devices.isKnownTrusted.mockResolvedValue(true); // ya confiable
       const res = await service.verifyTwoFactor('tok', '123456', ctx);
       expect(res.status).toBe('ok');
-      expect(mail.sendTemplated).not.toHaveBeenCalled();
+      expect(mail.enqueueTemplated).not.toHaveBeenCalled();
     });
   });
 
@@ -386,7 +386,7 @@ describe('AuthService (ramas de borde, unit)', () => {
     it('forgotPassword: usuario existente crea recovery y tolera fallo de correo', async () => {
       const { prisma, mail, service } = build();
       prisma.user.findUnique.mockResolvedValue(makeUser());
-      mail.sendTemplated.mockRejectedValue(new Error('smtp caído')); // safeSend lo traga
+      mail.enqueueTemplated.mockRejectedValue(new Error('smtp caído')); // safeSend lo traga
       await expect(service.forgotPassword({ email: 'u1@x.com' })).resolves.toBeUndefined();
       expect(prisma.passwordRecovery.create).toHaveBeenCalled();
     });
@@ -397,7 +397,7 @@ describe('AuthService (ramas de borde, unit)', () => {
       (service as unknown as { config: { get: jest.Mock } }).config.get = jest.fn(() => undefined);
       prisma.user.findUnique.mockResolvedValue(makeUser());
       await service.forgotPassword({ email: 'u1@x.com' });
-      expect(mail.sendTemplated).toHaveBeenCalled();
+      expect(mail.enqueueTemplated).toHaveBeenCalled();
     });
 
     it('resetPassword: token inválido → 400', async () => {
