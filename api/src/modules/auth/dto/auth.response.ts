@@ -106,6 +106,9 @@ export class PublicUserResponseDto {
   @ApiPropertyOptional({ description: 'DPI (opcional)', example: '2954812340101', nullable: true })
   dpi?: string | null;
 
+  @ApiProperty({ description: 'Tours de onboarding ya vistos', type: [String], example: [] })
+  toursSeen!: string[];
+
   @ApiPropertyOptional({
     format: 'uuid',
     description:

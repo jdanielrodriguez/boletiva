@@ -16,6 +16,7 @@ const USER: SessionUser = {
   emailVerified: true,
   twoFactorMethod: 'email',
   isTestUser: false,
+  toursSeen: [],
   language: 'es',
 } as SessionUser;
 

@@ -12,6 +12,7 @@ import { IconComponent } from '../../shared/icon/icon.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
 import { SearchFieldComponent } from '../../shared/ui/search-field.component';
 import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
+import { TourComponent, TourStep } from '../../shared/tour/tour.component';
 import type { MyEventListItemDto } from '../../core/api/types';
 
 const PAGE_SIZE = 9;
@@ -32,7 +33,7 @@ type EventFilterGroup = 'upcoming' | 'ongoing' | 'suspended' | 'past' | 'all';
  */
 @Component({
   selector: 'app-promoter-panel',
-  imports: [FormsModule, LocalizedDatePipe, TranslatePipe, RouterLink, IconComponent, ConfirmDialogComponent, PagerComponent, StatusLabelPipe, SearchFieldComponent],
+  imports: [FormsModule, LocalizedDatePipe, TranslatePipe, RouterLink, IconComponent, ConfirmDialogComponent, PagerComponent, StatusLabelPipe, SearchFieldComponent, TourComponent],
   templateUrl: './promoter-panel.html',
 })
 export class PromoterPanel {
@@ -44,6 +45,13 @@ export class PromoterPanel {
 
   /** Promotor de PRUEBA → sus eventos van por Sandbox; se marcan con un chip TEST. */
   protected readonly isTestUser = computed(() => this.session.user()?.isTestUser === true);
+
+  /** Tour de onboarding del panel del promotor. */
+  protected readonly tourSteps: TourStep[] = [
+    { title: 'tour.promoter.welcomeTitle', body: 'tour.promoter.welcomeBody' },
+    { title: 'tour.promoter.createTitle', body: 'tour.promoter.createBody' },
+    { title: 'tour.promoter.salesTitle', body: 'tour.promoter.salesBody' },
+  ];
 
   protected readonly events = signal<MyEventListItemDto[]>([]);
   protected readonly loading = signal(true);

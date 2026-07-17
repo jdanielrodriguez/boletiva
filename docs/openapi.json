@@ -765,6 +765,43 @@
         ]
       }
     },
+    "/api/v1/users/me/tours": {
+      "post": {
+        "operationId": "UsersController_markTourSeen_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkTourDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Marca un tour de onboarding como visto (completado/saltado)",
+        "tags": [
+          "users"
+        ]
+      }
+    },
     "/api/v1/users/me/avatar/presign": {
       "post": {
         "operationId": "UsersController_presignAvatar_v1",
@@ -7526,6 +7563,14 @@
             "example": "2954812340101",
             "nullable": true
           },
+          "toursSeen": {
+            "description": "Tours de onboarding ya vistos",
+            "example": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "impersonatedBy": {
             "type": "string",
             "format": "uuid",
@@ -7541,7 +7586,8 @@
           "emailVerified",
           "twoFactorMethod",
           "language",
-          "isTestUser"
+          "isTestUser",
+          "toursSeen"
         ]
       },
       "TokenPairResponseDto": {
@@ -8177,6 +8223,20 @@
           "status",
           "language",
           "createdAt"
+        ]
+      },
+      "MarkTourDto": {
+        "type": "object",
+        "properties": {
+          "tour": {
+            "type": "string",
+            "description": "Clave del tour a marcar como visto",
+            "example": "home",
+            "maxLength": 40
+          }
+        },
+        "required": [
+          "tour"
         ]
       },
       "AvatarPresignDto": {

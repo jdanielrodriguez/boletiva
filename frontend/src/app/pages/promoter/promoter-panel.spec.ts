@@ -4,6 +4,7 @@ import { provideRouter, Router } from '@angular/router';
 import { of } from 'rxjs';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
 import { SessionStore } from '../../core/auth/session.store';
+import { UsersApi } from '../../core/api/users.api';
 import { initI18nTesting, provideI18nTesting } from '../../core/i18n/testing';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { PromoterPanel } from './promoter-panel';
@@ -21,6 +22,7 @@ describe('PromoterPanel (v3 grid)', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: SessionStore, useValue: { user: () => null } },
+        { provide: UsersApi, useValue: { markTourSeen: () => of({}) } },
         provideZonelessChangeDetection(),
         ...provideI18nTesting(),
         provideRouter([]),

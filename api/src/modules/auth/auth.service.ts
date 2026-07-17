@@ -53,6 +53,8 @@ export interface PublicUser {
   nit: string | null;
   billingName: string | null;
   dpi: string | null;
+  /** Tours de onboarding ya vistos (para no repetirlos). */
+  toursSeen: string[];
 }
 
 export type LoginResult =
@@ -107,6 +109,7 @@ export class AuthService {
       nit: user.nit,
       billingName: user.billingName,
       dpi: user.dpi,
+      toursSeen: user.toursSeen,
     };
   }
 

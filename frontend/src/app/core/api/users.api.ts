@@ -21,6 +21,11 @@ export class UsersApi {
     return this.api.patch<PublicUserResponseDto>('/users/me', dto);
   }
 
+  /** Marca un tour de onboarding como visto (completado/saltado). */
+  markTourSeen(tour: string): Observable<PublicUserResponseDto> {
+    return this.api.post<PublicUserResponseDto>('/users/me/tours', { tour });
+  }
+
   /** Sube la foto de perfil: presign → PUT directo al storage → confirma la key. */
   uploadAvatar(file: File): Observable<PublicUserResponseDto> {
     return this.api

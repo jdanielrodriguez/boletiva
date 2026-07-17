@@ -8,6 +8,8 @@ import { CategoriesApi } from '../../core/api/categories.api';
 import { EventsApi } from '../../core/api/events.api';
 import { SITE_URL } from '../../core/config/api.tokens';
 import { PublicConfigStore } from '../../core/config/public-config.store';
+import { SessionStore } from '../../core/auth/session.store';
+import { UsersApi } from '../../core/api/users.api';
 import { Catalog } from './catalog';
 
 const EVENT = {
@@ -33,6 +35,9 @@ function setup(
       provideRouter([]),
       { provide: EventsApi, useValue: { listPublic, promoted: () => of([]) } },
       { provide: CategoriesApi, useValue: { list: () => of(CATS) } },
+      // Tour: SessionStore/UsersApi mock (usuario anónimo → tour oculto).
+      { provide: SessionStore, useValue: { user: () => null } },
+      { provide: UsersApi, useValue: { markTourSeen: () => of({}) } },
       { provide: SITE_URL, useValue: 'http://localhost:4200' },
       // Stub del store de config (evita el HTTP de refresh() en el constructor, W2/W10).
       {

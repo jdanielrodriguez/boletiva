@@ -6,6 +6,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UsersService } from './users.service';
 import {
   AvatarPresignDto,
+  MarkTourDto,
   SetAvatarDto,
   UpdateProfileDto,
   UpdateUserRolesDto,
@@ -25,6 +26,13 @@ export class UsersController {
   @ApiOkResponse({ type: UserResponseDto })
   updateMe(@CurrentUser('userId') userId: string, @Body() dto: UpdateProfileDto) {
     return this.users.updateProfile(userId, dto);
+  }
+
+  @Post('me/tours')
+  @ApiOperation({ summary: 'Marca un tour de onboarding como visto (completado/saltado)' })
+  @ApiOkResponse({ type: UserResponseDto })
+  markTourSeen(@CurrentUser('userId') userId: string, @Body() dto: MarkTourDto) {
+    return this.users.markTourSeen(userId, dto.tour);
   }
 
   @Post('me/avatar/presign')

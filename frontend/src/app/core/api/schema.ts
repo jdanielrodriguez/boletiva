@@ -446,6 +446,23 @@ export interface paths {
         patch: operations["UsersController_updateMe_v1"];
         trace?: never;
     };
+    "/api/v1/users/me/tours": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Marca un tour de onboarding como visto (completado/saltado) */
+        post: operations["UsersController_markTourSeen_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/me/avatar/presign": {
         parameters: {
             query?: never;
@@ -3046,6 +3063,11 @@ export interface components {
              */
             dpi?: string | null;
             /**
+             * @description Tours de onboarding ya vistos
+             * @example []
+             */
+            toursSeen: string[];
+            /**
              * Format: uuid
              * @description Solo en /auth/me bajo un token de IMPERSONACIÓN (v3.8): id del admin que actúa como este usuario. El frontend lo usa para el banner "estás viendo como X".
              */
@@ -3430,6 +3452,13 @@ export interface components {
              * @example 2026-07-01T09:00:00.000Z
              */
             createdAt: string;
+        };
+        MarkTourDto: {
+            /**
+             * @description Clave del tour a marcar como visto
+             * @example home
+             */
+            tour: string;
         };
         AvatarPresignDto: {
             /**
@@ -8084,6 +8113,29 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["UpdateProfileDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponseDto"];
+                };
+            };
+        };
+    };
+    UsersController_markTourSeen_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkTourDto"];
             };
         };
         responses: {

@@ -15,6 +15,7 @@ import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { LoadingComponent } from '../../shared/ui/loading.component';
 import { SearchFieldComponent } from '../../shared/ui/search-field.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
+import { TourComponent, TourStep } from '../../shared/tour/tour.component';
 
 const PAGE_SIZE = 12;
 
@@ -41,11 +42,19 @@ interface CatalogResult {
     EmptyStateComponent,
     LoadingComponent,
     SearchFieldComponent,
+    TourComponent,
   ],
   templateUrl: './catalog.html',
 })
 export class Catalog {
   private readonly eventsApi = inject(EventsApi);
+
+  /** Tour de onboarding del inicio (solo logueados no-vistos). */
+  protected readonly tourSteps: TourStep[] = [
+    { title: 'tour.home.welcomeTitle', body: 'tour.home.welcomeBody' },
+    { title: 'tour.home.browseTitle', body: 'tour.home.browseBody' },
+    { title: 'tour.home.accountTitle', body: 'tour.home.accountBody' },
+  ];
   private readonly categoriesApi = inject(CategoriesApi);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);

@@ -112,6 +112,13 @@ export class UpdateProfileDto {
   dpi?: string | null;
 }
 
+export class MarkTourDto {
+  @ApiProperty({ description: 'Clave del tour a marcar como visto', example: 'home', maxLength: 40 })
+  @IsString()
+  @MaxLength(40)
+  tour!: string;
+}
+
 export class AvatarPresignDto {
   @ApiProperty({ description: 'Nombre del archivo (para derivar la extensión)', example: 'foto.jpg' })
   @IsString()

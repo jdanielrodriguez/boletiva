@@ -24,6 +24,7 @@ const publicSelect = {
   nit: true,
   billingName: true,
   dpi: true,
+  toursSeen: true,
   lastLoginAt: true,
   createdAt: true,
 } satisfies Prisma.UserSelect;
@@ -53,6 +54,21 @@ export class UsersService {
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {
     const user = await this.prisma.user.update({ where: { id: userId }, data: dto, select: publicSelect });
+    return this.present(user);
+  }
+
+  /** Marca un tour de onboarding como visto (idempotente: no duplica la clave). */
+  async markTourSeen(userId: string, tour: string) {
+    const current = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { toursSeen: true },
+    });
+    const seen = new Set([...current.toursSeen, tour]);
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { toursSeen: [...seen] },
+      select: publicSelect,
+    });
     return this.present(user);
   }
 

@@ -27,6 +27,7 @@ const USER: PublicUserResponseDto = {
   emailVerified: false,
   twoFactorMethod: 'email',
   isTestUser: false,
+  toursSeen: [],
   language: 'es',
 };
 const TOKENS: TokenPairResponseDto = { accessToken: 'acc', refreshToken: 'ref', expiresIn: 900 };
