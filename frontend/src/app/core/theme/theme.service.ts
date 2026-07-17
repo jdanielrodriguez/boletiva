@@ -139,12 +139,31 @@ export class ThemeService {
     }
   }
 
+  /** Favicon SVG por tema (los demás archivos —.ico, apple-touch— quedan fijos). */
+  private static readonly FAVICON_BY_THEME: Record<string, string> = {
+    pulso: 'favicon.svg',
+    marquesina: 'favicon-marquesina.svg',
+  };
+
+  /**
+   * Cambia el favicon SVG al del tema activo (solo navegador). Los navegadores
+   * modernos prefieren el `<link rel=icon type=image/svg+xml>`, así el icono de la
+   * pestaña acompaña al tema. Si no encuentra el link (SSR), no hace nada.
+   */
+  private syncFavicon(theme: string): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    const file = ThemeService.FAVICON_BY_THEME[theme] ?? 'favicon.svg';
+    const link = this.document.querySelector<HTMLLinkElement>('link[rel="icon"][type="image/svg+xml"]');
+    if (link) link.setAttribute('href', `${file}?v=2`);
+  }
+
   private applyAutoNow(): void {
     const franja = this.autoFranja();
     this.franja.set(franja);
     const theme = this.resolve(franja);
     if (isPlatformBrowser(this.platformId)) {
       this.document.documentElement.setAttribute('data-theme', theme);
+      this.syncFavicon(theme);
       // Solo la cookie de tema resuelto (anti-parpadeo); NO persistimos preferencia
       // de franja, porque en modo automático el reloj decide, no el usuario.
       try {
@@ -161,6 +180,7 @@ export class ThemeService {
     const theme = this.resolve(next);
     if (isPlatformBrowser(this.platformId)) {
       this.document.documentElement.setAttribute('data-theme', theme);
+      this.syncFavicon(theme);
       if (persist) this.persist(next, theme);
     }
   }
