@@ -1,4 +1,4 @@
-# Despliegue y manejo de secretos — Pasa Eventos
+# Despliegue y manejo de secretos — Boletiva
 
 Estrategia 12-factor: el mismo binario corre en local y en GCP; **solo cambia la
 configuración por entorno**. Local usa `.env` (Docker). Prod NO usa archivos de
@@ -34,7 +34,7 @@ El workflow de deploy (`deploy.yml`) hace:
   with:
     credentials_json: '${{ secrets.GCP_SA_KEY }}'   # <- aquí se conecta
 - uses: google-github-actions/setup-gcloud@v2
-  with: { project_id: pasa-eventos }
+  with: { project_id: boletera-502405 }
 ```
 A partir de ahí, `gcloud` ya está autenticado y NO necesita más secretos en el
 YAML: las credenciales de la app (DB, Redis, etc.) viven en Secret Manager y
@@ -53,7 +53,7 @@ Con `.env.prod` lleno (credenciales reales, recién emitidas), subir cada valor
 como un secreto (una sola vez; luego `versions add` para rotar):
 
 ```bash
-# Requiere: gcloud auth login && gcloud config set project pasa-eventos
+# Requiere: gcloud auth login && gcloud config set project boletera-502405
 set -a; source .env.prod; set +a
 
 create_secret() {   # $1 = nombre del secreto, $2 = valor
@@ -80,10 +80,10 @@ Manager, no el valor en claro) y las no-sensibles como env vars:
 
 ```bash
 gcloud run deploy pasaeventos-api \
-  --image us-central1-docker.pkg.dev/pasa-eventos/pasaeventos-backend/api:TAG \
+  --image us-central1-docker.pkg.dev/boletera-502405/pasaeventos-backend/api:TAG \
   --region us-central1 --platform managed --allow-unauthenticated \
   --memory=2Gi --cpu=2 --concurrency=200 --min-instances=1 --max-instances=20 \
-  --set-env-vars=NODE_ENV=production,STORAGE_PROVIDER=gcs,GCLOUD_PROJECT_ID=pasa-eventos,GCS_BUCKET=pasaeventos-prod-media,CORS_ORIGINS=https://pasaeventos.com \
+  --set-env-vars=NODE_ENV=production,STORAGE_PROVIDER=gcs,GCLOUD_PROJECT_ID=boletera-502405,GCS_BUCKET=pasaeventos-prod-media,CORS_ORIGINS=https://boletiva.com \
   --set-secrets=DATABASE_URL=pasaeventos-database-url:latest,REDIS_URL=pasaeventos-redis-url:latest,AMQP_URL=pasaeventos-amqp-url:latest,MAIL_PASS=pasaeventos-mail-pass:latest,JWT_ACCESS_SECRET=pasaeventos-jwt-access-secret:latest,JWT_REFRESH_SECRET=pasaeventos-jwt-refresh-secret:latest,GCS_SERVICE_ACCOUNT_JSON=pasaeventos-gcs-sa-json:latest
 ```
 

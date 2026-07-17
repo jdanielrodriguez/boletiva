@@ -1,13 +1,14 @@
-# CLAUDE.md — Pasa Eventos
+# CLAUDE.md — Boletiva
 
 Contexto de arranque para cualquier sesión. Léelo completo antes de trabajar.
 **Idioma de comunicación: español.** El detalle de diseño vive en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) — es la fuente de verdad.
+**Repo: `github.com/jdanielrodriguez/boletiva`** (ramas `master`/`develop`); `pasa-eventos` es copia histórica. Rama de trabajo: `develop`. Nota: los identificadores de infra (`pasaeventos_api`, secretos `pasaeventos-*`, carpeta del repo) conservan el nombre anterior a propósito — no romperlos al renombrar.
 
 ---
 
 ## Qué es esto
 
-`pasaeventos` es la boletera de eventos a **producción**, cuyo objetivo es **competir en tecnología** con las grandes boleteras: vender/validar **miles de boletos**, boletos **descargables a wallet**, **validables offline** pero **dinámicos** (un screenshot no sirve). Moneda **GTQ (Q)**, zona horaria **America/Guatemala**.
+`boletiva` (antes «pasaeventos») es la boletera de eventos a **producción**, cuyo objetivo es **competir en tecnología** con las grandes boleteras: vender/validar **miles de boletos**, boletos **descargables a wallet**, **validables offline** pero **dinámicos** (un screenshot no sirve). Moneda **GTQ (Q)**, zona horaria **America/Guatemala**.
 
 Es un **port/rediseño** del proyecto de referencia `ticketera` (misma carpeta padre `/var/www/server/proyectos/`):
 - `ticketera/server` = backend **Laravel/PHP** (referencia del dominio). `ticketera/src` = frontend Angular 14.

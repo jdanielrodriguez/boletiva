@@ -1,225 +1,136 @@
-# Pasaeventos
+# Boletiva
 
-Plataforma moderna para la venta y compra de boletos para eventos, desarrollada bajo una arquitectura monorepo con [Nx](https://nx.dev/), [TypeScript](https://www.typescriptlang.org/), Docker y mejores prácticas de calidad y despliegue continuo.
+**Boletiva** (`boletiva.com`) — *tu boletera activa*. Plataforma de venta y validación de boletos para
+eventos pensada para **competir en tecnología** con las grandes boleteras: vender/validar **miles de
+boletos**, boletos **descargables a wallet**, **validables offline** pero **dinámicos** (un screenshot no
+sirve). Moneda **GTQ (Q)**, zona horaria **America/Guatemala**.
 
-## 🚀 ¿Qué es este proyecto?
+Monorepo dockerizado: **un solo comando** levanta backend + frontend + toda la infraestructura local.
 
-**Pasaeventos** es un sistema digital orientado a facilitar la gestión, promoción, venta y validación de entradas para todo tipo de eventos, con enfoque en escalabilidad y calidad desde el día uno.  
-Este repositorio es el *core* backend y orquestador de servicios, completamente dockerizado, ideal para desarrollo local, pruebas, y despliegue en la nube.
-
-## 🏗️ Arquitectura y tecnologías
-
-- **Monorepo Nx:** Todo el código fuente (backend, frontend y librerías compartidas) en un solo repositorio, facilitando el versionado y la colaboración.
-- **Backend:** Node.js + Express + TypeScript.
-- **Base de datos:** MySQL 8.
-- **Cache y colas:** Redis.
-- **Almacenamiento de archivos:** MinIO (compatible con S3, configurable vía .env).
-- **Correo de pruebas:** Mailhog (configurable vía .env).
-- **Admin DB:** phpMyAdmin.
-- **Infraestructura:** Docker Compose para todos los servicios de desarrollo, con orquestación de redes y volúmenes personalizados.
-- **CI/CD:** Listo para workflows independientes por servicio (backend, frontend), fácil integración con Github Actions y Google Cloud Run.
-- **Testing:** Jest + Supertest (integración/unidad), cobertura automática, y teardown de recursos global.
-- **Documentación interactiva:** Swagger en `/docs`.
-
-## 📦 Estructura de carpetas principal
-
-```
-.
-├── api                 # Backend (Express/TypeScript)
-│   └── src
-│       ├── config
-│       ├── controllers
-│       ├── middlewares
-│       ├── models
-│       ├── repositories
-│       ├── routes
-│       ├── services
-│       ├── test         # Unit & integration tests
-│       └── utils
-├── docker              # Dockerfiles custom (node, minio, etc)
-├── docker-compose.local.yml
-├── Makefile            # Tareas para devops y automatización
-├── package.json        # Dependencias monorepo y scripts Nx
-├── nx.json             # Configuración Nx
-└── ...                 # Otros servicios/libs/comandos
-```
-
-## ⚡ Primeros pasos
-
-### 1. **Pre-requisitos**
-
-- [Docker](https://www.docker.com/get-started/)
-- [Node.js 20+](https://nodejs.org/) (para scripts Nx locales)
-- [Nx CLI (opcional)](https://nx.dev/cli)
-
-### 2. **Configuración del entorno**
-
-Copia `.env.example` a `.env` y personaliza según tu entorno:
-
-```
-cp .env.example .env
-```
-
-Ejemplo de variables (dev/prod):
-
-```
-# ===========================
-# General
-NODE_ENV=development
-PORT=8080
-# ===========================
-# MySQL
-MYSQL_HOST=pasaeventos_db         # Local Docker
-MYSQL_PORT=3306
-MYSQL_USER=pasaeventos
-MYSQL_PASSWORD=1234
-MYSQL_DATABASE=pasaeventos
-# ===========================
-# MySQL PROD
-# MYSQL_HOST=PROD_MYSQL_HOST
-# MYSQL_PORT=PROD_MYSQL_PORT
-# MYSQL_USER=PROD_MYSQL_USER
-# MYSQL_PASSWORD=PROD_MYSQL_PASSWORD
-# MYSQL_DATABASE=PROD_MYSQL_DATABASE
-# ===========================
-# Redis
-REDIS_HOST=pasaeventos_redis      # Local Docker
-REDIS_PORT=6379
-# ===========================
-# Redis PROD
-# REDIS_HOST=PROD_REDIS_HOST
-# REDIS_PORT=PROD_REDIS_PORT
-# ===========================
-# Filemanager (MinIO/S3)
-FILEMANAGER_PROVIDER=minio        # Options: minio, s3
-# --- MinIO (local/desarrollo) ---
-MINIO_ENDPOINT=172.16.0.9         # Docker network IP
-MINIO_PORT=9000
-MINIO_ROOT_USER=pasaeventos
-MINIO_ROOT_PASSWORD=pasaeventos
-MINIO_USE_SSL=false
-# ===========================
-# --- GCP STORAGE (PROD) ---
-# FILEMANAGER_PROVIDER=s3
-# GCS_SERVICE_ACCOUNT_JSON=GCS_SERVICE_ACCOUNT_JSON_CONTENT
-# GCLOUD_PROJECT_ID=PRO_GCLOUD_PROJECT_ID
-# GCS_BUCKET=PRO_GCS_BUCKET
-# ===========================
-# Mail (Mailhog)
-MAIL_HOST=pasaeventos_mailhog
-MAIL_PORT=1025
-MAIL_USER=
-MAIL_PASS=
-# ===========================
-# Mail (Gmail PROD)
-# MAIL_HOST=google
-# MAIL_PASS=PROD_MAIL_PASS
-# MAIL_USER=PROD_MAIL_USER@gmail.com
-# MAIL_FROM=alertas@pasa-eventos.com
-# MAIL_TO=admin@pasa-eventos.com
-# MAIL_SECURE=true
-# ===========================
-# CORS_ORIGINS puede ser uno o varios dominios separados por coma
-CORS_ORIGINS=http://localhost:4200,http://localhost:4300
-```
-
-### 3. **Levantar todo el stack de desarrollo**
-
-```
-make init
-```
-
-Esto:
-- Crea la red y volúmenes necesarios (si no existen).
-- Construye las imágenes.
-- Levanta todos los servicios: API, MySQL, Redis, FileManager (MinIO/S3), phpMyAdmin, Mailhog.
-
-### 4. **Acceso rápido a servicios**
-
-- **API Backend:** [http://localhost:8080](http://localhost:8080)
-- **Health Check:** [http://localhost:8080/api/v1/health](http://localhost:8080/api/v1/health)
-- **Swagger Docs:** [http://localhost:8080/docs](http://localhost:8080/docs)
-- **phpMyAdmin:** [http://localhost:8081](http://localhost:8081)
-- **Mailhog:** [http://localhost:30250](http://localhost:30250)
-- **MinIO UI:** [http://localhost:9001](http://localhost:9001)
-
-### 5. **Shells y utilidades rápidas**
-
-- Acceso a cada contenedor:
-
-```sh
-make node-shell
-make db-shell
-make redis-shell
-make minio-shell
-make phpmyadmin-shell
-make mailhog-shell
-```
-
-## 🧪 Desarrollo, testing y coverage con Nx
-
-### Ejecutar tareas Nx:
-
-```sh
-npx nx <target> <project-name>
-```
-
-Ejemplo, para el backend:
-
-```
-npx nx serve api        # Levanta la API en modo desarrollo (hot reload)
-npx nx build api        # Compila la API a producción
-npx nx test api         # Ejecuta los tests de la API y coverage
-```
-
-### Ver el reporte de coverage
-
-Tras ejecutar los tests, puedes visualizar el coverage ejecutando:
-
-```sh
-npx serve api/coverage/api -l 3000
-```
-
-Luego abre [http://localhost:3000](http://localhost:3000) en tu navegador.
-
-## 📝 Configuración avanzada y mejores prácticas
-
-- **Variables de entorno:** Usa archivos `.env` según ambiente (`.env`, `.env.prod`, etc) y expórtalos en tus scripts/docker/workflows.
-- **Testing:** Todos los tests están en `/api/src/test` para máxima compatibilidad con Nx/Jest. El cierre de conexiones es automático gracias a hooks globales.
-- **Swagger:** Toda la documentación está disponible y autocontenida en `/docs` y se actualiza con los decoradores y anotaciones JSDoc en tus rutas/controllers.
-- **Nx:** Usa `npx nx graph` para visualizar dependencias entre proyectos y librerías.
-- **Extensiones recomendadas:** [Nx Console](https://nx.dev/getting-started/editor-setup) para autocompletado y generación de código desde tu IDE.
-
-## 🐳 Despliegue y ambientes
-
-- **Desarrollo:**  
-  Usa `docker-compose.local.yml` para levantar todo en tu máquina con hot reload.
-- **Producción y test:**  
-  Se recomienda crear archivos `docker-compose.prod.yml` o `docker-compose.test.yml` adaptados para tu entorno (ver ejemplos en `/docker`).
-- **CI/CD:**  
-  Integrado con Github Actions, fácil despliegue a Google Cloud Run.
-
-## 📚 Documentación y recursos
-
-- [Documentación oficial Nx](https://nx.dev/)
-- [Express + TypeScript Best Practices](https://expressjs.com/en/advanced/best-practice-performance.html)
-- [Node.js Docker Best Practices](https://nodejs.org/en/docs/guides/nodejs-docker-webapp)
-- [Swagger UI Docs](https://swagger.io/tools/swagger-ui/)
-
-## ❓ FAQ y problemas comunes
-
-- **No se ven los tests:**  
-  Asegúrate que los tests estén en `/api/src/test` y que el patrón `testMatch` esté correcto en el jest.config.
-- **No cierra Jest después de los tests:**  
-  Verifica que el `afterAll` de tu setup cierre todas las conexiones (MySQL, Redis, etc).
-- **Swagger no muestra rutas:**  
-  Confirma que tus anotaciones JSDoc estén en las rutas y que el build esté actualizado.
-- **Error de variables de entorno:**  
-  Asegúrate que tu `.env` esté presente y bien configurado, o revisa los defaults en `/api/src/config/api.ts`.
+> Repo: `github.com/jdanielrodriguez/boletiva` · ramas **`master`** (producción) y **`develop`**
+> (desarrollo). El repo anterior `pasa-eventos` queda como copia histórica.
 
 ---
 
-¿Dudas o sugerencias?  
-Cualquier mejora o issue, por favor abre un [issue](https://github.com/jdanielrodriguez/tikettera/issues) o contacta a los administradores del repo.
+## 🏗️ Stack
+
+| Capa | Tecnología |
+|---|---|
+| Backend | **NestJS + Prisma + PostgreSQL 16** (SQL crudo puntual para `FOR UPDATE`) |
+| Frontend | **Angular 20 SSR PWA** (zoneless, signals) |
+| Cache / locks / colas | **Redis** (holds, rate-limit, contadores, **BullMQ**) |
+| Ingest masivo de validación | **RabbitMQ** |
+| Almacenamiento | **GCS** (prod) · **LocalStack S3** (local), URLs firmadas |
+| Correo | SMTP · **MailHog** en local |
+| Boletos | **Ed25519** (firma) + **TOTP** (QR rotativo), validación offline (SafeTix) |
+| Wallet | Google Wallet + Apple `.pkpass` (detrás de un puerto, stub en sandbox) |
+| Pagos | Puerto `PaymentProvider` + **simulador** · Recurrente/Pagalo (config-gated) |
+| Observabilidad | OpenTelemetry (opcional) + logs JSON (pino) |
+| Deploy | **GCP Cloud Run** + GitHub Actions (WIF) + Secret Manager |
+
+Idioma del proyecto: **español**. Detalle de diseño en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md);
+contrato API en [docs/openapi.json](docs/openapi.json).
 
 ---
+
+## ⚡ Arranque local (un comando)
+
+**Pre-requisitos:** Docker + Docker Compose. (Node solo si quieres correr scripts fuera del contenedor.)
+
+```bash
+cp .env.example .env      # config local (Postgres local, sin secretos reales)
+make init                 # crea red+volúmenes, build y levanta TODO el stack
+# o, si ya está construido:
+make start
+```
+
+`make start` levanta: **API (NestJS)**, **frontend (Angular 20 SSR)**, PostgreSQL, Redis, RabbitMQ,
+MailHog, LocalStack (S3) y Adminer.
+
+> ⚠️ Los `node_modules` de los contenedores viven en **volúmenes anónimos**: tras `make down` o al
+> cambiar dependencias corre **`make rebuild`** (reinstala deps como exceljs/ApexCharts).
+
+### Mapa de puertos (host → contenedor)
+
+| Servicio | Host |
+|---|---|
+| Frontend (Angular SSR) | http://localhost:4200 |
+| API (NestJS) | http://localhost:8080 |
+| Swagger (solo fuera de prod) | http://localhost:8080/docs |
+| Health | http://localhost:8080/api/v1/health |
+| Adminer (DB UI) | http://localhost:8082 |
+| PostgreSQL 16 | 54320 |
+| Redis 7 | 63790 |
+| RabbitMQ (AMQP / UI) | 56720 / 15673 |
+| MailHog (SMTP / UI) | 10250 / 8026 |
+| LocalStack (S3) | 45660 |
+| Jaeger (OTel, perfil `observability`) | 16687 |
+
+Credenciales seed: `admin@boletiva.com` / `promotor@boletiva.com` / `cliente@boletiva.com`, todas con
+password `Password123` (cámbialas en prod).
+
+---
+
+## 🛠️ Comandos (Makefile)
+
+**Regla de oro: NUNCA correr comandos fuera del contenedor.** Todo vía Docker/Makefile.
+
+```bash
+make init          # primera vez: red+volúmenes, build y levanta el stack
+make start / stop  # levantar / detener ; make down (baja y borra contenedores)
+make rebuild       # rebuild + reinstala node_modules (tras cambiar dependencias)
+make logs          # logs de la API en vivo ; make front-logs (frontend)
+make migrate       # prisma migrate dev ; make db-push (sincroniza sin migración)
+make seed          # settings + datos baseline (admin/promotor/cliente + demo)
+make test          # tests unitarios/e2e del backend (jest, en el contenedor)
+make smoke         # smoke E2E (HTTP + Puppeteer/Swagger)
+make e2e           # E2E de cara al usuario (Puppeteer contra el stack real)
+make load          # carga K6: estadio 10k + spike + verificación 0 doble-venta
+make gen-api       # regenera el SDK tipado del frontend desde docs/openapi.json
+make front-test / front-lint
+make db-shell / redis-shell / rabbit-shell / node-shell
+```
+
+**Producción / alpha** (requieren `gcloud` autenticado — ver [docs/GUIA-GCP.md](docs/GUIA-GCP.md)):
+
+```bash
+make prod-db-seed     # siembra la baseline en la BD de prod (1er arranque)
+make prod-db-reset    # ⚠️ DESTRUCTIVO: borra TODA la data de prod y re-siembra (pruebas alpha)
+make prod-logs        # logs de prod limpios (sin ruido) ; make prod-logs-errors (solo errores)
+make prod-logs-follow # streaming en vivo
+```
+
+---
+
+## 🧪 Calidad y CI
+
+- **Tests exhaustivos por endpoint** son el criterio de aceptación (happy path por rol, todos los
+  errores, seguridad/hacking, concurrencia 0 doble-venta, bordes de dinero con Banker's rounding).
+- **GitHub Actions:** `test.yml` (backend + frontend en cada push/PR), `staging.yml` (deploy a staging
+  al mergear `develop`), `release-prod.yml` (deploy a prod al mergear `master`: pruebas → mantenimiento →
+  deploy → tag). Autenticación por **Workload Identity Federation** (sin llaves estáticas).
+- El **merge/push a ramas principales lo hace el usuario**; el deploy solo corre cuando están
+  configuradas las variables WIF en GitHub.
+
+---
+
+## 🚀 Desplegar a producción
+
+Guía paso a paso (crear proyecto, APIs, Secret Manager, WIF, primer deploy, reset de BD alpha y lectura
+de logs limpios): **[docs/GUIA-GCP.md](docs/GUIA-GCP.md)** (§7–§11). Topología objetivo en Cloud Run:
+**api** (HTTP) · **worker** (BullMQ) · **ingest** (validación masiva RabbitMQ).
+
+---
+
+## 📚 Documentación
+
+- [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) — diseño y decisiones (fuente de verdad).
+- [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md) — despliegue, secretos y topología.
+- [docs/GUIA-GCP.md](docs/GUIA-GCP.md) — GCP paso a paso (proyecto, WIF, secretos, lanzamiento, logs).
+- [docs/INTEGRACIONES-CREDENCIALES.md](docs/INTEGRACIONES-CREDENCIALES.md) — credenciales de integraciones (Wallet, reCAPTCHA, pagos, FEL).
+- `CLAUDE.md` — contexto de arranque para trabajar en el repo.
+
+---
+
+*Boletiva — plataforma en construcción activa. Reportes o mejoras: abre un
+[issue](https://github.com/jdanielrodriguez/boletiva/issues).*

@@ -1,4 +1,4 @@
-# Pasa Eventos — Plan Maestro de Arquitectura (Backend v1)
+# Boletiva — Plan Maestro de Arquitectura (Backend v1)
 
 > Documento de diseño de la reescritura del backend. Fuente de verdad de las decisiones.
 > Rama de trabajo: `feature/backend-core-v1` (partiendo de `develop`). Moneda: **GTQ (Q)**. Zona horaria: **America/Guatemala**.
@@ -8,7 +8,7 @@
 
 ## 0. Contexto
 
-`pasaeventos` es la versión a producción de una boletera de eventos cuyo objetivo es **competir en tecnología** con las grandes boleteras: vender y validar **miles de boletos**, boletos **descargables a wallet** del teléfono, **validables offline** pero **dinámicos** (un screenshot no sirve).
+`boletiva` (antes «pasaeventos») es la versión a producción de una boletera de eventos cuyo objetivo es **competir en tecnología** con las grandes boleteras: vender y validar **miles de boletos**, boletos **descargables a wallet** del teléfono, **validables offline** pero **dinámicos** (un screenshot no sirve).
 
 Es un **port/rediseño** de `ticketera` (Laravel/PHP) a **Node/TypeScript**. Del análisis de ticketera concluimos que su backend tiene un modelo de dominio útil (eventos → localidades → asientos → transacciones → caja) pero **carece de**: motor de precios (los campos fiscales existen pero nunca se aplican), pasarela de pago real (stubs `true`), QR/wallet/validación, RBAC, y arrastra mucho modelo vestigial. Todo eso lo construimos aquí, bien hecho.
 

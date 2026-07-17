@@ -1,4 +1,11 @@
-# Frontend
+# Boletiva — Frontend (Angular 20 SSR PWA)
+
+Frontend de **Boletiva** (`boletiva.com`). Forma parte del monorepo; **no** se levanta por separado en
+desarrollo: usa `make start` desde la raíz (el servicio Angular SSR corre en http://localhost:4200 dentro
+de Docker). Ver el [README raíz](../README.md) para el arranque de un comando y los targets del Makefile.
+El SDK tipado se regenera desde `docs/openapi.json` con `make gen-api`.
+
+> Lo de abajo es la referencia genérica del Angular CLI (útil para comandos puntuales dentro del contenedor).
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.0.4.
 
