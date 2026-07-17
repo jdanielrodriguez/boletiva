@@ -85,6 +85,18 @@ describe('Retiros de wallet (e2e)', () => {
   }
 
   afterAll(async () => {
+    // Restaura las comisiones de retiro al baseline del seed (promotor 0.05 / usuario 0)
+    // para NO contaminar suites posteriores que las lean de la BD compartida (anti-flaky).
+    for (const [key, value] of [
+      ['wallet.withdraw_fee_user_pct', 0],
+      ['wallet.withdraw_fee_promoter_pct', 0.05],
+    ] as const) {
+      await prisma.setting.upsert({
+        where: { key },
+        update: { value },
+        create: { key, value, description: 'seed' },
+      });
+    }
     await prisma.walletWithdrawal.deleteMany({});
     await prisma.ledgerEntry.deleteMany({});
     await prisma.ledgerTransaction.deleteMany({});

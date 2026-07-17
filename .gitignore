@@ -57,3 +57,8 @@ load/stadium.manifest.json
 
 # Notas de trabajo del usuario (no versionar)
 promot_fixes.md
+
+# Screenshots de QA manual (regenerables, no versionar)
+qa-out/
+qashots/
+qashots2/

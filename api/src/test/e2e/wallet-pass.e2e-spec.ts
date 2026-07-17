@@ -84,7 +84,10 @@ describe('Pases de wallet (e2e)', () => {
   }
 
   afterAll(async () => {
+    // Restaura al baseline del seed para NO contaminar suites posteriores (anti-flaky):
+    // wallet.pass_fee=0 y costshare.default_pct=0 (esta suite lo sube a 0.5).
     await prisma.setting.update({ where: { key: 'wallet.pass_fee' }, data: { value: 0 } }).catch(() => undefined);
+    await prisma.setting.update({ where: { key: 'costshare.default_pct' }, data: { value: 0 } }).catch(() => undefined);
     await prisma.ticket.deleteMany({ where: { eventId } });
     await prisma.payment.deleteMany({ where: { order: { eventId } } });
     await prisma.webhookEvent.deleteMany({});
