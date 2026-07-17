@@ -38,6 +38,13 @@
             @for (p of eventPromoters(); track p.id) { <option [value]="p.id">{{ p.name }}</option> }
           </select>
         </label>
+        <label class="field"><span>{{ 'config.events.category' | translate }}</span>
+          <select [ngModel]="eventCategory()" (ngModelChange)="setEventCategory($event)" name="ecategory" data-testid="event-category-filter">
+            <option value="">{{ 'common.all' | translate }}</option>
+            <option value="none">{{ 'config.events.categoryNone' | translate }}</option>
+            @for (c of eventCategories(); track c.id) { <option [value]="c.id">{{ c.name }}</option> }
+          </select>
+        </label>
       </div>
       @if (filteredEvents().length > 0) {
         <div class="admin-events-grid" data-testid="admin-events">

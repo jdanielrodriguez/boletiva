@@ -2,6 +2,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { of } from 'rxjs';
+import { CategoriesApi } from '../../core/api/categories.api';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
 import { SessionStore } from '../../core/auth/session.store';
 import { UsersApi } from '../../core/api/users.api';
@@ -23,6 +24,7 @@ describe('PromoterPanel (v3 grid)', () => {
       providers: [
         { provide: SessionStore, useValue: { user: () => null } },
         { provide: UsersApi, useValue: { markTourSeen: () => of({}) } },
+        { provide: CategoriesApi, useValue: { list: () => of([]) } },
         provideZonelessChangeDetection(),
         ...provideI18nTesting(),
         provideRouter([]),

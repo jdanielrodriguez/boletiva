@@ -43,6 +43,8 @@ export const config = {
   },
 
   events: {
+    category: 'Categoría',
+    categoryNone: 'Sin categoría',
     heading: 'Todos los eventos',
     searchPlaceholder: 'Evento o promotor',
     promoter: 'Promotor',

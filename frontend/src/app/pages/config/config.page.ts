@@ -156,6 +156,8 @@ export class ConfigPage {
   protected readonly eventStatus = signal('');
   /** Filtro por promotor (id del promotor seleccionado; '' = todos). */
   protected readonly eventPromoter = signal('');
+  /** Filtro por categoría: '' (todas) | 'none' (sin categoría) | <categoryId>. Detecta eventos sin categorizar. */
+  protected readonly eventCategory = signal('');
   protected readonly eventPromoters = computed(() => {
     const map = new Map<string, string>();
     for (const e of this.events()) {
@@ -164,13 +166,24 @@ export class ConfigPage {
     }
     return [...map.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
   });
+  /** Categorías presentes entre los eventos (para el filtro admin). */
+  protected readonly eventCategories = computed(() => {
+    const map = new Map<string, string>();
+    for (const e of this.events()) {
+      if (e.category) map.set(e.category.id, e.category.name);
+    }
+    return [...map.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  });
   protected readonly filteredEvents = computed(() => {
     const q = this.eventSearch().trim().toLowerCase();
     const status = this.eventStatus();
     const promoterId = this.eventPromoter();
+    const cat = this.eventCategory();
     return this.events().filter((e) => {
       if (status && e.status !== status) return false;
       if (promoterId && e.promoter?.id !== promoterId) return false;
+      if (cat === 'none' && e.category) return false;
+      if (cat && cat !== 'none' && e.category?.id !== cat) return false;
       if (!q) return true;
       const promoter = e.promoter
         ? `${e.promoter.firstName} ${e.promoter.lastName ?? ''}`.toLowerCase()
@@ -292,6 +305,7 @@ export class ConfigPage {
     this.eventSearch.set('');
     this.eventStatus.set('');
     this.eventPromoter.set('');
+    this.eventCategory.set('');
     this.eventsPage.set(1);
     this.promoterSearch.set('');
     this.promoterStatus.set('');
@@ -335,6 +349,10 @@ export class ConfigPage {
   }
   protected setEventPromoter(v: string): void {
     this.eventPromoter.set(v);
+    this.eventsPage.set(1);
+  }
+  protected setEventCategory(v: string): void {
+    this.eventCategory.set(v);
     this.eventsPage.set(1);
   }
 

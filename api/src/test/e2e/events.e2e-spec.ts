@@ -190,6 +190,26 @@ describe('Eventos: gestión (e2e)', () => {
     await http().get(`/api/v1/events/${past.id}/availability`).expect(409);
   });
 
+  it('evento CONCLUIDO (fecha pasada): no se edita/suspende/cancela/elimina (409); solo ver cuentas', async () => {
+    const past = await prisma.event.create({
+      data: {
+        promoterId,
+        name: `Ev Concluido ${stamp}`,
+        slug: `ev-concluido-${stamp}`,
+        startsAt: new Date('2020-01-01T20:00:00-06:00'),
+        endsAt: new Date('2020-01-01T23:00:00-06:00'),
+        status: 'published',
+      },
+    });
+    const t = bearer(promoterToken);
+    await http().patch(`/api/v1/events/${past.id}`).set(t).send({ name: 'nuevo' }).expect(409);
+    await http().post(`/api/v1/events/${past.id}/suspend`).set(t).expect(409);
+    await http().post(`/api/v1/events/${past.id}/cancel`).set(t).expect(409);
+    await http().delete(`/api/v1/events/${past.id}`).set(t).expect(409);
+    // Las cuentas (transacciones) SÍ se pueden ver.
+    await http().get(`/api/v1/events/${past.id}/transactions`).set(t).expect(200);
+  });
+
   describe('Admin crea evento a nombre de un promotor (v3.8)', () => {
     it('admin con promoterId aprobado → evento del promotor + createdByAdminId auditado', async () => {
       // Nombre por defecto `Ev …` para que el afterAll (limpia por nombre) lo borre
