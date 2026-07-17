@@ -1,4 +1,5 @@
-import { input, provideZonelessChangeDetection } from '@angular/core';
+import { input, provideZonelessChangeDetection, signal } from '@angular/core';
+import { PublicConfigStore } from '../../core/config/public-config.store';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component } from '@angular/core';
 import { provideRouter } from '@angular/router';
@@ -79,6 +80,7 @@ describe('PromoterDashboardPage', () => {
         provideZonelessChangeDetection(),
         provideRouter([]),
         ...provideI18nTesting(),
+        { provide: PublicConfigStore, useValue: { reportsMaintenance: signal(false).asReadonly(), refresh: () => undefined } },
         { provide: PromoterDashboardApi, useValue: api },
         { provide: SessionStore, useValue: session },
         { provide: ToastService, useValue: toasts },

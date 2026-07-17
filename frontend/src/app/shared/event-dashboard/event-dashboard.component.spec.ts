@@ -1,4 +1,5 @@
-import { Component, input, provideZonelessChangeDetection } from '@angular/core';
+import { Component, input, provideZonelessChangeDetection, signal } from '@angular/core';
+import { PublicConfigStore } from '../../core/config/public-config.store';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
@@ -56,6 +57,7 @@ describe('EventDashboardComponent', () => {
       providers: [
         provideZonelessChangeDetection(),
         ...provideI18nTesting(),
+        { provide: PublicConfigStore, useValue: { reportsMaintenance: signal(false).asReadonly(), refresh: () => undefined } },
         { provide: PromoterEventsApi, useValue: { dashboard } as unknown as PromoterEventsApi },
       ],
     });

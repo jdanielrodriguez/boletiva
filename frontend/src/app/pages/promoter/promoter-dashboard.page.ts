@@ -10,6 +10,7 @@ import { BackLinkComponent } from '../../shared/ui/back-link.component';
 import { LoadingComponent } from '../../shared/ui/loading.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { ChartComponent, ChartOptions } from '../../shared/ui/chart.component';
+import { ReportsMaintenanceGateComponent } from '../../shared/reports-maintenance/reports-maintenance-gate.component';
 import { MoneyPipe } from '../../shared/money.pipe';
 import type { PromoterDashboardDto, PromoterDimensionRowDto } from '../../core/api/types';
 
@@ -49,6 +50,7 @@ const STATUS_KEY: Record<string, string> = {
     EmptyStateComponent,
     ChartComponent,
     MoneyPipe,
+    ReportsMaintenanceGateComponent,
   ],
   templateUrl: './promoter-dashboard.page.html',
   styleUrl: './promoter-dashboard.page.css',

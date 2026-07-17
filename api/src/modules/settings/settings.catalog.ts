@@ -110,6 +110,14 @@ export const SETTINGS_CATALOG: SettingDef[] = [
     description: 'Mostrar las categorías en la página principal (inicio).',
   },
   {
+    key: 'reports.maintenance',
+    type: 'bool',
+    default: false,
+    description:
+      'Mantenimiento de REPORTES: bloquea los dashboards/reportes de eventos, promotores y ' +
+      'chequeo de boletos mostrando un aviso (sin tirar el sitio). Úsalo si hay descuadre contable.',
+  },
+  {
     key: 'theme.slot.noche',
     type: 'enum',
     default: 'pulso',
@@ -168,6 +176,7 @@ export const SETTINGS_CATALOG: SettingDef[] = [
 export const PUBLIC_CONFIG_KEYS = {
   allowVisitorLangSwitch: 'i18n.allow_visitor_switch',
   showHomeCategories: 'home.show_categories',
+  reportsMaintenance: 'reports.maintenance',
   themeSlotNoche: 'theme.slot.noche',
   themeSlotDia: 'theme.slot.dia',
   themeDefaultFranja: 'theme.default_franja',

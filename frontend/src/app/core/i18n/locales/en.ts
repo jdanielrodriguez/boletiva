@@ -16,6 +16,7 @@ import { promoterHistory } from './en/promoter-history';
 import { terms } from './en/terms';
 import { maintenance } from './en/maintenance';
 import { tour } from './en/tour';
+import { reportsMaintenance } from './en/reports-maintenance';
 
 /** ENGLISH dictionary (en-US). Composed from namespaces. */
 export const en: TranslationObject = {
@@ -36,4 +37,5 @@ export const en: TranslationObject = {
   terms,
   maintenance,
   tour,
+  reportsMaintenance,
 };

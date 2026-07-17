@@ -40,7 +40,7 @@
             "description": ""
           }
         },
-        "summary": "Health completo: PostgreSQL, Redis, RabbitMQ, storage y mail",
+        "summary": "Health completo: PostgreSQL, Redis, RabbitMQ, storage y mail (detalle solo fuera de prod)",
         "tags": [
           "health"
         ]
@@ -8780,6 +8780,7 @@
           },
           "category": {
             "nullable": true,
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/EventCategoryDto"
@@ -8990,6 +8991,7 @@
           },
           "category": {
             "nullable": true,
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/EventCategoryDto"
@@ -9152,6 +9154,7 @@
           },
           "category": {
             "nullable": true,
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/EventCategoryDto"
@@ -9376,6 +9379,7 @@
           },
           "category": {
             "nullable": true,
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/EventCategoryDto"
@@ -9547,6 +9551,7 @@
           "price": {
             "nullable": true,
             "description": "Precio del comprador (null si la localidad no tiene neto definido)",
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/BuyerPriceDto"
@@ -9623,6 +9628,7 @@
         "properties": {
           "seatMap": {
             "nullable": true,
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/SeatMapDto"
@@ -9784,6 +9790,7 @@
           },
           "category": {
             "nullable": true,
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/EventCategoryDto"
@@ -15492,6 +15499,11 @@
             "description": "Si se muestran las categorías en la página principal.",
             "example": true
           },
+          "reportsMaintenance": {
+            "type": "boolean",
+            "description": "Mantenimiento de reportes/dashboards de eventos, promotores y chequeo de boletos.",
+            "example": false
+          },
           "capabilities": {
             "type": "object",
             "description": "Integraciones externas configuradas y disponibles (gating de UI).",
@@ -15531,6 +15543,7 @@
         "required": [
           "allowVisitorLangSwitch",
           "showHomeCategories",
+          "reportsMaintenance",
           "capabilities",
           "recaptchaSiteKey",
           "theme"

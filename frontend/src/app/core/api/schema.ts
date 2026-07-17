@@ -45,7 +45,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Health completo: PostgreSQL, Redis, RabbitMQ, storage y mail */
+        /** Health completo: PostgreSQL, Redis, RabbitMQ, storage y mail (detalle solo fuera de prod) */
         get: operations["HealthController_full_v1"];
         put?: never;
         post?: never;
@@ -7503,6 +7503,11 @@ export interface components {
              * @example true
              */
             showHomeCategories: boolean;
+            /**
+             * @description Mantenimiento de reportes/dashboards de eventos, promotores y chequeo de boletos.
+             * @example false
+             */
+            reportsMaintenance: boolean;
             /**
              * @description Integraciones externas configuradas y disponibles (gating de UI).
              * @example {

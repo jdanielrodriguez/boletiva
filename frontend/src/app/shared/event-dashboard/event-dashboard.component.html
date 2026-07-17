@@ -1,4 +1,5 @@
 <div class="dash" data-testid="event-dashboard">
+  <app-reports-maintenance-gate>
   @if (loading()) {
     <app-loading data-testid="dash-loading" [label]="'promoter.dash.loading' | translate" />
   } @else if (error()) {
@@ -106,4 +107,5 @@
       </section>
     </div>
   }
+  </app-reports-maintenance-gate>
 </div>

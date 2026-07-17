@@ -24,6 +24,8 @@ export interface PublicConfig {
   allowVisitorLangSwitch: boolean;
   /** ¿Se muestran las categorías en la página principal? */
   showHomeCategories: boolean;
+  /** ¿Reportes/dashboards (eventos, promotores, chequeo de boletos) en mantenimiento? */
+  reportsMaintenance?: boolean;
   /** Asignación de tema por franja + switch (para resolver el tema en el cliente). */
   theme?: ThemeConfig;
   /** Site key pública de reCAPTCHA v3 (vacía = deshabilitado, no se carga). */
