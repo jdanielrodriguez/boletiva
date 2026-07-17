@@ -55,12 +55,18 @@ jobs:
         env:
           WIF: ${{ vars.WIF_PROVIDER }}
           SA: ${{ vars.WIF_SERVICE_ACCOUNT }}
+          STAGING: ${{ vars.STAGING_ENABLED }}
         run: |
-          if [ -n "$WIF" ] && [ -n "$SA" ]; then
+          # El deploy a staging exige WIF Y el flag STAGING_ENABLED=true. La infra de
+          # staging (Cloud SQL/Redis/secretos pasaeventos-staging-*) es SEPARADA de prod
+          # y aún no está aprovisionada → hasta que exista, los tests corren pero el
+          # deploy se SALTA (no rompe el merge a develop). Activa con la variable de repo
+          # STAGING_ENABLED=true cuando provisiones staging.
+          if [ -n "$WIF" ] && [ -n "$SA" ] && [ "$STAGING" = "true" ]; then
             echo "deploy=true" >> "$GITHUB_OUTPUT"
           else
             echo "deploy=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::WIF_PROVIDER/WIF_SERVICE_ACCOUNT no configurados → se salta el deploy a staging."
+            echo "::notice::Deploy a staging OMITIDO (falta WIF o STAGING_ENABLED=true). Los tests sí corrieron."
           fi
 
   # 3) Build + deploy a Cloud Run (staging). Solo si pruebas OK y hay credenciales.
