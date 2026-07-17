@@ -1,0 +1,105 @@
+# ==============================================================================
+# deploy.yml — Despliegue a PRODUCCIÓN (Cloud Run) por TAG.
+#
+# Disparo: push de un tag `v*` (release controlado a mano) o `workflow_dispatch`.
+#   git tag v0.1.0-alpha && git push origin v0.1.0-alpha
+#
+# Autenticación: Workload Identity Federation (WIF) — SIN llaves estáticas.
+#   Requiere las variables de repo WIF_PROVIDER y WIF_SERVICE_ACCOUNT.
+#
+# Prerrequisitos (una sola vez, ver docs/GUIA-GCP.md y DESPLIEGUE.md):
+#   - 13 secretos `pasaeventos-*` en GCP Secret Manager.
+#   - Variable de repo RECAPTCHA_SITE_KEY (pública) — si falta, el captcha del
+#     frontend queda sin site key (con RECAPTCHA_DISABLED=false rompería el signup).
+#   - BD de prod con el schema aplicado: `make prod-db-seed` (1ª vez; usa prisma db push).
+#
+# NOTA (auditoría): el arranque en prod ABORTA si faltan APP_ENCRYPTION_KEY /
+# PAYMENT_WEBHOOK_SECRET / TICKET_SIGNING_SEED (caerían al default público) o si
+# TRUST_PROXY no es el nº exacto de proxies. Todos van inyectados abajo.
+# ==============================================================================
+name: Deploy to Cloud Run
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # REQUERIDO para WIF (OIDC → GCP)
+
+env:
+  PROJECT_ID: boletera-502405
+  REGION: us-central1
+  REPO: pasaeventos-backend
+  SERVICE: pasaeventos-api
+  CLOUDSQL: boletera-502405:us-central1:pasaeventos-pg
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Authenticate to GCP (WIF, no keys)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Build & push image (Artifact Registry)
+        run: |
+          gcloud builds submit \
+            --tag "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/api:${GITHUB_REF_NAME}"
+
+      # --- (OPCIONAL) Aplicar el schema a la BD ANTES de enrutar tráfico ---
+      # La BD de prod arranca vacía. El proyecto usa `prisma db push` (sin carpeta de
+      # migraciones). Para el PRIMER arranque corre `make prod-db-seed` a mano (más
+      # seguro). Si quieres aplicarlo en el pipeline, descomenta este bloque; usa el
+      # Cloud SQL Auth Proxy con el mismo socket que el secreto DATABASE_URL
+      # (host=/cloudsql/PROJECT:REGION:INSTANCE). ⚠️ `--accept-data-loss` puede borrar
+      # columnas si el schema diverge → úsalo solo en el arranque, no en cada deploy.
+      # - name: Aplicar schema (prisma db push vía Cloud SQL Auth Proxy)
+      #   run: |
+      #     curl -fsSL -o cloud-sql-proxy \
+      #       https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.14.0/cloud-sql-proxy.linux.amd64
+      #     chmod +x cloud-sql-proxy
+      #     sudo mkdir -p /cloudsql && sudo chown "$(id -u)" /cloudsql
+      #     ./cloud-sql-proxy --unix-socket /cloudsql "${CLOUDSQL}" &
+      #     sleep 6
+      #     DATABASE_URL="$(gcloud secrets versions access latest --secret=pasaeventos-database-url)" \
+      #       npx prisma db push --skip-generate
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy "${SERVICE}" \
+            --image "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/api:${GITHUB_REF_NAME}" \
+            --region "${REGION}" \
+            --platform managed \
+            --allow-unauthenticated \
+            --port 8080 \
+            --memory=2Gi --cpu=2 --concurrency=200 --min-instances=1 --max-instances=20 \
+            --add-cloudsql-instances="${CLOUDSQL}" \
+            --network=default --subnet=default --vpc-egress=private-ranges-only \
+            --set-env-vars="NODE_ENV=production,PORT=8080,TZ=America/Guatemala,TRUST_PROXY=1,STORAGE_PROVIDER=gcs,GCLOUD_PROJECT_ID=${PROJECT_ID},GCS_BUCKET=pasaeventos-prod-media,GCP_REGION=${REGION},PAYMENT_PROVIDER=simulator,CORS_ORIGINS=https://boletiva.com,MAIL_HOST=email-smtp.us-east-1.amazonaws.com,MAIL_PORT=587,MAIL_SECURE=false,MAIL_FROM=Boletiva <no-reply@boletiva.com>,WALLET_PROVIDER=auto,GOOGLE_WALLET_ISSUER_ID=BCR2DN6D7LQ73W3L,TICKET_SIGNING_KEY_ID=prod-ed25519-1,RECAPTCHA_SITE_KEY=${{ vars.RECAPTCHA_SITE_KEY }},RECAPTCHA_DISABLED=false,QUEUE_INLINE=false,RABBIT_INLINE=false" \
+            --set-secrets=DATABASE_URL=pasaeventos-database-url:latest,REDIS_URL=pasaeventos-redis-url:latest,AMQP_URL=pasaeventos-amqp-url:latest,MAIL_USER=pasaeventos-mail-user:latest,MAIL_PASS=pasaeventos-mail-pass:latest,JWT_ACCESS_SECRET=pasaeventos-jwt-access-secret:latest,JWT_REFRESH_SECRET=pasaeventos-jwt-refresh-secret:latest,APP_ENCRYPTION_KEY=pasaeventos-app-encryption-key:latest,TICKET_SIGNING_SEED=pasaeventos-ticket-signing-seed:latest,PAYMENT_WEBHOOK_SECRET=pasaeventos-payment-webhook-secret:latest,GCS_SERVICE_ACCOUNT_JSON=pasaeventos-gcs-sa-json:latest,GOOGLE_WALLET_SERVICE_ACCOUNT_JSON=pasaeventos-google-wallet-sa-json:latest,RECAPTCHA_SECRET_KEY=pasaeventos-recaptcha-secret:latest
+
+      - name: URL del servicio
+        run: |
+          echo "Cloud Run URL:"
+          gcloud run services describe "${SERVICE}" --region "${REGION}" --format='value(status.url)'
