@@ -1,6 +1,6 @@
 import { Injectable, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { OAuth2Client } from 'google-auth-library';
+import { OAuth2Client, type TokenPayload } from 'google-auth-library';
 
 export interface GoogleProfile {
   email: string;
@@ -32,8 +32,15 @@ export class GoogleAuthService {
     if (!this.client) {
       throw new ServiceUnavailableException('El inicio de sesión con Google no está configurado');
     }
-    const ticket = await this.client.verifyIdToken({ idToken, audience: this.clientId });
-    const p = ticket.getPayload();
+    let p: TokenPayload | undefined;
+    try {
+      const ticket = await this.client.verifyIdToken({ idToken, audience: this.clientId });
+      p = ticket.getPayload();
+    } catch {
+      // id_token malformado / firma o audiencia inválidas: 401 genérico. Evita el 500
+      // con la clase de error interna (SyntaxError, "No pem found…") — H-06 auditoría.
+      throw new UnauthorizedException('Token de Google inválido');
+    }
     if (!p?.email || !p.email_verified) {
       throw new UnauthorizedException('Token de Google inválido o correo no verificado');
     }

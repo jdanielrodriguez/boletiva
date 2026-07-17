@@ -43,6 +43,9 @@ describe('Rate-limit global por IP (e2e)', () => {
     await hit('10.0.0.1').expect(200);
     const res = await hit('10.0.0.1').expect(429);
     expect(res.headers['retry-after']).toBeDefined();
+    // El cuerpo se etiqueta correctamente (no "InternalServerError") — H-08 auditoría.
+    expect(res.body.error).toBe('Too Many Requests');
+    expect(res.body.statusCode).toBe(429);
   });
 
   it('otra IP tiene su propio cupo (no la afecta la primera)', async () => {

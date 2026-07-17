@@ -36,6 +36,21 @@ describe('Retiros de wallet (e2e)', () => {
     await prisma.ledgerTransaction.deleteMany({});
     await prisma.ledgerAccount.deleteMany({});
 
+    // Comisiones de retiro EXPLÍCITAS para esta suite: valida la LÓGICA "el usuario
+    // paga el doble que el promotor" con valores fijos (usuario 6% / promotor 3%),
+    // independiente del seed baseline (que hoy usa promotor 5% / usuario 0 por decisión
+    // de negocio: el cliente no retira). El teardown re-siembra los valores baseline.
+    for (const [key, value] of [
+      ['wallet.withdraw_fee_user_pct', 0.06],
+      ['wallet.withdraw_fee_promoter_pct', 0.03],
+    ] as const) {
+      await prisma.setting.upsert({
+        where: { key },
+        update: { value },
+        create: { key, value, description: 'test' },
+      });
+    }
+
     adminId = (await prisma.user.findUniqueOrThrow({ where: { email: SEED.admin } })).id;
     promoterId = (await prisma.user.findUniqueOrThrow({ where: { email: SEED.promoter } })).id;
     buyerToken = await loginTrusted(SEED.buyer, 'wd-buyer');

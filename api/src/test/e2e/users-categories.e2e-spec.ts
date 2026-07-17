@@ -136,6 +136,13 @@ describe('Users + Categories (e2e)', () => {
       .send({ filename: 'x.pdf', contentType: 'application/pdf' })
       .expect(400);
 
+    // presign de SVG → 400 (rechazado a propósito: puede llevar <script>, H-09 auditoría).
+    await http()
+      .post('/api/v1/users/me/avatar/presign')
+      .set(bearer(buyerToken))
+      .send({ filename: 'x.svg', contentType: 'image/svg+xml' })
+      .expect(400);
+
     // set con una key AJENA (otro usuario) → 400.
     await http()
       .patch('/api/v1/users/me/avatar')

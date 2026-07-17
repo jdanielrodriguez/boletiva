@@ -35,6 +35,9 @@ type SelectedUser = Prisma.UserGetPayload<{ select: typeof publicSelect }>;
 /** TTL de la URL firmada del avatar (6 h): larga para sesiones abiertas; se re-firma en cada /auth/me. */
 const AVATAR_URL_TTL_S = 6 * 60 * 60;
 
+/** Tipos de imagen permitidos para el avatar. SVG excluido a propósito (XSS). */
+const AVATAR_ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -77,8 +80,10 @@ export class UsersService {
 
   /** URL firmada de subida directa navegador→storage para el avatar del usuario. */
   async presignAvatar(userId: string, dto: AvatarPresignDto) {
-    if (!dto.contentType.startsWith('image/')) {
-      throw new BadRequestException('El avatar debe ser una imagen');
+    // Whitelist de rásters seguros: SVG queda FUERA a propósito (puede llevar
+    // <script> y ejecutarse si el contenido se sirviera desde el origen de la app) — H-09.
+    if (!AVATAR_ALLOWED_TYPES.includes(dto.contentType)) {
+      throw new BadRequestException('El avatar debe ser una imagen PNG, JPEG o WebP');
     }
     const safeName = slugify(dto.filename.replace(/\.[^.]+$/, '')) || 'avatar';
     const ext = (dto.filename.split('.').pop() ?? 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';

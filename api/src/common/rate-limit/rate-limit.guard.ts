@@ -54,8 +54,14 @@ export class RateLimitGuard implements CanActivate {
     const { allowed, retryAfter } = await this.rateLimit.hit(`${scope}:${ip}`, limit, windowSec);
     if (!allowed) {
       res.setHeader('Retry-After', String(retryAfter));
+      // Cuerpo con `error` explícito → el filtro global lo etiqueta como
+      // "Too Many Requests" y no "InternalServerError" (H-08 auditoría).
       throw new HttpException(
-        'Demasiadas solicitudes. Intenta de nuevo en un momento.',
+        {
+          statusCode: HttpStatus.TOO_MANY_REQUESTS,
+          error: 'Too Many Requests',
+          message: 'Demasiadas solicitudes. Intenta de nuevo en un momento.',
+        },
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
