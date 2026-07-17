@@ -44,8 +44,10 @@ describe('PurchasePage', () => {
     const events = jasmine.createSpyObj<EventsApi>('EventsApi', ['getBySlug', 'availability']);
     events.getBySlug.and.returnValue(of(EVENT as unknown as PublicEventDetailDto));
     events.availability.and.returnValue(of(AVAIL as unknown as EventAvailabilityDto));
+    localStorage.clear(); // sin reserva persistida → tryRestore() es no-op
     reservations = jasmine.createSpyObj<ReservationsApi>('ReservationsApi', ['create', 'getByToken', 'checkout', 'cancel']);
     reservations.create.and.returnValue(of(RESERVATION as unknown as ReservationResponseDto));
+    reservations.getByToken.and.returnValue(of(RESERVATION as unknown as ReservationResponseDto));
     reservations.cancel.and.returnValue(of({ cancelled: true }));
 
     TestBed.configureTestingModule({

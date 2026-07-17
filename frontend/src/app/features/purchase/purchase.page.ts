@@ -1,5 +1,5 @@
-import { DecimalPipe } from '@angular/common';
-import { Component, OnDestroy, afterNextRender, computed, inject, signal } from '@angular/core';
+import { DecimalPipe, isPlatformBrowser } from '@angular/common';
+import { Component, OnDestroy, PLATFORM_ID, afterNextRender, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -54,7 +54,11 @@ export class PurchasePage implements OnDestroy {
   private readonly translate = inject(TranslateService);
   protected readonly store = inject(PurchaseService);
   private readonly recaptcha = inject(RecaptchaService);
+  private readonly platformId = inject(PLATFORM_ID);
   protected readonly confirm = new ConfirmController();
+
+  /** Evita rehidratar la reserva más de una vez por visita. */
+  private restored = false;
 
   protected readonly phase = signal<Phase>('select');
   protected readonly secondsLeft = signal(0);
@@ -93,6 +97,7 @@ export class PurchasePage implements OnDestroy {
           this.store.setActiveLocality(chosen.id);
         }
         this.loaded.set(true);
+        this.tryRestore(); // reanuda una reserva viva tras un F5
       }),
       catchError(() => {
         // No rompemos el stream: marcamos error y la vista muestra el estado.
@@ -224,6 +229,22 @@ export class PurchasePage implements OnDestroy {
     this.error.set(null);
   }
 
+  /**
+   * Tras un F5 la reserva se pierde de memoria pero sigue viva en el backend. Aquí
+   * la revalidamos por su token (persistido en localStorage) y, si aún vive,
+   * restauramos la fase "reservado" con su countdown. Solo en navegador y una vez.
+   */
+  private tryRestore(): void {
+    if (this.restored || !isPlatformBrowser(this.platformId)) return;
+    this.restored = true;
+    if (this.store.reservation()) return; // ya hay una en memoria (misma visita)
+    this.store.restore().subscribe((res) => {
+      if (!res) return;
+      this.phase.set('reserved');
+      this.secondsLeft.set(this.remaining(res.expiresAt ?? null));
+    });
+  }
+
   private remaining(expiresAt: string | null): number {
     if (!expiresAt) return 0;
     return Math.max(0, Math.round((new Date(expiresAt).getTime() - Date.now()) / 1000));
@@ -233,7 +254,10 @@ export class PurchasePage implements OnDestroy {
     if (this.phase() !== 'reserved') return;
     const left = this.remaining(this.store.reservation()?.expiresAt ?? null);
     this.secondsLeft.set(left);
-    if (left === 0) this.phase.set('expired');
+    if (left === 0) {
+      this.phase.set('expired');
+      this.store.clearPersisted(); // ya no hay nada que reanudar
+    }
   }
 
   ngOnDestroy(): void {
