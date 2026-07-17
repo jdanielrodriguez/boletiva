@@ -396,8 +396,19 @@ async function seedCategories(adminId: string) {
 
 async function seedDemoEvent(promoterId: string, categoryId: string): Promise<void> {
   const slug = 'evento-demo-pasaeventos';
+  const startsAt = new Date('2026-12-04T20:00:00-06:00');
+  const endsAt = new Date('2026-12-04T23:00:00-06:00');
   const existing = await prisma.event.findUnique({ where: { slug } });
-  if (existing) return;
+  if (existing) {
+    // Higiene E2E: una corrida puede dejar el demo `suspended`/`cancelled` (o con fecha
+    // pasada). El reseed lo RESTAURA a published + destacado + fecha futura para que el
+    // catálogo/hero no queden vacíos en la siguiente corrida (antes: `return` sin tocar).
+    await prisma.event.update({
+      where: { slug },
+      data: { status: 'published', promotedPriority: 1, startsAt, endsAt },
+    });
+    return;
+  }
 
   const event = await prisma.event.create({
     data: {

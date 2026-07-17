@@ -58,8 +58,12 @@ jobs:
       - name: Lint backend
         run: docker exec pasaeventos_api npx nx lint api
 
-      - name: Unit tests (con coverage)
-        run: make test
+      - name: Unit tests
+        # Sin --coverage en CI: la instrumentación de cobertura es pesada en memoria y
+        # sobre el runner limitado (2 cores/7GB) + stack Docker puede provocar OOM/timeouts
+        # en la corrida serial de e2e sobre BD real. El gate no exige umbral de cobertura;
+        # la cobertura se mide en local con `make test`. (jest.retry.ts reintenta flakes en CI.)
+        run: docker exec pasaeventos_api npx nx test api
 
       - name: Smoke E2E (HTTP + navegador headless)
         run: make smoke
