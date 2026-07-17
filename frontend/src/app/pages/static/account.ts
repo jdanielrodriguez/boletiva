@@ -30,6 +30,7 @@ import type {
 import { CardTokenizerStub } from '../../core/payments/card-tokenizer.stub';
 import type { CardBrand } from '../../core/payments/card-tokenizer.stub';
 import { AuthService } from '../../core/auth/auth.service';
+import { AuthApi } from '../../core/api/auth.api';
 import { SessionStore } from '../../core/auth/session.store';
 import { ToastService } from '../../core/ui/toast.service';
 import { ConfirmController } from '../../shared/confirm-dialog/confirm-controller';
@@ -115,6 +116,7 @@ export class Account {
   private readonly paymentMethodsApi = inject(PaymentMethodsApi);
   private readonly tokenizer = inject(CardTokenizerStub);
   private readonly auth = inject(AuthService);
+  private readonly authApi = inject(AuthApi);
   private readonly toasts = inject(ToastService);
   private readonly translate = inject(TranslateService);
   private readonly i18n = inject(I18nService);
@@ -313,6 +315,75 @@ export class Account {
   protected readonly newPassword = signal('');
   protected readonly confirmPassword = signal('');
   protected readonly changingPassword = signal(false);
+
+  // --- 2FA con app autenticadora (TOTP) ---
+  /** Método 2FA actual del usuario: 'email' | 'totp'. */
+  protected readonly twoFactorMethod = computed(() => this.session.user()?.twoFactorMethod ?? 'email');
+  protected readonly totpStep = signal<'idle' | 'setup'>('idle');
+  protected readonly totpQr = signal<string | null>(null);
+  protected readonly totpSecret = signal('');
+  protected readonly totpCode = signal('');
+  protected readonly totpBusy = signal(false);
+
+  /** Inicia el alta de TOTP: pide el QR + secret al backend y muestra el paso de confirmación. */
+  protected startTotp(): void {
+    this.totpBusy.set(true);
+    this.authApi.totpSetup().subscribe({
+      next: (r) => {
+        this.totpBusy.set(false);
+        this.totpQr.set(r.qrDataUrl);
+        this.totpSecret.set(r.secret);
+        this.totpCode.set('');
+        this.totpStep.set('setup');
+      },
+      error: () => {
+        this.totpBusy.set(false);
+        this.toasts.error(this.translate.instant('account.twofa.error'));
+      },
+    });
+  }
+
+  /** Confirma el código de la app → activa TOTP y recarga la sesión (método = totp). */
+  protected confirmTotp(): void {
+    const code = this.totpCode().trim();
+    if (code.length < 6) return;
+    this.totpBusy.set(true);
+    this.authApi.totpEnable(code).subscribe({
+      next: () => {
+        this.authApi.me().subscribe((u) => this.session.setUser(u));
+        this.totpBusy.set(false);
+        this.totpStep.set('idle');
+        this.totpQr.set(null);
+        this.toasts.success(this.translate.instant('account.twofa.enabled'));
+      },
+      error: () => {
+        this.totpBusy.set(false);
+        this.toasts.error(this.translate.instant('account.twofa.codeError'));
+      },
+    });
+  }
+
+  protected cancelTotp(): void {
+    this.totpStep.set('idle');
+    this.totpQr.set(null);
+    this.totpCode.set('');
+  }
+
+  /** Vuelve al segundo factor por correo. */
+  protected useEmail2fa(): void {
+    this.totpBusy.set(true);
+    this.authApi.useEmail2fa().subscribe({
+      next: () => {
+        this.authApi.me().subscribe((u) => this.session.setUser(u));
+        this.totpBusy.set(false);
+        this.toasts.success(this.translate.instant('account.twofa.emailBack'));
+      },
+      error: () => {
+        this.totpBusy.set(false);
+        this.toasts.error(this.translate.instant('account.twofa.error'));
+      },
+    });
+  }
 
   // --- Wallet + retiros ---
   protected readonly wallet = signal<{ balance: string; currency: string } | null>(null);

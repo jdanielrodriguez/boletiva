@@ -160,6 +160,45 @@
               </button>
             </form>
           </div>
+
+          <!-- Segundo factor (2FA): correo (default) o app autenticadora (TOTP). -->
+          <div class="card-block" data-testid="twofa-block">
+            <h3>{{ 'account.twofa.title' | translate }}</h3>
+            <p class="muted">{{ 'account.twofa.hint' | translate }}</p>
+            <p class="twofa-current" data-testid="twofa-current">
+              {{ 'account.twofa.current' | translate }}:
+              <strong>{{ (twoFactorMethod() === 'totp' ? 'account.twofa.methodTotp' : 'account.twofa.methodEmail') | translate }}</strong>
+            </p>
+
+            @if (totpStep() === 'idle') {
+              @if (twoFactorMethod() !== 'totp') {
+                <button type="button" class="primary" [disabled]="totpBusy()" (click)="startTotp()" data-testid="twofa-start-totp">
+                  <app-icon name="unlock" /> {{ 'account.twofa.useApp' | translate }}
+                </button>
+              } @else {
+                <button type="button" class="btn" [disabled]="totpBusy()" (click)="useEmail2fa()" data-testid="twofa-use-email">
+                  {{ 'account.twofa.useEmail' | translate }}
+                </button>
+              }
+            } @else {
+              <!-- Paso de alta: escanea el QR y confirma con un código de la app. -->
+              <div class="twofa-setup" data-testid="twofa-setup">
+                <p class="muted small">{{ 'account.twofa.scan' | translate }}</p>
+                @if (totpQr()) { <img [src]="totpQr()" alt="QR TOTP" class="twofa-qr" data-testid="twofa-qr" /> }
+                <p class="muted small">{{ 'account.twofa.orSecret' | translate }}: <code data-testid="twofa-secret">{{ totpSecret() }}</code></p>
+                <div class="field">
+                  <label for="totp-code">{{ 'account.twofa.code' | translate }}</label>
+                  <input id="totp-code" type="text" inputmode="numeric" maxlength="6" [ngModel]="totpCode()" (ngModelChange)="totpCode.set($event)" name="totpcode" data-testid="twofa-code" autocomplete="one-time-code" />
+                </div>
+                <div class="actions">
+                  <button type="button" class="primary" [disabled]="totpBusy() || totpCode().trim().length < 6" (click)="confirmTotp()" data-testid="twofa-confirm">
+                    {{ (totpBusy() ? 'account.twofa.activating' : 'account.twofa.activate') | translate }}
+                  </button>
+                  <button type="button" class="btn ghost" [disabled]="totpBusy()" (click)="cancelTotp()" data-testid="twofa-cancel">{{ 'common.cancel' | translate }}</button>
+                </div>
+              </div>
+            }
+          </div>
         }
 
         @case ('metodos') {

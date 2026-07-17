@@ -12,6 +12,7 @@ import { UsersApi } from '../../core/api/users.api';
 import { WalletApi } from '../../core/api/wallet.api';
 import type { TicketPageResponseDto, WalletBalanceResponseDto } from '../../core/api/types';
 import { AuthService } from '../../core/auth/auth.service';
+import { AuthApi } from '../../core/api/auth.api';
 import { SessionStore } from '../../core/auth/session.store';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { initI18nTesting, provideI18nTesting } from '../../core/i18n/testing';
@@ -33,6 +34,7 @@ interface Overrides {
   transfers?: Record<string, unknown>;
   users?: Record<string, unknown>;
   auth?: Record<string, unknown>;
+  authApi?: Record<string, unknown>;
   cardsApi?: Record<string, unknown>;
   promoterEvents?: Record<string, unknown>;
   section?: string;
@@ -97,6 +99,16 @@ describe('Account (mi cuenta)', () => {
           } as unknown as PaymentMethodsApi,
         },
         { provide: AuthService, useValue: { changePassword: () => of({ message: 'ok' }), ...o.auth } as unknown as AuthService },
+        {
+          provide: AuthApi,
+          useValue: {
+            totpSetup: () => of({ otpauthUrl: 'otpauth://x', qrDataUrl: 'data:image/png;base64,x', secret: 'ABC' }),
+            totpEnable: () => of({ message: 'ok' }),
+            useEmail2fa: () => of({ message: 'ok' }),
+            me: () => of({ twoFactorMethod: 'email' }),
+            ...o.authApi,
+          } as unknown as AuthApi,
+        },
         {
           provide: SessionStore,
           useValue: {

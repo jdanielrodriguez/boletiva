@@ -75,6 +75,22 @@ export class AuthApi {
   resetPassword(dto: ResetPasswordDto): Observable<MessageResponseDto> {
     return this.api.post<MessageResponseDto>('/auth/reset-password', dto);
   }
+
+  // --- 2FA con app autenticadora (TOTP) ---
+  /** Inicia el alta de TOTP: devuelve la URL otpauth, el QR (data URL) y el secret. */
+  totpSetup(): Observable<{ otpauthUrl: string; qrDataUrl: string; secret: string }> {
+    return this.api.post<{ otpauthUrl: string; qrDataUrl: string; secret: string }>('/auth/2fa/totp/setup', {});
+  }
+
+  /** Confirma TOTP con un código de la app → el 2FA pasa a ser por app autenticadora. */
+  totpEnable(code: string): Observable<MessageResponseDto> {
+    return this.api.post<MessageResponseDto>('/auth/2fa/totp/enable', { code });
+  }
+
+  /** Vuelve al segundo factor por correo (OTP por email). */
+  useEmail2fa(): Observable<MessageResponseDto> {
+    return this.api.post<MessageResponseDto>('/auth/2fa/use-email', {});
+  }
 }
 
 /**
