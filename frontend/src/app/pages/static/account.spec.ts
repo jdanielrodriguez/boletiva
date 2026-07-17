@@ -112,7 +112,7 @@ describe('Account (mi cuenta)', () => {
         {
           provide: SessionStore,
           useValue: {
-            user: () => ({ firstName: 'Ana', lastName: 'P', email: 'ana@correo.com', roles }),
+            user: () => ({ firstName: 'Ana', lastName: 'P', email: 'ana@correo.com', roles, toursSeen: ['account'] }),
             setUser,
             hasAnyRole: (rs: string[]) => rs.some((r) => roles.includes(r)),
             hasRole: (r: string) => roles.includes(r),

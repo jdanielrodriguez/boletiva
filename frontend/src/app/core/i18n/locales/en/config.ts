@@ -430,6 +430,8 @@ export const config = {
     promoters_require_approval: 'Require promoter approval',
     i18n_allow_visitor_switch: 'Language switch for visitors',
     home_show_categories: 'Show categories on home',
+    reports_maintenance: 'Reports maintenance',
+    tour_enabled: 'Welcome tour',
     theme_slot_noche: 'Night slot theme',
     theme_slot_dia: 'Day slot theme',
     theme_default_franja: 'Default slot',
@@ -475,6 +477,9 @@ export const config = {
     i18n_allow_visitor_switch:
       'Lets a signed-out visitor switch the page language with the flags. When off, visitors see everything in Spanish (signed-in users always see their own language).',
     home_show_categories: 'Shows the category filters on the home page.',
+    reports_maintenance:
+      'Puts reports/dashboards (events, promoters and ticket check-in) into maintenance with a notice, without taking the site down. Use it if there is an accounting mismatch to review.',
+    tour_enabled: 'Enables the guided welcome tour (shown once per user and page).',
     theme_slot_noche: 'Theme shown in the Night slot (admin can swap day↔night).',
     theme_slot_dia: 'Theme shown in the Day slot (admin can swap day↔night).',
     theme_default_franja: 'Slot seen by a visitor or a user without a saved preference.',

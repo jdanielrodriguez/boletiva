@@ -118,6 +118,14 @@ export const SETTINGS_CATALOG: SettingDef[] = [
       'chequeo de boletos mostrando un aviso (sin tirar el sitio). Úsalo si hay descuadre contable.',
   },
   {
+    key: 'tour.enabled',
+    type: 'bool',
+    default: true,
+    description:
+      'Habilita el TOUR de onboarding guiado (se muestra a cada usuario una sola vez por página). ' +
+      'Desactívalo para que no aparezca a nadie.',
+  },
+  {
     key: 'theme.slot.noche',
     type: 'enum',
     default: 'pulso',
@@ -177,6 +185,7 @@ export const PUBLIC_CONFIG_KEYS = {
   allowVisitorLangSwitch: 'i18n.allow_visitor_switch',
   showHomeCategories: 'home.show_categories',
   reportsMaintenance: 'reports.maintenance',
+  tourEnabled: 'tour.enabled',
   themeSlotNoche: 'theme.slot.noche',
   themeSlotDia: 'theme.slot.dia',
   themeDefaultFranja: 'theme.default_franja',

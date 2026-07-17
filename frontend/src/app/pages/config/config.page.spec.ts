@@ -2,6 +2,8 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
+import { UsersApi } from '../../core/api/users.api';
+import { SessionStore } from '../../core/auth/session.store';
 import { AdminApi } from '../../core/api/admin.api';
 import { InvitationsApi } from '../../core/api/invitations.api';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
@@ -36,6 +38,8 @@ describe('ConfigPage (v3, admin console)', () => {
   async function setup(admin: Record<string, unknown> = {}, inv: Record<string, unknown> = {}) {
     TestBed.configureTestingModule({
       providers: [
+        { provide: UsersApi, useValue: { markTourSeen: () => of({}) } },
+        { provide: SessionStore, useValue: { user: () => null } },
         ...provideI18nTesting(),
         provideZonelessChangeDetection(),
         provideRouter([]),

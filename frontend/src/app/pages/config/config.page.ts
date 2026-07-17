@@ -20,6 +20,7 @@ import { ToastService } from '../../core/ui/toast.service';
 import { ConfirmController } from '../../shared/confirm-dialog/confirm-controller';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
+import { TourComponent, type TourStep } from '../../shared/tour/tour.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
 import { SearchFieldComponent } from '../../shared/ui/search-field.component';
 import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
@@ -87,10 +88,17 @@ const INV_PAGE = 9;
     TemplatesListComponent,
     SearchFieldComponent,
     RouterLink,
+    TourComponent,
   ],
   templateUrl: './config.page.html',
 })
 export class ConfigPage {
+  /** Tour de onboarding de la consola admin (solo admins que no lo han visto). */
+  protected readonly tourSteps: TourStep[] = [
+    { title: 'tour.admin.welcomeTitle', body: 'tour.admin.welcomeBody' },
+    { title: 'tour.admin.eventsTitle', body: 'tour.admin.eventsBody' },
+    { title: 'tour.admin.configTitle', body: 'tour.admin.configBody' },
+  ];
   private readonly admin = inject(AdminApi);
   private readonly invitationsApi = inject(InvitationsApi);
   private readonly settingsApi = inject(SettingsApi);

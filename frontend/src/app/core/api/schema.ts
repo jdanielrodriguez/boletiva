@@ -6495,6 +6495,10 @@ export interface components {
              * @default 1
              */
             installments: number;
+            /** @description NIT de facturación (FEL). Se captura en el checkout; default CF (consumidor final). */
+            billingNit?: string;
+            /** @description Nombre fiscal para la factura (FEL). */
+            billingName?: string;
         };
         PayOrderResponseDto: {
             /**
@@ -7508,6 +7512,11 @@ export interface components {
              * @example false
              */
             reportsMaintenance: boolean;
+            /**
+             * @description Habilita el tour de onboarding guiado (una vez por usuario/página).
+             * @example true
+             */
+            tourEnabled: boolean;
             /**
              * @description Integraciones externas configuradas y disponibles (gating de UI).
              * @example {

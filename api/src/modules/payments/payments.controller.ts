@@ -49,6 +49,8 @@ export class PaymentsController {
       gatewayId: dto.gatewayId,
       useWallet: dto.useWallet,
       installments: dto.installments,
+      billingNit: dto.billingNit,
+      billingName: dto.billingName,
     });
   }
 

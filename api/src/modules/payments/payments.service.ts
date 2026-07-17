@@ -73,7 +73,13 @@ export class PaymentsService {
   async initiate(
     orderId: string,
     buyerId: string,
-    opts: { gatewayId?: string; useWallet?: boolean; installments?: number } = {},
+    opts: {
+      gatewayId?: string;
+      useWallet?: boolean;
+      installments?: number;
+      billingNit?: string;
+      billingName?: string;
+    } = {},
   ) {
     const useWallet = opts.useWallet ?? false;
     const installments = opts.installments ?? 1;
@@ -83,6 +89,18 @@ export class PaymentsService {
     }
     if (order.status !== 'pending') {
       throw new ConflictException(`La orden no está pendiente de pago (${order.status})`);
+    }
+
+    // Datos de facturación (FEL): se capturan en el CHECKOUT (no en la reserva). Si vienen,
+    // se aplican a la orden antes de cobrar. Default de la orden: CF (consumidor final).
+    if (opts.billingNit !== undefined || opts.billingName !== undefined) {
+      await this.prisma.order.update({
+        where: { id: order.id },
+        data: {
+          billingNit: opts.billingNit?.trim() || 'CF',
+          billingName: opts.billingName?.trim() || null,
+        },
+      });
     }
 
     // Idempotencia: si ya hay un intento en curso, se devuelve tal cual.

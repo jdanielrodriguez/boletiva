@@ -26,6 +26,8 @@ export interface PublicConfig {
   showHomeCategories: boolean;
   /** ¿Reportes/dashboards (eventos, promotores, chequeo de boletos) en mantenimiento? */
   reportsMaintenance?: boolean;
+  /** ¿El tour de onboarding guiado está habilitado globalmente? (default true) */
+  tourEnabled?: boolean;
   /** Asignación de tema por franja + switch (para resolver el tema en el cliente). */
   theme?: ThemeConfig;
   /** Site key pública de reCAPTCHA v3 (vacía = deshabilitado, no se carga). */

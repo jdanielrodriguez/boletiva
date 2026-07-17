@@ -79,6 +79,8 @@
         />
       }
     </section>
+
+    <app-tour tourKey="eventDetail" [steps]="tourSteps" />
   </article>
 } @else if (loading()) {
   <app-loading variant="skeleton" data-testid="event-loading" [label]="'eventDetail.loading' | translate" />

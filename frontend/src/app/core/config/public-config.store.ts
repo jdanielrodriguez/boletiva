@@ -31,6 +31,7 @@ export class PublicConfigStore {
   private readonly _allowVisitorLangSwitch = signal(false);
   private readonly _showHomeCategories = signal(false); // categorías ocultas en inicio por defecto
   private readonly _reportsMaintenance = signal(false); // reportes activos por defecto
+  private readonly _tourEnabled = signal(true); // tour de onboarding activo por defecto
   private readonly _theme = signal<ThemeConfig>(DEFAULT_THEME);
   private readonly _recaptchaSiteKey = signal('');
   private readonly _loaded = signal(false);
@@ -39,6 +40,8 @@ export class PublicConfigStore {
   readonly showHomeCategories = this._showHomeCategories.asReadonly();
   /** ¿Reportes/dashboards en mantenimiento? (admin lo activa si hay descuadre.) */
   readonly reportsMaintenance = this._reportsMaintenance.asReadonly();
+  /** ¿El tour de onboarding está habilitado? (admin puede apagarlo.) */
+  readonly tourEnabled = this._tourEnabled.asReadonly();
   /** Asignación de tema por franja + switch (rebranding Boletiva). */
   readonly theme = this._theme.asReadonly();
   /** Site key pública de reCAPTCHA v3 ('' = deshabilitado; RecaptchaService la lee). */
@@ -67,6 +70,7 @@ export class PublicConfigStore {
         this._allowVisitorLangSwitch.set(c.allowVisitorLangSwitch);
         this._showHomeCategories.set(c.showHomeCategories);
         this._reportsMaintenance.set(c.reportsMaintenance ?? false);
+        this._tourEnabled.set(c.tourEnabled ?? true);
         if (c.theme) this._theme.set(c.theme);
         this._recaptchaSiteKey.set(c.recaptchaSiteKey ?? '');
         this._loaded.set(true);

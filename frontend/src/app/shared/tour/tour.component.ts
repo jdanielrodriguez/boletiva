@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, input, signal, computed } f
 import { TranslatePipe } from '@ngx-translate/core';
 import { SessionStore } from '../../core/auth/session.store';
 import { UsersApi } from '../../core/api/users.api';
+import { PublicConfigStore } from '../../core/config/public-config.store';
 
 /** Un paso del tour: título + cuerpo (claves i18n ya resueltas por el padre o texto). */
 export interface TourStep {
@@ -60,6 +61,7 @@ export interface TourStep {
 export class TourComponent {
   private readonly session = inject(SessionStore);
   private readonly usersApi = inject(UsersApi);
+  private readonly config = inject(PublicConfigStore);
 
   /** Clave única del tour (p.ej. 'home', 'promoter'). */
   readonly tourKey = input.required<string>();
@@ -69,8 +71,13 @@ export class TourComponent {
   protected readonly index = signal(0);
   private readonly dismissed = signal(false);
 
-  /** Visible si hay sesión, no se descartó, y el tour NO está en los vistos del perfil. */
+  /**
+   * Visible si: el tour está habilitado globalmente (setting admin `tour.enabled`),
+   * hay sesión, no se descartó, y el tour NO está en los vistos del perfil (una vez
+   * por usuario/página → un usuario nuevo lo ve, quien ya lo hizo no lo repite).
+   */
   protected readonly visible = computed(() => {
+    if (!this.config.tourEnabled()) return false; // el admin puede apagar todos los tours
     if (this.dismissed()) return false;
     const u = this.session.user();
     if (!u) return false; // el tour persiste en el perfil → solo logueados

@@ -13616,6 +13616,16 @@
             "minimum": 1,
             "maximum": 48,
             "default": 1
+          },
+          "billingNit": {
+            "type": "string",
+            "description": "NIT de facturación (FEL). Se captura en el checkout; default CF (consumidor final).",
+            "maxLength": 20
+          },
+          "billingName": {
+            "type": "string",
+            "description": "Nombre fiscal para la factura (FEL).",
+            "maxLength": 150
           }
         }
       },
@@ -15504,6 +15514,11 @@
             "description": "Mantenimiento de reportes/dashboards de eventos, promotores y chequeo de boletos.",
             "example": false
           },
+          "tourEnabled": {
+            "type": "boolean",
+            "description": "Habilita el tour de onboarding guiado (una vez por usuario/página).",
+            "example": true
+          },
           "capabilities": {
             "type": "object",
             "description": "Integraciones externas configuradas y disponibles (gating de UI).",
@@ -15544,6 +15559,7 @@
           "allowVisitorLangSwitch",
           "showHomeCategories",
           "reportsMaintenance",
+          "tourEnabled",
           "capabilities",
           "recaptchaSiteKey",
           "theme"

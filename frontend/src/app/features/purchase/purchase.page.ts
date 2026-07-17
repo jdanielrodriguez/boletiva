@@ -1,12 +1,10 @@
 import { DecimalPipe } from '@angular/common';
 import { Component, OnDestroy, afterNextRender, computed, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { catchError, of, switchMap, tap } from 'rxjs';
 import { EventsApi } from '../../core/api/events.api';
-import { BillingApi } from '../../core/api/billing.api';
 import { RecaptchaService } from '../../core/security/recaptcha.service';
 import { SessionStore } from '../../core/auth/session.store';
 import { SITE_URL } from '../../core/config/api.tokens';
@@ -35,7 +33,6 @@ type Phase = 'select' | 'reserved' | 'expired';
   imports: [
     SeatMapComponent,
     DecimalPipe,
-    FormsModule,
     ShareBox,
     LoginModal,
     ReservationItems,
@@ -56,16 +53,8 @@ export class PurchasePage implements OnDestroy {
   private readonly siteUrl = inject(SITE_URL);
   private readonly translate = inject(TranslateService);
   protected readonly store = inject(PurchaseService);
-  private readonly billingApi = inject(BillingApi);
   private readonly recaptcha = inject(RecaptchaService);
   protected readonly confirm = new ConfirmController();
-
-  // Facturación (FEL): NIT (prellenado del perfil) + nombre. El lookup por NIT autollena y
-  // BLOQUEA el nombre si FEL lo encuentra; si FEL está off, el nombre queda editable.
-  protected readonly billingNit = signal((this.session.user() as { nit?: string })?.nit ?? '');
-  protected readonly billingName = signal((this.session.user() as { billingName?: string })?.billingName ?? '');
-  protected readonly billingNameLocked = signal(false);
-  protected readonly lookingUpNit = signal(false);
 
   protected readonly phase = signal<Phase>('select');
   protected readonly secondsLeft = signal(0);
@@ -212,30 +201,12 @@ export class PurchasePage implements OnDestroy {
   }
 
   /**
-   * Busca el nombre por NIT (FEL). Si está disponible y lo encuentra → autollena y bloquea
-   * el nombre; si FEL está off o no lo encuentra → deja el nombre editable.
+   * El NIT/nombre de facturación se captura en el CHECKOUT (no en la reserva).
    */
-  protected lookupNit(): void {
-    const nit = this.billingNit().trim();
-    this.billingNameLocked.set(false);
-    if (!nit || nit.toUpperCase() === 'CF') return;
-    this.lookingUpNit.set(true);
-    this.billingApi.nitName(nit).subscribe({
-      next: (r) => {
-        this.lookingUpNit.set(false);
-        if (r.available && r.name) {
-          this.billingName.set(r.name);
-          this.billingNameLocked.set(true); // encontrado → autollenado y bloqueado
-        }
-      },
-      error: () => this.lookingUpNit.set(false),
-    });
-  }
-
   private doCheckout(): void {
     this.working.set(true);
     this.store
-      .checkout({ billingNit: this.billingNit().trim() || undefined, billingName: this.billingName().trim() || undefined })
+      .checkout()
       .subscribe({
       next: (order) => void this.router.navigate(['/checkout', order.id]),
       error: () => {

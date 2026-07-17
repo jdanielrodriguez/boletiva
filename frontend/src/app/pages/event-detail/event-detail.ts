@@ -11,6 +11,7 @@ import type {
 } from '../../core/api/types';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { BackLinkComponent } from '../../shared/ui/back-link.component';
+import { TourComponent, type TourStep } from '../../shared/tour/tour.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { LoadingComponent } from '../../shared/ui/loading.component';
 import { SeoService } from '../../core/seo/seo.service';
@@ -36,10 +37,16 @@ const EMPTY_AV: EventAvailabilityDto = { seatMap: null, localities: [], seats: [
     BackLinkComponent,
     EmptyStateComponent,
     LoadingComponent,
+    TourComponent,
   ],
   templateUrl: './event-detail.html',
 })
 export class EventDetail {
+  /** Tour de onboarding del detalle de evento (solo logueados que no lo han visto). */
+  protected readonly tourSteps: TourStep[] = [
+    { title: 'tour.eventDetail.welcomeTitle', body: 'tour.eventDetail.welcomeBody' },
+    { title: 'tour.eventDetail.buyTitle', body: 'tour.eventDetail.buyBody' },
+  ];
   private readonly route = inject(ActivatedRoute);
   private readonly eventsApi = inject(EventsApi);
   private readonly seo = inject(SeoService);

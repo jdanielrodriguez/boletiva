@@ -58,9 +58,9 @@ describe('Configuraciones (settings) e2e', () => {
   const http = () => request(app.getHttpServer());
   const bearer = (t: string) => ({ Authorization: `Bearer ${t}` });
 
-  it('admin lista el catálogo (20 claves, con value/default/type)', async () => {
+  it('admin lista el catálogo (21 claves, con value/default/type)', async () => {
     const res = await http().get('/api/v1/settings').set(bearer(adminToken)).expect(200);
-    expect(res.body.length).toBe(20);
+    expect(res.body.length).toBe(21);
     const item = res.body.find((s: { key: string }) => s.key === 'costshare.default_pct');
     expect(item).toBeDefined();
     expect(item.type).toBe('pct');
@@ -78,7 +78,12 @@ describe('Configuraciones (settings) e2e', () => {
 
   it('GET /public/config: SIN login → defaults + asignación de tema por franja', async () => {
     const res = await http().get('/api/v1/public/config').expect(200);
-    expect(res.body).toMatchObject({ allowVisitorLangSwitch: false, showHomeCategories: false });
+    expect(res.body).toMatchObject({
+      allowVisitorLangSwitch: false,
+      showHomeCategories: false,
+      reportsMaintenance: false,
+      tourEnabled: true,
+    });
     expect(res.body.theme).toMatchObject({
       slots: { dia: 'marquesina', noche: 'pulso' },
       defaultFranja: 'dia',

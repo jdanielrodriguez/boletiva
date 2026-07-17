@@ -43,6 +43,21 @@ export class PayOrderDto {
   @Min(1)
   @Max(48) // Visacuotas admite hasta 48 meses según el comercio
   installments?: number;
+
+  @ApiPropertyOptional({
+    description: 'NIT de facturación (FEL). Se captura en el checkout; default CF (consumidor final).',
+    maxLength: 20,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  billingNit?: string;
+
+  @ApiPropertyOptional({ description: 'Nombre fiscal para la factura (FEL).', maxLength: 150 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(150)
+  billingName?: string;
 }
 
 /** Payload de webhook de la pasarela. */

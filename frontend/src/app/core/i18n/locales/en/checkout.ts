@@ -1,5 +1,11 @@
 /** Checkout (F2): payment method, transparent breakdown and payment status. English. */
 export const checkout = {
+  billingTitle: 'Billing',
+  nit: 'Tax ID / NIT',
+  nitPlaceholder: 'CF or your NIT',
+  billingName: 'Billing name',
+  nitLooking: 'Looking up name…',
+  nitFound: 'Name found from your NIT (locked).',
   title: 'Payment',
   paidTitle: 'Payment confirmed!',
   paidBody: 'Your tickets are being issued. You’ll see them in your account in seconds.',
