@@ -160,8 +160,54 @@ localstack-shell:
 .PHONY: deploy
 deploy:
 	@echo "Autenticando y desplegando a Google Cloud Run..."
-	gcloud config set project pasa-eventos
-	gcloud builds submit --tag us-central1-docker.pkg.dev/pasa-eventos/pasaeventos-backend/api:latest .
+	gcloud config set project $(PROD_PROJECT)
+	gcloud builds submit --tag us-central1-docker.pkg.dev/$(PROD_PROJECT)/pasaeventos-backend/api:latest .
 	gcloud run deploy pasaeventos-api \
-		--image us-central1-docker.pkg.dev/pasa-eventos/pasaeventos-backend/api:latest \
+		--image us-central1-docker.pkg.dev/$(PROD_PROJECT)/pasaeventos-backend/api:latest \
 		--region us-central1 --platform managed --allow-unauthenticated
+
+# ============================================================================
+# Operaciones de PRODUCCIÓN (requieren `gcloud` autenticado en el proyecto y
+# acceso de red a la BD — vía Cloud SQL Auth Proxy o IP autorizada). Ver docs/GUIA-GCP.md §10-11.
+# ============================================================================
+PROD_PROJECT ?= boletera-502405
+PROD_DB_SECRET ?= pasaeventos-database-url
+
+# Lee el DATABASE_URL de prod desde Secret Manager (falla si no hay acceso).
+define _prod_db_url
+$$(gcloud secrets versions access latest --secret=$(PROD_DB_SECRET) --project=$(PROD_PROJECT) 2>/dev/null)
+endef
+
+# Siembra/actualiza la baseline en PROD (NO borra). Para el 1er arranque.
+.PHONY: prod-db-seed
+prod-db-seed:
+	@URL="$(call _prod_db_url)"; [ -n "$$URL" ] || { echo '❌ No pude leer $(PROD_DB_SECRET) (¿gcloud autenticado?)'; exit 1; }; \
+	echo "→ Sembrando baseline en PROD ($(PROD_PROJECT))…"; \
+	docker exec -e DATABASE_URL="$$URL" -w /app/api $(API) sh -lc 'npx prisma db push --skip-generate --accept-data-loss && npm run db:seed'
+
+# ⚠️ DESTRUCTIVO: borra TODA la data de PROD y re-siembra la baseline (pruebas alpha).
+.PHONY: prod-db-reset
+prod-db-reset:
+	@printf '⚠️  Esto BORRA TODA la data de PROD ($(PROD_PROJECT)) y re-siembra la baseline.\n   Escribe RESET para continuar: '; \
+	read ans; [ "$$ans" = "RESET" ] || { echo 'Cancelado.'; exit 1; }; \
+	URL="$(call _prod_db_url)"; [ -n "$$URL" ] || { echo '❌ No pude leer $(PROD_DB_SECRET)'; exit 1; }; \
+	echo "→ Truncando + resembrando PROD…"; \
+	docker exec -e DATABASE_URL="$$URL" -w /app $(API) sh -lc 'cd /app/api && npx prisma db push --skip-generate --accept-data-loss && npx ts-node --project tsconfig.tools.json ../prisma/truncate.ts && npm run db:seed'
+
+# --- Logs de PROD limpios (sin ruido) ---
+.PHONY: prod-logs
+prod-logs:
+	gcloud logging read 'resource.type=cloud_run_revision AND resource.labels.service_name=pasaeventos-api AND severity>=INFO AND NOT jsonPayload.req.url:"/health"' \
+		--project=$(PROD_PROJECT) --limit=100 --freshness=1h \
+		--format='value(timestamp, severity, jsonPayload.msg, jsonPayload.err.message)'
+
+.PHONY: prod-logs-follow
+prod-logs-follow:
+	gcloud beta logging tail 'resource.type=cloud_run_revision AND resource.labels.service_name=pasaeventos-api AND NOT jsonPayload.req.url:"/health"' \
+		--project=$(PROD_PROJECT) --format='value(timestamp, severity, jsonPayload.msg)'
+
+.PHONY: prod-logs-errors
+prod-logs-errors:
+	gcloud logging read 'resource.type=cloud_run_revision AND resource.labels.service_name=pasaeventos-api AND severity>=ERROR' \
+		--project=$(PROD_PROJECT) --limit=50 --freshness=6h \
+		--format='value(timestamp, jsonPayload.msg, jsonPayload.err.stack)'

@@ -30,12 +30,13 @@ on:
 permissions:
   actions: read
   contents: read
+  id-token: write # Workload Identity Federation (OIDC → GCP)
 
 env:
-  GCP_PROJECT: pasa-eventos
+  GCP_PROJECT: boletera-502405
   GCP_REGION: us-central1
   SERVICE: pasaeventos-api-staging
-  IMAGE_REPO: us-central1-docker.pkg.dev/pasa-eventos/pasaeventos-backend/api
+  IMAGE_REPO: us-central1-docker.pkg.dev/boletera-502405/pasaeventos-backend/api
 
 jobs:
   # 1) Gate de calidad: reutiliza el workflow de pruebas completo.
@@ -45,20 +46,21 @@ jobs:
   # 2) ¿Hay credenciales de GCP? Determina si el deploy corre o se salta.
   #    (No se puede usar `secrets.*` en un `if:` de job → se resuelve aquí.)
   guard:
-    name: Comprobar credenciales GCP
+    name: Comprobar WIF (Workload Identity Federation)
     runs-on: ubuntu-latest
     outputs:
       deploy: ${{ steps.check.outputs.deploy }}
     steps:
       - id: check
         env:
-          KEY: ${{ secrets.GCP_SA_KEY }}
+          WIF: ${{ vars.WIF_PROVIDER }}
+          SA: ${{ vars.WIF_SERVICE_ACCOUNT }}
         run: |
-          if [ -n "$KEY" ]; then
+          if [ -n "$WIF" ] && [ -n "$SA" ]; then
             echo "deploy=true" >> "$GITHUB_OUTPUT"
           else
             echo "deploy=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::GCP_SA_KEY no configurado → se salta el deploy a staging."
+            echo "::warning::WIF_PROVIDER/WIF_SERVICE_ACCOUNT no configurados → se salta el deploy a staging."
           fi
 
   # 3) Build + deploy a Cloud Run (staging). Solo si pruebas OK y hay credenciales.
@@ -70,10 +72,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Autenticar en GCP
+      - name: Autenticar en GCP (Workload Identity Federation)
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
 
       - name: Configurar gcloud
         uses: google-github-actions/setup-gcloud@v2
@@ -93,5 +96,5 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --memory=1Gi --cpu=1 --concurrency=100 --min-instances=0 --max-instances=5 \
-            --set-env-vars=NODE_ENV=staging,STORAGE_PROVIDER=gcs,GCLOUD_PROJECT_ID=${GCP_PROJECT},GCS_BUCKET=pasaeventos-staging-media \
-            --set-secrets=DATABASE_URL=pasaeventos-staging-database-url:latest,REDIS_URL=pasaeventos-staging-redis-url:latest,AMQP_URL=pasaeventos-staging-amqp-url:latest,MAIL_PASS=pasaeventos-staging-mail-pass:latest,JWT_ACCESS_SECRET=pasaeventos-staging-jwt-access-secret:latest,JWT_REFRESH_SECRET=pasaeventos-staging-jwt-refresh-secret:latest,GCS_SERVICE_ACCOUNT_JSON=pasaeventos-staging-gcs-sa-json:latest
+            --set-env-vars=NODE_ENV=production,STORAGE_PROVIDER=gcs,GCLOUD_PROJECT_ID=${GCP_PROJECT},GCS_BUCKET=pasaeventos-staging-media,CORS_ORIGINS=https://staging.boletiva.com,TRUST_PROXY=1 \
+            --set-secrets=DATABASE_URL=pasaeventos-staging-database-url:latest,REDIS_URL=pasaeventos-staging-redis-url:latest,AMQP_URL=pasaeventos-staging-amqp-url:latest,MAIL_PASS=pasaeventos-staging-mail-pass:latest,JWT_ACCESS_SECRET=pasaeventos-staging-jwt-access-secret:latest,JWT_REFRESH_SECRET=pasaeventos-staging-jwt-refresh-secret:latest,APP_ENCRYPTION_KEY=pasaeventos-staging-app-encryption-key:latest,PAYMENT_WEBHOOK_SECRET=pasaeventos-staging-payment-webhook-secret:latest,TICKET_SIGNING_SEED=pasaeventos-staging-ticket-signing-seed:latest,GCS_SERVICE_ACCOUNT_JSON=pasaeventos-staging-gcs-sa-json:latest
