@@ -22,7 +22,12 @@ export class PromotersApi {
   }
 
   /** Solicita ser promotor. Auto-aprueba en modo pruebas (devuelve `approved`). */
-  apply(): Observable<PromoterStatusResponseDto> {
-    return this.api.post<PromoterStatusResponseDto>('/promoters/apply');
+  apply(captchaToken?: string): Observable<PromoterStatusResponseDto> {
+    return this.api.post<PromoterStatusResponseDto>(
+      '/promoters/apply',
+      {},
+      undefined,
+      captchaToken ? { headers: { 'x-captcha-token': captchaToken } } : undefined,
+    );
   }
 }

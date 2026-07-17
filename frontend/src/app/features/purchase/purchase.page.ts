@@ -7,6 +7,7 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { catchError, of, switchMap, tap } from 'rxjs';
 import { EventsApi } from '../../core/api/events.api';
 import { BillingApi } from '../../core/api/billing.api';
+import { RecaptchaService } from '../../core/security/recaptcha.service';
 import { SessionStore } from '../../core/auth/session.store';
 import { SITE_URL } from '../../core/config/api.tokens';
 import type { LocalityAvailabilityDto } from '../../core/api/types';
@@ -56,6 +57,7 @@ export class PurchasePage implements OnDestroy {
   private readonly translate = inject(TranslateService);
   protected readonly store = inject(PurchaseService);
   private readonly billingApi = inject(BillingApi);
+  private readonly recaptcha = inject(RecaptchaService);
   protected readonly confirm = new ConfirmController();
 
   // Facturación (FEL): NIT (prellenado del perfil) + nombre. El lookup por NIT autollena y
@@ -159,7 +161,8 @@ export class PurchasePage implements OnDestroy {
     this.working.set(true);
     this.error.set(null);
     this.blocked.set(null);
-    this.store.reserve().subscribe({
+    // reCAPTCHA (config-gated: sin site key devuelve '' → el backend omite la verificación).
+    this.recaptcha.execute('reservation').then((captchaToken) => this.store.reserve(captchaToken).subscribe({
       next: (res) => {
         this.working.set(false);
         this.phase.set('reserved');
@@ -176,7 +179,7 @@ export class PurchasePage implements OnDestroy {
           this.error.set(this.translate.instant('purchase.reserveError'));
         }
       },
-    });
+    }));
   }
 
   /** Desde la advertencia 429: iniciar sesión para reservar de inmediato. */

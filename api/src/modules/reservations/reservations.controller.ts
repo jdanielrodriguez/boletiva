@@ -7,6 +7,7 @@ import {
   ParseUUIDPipe,
   Post,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -22,6 +23,8 @@ import { Public } from '../../common/decorators/public.decorator';
 import { RequireVerifiedEmail } from '../../common/decorators/verified-email.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { clientIp } from '../../common/utils/client-ip';
+import { RequireCaptcha } from '../../common/decorators/require-captcha.decorator';
+import { CaptchaGuard } from '../../common/guards/captcha.guard';
 import { OrderResponseDto } from '../orders/dto/orders.dto';
 import { ReservationContext, ReservationsService } from './reservations.service';
 import {
@@ -68,6 +71,8 @@ export class ReservationsController {
   }
 
   @Public()
+  @UseGuards(CaptchaGuard)
+  @RequireCaptcha('reservation')
   @Post('events/:eventId/reservations')
   @ApiOperation({ summary: 'Crea una reserva ANÓNIMA y compartible (sin login)' })
   @ApiCreatedResponse({ type: ReservationResponseDto })

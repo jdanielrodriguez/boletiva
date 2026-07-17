@@ -17,8 +17,8 @@ import type {
 export class ReservationsApi {
   private readonly api = inject(ApiClient);
 
-  create(eventId: string, body: CreateReservationDto): Observable<ReservationResponseDto> {
-    return this.api.post<ReservationResponseDto>(`/events/${eventId}/reservations`, body);
+  create(eventId: string, body: CreateReservationDto, captchaToken?: string): Observable<ReservationResponseDto> {
+    return this.api.post<ReservationResponseDto>(`/events/${eventId}/reservations`, body, undefined, captchaOpts(captchaToken));
   }
 
   getByToken(token: string): Observable<ReservationResponseDto> {
@@ -33,4 +33,8 @@ export class ReservationsApi {
   checkout(token: string, body: CheckoutReservationDto = {}): Observable<OrderResponseDto> {
     return this.api.post<OrderResponseDto>(`/reservations/${token}/checkout`, body);
   }
+}
+
+function captchaOpts(token?: string): { headers: Record<string, string> } | undefined {
+  return token ? { headers: { 'x-captcha-token': token } } : undefined;
 }

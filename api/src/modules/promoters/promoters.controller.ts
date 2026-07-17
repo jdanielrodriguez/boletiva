@@ -9,6 +9,7 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -18,6 +19,8 @@ import {
 } from '@nestjs/swagger';
 import { PromoterStatus, Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { RequireCaptcha } from '../../common/decorators/require-captcha.decorator';
+import { CaptchaGuard } from '../../common/guards/captcha.guard';
 import { RequireVerifiedEmail } from '../../common/decorators/verified-email.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { PromotersService } from './promoters.service';
@@ -40,6 +43,8 @@ export class PromotersController {
   constructor(private readonly promoters: PromotersService) {}
 
   @Post('apply')
+  @UseGuards(CaptchaGuard)
+  @RequireCaptcha('promoter_apply')
   @RequireVerifiedEmail()
   @HttpCode(200)
   @ApiOperation({ summary: 'Solicita darse de alta como promotor (auto-aprueba en modo pruebas)' })

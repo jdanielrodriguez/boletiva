@@ -176,8 +176,8 @@ export class PurchaseService {
    * Crea la reserva anónima (sin login). Por simplicidad, una reserva por
    * modo: asientos numerados seleccionados, o una localidad general por cantidad.
    */
-  reserve(): Observable<ReservationResponseDto> {
-    return this.reservations.create(this.eventId(), this.buildBody()).pipe(
+  reserve(captchaToken?: string): Observable<ReservationResponseDto> {
+    return this.reservations.create(this.eventId(), this.buildBody(), captchaToken).pipe(
       tap((res) => this.reservation.set(res)),
     );
   }

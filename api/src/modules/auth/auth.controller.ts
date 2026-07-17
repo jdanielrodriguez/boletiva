@@ -184,6 +184,8 @@ export class AuthController {
   }
 
   @Public()
+  @UseGuards(CaptchaGuard)
+  @RequireCaptcha('resend')
   @RateLimit({ limit: 3, windowSec: 60 })
   @Post('resend-verification')
   @HttpCode(202)
@@ -197,6 +199,8 @@ export class AuthController {
   // ---- Passwordless ----
 
   @Public()
+  @UseGuards(CaptchaGuard)
+  @RequireCaptcha('passwordless')
   @RateLimit({ limit: 3, windowSec: 60 })
   @Post('passwordless/request')
   @HttpCode(202)

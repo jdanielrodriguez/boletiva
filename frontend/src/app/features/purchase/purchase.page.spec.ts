@@ -5,6 +5,7 @@ import { of, throwError } from 'rxjs';
 import { EventsApi } from '../../core/api/events.api';
 import { ReservationsApi } from '../../core/api/reservations.api';
 import { BillingApi } from '../../core/api/billing.api';
+import { RecaptchaService } from '../../core/security/recaptcha.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { SessionStore } from '../../core/auth/session.store';
 import { SITE_URL } from '../../core/config/api.tokens';
@@ -55,6 +56,7 @@ describe('PurchasePage', () => {
         { provide: EventsApi, useValue: events },
         { provide: ReservationsApi, useValue: reservations },
         { provide: BillingApi, useValue: { nitName: () => of({ available: false, name: null }) } },
+        { provide: RecaptchaService, useValue: { execute: () => Promise.resolve('') } },
         { provide: SITE_URL, useValue: 'http://localhost:4200' },
         { provide: SessionStore, useValue: { ensureLoaded: () => of(null), isEmailVerified: () => false, user: () => null } },
         { provide: AuthService, useValue: {} },
@@ -93,11 +95,14 @@ describe('PurchasePage', () => {
     fixture.detectChanges();
     // Reservar pide confirmación de la selección → aceptar en el modal.
     (el.querySelector('[data-testid="confirm-accept"]') as HTMLButtonElement).click();
+    await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(reservations.create).toHaveBeenCalledWith('ev1', {
-      quantities: [{ localityId: 'ga', quantity: 2 }],
-    });
+    expect(reservations.create).toHaveBeenCalledWith(
+      'ev1',
+      { quantities: [{ localityId: 'ga', quantity: 2 }] },
+      '', // captchaToken (reCAPTCHA no configurado en test → '')
+    );
     expect(el.querySelector('[data-testid="reserved"]')).not.toBeNull();
     expect(el.querySelector('[data-testid="countdown"]')).not.toBeNull();
     expect(el.querySelector('[data-testid="share-box"]')).not.toBeNull();
@@ -110,6 +115,7 @@ describe('PurchasePage', () => {
     (el.querySelector('[data-testid="reserve-btn"]') as HTMLButtonElement).click();
     fixture.detectChanges();
     (el.querySelector('[data-testid="confirm-accept"]') as HTMLButtonElement).click();
+    await fixture.whenStable();
     fixture.detectChanges();
     (el.querySelector('[data-testid="pay-btn"]') as HTMLButtonElement).click();
     fixture.detectChanges();
@@ -126,6 +132,7 @@ describe('PurchasePage', () => {
     (el.querySelector('[data-testid="reserve-btn"]') as HTMLButtonElement).click();
     fixture.detectChanges();
     (el.querySelector('[data-testid="confirm-accept"]') as HTMLButtonElement).click();
+    await fixture.whenStable();
     fixture.detectChanges();
 
     const blocked = el.querySelector('[data-testid="reserve-blocked"]');
