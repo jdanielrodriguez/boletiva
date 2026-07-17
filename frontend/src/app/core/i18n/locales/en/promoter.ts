@@ -401,6 +401,10 @@ export const promoter = {
 
   // --- Event analytics dashboard (Dashboard tab) ---
   dash: {
+    filterPromoter: 'Promoter',
+    filterPromoterSelf: 'My events',
+    filterEvent: 'Event',
+    filterEventAll: 'All events',
     loading: 'Loading dashboard…',
     error: 'Could not load the dashboard.',
     // Promoter GLOBAL dashboard (Phase 3)

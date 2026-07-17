@@ -7316,6 +7316,12 @@ export interface components {
             /** @description Por mes (YYYY-MM de inicio) */
             month: components["schemas"]["PromoterDimensionRowDto"][];
         };
+        DashboardEventRefDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example Concierto de Aniversario */
+            name: string;
+        };
         PromoterDashboardDto: {
             /** Format: uuid */
             promoterId: string;
@@ -7337,6 +7343,10 @@ export interface components {
             /** @description Ventas por día (todos los eventos) */
             salesOverTime: components["schemas"]["SalesPointDto"][];
             dimensions: components["schemas"]["PromoterDimensionsDto"];
+            /** @description Todos los eventos del promotor (para el selector) */
+            availableEvents: components["schemas"]["DashboardEventRefDto"][];
+            /** @description Evento al que está filtrado el dashboard (null = todos) */
+            selectedEventId: string | null;
         };
         AdminProfitabilityRowDto: {
             /** Format: uuid */
@@ -11519,6 +11529,8 @@ export interface operations {
             query?: {
                 /** @description Solo admin: promotor a inspeccionar */
                 promoterId?: string;
+                /** @description Filtra el dashboard a un solo evento */
+                eventId?: string;
             };
             header?: never;
             path?: never;

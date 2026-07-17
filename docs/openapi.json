@@ -6450,6 +6450,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "eventId",
+            "required": false,
+            "in": "query",
+            "description": "Filtra el dashboard a un solo evento",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -15076,6 +15085,23 @@
           "month"
         ]
       },
+      "DashboardEventRefDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "example": "Concierto de Aniversario"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
       "PromoterDashboardDto": {
         "type": "object",
         "properties": {
@@ -15113,6 +15139,18 @@
           },
           "dimensions": {
             "$ref": "#/components/schemas/PromoterDimensionsDto"
+          },
+          "availableEvents": {
+            "description": "Todos los eventos del promotor (para el selector)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardEventRefDto"
+            }
+          },
+          "selectedEventId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Evento al que está filtrado el dashboard (null = todos)"
           }
         },
         "required": [
@@ -15123,7 +15161,9 @@
           "publishedCount",
           "summary",
           "salesOverTime",
-          "dimensions"
+          "dimensions",
+          "availableEvents",
+          "selectedEventId"
         ]
       },
       "AdminProfitabilityRowDto": {

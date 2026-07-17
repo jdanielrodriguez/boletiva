@@ -225,6 +225,36 @@ describe('Dashboard global del promotor (e2e)', () => {
       .expect(403);
   });
 
+  it('filtro por evento: availableEvents lista todos; ?eventId agrega SOLO ese evento', async () => {
+    const all = await http()
+      .get(`/api/v1/promoter/dashboard?promoterId=${promoterId}`)
+      .set(bearer(adminToken))
+      .expect(200);
+    // El promotor fresco tiene 2 eventos → el selector los lista y sin filtro no hay seleccionado.
+    expect(all.body.availableEvents.length).toBe(2);
+    expect(all.body.selectedEventId).toBeNull();
+    expect(all.body.eventsCount).toBe(2);
+
+    const oneId = all.body.availableEvents[0].id as string;
+    const one = await http()
+      .get(`/api/v1/promoter/dashboard?promoterId=${promoterId}&eventId=${oneId}`)
+      .set(bearer(adminToken))
+      .expect(200);
+    expect(one.body.selectedEventId).toBe(oneId);
+    expect(one.body.eventsCount).toBe(1); // agregación restringida a ese evento
+    expect(one.body.dimensions.event.length).toBe(1);
+    expect(one.body.dimensions.event[0].key).toBe(oneId);
+    expect(one.body.availableEvents.length).toBe(2); // el selector sigue mostrando todos
+
+    // eventId inválido (de otro promotor / inexistente) → se ignora (no filtra).
+    const bogus = await http()
+      .get(`/api/v1/promoter/dashboard?promoterId=${promoterId}&eventId=00000000-0000-0000-0000-000000000000`)
+      .set(bearer(adminToken))
+      .expect(200);
+    expect(bogus.body.selectedEventId).toBeNull();
+    expect(bogus.body.eventsCount).toBe(2);
+  });
+
   it('RBAC: un comprador (sin rol promotor) → 403; sin token → 401', async () => {
     await http().get('/api/v1/promoter/dashboard').set(bearer(buyerToken)).expect(403);
     await http().get('/api/v1/promoter/dashboard').expect(401);

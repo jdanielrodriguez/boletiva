@@ -400,6 +400,10 @@ export const promoter = {
 
   // --- Dashboard analítico del evento (tab Dashboard) ---
   dash: {
+    filterPromoter: 'Promotor',
+    filterPromoterSelf: 'Mis eventos',
+    filterEvent: 'Evento',
+    filterEventAll: 'Todos los eventos',
     loading: 'Cargando dashboard…',
     error: 'No se pudo cargar el dashboard.',
     // Dashboard GLOBAL del promotor (Fase 3)

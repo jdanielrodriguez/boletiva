@@ -83,10 +83,14 @@ export class PromoterDashboardService {
     return { id: promoter.id, name };
   }
 
-  async forPromoter(user: AuthUser, promoterId?: string): Promise<PromoterDashboardDto> {
+  async forPromoter(
+    user: AuthUser,
+    promoterId?: string,
+    eventId?: string,
+  ): Promise<PromoterDashboardDto> {
     const promoter = await this.resolvePromoter(user, promoterId);
 
-    const events = (await this.prisma.event.findMany({
+    const allEvents = (await this.prisma.event.findMany({
       where: { promoterId: promoter.id },
       select: {
         id: true,
@@ -112,12 +116,20 @@ export class PromoterDashboardService {
       }),
     );
 
+    // Lista para el selector de evento (todos los del promotor) + evento seleccionado.
+    const availableEvents = allEvents.map((e) => ({ id: e.id, name: e.name }));
+    const selectedEventId = eventId && allEvents.some((e) => e.id === eventId) ? eventId : null;
+    // Filtro por evento: si se pide uno válido, el dashboard agrega SOLO ese evento.
+    const events = selectedEventId ? allEvents.filter((e) => e.id === selectedEventId) : allEvents;
+
     const base = {
       promoterId: promoter.id,
       promoterName: promoter.name,
       currency: 'GTQ',
       eventsCount: events.length,
       publishedCount: events.filter((e) => e.status === 'published').length,
+      availableEvents,
+      selectedEventId,
     };
 
     if (events.length === 0) {

@@ -34,12 +34,14 @@ export class AnalyticsController {
       'admin puede ver el de cualquier promotor con ?promoterId=.',
   })
   @ApiQuery({ name: 'promoterId', required: false, description: 'Solo admin: promotor a inspeccionar' })
+  @ApiQuery({ name: 'eventId', required: false, description: 'Filtra el dashboard a un solo evento' })
   @ApiOkResponse({ type: PromoterDashboardDto })
   dashboardData(
     @CurrentUser() user: AuthUser,
     @Query('promoterId') promoterId?: string,
+    @Query('eventId') eventId?: string,
   ) {
-    return this.dashboard.forPromoter(user, promoterId);
+    return this.dashboard.forPromoter(user, promoterId, eventId);
   }
 
   @Get('dashboard/export.xlsx')
