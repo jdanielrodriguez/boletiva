@@ -21,6 +21,10 @@ export default {
   // provoca contención del pool de conexiones y races de teardown (flakiness).
   // Serial (1 worker) es la opción determinista para tests de integración.
   maxWorkers: 1,
+  // Recicla el worker cuando su heap supera 512MB tras una suite. Con 108 suites e2e
+  // en un solo worker, jest ACUMULA memoria y en el runner de CI (heap Node ~2GB) reventaba
+  // con "heap out of memory". Reciclar libera memoria entre suites → sin OOM. Barato en CI.
+  workerIdleMemoryLimit: '512MB',
   collectCoverageFrom: [
     '<rootDir>/src/**/*.{js,ts}',
     '!<rootDir>/src/main.ts',

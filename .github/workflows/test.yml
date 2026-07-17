@@ -30,10 +30,10 @@ jobs:
     name: Backend (lint + unit + smoke)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Node.js 20
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20
 
@@ -62,8 +62,9 @@ jobs:
         # Sin --coverage en CI: la instrumentación de cobertura es pesada en memoria y
         # sobre el runner limitado (2 cores/7GB) + stack Docker puede provocar OOM/timeouts
         # en la corrida serial de e2e sobre BD real. El gate no exige umbral de cobertura;
-        # la cobertura se mide en local con `make test`. (jest.retry.ts reintenta flakes en CI.)
-        run: docker exec pasaeventos_api npx nx test api
+        # la cobertura se mide en local con `make test`. (jest.retry.ts reintenta flakes en CI;
+        # jest.config `workerIdleMemoryLimit` recicla el worker; +4GB de heap por si acaso.)
+        run: docker exec -e NODE_OPTIONS=--max-old-space-size=4096 pasaeventos_api npx nx test api
 
       - name: Smoke E2E (HTTP + navegador headless)
         run: make smoke
@@ -87,10 +88,10 @@ jobs:
       # Karma usa ChromeHeadlessCI (--no-sandbox); apunta al Chrome del runner.
       CHROME_BIN: /usr/bin/google-chrome
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Node.js 20
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20
           cache: npm
@@ -115,8 +116,8 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 20
       - name: Audit backend (root)
