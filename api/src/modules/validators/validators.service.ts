@@ -1,0 +1,288 @@
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import { Role, ValidatorStatus } from '@prisma/client';
+import { PrismaService } from '../../infra/prisma/prisma.service';
+import { MailService } from '../../infra/mail/mail.service';
+import { AuthUser } from '../../common/decorators/current-user.decorator';
+import { randomToken, sha256 } from '../../common/utils/crypto';
+
+/** Días de validez del magic-link de validación (mientras el validador esté habilitado). */
+const TTL_DAYS = 30;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Validadores de boletos (autorizadores de acceso). El promotor invita por email a
+ * personas que validan boletos en la puerta:
+ *  - Se crea un User LIGERO con rol `gate_operator` (acceso solo por magic-link, sin
+ *    contraseña) + un `gate_assignment` → reusa TODA la infra SafeTix (manifiesto,
+ *    verify, checkins) y su enforcement (token de puerta + asignación viva).
+ *  - Se guarda una `validator_invitation` con un código de un solo uso y un token de
+ *    magic-link (ambos hasheados). El link abre el validador directo (`claim` → token
+ *    de puerta corto). Vale solo mientras `status=active` y la asignación siga viva.
+ *  - Deshabilitar (uno o todos) revoca la asignación → corta el manifiesto y el link.
+ */
+@Injectable()
+export class ValidatorsService {
+  private readonly logger = new Logger(ValidatorsService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
+    private readonly mail: MailService,
+    private readonly jwt: JwtService,
+  ) {}
+
+  private origin(): string {
+    return (this.config.get<string[]>('cors.origins') ?? [])[0] ?? '';
+  }
+
+  /** Evento gestionable por el usuario (admin o promotor dueño). */
+  private async assertManages(eventId: string, user: AuthUser) {
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      select: { promoterId: true, name: true },
+    });
+    if (!event) throw new NotFoundException('Evento no encontrado');
+    if (!user.roles.includes(Role.admin) && event.promoterId !== user.userId) {
+      throw new ForbiddenException('No administras este evento');
+    }
+    return event;
+  }
+
+  /** Crea/actualiza un validador para el evento e (re)envía su código + magic-link. */
+  async invite(eventId: string, rawEmail: string, user: AuthUser) {
+    const event = await this.assertManages(eventId, user);
+    const email = (rawEmail ?? '').trim().toLowerCase();
+    if (!EMAIL_RE.test(email)) throw new BadRequestException('Correo inválido');
+
+    // 1) User LIGERO con rol gate_operator (o añade el rol si ya existe la cuenta).
+    const operator = await this.ensureOperator(email);
+
+    // 2) Asignación operador↔evento (idempotente) → habilita manifiesto/checkins.
+    await this.prisma.gateAssignment.upsert({
+      where: { eventId_operatorId: { eventId, operatorId: operator.id } },
+      create: { eventId, operatorId: operator.id, createdById: user.userId },
+      update: {},
+    });
+
+    // 3) Invitación con código de un solo uso + token de magic-link (hasheados).
+    const token = randomToken(24);
+    const code = String(Math.floor(100000 + Math.random() * 900000)); // 6 dígitos
+    const expiresAt = new Date(Date.now() + TTL_DAYS * 24 * 60 * 60 * 1000);
+    const inv = await this.prisma.validatorInvitation.upsert({
+      where: { eventId_email: { eventId, email } },
+      create: {
+        eventId,
+        email,
+        operatorId: operator.id,
+        codeHash: sha256(code),
+        tokenHash: sha256(token),
+        invitedById: user.userId,
+        expiresAt,
+      },
+      update: {
+        codeHash: sha256(code),
+        tokenHash: sha256(token),
+        status: ValidatorStatus.active,
+        expiresAt,
+        operatorId: operator.id,
+      },
+    });
+
+    const url = `${this.origin()}/validar/${token}`;
+    await this.sendInviteEmail(email, event.name, url, code);
+    // url + code se devuelven UNA sola vez (no se pueden re-derivar del hash).
+    return { id: inv.id, email, status: inv.status, url, code, expiresAt: expiresAt.toISOString() };
+  }
+
+  /** User ligero solo-validación: crea con rol gate_operator o añade el rol si ya existe. */
+  private async ensureOperator(email: string) {
+    const existing = await this.prisma.user.findUnique({ where: { email } });
+    if (!existing) {
+      return this.prisma.user.create({
+        data: {
+          email,
+          firstName: 'Validador',
+          roles: [Role.gate_operator],
+          emailVerifiedAt: new Date(), // invitado → correo de confianza
+        },
+        select: { id: true, roles: true },
+      });
+    }
+    if (!existing.roles.includes(Role.gate_operator)) {
+      return this.prisma.user.update({
+        where: { id: existing.id },
+        data: { roles: { set: [...new Set([...existing.roles, Role.gate_operator])] } },
+        select: { id: true, roles: true },
+      });
+    }
+    return { id: existing.id, roles: existing.roles };
+  }
+
+  /** Lista los validadores del evento con su estado (para el panel del promotor). */
+  async list(eventId: string, user: AuthUser) {
+    await this.assertManages(eventId, user);
+    const invs = await this.prisma.validatorInvitation.findMany({
+      where: { eventId },
+      include: { operator: { select: { id: true, email: true, firstName: true, lastName: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+    return invs.map((i) => ({
+      id: i.id,
+      email: i.email,
+      operatorId: i.operatorId,
+      status: i.status,
+      expiresAt: i.expiresAt.toISOString(),
+      createdAt: i.createdAt.toISOString(),
+    }));
+  }
+
+  /** Deshabilita un validador: status=disabled + revoca la asignación (corta el link). */
+  async disable(eventId: string, id: string, user: AuthUser) {
+    await this.assertManages(eventId, user);
+    const inv = await this.prisma.validatorInvitation.findFirst({ where: { id, eventId } });
+    if (!inv) throw new NotFoundException('Validador no encontrado');
+    await this.prisma.$transaction([
+      this.prisma.validatorInvitation.update({
+        where: { id },
+        data: { status: ValidatorStatus.disabled },
+      }),
+      this.prisma.gateAssignment.deleteMany({ where: { eventId, operatorId: inv.operatorId } }),
+    ]);
+    return { disabled: true };
+  }
+
+  /** Deshabilita TODOS los validadores activos del evento de una vez. */
+  async disableAll(eventId: string, user: AuthUser) {
+    await this.assertManages(eventId, user);
+    const active = await this.prisma.validatorInvitation.findMany({
+      where: { eventId, status: ValidatorStatus.active },
+      select: { operatorId: true },
+    });
+    const opIds = active.map((a) => a.operatorId);
+    await this.prisma.$transaction([
+      this.prisma.validatorInvitation.updateMany({
+        where: { eventId, status: ValidatorStatus.active },
+        data: { status: ValidatorStatus.disabled },
+      }),
+      this.prisma.gateAssignment.deleteMany({ where: { eventId, operatorId: { in: opIds } } }),
+    ]);
+    return { disabled: opIds.length };
+  }
+
+  /** Re-habilita un validador: re-crea la asignación, rota el token/código y reenvía. */
+  async enable(eventId: string, id: string, user: AuthUser) {
+    const event = await this.assertManages(eventId, user);
+    const inv = await this.prisma.validatorInvitation.findFirst({ where: { id, eventId } });
+    if (!inv) throw new NotFoundException('Validador no encontrado');
+    const token = randomToken(24);
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const expiresAt = new Date(Date.now() + TTL_DAYS * 24 * 60 * 60 * 1000);
+    await this.prisma.$transaction([
+      this.prisma.gateAssignment.upsert({
+        where: { eventId_operatorId: { eventId, operatorId: inv.operatorId } },
+        create: { eventId, operatorId: inv.operatorId, createdById: user.userId },
+        update: {},
+      }),
+      this.prisma.validatorInvitation.update({
+        where: { id },
+        data: {
+          status: ValidatorStatus.active,
+          codeHash: sha256(code),
+          tokenHash: sha256(token),
+          expiresAt,
+        },
+      }),
+    ]);
+    const url = `${this.origin()}/validar/${token}`;
+    await this.sendInviteEmail(inv.email, event.name, url, code);
+    return { id: inv.id, email: inv.email, status: ValidatorStatus.active, url, code, expiresAt: expiresAt.toISOString() };
+  }
+
+  /**
+   * Canje del magic-link (PÚBLICO): valida el token, exige que el validador siga
+   * habilitado (status=active + asignación viva) y emite un TOKEN DE PUERTA corto
+   * (mismo formato que gate-access) con el que la PWA pide el manifiesto y valida.
+   */
+  async claim(token: string) {
+    const inv = await this.findUsable(token);
+    const assigned = await this.prisma.gateAssignment.findUnique({
+      where: { eventId_operatorId: { eventId: inv.eventId, operatorId: inv.operatorId } },
+    });
+    if (!assigned) throw new ForbiddenException('Tu acceso a este evento fue revocado');
+    const event = await this.prisma.event.findUniqueOrThrow({
+      where: { id: inv.eventId },
+      select: { id: true, name: true, slug: true, startsAt: true },
+    });
+    const ttl = this.config.getOrThrow<number>('safetix.gateTokenTtl');
+    const gateToken = this.jwt.sign(
+      { sub: inv.operatorId, email: inv.email, roles: [Role.gate_operator], gateEventId: inv.eventId },
+      { secret: this.config.getOrThrow<string>('jwt.accessSecret'), expiresIn: ttl },
+    );
+    return {
+      gateToken,
+      expiresIn: ttl,
+      gateEventId: inv.eventId,
+      event: {
+        id: event.id,
+        name: event.name,
+        slug: event.slug,
+        startsAt: event.startsAt.toISOString(),
+      },
+    };
+  }
+
+  /** Vista pública del magic-link: nombre del evento + email (pantalla de bienvenida). */
+  async peek(token: string) {
+    const inv = await this.findUsable(token);
+    const event = await this.prisma.event.findUniqueOrThrow({
+      where: { id: inv.eventId },
+      select: { name: true },
+    });
+    return { email: inv.email, eventName: event.name, valid: true };
+  }
+
+  /** Invitación usable: existe, activa y no vencida (marca vencidas al vuelo). */
+  private async findUsable(token: string) {
+    if (!token) throw new NotFoundException('Enlace inválido');
+    const inv = await this.prisma.validatorInvitation.findUnique({
+      where: { tokenHash: sha256(token) },
+    });
+    if (!inv) throw new NotFoundException('Enlace inválido');
+    if (inv.status === ValidatorStatus.disabled) {
+      throw new ForbiddenException('Tu acceso fue deshabilitado');
+    }
+    if (inv.expiresAt.getTime() < Date.now()) {
+      throw new BadRequestException('El enlace venció; pide al organizador que te reenvíe el acceso');
+    }
+    return inv;
+  }
+
+  private async sendInviteEmail(email: string, eventName: string, url: string, code: string): Promise<void> {
+    try {
+      await this.mail.enqueueTemplated(email, `Valida boletos de "${eventName}" — Boletiva`, {
+        title: 'Acceso de validación',
+        preheader: `Te habilitaron para validar boletos de ${eventName}.`,
+        bodyHtml: `<p style="margin:0 0 12px 0;">Te habilitaron como <strong>validador</strong> de boletos de <strong>${escapeHtml(eventName)}</strong> en Boletiva. Abre el enlace para entrar directo al validador (usa la cámara para escanear los boletos).</p>
+          <p style="margin:0 0 6px 0;">Tu código de acceso:</p>
+          <p style="margin:0;font-size:28px;font-weight:700;letter-spacing:6px;color:#7c3aed;">${code}</p>
+          <p class="pe-muted" style="margin:14px 0 0 0;font-size:14px;color:#6b6b76;">El acceso vale mientras el organizador te mantenga habilitado. Si no esperabas esto, ignora este correo.</p>`,
+        cta: { url, label: 'Abrir el validador' },
+      });
+    } catch (err) {
+      this.logger.warn(`No se pudo enviar el acceso de validación a ${email}: ${(err as Error).message}`);
+    }
+  }
+}
+
+/** Escapa HTML básico para el correo (evita romper el markup con el nombre del evento). */
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string);
+}

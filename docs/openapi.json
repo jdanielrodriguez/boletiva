@@ -5644,6 +5644,274 @@
         ]
       }
     },
+    "/api/v1/events/{eventId}/validators": {
+      "get": {
+        "operationId": "EventValidatorsController_list_v1",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ValidatorListItemDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lista los validadores del evento y su estado",
+        "tags": [
+          "validators"
+        ]
+      },
+      "post": {
+        "operationId": "EventValidatorsController_invite_v1",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteValidatorDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidatorInviteResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Invita/habilita un validador por email (envía código + magic-link)",
+        "tags": [
+          "validators"
+        ]
+      },
+      "delete": {
+        "operationId": "EventValidatorsController_disableAll_v1",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidatorDisabledDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Deshabilita TODOS los validadores del evento a la vez",
+        "tags": [
+          "validators"
+        ]
+      }
+    },
+    "/api/v1/events/{eventId}/validators/{id}": {
+      "delete": {
+        "operationId": "EventValidatorsController_disable_v1",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidatorDisabledDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Deshabilita un validador (revoca su acceso al instante)",
+        "tags": [
+          "validators"
+        ]
+      }
+    },
+    "/api/v1/events/{eventId}/validators/{id}/enable": {
+      "post": {
+        "operationId": "EventValidatorsController_enable_v1",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidatorInviteResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Re-habilita un validador y le reenvía un nuevo acceso",
+        "tags": [
+          "validators"
+        ]
+      }
+    },
+    "/api/v1/validators/{token}": {
+      "get": {
+        "operationId": "ValidatorClaimController_peek_v1",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidatorPeekDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Previsualiza el acceso de validación (evento + email)",
+        "tags": [
+          "validators"
+        ]
+      }
+    },
+    "/api/v1/validators/claim": {
+      "post": {
+        "operationId": "ValidatorClaimController_claim_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimValidatorDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Canjea el magic-link por un token de puerta para validar",
+        "tags": [
+          "validators"
+        ]
+      }
+    },
     "/api/v1/payment-methods": {
       "get": {
         "operationId": "PaymentMethodsController_list_v1",
@@ -14313,6 +14581,191 @@
         },
         "required": [
           "pct"
+        ]
+      },
+      "ValidatorListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string"
+          },
+          "operatorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "disabled"
+            ]
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "operatorId",
+          "status",
+          "expiresAt",
+          "createdAt"
+        ]
+      },
+      "InviteValidatorDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "validador@correo.com",
+            "description": "Email del validador a habilitar"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "ValidatorInviteResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "disabled"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "description": "Magic-link para abrir el validador (mostrar/compartir una vez)"
+          },
+          "code": {
+            "type": "string",
+            "description": "Código de acceso de un solo uso (mostrar una vez)"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "status",
+          "url",
+          "code",
+          "expiresAt"
+        ]
+      },
+      "ValidatorDisabledDto": {
+        "type": "object",
+        "properties": {
+          "disabled": {
+            "type": "object",
+            "description": "true (uno) o cantidad deshabilitada (todos)"
+          }
+        },
+        "required": [
+          "disabled"
+        ]
+      },
+      "ValidatorPeekDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "eventName": {
+            "type": "string"
+          },
+          "valid": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "email",
+          "eventName",
+          "valid"
+        ]
+      },
+      "ClaimValidatorDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token del magic-link recibido por correo"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "ClaimEventDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "startsAt"
+        ]
+      },
+      "ClaimResponseDto": {
+        "type": "object",
+        "properties": {
+          "gateToken": {
+            "type": "string",
+            "description": "JWT de puerta (corto) para pedir el manifiesto y validar"
+          },
+          "expiresIn": {
+            "type": "number",
+            "description": "Vigencia del token de puerta (segundos)"
+          },
+          "gateEventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "event": {
+            "$ref": "#/components/schemas/ClaimEventDto"
+          }
+        },
+        "required": [
+          "gateToken",
+          "expiresIn",
+          "gateEventId",
+          "event"
         ]
       },
       "PaymentMethodResponseDto": {
