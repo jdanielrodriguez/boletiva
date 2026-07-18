@@ -192,7 +192,13 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
    * El gate por `status` NO aplica al dueño: el promotor dueño edita SIEMPRE, aunque
    * el evento esté publicado. Solo el admin NO-dueño requiere desbloqueo vigente.
    */
-  protected readonly canEdit = computed(() => this.isOwner() || this.unlockActive());
+  /** Evento CONCLUIDO (terminado por fecha, finalizado o cancelado): read-only, solo ver cuentas. */
+  protected readonly isConcluded = computed(
+    () => this.hasEnded() || this.isFinished() || this.isCancelled(),
+  );
+  protected readonly canEdit = computed(
+    () => (this.isOwner() || this.unlockActive()) && !this.isConcluded(),
+  );
   /**
    * Tiempo restante del desbloqueo formateado mm:ss. Reactivo (el `remainingMs`
    * del store lee su `clock` interno → se recomputa cada segundo). Al llegar a 0

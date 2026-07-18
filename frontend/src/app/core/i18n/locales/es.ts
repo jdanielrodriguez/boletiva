@@ -16,6 +16,7 @@ import { promoterHistory } from './es/promoter-history';
 import { terms } from './es/terms';
 import { maintenance } from './es/maintenance';
 import { tour } from './es/tour';
+import { reportsMaintenance } from './es/reports-maintenance';
 
 /** Diccionario ESPAÑOL (default, es-GT). Compuesto por namespaces. */
 export const es: TranslationObject = {
@@ -36,4 +37,5 @@ export const es: TranslationObject = {
   terms,
   maintenance,
   tour,
+  reportsMaintenance,
 };

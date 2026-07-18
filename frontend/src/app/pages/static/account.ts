@@ -36,6 +36,7 @@ import { ToastService } from '../../core/ui/toast.service';
 import { ConfirmController } from '../../shared/confirm-dialog/confirm-controller';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
+import { TourComponent, type TourStep } from '../../shared/tour/tour.component';
 import { TicketTransferModal } from '../../shared/ticket-transfer-modal/ticket-transfer-modal.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
@@ -102,10 +103,16 @@ function groupByEventOrder(tickets: TicketResponseDto[]): EventGroup[] {
  */
 @Component({
   selector: 'app-account',
-  imports: [FormsModule, TranslatePipe, LocalizedDatePipe, UpperCasePipe, MoneyPipe, RouterLink, IconComponent, ConfirmDialogComponent, PagerComponent, EmptyStateComponent, StatusLabelPipe, TicketTransferModal],
+  imports: [FormsModule, TranslatePipe, LocalizedDatePipe, UpperCasePipe, MoneyPipe, RouterLink, IconComponent, ConfirmDialogComponent, PagerComponent, EmptyStateComponent, StatusLabelPipe, TicketTransferModal, TourComponent],
   templateUrl: './account.html',
 })
 export class Account {
+  /** Tour de onboarding de la cuenta (solo logueados que no lo han visto). */
+  protected readonly tourSteps: TourStep[] = [
+    { title: 'tour.account.welcomeTitle', body: 'tour.account.welcomeBody' },
+    { title: 'tour.account.ticketsTitle', body: 'tour.account.ticketsBody' },
+    { title: 'tour.account.walletTitle', body: 'tour.account.walletBody' },
+  ];
   protected readonly session = inject(SessionStore);
   private readonly walletApi = inject(WalletApi);
   private readonly ticketsApi = inject(TicketsApi);

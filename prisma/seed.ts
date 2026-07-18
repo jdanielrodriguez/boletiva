@@ -158,6 +158,7 @@ async function seedGateway(): Promise<void> {
     transactionFixedFee?: string;
     installmentRates?: Record<string, number>;
     sandbox: boolean;
+    status?: 'active' | 'inactive';
   }> = [
     {
       name: 'Recurrente',
@@ -171,7 +172,9 @@ async function seedGateway(): Promise<void> {
       installmentRates: { '3': 0.08, '6': 0.09, '12': 0.1, '18': 0.14 },
       sandbox: true,
     },
-    { name: 'Pagalo', provider: 'simulator', feePct: '0.05000', sandbox: true },
+    // Pagalo INACTIVA por decisión de negocio (deuda pendiente con Pagalo): no debe
+    // ofrecerse hasta nuevo aviso. Sigue seleccionable solo si el admin la reactiva.
+    { name: 'Pagalo', provider: 'simulator', feePct: '0.05000', sandbox: true, status: 'inactive' },
     { name: 'Sandbox', provider: 'simulator', feePct: '0.05000', sandbox: true },
   ];
   for (const g of gateways) {
@@ -184,7 +187,7 @@ async function seedGateway(): Promise<void> {
         installmentRates: g.installmentRates ?? undefined,
         transactionFixedFee: g.transactionFixedFee ?? '0.00',
         minCostSharePct: '0.00000',
-        status: 'active',
+        status: g.status ?? 'active',
       },
       create: {
         name: g.name,
@@ -193,7 +196,7 @@ async function seedGateway(): Promise<void> {
         transactionFixedFee: g.transactionFixedFee ?? '0.00',
         installmentRates: g.installmentRates,
         sandbox: g.sandbox,
-        status: 'active',
+        status: g.status ?? 'active',
       },
     });
   }
@@ -396,8 +399,19 @@ async function seedCategories(adminId: string) {
 
 async function seedDemoEvent(promoterId: string, categoryId: string): Promise<void> {
   const slug = 'evento-demo-pasaeventos';
+  const startsAt = new Date('2026-12-04T20:00:00-06:00');
+  const endsAt = new Date('2026-12-04T23:00:00-06:00');
   const existing = await prisma.event.findUnique({ where: { slug } });
-  if (existing) return;
+  if (existing) {
+    // Higiene E2E: una corrida puede dejar el demo `suspended`/`cancelled` (o con fecha
+    // pasada). El reseed lo RESTAURA a published + destacado + fecha futura para que el
+    // catálogo/hero no queden vacíos en la siguiente corrida (antes: `return` sin tocar).
+    await prisma.event.update({
+      where: { slug },
+      data: { status: 'published', promotedPriority: 1, startsAt, endsAt },
+    });
+    return;
+  }
 
   const event = await prisma.event.create({
     data: {

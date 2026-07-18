@@ -308,6 +308,28 @@ describe('Pagos en cuotas (e2e)', () => {
     expect(noc.installmentOptions[0].installments).toBe(1);
   });
 
+  it('perilla del admin: installmentsEnabled=false → solo 1 pago y pagar en cuotas → 409', async () => {
+    // Recurrente tiene tarifario de cuotas, pero el admin apaga la perilla.
+    await prisma.paymentGateway.update({
+      where: { id: recurrenteId },
+      data: { installmentsEnabled: false },
+    });
+    try {
+      const o = await order(platEventId, platSeats[9]);
+      const opts = await optionsFor(o.id);
+      const recu = opts.gateways.find((g: { gatewayId: string }) => g.gatewayId === recurrenteId);
+      expect(recu.installmentOptions).toHaveLength(1); // sin cuotas aunque tenga tarifario
+      expect(recu.installmentOptions[0].installments).toBe(1);
+      // Forzar cuotas por esa pasarela → rechazado.
+      await pay(o.id, { gatewayId: recurrenteId, installments: 3 }).expect(409);
+    } finally {
+      await prisma.paymentGateway.update({
+        where: { id: recurrenteId },
+        data: { installmentsEnabled: true },
+      });
+    }
+  });
+
   it('payment-options IDOR: orden ajena → 404; sin token → 401', async () => {
     const o = await order(platEventId, platSeats[8]);
     await http().get(`/api/v1/orders/${o.id}/payment-options`).set(bearer(buyerBToken)).expect(404);

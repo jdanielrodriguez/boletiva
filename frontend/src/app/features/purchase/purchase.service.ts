@@ -1,5 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable, of, tap } from 'rxjs';
+import { Observable, catchError, map, of, tap } from 'rxjs';
 import { ReservationsApi } from '../../core/api/reservations.api';
 import type {
   CreateReservationDto,
@@ -178,8 +178,82 @@ export class PurchaseService {
    */
   reserve(captchaToken?: string): Observable<ReservationResponseDto> {
     return this.reservations.create(this.eventId(), this.buildBody(), captchaToken).pipe(
-      tap((res) => this.reservation.set(res)),
+      tap((res) => {
+        this.reservation.set(res);
+        this.persist(res); // sobrevive a un F5 (se rehidrata con restore())
+      }),
     );
+  }
+
+  // --- Persistencia de la reserva viva (anti-F5) ---------------------------------
+  // La reserva vive en el backend (holds Redis, TTL) con un token; guardamos SOLO
+  // ese token en localStorage (por evento) para reanudarla tras recargar la página.
+  // El estado real siempre se revalida contra el backend (fuente de verdad).
+
+  private storageKey(eventId: string): string {
+    return `pe.reservation.${eventId}`;
+  }
+
+  /** Acceso a localStorage tolerante a SSR / modo privado (devuelve null si no hay). */
+  private ls(): Storage | null {
+    try {
+      return typeof localStorage !== 'undefined' ? localStorage : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private persist(res: ReservationResponseDto): void {
+    const ls = this.ls();
+    if (!ls) return;
+    try {
+      ls.setItem(this.storageKey(res.eventId), res.token);
+    } catch {
+      /* cuota llena o almacenamiento bloqueado: no es crítico */
+    }
+  }
+
+  /** Borra la reserva persistida del evento actual (al pagar, cancelar o expirar). */
+  clearPersisted(): void {
+    const ls = this.ls();
+    const id = this.eventId();
+    if (!ls || !id) return;
+    try {
+      ls.removeItem(this.storageKey(id));
+    } catch {
+      /* noop */
+    }
+  }
+
+  /**
+   * Rehidrata una reserva viva tras un F5: lee el token guardado del evento y lo
+   * revalida contra el backend. Si sigue viva la restaura en memoria y la devuelve;
+   * si expiró / ya no existe, limpia el rastro y devuelve null.
+   */
+  restore(): Observable<ReservationResponseDto | null> {
+    const ls = this.ls();
+    const id = this.eventId();
+    const token = ls && id ? ls.getItem(this.storageKey(id)) : null;
+    if (!token) return of(null);
+    return this.reservations.getByToken(token).pipe(
+      map((res) => {
+        const alive = res.valid && this.remainingMs(res.expiresAt) > 0;
+        if (alive) {
+          this.reservation.set(res);
+          return res;
+        }
+        this.clearPersisted();
+        return null;
+      }),
+      catchError(() => {
+        this.clearPersisted(); // 404 / inválida → borrar el rastro
+        return of(null);
+      }),
+    );
+  }
+
+  private remainingMs(expiresAt?: string | null): number {
+    return expiresAt ? new Date(expiresAt).getTime() - Date.now() : 0;
   }
 
   private buildBody(): CreateReservationDto {
@@ -195,7 +269,8 @@ export class PurchaseService {
   /** Paga la reserva (requiere sesión): crea la orden a nombre del usuario. */
   checkout(billing?: { billingNit?: string; billingName?: string }): Observable<OrderResponseDto> {
     const token = this.reservation()?.token ?? '';
-    return this.reservations.checkout(token, billing);
+    // La reserva se convirtió en orden → ya no hay que reanudarla tras un F5.
+    return this.reservations.checkout(token, billing).pipe(tap(() => this.clearPersisted()));
   }
 
   /**
@@ -205,6 +280,7 @@ export class PurchaseService {
   cancel(): Observable<{ cancelled: boolean }> {
     const token = this.reservation()?.token ?? '';
     this.reservation.set(null);
+    this.clearPersisted();
     if (!token) return of({ cancelled: false });
     return this.reservations.cancel(token);
   }

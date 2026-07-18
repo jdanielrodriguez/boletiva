@@ -40,7 +40,7 @@
             "description": ""
           }
         },
-        "summary": "Health completo: PostgreSQL, Redis, RabbitMQ, storage y mail",
+        "summary": "Health completo: PostgreSQL, Redis, RabbitMQ, storage y mail (detalle solo fuera de prod)",
         "tags": [
           "health"
         ]
@@ -6450,6 +6450,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "eventId",
+            "required": false,
+            "in": "query",
+            "description": "Filtra el dashboard a un solo evento",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -8780,6 +8789,7 @@
           },
           "category": {
             "nullable": true,
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/EventCategoryDto"
@@ -8990,6 +9000,7 @@
           },
           "category": {
             "nullable": true,
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/EventCategoryDto"
@@ -9152,6 +9163,7 @@
           },
           "category": {
             "nullable": true,
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/EventCategoryDto"
@@ -9376,6 +9388,7 @@
           },
           "category": {
             "nullable": true,
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/EventCategoryDto"
@@ -9547,6 +9560,7 @@
           "price": {
             "nullable": true,
             "description": "Precio del comprador (null si la localidad no tiene neto definido)",
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/BuyerPriceDto"
@@ -9623,6 +9637,7 @@
         "properties": {
           "seatMap": {
             "nullable": true,
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/SeatMapDto"
@@ -9784,6 +9799,7 @@
           },
           "category": {
             "nullable": true,
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/EventCategoryDto"
@@ -13609,6 +13625,16 @@
             "minimum": 1,
             "maximum": 48,
             "default": 1
+          },
+          "billingNit": {
+            "type": "string",
+            "description": "NIT de facturación (FEL). Se captura en el checkout; default CF (consumidor final).",
+            "maxLength": 20
+          },
+          "billingName": {
+            "type": "string",
+            "description": "Nombre fiscal para la factura (FEL).",
+            "maxLength": 150
           }
         }
       },
@@ -14028,6 +14054,10 @@
             "example": "2.00",
             "description": "Cargo fijo por transacción en cuotas (GTQ). null = sin fijo."
           },
+          "installmentsEnabled": {
+            "type": "boolean",
+            "description": "Permitir pago en cuotas (false = solo 1 pago)"
+          },
           "credentialsRef": {
             "type": "string",
             "nullable": true,
@@ -14066,6 +14096,7 @@
           "minCostSharePct",
           "installmentRates",
           "installmentFixedFee",
+          "installmentsEnabled",
           "credentialsRef",
           "status",
           "isPlatformDefault",
@@ -14121,6 +14152,10 @@
             "description": "Cargo fijo por transacción en cuotas (GTQ, p.ej. 2)",
             "example": 2
           },
+          "installmentsEnabled": {
+            "type": "boolean",
+            "description": "Permitir pago en cuotas con esta pasarela (default true en BD). false = solo 1 pago."
+          },
           "credentialsRef": {
             "type": "string",
             "description": "Referencia al secreto (Secret Manager/env), no el secreto"
@@ -14170,6 +14205,10 @@
           "installmentFixedFee": {
             "type": "number",
             "description": "Cargo fijo por transacción en cuotas (GTQ)"
+          },
+          "installmentsEnabled": {
+            "type": "boolean",
+            "description": "Permitir pago en cuotas con esta pasarela. false = solo 1 pago."
           },
           "credentialsRef": {
             "type": "string"
@@ -15059,6 +15098,23 @@
           "month"
         ]
       },
+      "DashboardEventRefDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "example": "Concierto de Aniversario"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
       "PromoterDashboardDto": {
         "type": "object",
         "properties": {
@@ -15096,6 +15152,18 @@
           },
           "dimensions": {
             "$ref": "#/components/schemas/PromoterDimensionsDto"
+          },
+          "availableEvents": {
+            "description": "Todos los eventos del promotor (para el selector)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardEventRefDto"
+            }
+          },
+          "selectedEventId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Evento al que está filtrado el dashboard (null = todos)"
           }
         },
         "required": [
@@ -15106,7 +15174,9 @@
           "publishedCount",
           "summary",
           "salesOverTime",
-          "dimensions"
+          "dimensions",
+          "availableEvents",
+          "selectedEventId"
         ]
       },
       "AdminProfitabilityRowDto": {
@@ -15492,6 +15562,16 @@
             "description": "Si se muestran las categorías en la página principal.",
             "example": true
           },
+          "reportsMaintenance": {
+            "type": "boolean",
+            "description": "Mantenimiento de reportes/dashboards de eventos, promotores y chequeo de boletos.",
+            "example": false
+          },
+          "tourEnabled": {
+            "type": "boolean",
+            "description": "Habilita el tour de onboarding guiado (una vez por usuario/página).",
+            "example": true
+          },
           "capabilities": {
             "type": "object",
             "description": "Integraciones externas configuradas y disponibles (gating de UI).",
@@ -15531,6 +15611,8 @@
         "required": [
           "allowVisitorLangSwitch",
           "showHomeCategories",
+          "reportsMaintenance",
+          "tourEnabled",
           "capabilities",
           "recaptchaSiteKey",
           "theme"

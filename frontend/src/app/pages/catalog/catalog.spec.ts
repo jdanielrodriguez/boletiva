@@ -42,7 +42,11 @@ function setup(
       // Stub del store de config (evita el HTTP de refresh() en el constructor, W2/W10).
       {
         provide: PublicConfigStore,
-        useValue: { showHomeCategories: signal(true).asReadonly(), refresh: () => undefined },
+        useValue: {
+          showHomeCategories: signal(true).asReadonly(),
+          tourEnabled: signal(false).asReadonly(),
+          refresh: () => undefined,
+        },
       },
       {
         provide: ActivatedRoute,

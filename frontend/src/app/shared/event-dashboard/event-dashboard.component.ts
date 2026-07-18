@@ -5,6 +5,7 @@ import { LoadingComponent } from '../ui/loading.component';
 import { EmptyStateComponent } from '../ui/empty-state.component';
 import { ChartComponent, ChartOptions } from '../ui/chart.component';
 import { MoneyPipe } from '../money.pipe';
+import { ReportsMaintenanceGateComponent } from '../reports-maintenance/reports-maintenance-gate.component';
 import type { EventDashboardDto } from '../../core/api/types';
 
 /** Paleta coherente con los tokens --pe-* (accent rosa-morado + estados). */
@@ -26,7 +27,7 @@ const PALETTE = {
 @Component({
   selector: 'app-event-dashboard',
   standalone: true,
-  imports: [TranslatePipe, LoadingComponent, EmptyStateComponent, ChartComponent, MoneyPipe],
+  imports: [TranslatePipe, LoadingComponent, EmptyStateComponent, ChartComponent, MoneyPipe, ReportsMaintenanceGateComponent],
   templateUrl: './event-dashboard.component.html',
   styles: [
     `

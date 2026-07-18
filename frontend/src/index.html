@@ -5,17 +5,28 @@
   <title>Boletiva</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <!-- Anti-parpadeo de tema: estampa el tema cacheado (cookie pe_theme) ANTES del
-       primer paint, para que un usuario recurrente no vea el tema por defecto por un
-       instante. El ThemeService de Angular refina la franja tras hidratar. -->
+  <!-- Favicon = logo del header (mark boleto+play), por TEMA. Los valores estáticos son
+       el default (pulso); el script de abajo los ajusta al tema seteado ANTES del primer
+       paint. El ?v= fuerza refresco (el favicon se cachea muy fuerte); súbelo si cambias
+       el icono. -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
+  <link rel="icon" type="image/x-icon" href="favicon.ico?v=3">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <!-- Anti-parpadeo de tema + FAVICON por tema: estampa el tema cacheado (cookie
+       pe_theme) y fija el favicon (svg+ico) acorde ANTES del primer paint. Hacerlo aquí
+       (no por JS tras cargar) evita el quirk de Chrome de no refrescar el favicon al
+       cambiar el href dinámicamente. El ThemeService lo re-sincroniza si cambia el tema. -->
   <script>
     (function () {
       try {
         var m = document.cookie.match(/(?:^|; )pe_theme=([^;]+)/);
-        if (m && (m[1] === 'pulso' || m[1] === 'marquesina')) {
-          document.documentElement.setAttribute('data-theme', m[1]);
-        }
+        var theme = m && (m[1] === 'pulso' || m[1] === 'marquesina') ? m[1] : null;
+        if (theme) document.documentElement.setAttribute('data-theme', theme);
+        var isM = theme === 'marquesina';
+        var svg = document.querySelector('link[rel="icon"][type="image/svg+xml"]');
+        var ico = document.querySelector('link[rel="icon"][type="image/x-icon"]');
+        if (svg) svg.setAttribute('href', (isM ? 'favicon-marquesina.svg' : 'favicon.svg') + '?v=3');
+        if (ico) ico.setAttribute('href', (isM ? 'favicon-marquesina.ico' : 'favicon.ico') + '?v=3');
       } catch (e) {}
     })();
   </script>

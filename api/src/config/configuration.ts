@@ -240,7 +240,10 @@ export const configuration = (): AppConfig => {
     reservation: {
       // OFF en test (los e2e crean muchas reservas anónimas seguidas).
       anonLimitEnabled: (process.env.RESERVATION_ANON_LIMIT ?? 'true').toLowerCase() !== 'false',
-      anonCooldownSeconds: parseInt(process.env.RESERVATION_ANON_COOLDOWN_SECONDS ?? '3600', 10), // 1 h
+      // Cooldown corto (20 s) tras cancelar: deja "cambiar de boletos" con fluidez
+      // (liberar y volver a reservar casi de inmediato) mientras frena el bucle
+      // agarrar/soltar. El guard REAL contra bloqueos es "1 reserva activa a la vez".
+      anonCooldownSeconds: parseInt(process.env.RESERVATION_ANON_COOLDOWN_SECONDS ?? '20', 10),
     },
     rateLimit: {
       // OFF en test (los e2e disparan muchas peticiones seguidas desde una IP).

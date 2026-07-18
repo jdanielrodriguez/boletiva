@@ -1,12 +1,10 @@
-import { DecimalPipe } from '@angular/common';
-import { Component, OnDestroy, afterNextRender, computed, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { DecimalPipe, isPlatformBrowser } from '@angular/common';
+import { Component, OnDestroy, PLATFORM_ID, afterNextRender, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { catchError, of, switchMap, tap } from 'rxjs';
 import { EventsApi } from '../../core/api/events.api';
-import { BillingApi } from '../../core/api/billing.api';
 import { RecaptchaService } from '../../core/security/recaptcha.service';
 import { SessionStore } from '../../core/auth/session.store';
 import { SITE_URL } from '../../core/config/api.tokens';
@@ -19,6 +17,7 @@ import { ReservationItems } from '../../shared/reservation-items/reservation-ite
 import { LoadingComponent } from '../../shared/ui/loading.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
+import { TourComponent, TourStep } from '../../shared/tour/tour.component';
 import { SeatMapComponent } from './seat-map.component';
 import { PurchaseService } from './purchase.service';
 
@@ -35,7 +34,6 @@ type Phase = 'select' | 'reserved' | 'expired';
   imports: [
     SeatMapComponent,
     DecimalPipe,
-    FormsModule,
     ShareBox,
     LoginModal,
     ReservationItems,
@@ -44,11 +42,18 @@ type Phase = 'select' | 'reserved' | 'expired';
     TranslatePipe,
     IconComponent,
     ConfirmDialogComponent,
+    TourComponent,
   ],
   templateUrl: './purchase.page.html',
   providers: [PurchaseService],
 })
 export class PurchasePage implements OnDestroy {
+  /** Tour de compra (logueados una vez; anónimos con activación aleatoria). */
+  protected readonly tourSteps: TourStep[] = [
+    { title: 'tour.purchase.welcomeTitle', body: 'tour.purchase.welcomeBody' },
+    { title: 'tour.purchase.reserveTitle', body: 'tour.purchase.reserveBody' },
+    { title: 'tour.purchase.payTitle', body: 'tour.purchase.payBody' },
+  ];
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly eventsApi = inject(EventsApi);
@@ -56,16 +61,12 @@ export class PurchasePage implements OnDestroy {
   private readonly siteUrl = inject(SITE_URL);
   private readonly translate = inject(TranslateService);
   protected readonly store = inject(PurchaseService);
-  private readonly billingApi = inject(BillingApi);
   private readonly recaptcha = inject(RecaptchaService);
+  private readonly platformId = inject(PLATFORM_ID);
   protected readonly confirm = new ConfirmController();
 
-  // Facturación (FEL): NIT (prellenado del perfil) + nombre. El lookup por NIT autollena y
-  // BLOQUEA el nombre si FEL lo encuentra; si FEL está off, el nombre queda editable.
-  protected readonly billingNit = signal((this.session.user() as { nit?: string })?.nit ?? '');
-  protected readonly billingName = signal((this.session.user() as { billingName?: string })?.billingName ?? '');
-  protected readonly billingNameLocked = signal(false);
-  protected readonly lookingUpNit = signal(false);
+  /** Evita rehidratar la reserva más de una vez por visita. */
+  private restored = false;
 
   protected readonly phase = signal<Phase>('select');
   protected readonly secondsLeft = signal(0);
@@ -104,6 +105,7 @@ export class PurchasePage implements OnDestroy {
           this.store.setActiveLocality(chosen.id);
         }
         this.loaded.set(true);
+        this.tryRestore(); // reanuda una reserva viva tras un F5
       }),
       catchError(() => {
         // No rompemos el stream: marcamos error y la vista muestra el estado.
@@ -212,30 +214,12 @@ export class PurchasePage implements OnDestroy {
   }
 
   /**
-   * Busca el nombre por NIT (FEL). Si está disponible y lo encuentra → autollena y bloquea
-   * el nombre; si FEL está off o no lo encuentra → deja el nombre editable.
+   * El NIT/nombre de facturación se captura en el CHECKOUT (no en la reserva).
    */
-  protected lookupNit(): void {
-    const nit = this.billingNit().trim();
-    this.billingNameLocked.set(false);
-    if (!nit || nit.toUpperCase() === 'CF') return;
-    this.lookingUpNit.set(true);
-    this.billingApi.nitName(nit).subscribe({
-      next: (r) => {
-        this.lookingUpNit.set(false);
-        if (r.available && r.name) {
-          this.billingName.set(r.name);
-          this.billingNameLocked.set(true); // encontrado → autollenado y bloqueado
-        }
-      },
-      error: () => this.lookingUpNit.set(false),
-    });
-  }
-
   private doCheckout(): void {
     this.working.set(true);
     this.store
-      .checkout({ billingNit: this.billingNit().trim() || undefined, billingName: this.billingName().trim() || undefined })
+      .checkout()
       .subscribe({
       next: (order) => void this.router.navigate(['/checkout', order.id]),
       error: () => {
@@ -253,6 +237,22 @@ export class PurchasePage implements OnDestroy {
     this.error.set(null);
   }
 
+  /**
+   * Tras un F5 la reserva se pierde de memoria pero sigue viva en el backend. Aquí
+   * la revalidamos por su token (persistido en localStorage) y, si aún vive,
+   * restauramos la fase "reservado" con su countdown. Solo en navegador y una vez.
+   */
+  private tryRestore(): void {
+    if (this.restored || !isPlatformBrowser(this.platformId)) return;
+    this.restored = true;
+    if (this.store.reservation()) return; // ya hay una en memoria (misma visita)
+    this.store.restore().subscribe((res) => {
+      if (!res) return;
+      this.phase.set('reserved');
+      this.secondsLeft.set(this.remaining(res.expiresAt ?? null));
+    });
+  }
+
   private remaining(expiresAt: string | null): number {
     if (!expiresAt) return 0;
     return Math.max(0, Math.round((new Date(expiresAt).getTime() - Date.now()) / 1000));
@@ -262,7 +262,10 @@ export class PurchasePage implements OnDestroy {
     if (this.phase() !== 'reserved') return;
     const left = this.remaining(this.store.reservation()?.expiresAt ?? null);
     this.secondsLeft.set(left);
-    if (left === 0) this.phase.set('expired');
+    if (left === 0) {
+      this.phase.set('expired');
+      this.store.clearPersisted(); // ya no hay nada que reanudar
+    }
   }
 
   ngOnDestroy(): void {

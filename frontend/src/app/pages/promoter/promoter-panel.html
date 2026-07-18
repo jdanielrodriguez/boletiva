@@ -29,6 +29,13 @@
           <option [value]="o.value">{{ o.key | translate }}</option>
         }
       </select>
+      <select [ngModel]="filterCategory()" (ngModelChange)="filterCategory.set($event); onFilterChange()" name="category" data-testid="panel-filter-category">
+        <option value="all">{{ 'promoter.panel.filterCatAll' | translate }}</option>
+        <option value="none">{{ 'promoter.panel.filterCatNone' | translate }}</option>
+        @for (c of categories(); track c.id) {
+          <option [value]="c.id">{{ c.name }}</option>
+        }
+      </select>
     </div>
   }
 
@@ -43,7 +50,7 @@
           <div class="ev-card-top">
             <span class="badge badge-{{ ev.status }}">{{ ev.status | statusLabel }}</span>
             <span class="ev-card-loc muted small">{{ 'promoter.panel.localitiesCount' | translate: { n: ev._count.localities } }}</span>
-            @if (ev.status === 'draft' || ev.status === 'suspended') {
+            @if (!isPast(ev) && (ev.status === 'draft' || ev.status === 'suspended')) {
               <button type="button" class="btn icon-only primary" (click)="askPublish(ev)" data-testid="ev-publish"
                 [title]="'promoter.panel.publish' | translate" [attr.aria-label]="'promoter.panel.publish' | translate">
                 <app-icon name="publish" />
@@ -58,23 +65,31 @@
           </a>
           <time class="muted small">{{ ev.startsAt | localizedDate: 'EEE d MMM y, HH:mm' }}</time>
           <div class="ev-card-actions">
-            <a class="btn small" [routerLink]="['/promotor/eventos', ev.id, 'editar']" data-testid="ev-edit" [title]="'promoter.panel.editTitle' | translate">
-              <app-icon name="edit" /> {{ 'common.edit' | translate }}
-            </a>
-            @if (ev.status === 'draft') {
-              <button type="button" class="btn small danger icon-only" (click)="askRemove(ev)" data-testid="ev-delete" [attr.aria-label]="'common.delete' | translate" [title]="'promoter.panel.deleteTitle' | translate">
-                <app-icon name="delete" />
-              </button>
-            }
-            @if (ev.status === 'published') {
-              <button type="button" class="btn small" (click)="askSuspend(ev)" data-testid="ev-suspend" [title]="'promoter.panel.suspendTitle' | translate">
-                <app-icon name="cancel" /> {{ 'promoter.panel.suspendTitle' | translate }}
-              </button>
-            }
-            @if (ev.status === 'published' || ev.status === 'suspended') {
-              <button type="button" class="btn small danger" (click)="askCancelEvent(ev)" data-testid="ev-cancel" [title]="'promoter.panel.cancelTitle' | translate">
-                <app-icon name="cancel" /> {{ 'common.cancel' | translate }}
-              </button>
+            @if (isPast(ev)) {
+              <!-- Evento CONCLUIDO: no se edita/suspende/cancela/elimina; solo ver cuentas. -->
+              <a class="btn small" [routerLink]="['/promotor/eventos', ev.id, 'editar']" [queryParams]="{ tab: 'cuentas' }"
+                data-testid="ev-accounts" [title]="'promoter.panel.accountsTitle' | translate">
+                <app-icon name="accounts" /> {{ 'promoter.panel.accounts' | translate }}
+              </a>
+            } @else {
+              <a class="btn small" [routerLink]="['/promotor/eventos', ev.id, 'editar']" data-testid="ev-edit" [title]="'promoter.panel.editTitle' | translate">
+                <app-icon name="edit" /> {{ 'common.edit' | translate }}
+              </a>
+              @if (ev.status === 'draft') {
+                <button type="button" class="btn small danger icon-only" (click)="askRemove(ev)" data-testid="ev-delete" [attr.aria-label]="'common.delete' | translate" [title]="'promoter.panel.deleteTitle' | translate">
+                  <app-icon name="delete" />
+                </button>
+              }
+              @if (ev.status === 'published') {
+                <button type="button" class="btn small" (click)="askSuspend(ev)" data-testid="ev-suspend" [title]="'promoter.panel.suspendTitle' | translate">
+                  <app-icon name="cancel" /> {{ 'promoter.panel.suspendTitle' | translate }}
+                </button>
+              }
+              @if (ev.status === 'published' || ev.status === 'suspended') {
+                <button type="button" class="btn small danger" (click)="askCancelEvent(ev)" data-testid="ev-cancel" [title]="'promoter.panel.cancelTitle' | translate">
+                  <app-icon name="cancel" /> {{ 'common.cancel' | translate }}
+                </button>
+              }
             }
           </div>
         </article>

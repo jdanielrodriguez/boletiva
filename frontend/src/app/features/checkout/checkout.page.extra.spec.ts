@@ -4,6 +4,8 @@ import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/route
 import { Subject, of, throwError } from 'rxjs';
 import { OrderStreamEvent, OrderStreamService } from '../../core/api/order-stream.service';
 import { SessionStore } from '../../core/auth/session.store';
+import { UsersApi } from '../../core/api/users.api';
+import { BillingApi } from '../../core/api/billing.api';
 import { OrdersApi } from '../../core/api/orders.api';
 import { PaymentMethodsApi } from '../../core/api/payment-methods.api';
 import type {
@@ -121,6 +123,8 @@ describe('CheckoutPage — ramas de pago y selección', () => {
         { provide: WalletApi, useValue: walletApi },
         { provide: OrderStreamService, useValue: { stream: () => sse.asObservable() } },
         { provide: SessionStore, useValue: { user: () => null } },
+        { provide: UsersApi, useValue: { markTourSeen: () => of({}) } },
+        { provide: BillingApi, useValue: { nitName: () => of({ available: false, name: null }) } },
         { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ orderId: 'o1' })) } },
       ],
     });

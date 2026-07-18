@@ -20,7 +20,7 @@ describe('Reconfiguración de evento (e2e)', () => {
   let promoterId: string;
   let buyerId: string;
   let sandboxId: string;
-  let pagaloId: string;
+  let recurrenteId: string;
 
   beforeAll(async () => {
     app = await createTestApp();
@@ -29,7 +29,9 @@ describe('Reconfiguración de evento (e2e)', () => {
     promoterId = (await prisma.user.findUniqueOrThrow({ where: { email: SEED.promoter } })).id;
     buyerId = (await prisma.user.findUniqueOrThrow({ where: { email: SEED.buyer } })).id;
     sandboxId = (await prisma.paymentGateway.findUniqueOrThrow({ where: { name: 'Sandbox' } })).id;
-    pagaloId = (await prisma.paymentGateway.findUniqueOrThrow({ where: { name: 'Pagalo' } })).id;
+    // Pasarela destino para probar el switch: Recurrente (ACTIVA). Antes se usaba Pagalo,
+    // pero ahora se siembra inactiva (decisión de negocio) → asignarla daría 400.
+    recurrenteId = (await prisma.paymentGateway.findUniqueOrThrow({ where: { name: 'Recurrente' } })).id;
   });
 
   afterAll(async () => {
@@ -140,7 +142,7 @@ describe('Reconfiguración de evento (e2e)', () => {
     await http()
       .patch(`/api/v1/events/${publishedFrozen}`)
       .set(bearer(promoterToken))
-      .send({ gatewayId: pagaloId })
+      .send({ gatewayId: recurrenteId })
       .expect(409);
 
     // Mismo caso pero SUSPENDIDO → editable, y re-congela a la nueva pasarela.
@@ -152,11 +154,11 @@ describe('Reconfiguración de evento (e2e)', () => {
     await http()
       .patch(`/api/v1/events/${suspendedFrozen}`)
       .set(bearer(promoterToken))
-      .send({ gatewayId: pagaloId })
+      .send({ gatewayId: recurrenteId })
       .expect(200);
     const ev = await prisma.event.findUniqueOrThrow({ where: { id: suspendedFrozen } });
-    expect(ev.gatewayId).toBe(pagaloId);
-    expect(ev.frozenGatewayId).toBe(pagaloId); // re-congelada
+    expect(ev.gatewayId).toBe(recurrenteId);
+    expect(ev.frozenGatewayId).toBe(recurrenteId); // re-congelada
   });
 
   it('no se elimina una localidad con boletos vendidos (evita huérfanos) → 409', async () => {

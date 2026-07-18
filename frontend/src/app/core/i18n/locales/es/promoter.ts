@@ -12,6 +12,10 @@ export const promoter = {
     filterSuspended: 'Suspendidos',
     filterPast: 'Pasados',
     filterAll: 'Todos',
+    filterCatAll: 'Todas las categorías',
+    filterCatNone: 'Sin categoría',
+    accounts: 'Ver cuentas',
+    accountsTitle: 'Ver las cuentas del evento (concluido)',
     loading: 'Cargando eventos…',
     empty: 'Aún no tienes eventos. Crea el primero con "+ Nuevo evento".',
     localitiesCount: '{{n}} localidad(es)',
@@ -396,6 +400,10 @@ export const promoter = {
 
   // --- Dashboard analítico del evento (tab Dashboard) ---
   dash: {
+    filterPromoter: 'Promotor',
+    filterPromoterSelf: 'Mis eventos',
+    filterEvent: 'Evento',
+    filterEventAll: 'Todos los eventos',
     loading: 'Cargando dashboard…',
     error: 'No se pudo cargar el dashboard.',
     // Dashboard GLOBAL del promotor (Fase 3)

@@ -73,7 +73,13 @@ export class PaymentsService {
   async initiate(
     orderId: string,
     buyerId: string,
-    opts: { gatewayId?: string; useWallet?: boolean; installments?: number } = {},
+    opts: {
+      gatewayId?: string;
+      useWallet?: boolean;
+      installments?: number;
+      billingNit?: string;
+      billingName?: string;
+    } = {},
   ) {
     const useWallet = opts.useWallet ?? false;
     const installments = opts.installments ?? 1;
@@ -83,6 +89,18 @@ export class PaymentsService {
     }
     if (order.status !== 'pending') {
       throw new ConflictException(`La orden no está pendiente de pago (${order.status})`);
+    }
+
+    // Datos de facturación (FEL): se capturan en el CHECKOUT (no en la reserva). Si vienen,
+    // se aplican a la orden antes de cobrar. Default de la orden: CF (consumidor final).
+    if (opts.billingNit !== undefined || opts.billingName !== undefined) {
+      await this.prisma.order.update({
+        where: { id: order.id },
+        data: {
+          billingNit: opts.billingNit?.trim() || 'CF',
+          billingName: opts.billingName?.trim() || null,
+        },
+      });
     }
 
     // Idempotencia: si ya hay un intento en curso, se devuelve tal cual.
@@ -254,9 +272,12 @@ export class PaymentsService {
       const base = this.quoteOrderTotals(order.items, params);
       const options = [{ installments: 1, total: base.total, serviceFee: base.serviceFee }];
 
-      const rates = installmentsAllowed
-        ? (gw.installmentRates as Record<string, number> | null) ?? {}
-        : {};
+      // Cuotas solo si: el promotor las tiene habilitadas (cost-share) Y la pasarela
+      // las permite (perilla del admin). Si no, solo se ofrece 1 pago.
+      const rates =
+        installmentsAllowed && gw.installmentsEnabled
+          ? (gw.installmentRates as Record<string, number> | null) ?? {}
+          : {};
       const counts = Object.keys(rates)
         .map(Number)
         .filter((n) => Number.isInteger(n) && n >= 2)
@@ -402,6 +423,11 @@ export class PaymentsService {
     }
     if (installments > 1 && !(await this.costShare.installmentsAllowed(order.event.promoterId))) {
       throw new ConflictException('Las cuotas ya no están habilitadas para este evento');
+    }
+    // La pasarela puede tener las cuotas apagadas (perilla del admin) aunque el
+    // promotor las permita → no se puede cobrar en cuotas por ella.
+    if (installments > 1 && !gateway.installmentsEnabled) {
+      throw new ConflictException('Esta pasarela no permite pago en cuotas');
     }
     const params = await this.pricing.paramsForRequote(
       order.feeScheduleVersion,

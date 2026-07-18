@@ -64,7 +64,8 @@ create_secret() {   # $1 = nombre del secreto, $2 = valor
 create_secret pasaeventos-database-url        "$DATABASE_URL"
 create_secret pasaeventos-redis-url           "$REDIS_URL"
 create_secret pasaeventos-amqp-url            "$AMQP_URL"
-create_secret pasaeventos-mail-pass           "$MAIL_PASS"
+create_secret pasaeventos-mail-user           "$MAIL_USER"   # SES SMTP username
+create_secret pasaeventos-mail-pass           "$MAIL_PASS"   # SES SMTP password
 create_secret pasaeventos-jwt-access-secret   "$JWT_ACCESS_SECRET"
 create_secret pasaeventos-jwt-refresh-secret  "$JWT_REFRESH_SECRET"
 create_secret pasaeventos-gcs-sa-json         "$GCS_SERVICE_ACCOUNT_JSON"
@@ -83,8 +84,8 @@ gcloud run deploy pasaeventos-api \
   --image us-central1-docker.pkg.dev/boletera-502405/pasaeventos-backend/api:TAG \
   --region us-central1 --platform managed --allow-unauthenticated \
   --memory=2Gi --cpu=2 --concurrency=200 --min-instances=1 --max-instances=20 \
-  --set-env-vars=NODE_ENV=production,STORAGE_PROVIDER=gcs,GCLOUD_PROJECT_ID=boletera-502405,GCS_BUCKET=pasaeventos-prod-media,CORS_ORIGINS=https://boletiva.com \
-  --set-secrets=DATABASE_URL=pasaeventos-database-url:latest,REDIS_URL=pasaeventos-redis-url:latest,AMQP_URL=pasaeventos-amqp-url:latest,MAIL_PASS=pasaeventos-mail-pass:latest,JWT_ACCESS_SECRET=pasaeventos-jwt-access-secret:latest,JWT_REFRESH_SECRET=pasaeventos-jwt-refresh-secret:latest,GCS_SERVICE_ACCOUNT_JSON=pasaeventos-gcs-sa-json:latest
+  --set-env-vars=NODE_ENV=production,STORAGE_PROVIDER=gcs,GCLOUD_PROJECT_ID=boletera-502405,GCS_BUCKET=pasaeventos-prod-media,CORS_ORIGINS=https://boletiva.com,MAIL_HOST=email-smtp.us-east-1.amazonaws.com,MAIL_PORT=587,MAIL_SECURE=false,MAIL_FROM=no-reply@boletiva.com \
+  --set-secrets=DATABASE_URL=pasaeventos-database-url:latest,REDIS_URL=pasaeventos-redis-url:latest,AMQP_URL=pasaeventos-amqp-url:latest,MAIL_USER=pasaeventos-mail-user:latest,MAIL_PASS=pasaeventos-mail-pass:latest,JWT_ACCESS_SECRET=pasaeventos-jwt-access-secret:latest,JWT_REFRESH_SECRET=pasaeventos-jwt-refresh-secret:latest,GCS_SERVICE_ACCOUNT_JSON=pasaeventos-gcs-sa-json:latest
 ```
 
 Parámetros de autoescala pensados para picos de venta (on-sale): concurrencia

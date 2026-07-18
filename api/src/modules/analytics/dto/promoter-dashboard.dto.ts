@@ -120,6 +120,15 @@ export class PromoterDimensionsDto {
 }
 
 /** Dashboard GLOBAL del promotor: KPIs + ventas/día + tabla cruzada por dimensión. */
+/** Referencia mínima de evento para el selector del dashboard. */
+export class DashboardEventRefDto {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty({ example: 'Concierto de Aniversario' })
+  name!: string;
+}
+
 export class PromoterDashboardDto {
   @ApiProperty({ format: 'uuid' })
   promoterId!: string;
@@ -144,4 +153,14 @@ export class PromoterDashboardDto {
 
   @ApiProperty({ type: PromoterDimensionsDto })
   dimensions!: PromoterDimensionsDto;
+
+  @ApiProperty({ type: [DashboardEventRefDto], description: 'Todos los eventos del promotor (para el selector)' })
+  availableEvents!: DashboardEventRefDto[];
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Evento al que está filtrado el dashboard (null = todos)',
+  })
+  selectedEventId!: string | null;
 }
