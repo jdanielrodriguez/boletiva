@@ -78,6 +78,18 @@ export class EventsService {
   }
 
   /**
+   * Un evento CONCLUIDO (terminado por fecha, finalizado o cancelado) es de SOLO
+   * LECTURA: no se edita/publica/suspende/cancela/elimina — solo se ven sus cuentas.
+   * Guarda authoritative para todas las mutaciones del ciclo de vida del evento.
+   */
+  private assertNotConcluded(event: { endsAt: Date | null; status: string }): void {
+    const ended = !!event.endsAt && new Date(event.endsAt).getTime() < Date.now();
+    if (ended || event.status === 'finished' || event.status === 'cancelled') {
+      throw new ConflictException('El evento ya concluyó; solo puedes ver sus cuentas.');
+    }
+  }
+
+  /**
    * El promotor solo indica el INICIO; el fin es opcional en la UI. Si no viene,
    * se autocalcula `startsAt + 12h` (decisión del arquitecto): la columna sigue
    * NOT NULL y la retención/"eventos pasados" mantienen un fin coherente.
@@ -395,6 +407,7 @@ export class EventsService {
 
   async update(id: string, dto: UpdateEventDto, user: AuthUser, unlockToken?: string) {
     const event = await this.getManaged(id, user);
+    this.assertNotConcluded(event);
     await this.editUnlock.assertCanMutate(user, event, unlockToken);
     // Si el promotor mueve el inicio (sin enviar fin, que ya no está en la UI) a un
     // punto que dejaría el fin anterior en el pasado, recalculamos el fin (+12h)
@@ -475,6 +488,7 @@ export class EventsService {
     unlockToken?: string,
   ) {
     const event = await this.getManaged(id, user);
+    this.assertNotConcluded(event);
     await this.editUnlock.assertCanMutate(user, event, unlockToken);
     if (status === 'published') {
       // Un evento cancelado/finalizado es terminal: no se re-publica. Un evento
@@ -501,6 +515,7 @@ export class EventsService {
    */
   async suspend(id: string, user: AuthUser, unlockToken?: string) {
     const event = await this.getManaged(id, user);
+    this.assertNotConcluded(event);
     await this.editUnlock.assertCanMutate(user, event, unlockToken);
     if (event.status !== 'published') {
       throw new ConflictException('Solo un evento publicado puede suspenderse');
@@ -543,6 +558,7 @@ export class EventsService {
 
   async remove(id: string, user: AuthUser, unlockToken?: string) {
     const event = await this.getManaged(id, user);
+    this.assertNotConcluded(event);
     await this.editUnlock.assertCanMutate(user, event, unlockToken);
     if (event.status === 'published') {
       throw new BadRequestException('No se puede eliminar un evento publicado; cancélalo primero');

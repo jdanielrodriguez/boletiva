@@ -38,6 +38,13 @@
             @for (p of eventPromoters(); track p.id) { <option [value]="p.id">{{ p.name }}</option> }
           </select>
         </label>
+        <label class="field"><span>{{ 'config.events.category' | translate }}</span>
+          <select [ngModel]="eventCategory()" (ngModelChange)="setEventCategory($event)" name="ecategory" data-testid="event-category-filter">
+            <option value="">{{ 'common.all' | translate }}</option>
+            <option value="none">{{ 'config.events.categoryNone' | translate }}</option>
+            @for (c of eventCategories(); track c.id) { <option [value]="c.id">{{ c.name }}</option> }
+          </select>
+        </label>
       </div>
       @if (filteredEvents().length > 0) {
         <div class="admin-events-grid" data-testid="admin-events">
@@ -332,6 +339,15 @@
                       <label class="field full"><span>{{ 'config.system.gwInstallmentRates' | translate }}</span>
                         <input type="text" placeholder='{"3":0.08,"6":0.09}' [ngModel]="d.installmentRatesJson" (ngModelChange)="patchDraft('installmentRatesJson', $event)" [name]="'gir-' + g.id" />
                       </label>
+                      <label class="field full">
+                        <span>{{ 'config.system.gwInstallmentsEnabled' | translate }}</span>
+                        <app-switch
+                          [checked]="d.installmentsEnabled"
+                          (checkedChange)="patchDraft('installmentsEnabled', $event)"
+                          [label]="(d.installmentsEnabled ? 'config.settings.enabled' : 'config.settings.disabled') | translate"
+                          [testId]="'gw-installments-enabled'"
+                        />
+                      </label>
                     </div>
                     <div class="ev-card-actions">
                       <button type="button" class="btn small primary" (click)="saveGateway()" data-testid="gw-save" [title]="'config.system.saveGatewayTitle' | translate">
@@ -557,4 +573,6 @@
       (cancelled)="confirm.cancel()"
     />
   }
+
+  <app-tour tourKey="admin" [steps]="tourSteps" />
 </section>

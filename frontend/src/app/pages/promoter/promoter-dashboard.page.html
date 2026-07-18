@@ -7,6 +7,7 @@
     />
   </div>
 
+  <app-reports-maintenance-gate>
   <div class="dash-head">
     <h1>{{ 'promoter.dash.title' | translate }}</h1>
     @if (data() && !isEmpty()) {
@@ -20,6 +21,26 @@
         {{ (downloading() ? 'promoter.dash.exporting' : 'promoter.dash.export') | translate }}
       </button>
     }
+  </div>
+
+  <!-- Filtros: admin elige promotor; ambos filtran por evento (o todos). -->
+  <div class="dash-filters" data-testid="pdash-filters">
+    @if (isAdmin()) {
+      <label class="field">
+        <span>{{ 'promoter.dash.filterPromoter' | translate }}</span>
+        <select [ngModel]="selectedPromoter()" (ngModelChange)="onPromoterChange($event)" name="dashPromoter" data-testid="pdash-promoter">
+          <option value="">{{ 'promoter.dash.filterPromoterSelf' | translate }}</option>
+          @for (p of promoters(); track p.id) { <option [value]="p.id">{{ p.name }}</option> }
+        </select>
+      </label>
+    }
+    <label class="field">
+      <span>{{ 'promoter.dash.filterEvent' | translate }}</span>
+      <select [ngModel]="selectedEvent()" (ngModelChange)="onEventChange($event)" name="dashEvent" data-testid="pdash-event">
+        <option value="">{{ 'promoter.dash.filterEventAll' | translate }}</option>
+        @for (e of data()?.availableEvents ?? []; track e.id) { <option [value]="e.id">{{ e.name }}</option> }
+      </select>
+    </label>
   </div>
 
   <div class="dash" data-testid="promoter-dashboard">
@@ -150,4 +171,5 @@
       </section>
     }
   </div>
+  </app-reports-maintenance-gate>
 </section>

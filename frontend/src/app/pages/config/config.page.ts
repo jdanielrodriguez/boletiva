@@ -20,6 +20,7 @@ import { ToastService } from '../../core/ui/toast.service';
 import { ConfirmController } from '../../shared/confirm-dialog/confirm-controller';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
+import { TourComponent, type TourStep } from '../../shared/tour/tour.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
 import { SearchFieldComponent } from '../../shared/ui/search-field.component';
 import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
@@ -55,6 +56,7 @@ interface GatewayDraft {
   minCostSharePct: number;
   installmentFixedFee: number;
   installmentRatesJson: string;
+  installmentsEnabled: boolean;
   status: string;
 }
 
@@ -87,10 +89,17 @@ const INV_PAGE = 9;
     TemplatesListComponent,
     SearchFieldComponent,
     RouterLink,
+    TourComponent,
   ],
   templateUrl: './config.page.html',
 })
 export class ConfigPage {
+  /** Tour de onboarding de la consola admin (solo admins que no lo han visto). */
+  protected readonly tourSteps: TourStep[] = [
+    { title: 'tour.admin.welcomeTitle', body: 'tour.admin.welcomeBody' },
+    { title: 'tour.admin.eventsTitle', body: 'tour.admin.eventsBody' },
+    { title: 'tour.admin.configTitle', body: 'tour.admin.configBody' },
+  ];
   private readonly admin = inject(AdminApi);
   private readonly invitationsApi = inject(InvitationsApi);
   private readonly settingsApi = inject(SettingsApi);
@@ -148,6 +157,8 @@ export class ConfigPage {
   protected readonly eventStatus = signal('');
   /** Filtro por promotor (id del promotor seleccionado; '' = todos). */
   protected readonly eventPromoter = signal('');
+  /** Filtro por categoría: '' (todas) | 'none' (sin categoría) | <categoryId>. Detecta eventos sin categorizar. */
+  protected readonly eventCategory = signal('');
   protected readonly eventPromoters = computed(() => {
     const map = new Map<string, string>();
     for (const e of this.events()) {
@@ -156,13 +167,24 @@ export class ConfigPage {
     }
     return [...map.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
   });
+  /** Categorías presentes entre los eventos (para el filtro admin). */
+  protected readonly eventCategories = computed(() => {
+    const map = new Map<string, string>();
+    for (const e of this.events()) {
+      if (e.category) map.set(e.category.id, e.category.name);
+    }
+    return [...map.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  });
   protected readonly filteredEvents = computed(() => {
     const q = this.eventSearch().trim().toLowerCase();
     const status = this.eventStatus();
     const promoterId = this.eventPromoter();
+    const cat = this.eventCategory();
     return this.events().filter((e) => {
       if (status && e.status !== status) return false;
       if (promoterId && e.promoter?.id !== promoterId) return false;
+      if (cat === 'none' && e.category) return false;
+      if (cat && cat !== 'none' && e.category?.id !== cat) return false;
       if (!q) return true;
       const promoter = e.promoter
         ? `${e.promoter.firstName} ${e.promoter.lastName ?? ''}`.toLowerCase()
@@ -284,6 +306,7 @@ export class ConfigPage {
     this.eventSearch.set('');
     this.eventStatus.set('');
     this.eventPromoter.set('');
+    this.eventCategory.set('');
     this.eventsPage.set(1);
     this.promoterSearch.set('');
     this.promoterStatus.set('');
@@ -327,6 +350,10 @@ export class ConfigPage {
   }
   protected setEventPromoter(v: string): void {
     this.eventPromoter.set(v);
+    this.eventsPage.set(1);
+  }
+  protected setEventCategory(v: string): void {
+    this.eventCategory.set(v);
     this.eventsPage.set(1);
   }
 
@@ -551,6 +578,7 @@ export class ConfigPage {
       minCostSharePct: Number(g.minCostSharePct),
       installmentFixedFee: Number(g.installmentFixedFee ?? 0),
       installmentRatesJson: g.installmentRates ? JSON.stringify(g.installmentRates) : '',
+      installmentsEnabled: g.installmentsEnabled ?? true,
       status: g.status,
     });
   }
@@ -581,6 +609,7 @@ export class ConfigPage {
         minCostSharePct: d.minCostSharePct,
         installmentFixedFee: d.installmentFixedFee,
         installmentRates,
+        installmentsEnabled: d.installmentsEnabled,
       })
       .subscribe({
         next: () => {

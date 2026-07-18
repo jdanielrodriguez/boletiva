@@ -3,13 +3,16 @@ import { HttpResponse } from '@angular/common/http';
 import { Component, computed, inject, PLATFORM_ID, signal } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { FormsModule } from '@angular/forms';
 import { PromoterDashboardApi } from '../../core/api/promoter-dashboard.api';
+import { AdminApi } from '../../core/api/admin.api';
 import { SessionStore } from '../../core/auth/session.store';
 import { ToastService } from '../../core/ui/toast.service';
 import { BackLinkComponent } from '../../shared/ui/back-link.component';
 import { LoadingComponent } from '../../shared/ui/loading.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { ChartComponent, ChartOptions } from '../../shared/ui/chart.component';
+import { ReportsMaintenanceGateComponent } from '../../shared/reports-maintenance/reports-maintenance-gate.component';
 import { MoneyPipe } from '../../shared/money.pipe';
 import type { PromoterDashboardDto, PromoterDimensionRowDto } from '../../core/api/types';
 
@@ -43,18 +46,21 @@ const STATUS_KEY: Record<string, string> = {
   selector: 'app-promoter-dashboard-page',
   standalone: true,
   imports: [
+    FormsModule,
     TranslatePipe,
     BackLinkComponent,
     LoadingComponent,
     EmptyStateComponent,
     ChartComponent,
     MoneyPipe,
+    ReportsMaintenanceGateComponent,
   ],
   templateUrl: './promoter-dashboard.page.html',
   styleUrl: './promoter-dashboard.page.css',
 })
 export class PromoterDashboardPage {
   private readonly api = inject(PromoterDashboardApi);
+  private readonly admin = inject(AdminApi);
   private readonly t = inject(TranslateService);
   private readonly session = inject(SessionStore);
   private readonly toasts = inject(ToastService);
@@ -68,14 +74,31 @@ export class PromoterDashboardPage {
   protected readonly selectedDim = signal<DimKey>('event');
   protected readonly dimensions = DIMENSIONS;
 
+  /** Filtro por EVENTO ('' = todos) y, para admin, por PROMOTOR ('' = ninguno seleccionado). */
+  protected readonly selectedEvent = signal<string>('');
+  protected readonly selectedPromoter = signal<string>('');
+  /** Lista de promotores (solo admin) para el selector. */
+  protected readonly promoters = signal<{ id: string; name: string }[]>([]);
+
   constructor() {
     this.load();
+    if (this.session.hasRole('admin')) this.loadPromoters();
+  }
+
+  private loadPromoters(): void {
+    this.admin.listPromoters('approved').subscribe({
+      next: (ps) =>
+        this.promoters.set(
+          ps.map((p) => ({ id: p.id, name: `${p.firstName} ${p.lastName ?? ''}`.trim() })),
+        ),
+      error: () => this.promoters.set([]),
+    });
   }
 
   private load(): void {
     this.loading.set(true);
     this.error.set(false);
-    this.api.dashboard().subscribe({
+    this.api.dashboard(this.selectedPromoter() || undefined, this.selectedEvent() || undefined).subscribe({
       next: (d) => {
         this.data.set(d);
         this.loading.set(false);
@@ -85,6 +108,19 @@ export class PromoterDashboardPage {
         this.loading.set(false);
       },
     });
+  }
+
+  /** Admin elige promotor → resetea el filtro de evento y recarga. */
+  protected onPromoterChange(id: string): void {
+    this.selectedPromoter.set(id);
+    this.selectedEvent.set('');
+    this.load();
+  }
+
+  /** Filtra el dashboard a un evento (o a todos). */
+  protected onEventChange(id: string): void {
+    this.selectedEvent.set(id);
+    this.load();
   }
 
   protected readonly currency = computed(() => this.data()?.currency ?? 'GTQ');
@@ -167,7 +203,7 @@ export class PromoterDashboardPage {
   protected downloadExcel(): void {
     if (!isPlatformBrowser(this.platformId) || this.downloading()) return;
     this.downloading.set(true);
-    this.api.export().subscribe({
+    this.api.export(this.selectedPromoter() || undefined).subscribe({
       next: (res) => {
         this.downloading.set(false);
         const blob = res.body;

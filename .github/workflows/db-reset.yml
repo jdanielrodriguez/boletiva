@@ -1,0 +1,88 @@
+# ==============================================================================
+# db-reset.yml — RESET DESTRUCTIVO de la base de datos de PRODUCCIÓN (alpha).
+#
+# ⚠️  BORRA TODA la data de prod y re-siembra la baseline (settings, usuarios y
+#     catálogo demo). Úsalo solo en pruebas alpha. Equivale a `make prod-db-reset`
+#     pero desde GitHub Actions (WIF + Cloud SQL Auth Proxy).
+#
+# Disparo: SOLO manual (workflow_dispatch) y exige escribir `RESET` en el input
+# `confirm` como doble confirmación. No hay trigger automático.
+#
+# Requiere: variables WIF_PROVIDER / WIF_SERVICE_ACCOUNT + secreto
+# pasaeventos-database-url (formato socket host=/cloudsql/PROJECT:REGION:INSTANCE).
+# ==============================================================================
+name: DB Reset (PROD) — DESTRUCTIVO
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Escribe RESET para confirmar que quieres BORRAR y resembrar la BD de PROD'
+        required: true
+        default: ''
+
+permissions:
+  contents: read
+  id-token: write # WIF (OIDC → GCP)
+
+env:
+  PROJECT_ID: boletera-502405
+  REGION: us-central1
+  CLOUDSQL: boletera-502405:us-central1:pasaeventos-pg
+  DB_SECRET: pasaeventos-database-url
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirmar (doble check)
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "RESET" ]; then
+            echo "::error::Debes escribir exactamente RESET en el input 'confirm'. Abortado."
+            exit 1
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Authenticate to GCP (WIF, no keys)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Reset BD (db push + truncate + seed) vía Cloud SQL Auth Proxy
+        run: |
+          set -euo pipefail
+          # 1) Proxy con socket unix que casa con el host del secreto DATABASE_URL.
+          curl -fsSL -o cloud-sql-proxy \
+            https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.14.0/cloud-sql-proxy.linux.amd64
+          chmod +x cloud-sql-proxy
+          sudo mkdir -p /cloudsql && sudo chown "$(id -u)" /cloudsql
+          ./cloud-sql-proxy --unix-socket /cloudsql "${CLOUDSQL}" &
+          PROXY_PID=$!
+          # Espera a que el socket esté listo.
+          for i in $(seq 1 20); do
+            [ -S "/cloudsql/${CLOUDSQL}/.s.PGSQL.5432" ] && break || sleep 1
+          done
+          # 2) DATABASE_URL de prod (socket) desde Secret Manager.
+          export DATABASE_URL="$(gcloud secrets versions access latest --secret="${DB_SECRET}")"
+          # 3) Aplicar schema + truncar + resembrar (equivale a make prod-db-reset).
+          npx prisma db push --accept-data-loss
+          npx ts-node --project tsconfig.tools.json prisma/truncate.ts
+          npm run db:seed
+          kill "$PROXY_PID" 2>/dev/null || true
+          echo "✅ BD de PROD reseteada y resembrada."

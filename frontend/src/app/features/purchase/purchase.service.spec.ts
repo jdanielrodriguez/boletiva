@@ -17,16 +17,19 @@ const AVAIL = {
   ],
 } as unknown as EventAvailabilityDto;
 
-const RESERVATION = { token: 'tok-123', valid: true, expiresAt: '2028-01-01T00:00:00.000Z', items: [], total: '0.00' } as unknown as ReservationResponseDto;
+const RESERVATION = { token: 'tok-123', eventId: 'ev1', valid: true, expiresAt: '2028-01-01T00:00:00.000Z', items: [], total: '0.00' } as unknown as ReservationResponseDto;
 
 describe('PurchaseService', () => {
   let store: PurchaseService;
   let api: jasmine.SpyObj<ReservationsApi>;
 
   beforeEach(() => {
-    api = jasmine.createSpyObj<ReservationsApi>('ReservationsApi', ['create', 'getByToken', 'checkout']);
+    localStorage.clear(); // aísla la persistencia anti-F5 entre pruebas
+    api = jasmine.createSpyObj<ReservationsApi>('ReservationsApi', ['create', 'getByToken', 'checkout', 'cancel']);
     api.create.and.returnValue(of(RESERVATION));
+    api.getByToken.and.returnValue(of(RESERVATION));
     api.checkout.and.returnValue(of({ id: 'o1' } as unknown as OrderResponseDto));
+    api.cancel.and.returnValue(of({ cancelled: true }));
     TestBed.configureTestingModule({
       providers: [provideZonelessChangeDetection(), PurchaseService, { provide: ReservationsApi, useValue: api }],
     });
@@ -34,6 +37,8 @@ describe('PurchaseService', () => {
     store.eventId.set('ev1');
     store.availability.set(AVAIL);
   });
+
+  afterEach(() => localStorage.clear());
 
   it('localidad activa: cambiarla NO limpia la selección (multi-localidad)', () => {
     expect(store.localities().map((l) => l.id)).toEqual(['ga', 'vip']);
@@ -85,6 +90,54 @@ describe('PurchaseService', () => {
     store.checkout().subscribe(() => {
       expect(api.checkout).toHaveBeenCalledWith('tok-123', undefined);
       done();
+    });
+  });
+
+  it('reserve persiste el token → restore() rehidrata la reserva tras un F5', (done) => {
+    store.toggleSeat('s1');
+    store.reserve().subscribe(() => {
+      expect(localStorage.getItem('pe.reservation.ev1')).toBe('tok-123');
+      store.reservation.set(null); // simula la pérdida de memoria del F5
+      store.restore().subscribe((res) => {
+        expect(res?.token).toBe('tok-123');
+        expect(store.reservation()?.token).toBe('tok-123');
+        expect(api.getByToken).toHaveBeenCalledWith('tok-123');
+        done();
+      });
+    });
+  });
+
+  it('restore() descarta y limpia una reserva expirada/inválida', (done) => {
+    localStorage.setItem('pe.reservation.ev1', 'tok-viejo');
+    api.getByToken.and.returnValue(of({ ...RESERVATION, valid: false } as ReservationResponseDto));
+    store.restore().subscribe((res) => {
+      expect(res).toBeNull();
+      expect(store.reservation()).toBeNull();
+      expect(localStorage.getItem('pe.reservation.ev1')).toBeNull();
+      done();
+    });
+  });
+
+  it('restore() sin token guardado no llama al backend', (done) => {
+    store.restore().subscribe((res) => {
+      expect(res).toBeNull();
+      expect(api.getByToken).not.toHaveBeenCalled();
+      done();
+    });
+  });
+
+  it('cancel y checkout limpian el rastro persistido', (done) => {
+    localStorage.setItem('pe.reservation.ev1', 'tok-123');
+    store.reservation.set(RESERVATION);
+    store.cancel().subscribe(() => {
+      expect(localStorage.getItem('pe.reservation.ev1')).toBeNull();
+      // checkout también lo limpia
+      localStorage.setItem('pe.reservation.ev1', 'tok-123');
+      store.reservation.set(RESERVATION);
+      store.checkout().subscribe(() => {
+        expect(localStorage.getItem('pe.reservation.ev1')).toBeNull();
+        done();
+      });
     });
   });
 

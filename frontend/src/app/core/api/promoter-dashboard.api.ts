@@ -12,10 +12,13 @@ import type { PromoterDashboardDto } from './types';
 export class PromoterDashboardApi {
   private readonly api = inject(ApiClient);
 
-  /** KPIs de rentabilidad + ventas/día + tabla cruzada por dimensión. */
-  dashboard(promoterId?: string): Observable<PromoterDashboardDto> {
-    const q = promoterId ? `?promoterId=${encodeURIComponent(promoterId)}` : '';
-    return this.api.get<PromoterDashboardDto>(`/promoter/dashboard${q}`);
+  /** KPIs de rentabilidad + ventas/día + tabla cruzada por dimensión. Filtrable por evento. */
+  dashboard(promoterId?: string, eventId?: string): Observable<PromoterDashboardDto> {
+    const params = new URLSearchParams();
+    if (promoterId) params.set('promoterId', promoterId);
+    if (eventId) params.set('eventId', eventId);
+    const q = params.toString();
+    return this.api.get<PromoterDashboardDto>(`/promoter/dashboard${q ? `?${q}` : ''}`);
   }
 
   /** Descarga el dashboard en Excel (.xlsx). Binario con auth (solo navegador). */

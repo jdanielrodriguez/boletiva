@@ -45,7 +45,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Health completo: PostgreSQL, Redis, RabbitMQ, storage y mail */
+        /** Health completo: PostgreSQL, Redis, RabbitMQ, storage y mail (detalle solo fuera de prod) */
         get: operations["HealthController_full_v1"];
         put?: never;
         post?: never;
@@ -6495,6 +6495,10 @@ export interface components {
              * @default 1
              */
             installments: number;
+            /** @description NIT de facturación (FEL). Se captura en el checkout; default CF (consumidor final). */
+            billingNit?: string;
+            /** @description Nombre fiscal para la factura (FEL). */
+            billingName?: string;
         };
         PayOrderResponseDto: {
             /**
@@ -6757,6 +6761,8 @@ export interface components {
              * @example 2.00
              */
             installmentFixedFee: string | null;
+            /** @description Permitir pago en cuotas (false = solo 1 pago) */
+            installmentsEnabled: boolean;
             /** @description Referencia al secreto (Secret Manager/env), no el secreto */
             credentialsRef: string | null;
             /** @enum {string} */
@@ -6812,6 +6818,8 @@ export interface components {
              * @example 2
              */
             installmentFixedFee?: number;
+            /** @description Permitir pago en cuotas con esta pasarela (default true en BD). false = solo 1 pago. */
+            installmentsEnabled?: boolean;
             /** @description Referencia al secreto (Secret Manager/env), no el secreto */
             credentialsRef?: string;
             /** @default false */
@@ -6843,6 +6851,8 @@ export interface components {
             installmentRates?: Record<string, never>;
             /** @description Cargo fijo por transacción en cuotas (GTQ) */
             installmentFixedFee?: number;
+            /** @description Permitir pago en cuotas con esta pasarela. false = solo 1 pago. */
+            installmentsEnabled?: boolean;
             credentialsRef?: string;
             sandbox?: boolean;
         };
@@ -7312,6 +7322,12 @@ export interface components {
             /** @description Por mes (YYYY-MM de inicio) */
             month: components["schemas"]["PromoterDimensionRowDto"][];
         };
+        DashboardEventRefDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example Concierto de Aniversario */
+            name: string;
+        };
         PromoterDashboardDto: {
             /** Format: uuid */
             promoterId: string;
@@ -7333,6 +7349,10 @@ export interface components {
             /** @description Ventas por día (todos los eventos) */
             salesOverTime: components["schemas"]["SalesPointDto"][];
             dimensions: components["schemas"]["PromoterDimensionsDto"];
+            /** @description Todos los eventos del promotor (para el selector) */
+            availableEvents: components["schemas"]["DashboardEventRefDto"][];
+            /** @description Evento al que está filtrado el dashboard (null = todos) */
+            selectedEventId: string | null;
         };
         AdminProfitabilityRowDto: {
             /** Format: uuid */
@@ -7503,6 +7523,16 @@ export interface components {
              * @example true
              */
             showHomeCategories: boolean;
+            /**
+             * @description Mantenimiento de reportes/dashboards de eventos, promotores y chequeo de boletos.
+             * @example false
+             */
+            reportsMaintenance: boolean;
+            /**
+             * @description Habilita el tour de onboarding guiado (una vez por usuario/página).
+             * @example true
+             */
+            tourEnabled: boolean;
             /**
              * @description Integraciones externas configuradas y disponibles (gating de UI).
              * @example {
@@ -11505,6 +11535,8 @@ export interface operations {
             query?: {
                 /** @description Solo admin: promotor a inspeccionar */
                 promoterId?: string;
+                /** @description Filtra el dashboard a un solo evento */
+                eventId?: string;
             };
             header?: never;
             path?: never;

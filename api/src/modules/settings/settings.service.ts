@@ -29,6 +29,8 @@ export interface ThemeConfig {
 export interface PublicConfig {
   allowVisitorLangSwitch: boolean;
   showHomeCategories: boolean;
+  reportsMaintenance: boolean;
+  tourEnabled: boolean;
   /** Temas por franja + switch, para resolver el tema en SSR sin parpadeo. */
   theme: ThemeConfig;
   /** Qué integraciones externas están configuradas (para gating de UI). */
@@ -99,6 +101,8 @@ export class SettingsService {
     return {
       allowVisitorLangSwitch: resolveBool(PUBLIC_CONFIG_KEYS.allowVisitorLangSwitch),
       showHomeCategories: resolveBool(PUBLIC_CONFIG_KEYS.showHomeCategories),
+      reportsMaintenance: resolveBool(PUBLIC_CONFIG_KEYS.reportsMaintenance),
+      tourEnabled: resolveBool(PUBLIC_CONFIG_KEYS.tourEnabled),
       theme: {
         slots: {
           dia: resolveEnum(PUBLIC_CONFIG_KEYS.themeSlotDia),

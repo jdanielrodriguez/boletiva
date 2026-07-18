@@ -4,6 +4,7 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { Router, RouterLink } from '@angular/router';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
+import { CategoriesApi } from '../../core/api/categories.api';
 import { SessionStore } from '../../core/auth/session.store';
 import { ToastService } from '../../core/ui/toast.service';
 import { ConfirmController } from '../../shared/confirm-dialog/confirm-controller';
@@ -38,6 +39,7 @@ type EventFilterGroup = 'upcoming' | 'ongoing' | 'suspended' | 'past' | 'all';
 })
 export class PromoterPanel {
   private readonly eventsApi = inject(PromoterEventsApi);
+  private readonly categoriesApi = inject(CategoriesApi);
   private readonly session = inject(SessionStore);
   private readonly toasts = inject(ToastService);
   private readonly router = inject(Router);
@@ -59,6 +61,9 @@ export class PromoterPanel {
   protected readonly pageSize = PAGE_SIZE;
   /** Búsqueda por nombre + filtro por estado (regla v3.2: toda lista los tiene). */
   protected readonly search = signal('');
+  /** Filtro por categoría: 'all' | 'none' (sin categoría) | <categoryId>. Detecta eventos sin categorizar. */
+  protected readonly filterCategory = signal<string>('all');
+  protected readonly categories = signal<{ id: string; name: string }[]>([]);
   /** Filtro por grupo de estado (W8). Default = futuros. */
   protected readonly filterGroup = signal<EventFilterGroup>('upcoming');
   /** Opciones FIJAS del filtro (label vía i18n). */
@@ -91,12 +96,20 @@ export class PromoterPanel {
     return 'upcoming';
   }
 
+  /** ¿Evento CONCLUIDO/pasado? Entonces solo se pueden ver cuentas (no editar/suspender/cancelar/eliminar). */
+  protected isPast(e: MyEventListItemDto): boolean {
+    return this.groupOf(e) === 'past';
+  }
+
   /** Eventos tras aplicar búsqueda (nombre) + filtro de grupo de estado. */
   protected readonly filtered = computed(() => {
     const q = this.search().trim().toLowerCase();
     const group = this.filterGroup();
+    const cat = this.filterCategory();
     return this.events().filter((e) => {
       if (group !== 'all' && this.groupOf(e) !== group) return false;
+      if (cat === 'none' && e.category) return false;
+      if (cat !== 'all' && cat !== 'none' && e.category?.id !== cat) return false;
       if (q && !e.name.toLowerCase().includes(q)) return false;
       return true;
     });
@@ -118,6 +131,10 @@ export class PromoterPanel {
 
   constructor() {
     this.loadEvents();
+    this.categoriesApi.list().subscribe({
+      next: (cs) => this.categories.set(cs.map((c) => ({ id: c.id, name: c.name }))),
+      error: () => this.categories.set([]),
+    });
   }
 
   private loadEvents(): void {

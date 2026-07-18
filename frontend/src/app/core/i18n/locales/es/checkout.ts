@@ -1,5 +1,11 @@
 /** Checkout (F2): método de pago, desglose transparente y estado del pago. Español. */
 export const checkout = {
+  billingTitle: 'Facturación',
+  nit: 'NIT',
+  nitPlaceholder: 'CF o tu NIT',
+  billingName: 'Nombre para la factura',
+  nitLooking: 'Buscando nombre…',
+  nitFound: 'Nombre encontrado por tu NIT (bloqueado).',
   title: 'Pago',
   paidTitle: '¡Pago confirmado!',
   paidBody: 'Tus boletos se están emitiendo. Los verás en tu cuenta en segundos.',

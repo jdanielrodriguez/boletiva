@@ -140,7 +140,7 @@ export class ChallengesService {
       <p style="margin:0;font-size:30px;font-weight:700;letter-spacing:8px;color:#7c3aed;">${code}</p>
       <p class="pe-muted" style="margin:14px 0 0 0;font-size:14px;color:#6b6b76;">Válido por poco tiempo. Si no lo solicitaste, ignora este correo.</p>`;
     try {
-      await this.mail.sendTemplated(email, t.subject, {
+      await this.mail.enqueueTemplated(email, t.subject, {
         title: t.subject.replace(' — Boletiva', ''),
         preheader: t.intro,
         bodyHtml,

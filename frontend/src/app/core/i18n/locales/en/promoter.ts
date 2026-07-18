@@ -12,6 +12,10 @@ export const promoter = {
     filterSuspended: 'Suspended',
     filterPast: 'Past',
     filterAll: 'All',
+    filterCatAll: 'All categories',
+    filterCatNone: 'No category',
+    accounts: 'View accounts',
+    accountsTitle: 'View the event accounts (concluded)',
     loading: 'Loading events…',
     empty: 'You have no events yet. Create the first one with "+ New event".',
     localitiesCount: '{{n}} locality(ies)',
@@ -397,6 +401,10 @@ export const promoter = {
 
   // --- Event analytics dashboard (Dashboard tab) ---
   dash: {
+    filterPromoter: 'Promoter',
+    filterPromoterSelf: 'My events',
+    filterEvent: 'Event',
+    filterEventAll: 'All events',
     loading: 'Loading dashboard…',
     error: 'Could not load the dashboard.',
     // Promoter GLOBAL dashboard (Phase 3)

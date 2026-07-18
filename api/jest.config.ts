@@ -8,6 +8,9 @@ export default {
   moduleFileExtensions: ['ts', 'js', 'html'],
   // Fuerza QUEUE_INLINE en tests (jobs síncronos, sin workers dejando handles abiertos).
   setupFiles: ['<rootDir>/src/test/jest.env.ts'],
+  // Retry de tests SOLO en CI (runner limitado) — recupera flakes transitorias de e2e
+  // sobre BD real; un bug real falla los 3 intentos. Local: sin retry. Ver jest.retry.ts.
+  setupFilesAfterEnv: ['<rootDir>/src/test/jest.retry.ts'],
   // v3.8: al terminar TODO el run, trunca la BD compartida y re-siembra la baseline
   // mínima → la suite queda idempotente y no deja residuos (staging/prod-safe).
   globalTeardown: '<rootDir>/src/test/global-teardown.js',
@@ -18,6 +21,10 @@ export default {
   // provoca contención del pool de conexiones y races de teardown (flakiness).
   // Serial (1 worker) es la opción determinista para tests de integración.
   maxWorkers: 1,
+  // Recicla el worker cuando su heap supera 512MB tras una suite. Con 108 suites e2e
+  // en un solo worker, jest ACUMULA memoria y en el runner de CI (heap Node ~2GB) reventaba
+  // con "heap out of memory". Reciclar libera memoria entre suites → sin OOM. Barato en CI.
+  workerIdleMemoryLimit: '512MB',
   collectCoverageFrom: [
     '<rootDir>/src/**/*.{js,ts}',
     '!<rootDir>/src/main.ts',

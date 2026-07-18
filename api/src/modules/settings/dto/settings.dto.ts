@@ -26,6 +26,18 @@ export class PublicConfigDto {
   showHomeCategories!: boolean;
 
   @ApiProperty({
+    description: 'Mantenimiento de reportes/dashboards de eventos, promotores y chequeo de boletos.',
+    example: false,
+  })
+  reportsMaintenance!: boolean;
+
+  @ApiProperty({
+    description: 'Habilita el tour de onboarding guiado (una vez por usuario/página).',
+    example: true,
+  })
+  tourEnabled!: boolean;
+
+  @ApiProperty({
     description: 'Integraciones externas configuradas y disponibles (gating de UI).',
     example: {
       recurrente: false,

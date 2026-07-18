@@ -1,9 +1,11 @@
-import { input, provideZonelessChangeDetection } from '@angular/core';
+import { input, provideZonelessChangeDetection, signal } from '@angular/core';
+import { PublicConfigStore } from '../../core/config/public-config.store';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { PromoterDashboardApi } from '../../core/api/promoter-dashboard.api';
+import { AdminApi } from '../../core/api/admin.api';
 import { SessionStore } from '../../core/auth/session.store';
 import { ToastService } from '../../core/ui/toast.service';
 import { initI18nTesting, provideI18nTesting } from '../../core/i18n/testing';
@@ -79,7 +81,9 @@ describe('PromoterDashboardPage', () => {
         provideZonelessChangeDetection(),
         provideRouter([]),
         ...provideI18nTesting(),
+        { provide: PublicConfigStore, useValue: { reportsMaintenance: signal(false).asReadonly(), refresh: () => undefined } },
         { provide: PromoterDashboardApi, useValue: api },
+        { provide: AdminApi, useValue: { listPromoters: () => of([]) } },
         { provide: SessionStore, useValue: session },
         { provide: ToastService, useValue: toasts },
       ],

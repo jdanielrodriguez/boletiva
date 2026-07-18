@@ -6,10 +6,12 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { catchError, forkJoin, of, startWith, switchMap } from 'rxjs';
 import { MoneyPipe } from '../../shared/money.pipe';
+import { TourComponent, type TourStep } from '../../shared/tour/tour.component';
 import { ConfirmationSplashComponent } from '../../shared/ui/confirmation-splash.component';
 import { LoadingComponent } from '../../shared/ui/loading.component';
 import { OrderStreamService } from '../../core/api/order-stream.service';
 import { SessionStore } from '../../core/auth/session.store';
+import { BillingApi } from '../../core/api/billing.api';
 import { OrdersApi } from '../../core/api/orders.api';
 import { PaymentMethodsApi } from '../../core/api/payment-methods.api';
 import { WalletApi } from '../../core/api/wallet.api';
@@ -47,10 +49,17 @@ type PayMode = 'saved' | 'wallet' | 'new';
     RouterLink,
     ConfirmationSplashComponent,
     LoadingComponent,
+    TourComponent,
   ],
   templateUrl: './checkout.page.html',
 })
 export class CheckoutPage implements OnDestroy {
+  /** Tour de onboarding del checkout (solo logueados que no lo han visto). */
+  protected readonly tourSteps: TourStep[] = [
+    { title: 'tour.checkout.welcomeTitle', body: 'tour.checkout.welcomeBody' },
+    { title: 'tour.checkout.methodTitle', body: 'tour.checkout.methodBody' },
+    { title: 'tour.checkout.statusTitle', body: 'tour.checkout.statusBody' },
+  ];
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly ordersApi = inject(OrdersApi);
@@ -59,10 +68,19 @@ export class CheckoutPage implements OnDestroy {
   private readonly stream = inject(OrderStreamService);
   private readonly translate = inject(TranslateService);
   private readonly session = inject(SessionStore);
+  private readonly billingApi = inject(BillingApi);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   /** Modo prueba: muestra la ayuda de tarjetas de prueba (4242…) en el pago. */
   protected readonly isTestUser = computed(() => this.session.user()?.isTestUser === true);
+
+  // Facturación (FEL): NIT (prellenado del perfil) + nombre. Se captura AQUÍ (en el
+  // checkout, no en la reserva). El lookup por NIT autollena y BLOQUEA el nombre si FEL lo
+  // encuentra; si FEL está off, el nombre queda editable. Sin NIT → CF (consumidor final).
+  protected readonly billingNit = signal((this.session.user() as { nit?: string })?.nit ?? '');
+  protected readonly billingName = signal((this.session.user() as { billingName?: string })?.billingName ?? '');
+  protected readonly billingNameLocked = signal(false);
+  protected readonly lookingUpNit = signal(false);
 
   protected readonly orderId = signal('');
   protected readonly loaded = signal(false);
@@ -286,6 +304,27 @@ export class CheckoutPage implements OnDestroy {
     this.payMode.set('saved');
   }
 
+  /**
+   * Busca el nombre por NIT (FEL). Disponible + encontrado → autollena y bloquea el nombre;
+   * FEL off o no encontrado → deja el nombre editable. NIT vacío/CF → no consulta.
+   */
+  protected lookupNit(): void {
+    const nit = this.billingNit().trim();
+    this.billingNameLocked.set(false);
+    if (!nit || nit.toUpperCase() === 'CF') return;
+    this.lookingUpNit.set(true);
+    this.billingApi.nitName(nit).subscribe({
+      next: (r) => {
+        this.lookingUpNit.set(false);
+        if (r.available && r.name) {
+          this.billingName.set(r.name);
+          this.billingNameLocked.set(true);
+        }
+      },
+      error: () => this.lookingUpNit.set(false),
+    });
+  }
+
   protected pay(): void {
     const mode = this.payMode();
     if (mode === 'wallet' && !this.hasWalletFunds()) return;
@@ -306,6 +345,8 @@ export class CheckoutPage implements OnDestroy {
         gatewayId: gw?.gatewayId,
         installments: this.installments(),
         useWallet: mode === 'wallet',
+        billingNit: this.billingNit().trim() || undefined,
+        billingName: this.billingName().trim() || undefined,
       })
       .subscribe({
         next: () => this.paying.set(false),

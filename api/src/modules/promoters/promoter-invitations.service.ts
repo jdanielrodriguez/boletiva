@@ -80,7 +80,7 @@ export class PromoterInvitationsService {
   /** Envía el correo de invitación con el enlace de registro (tolerante a fallos). */
   private async sendInvitationEmail(email: string, url: string): Promise<void> {
     try {
-      await this.mail.sendTemplated(email, 'Te invitaron a ser promotor — Boletiva', {
+      await this.mail.enqueueTemplated(email, 'Te invitaron a ser promotor — Boletiva', {
         title: 'Te invitaron a ser promotor',
         preheader: 'Crea tu cuenta de promotor en Boletiva y empieza a vender.',
         bodyHtml: `<p style="margin:0 0 12px 0;">Te invitamos a unirte a <strong>Boletiva</strong> como promotor. Al registrarte con este enlace, tu cuenta quedará <strong>aprobada automáticamente</strong> para crear y publicar eventos.</p>

@@ -8,6 +8,7 @@ import { BillingApi } from '../../core/api/billing.api';
 import { RecaptchaService } from '../../core/security/recaptcha.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { SessionStore } from '../../core/auth/session.store';
+import { UsersApi } from '../../core/api/users.api';
 import { SITE_URL } from '../../core/config/api.tokens';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { initI18nTesting, provideI18nTesting } from '../../core/i18n/testing';
@@ -44,8 +45,10 @@ describe('PurchasePage', () => {
     const events = jasmine.createSpyObj<EventsApi>('EventsApi', ['getBySlug', 'availability']);
     events.getBySlug.and.returnValue(of(EVENT as unknown as PublicEventDetailDto));
     events.availability.and.returnValue(of(AVAIL as unknown as EventAvailabilityDto));
+    localStorage.clear(); // sin reserva persistida → tryRestore() es no-op
     reservations = jasmine.createSpyObj<ReservationsApi>('ReservationsApi', ['create', 'getByToken', 'checkout', 'cancel']);
     reservations.create.and.returnValue(of(RESERVATION as unknown as ReservationResponseDto));
+    reservations.getByToken.and.returnValue(of(RESERVATION as unknown as ReservationResponseDto));
     reservations.cancel.and.returnValue(of({ cancelled: true }));
 
     TestBed.configureTestingModule({
@@ -58,7 +61,8 @@ describe('PurchasePage', () => {
         { provide: BillingApi, useValue: { nitName: () => of({ available: false, name: null }) } },
         { provide: RecaptchaService, useValue: { execute: () => Promise.resolve('') } },
         { provide: SITE_URL, useValue: 'http://localhost:4200' },
-        { provide: SessionStore, useValue: { ensureLoaded: () => of(null), isEmailVerified: () => false, user: () => null } },
+        { provide: SessionStore, useValue: { ensureLoaded: () => of(null), isEmailVerified: () => false, user: () => null, loaded: () => true } },
+        { provide: UsersApi, useValue: { markTourSeen: () => of(null) } },
         { provide: AuthService, useValue: {} },
         {
           provide: ActivatedRoute,

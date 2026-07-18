@@ -55,6 +55,30 @@ describe('ThemeService', () => {
     expect(theme.franja()).toBe('noche');
   });
 
+  it('cambia el favicon SVG según el tema activo (marquesina↔pulso), recreando el link', () => {
+    const initial = document.createElement('link');
+    initial.setAttribute('rel', 'icon');
+    initial.setAttribute('type', 'image/svg+xml');
+    initial.setAttribute('href', 'favicon.svg?v=3');
+    document.head.appendChild(initial);
+    const currentHref = () =>
+      document.head
+        .querySelector('link[rel="icon"][type="image/svg+xml"]')
+        ?.getAttribute('href');
+    try {
+      setup();
+      theme.use('dia'); // marquesina
+      expect(currentHref()).toBe('favicon-marquesina.svg?v=3');
+      expect(initial.isConnected).toBe(false); // el link viejo se quitó (Chrome refresca)
+      theme.use('noche'); // pulso
+      expect(currentHref()).toBe('favicon.svg?v=3');
+    } finally {
+      document.head
+        .querySelectorAll('link[rel="icon"][type="image/svg+xml"]')
+        .forEach((l) => l.remove());
+    }
+  });
+
   it('respeta la asignación admin volteada (noche→marquesina)', () => {
     setup({ ...CFG, slots: { dia: 'pulso', noche: 'marquesina' } });
     theme.init();

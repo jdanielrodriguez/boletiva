@@ -43,6 +43,8 @@ export const config = {
   },
 
   events: {
+    category: 'Categoría',
+    categoryNone: 'Sin categoría',
     heading: 'Todos los eventos',
     searchPlaceholder: 'Evento o promotor',
     promoter: 'Promotor',
@@ -190,6 +192,7 @@ export const config = {
     gwMinCostShare: 'Cost-share mínimo (0–1)',
     gwInstallmentFixed: 'Fijo en cuotas (Q)',
     gwInstallmentRates: 'Tasas de cuotas (JSON)',
+    gwInstallmentsEnabled: 'Permitir pago en cuotas',
     saveGatewayTitle: 'Guardar cambios',
     cancelEditTitle: 'Cancelar edición',
     activate: 'Activar',
@@ -430,6 +433,8 @@ export const config = {
     promoters_require_approval: 'Exigir aprobación de promotores',
     i18n_allow_visitor_switch: 'Cambio de idioma para visitantes',
     home_show_categories: 'Mostrar categorías en el inicio',
+    reports_maintenance: 'Mantenimiento de reportes',
+    tour_enabled: 'Tour de bienvenida',
     theme_slot_noche: 'Tema de la franja Noche',
     theme_slot_dia: 'Tema de la franja Día',
     theme_default_franja: 'Franja por defecto',
@@ -478,11 +483,18 @@ export const config = {
     i18n_allow_visitor_switch:
       'Permite que un visitante sin sesión cambie el idioma de la página con las banderas. Si está apagado, los visitantes ven todo en español (los usuarios con sesión siempre ven su idioma).',
     home_show_categories: 'Muestra los filtros de categoría en la página principal.',
+    reports_maintenance:
+      'Pone los reportes/dashboards (eventos, promotores y chequeo de boletos) en mantenimiento con un aviso, sin tirar el sitio. Úsalo si hay un descuadre por revisar.',
+    tour_enabled: 'Habilita el tour de bienvenida guiado (se muestra una sola vez por usuario y página).',
     theme_slot_noche: 'Tema que se muestra en la franja Noche (el admin puede voltear día↔noche).',
     theme_slot_dia: 'Tema que se muestra en la franja Día (el admin puede voltear día↔noche).',
     theme_default_franja: 'Franja que ve un visitante o un usuario sin preferencia guardada.',
     theme_allow_visitor_switch:
       'Muestra el botón de cambio de tema (día/noche) a todos. Si está apagado, solo el admin define el tema y nadie más lo cambia.',
+    theme_auto_by_hour:
+      'Cambia el tema AUTOMÁTICAMENTE según la hora del día (America/Guatemala). Si está activo, el botón de cambio de tema se desactiva para todos (decide el reloj).',
+    theme_day_start_hour: 'Hora (0–23, GT) en que empieza la franja Día con el tema automático.',
+    theme_day_end_hour: 'Hora (1–24, GT) en que termina la franja Día (después es Noche) con el tema automático.',
   },
 
   // --- Dashboards de salón / plantilla (página aparte) ---

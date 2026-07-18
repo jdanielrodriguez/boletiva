@@ -734,6 +734,10 @@ model PaymentGateway {
   /// (0 = disponible para todos; p.ej. PayPal 0.50). La pasarela default del
   /// sistema ignora este umbral (siempre vendible).
   minCostSharePct  Decimal       @default(0) @map("min_cost_share_pct") @db.Decimal(6, 5)
+  /// Permite el pago en CUOTAS con esta pasarela. false = solo 1 pago (el checkout
+  /// oculta todo lo de cuotas) aunque `installmentRates` tenga tarifario. Perilla del
+  /// admin para apagar cuotas sin borrar las tasas configuradas.
+  installmentsEnabled Boolean    @default(true) @map("installments_enabled")
   credentialsRef   String?       @map("credentials_ref")
   status           GatewayStatus @default(active)
   isPlatformDefault Boolean      @default(false) @map("is_platform_default")

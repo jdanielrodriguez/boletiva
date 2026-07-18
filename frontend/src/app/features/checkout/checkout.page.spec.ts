@@ -4,6 +4,8 @@ import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angul
 import { Subject, of } from 'rxjs';
 import { OrderStreamEvent, OrderStreamService } from '../../core/api/order-stream.service';
 import { SessionStore } from '../../core/auth/session.store';
+import { UsersApi } from '../../core/api/users.api';
+import { BillingApi } from '../../core/api/billing.api';
 import { OrdersApi } from '../../core/api/orders.api';
 import { PaymentMethodsApi } from '../../core/api/payment-methods.api';
 import { WalletApi } from '../../core/api/wallet.api';
@@ -80,6 +82,8 @@ describe('CheckoutPage', () => {
         { provide: WalletApi, useValue: walletApi },
         { provide: OrderStreamService, useValue: { stream: () => sse.asObservable() } },
         { provide: SessionStore, useValue: { user: () => null } },
+        { provide: UsersApi, useValue: { markTourSeen: () => of({}) } },
+        { provide: BillingApi, useValue: { nitName: () => of({ available: false, name: null }) } },
         { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ orderId: 'o1' })) } },
       ],
     });
@@ -123,6 +127,8 @@ describe('CheckoutPage', () => {
       gatewayId: 'gw1',
       installments: 3,
       useWallet: false,
+      billingNit: undefined,
+      billingName: undefined,
     });
   });
 
@@ -165,6 +171,8 @@ describe('CheckoutPage', () => {
         { provide: WalletApi, useValue: walletApi },
         { provide: OrderStreamService, useValue: { stream: () => sse.asObservable() } },
         { provide: SessionStore, useValue: { user: () => null } },
+        { provide: UsersApi, useValue: { markTourSeen: () => of({}) } },
+        { provide: BillingApi, useValue: { nitName: () => of({ available: false, name: null }) } },
         { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ orderId: 'o1' })) } },
       ],
     });
@@ -182,6 +190,8 @@ describe('CheckoutPage', () => {
       gatewayId: 'gw2',
       installments: 1,
       useWallet: false,
+      billingNit: undefined,
+      billingName: undefined,
     });
   });
 
@@ -237,6 +247,8 @@ describe('CheckoutPage', () => {
       gatewayId: 'gw1',
       installments: 1,
       useWallet: false,
+      billingNit: undefined,
+      billingName: undefined,
     });
   });
 
@@ -251,6 +263,8 @@ describe('CheckoutPage', () => {
       gatewayId: 'gw1',
       installments: 1,
       useWallet: true,
+      billingNit: undefined,
+      billingName: undefined,
     });
   });
 

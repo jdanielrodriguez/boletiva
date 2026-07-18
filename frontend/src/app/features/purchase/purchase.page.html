@@ -38,24 +38,6 @@
 
       <app-share-box [url]="shareUrl()" />
 
-      <!-- Facturación (FEL): NIT + nombre. El lookup por NIT autollena y bloquea el nombre
-           si FEL lo encuentra; si FEL está off, el nombre queda editable. Sin NIT → CF. -->
-      <div class="billing-box" data-testid="purchase-billing">
-        <p class="billing-title">{{ 'purchase.billingTitle' | translate }}</p>
-        <div class="field">
-          <label for="co-nit">{{ 'purchase.nit' | translate }}</label>
-          <input id="co-nit" type="text" maxlength="20" [ngModel]="billingNit()" (ngModelChange)="billingNit.set($event)"
-            (blur)="lookupNit()" name="conit" data-testid="co-nit" [placeholder]="'purchase.nitPlaceholder' | translate" />
-        </div>
-        <div class="field">
-          <label for="co-bname">{{ 'purchase.billingName' | translate }}</label>
-          <input id="co-bname" type="text" maxlength="150" [ngModel]="billingName()" (ngModelChange)="billingName.set($event)"
-            [readonly]="billingNameLocked()" name="cobname" data-testid="co-bname" />
-          @if (lookingUpNit()) { <span class="muted small">{{ 'purchase.nitLooking' | translate }}</span> }
-          @else if (billingNameLocked()) { <span class="muted small">{{ 'purchase.nitFound' | translate }}</span> }
-        </div>
-      </div>
-
       @if (error()) {
         <p class="error" data-testid="purchase-error">{{ error() }}</p>
       }
@@ -233,4 +215,6 @@
       (cancelled)="confirm.cancel()"
     />
   }
+
+  <app-tour tourKey="purchase" [steps]="tourSteps" />
 </section>
