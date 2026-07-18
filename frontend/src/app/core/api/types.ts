@@ -23,6 +23,8 @@ export type ChangePasswordDto = Schemas['ChangePasswordDto'];
 export type ForgotPasswordDto = Schemas['ForgotPasswordDto'];
 export type ResetPasswordDto = Schemas['ResetPasswordDto'];
 export type MessageResponseDto = Schemas['MessageResponseDto'];
+export type VerifyEmailCodeDto = Schemas['VerifyEmailCodeDto'];
+export type ResendVerificationDto = Schemas['ResendVerificationDto'];
 
 // --- Events (catálogo público) ---
 export type PublicEventListDto = Schemas['PublicEventListDto'];

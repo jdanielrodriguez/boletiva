@@ -42,8 +42,30 @@ export class Register {
   protected readonly lastName = signal('');
   protected readonly email = signal('');
   protected readonly password = signal('');
+  protected readonly confirmPassword = signal('');
   protected readonly working = signal(false);
   protected readonly error = signal<string | null>(null);
+
+  /** Chequeos de fortaleza (checklist en vivo). */
+  protected readonly checks = computed(() => {
+    const p = this.password();
+    return {
+      length: p.length >= 8,
+      upper: /[A-Z]/.test(p),
+      lower: /[a-z]/.test(p),
+      number: /\d/.test(p),
+      symbol: /[^A-Za-z0-9]/.test(p),
+    };
+  });
+  /** Fuerte = mín. 8 y al menos 3 de las 4 categorías (mayús/minús/número/símbolo). */
+  protected readonly strong = computed(() => {
+    const c = this.checks();
+    const cats = [c.upper, c.lower, c.number, c.symbol].filter(Boolean).length;
+    return c.length && cats >= 3;
+  });
+  protected readonly matches = computed(
+    () => this.confirmPassword().length > 0 && this.password() === this.confirmPassword(),
+  );
 
   protected readonly mode = signal<Mode>('loading');
   protected readonly invitedEmail = signal('');
@@ -93,6 +115,14 @@ export class Register {
   protected submit(): void {
     if (!this.email() || !this.password() || !this.firstName()) {
       this.error.set(this.translate.instant('auth.msgCompleteFields'));
+      return;
+    }
+    if (!this.strong()) {
+      this.error.set(this.translate.instant('auth.msgPasswordWeak'));
+      return;
+    }
+    if (!this.matches()) {
+      this.error.set(this.translate.instant('auth.msgConfirmMismatch'));
       return;
     }
     this.working.set(true);
@@ -158,6 +188,9 @@ export class Register {
 
   private done(): void {
     this.working.set(false);
-    void this.router.navigate(['/verificar-correo']);
+    // Tras el alta el backend deja la sesión autenticada pero SIN verificar → el
+    // modal global de verificación (montado en app) aparece encima de todo pidiendo
+    // el código. Vamos al inicio; el modal se muestra ahí (ya no una página muda).
+    void this.router.navigate(['/']);
   }
 }

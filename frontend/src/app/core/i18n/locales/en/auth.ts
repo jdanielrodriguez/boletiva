@@ -77,4 +77,25 @@ export const auth = {
   msgResetOk: 'Password reset. You can now sign in.',
   msgResetFailed:
     'Could not reset: the link may have expired or already been used. Request a new one.',
+  msgPasswordWeak: 'Password is weak. Use at least 8 characters and mix uppercase, lowercase, numbers and symbols.',
+  // Strong-password checklist (signup)
+  pwdHint: 'Use at least 8 characters mixing uppercase, lowercase, numbers and symbols.',
+  pwdLen: 'At least 8 characters',
+  pwdUpper: 'An uppercase letter (A-Z)',
+  pwdLower: 'A lowercase letter (a-z)',
+  pwdNumber: 'A number (0-9)',
+  pwdSymbol: 'A symbol (!@#$…)',
+  // Email verification modal
+  verifyModalTitle: 'Verify your email',
+  verifyModalBody: 'We sent a 6-digit code to <strong>{{email}}</strong>. Enter it to activate your account so you can buy and create.',
+  verifyBtn: 'Verify',
+  verifyingCode: 'Verifying…',
+  verifyOk: 'Email verified! Your account is active.',
+  verifyFailed: 'Invalid or expired code. Check your email or request a new one.',
+  verifyNoCode: "Didn't get the code?",
+  verifyResend: 'Resend code',
+  verifyResending: 'Resending…',
+  verifyResent: 'We resent the code to your email.',
+  verifyResendFailed: 'Could not resend the code. Try again in a moment.',
+  verifyLogout: 'Sign out',
 };

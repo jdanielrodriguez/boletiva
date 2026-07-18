@@ -1,0 +1,36 @@
+@if (visible()) {
+  <div class="modal-backdrop" data-testid="verify-email-modal">
+    <section class="modal-card">
+      <h2>{{ 'auth.verifyModalTitle' | translate }}</h2>
+      <p class="auth-sub" [innerHTML]="'auth.verifyModalBody' | translate: { email: email() }"></p>
+
+      @if (error()) {
+        <p class="form-error" data-testid="verify-modal-error">{{ error() }}</p>
+      }
+
+      <form (ngSubmit)="verify()">
+        <app-otp-input [value]="code()" (valueChange)="onCode($event)" [disabled]="working()" />
+        <button
+          type="submit"
+          class="primary btn-block"
+          [disabled]="working() || code().length < 6"
+          data-testid="verify-modal-submit"
+        >
+          {{ working() ? ('auth.verifyingCode' | translate) : ('auth.verifyBtn' | translate) }}
+        </button>
+      </form>
+
+      <p class="auth-alt">
+        {{ 'auth.verifyNoCode' | translate }}
+        <button type="button" class="link-btn" [disabled]="resending()" (click)="resend()" data-testid="verify-modal-resend">
+          {{ resending() ? ('auth.verifyResending' | translate) : ('auth.verifyResend' | translate) }}
+        </button>
+      </p>
+      <p class="auth-alt">
+        <button type="button" class="link-btn" (click)="signOut()" data-testid="verify-modal-logout">
+          {{ 'auth.verifyLogout' | translate }}
+        </button>
+      </p>
+    </section>
+  </div>
+}
