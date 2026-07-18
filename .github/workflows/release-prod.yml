@@ -38,9 +38,13 @@
 name: Release & Deploy Prod
 
 on:
+  # AUTOMÁTICO: cada push/merge a master hace release (deploy + tag).
   push:
     branches:
       - master
+  # MANUAL: botón "Run workflow" en la pestaña Actions → reintentar/relanzar un deploy
+  # sin subir nada (útil si un deploy falló). Corre tests → deploy → crea el tag.
+  workflow_dispatch:
 
 permissions:
   actions: read

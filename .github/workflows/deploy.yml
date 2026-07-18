@@ -24,6 +24,11 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Tag a construir/desplegar (ej. v0.1.0-alpha). Vacío = usa la ref seleccionada arriba.'
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -35,6 +40,9 @@ env:
   REPO: pasaeventos-backend
   SERVICE: pasaeventos-api
   CLOUDSQL: boletera-502405:us-central1:pasaeventos-pg
+  # Tag a desplegar: input del dispatch si se dio, si no la ref (tag pusheado o la
+  # rama/tag elegida en "Run workflow"). Permite relanzar/rollback sin subir nada.
+  IMAGE_TAG: ${{ github.event.inputs.image_tag || github.ref_name }}
 
 jobs:
   build-and-deploy:
@@ -65,7 +73,7 @@ jobs:
       - name: Build & push image (Artifact Registry)
         run: |
           gcloud builds submit \
-            --tag "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/api:${GITHUB_REF_NAME}"
+            --tag "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/api:${IMAGE_TAG}"
 
       # --- (OPCIONAL) Aplicar el schema a la BD ANTES de enrutar tráfico ---
       # La BD de prod arranca vacía. El proyecto usa `prisma db push` (sin carpeta de
@@ -88,7 +96,7 @@ jobs:
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy "${SERVICE}" \
-            --image "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/api:${GITHUB_REF_NAME}" \
+            --image "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/api:${IMAGE_TAG}" \
             --region "${REGION}" \
             --platform managed \
             --allow-unauthenticated \
