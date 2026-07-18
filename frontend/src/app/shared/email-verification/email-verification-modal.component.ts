@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../core/auth/auth.service';
 import { SessionStore } from '../../core/auth/session.store';
@@ -27,6 +28,7 @@ export class EmailVerificationModal {
   private readonly auth = inject(AuthService);
   private readonly toasts = inject(ToastService);
   private readonly translate = inject(TranslateService);
+  private readonly router = inject(Router);
 
   protected readonly visible = computed(
     () => this.session.isAuthenticated() && !this.session.isEmailVerified(),
@@ -78,6 +80,12 @@ export class EmailVerificationModal {
   }
 
   protected signOut(): void {
-    this.auth.logout().subscribe();
+    // Navega a inicio SIEMPRE (no dejar al usuario en una vista protegida con la
+    // sesión ya cerrada; los guards solo corren al ENTRAR a la ruta).
+    this.auth.logout().subscribe({
+      next: () => void this.router.navigateByUrl('/'),
+      error: () => void this.router.navigateByUrl('/'),
+      complete: () => void this.router.navigateByUrl('/'),
+    });
   }
 }
