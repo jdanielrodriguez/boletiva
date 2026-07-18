@@ -16,6 +16,7 @@ import { ConfirmController } from '../../shared/confirm-dialog/confirm-controlle
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { EventSettlementComponent } from '../../shared/event-settlement/event-settlement.component';
 import { EventDashboardComponent } from '../../shared/event-dashboard/event-dashboard.component';
+import { EventValidatorsComponent } from './event-validators.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { OtpInputComponent } from '../../shared/ui/otp-input/otp-input.component';
 import { BackLinkComponent } from '../../shared/ui/back-link.component';
@@ -45,7 +46,7 @@ import type {
   PriceQuoteResponseDto,
 } from '../../core/api/types';
 
-type Tab = 'datos' | 'localidades' | 'banner' | 'config' | 'cuentas' | 'dashboard';
+type Tab = 'datos' | 'localidades' | 'banner' | 'config' | 'cuentas' | 'dashboard' | 'validadores';
 type BannerTemplate = 'aurora' | 'midnight' | 'sunset' | 'forest' | 'mono';
 
 /** Convierte ISO a valor de <input datetime-local> (YYYY-MM-DDTHH:mm, hora local). */
@@ -71,6 +72,7 @@ function toLocalInput(iso: string | null | undefined): string {
     RouterLink,
     EventSettlementComponent,
     EventDashboardComponent,
+    EventValidatorsComponent,
     EventSeatMapComponent,
     IconComponent,
     OtpInputComponent,
@@ -457,7 +459,7 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
     if (!this.isNew()) this.editUnlock.setCurrentEvent(this.eventId());
 
     const tab = this.route.snapshot.queryParamMap.get('tab');
-    if (tab && ['datos', 'localidades', 'banner', 'config', 'cuentas', 'dashboard'].includes(tab)) {
+    if (tab && ['datos', 'localidades', 'banner', 'config', 'cuentas', 'dashboard', 'validadores'].includes(tab)) {
       this.tab.set(tab as Tab);
       // Los datos de la tab Cuentas dependen del rol (owner vs admin real) y del
       // estado del evento → se cargan tras `reload()`, no aquí (el evento aún no está).

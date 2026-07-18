@@ -1,0 +1,98 @@
+<section class="validators" data-testid="validators-section">
+  <header class="validators-head">
+    <div>
+      <h3>{{ 'promoter.validators.title' | translate }}</h3>
+      <p class="auth-sub">{{ 'promoter.validators.subtitle' | translate }}</p>
+    </div>
+    @if (hasActive()) {
+      <button type="button" class="link-btn danger" (click)="disableAll()" data-testid="validators-disable-all">
+        {{ 'promoter.validators.disableAll' | translate }}
+      </button>
+    }
+  </header>
+
+  <!-- Invitar -->
+  <form class="validators-invite" (ngSubmit)="invite()">
+    <input
+      type="email"
+      [ngModel]="email()"
+      (ngModelChange)="email.set($event)"
+      name="email"
+      autocomplete="off"
+      [attr.placeholder]="'promoter.validators.emailPlaceholder' | translate"
+      data-testid="validators-email"
+    />
+    <button type="submit" class="primary" [disabled]="working() || !email().trim()" data-testid="validators-invite">
+      {{ working() ? ('promoter.validators.inviting' | translate) : ('promoter.validators.invite' | translate) }}
+    </button>
+  </form>
+
+  <!-- Acceso recién emitido (mostrar UNA vez) -->
+  @if (issued(); as inv) {
+    <div class="validators-issued" data-testid="validators-issued">
+      <p class="validators-issued-title">{{ 'promoter.validators.issuedTitle' | translate: { email: inv.email } }}</p>
+      <p class="validators-issued-hint">{{ 'promoter.validators.issuedHint' | translate }}</p>
+      <div class="validators-issued-row">
+        <span class="validators-issued-label">{{ 'promoter.validators.link' | translate }}</span>
+        <code class="validators-issued-value">{{ inv.url }}</code>
+        <button type="button" class="link-btn" (click)="copy(inv.url)">{{ 'promoter.validators.copy' | translate }}</button>
+      </div>
+      <div class="validators-issued-row">
+        <span class="validators-issued-label">{{ 'promoter.validators.code' | translate }}</span>
+        <code class="validators-issued-value">{{ inv.code }}</code>
+        <button type="button" class="link-btn" (click)="copy(inv.code)">{{ 'promoter.validators.copy' | translate }}</button>
+      </div>
+      <button type="button" class="link-btn" (click)="dismissIssued()" data-testid="validators-issued-dismiss">
+        {{ 'common.close' | translate }}
+      </button>
+    </div>
+  }
+
+  <!-- Lista -->
+  @if (loading()) {
+    <p class="auth-sub" data-testid="validators-loading">{{ 'common.loading' | translate }}</p>
+  } @else if (error()) {
+    <p class="error" data-testid="validators-error">{{ error() }}</p>
+  } @else if (items().length === 0) {
+    <p class="auth-sub" data-testid="validators-empty">{{ 'promoter.validators.empty' | translate }}</p>
+  } @else {
+    <ul class="validators-list" data-testid="validators-list">
+      @for (v of items(); track v.id) {
+        <li class="validators-item">
+          <div class="validators-item-main">
+            <span class="validators-item-email">{{ v.email }}</span>
+            <span
+              class="badge"
+              [class.badge-ok]="v.status === 'active'"
+              [class.badge-off]="v.status !== 'active'"
+              data-testid="validators-status"
+            >
+              {{ (v.status === 'active' ? 'promoter.validators.active' : 'promoter.validators.disabledStatus') | translate }}
+            </span>
+          </div>
+          @if (v.status === 'active') {
+            <button type="button" class="link-btn danger" (click)="disable(v)" [attr.data-testid]="'validators-disable-' + v.id">
+              {{ 'promoter.validators.disable' | translate }}
+            </button>
+          } @else {
+            <button type="button" class="link-btn" (click)="enable(v)" [attr.data-testid]="'validators-enable-' + v.id">
+              {{ 'promoter.validators.reenable' | translate }}
+            </button>
+          }
+        </li>
+      }
+    </ul>
+  }
+
+  @if (confirm.request(); as cf) {
+    <app-confirm-dialog
+      [title]="cf.title"
+      [message]="cf.message"
+      [confirmLabel]="cf.confirmLabel ?? ''"
+      [titleIcon]="cf.titleIcon"
+      [danger]="cf.danger ?? false"
+      (accept)="confirm.accept()"
+      (cancelled)="confirm.cancel()"
+    />
+  }
+</section>

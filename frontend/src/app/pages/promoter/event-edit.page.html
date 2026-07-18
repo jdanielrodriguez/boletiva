@@ -104,6 +104,9 @@
         <button type="button" [class.active]="tab() === 'config'" (click)="selectTab('config')" data-testid="tab-config">{{ 'promoter.edit.tabConfig' | translate }}</button>
         <button type="button" [class.active]="tab() === 'cuentas'" (click)="selectTab('cuentas')" data-testid="tab-cuentas">{{ 'promoter.edit.tabAccounts' | translate }}</button>
         <button type="button" [class.active]="tab() === 'dashboard'" (click)="selectTab('dashboard')" data-testid="tab-dashboard">{{ 'promoter.edit.tabDashboard' | translate }}</button>
+        @if (!isNew()) {
+          <button type="button" [class.active]="tab() === 'validadores'" (click)="selectTab('validadores')" data-testid="tab-validadores">{{ 'promoter.edit.tabValidators' | translate }}</button>
+        }
       </nav>
     }
 
@@ -501,6 +504,14 @@
               <app-event-dashboard [eventId]="eventId()" [showSplit]="isAdmin()" />
             } @else {
               <p class="muted">{{ 'promoter.edit.dashboardSoon' | translate }}</p>
+            }
+          </div>
+        }
+
+        @case ('validadores') {
+          <div class="card-block" data-testid="validators-panel">
+            @if (!isNew() && eventId()) {
+              <app-event-validators [eventId]="eventId()" />
             }
           </div>
         }

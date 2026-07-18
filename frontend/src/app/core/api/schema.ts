@@ -2221,6 +2221,93 @@ export interface paths {
         patch: operations["CostShareController_setPromoter_v1"];
         trace?: never;
     };
+    "/api/v1/events/{eventId}/validators": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lista los validadores del evento y su estado */
+        get: operations["EventValidatorsController_list_v1"];
+        put?: never;
+        /** Invita/habilita un validador por email (envía código + magic-link) */
+        post: operations["EventValidatorsController_invite_v1"];
+        /** Deshabilita TODOS los validadores del evento a la vez */
+        delete: operations["EventValidatorsController_disableAll_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{eventId}/validators/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Deshabilita un validador (revoca su acceso al instante) */
+        delete: operations["EventValidatorsController_disable_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{eventId}/validators/{id}/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Re-habilita un validador y le reenvía un nuevo acceso */
+        post: operations["EventValidatorsController_enable_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/validators/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Previsualiza el acceso de validación (evento + email) */
+        get: operations["ValidatorClaimController_peek_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/validators/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Canjea el magic-link por un token de puerta para validar */
+        post: operations["ValidatorClaimController_claim_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/payment-methods": {
         parameters: {
             query?: never;
@@ -6901,6 +6988,69 @@ export interface components {
             /** @description % que asume el promotor (0..1) */
             pct: number;
         };
+        ValidatorListItemDto: {
+            /** Format: uuid */
+            id: string;
+            email: string;
+            /** Format: uuid */
+            operatorId: string;
+            /** @enum {string} */
+            status: "active" | "disabled";
+            /** Format: date-time */
+            expiresAt: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        InviteValidatorDto: {
+            /**
+             * @description Email del validador a habilitar
+             * @example validador@correo.com
+             */
+            email: string;
+        };
+        ValidatorInviteResponseDto: {
+            /** Format: uuid */
+            id: string;
+            email: string;
+            /** @enum {string} */
+            status: "active" | "disabled";
+            /** @description Magic-link para abrir el validador (mostrar/compartir una vez) */
+            url: string;
+            /** @description Código de acceso de un solo uso (mostrar una vez) */
+            code: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        ValidatorDisabledDto: {
+            /** @description true (uno) o cantidad deshabilitada (todos) */
+            disabled: Record<string, never>;
+        };
+        ValidatorPeekDto: {
+            email: string;
+            eventName: string;
+            valid: boolean;
+        };
+        ClaimValidatorDto: {
+            /** @description Token del magic-link recibido por correo */
+            token: string;
+        };
+        ClaimEventDto: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            slug: string;
+            /** Format: date-time */
+            startsAt: string;
+        };
+        ClaimResponseDto: {
+            /** @description JWT de puerta (corto) para pedir el manifiesto y validar */
+            gateToken: string;
+            /** @description Vigencia del token de puerta (segundos) */
+            expiresIn: number;
+            /** Format: uuid */
+            gateEventId: string;
+            event: components["schemas"]["ClaimEventDto"];
+        };
         PaymentMethodResponseDto: {
             /** Format: uuid */
             id: string;
@@ -11054,6 +11204,161 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PromoterCostSharePctResponseDto"];
+                };
+            };
+        };
+    };
+    EventValidatorsController_list_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidatorListItemDto"][];
+                };
+            };
+        };
+    };
+    EventValidatorsController_invite_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InviteValidatorDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidatorInviteResponseDto"];
+                };
+            };
+        };
+    };
+    EventValidatorsController_disableAll_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidatorDisabledDto"];
+                };
+            };
+        };
+    };
+    EventValidatorsController_disable_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eventId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidatorDisabledDto"];
+                };
+            };
+        };
+    };
+    EventValidatorsController_enable_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eventId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidatorInviteResponseDto"];
+                };
+            };
+        };
+    };
+    ValidatorClaimController_peek_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidatorPeekDto"];
+                };
+            };
+        };
+    };
+    ValidatorClaimController_claim_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClaimValidatorDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClaimResponseDto"];
                 };
             };
         };
