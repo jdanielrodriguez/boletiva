@@ -4088,3 +4088,20 @@ button.danger {
 .sold-warning strong { font-size: 1.02rem; }
 .sold-warning p { margin: 0; color: var(--pe-text); }
 .sold-warning a { color: var(--pe-danger); font-weight: 600; text-decoration: underline; width: fit-content; }
+
+/* Mensaje de error inline (p.error, [data-testid$="-error"]): antes heredaba el color
+   de texto normal y se perdía (apenas se notaba). Ahora es claramente un error: rojo
+   fuerte, negrita y con una franja de aviso. Los toasts siguen siendo el canal
+   prominente; esto asegura que el texto inline TAMBIÉN se vea como error, en ambos temas. */
+p.error,
+.error {
+  color: var(--pe-danger-strong);
+  font-weight: 600;
+}
+p.error {
+  margin: 0.5rem 0;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  background: var(--pe-danger-soft, rgba(255, 107, 129, 0.12));
+  border: 1px solid var(--pe-danger-border, rgba(255, 107, 129, 0.4));
+}
