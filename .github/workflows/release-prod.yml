@@ -1,73 +1,75 @@
 # ==============================================================================
-# release-prod.yml — Despliegue a PRODUCCIÓN al hacer push/merge a `master`
-# (típicamente al mergear una rama release/*).
+# release-prod.yml — Despliegue a PRODUCCIÓN al hacer push/merge a `master`.
 #
-# Orden estricto:
-#   (a) correr TODAS las pruebas (reutiliza test.yml)
-#   (b) activar la PÁGINA DE MANTENIMIENTO en prod (PATCH /admin/maintenance)
-#   (c) build + deploy a Cloud Run (prod)
-#   (d) crear y pushear el TAG final (vX.Y.Z)
-#   (e) quitar el mantenimiento
-#   + limpieza `if: always()`: si algo falla tras (b), intenta quitar el
-#     mantenimiento igualmente para no dejar prod bloqueada.
+# DEPLOY SEPARADO POR RUTA (path-filtered):
+#   • Cambios solo en el BACKEND  → despliega SOLO `pasaeventos-api`.
+#   • Cambios solo en el FRONTEND → despliega SOLO `pasaeventos-frontend`.
+#   • Cambios en ambos            → despliega ambos.
+#   • Ejecución MANUAL (workflow_dispatch) → eliges el target (both/backend/
+#     frontend) para relanzar un deploy sin subir nada (rollback/reintento).
 #
-# ── Secrets de repo requeridos ──
-#   GCP_SA_KEY          JSON del service account de despliegue (ver staging.yml).
-#                       Si falta, TODO el deploy se SALTA (no falla) con aviso.
-#   DEPLOY_ADMIN_TOKEN  JWT de acceso de un usuario ADMIN, usado como Bearer para
-#                       llamar PATCH /api/v1/admin/maintenance en prod.
-#                       Cómo obtenerlo: loguearse como admin contra la API de prod
-#                       (POST /api/v1/auth/login → 2fa/verify) y copiar el
-#                       `accessToken`. OJO: el access token es de vida corta; para
-#                       CI conviene un usuario admin de despliegue con TTL amplio o
-#                       renovar el secret periódicamente. Si NO está configurado, se
-#                       OMITE el toggle de mantenimiento (deploy sigue, con aviso).
+# Orden por servicio:
+#   (a) tests (reutiliza test.yml)  (b) detectar cambios + versión
+#   (c) build + deploy del/los servicio(s) que cambiaron   (d) tag vX.Y.Z
+#   El backend además activa/quita la PÁGINA DE MANTENIMIENTO (si hay token).
 #
 # ── Variables de repo (Settings → Variables) ──
-#   PROD_API_URL  Base URL de la API de prod, p.ej. https://api.pasaeventos.com
-#                 (sin barra final). Necesaria para el toggle de mantenimiento.
-#
-# ── Secretos de PROD en GCP Secret Manager ── ver docs/DESPLIEGUE.md §3
-#   pasaeventos-database-url, pasaeventos-redis-url, pasaeventos-amqp-url,
-#   pasaeventos-mail-pass, pasaeventos-jwt-access-secret,
-#   pasaeventos-jwt-refresh-secret, pasaeventos-gcs-sa-json
-#
-# ── Constantes ── proyecto pasa-eventos · región us-central1 ·
-#   servicio Cloud Run pasaeventos-api · imagen tag = versión detectada.
+#   WIF_PROVIDER / WIF_SERVICE_ACCOUNT  Workload Identity Federation (sin llave).
+#   PROD_API_URL       (opcional) base de la API para el toggle de mantenimiento.
+#   RECAPTCHA_SITE_KEY (opcional) site key de reCAPTCHA para el backend.
+# ── Secrets de repo ──
+#   DEPLOY_ADMIN_TOKEN (opcional) Bearer admin para PATCH /admin/maintenance.
+# ── Secretos de PROD en GCP Secret Manager ── ver docs/DESPLIEGUE.md §3.
 # ==============================================================================
 name: Release & Deploy Prod
 
 on:
-  # AUTOMÁTICO: cada push/merge a master hace release (deploy + tag).
   push:
     branches:
       - master
-  # MANUAL: botón "Run workflow" en la pestaña Actions → reintentar/relanzar un deploy
-  # sin subir nada (útil si un deploy falló). Corre tests → deploy → crea el tag.
   workflow_dispatch:
+    inputs:
+      target:
+        description: 'Qué desplegar (relanzar sin subir código)'
+        type: choice
+        default: both
+        options: [both, backend, frontend]
 
 permissions:
   actions: read
-  contents: write # necesita pushear el tag de release
-  id-token: write # Workload Identity Federation (OIDC → GCP, sin llave estática)
+  contents: write # push del tag de release
+  id-token: write # Workload Identity Federation (OIDC → GCP)
 
 env:
   GCP_PROJECT: boletera-502405
   GCP_REGION: us-central1
+  # Backend
   SERVICE: pasaeventos-api
   IMAGE_REPO: us-central1-docker.pkg.dev/boletera-502405/pasaeventos-backend/api
   CLOUDSQL: boletera-502405:us-central1:pasaeventos-pg
+  # Frontend (Angular 20 SSR). Reusa el mismo repo de Artifact Registry, imagen `frontend`.
+  FRONTEND_SERVICE: pasaeventos-frontend
+  FRONTEND_IMAGE_REPO: us-central1-docker.pkg.dev/boletera-502405/pasaeventos-backend/frontend
+  # URL del backend según el consumidor:
+  #  • NAVEGADOR → el DOMINIO (api.boletiva.com). Mismo sitio que boletiva.com →
+  #    la cookie httpOnly de refresh y el CORS funcionan como first-party (si el
+  #    navegador pegara al run.app, otro sitio, el navegador bloquearía la cookie
+  #    de refresh como third-party y rompería el login).
+  #  • SSR (servidor→backend) → el run.app DIRECTO: más rápido/confiable (sin la
+  #    capa de mapeo de dominio) y disponible YA sin esperar propagación de DNS/cert.
+  BACKEND_URL_BROWSER: https://api.boletiva.com
+  BACKEND_URL_SSR: https://pasaeventos-api-484248028065.us-central1.run.app
+  PUBLIC_SITE_URL: https://boletiva.com
 
 jobs:
-  # (a) Gate de calidad — reutiliza el workflow de pruebas completo.
+  # (a) Gate de calidad — pruebas backend + frontend.
   test:
     uses: ./.github/workflows/test.yml
 
-  # ¿Está configurado WIF? Si el repo aún no tiene las variables WIF_PROVIDER /
-  # WIF_SERVICE_ACCOUNT (p.ej. recién migrado a boletiva), se SALTA el deploy — así
-  # se puede subir master al nuevo repo SIN disparar un despliegue a producción.
+  # ¿WIF configurado? Si faltan las variables, se SALTA el deploy (no falla) — así
+  # se puede subir master a un repo recién migrado SIN desplegar.
   guard:
-    name: Comprobar WIF (Workload Identity Federation)
+    name: Comprobar WIF
     runs-on: ubuntu-latest
     outputs:
       deploy: ${{ steps.check.outputs.deploy }}
@@ -81,108 +83,202 @@ jobs:
             echo "deploy=true" >> "$GITHUB_OUTPUT"
           else
             echo "deploy=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::WIF_PROVIDER/WIF_SERVICE_ACCOUNT no configurados → se salta el deploy a producción."
+            echo "::warning::WIF_PROVIDER/WIF_SERVICE_ACCOUNT no configurados → se salta el deploy."
           fi
 
-  deploy-prod:
-    name: Maintenance → Build/Deploy → Tag → Restore
-    needs: [test, guard]
+  # (b) Detectar QUÉ cambió (backend/frontend) y la versión del tag.
+  prep:
+    name: Detectar cambios y versión
+    needs: guard
     if: needs.guard.outputs.deploy == 'true'
     runs-on: ubuntu-latest
-    env:
-      PROD_API_URL: ${{ vars.PROD_API_URL }}
-      DEPLOY_ADMIN_TOKEN: ${{ secrets.DEPLOY_ADMIN_TOKEN }}
+    outputs:
+      backend: ${{ steps.decide.outputs.backend }}
+      frontend: ${{ steps.decide.outputs.frontend }}
+      tag: ${{ steps.version.outputs.tag }}
     steps:
       - uses: actions/checkout@v5
         with:
-          fetch-depth: 0 # historial completo para detectar la versión / tags
-
-      # (d-pre) Detectar la versión del tag: rama release/*, mensaje de commit,
-      #         o incrementar el patch del último tag.
+          fetch-depth: 0 # historial completo (versión/tags) + diff de rutas
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'api/**'
+              - 'prisma/**'
+              - 'Dockerfile'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'nx.json'
+              - 'tsconfig*.json'
+            frontend:
+              - 'frontend/**'
+              - 'docker/angular/**'
+      # Combina evento + filtro + input manual → decide backend/frontend.
+      - id: decide
+        env:
+          EVT: ${{ github.event_name }}
+          TARGET: ${{ github.event.inputs.target }}
+          F_BACK: ${{ steps.filter.outputs.backend }}
+          F_FRONT: ${{ steps.filter.outputs.frontend }}
+        run: |
+          back=false; front=false
+          if [ "$EVT" = "workflow_dispatch" ]; then
+            case "${TARGET:-both}" in
+              both) back=true; front=true;;
+              backend) back=true;;
+              frontend) front=true;;
+            esac
+          else
+            back=$F_BACK; front=$F_FRONT
+          fi
+          echo "backend=$back" >> "$GITHUB_OUTPUT"
+          echo "frontend=$front" >> "$GITHUB_OUTPUT"
+          echo "→ deploy backend=$back · frontend=$front (evento=$EVT)"
       - name: Detectar versión del release
         id: version
         run: |
           branch=$(git branch -r --sort=-committerdate | grep -E 'origin/release[/-]v?([0-9]+\.[0-9]+\.[0-9]+)' | head -n1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)
           if [ -n "$branch" ]; then
             tag="v$branch"
-            echo "Versión detectada de rama release remota: $tag"
           else
             merge_version=$(git log -1 --pretty=%B | grep -oE 'release[/-]v?([0-9]+\.[0-9]+\.[0-9]+)' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)
             if [ -n "$merge_version" ]; then
               tag="v$merge_version"
-              echo "Versión detectada del mensaje de commit: $tag"
             else
               last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
               IFS='.' read -r v1 v2 v3 <<< "${last_tag#v}"
               tag="v$((v1)).$((v2)).$((v3+1))"
-              echo "Sin rama/commit de release → incremento patch: $tag"
             fi
           fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Versión: $tag"
 
-      - name: Autenticar en GCP (Workload Identity Federation)
+  # (c1) BACKEND — build + deploy (+ mantenimiento on/off).
+  deploy-backend:
+    name: Deploy backend (pasaeventos-api)
+    needs: [test, guard, prep]
+    if: needs.guard.outputs.deploy == 'true' && needs.prep.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ needs.prep.outputs.tag }}
+      PROD_API_URL: ${{ vars.PROD_API_URL }}
+      DEPLOY_ADMIN_TOKEN: ${{ secrets.DEPLOY_ADMIN_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Autenticar en GCP (WIF)
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ vars.WIF_PROVIDER }}
           service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
-
       - name: Configurar gcloud
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ env.GCP_PROJECT }}
 
-      # (b) MANTENIMIENTO ON. No bloquea el deploy si el toggle falla (solo avisa).
-      - name: Activar página de mantenimiento (prod)
+      - name: Activar mantenimiento (si hay token)
         run: |
           if [ -z "$DEPLOY_ADMIN_TOKEN" ] || [ -z "$PROD_API_URL" ]; then
-            echo "::warning::DEPLOY_ADMIN_TOKEN o PROD_API_URL ausente → no se activa mantenimiento."
-            exit 0
+            echo "::warning::Sin DEPLOY_ADMIN_TOKEN/PROD_API_URL → no se activa mantenimiento."; exit 0
           fi
           code=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
             "$PROD_API_URL/api/v1/admin/maintenance" \
-            -H "Authorization: Bearer $DEPLOY_ADMIN_TOKEN" \
-            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $DEPLOY_ADMIN_TOKEN" -H "Content-Type: application/json" \
             -d '{"enabled":true,"message":"Estamos desplegando una actualización. Volvemos en unos minutos."}' || true)
           echo "PATCH maintenance(on) → HTTP $code"
-          if [ "$code" != "200" ]; then
-            echo "::warning::No se pudo activar el mantenimiento (HTTP $code); el deploy continúa."
-          fi
 
-      # (c) Build + deploy a prod. Build con Docker en el runner + push a Artifact
-      # Registry (NO Cloud Build → sin permisos de bucket de staging/serviceusage;
-      # basta artifactregistry.writer, que la SA de deploy ya tiene).
-      - name: Construir y pushear imagen (Docker) — tag ${{ steps.version.outputs.tag }}
+      - name: Construir y pushear imagen del backend
         run: |
-          IMG="${IMAGE_REPO}:${{ steps.version.outputs.tag }}"
+          IMG="${IMAGE_REPO}:${TAG}"
           gcloud auth configure-docker "${GCP_REGION}-docker.pkg.dev" --quiet
           docker build -t "$IMG" .
           docker push "$IMG"
 
-      # NOTA (auditoría C1/C2/M3): el arranque en prod ABORTA (assertProductionSecurity)
-      # si falta inyectar APP_ENCRYPTION_KEY / PAYMENT_WEBHOOK_SECRET / TICKET_SIGNING_SEED
-      # (caerían al default público) o si TRUST_PROXY no es el nº exacto de proxies. El
-      # secreto DATABASE_URL debe incluir `?connection_limit=N&pool_timeout=…` (M3) para no
-      # agotar Cloud SQL con N instancias. Los secretos de integración (RECURRENTE_*,
-      # PAGALO_*, FEL_*, RECAPTCHA_*) se añaden a --set-secrets cuando cada integración
-      # entra en vivo (hasta entonces quedan vacíos = servicio no disponible).
-      - name: Deploy a Cloud Run (prod)
+      # NOTA (auditoría C1/C2/M3): el arranque en prod ABORTA si faltan secretos
+      # (APP_ENCRYPTION_KEY/PAYMENT_WEBHOOK_SECRET/TICKET_SIGNING_SEED) o TRUST_PROXY.
+      - name: Deploy backend a Cloud Run
         run: |
           gcloud run deploy "${SERVICE}" \
-            --image "${IMAGE_REPO}:${{ steps.version.outputs.tag }}" \
-            --region "${GCP_REGION}" \
-            --platform managed \
-            --allow-unauthenticated \
+            --image "${IMAGE_REPO}:${TAG}" \
+            --region "${GCP_REGION}" --platform managed --allow-unauthenticated \
             --port 8080 \
             --memory=2Gi --cpu=2 --concurrency=200 --min-instances=1 --max-instances=20 \
             --add-cloudsql-instances="${CLOUDSQL}" \
             --network=default --subnet=default --vpc-egress=private-ranges-only \
-            --set-env-vars="NODE_ENV=production,TZ=America/Guatemala,TRUST_PROXY=1,STORAGE_PROVIDER=gcs,GCLOUD_PROJECT_ID=${GCP_PROJECT},GCS_BUCKET=pasaeventos-prod-media,GCP_REGION=${GCP_REGION},PAYMENT_PROVIDER=simulator,CORS_ORIGINS=https://boletiva.com,MAIL_HOST=email-smtp.us-east-1.amazonaws.com,MAIL_PORT=587,MAIL_SECURE=false,MAIL_FROM=Boletiva <no-reply@boletiva.com>,WALLET_PROVIDER=auto,GOOGLE_WALLET_ISSUER_ID=BCR2DN6D7LQ73W3L,TICKET_SIGNING_KEY_ID=prod-ed25519-1,RECAPTCHA_SITE_KEY=${{ vars.RECAPTCHA_SITE_KEY }},RECAPTCHA_DISABLED=false,QUEUE_INLINE=false,RABBIT_INLINE=false" \
+            --set-env-vars="NODE_ENV=production,TZ=America/Guatemala,TRUST_PROXY=1,STORAGE_PROVIDER=gcs,GCLOUD_PROJECT_ID=${GCP_PROJECT},GCS_BUCKET=pasaeventos-prod-media,GCP_REGION=${GCP_REGION},PAYMENT_PROVIDER=simulator,CORS_ORIGINS=${PUBLIC_SITE_URL},MAIL_HOST=email-smtp.us-east-1.amazonaws.com,MAIL_PORT=587,MAIL_SECURE=false,MAIL_FROM=Boletiva <no-reply@boletiva.com>,WALLET_PROVIDER=auto,GOOGLE_WALLET_ISSUER_ID=BCR2DN6D7LQ73W3L,TICKET_SIGNING_KEY_ID=prod-ed25519-1,RECAPTCHA_SITE_KEY=${{ vars.RECAPTCHA_SITE_KEY }},RECAPTCHA_DISABLED=false,QUEUE_INLINE=false,RABBIT_INLINE=false" \
             --set-secrets=DATABASE_URL=pasaeventos-database-url:latest,REDIS_URL=pasaeventos-redis-url:latest,AMQP_URL=pasaeventos-amqp-url:latest,MAIL_USER=pasaeventos-mail-user:latest,MAIL_PASS=pasaeventos-mail-pass:latest,JWT_ACCESS_SECRET=pasaeventos-jwt-access-secret:latest,JWT_REFRESH_SECRET=pasaeventos-jwt-refresh-secret:latest,APP_ENCRYPTION_KEY=pasaeventos-app-encryption-key:latest,PAYMENT_WEBHOOK_SECRET=pasaeventos-payment-webhook-secret:latest,TICKET_SIGNING_SEED=pasaeventos-ticket-signing-seed:latest,GCS_SERVICE_ACCOUNT_JSON=pasaeventos-gcs-sa-json:latest,GOOGLE_WALLET_SERVICE_ACCOUNT_JSON=pasaeventos-google-wallet-sa-json:latest,RECAPTCHA_SECRET_KEY=pasaeventos-recaptcha-secret:latest
 
-      # (d) Crear y pushear el tag final (solo si el deploy fue exitoso).
-      - name: Crear y pushear el tag de release
+      - name: Quitar mantenimiento (siempre)
+        if: always()
         run: |
-          tag="${{ steps.version.outputs.tag }}"
+          if [ -z "$DEPLOY_ADMIN_TOKEN" ] || [ -z "$PROD_API_URL" ]; then
+            echo "Sin token/URL → nada que quitar."; exit 0
+          fi
+          code=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
+            "$PROD_API_URL/api/v1/admin/maintenance" \
+            -H "Authorization: Bearer $DEPLOY_ADMIN_TOKEN" -H "Content-Type: application/json" \
+            -d '{"enabled":false}' || true)
+          echo "PATCH maintenance(off) → HTTP $code"
+          if [ "$code" != "200" ]; then echo "::error::No se pudo QUITAR el mantenimiento (HTTP $code)."; fi
+
+  # (c2) FRONTEND — build (con URL del API horneada) + deploy SSR.
+  deploy-frontend:
+    name: Deploy frontend (pasaeventos-frontend)
+    needs: [test, guard, prep]
+    if: needs.guard.outputs.deploy == 'true' && needs.prep.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ needs.prep.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Autenticar en GCP (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
+      - name: Configurar gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT }}
+
+      # La URL del API para el NAVEGADOR se hornea aquí (build-arg). El SSR la resuelve
+      # por env en runtime (API_URL_SERVER), abajo en el deploy.
+      - name: Construir y pushear imagen del frontend
+        run: |
+          IMG="${FRONTEND_IMAGE_REPO}:${TAG}"
+          gcloud auth configure-docker "${GCP_REGION}-docker.pkg.dev" --quiet
+          docker build -f docker/angular/Dockerfile.prod \
+            --build-arg API_BASE_URL_BROWSER="${BACKEND_URL_BROWSER}/api/v1" \
+            --build-arg PUBLIC_SITE_URL="${PUBLIC_SITE_URL}" \
+            -t "$IMG" .
+          docker push "$IMG"
+
+      - name: Deploy frontend a Cloud Run (SSR)
+        run: |
+          gcloud run deploy "${FRONTEND_SERVICE}" \
+            --image "${FRONTEND_IMAGE_REPO}:${TAG}" \
+            --region "${GCP_REGION}" --platform managed --allow-unauthenticated \
+            --port 8080 \
+            --memory=1Gi --cpu=1 --concurrency=80 --min-instances=1 --max-instances=10 \
+            --set-env-vars="NODE_ENV=production,API_URL_SERVER=${BACKEND_URL_SSR}/api/v1,PUBLIC_SITE_URL=${PUBLIC_SITE_URL}"
+
+  # (d) Tag del release — una sola vez, si al menos un deploy tuvo éxito y ninguno falló.
+  tag:
+    name: Crear tag de release
+    needs: [prep, deploy-backend, deploy-frontend]
+    if: >
+      always() && needs.prep.result == 'success' &&
+      needs.deploy-backend.result != 'failure' && needs.deploy-frontend.result != 'failure' &&
+      (needs.deploy-backend.result == 'success' || needs.deploy-frontend.result == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Crear y pushear el tag
+        run: |
+          tag="${{ needs.prep.outputs.tag }}"
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           if git rev-parse "$tag" >/dev/null 2>&1; then
@@ -191,23 +287,4 @@ jobs:
             git tag "$tag"
             git push origin "$tag"
             echo "Tag $tag creado y pusheado."
-          fi
-
-      # (e) MANTENIMIENTO OFF — `if: always()`: se ejecuta en éxito y también si
-      #     algún paso anterior falló tras activarlo (no deja prod bloqueada).
-      - name: Quitar página de mantenimiento (prod)
-        if: always()
-        run: |
-          if [ -z "$DEPLOY_ADMIN_TOKEN" ] || [ -z "$PROD_API_URL" ]; then
-            echo "Sin token/URL → no hay mantenimiento que quitar."
-            exit 0
-          fi
-          code=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
-            "$PROD_API_URL/api/v1/admin/maintenance" \
-            -H "Authorization: Bearer $DEPLOY_ADMIN_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d '{"enabled":false}' || true)
-          echo "PATCH maintenance(off) → HTTP $code"
-          if [ "$code" != "200" ]; then
-            echo "::error::No se pudo QUITAR el mantenimiento (HTTP $code). ¡Revisar prod manualmente!"
           fi
