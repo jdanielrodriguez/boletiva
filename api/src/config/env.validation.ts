@@ -11,18 +11,22 @@ export const envValidationSchema = Joi.object({
   TZ: Joi.string().default('America/Guatemala'),
 
   // Base de datos (Prisma / PostgreSQL)
+  // Connection strings: validamos SOLO el esquema (no `Joi.uri()`, que es demasiado
+  // estricto y rechaza formas válidas reales: socket de Cloud SQL
+  // `?host=/cloudsql/proj:region:inst`, contraseñas con símbolos, etc.). El driver
+  // (Prisma/ioredis/amqplib) parsea y valida el resto al conectar.
   DATABASE_URL: Joi.string()
-    .uri({ scheme: ['postgresql', 'postgres'] })
+    .pattern(/^postgres(ql)?:\/\//i)
     .required(),
 
   // Redis
   REDIS_URL: Joi.string()
-    .uri({ scheme: ['redis', 'rediss'] })
+    .pattern(/^rediss?:\/\//i)
     .required(),
 
   // RabbitMQ
   AMQP_URL: Joi.string()
-    .uri({ scheme: ['amqp', 'amqps'] })
+    .pattern(/^amqps?:\/\//i)
     .required(),
   // Ingest de validación inline (default en test); async por RabbitMQ en dev/prod.
   RABBIT_INLINE: Joi.boolean().optional(),
@@ -83,7 +87,7 @@ export const envValidationSchema = Joi.object({
   TICKET_SIGNING_KEY_ID: Joi.string().default('dev-ed25519-1'),
 
   // Pases de wallet (Ola 4). 'stub' no requiere certificados de terceros.
-  WALLET_PROVIDER: Joi.string().valid('stub', 'google', 'apple').default('stub'),
+  WALLET_PROVIDER: Joi.string().valid('stub', 'google', 'apple', 'auto').default('stub'),
 
   // Retención/privacidad (Ola 6). Job de anonimización desactivado por defecto.
   RETENTION_ENABLED: Joi.boolean().default(false),
