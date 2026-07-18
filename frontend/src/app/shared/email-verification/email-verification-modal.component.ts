@@ -1,0 +1,83 @@
+import { Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { AuthService } from '../../core/auth/auth.service';
+import { SessionStore } from '../../core/auth/session.store';
+import { ToastService } from '../../core/ui/toast.service';
+import { apiErrorMessage } from '../../core/http/api-error';
+import { OtpInputComponent } from '../ui/otp-input/otp-input.component';
+
+/**
+ * Modal GLOBAL de verificación de correo. Se muestra ENCIMA DE TODO (backdrop no
+ * cerrable) siempre que la sesión esté autenticada pero el correo aún NO esté
+ * verificado — cubre tanto el post-registro (auto-login sin verificar) como el
+ * login posterior de una cuenta sin verificar. Pide el código de 6 dígitos que el
+ * backend envió por correo (`POST /auth/verify-email`), permite reenviarlo
+ * (`/auth/resend-verification`) y ofrece cerrar sesión para no atrapar al usuario.
+ * Al verificar, la sesión se refresca (emailVerified=true) y el modal desaparece.
+ * SSR-safe: en el servidor la sesión es anónima → `visible` es false, no renderiza.
+ */
+@Component({
+  selector: 'app-email-verification-modal',
+  imports: [FormsModule, TranslatePipe, OtpInputComponent],
+  templateUrl: './email-verification-modal.component.html',
+})
+export class EmailVerificationModal {
+  private readonly session = inject(SessionStore);
+  private readonly auth = inject(AuthService);
+  private readonly toasts = inject(ToastService);
+  private readonly translate = inject(TranslateService);
+
+  protected readonly visible = computed(
+    () => this.session.isAuthenticated() && !this.session.isEmailVerified(),
+  );
+  protected readonly email = computed(() => this.session.user()?.email ?? '');
+  protected readonly code = signal('');
+  protected readonly working = signal(false);
+  protected readonly resending = signal(false);
+  protected readonly error = signal<string | null>(null);
+
+  protected onCode(value: string): void {
+    this.code.set(value);
+    this.error.set(null);
+    if (value.length === 6) this.verify();
+  }
+
+  protected verify(): void {
+    if (this.code().length < 6 || this.working()) return;
+    this.working.set(true);
+    this.error.set(null);
+    this.auth.verifyEmail(this.code()).subscribe({
+      next: () => {
+        this.working.set(false);
+        this.code.set('');
+        this.toasts.success(this.translate.instant('auth.verifyOk'));
+        // La sesión ya quedó verificada → `visible` pasa a false y el modal se cierra.
+      },
+      error: (err) => {
+        this.working.set(false);
+        this.code.set('');
+        this.error.set(apiErrorMessage(err, this.translate.instant('auth.verifyFailed')));
+      },
+    });
+  }
+
+  protected resend(): void {
+    if (this.resending()) return;
+    this.resending.set(true);
+    this.auth.resendVerification().subscribe({
+      next: () => {
+        this.resending.set(false);
+        this.toasts.success(this.translate.instant('auth.verifyResent'));
+      },
+      error: (err) => {
+        this.resending.set(false);
+        this.toasts.error(apiErrorMessage(err, this.translate.instant('auth.verifyResendFailed')));
+      },
+    });
+  }
+
+  protected signOut(): void {
+    this.auth.logout().subscribe();
+  }
+}

@@ -53,7 +53,28 @@
 
           <div class="field">
             <label for="rg-pass">{{ 'auth.password' | translate }}</label>
-            <input id="rg-pass" type="password" [ngModel]="password()" (ngModelChange)="password.set($event)" name="password" autocomplete="new-password" />
+            <input id="rg-pass" type="password" [ngModel]="password()" (ngModelChange)="password.set($event)" name="password" autocomplete="new-password" data-testid="rg-pass" />
+          </div>
+
+          <!-- Instrucciones/checklist de contraseña segura (en vivo). -->
+          @if (password()) {
+            <ul class="pwd-checklist" data-testid="rg-pwd-checklist">
+              <li [class.ok]="checks().length">{{ 'auth.pwdLen' | translate }}</li>
+              <li [class.ok]="checks().upper">{{ 'auth.pwdUpper' | translate }}</li>
+              <li [class.ok]="checks().lower">{{ 'auth.pwdLower' | translate }}</li>
+              <li [class.ok]="checks().number">{{ 'auth.pwdNumber' | translate }}</li>
+              <li [class.ok]="checks().symbol">{{ 'auth.pwdSymbol' | translate }}</li>
+            </ul>
+          } @else {
+            <p class="auth-hint">{{ 'auth.pwdHint' | translate }}</p>
+          }
+
+          <div class="field">
+            <label for="rg-pass2">{{ 'auth.confirmPassword' | translate }}</label>
+            <input id="rg-pass2" type="password" [ngModel]="confirmPassword()" (ngModelChange)="confirmPassword.set($event)" name="confirmPassword" autocomplete="new-password" data-testid="rg-pass2" />
+            @if (confirmPassword() && !matches()) {
+              <p class="field-error" data-testid="rg-mismatch">{{ 'auth.msgConfirmMismatch' | translate }}</p>
+            }
           </div>
 
           <button type="submit" class="primary btn-block" [disabled]="working()" data-testid="rg-submit">

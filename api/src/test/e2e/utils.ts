@@ -50,9 +50,9 @@ export async function login(
 }
 
 export const SEED = {
-  admin: 'admin@pasaeventos.com',
-  promoter: 'promotor@pasaeventos.com',
-  buyer: 'cliente@pasaeventos.com',
+  admin: 'admin@boletiva.com',
+  promoter: 'promotor@boletiva.com',
+  buyer: 'cliente@boletiva.com',
 };
 
 /**

@@ -10,11 +10,13 @@ import type {
   MessageResponseDto,
   ProvidersResponseDto,
   PublicUserResponseDto,
+  ResendVerificationDto,
   ResetPasswordDto,
   SignupDto,
   SignupResponseDto,
   TokenPairResponseDto,
   TwoFactorVerifyDto,
+  VerifyEmailCodeDto,
 } from './types';
 
 /**
@@ -36,6 +38,16 @@ export class AuthApi {
 
   signup(dto: SignupDto, captchaToken?: string): Observable<SignupResponseDto> {
     return this.api.post<SignupResponseDto>('/auth/signup', dto, undefined, captchaOpts(captchaToken));
+  }
+
+  /** Verifica el correo con el código de 6 dígitos → devuelve el usuario ya verificado. */
+  verifyEmail(dto: VerifyEmailCodeDto): Observable<PublicUserResponseDto> {
+    return this.api.post<PublicUserResponseDto>('/auth/verify-email', dto);
+  }
+
+  /** Reenvía el correo de verificación (captcha-gated: acción 'resend'). */
+  resendVerification(dto: ResendVerificationDto, captchaToken?: string): Observable<MessageResponseDto> {
+    return this.api.post<MessageResponseDto>('/auth/resend-verification', dto, undefined, captchaOpts(captchaToken));
   }
 
   me(): Observable<PublicUserResponseDto> {

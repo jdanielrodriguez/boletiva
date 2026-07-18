@@ -78,4 +78,25 @@ export const auth = {
   msgResetOk: 'Contraseña restablecida. Ya puedes iniciar sesión.',
   msgResetFailed:
     'No se pudo restablecer: el enlace pudo expirar o ya fue usado. Solicita uno nuevo.',
+  msgPasswordWeak: 'La contraseña es débil. Usa al menos 8 caracteres y combina mayúsculas, minúsculas, números y símbolos.',
+  // Checklist de contraseña segura (signup)
+  pwdHint: 'Usa al menos 8 caracteres combinando mayúsculas, minúsculas, números y símbolos.',
+  pwdLen: 'Al menos 8 caracteres',
+  pwdUpper: 'Una mayúscula (A-Z)',
+  pwdLower: 'Una minúscula (a-z)',
+  pwdNumber: 'Un número (0-9)',
+  pwdSymbol: 'Un símbolo (!@#$…)',
+  // Modal de verificación de correo
+  verifyModalTitle: 'Verifica tu correo',
+  verifyModalBody: 'Te enviamos un código de 6 dígitos a <strong>{{email}}</strong>. Ingrésalo para activar tu cuenta y poder comprar y crear.',
+  verifyBtn: 'Verificar',
+  verifyingCode: 'Verificando…',
+  verifyOk: '¡Correo verificado! Tu cuenta está activa.',
+  verifyFailed: 'Código inválido o vencido. Revisa el correo o pide uno nuevo.',
+  verifyNoCode: '¿No te llegó el código?',
+  verifyResend: 'Reenviar código',
+  verifyResending: 'Reenviando…',
+  verifyResent: 'Te reenviamos el código a tu correo.',
+  verifyResendFailed: 'No se pudo reenviar el código. Intenta en un momento.',
+  verifyLogout: 'Cerrar sesión',
 };

@@ -4105,3 +4105,39 @@ p.error {
   background: var(--pe-danger-soft, rgba(255, 107, 129, 0.12));
   border: 1px solid var(--pe-danger-border, rgba(255, 107, 129, 0.4));
 }
+
+/* Signup: checklist de contraseña segura + pistas + error de campo. */
+.auth-hint {
+  margin: 0.35rem 0 0.6rem;
+  font-size: 0.85rem;
+  color: var(--pe-text-muted, #6b6b76);
+}
+.pwd-checklist {
+  list-style: none;
+  margin: 0.35rem 0 0.7rem;
+  padding: 0;
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.85rem;
+}
+.pwd-checklist li {
+  color: var(--pe-text-muted, #6b6b76);
+  padding-left: 1.4rem;
+  position: relative;
+}
+.pwd-checklist li::before {
+  content: '○';
+  position: absolute;
+  left: 0;
+}
+.pwd-checklist li.ok {
+  color: var(--pe-success-strong, #1f9d57);
+}
+.pwd-checklist li.ok::before {
+  content: '✓';
+}
+.field-error {
+  margin: 0.3rem 0 0;
+  font-size: 0.85rem;
+  color: var(--pe-danger-strong, #e14b63);
+}
