@@ -511,6 +511,7 @@
         @case ('validadores') {
           <div class="card-block" data-testid="validators-panel">
             @if (!isNew() && eventId()) {
+              <app-checkin-stats [eventId]="eventId()" />
               <app-event-validators [eventId]="eventId()" />
             }
           </div>

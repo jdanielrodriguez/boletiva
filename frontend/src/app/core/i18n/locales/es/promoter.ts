@@ -527,4 +527,19 @@ export const promoter = {
     disabledN: '{{n}} validador(es) deshabilitado(s).',
     actionError: 'No se pudo completar la acción.',
   },
+
+  // --- Dashboard de check-ins en tiempo real ---
+  checkin: {
+    title: 'Check-ins en vivo',
+    live: 'En vivo',
+    progress: '{{done}} de {{total}} validados',
+    in: 'Ingresaron',
+    pending: 'Faltan',
+    conflicts: 'Conflictos',
+    byValidator: 'Por validador',
+    byLocality: 'Por localidad',
+    recent: 'Últimos escaneos',
+    empty: 'Aún no hay check-ins.',
+    error: 'No se pudo cargar el avance de check-ins.',
+  },
 };

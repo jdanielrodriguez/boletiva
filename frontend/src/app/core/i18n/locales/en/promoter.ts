@@ -528,4 +528,19 @@ export const promoter = {
     disabledN: '{{n}} validator(s) disabled.',
     actionError: 'Could not complete the action.',
   },
+
+  // --- Live check-in dashboard ---
+  checkin: {
+    title: 'Live check-ins',
+    live: 'Live',
+    progress: '{{done}} of {{total}} checked in',
+    in: 'Checked in',
+    pending: 'Remaining',
+    conflicts: 'Conflicts',
+    byValidator: 'By validator',
+    byLocality: 'By locality',
+    recent: 'Recent scans',
+    empty: 'No check-ins yet.',
+    error: 'Could not load check-in progress.',
+  },
 };
