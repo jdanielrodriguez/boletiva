@@ -17,9 +17,10 @@ const angularApp = new AngularNodeAppEngine();
  * El helmet del API solo protege el origen del API (JSON); el SSR de Angular no emitía
  * ninguna. Añadimos anti-clickjacking, nosniff, HSTS, Referrer-Policy y una CSP. La CSP
  * permite `'unsafe-inline'` en script/style porque Angular SSR inyecta estilos inline y
- * el index.html lleva un script anti-parpadeo inline; aun así bloquea scripts de OTROS
- * orígenes y el embebido en iframes (frame-ancestors 'none'). `connect-src` incluye el
- * API (mismo host:8080 en local; en prod el mismo dominio). Endurecer a nonce = follow-up.
+ * el index.html lleva un script anti-parpadeo inline. Permite el script/motor/iframe de
+ * reCAPTCHA v3 (google/gstatic) y bloquea cualquier otro origen, además del embebido en
+ * iframes ajenos (frame-ancestors 'none'). `connect-src` incluye el API (mismo host:8080
+ * en local; en prod el mismo dominio). Endurecer a nonce = follow-up.
  */
 const CSP = [
   "default-src 'self'",
@@ -32,7 +33,12 @@ const CSP = [
   "media-src 'self' blob: https: http:",
   "font-src 'self' data:",
   "style-src 'self' 'unsafe-inline'",
-  "script-src 'self' 'unsafe-inline'",
+  // reCAPTCHA v3: el loader (api.js) viene de www.google.com y su MOTOR de
+  // www.gstatic.com. Sin permitirlos, grecaptcha.execute() falla → token vacío →
+  // el backend responde 403 "Captcha inválido".
+  "script-src 'self' 'unsafe-inline' https://www.google.com https://www.gstatic.com",
+  // reCAPTCHA v3 monta un iframe invisible de challenge desde www.google.com.
+  "frame-src 'self' https://www.google.com",
   // API + SSE + storage (local http, prod https).
   "connect-src 'self' https: http:",
 ].join('; ');
