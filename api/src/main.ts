@@ -14,6 +14,15 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { assertProductionSecurity } from './common/security/assert-prod-security';
 
 async function bootstrap(): Promise<void> {
+  // Sanea las URLs de conexión ANTES de crear la app (Config/Prisma/Redis/Rabbit las
+  // leen al instanciarse): quita espacios/saltos y un '%' final — el marcador de "sin
+  // salto de línea" de zsh que a veces se cuela al copiar el valor a un secreto y que
+  // hace explotar `new URL()` con ERR_INVALID_URL (tumbaba el arranque en Cloud Run).
+  for (const key of ['DATABASE_URL', 'REDIS_URL', 'AMQP_URL']) {
+    const v = process.env[key];
+    if (v) process.env[key] = v.trim().replace(/%+$/, '');
+  }
+
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   const config = app.get(ConfigService);
   const isProd = config.get<boolean>('isProd');
