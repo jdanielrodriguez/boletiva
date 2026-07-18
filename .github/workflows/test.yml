@@ -13,9 +13,24 @@
 name: Test
 
 on:
-  push: # cualquier rama
-  pull_request:
+  # Solo ramas de TRABAJO (feature/*, fix/*, release/*, …). `develop` y `master` NO
+  # se listan aquí a propósito: sus tests los corre el workflow de deploy
+  # (staging.yml en develop, release-prod.yml en master) vía `workflow_call`, así el
+  # mismo commit NO se testea dos veces. Se quitó `pull_request` porque duplicaba el
+  # run del push de la rama (el estado del run del push ya aparece en el PR).
+  push:
+    branches-ignore:
+      - develop
+      - master
   workflow_call: # invocable desde staging.yml / release-prod.yml
+
+# Cancela runs SUPERADOS en el mismo ref: varios push seguidos a la misma rama dejan
+# corriendo solo el último (no se apilan corridas de tests). El nombre incluye
+# github.workflow → una corrida directa (Test) y una invocada por un deploy no se
+# cancelan entre sí.
+concurrency:
+  group: test-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   actions: read
