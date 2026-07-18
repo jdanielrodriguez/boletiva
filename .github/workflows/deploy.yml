@@ -70,10 +70,15 @@ jobs:
         with:
           project_id: ${{ env.PROJECT_ID }}
 
-      - name: Build & push image (Artifact Registry)
+      # Build con Docker en el runner + push a Artifact Registry (NO Cloud Build → no
+      # requiere permisos sobre el bucket de staging ni serviceusage; basta
+      # artifactregistry.writer, que la SA de deploy ya tiene).
+      - name: Build & push image (Docker → Artifact Registry)
         run: |
-          gcloud builds submit \
-            --tag "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/api:${IMAGE_TAG}"
+          IMG="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/api:${IMAGE_TAG}"
+          gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+          docker build -t "$IMG" .
+          docker push "$IMG"
 
       # --- (OPCIONAL) Aplicar el schema a la BD ANTES de enrutar tráfico ---
       # La BD de prod arranca vacía. El proyecto usa `prisma db push` (sin carpeta de
