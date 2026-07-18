@@ -62,6 +62,15 @@ describe('Users + Categories (e2e)', () => {
     expect(res.body.firstName).toBe('ClienteEditado');
   });
 
+  it('PATCH /users/me devuelve el MISMO shape que /auth/me (emailVerified boolean, sin emailVerifiedAt)', async () => {
+    // Regresión: si el presentador de users omite emailVerified, el setUser del front
+    // borra el flag de la sesión → el modal de verificación reaparece indebidamente.
+    const res = await http().patch('/api/v1/users/me').set(bearer(buyerToken)).send({ firstName: 'X' }).expect(200);
+    expect(res.body.emailVerified).toBe(true); // el cliente semilla está verificado
+    expect(res.body).not.toHaveProperty('emailVerifiedAt'); // se expone el booleano, no la fecha
+    expect(res.body).toHaveProperty('twoFactorMethod');
+  });
+
   it('PATCH /users/me persiste la preferencia de idioma y se refleja en /auth/me', async () => {
     const upd = await http()
       .patch('/api/v1/users/me')

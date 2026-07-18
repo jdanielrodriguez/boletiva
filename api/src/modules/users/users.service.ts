@@ -18,6 +18,12 @@ const publicSelect = {
   avatarKey: true,
   roles: true,
   status: true,
+  // emailVerifiedAt/twoFactorMethod: imprescindibles para que el user devuelto por
+  // ESTE módulo (updateProfile, tours, idioma/tema, avatar) traiga el MISMO shape que
+  // /auth/me (PublicUserResponseDto). Si faltan, el setUser del front borra
+  // emailVerified de la sesión → el modal de verificación reaparece indebidamente.
+  emailVerifiedAt: true,
+  twoFactorMethod: true,
   language: true,
   themePref: true,
   isTestUser: true,
@@ -50,10 +56,13 @@ export class UsersService {
    * lectura en caliente; si no, usa `avatarUrl` (URL externa/Google heredada). Nunca
    * expone `avatarKey`. Patrón de event-media (firmar al leer, no persistir URL firmada).
    */
-  async present(user: SelectedUser): Promise<Omit<SelectedUser, 'avatarKey'>> {
-    const { avatarKey, avatarUrl, ...rest } = user;
+  async present(
+    user: SelectedUser,
+  ): Promise<Omit<SelectedUser, 'avatarKey' | 'emailVerifiedAt'> & { emailVerified: boolean }> {
+    const { avatarKey, avatarUrl, emailVerifiedAt, ...rest } = user;
     const url = avatarKey ? await this.storage.signedGetUrl(avatarKey, AVATAR_URL_TTL_S) : avatarUrl;
-    return { ...rest, avatarUrl: url };
+    // Exponemos `emailVerified` (booleano), NO la fecha — mismo contrato que /auth/me.
+    return { ...rest, avatarUrl: url, emailVerified: emailVerifiedAt != null };
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {
