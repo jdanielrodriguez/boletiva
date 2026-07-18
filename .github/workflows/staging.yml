@@ -89,10 +89,12 @@ jobs:
         with:
           project_id: ${{ env.GCP_PROJECT }}
 
-      - name: Construir imagen (Artifact Registry) — tag develop-<sha>
+      - name: Construir y pushear imagen (Docker) — tag develop-<sha>
         run: |
-          gcloud builds submit \
-            --tag "${IMAGE_REPO}:develop-${GITHUB_SHA}"
+          IMG="${IMAGE_REPO}:develop-${GITHUB_SHA}"
+          gcloud auth configure-docker "${GCP_REGION}-docker.pkg.dev" --quiet
+          docker build -t "$IMG" .
+          docker push "$IMG"
 
       - name: Deploy a Cloud Run (staging)
         run: |
