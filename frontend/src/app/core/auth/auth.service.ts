@@ -9,6 +9,7 @@ import type {
   LoginDto,
   LoginResponseDto,
   MessageResponseDto,
+  PublicUserResponseDto,
   ResetPasswordDto,
   SignupDto,
   SignupResponseDto,
@@ -59,6 +60,20 @@ export class AuthService {
         this.session.setUser(res.user);
         this.applyUserLanguage(res.user);
       }),
+    );
+  }
+
+  /** Verifica el correo con el código; al confirmar, refresca la sesión (emailVerified=true). */
+  verifyEmail(code: string): Observable<PublicUserResponseDto> {
+    const email = this.session.user()?.email ?? '';
+    return this.authApi.verifyEmail({ email, code }).pipe(tap((user) => this.session.setUser(user)));
+  }
+
+  /** Reenvía el código de verificación al correo de la sesión actual (captcha 'resend'). */
+  resendVerification(): Observable<MessageResponseDto> {
+    const email = this.session.user()?.email ?? '';
+    return from(this.recaptcha.execute('resend')).pipe(
+      switchMap((token) => this.authApi.resendVerification({ email }, token)),
     );
   }
 

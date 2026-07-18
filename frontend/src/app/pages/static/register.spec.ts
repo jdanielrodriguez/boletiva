@@ -85,14 +85,26 @@ describe('Register (F4/v3.5)', () => {
     fixture.detectChanges();
   };
 
-  it('alta normal: signup y navega a verificar-correo', async () => {
+  it('alta normal: signup y navega al inicio (el modal de verificación aparece encima)', async () => {
     await setup();
     set('firstName', 'Ana');
     set('email', 'ana@correo.com');
     set('password', 'Password123');
+    set('confirmPassword', 'Password123');
     submit();
     expect(signup).toHaveBeenCalled();
-    expect(navSpy).toHaveBeenCalledWith(['/verificar-correo']);
+    expect(navSpy).toHaveBeenCalledWith(['/']);
+  });
+
+  it('contraseña débil o confirmación distinta → error, no llama signup', async () => {
+    await setup();
+    set('firstName', 'Ana');
+    set('email', 'ana@correo.com');
+    set('password', 'abc'); // débil
+    set('confirmPassword', 'abc');
+    submit();
+    expect(signup).not.toHaveBeenCalled();
+    expect(el.querySelector('[data-testid="rg-error"]')).not.toBeNull();
   });
 
   it('logueado sin token → redirige a /cuenta (no se registra)', async () => {
@@ -120,10 +132,11 @@ describe('Register (F4/v3.5)', () => {
     await setup('inv-token', { accountExists: false });
     set('firstName', 'Ana');
     set('password', 'Password123');
+    set('confirmPassword', 'Password123');
     submit();
     expect(signup).toHaveBeenCalled();
     expect(accept).toHaveBeenCalledWith('inv-token');
-    expect(navSpy).toHaveBeenCalledWith(['/verificar-correo']);
+    expect(navSpy).toHaveBeenCalledWith(['/']);
   });
 
   it('token + cuenta existe + sesión del correo invitado: activa de un click', async () => {

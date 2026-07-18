@@ -65,6 +65,12 @@ jobs:
           project_id: ${{ env.PROJECT_ID }}
 
       - name: Reset BD (db push + truncate + seed) vía Cloud SQL Auth Proxy
+        # Contraseñas FUERTES de los usuarios semilla (repository secrets; si faltan,
+        # el seed cae a 'Password123' por el `|| ` del seed).
+        env:
+          SEED_ADMIN_PASSWORD: ${{ secrets.SEED_ADMIN_PASSWORD }}
+          SEED_PROMOTER_PASSWORD: ${{ secrets.SEED_PROMOTER_PASSWORD }}
+          SEED_BUYER_PASSWORD: ${{ secrets.SEED_BUYER_PASSWORD }}
         run: |
           set -euo pipefail
           # 1) Proxy con socket unix que casa con el host del secreto DATABASE_URL.

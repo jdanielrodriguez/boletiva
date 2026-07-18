@@ -334,25 +334,41 @@ async function seedHalls(seatTemplateId?: string): Promise<void> {
 }
 
 async function seedUsers() {
-  const password = await bcrypt.hash('Password123', 12);
+  // Contraseñas por usuario. Default 'Password123' (local/dev/test/CI — los e2e lo
+  // hardcodean). En PROD se inyectan fuertes por env (SEED_*_PASSWORD, ver db-seed.yml
+  // + docs). Al re-correr el seed, el `update` de abajo REESCRIBE la contraseña.
   const users: Array<{
     email: string;
     firstName: string;
     roles: Role[];
+    password: string;
     promoterStatus?: PromoterStatus;
     costSharePct?: number;
   }> = [
-    { email: 'admin@pasaeventos.com', firstName: 'Admin', roles: [Role.admin] },
     {
-      email: 'promotor@pasaeventos.com',
+      email: 'admin@boletiva.com',
+      firstName: 'Admin',
+      roles: [Role.admin],
+      // `||` (no `??`): en CI/GH Actions una env sin secreto llega como '' (cadena
+      // vacía), que `??` NO atraparía → contraseña vacía. `||` cae a Password123.
+      password: process.env.SEED_ADMIN_PASSWORD || 'Password123',
+    },
+    {
+      email: 'promotor@boletiva.com',
       firstName: 'Promotor',
       roles: [Role.promoter],
+      password: process.env.SEED_PROMOTER_PASSWORD || 'Password123',
       promoterStatus: PromoterStatus.approved, // ya autorizado (puede operar)
       // Demo: colabora 50% → habilita CUOTAS y pasarelas premium en sus eventos
       // (con el default 0 no las ofrecería). Ola 6.6.
       costSharePct: 0.5,
     },
-    { email: 'cliente@pasaeventos.com', firstName: 'Cliente', roles: [Role.buyer] },
+    {
+      email: 'cliente@boletiva.com',
+      firstName: 'Cliente',
+      roles: [Role.buyer],
+      password: process.env.SEED_BUYER_PASSWORD || 'Password123',
+    },
   ];
   const created: Record<string, string> = {};
   for (const u of users) {
@@ -361,13 +377,15 @@ async function seedUsers() {
         ? { promoterStatus: PromoterStatus.approved, promoterDecidedAt: new Date() }
         : {};
     const costShare = u.costSharePct !== undefined ? { costSharePct: u.costSharePct } : {};
+    const passwordHash = await bcrypt.hash(u.password, 12);
     const user = await prisma.user.upsert({
       where: { email: u.email },
-      update: { roles: u.roles, emailVerifiedAt: new Date(), ...promoter, ...costShare },
+      // Re-correr el seed REESCRIBE la contraseña (para recuperar acceso en prod).
+      update: { roles: u.roles, passwordHash, emailVerifiedAt: new Date(), ...promoter, ...costShare },
       create: {
         email: u.email,
         firstName: u.firstName,
-        passwordHash: password,
+        passwordHash,
         roles: u.roles,
         emailVerifiedAt: new Date(), // usuarios semilla ya verificados
         ...promoter,
@@ -591,12 +609,12 @@ async function main(): Promise<void> {
   const templates = await seedSeatTemplates();
   await seedHalls(templates['rows']);
   const users = await seedUsers();
-  const categories = await seedCategories(users['admin@pasaeventos.com']);
-  await seedDemoEvent(users['promotor@pasaeventos.com'], categories['Concierto']);
+  const categories = await seedCategories(users['admin@boletiva.com']);
+  await seedDemoEvent(users['promotor@boletiva.com'], categories['Concierto']);
   await seedPastSoldEvent(
-    users['promotor@pasaeventos.com'],
+    users['promotor@boletiva.com'],
     categories['Concierto'],
-    users['cliente@pasaeventos.com'],
+    users['cliente@boletiva.com'],
   );
 
   const [settings, userCount, catCount, eventCount, hallCount, tplCount] = await Promise.all([

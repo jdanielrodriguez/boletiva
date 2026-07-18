@@ -9,6 +9,7 @@ import { LoadingComponent } from './shared/ui/loading.component';
 import { MaintenancePageComponent } from './shared/maintenance/maintenance-page.component';
 import { MaintenanceBannerComponent } from './shared/maintenance/maintenance-banner.component';
 import { ImpersonationBannerComponent } from './shared/layout/impersonation-banner.component';
+import { EmailVerificationModal } from './shared/email-verification/email-verification-modal.component';
 import { SessionStore } from './core/auth/session.store';
 import { TokenStore } from './core/auth/token-store.service';
 import { ImpersonationService } from './core/auth/impersonation.service';
@@ -29,6 +30,7 @@ import { PublicConfigStore } from './core/config/public-config.store';
     MaintenancePageComponent,
     MaintenanceBannerComponent,
     ImpersonationBannerComponent,
+    EmailVerificationModal,
     TranslatePipe,
   ],
   templateUrl: './app.html',
