@@ -148,11 +148,15 @@ jobs:
             echo "::warning::No se pudo activar el mantenimiento (HTTP $code); el deploy continúa."
           fi
 
-      # (c) Build + deploy a prod.
-      - name: Construir imagen (Artifact Registry) — tag ${{ steps.version.outputs.tag }}
+      # (c) Build + deploy a prod. Build con Docker en el runner + push a Artifact
+      # Registry (NO Cloud Build → sin permisos de bucket de staging/serviceusage;
+      # basta artifactregistry.writer, que la SA de deploy ya tiene).
+      - name: Construir y pushear imagen (Docker) — tag ${{ steps.version.outputs.tag }}
         run: |
-          gcloud builds submit \
-            --tag "${IMAGE_REPO}:${{ steps.version.outputs.tag }}"
+          IMG="${IMAGE_REPO}:${{ steps.version.outputs.tag }}"
+          gcloud auth configure-docker "${GCP_REGION}-docker.pkg.dev" --quiet
+          docker build -t "$IMG" .
+          docker push "$IMG"
 
       # NOTA (auditoría C1/C2/M3): el arranque en prod ABORTA (assertProductionSecurity)
       # si falta inyectar APP_ENCRYPTION_KEY / PAYMENT_WEBHOOK_SECRET / TICKET_SIGNING_SEED
