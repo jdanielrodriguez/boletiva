@@ -1,0 +1,38 @@
+# ---- Etapa 1: build del frontend (Angular 20 SSR) ----
+# Contexto de build = raíz del repo (para poder copiar frontend/).
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+COPY frontend/package*.json ./
+RUN npm install --legacy-peer-deps
+
+COPY frontend/ ./
+
+# URL del API para el NAVEGADOR (se hornea en el bundle) y origen público del sitio.
+# Se sobrescribe environment.production.ts con estos valores → el mismo código sirve
+# para cualquier entorno cambiando solo el --build-arg (sin editar el repo). El SSR
+# (servidor) NO usa esto: resuelve API_URL_SERVER/PUBLIC_SITE_URL por env en runtime.
+ARG API_BASE_URL_BROWSER=https://api.boletiva.com/api/v1
+ARG PUBLIC_SITE_URL=https://boletiva.com
+RUN printf 'export const environment = {\n  apiBaseUrlBrowser: %s,\n  siteUrl: %s,\n} as const;\n' \
+      "'${API_BASE_URL_BROWSER}'" "'${PUBLIC_SITE_URL}'" \
+      > src/app/core/config/environment.production.ts
+
+# ng build usa por DEFECTO la configuración `production` → aplica fileReplacements
+# (environment.ts → environment.production.ts) y produce dist/frontend/{browser,server}.
+RUN npm run build
+
+# ---- Etapa 2: imagen final ligera (solo el bundle SSR) ----
+# El server.mjs de Angular es autocontenido (empaqueta express) → no requiere
+# node_modules en runtime (verificado). Copiamos únicamente dist/frontend.
+FROM node:20-alpine
+WORKDIR /app
+
+COPY --from=builder /app/dist/frontend ./dist/frontend
+
+# server.ts escucha en process.env.PORT (Cloud Run lo fija a 8080).
+ENV NODE_ENV=production
+ENV PORT=8080
+EXPOSE 8080
+
+CMD ["node", "dist/frontend/server/server.mjs"]
