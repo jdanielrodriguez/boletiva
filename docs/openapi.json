@@ -5761,6 +5761,42 @@
         ]
       }
     },
+    "/api/v1/events/{eventId}/validators/checkin-stats": {
+      "get": {
+        "operationId": "EventValidatorsController_checkinStats_v1",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckinStatsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Dashboard de check-ins del evento (avance, por localidad/validador, conflictos)",
+        "tags": [
+          "validators"
+        ]
+      }
+    },
     "/api/v1/events/{eventId}/validators/{id}": {
       "delete": {
         "operationId": "EventValidatorsController_disable_v1",
@@ -7704,8 +7740,8 @@
     }
   },
   "info": {
-    "title": "Pasa Eventos API",
-    "description": "API de la boletera Pasa Eventos",
+    "title": "Boletiva API",
+    "description": "API de la boletera Boletiva",
     "version": "1.0",
     "contact": {}
   },
@@ -14620,6 +14656,158 @@
           "status",
           "expiresAt",
           "createdAt"
+        ]
+      },
+      "CheckinByLocalityDto": {
+        "type": "object",
+        "properties": {
+          "localityId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "total": {
+            "type": "number",
+            "description": "Boletos vigentes de la localidad"
+          },
+          "checkedIn": {
+            "type": "number",
+            "description": "Ya validados (check-in)"
+          }
+        },
+        "required": [
+          "localityId",
+          "name",
+          "total",
+          "checkedIn"
+        ]
+      },
+      "CheckinByValidatorDto": {
+        "type": "object",
+        "properties": {
+          "operatorId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "count": {
+            "type": "number",
+            "description": "Boletos validados por este validador"
+          }
+        },
+        "required": [
+          "operatorId",
+          "email",
+          "name",
+          "count"
+        ]
+      },
+      "CheckinRecentDto": {
+        "type": "object",
+        "properties": {
+          "serial": {
+            "type": "string"
+          },
+          "locality": {
+            "type": "string",
+            "nullable": true
+          },
+          "validator": {
+            "type": "string",
+            "nullable": true,
+            "description": "Email del validador que escaneó"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "serial",
+          "locality",
+          "validator",
+          "at"
+        ]
+      },
+      "CheckinStatsDto": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "total": {
+            "type": "number",
+            "description": "Boletos vigentes (excluye revocados)"
+          },
+          "checkedIn": {
+            "type": "number",
+            "description": "Ya validados en puerta"
+          },
+          "pending": {
+            "type": "number",
+            "description": "Sin validar todavía"
+          },
+          "transferred": {
+            "type": "number"
+          },
+          "revoked": {
+            "type": "number"
+          },
+          "conflicts": {
+            "type": "number",
+            "description": "Intentos de doble check-in registrados"
+          },
+          "percent": {
+            "type": "number",
+            "description": "% de avance (checkedIn/total)"
+          },
+          "byLocality": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CheckinByLocalityDto"
+            }
+          },
+          "byValidator": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CheckinByValidatorDto"
+            }
+          },
+          "recent": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CheckinRecentDto"
+            }
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "eventId",
+          "total",
+          "checkedIn",
+          "pending",
+          "transferred",
+          "revoked",
+          "conflicts",
+          "percent",
+          "byLocality",
+          "byValidator",
+          "recent",
+          "updatedAt"
         ]
       },
       "InviteValidatorDto": {

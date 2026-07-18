@@ -2,31 +2,14 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiClient } from '../http/api-client.service';
 import type {
+  CheckinStatsDto,
   ValidatorDisabledDto,
   ValidatorInviteResponseDto,
   ValidatorListItemDto,
 } from './types';
 
-/**
- * Dashboard de check-ins del evento (`GET /events/:id/validators/checkin-stats`).
- * Tipeado a mano: el endpoint (Ola de validadores F2) aún no está re-exportado a
- * docs/openapi.json → re-exportar y regenerar el SDK es un follow-up; entonces esto
- * se reemplaza por el alias generado `CheckinStatsDto`.
- */
-export interface CheckinStats {
-  eventId: string;
-  total: number;
-  checkedIn: number;
-  pending: number;
-  transferred: number;
-  revoked: number;
-  conflicts: number;
-  percent: number;
-  byLocality: { localityId: string; name: string; total: number; checkedIn: number }[];
-  byValidator: { operatorId: string | null; email: string | null; name: string | null; count: number }[];
-  recent: { serial: string; locality: string | null; validator: string | null; at: string }[];
-  updatedAt: string;
-}
+/** Dashboard de check-ins (contrato generado del OpenAPI). */
+export type CheckinStats = CheckinStatsDto;
 
 /**
  * Gestión de validadores de un evento (admin/promotor dueño). El promotor invita

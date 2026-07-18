@@ -2240,6 +2240,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{eventId}/validators/checkin-stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Dashboard de check-ins del evento (avance, por localidad/validador, conflictos) */
+        get: operations["EventValidatorsController_checkinStats_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{eventId}/validators/{id}": {
         parameters: {
             query?: never;
@@ -7001,6 +7018,52 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        CheckinByLocalityDto: {
+            /** Format: uuid */
+            localityId: string;
+            name: string;
+            /** @description Boletos vigentes de la localidad */
+            total: number;
+            /** @description Ya validados (check-in) */
+            checkedIn: number;
+        };
+        CheckinByValidatorDto: {
+            /** Format: uuid */
+            operatorId: string | null;
+            email: string | null;
+            name: string | null;
+            /** @description Boletos validados por este validador */
+            count: number;
+        };
+        CheckinRecentDto: {
+            serial: string;
+            locality: string | null;
+            /** @description Email del validador que escaneó */
+            validator: string | null;
+            /** Format: date-time */
+            at: string;
+        };
+        CheckinStatsDto: {
+            /** Format: uuid */
+            eventId: string;
+            /** @description Boletos vigentes (excluye revocados) */
+            total: number;
+            /** @description Ya validados en puerta */
+            checkedIn: number;
+            /** @description Sin validar todavía */
+            pending: number;
+            transferred: number;
+            revoked: number;
+            /** @description Intentos de doble check-in registrados */
+            conflicts: number;
+            /** @description % de avance (checkedIn/total) */
+            percent: number;
+            byLocality: components["schemas"]["CheckinByLocalityDto"][];
+            byValidator: components["schemas"]["CheckinByValidatorDto"][];
+            recent: components["schemas"]["CheckinRecentDto"][];
+            /** Format: date-time */
+            updatedAt: string;
+        };
         InviteValidatorDto: {
             /**
              * @description Email del validador a habilitar
@@ -11271,6 +11334,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ValidatorDisabledDto"];
+                };
+            };
+        };
+    };
+    EventValidatorsController_checkinStats_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckinStatsDto"];
                 };
             };
         };
