@@ -33,5 +33,6 @@ ENV NODE_ENV=production
 ENV PORT=8080
 EXPOSE 8080
 
-# En prod, las migraciones se aplican con `prisma migrate deploy` (paso previo del pipeline).
-CMD ["node", "dist/main.js"]
+# El build de nx (tsc) conserva la carpeta `src/` → el entry queda en dist/src/main.js
+# (no dist/main.js). En prod, el schema/seed se aplica con el workflow DB Seed (prisma db push).
+CMD ["node", "dist/src/main.js"]
