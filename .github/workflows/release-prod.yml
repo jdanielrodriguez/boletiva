@@ -197,6 +197,13 @@ jobs:
 
       # NOTA (auditoría C1/C2/M3): el arranque en prod ABORTA si faltan secretos
       # (APP_ENCRYPTION_KEY/PAYMENT_WEBHOOK_SECRET/TICKET_SIGNING_SEED) o TRUST_PROXY.
+      # NOTA (captcha, ACTIVO): reCAPTCHA v3 encendido. La SITE KEY (pública) viene de la
+      # repository variable RECAPTCHA_SITE_KEY; el SECRET (privado) por Secret Manager
+      # (RECAPTCHA_SECRET_KEY=pasaeventos-recaptcha-secret). El frontend toma la site key
+      # de /public/config en runtime (RecaptchaService) → no necesita rebuild. REQUISITO:
+      # en la consola de reCAPTCHA, la llave debe tener registrados los dominios desde
+      # donde se sirve el frontend (boletiva.com, etc.), o el navegador falla con
+      # "Invalid domain for site key". Para apagarlo: RECAPTCHA_DISABLED=true.
       - name: Deploy backend a Cloud Run
         run: |
           gcloud run deploy "${SERVICE}" \

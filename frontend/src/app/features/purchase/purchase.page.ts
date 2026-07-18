@@ -5,6 +5,8 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { catchError, of, switchMap, tap } from 'rxjs';
 import { EventsApi } from '../../core/api/events.api';
+import { apiErrorMessage } from '../../core/http/api-error';
+import { ToastService } from '../../core/ui/toast.service';
 import { RecaptchaService } from '../../core/security/recaptcha.service';
 import { SessionStore } from '../../core/auth/session.store';
 import { SITE_URL } from '../../core/config/api.tokens';
@@ -60,6 +62,7 @@ export class PurchasePage implements OnDestroy {
   private readonly session = inject(SessionStore);
   private readonly siteUrl = inject(SITE_URL);
   private readonly translate = inject(TranslateService);
+  private readonly toasts = inject(ToastService);
   protected readonly store = inject(PurchaseService);
   private readonly recaptcha = inject(RecaptchaService);
   private readonly platformId = inject(PLATFORM_ID);
@@ -178,7 +181,11 @@ export class PurchasePage implements OnDestroy {
         if (err?.status === 429) {
           this.blocked.set(err?.error?.message ?? this.translate.instant('purchase.reserveLimit'));
         } else {
-          this.error.set(this.translate.instant('purchase.reserveError'));
+          // Mostrar la causa REAL del backend (p.ej. "Captcha inválido") y hacerla
+          // VISIBLE con un toast de error, no solo el texto inline genérico.
+          const msg = apiErrorMessage(err, this.translate.instant('purchase.reserveError'));
+          this.error.set(msg);
+          this.toasts.error(msg);
         }
       },
     }));
@@ -222,9 +229,11 @@ export class PurchasePage implements OnDestroy {
       .checkout()
       .subscribe({
       next: (order) => void this.router.navigate(['/checkout', order.id]),
-      error: () => {
+      error: (err: { status?: number; error?: { message?: string } }) => {
         this.working.set(false);
-        this.error.set(this.translate.instant('purchase.checkoutError'));
+        const msg = apiErrorMessage(err, this.translate.instant('purchase.checkoutError'));
+        this.error.set(msg);
+        this.toasts.error(msg);
       },
     });
   }
