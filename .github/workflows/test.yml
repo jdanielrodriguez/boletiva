@@ -23,11 +23,45 @@ permissions:
 
 jobs:
   # ----------------------------------------------------------------------------
+  # Detecta QUÉ cambió para correr SOLO las suites afectadas: cambios de backend →
+  # tests de backend; de frontend → tests de frontend; ambos → ambos. (Igual criterio
+  # que el deploy path-filtered de release-prod.yml.) En un push ambiguo (rama nueva
+  # / sin base) paths-filter marca todo como cambiado → corren ambas, que es lo seguro.
+  # ----------------------------------------------------------------------------
+  changes:
+    name: Detectar cambios
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'api/**'
+              - 'prisma/**'
+              - 'Dockerfile'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'nx.json'
+              - 'tsconfig*.json'
+              - 'Makefile'
+              - 'docker-compose*.yml'
+            frontend:
+              - 'frontend/**'
+              - 'docker/angular/**'
+
+  # ----------------------------------------------------------------------------
   # Backend: levanta el stack (postgres/redis/rabbit/mailhog/localstack) con
   # docker-compose, espera health, siembra la BD y corre lint + unit + smoke E2E.
   # ----------------------------------------------------------------------------
   backend-test:
     name: Backend (lint + unit + smoke)
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -80,6 +114,8 @@ jobs:
   # ----------------------------------------------------------------------------
   frontend-test:
     name: Frontend (lint + karma headless)
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
