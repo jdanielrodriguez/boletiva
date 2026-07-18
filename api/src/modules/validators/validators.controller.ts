@@ -12,6 +12,7 @@ import { Public } from '../../common/decorators/public.decorator';
 import { AuthUser, CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ValidatorsService } from './validators.service';
 import {
+  CheckinStatsDto,
   ClaimResponseDto,
   ClaimValidatorDto,
   InviteValidatorDto,
@@ -34,6 +35,14 @@ export class EventValidatorsController {
   @ApiOkResponse({ type: ValidatorListItemDto, isArray: true })
   list(@Param('eventId', ParseUUIDPipe) eventId: string, @CurrentUser() user: AuthUser) {
     return this.validators.list(eventId, user);
+  }
+
+  @Get('checkin-stats')
+  @Roles(Role.admin, Role.promoter)
+  @ApiOperation({ summary: 'Dashboard de check-ins del evento (avance, por localidad/validador, conflictos)' })
+  @ApiOkResponse({ type: CheckinStatsDto })
+  checkinStats(@Param('eventId', ParseUUIDPipe) eventId: string, @CurrentUser() user: AuthUser) {
+    return this.validators.checkinStats(eventId, user);
   }
 
   @Post()

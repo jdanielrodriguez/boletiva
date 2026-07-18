@@ -67,3 +67,42 @@ export class ValidatorDisabledDto {
   @ApiProperty({ description: 'true (uno) o cantidad deshabilitada (todos)' })
   disabled!: boolean | number;
 }
+
+// ---- Dashboard de check-ins (Fase 2) ----
+
+class CheckinByLocalityDto {
+  @ApiProperty({ format: 'uuid' }) localityId!: string;
+  @ApiProperty() name!: string;
+  @ApiProperty({ description: 'Boletos vigentes de la localidad' }) total!: number;
+  @ApiProperty({ description: 'Ya validados (check-in)' }) checkedIn!: number;
+}
+
+class CheckinByValidatorDto {
+  @ApiProperty({ format: 'uuid', nullable: true }) operatorId!: string | null;
+  @ApiProperty({ nullable: true }) email!: string | null;
+  @ApiProperty({ nullable: true }) name!: string | null;
+  @ApiProperty({ description: 'Boletos validados por este validador' }) count!: number;
+}
+
+class CheckinRecentDto {
+  @ApiProperty() serial!: string;
+  @ApiProperty({ nullable: true }) locality!: string | null;
+  @ApiProperty({ nullable: true, description: 'Email del validador que escaneó' }) validator!: string | null;
+  @ApiProperty({ format: 'date-time' }) at!: string;
+}
+
+/** Estado del dashboard de check-ins del evento. */
+export class CheckinStatsDto {
+  @ApiProperty({ format: 'uuid' }) eventId!: string;
+  @ApiProperty({ description: 'Boletos vigentes (excluye revocados)' }) total!: number;
+  @ApiProperty({ description: 'Ya validados en puerta' }) checkedIn!: number;
+  @ApiProperty({ description: 'Sin validar todavía' }) pending!: number;
+  @ApiProperty() transferred!: number;
+  @ApiProperty() revoked!: number;
+  @ApiProperty({ description: 'Intentos de doble check-in registrados' }) conflicts!: number;
+  @ApiProperty({ description: '% de avance (checkedIn/total)' }) percent!: number;
+  @ApiProperty({ type: CheckinByLocalityDto, isArray: true }) byLocality!: CheckinByLocalityDto[];
+  @ApiProperty({ type: CheckinByValidatorDto, isArray: true }) byValidator!: CheckinByValidatorDto[];
+  @ApiProperty({ type: CheckinRecentDto, isArray: true }) recent!: CheckinRecentDto[];
+  @ApiProperty({ format: 'date-time' }) updatedAt!: string;
+}

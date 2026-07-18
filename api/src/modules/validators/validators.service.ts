@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { Role, ValidatorStatus } from '@prisma/client';
+import { Role, TicketStatus, ValidatorStatus } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { MailService } from '../../infra/mail/mail.service';
 import { AuthUser } from '../../common/decorators/current-user.decorator';
@@ -142,6 +142,116 @@ export class ValidatorsService {
       expiresAt: i.expiresAt.toISOString(),
       createdAt: i.createdAt.toISOString(),
     }));
+  }
+
+  /**
+   * Dashboard de check-ins del evento (admin/promotor dueño): totales por estado,
+   * avance por localidad, atribución por validador (quién escaneó cuánto), conflictos
+   * (dobles check-in) y los últimos escaneos. Fuente: `tickets` (estado/uso) +
+   * `ticket_custody_events` type=checked_in (actor) + `checkin_conflicts`.
+   */
+  async checkinStats(eventId: string, user: AuthUser) {
+    await this.assertManages(eventId, user);
+
+    // Conteos por estado del boleto (indexado por eventId+status).
+    const byStatus = await this.prisma.ticket.groupBy({
+      by: ['status'],
+      where: { eventId },
+      _count: { _all: true },
+    });
+    const countOf = (s: TicketStatus) => byStatus.find((b) => b.status === s)?._count._all ?? 0;
+    const checkedIn = countOf(TicketStatus.used);
+    const pending = countOf(TicketStatus.valid);
+    const transferred = countOf(TicketStatus.transferred);
+    const revoked = countOf(TicketStatus.revoked);
+    // "vigentes" = boletos que pueden entrar (excluye revocados). Los transferidos
+    // siguen vigentes (re-emitidos a su nuevo dueño), así que cuentan en el total.
+    const total = checkedIn + pending + transferred;
+
+    const conflicts = await this.prisma.checkinConflict.count({ where: { eventId } });
+
+    // Atribución por validador: custody checked_in agrupado por actor.
+    const byActor = await this.prisma.ticketCustodyEvent.groupBy({
+      by: ['actorId'],
+      where: { type: 'checked_in', ticket: { eventId } },
+      _count: { _all: true },
+    });
+    const actorIds = byActor.map((a) => a.actorId).filter((x): x is string => !!x);
+    const operators = actorIds.length
+      ? await this.prisma.user.findMany({
+          where: { id: { in: actorIds } },
+          select: { id: true, email: true, firstName: true, lastName: true },
+        })
+      : [];
+    const opById = new Map(operators.map((o) => [o.id, o]));
+    const byValidator = byActor
+      .map((a) => {
+        const op = a.actorId ? opById.get(a.actorId) : undefined;
+        return {
+          operatorId: a.actorId,
+          email: op?.email ?? null,
+          name: op ? `${op.firstName ?? ''} ${op.lastName ?? ''}`.trim() || null : null,
+          count: a._count._all,
+        };
+      })
+      .sort((x, y) => y.count - x.count);
+
+    // Avance por localidad: total y check-ins por localityId.
+    const locGroups = await this.prisma.ticket.groupBy({
+      by: ['localityId', 'status'],
+      where: { eventId },
+      _count: { _all: true },
+    });
+    const locAgg = new Map<string, { total: number; checkedIn: number }>();
+    for (const g of locGroups) {
+      const cur = locAgg.get(g.localityId) ?? { total: 0, checkedIn: 0 };
+      if (g.status !== TicketStatus.revoked) cur.total += g._count._all;
+      if (g.status === TicketStatus.used) cur.checkedIn += g._count._all;
+      locAgg.set(g.localityId, cur);
+    }
+    const locNames = locAgg.size
+      ? await this.prisma.locality.findMany({
+          where: { id: { in: [...locAgg.keys()] } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const locNameById = new Map(locNames.map((l) => [l.id, l.name]));
+    const byLocality = [...locAgg.entries()]
+      .map(([localityId, v]) => ({ localityId, name: locNameById.get(localityId) ?? '—', ...v }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    // Últimos escaneos (timeline del dashboard).
+    const recentRows = await this.prisma.ticketCustodyEvent.findMany({
+      where: { type: 'checked_in', ticket: { eventId } },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+      select: {
+        createdAt: true,
+        actorId: true,
+        ticket: { select: { serial: true, locality: { select: { name: true } } } },
+      },
+    });
+    const recent = recentRows.map((r) => ({
+      serial: r.ticket.serial,
+      locality: r.ticket.locality?.name ?? null,
+      validator: r.actorId ? opById.get(r.actorId)?.email ?? null : null,
+      at: r.createdAt.toISOString(),
+    }));
+
+    return {
+      eventId,
+      total,
+      checkedIn,
+      pending,
+      transferred,
+      revoked,
+      conflicts,
+      percent: total > 0 ? Math.round((checkedIn / total) * 1000) / 10 : 0,
+      byLocality,
+      byValidator,
+      recent,
+      updatedAt: new Date().toISOString(),
+    };
   }
 
   /** Deshabilita un validador: status=disabled + revoca la asignación (corta el link). */

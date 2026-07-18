@@ -29,7 +29,7 @@ export class ValidationIngestController {
   ) {
     // 8.1: solo un operador ASIGNADO al evento (o admin) puede ingerir check-ins de él.
     await this.gateAccess.assertAssignedToEvent(eventId, user);
-    return this.ingest.submit(dto.items, eventId, dto.gateId);
+    return this.ingest.submit(dto.items, eventId, dto.gateId, user.userId);
   }
 
   @Get('events/:eventId/checkins/conflicts')
