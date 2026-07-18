@@ -4141,3 +4141,48 @@ p.error {
   font-size: 0.85rem;
   color: var(--pe-danger-strong, #e14b63);
 }
+
+/* PWA de validación en puerta (F4). Verde/ámbar/rojo hiper-evidentes. */
+.gate { min-height: 100dvh; display: flex; flex-direction: column; background: #0b0b12; color: #fff; }
+.gate-center {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 0.8rem; text-align: center; padding: 2rem 1.2rem; max-width: 30rem; margin: 0 auto;
+}
+.gate-center h1 { margin: 0; }
+.gate-event { font-size: 1.3rem; font-weight: 700; color: var(--pe-accent, #e14eca); margin: 0; }
+.gate-scan { flex: 1; display: flex; flex-direction: column; }
+.gate-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.6rem;
+  padding: 0.6rem 0.9rem; font-size: 0.9rem; background: #14141f;
+}
+.gate-event-sm { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gate-status { display: flex; align-items: center; gap: 0.35rem; white-space: nowrap; }
+.gate-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.gate-dot.on { background: #2ecc71; }
+.gate-dot.off { background: #ff6b81; }
+.gate-pending { color: #ffcc66; }
+.gate-viewport { position: relative; flex: 1; overflow: hidden; background: #000; min-height: 55vh; }
+.gate-video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gate-reticle {
+  position: absolute; inset: 50% auto auto 50%; transform: translate(-50%, -50%);
+  width: min(70vw, 320px); aspect-ratio: 1; border: 3px solid rgba(255, 255, 255, 0.85);
+  border-radius: 18px; box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.35);
+}
+.gate-result {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 0.5rem; text-align: center; padding: 1rem;
+  animation: gate-pop 0.12s ease-out;
+}
+.gate-result.ok { background: rgba(30, 160, 80, 0.96); }
+.gate-result.used { background: rgba(210, 150, 20, 0.96); }
+.gate-result.bad { background: rgba(200, 40, 60, 0.96); }
+.gate-result-icon {
+  width: 4.5rem; height: 4.5rem; border-radius: 50%; background: rgba(255, 255, 255, 0.22);
+  display: flex; align-items: center; justify-content: center; font-size: 2.6rem; font-weight: 800;
+}
+.gate-result-msg { font-size: 1.7rem; font-weight: 800; letter-spacing: 0.02em; }
+.gate-result-serial { font-family: monospace; font-size: 1rem; opacity: 0.9; }
+@keyframes gate-pop { from { transform: scale(0.96); opacity: 0.6; } to { transform: scale(1); opacity: 1; } }
+.gate-manual { display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0.8rem 0.9rem; background: #14141f; }
+.gate-manual input { flex: 1; min-width: 12rem; }
+.gate-count { text-align: center; padding: 0.5rem; margin: 0; font-size: 0.85rem; color: #9a9aa8; background: #14141f; }

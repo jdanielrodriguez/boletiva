@@ -31,6 +31,9 @@ export type InviteValidatorDto = Schemas['InviteValidatorDto'];
 export type ValidatorInviteResponseDto = Schemas['ValidatorInviteResponseDto'];
 export type ValidatorListItemDto = Schemas['ValidatorListItemDto'];
 export type ValidatorDisabledDto = Schemas['ValidatorDisabledDto'];
+export type ClaimResponseDto = Schemas['ClaimResponseDto'];
+export type ValidatorPeekDto = Schemas['ValidatorPeekDto'];
+export type BatchCheckinResultDto = Schemas['BatchCheckinResultDto'];
 
 // --- Events (catálogo público) ---
 export type PublicEventListDto = Schemas['PublicEventListDto'];

@@ -1,0 +1,96 @@
+<section class="gate" data-testid="gate-validate">
+  @switch (phase()) {
+    @case ('loading') {
+      <div class="gate-center"><p>{{ 'common.loading' | translate }}</p></div>
+    }
+
+    @case ('invalid') {
+      <div class="gate-center gate-invalid" data-testid="gate-invalid">
+        <h1>{{ 'gate.invalidTitle' | translate }}</h1>
+        <p class="error">{{ error() ?? ('gate.linkInvalid' | translate) }}</p>
+      </div>
+    }
+
+    @case ('welcome') {
+      <div class="gate-center gate-welcome" data-testid="gate-welcome">
+        <h1>{{ 'gate.welcomeTitle' | translate }}</h1>
+        <p class="gate-event">{{ eventName() }}</p>
+        <p class="auth-sub">{{ 'gate.welcomeAs' | translate: { email: validatorEmail() } }}</p>
+        <p class="auth-sub">{{ 'gate.welcomeHint' | translate }}</p>
+        @if (error()) { <p class="error">{{ error() }}</p> }
+        <button type="button" class="primary btn-block" (click)="start()" data-testid="gate-start">
+          {{ 'gate.start' | translate }}
+        </button>
+      </div>
+    }
+
+    @case ('starting') {
+      <div class="gate-center"><p>{{ 'gate.preparing' | translate }}</p></div>
+    }
+
+    @case ('cameraError') {
+      <div class="gate-center gate-camera-error" data-testid="gate-camera-error">
+        <h1>{{ 'gate.cameraNeededTitle' | translate }}</h1>
+        <p class="error">{{ cameraError() ?? ('gate.cameraDenied' | translate) }}</p>
+        <p class="auth-sub">{{ 'gate.cameraNeededHint' | translate }}</p>
+        <button type="button" class="primary btn-block" (click)="retryCamera()" data-testid="gate-retry-camera">
+          {{ 'gate.retryCamera' | translate }}
+        </button>
+      </div>
+    }
+
+    @case ('scanning') {
+      <div class="gate-scan" data-testid="gate-scanning">
+        <header class="gate-bar">
+          <span class="gate-event-sm">{{ eventName() }}</span>
+          <span class="gate-status">
+            <span class="gate-dot" [class.on]="online()" [class.off]="!online()"></span>
+            {{ (online() ? 'gate.online' : 'gate.offline') | translate }}
+            @if (pending() > 0) {
+              <span class="gate-pending" data-testid="gate-pending">· {{ 'gate.pending' | translate: { n: pending() } }}</span>
+            }
+          </span>
+        </header>
+
+        <div class="gate-viewport">
+          <video #video class="gate-video" playsinline muted></video>
+          <div class="gate-reticle" aria-hidden="true"></div>
+
+          @if (result(); as r) {
+            <div
+              class="gate-result"
+              [class.ok]="r.kind === 'ok'"
+              [class.used]="r.kind === 'used'"
+              [class.bad]="r.kind === 'invalid'"
+              role="alert"
+              data-testid="gate-result"
+            >
+              <span class="gate-result-icon" aria-hidden="true">
+                {{ r.kind === 'ok' ? '✓' : (r.kind === 'used' ? '!' : '✕') }}
+              </span>
+              <span class="gate-result-msg">{{ r.message }}</span>
+              @if (r.serial) { <span class="gate-result-serial">{{ r.serial }}</span> }
+            </div>
+          }
+        </div>
+
+        @if (!manualSupported()) {
+          <form class="gate-manual" (ngSubmit)="validateManual()">
+            <p class="auth-sub">{{ 'gate.manualHint' | translate }}</p>
+            <input
+              type="text"
+              [ngModel]="manualCode()"
+              (ngModelChange)="manualCode.set($event)"
+              name="manualCode"
+              placeholder="PE1.PEXXXXXX.000000"
+              data-testid="gate-manual-input"
+            />
+            <button type="submit" class="primary" data-testid="gate-manual-submit">{{ 'gate.validate' | translate }}</button>
+          </form>
+        }
+
+        <p class="gate-count">{{ 'gate.loaded' | translate: { n: ticketCount() } }}</p>
+      </div>
+    }
+  }
+</section>

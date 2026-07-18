@@ -1,0 +1,32 @@
+/** Gate validation PWA (F4). English. */
+export const gate = {
+  invalidTitle: 'Invalid link',
+  linkInvalid: 'The validation link is invalid or expired. Ask the organizer to resend your access.',
+  welcomeTitle: 'Gate validation',
+  welcomeAs: 'Signed in as <strong>{{email}}</strong>.',
+  welcomeHint: 'You will scan tickets with the camera. It works offline once the event is loaded.',
+  start: 'Start',
+  preparing: 'Preparing the event…',
+  claimFailed: 'Could not open the validator. Retry or ask for a new link.',
+  manifestFailed: 'Could not download the ticket list. Check your connection and try again.',
+  // Camera (required)
+  cameraNeededTitle: 'We need the camera',
+  cameraDenied: 'Could not access the camera. Grant permission to scan tickets.',
+  cameraUnsupported: 'This device/browser cannot use the camera. Try Chrome.',
+  cameraNeededHint: 'Enable the camera in the browser and tap Retry. It is required to validate.',
+  retryCamera: 'Retry',
+  // Scanning
+  online: 'Online',
+  offline: 'Offline',
+  pending: '{{n}} to sync',
+  loaded: '{{n}} tickets loaded',
+  manualHint: 'Your browser cannot scan automatically. Type the QR content:',
+  validate: 'Validate',
+  // Results
+  resultOk: 'VALID ACCESS',
+  resultUsed: 'ALREADY USED',
+  resultUnknown: 'UNKNOWN TICKET',
+  resultRevoked: 'INVALID TICKET',
+  resultBadCode: 'INVALID CODE',
+  resultBadFormat: 'UNRECOGNIZED QR',
+};

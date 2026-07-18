@@ -42,6 +42,13 @@ export const routes: Routes = [
     title: 'Verifica tu correo — Boletiva',
   },
   {
+    // PWA de validación en puerta (magic-link del validador). Público: se autentica
+    // con el gate-token que devuelve el canje, no con sesión.
+    path: 'validar/:token',
+    loadComponent: () => import('./features/gate/gate-validate.page').then((m) => m.GateValidatePage),
+    title: 'Validar boletos — Boletiva',
+  },
+  {
     path: 'recuperar',
     loadComponent: () => import('./pages/password/recover').then((m) => m.PasswordRecover),
     canActivate: [guestGuard],
