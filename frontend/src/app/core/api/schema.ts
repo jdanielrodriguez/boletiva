@@ -757,6 +757,23 @@ export interface paths {
         patch: operations["EventsController_update_v1"];
         trace?: never;
     };
+    "/api/v1/events/{id}/promote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Destaca/quita un evento del slider del inicio (solo admin) */
+        patch: operations["EventsController_promote_v1"];
+        trace?: never;
+    };
     "/api/v1/events/{id}/publish": {
         parameters: {
             query?: never;
@@ -4819,6 +4836,13 @@ export interface components {
              * @example 1
              */
             promotedPriority?: number | null;
+        };
+        PromoteEventDto: {
+            /**
+             * @description true = destacar (aparece en el slider); false = quitar
+             * @example true
+             */
+            featured: boolean;
         };
         EditUnlockRequestedDto: {
             /** @example true */
@@ -9015,6 +9039,31 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["UpdateEventDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventResponseDto"];
+                };
+            };
+        };
+    };
+    EventsController_promote_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PromoteEventDto"];
             };
         };
         responses: {

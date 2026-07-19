@@ -198,3 +198,10 @@ export class UpdateEventDto {
   @Min(0)
   promotedPriority?: number;
 }
+
+/** Destacar/quitar un evento del slider del inicio (solo admin). */
+export class PromoteEventDto {
+  @ApiProperty({ description: 'true = destacar (aparece en el slider); false = quitar', example: true })
+  @IsBoolean()
+  featured!: boolean;
+}

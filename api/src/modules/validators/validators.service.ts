@@ -17,11 +17,25 @@ import { StreamService } from '../stream/stream.service';
 import { AuthUser } from '../../common/decorators/current-user.decorator';
 import { randomToken, sha256 } from '../../common/utils/crypto';
 
-/** Días de validez del magic-link de validación (mientras el validador esté habilitado). */
+/** Fallback de validez del magic-link si el evento no tiene fecha de fin (raro). */
 const TTL_DAYS = 30;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** TTL del ticket de un solo uso del SSE del dashboard (corto: solo para abrir la conexión). */
 const STREAM_TICKET_TTL_S = 15;
+/** Gracia tras el fin del evento durante la que el enlace/gate-token siguen válidos. */
+const POST_EVENT_GRACE_MS = 6 * 60 * 60 * 1000; // 6 h
+/** Límites del TTL del gate-token (segundos): mínimo 30 min, tope 18 h (cubre el evento). */
+const GATE_TTL_MIN_S = 30 * 60;
+const GATE_TTL_MAX_S = 18 * 60 * 60;
+
+/**
+ * Vencimiento del acceso de validación atado al EVENTO (disponible durante el evento
+ * activo): fin del evento + gracia. Si no hay `endsAt`, cae al fallback de 30 días.
+ */
+function accessExpiry(endsAt: Date | null): Date {
+  if (!endsAt) return new Date(Date.now() + TTL_DAYS * 24 * 60 * 60 * 1000);
+  return new Date(endsAt.getTime() + POST_EVENT_GRACE_MS);
+}
 
 /**
  * Validadores de boletos (autorizadores de acceso). El promotor invita por email a
@@ -126,7 +140,7 @@ export class ValidatorsService {
     //    no se usa un código aparte. `codeHash` es vestigial (columna NOT NULL) → se rellena
     //    con un valor desechable que nunca se expone ni se usa para validar.
     const token = randomToken(24);
-    const expiresAt = new Date(Date.now() + TTL_DAYS * 24 * 60 * 60 * 1000);
+    const expiresAt = accessExpiry(event.endsAt);
     const inv = await this.prisma.validatorInvitation.upsert({
       where: { eventId_email: { eventId, email } },
       create: {
@@ -370,7 +384,7 @@ export class ValidatorsService {
     const inv = await this.prisma.validatorInvitation.findFirst({ where: { id, eventId } });
     if (!inv) throw new NotFoundException('Validador no encontrado');
     const token = randomToken(24);
-    const expiresAt = new Date(Date.now() + TTL_DAYS * 24 * 60 * 60 * 1000);
+    const expiresAt = accessExpiry(event.endsAt);
     await this.prisma.$transaction([
       this.prisma.gateAssignment.upsert({
         where: { eventId_operatorId: { eventId, operatorId: inv.operatorId } },
@@ -405,11 +419,21 @@ export class ValidatorsService {
     if (!assigned) throw new ForbiddenException('Tu acceso a este evento fue revocado');
     const event = await this.prisma.event.findUniqueOrThrow({
       where: { id: inv.eventId },
-      select: { id: true, name: true, slug: true, startsAt: true },
+      select: { id: true, name: true, slug: true, startsAt: true, endsAt: true },
     });
-    const ttl = this.config.getOrThrow<number>('safetix.gateTokenTtl');
+    // "Último gana": cada canje rota el sid de la invitación → el gate-token anterior deja
+    // de pasar el chequeo online (manifiesto/subida) en otro dispositivo.
+    const sid = randomToken(12);
+    await this.prisma.validatorInvitation.update({
+      where: { id: inv.id },
+      data: { activeSessionId: sid },
+    });
+    // TTL atado al evento (disponible durante el evento activo): hasta endsAt + gracia,
+    // acotado a [30 min, 18 h]. Así la subida de check-ins funciona toda la jornada.
+    const untilEnd = Math.floor((accessExpiry(event.endsAt).getTime() - Date.now()) / 1000);
+    const ttl = Math.max(GATE_TTL_MIN_S, Math.min(GATE_TTL_MAX_S, untilEnd));
     const gateToken = this.jwt.sign(
-      { sub: inv.operatorId, email: inv.email, roles: [Role.gate_operator], gateEventId: inv.eventId },
+      { sub: inv.operatorId, email: inv.email, roles: [Role.gate_operator], gateEventId: inv.eventId, sid },
       { secret: this.config.getOrThrow<string>('jwt.accessSecret'), expiresIn: ttl },
     );
     return {

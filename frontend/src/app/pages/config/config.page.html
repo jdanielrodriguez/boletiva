@@ -64,6 +64,13 @@
                 <button type="button" class="btn small" (click)="openEvent(e.id)" data-testid="ev-open-btn" [title]="'config.events.viewEventTitle' | translate">
                   <app-icon name="view" /> {{ 'config.events.viewEvent' | translate }}
                 </button>
+                <!-- Destacar en el slider del inicio (solo admin, aquí en la lista). Solo los
+                     futuros publicados destacados salen en el slider; si no hay, se oculta. -->
+                <label class="ev-promote" [title]="'config.events.featureHint' | translate">
+                  <input type="checkbox" [checked]="e.promotedPriority != null" [disabled]="promotingId() === e.id"
+                    (change)="togglePromoted(e, $any($event.target).checked)" [attr.data-testid]="'ev-promote-' + e.id" />
+                  <span aria-hidden="true">★</span> {{ 'config.events.feature' | translate }}
+                </label>
               </div>
             </article>
           }

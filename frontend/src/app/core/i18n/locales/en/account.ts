@@ -39,6 +39,14 @@ export const account = {
     saved: 'Language updated.',
     saveError: 'Could not save the language.',
   },
+  theme: {
+    title: 'Theme',
+    hint: 'Choose your day or night theme. It is saved to your account and applied on sign-in (instead of the system theme).',
+    day: 'Day',
+    night: 'Night',
+    saved: 'Theme updated.',
+    saveError: 'Could not save the theme.',
+  },
   twofa: {
     title: 'Two-factor authentication (2FA)',
     hint: 'Choose how to receive your second factor when signing in on a new device.',

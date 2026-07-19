@@ -121,6 +121,24 @@ export class GateAccessService {
       where: { eventId_operatorId: { eventId, operatorId: user.userId } },
     });
     if (!assigned) throw new ForbiddenException('Tu asignación a este evento fue revocada');
+    await this.assertActiveSession(eventId, user);
+  }
+
+  /**
+   * "Último gana": si el gate-token es de un VALIDADOR (trae `sid`), debe coincidir con el
+   * `activeSessionId` vigente de su invitación. Si se canjeó el enlace en otro dispositivo,
+   * el sid rotó → este token queda fuera de las operaciones ONLINE (manifiesto/subida).
+   * Tokens sin `sid` (operador de puerta asignado directo, sin invitación) NO se afectan.
+   */
+  private async assertActiveSession(eventId: string, user: AuthUser): Promise<void> {
+    if (!user.sid) return;
+    const inv = await this.prisma.validatorInvitation.findFirst({
+      where: { eventId, operatorId: user.userId },
+      select: { activeSessionId: true },
+    });
+    if (inv && inv.activeSessionId && inv.activeSessionId !== user.sid) {
+      throw new ForbiddenException('Se abrió el validador en otro dispositivo; vuelve a abrir el enlace aquí.');
+    }
   }
 
   /**
@@ -137,5 +155,6 @@ export class GateAccessService {
     if (!assigned) {
       throw new ForbiddenException('No estás asignado a este evento para validar boletos');
     }
+    await this.assertActiveSession(eventId, user);
   }
 }
