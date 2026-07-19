@@ -177,8 +177,17 @@ export class BecomePromoterPage {
       )
       .subscribe({
         next: (res) => {
+          // Correo YA existente → 202 sin tokens (anti-enumeración, M-01): no revelamos
+          // nada; aviso genérico y cerramos (el dueño real recibe el correo con opciones).
+          const tokens = (res as { tokens?: { accessToken?: string } }).tokens;
+          if (!tokens?.accessToken || !res.user) {
+            this.working.set(false);
+            this.showRegister.set(false);
+            this.toasts.info(this.translate.instant('becomePromoter.regCheckEmail'));
+            return;
+          }
           // Adopta la sesión recién creada (access en memoria + /auth/me lo recarga).
-          this.tokens.setAccessToken(res.tokens.accessToken);
+          this.tokens.setAccessToken(tokens.accessToken);
           this.session.setUser(res.user);
           this.loggedIn.set(true);
           this.onApplied(res.promoter, () => this.showRegister.set(false));

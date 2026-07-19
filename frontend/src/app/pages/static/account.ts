@@ -326,26 +326,42 @@ export class Account {
   // --- 2FA con app autenticadora (TOTP) ---
   /** Método 2FA actual del usuario: 'email' | 'totp'. */
   protected readonly twoFactorMethod = computed(() => this.session.user()?.twoFactorMethod ?? 'email');
-  protected readonly totpStep = signal<'idle' | 'setup'>('idle');
+  // Paso 'password' (step-up B-02): antes de generar el QR se re-autentica con la contraseña.
+  protected readonly totpStep = signal<'idle' | 'password' | 'setup'>('idle');
   protected readonly totpQr = signal<string | null>(null);
   protected readonly totpSecret = signal('');
   protected readonly totpCode = signal('');
+  protected readonly totpPassword = signal('');
   protected readonly totpBusy = signal(false);
 
-  /** Inicia el alta de TOTP: pide el QR + secret al backend y muestra el paso de confirmación. */
+  /** Primer paso del alta de TOTP: pide la contraseña actual (re-autenticación, B-02). */
   protected startTotp(): void {
+    this.totpPassword.set('');
+    this.totpStep.set('password');
+  }
+
+  /**
+   * Confirma la contraseña (step-up) → el backend genera el QR + secret y pasamos al paso
+   * de confirmación con el código de la app. Contraseña incorrecta → 401 → aviso.
+   */
+  protected submitTotpPassword(): void {
     this.totpBusy.set(true);
-    this.authApi.totpSetup().subscribe({
+    this.authApi.totpSetup(this.totpPassword() || undefined).subscribe({
       next: (r) => {
         this.totpBusy.set(false);
         this.totpQr.set(r.qrDataUrl);
         this.totpSecret.set(r.secret);
         this.totpCode.set('');
+        this.totpPassword.set('');
         this.totpStep.set('setup');
       },
-      error: () => {
+      error: (err: { status?: number }) => {
         this.totpBusy.set(false);
-        this.toasts.error(this.translate.instant('account.twofa.error'));
+        this.toasts.error(
+          this.translate.instant(
+            err?.status === 401 ? 'account.twofa.badPassword' : 'account.twofa.error',
+          ),
+        );
       },
     });
   }
@@ -374,6 +390,7 @@ export class Account {
     this.totpStep.set('idle');
     this.totpQr.set(null);
     this.totpCode.set('');
+    this.totpPassword.set('');
   }
 
   /** Vuelve al segundo factor por correo. */

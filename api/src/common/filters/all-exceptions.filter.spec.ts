@@ -26,7 +26,7 @@ describe('AllExceptionsFilter', () => {
     expect(body.timestamp).toBeDefined();
   });
 
-  it('convierte un Error genérico en 500 y expone stack en no-prod', () => {
+  it('convierte un Error genérico en 500; en no-prod muestra el mensaje pero NO el stack por defecto (B-03)', () => {
     const { host, json, status } = mockHost();
     new AllExceptionsFilter(false).catch(new Error('kaboom'), host);
 
@@ -34,10 +34,25 @@ describe('AllExceptionsFilter', () => {
     const body = json.mock.calls[0][0];
     expect(body.statusCode).toBe(500);
     expect(body.message).toBe('kaboom');
-    expect(body.stack).toBeDefined();
+    // B-03: el stack NO se expone salvo que se habilite explícitamente (2º arg).
+    expect(body.stack).toBeUndefined();
   });
 
-  it('oculta detalle y stack en producción para errores no controlados', () => {
+  it('B-03: el stack SOLO se expone cuando exposeStack=true (independiente de NODE_ENV)', () => {
+    const { host, json } = mockHost();
+    new AllExceptionsFilter(false, true).catch(new Error('kaboom'), host);
+    expect(json.mock.calls[0][0].stack).toBeDefined();
+  });
+
+  it('B-03: aunque exposeStack=true en PROD, el stack se expone pero el mensaje interno se oculta', () => {
+    const { host, json } = mockHost();
+    new AllExceptionsFilter(true, true).catch(new Error('secreto interno'), host);
+    const body = json.mock.calls[0][0];
+    expect(body.message).toBe('Internal server error'); // mensaje interno oculto (isProd)
+    expect(body.stack).toBeDefined(); // stack solo por la variable dedicada
+  });
+
+  it('oculta detalle y stack en producción por defecto para errores no controlados', () => {
     const { host, json } = mockHost();
     new AllExceptionsFilter(true).catch(new Error('secreto interno'), host);
 

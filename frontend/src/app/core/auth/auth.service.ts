@@ -51,12 +51,18 @@ export class AuthService {
     return this.authApi.verify2fa(dto).pipe(tap((res) => this.applyLogin(res)));
   }
 
-  /** Registro; el backend devuelve usuario + tokens (correo aún sin verificar). */
+  /**
+   * Registro. Correo NUEVO → el backend devuelve usuario + tokens (auto-login, correo aún
+   * sin verificar). Correo YA EXISTENTE → responde 202 genérico SIN tokens (anti-enumeración,
+   * M-01): no hay sesión que iniciar; el componente muestra un aviso genérico.
+   */
   signup(dto: SignupDto): Observable<SignupResponseDto> {
     return from(this.recaptcha.execute('signup')).pipe(
       switchMap((token) => this.authApi.signup(dto, token)),
       tap((res) => {
-        this.tokens.setAccessToken(res.tokens.accessToken);
+        const tokens = (res as { tokens?: { accessToken?: string } }).tokens;
+        if (!tokens?.accessToken || !res.user) return; // 202 pendiente → sin sesión
+        this.tokens.setAccessToken(tokens.accessToken);
         this.session.setUser(res.user);
         this.applyUserLanguage(res.user);
       }),

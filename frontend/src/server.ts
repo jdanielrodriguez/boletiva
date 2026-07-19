@@ -10,6 +10,8 @@ import { join } from 'node:path';
 const browserDistFolder = join(import.meta.dirname, '../browser');
 
 const app = express();
+// I-04: no anunciar la tecnología del servidor (fingerprinting). El API ya lo hace.
+app.disable('x-powered-by');
 const angularApp = new AngularNodeAppEngine();
 
 /**
@@ -66,6 +68,43 @@ app.use((_req, res, next) => {
  */
 
 /**
+ * I-03: recursos "bien conocidos" reales (rutas explícitas → deterministas, sin depender
+ * del copiado de assets). `robots.txt` guía a los crawlers; `security.txt` (RFC 9116)
+ * publica un contacto de seguridad.
+ */
+app.get('/robots.txt', (_req, res) => {
+  res
+    .type('text/plain')
+    .send(
+      [
+        'User-agent: *',
+        'Allow: /',
+        'Disallow: /cuenta',
+        'Disallow: /checkout',
+        'Disallow: /admin',
+        'Disallow: /promotor',
+        'Disallow: /validar',
+        'Disallow: /login',
+        'Disallow: /verificar-correo',
+        '',
+      ].join('\n'),
+    );
+});
+app.get('/.well-known/security.txt', (_req, res) => {
+  res
+    .type('text/plain')
+    .send(
+      [
+        'Contact: mailto:security@boletiva.com',
+        'Expires: 2027-07-19T00:00:00.000Z',
+        'Preferred-Languages: es, en',
+        'Canonical: https://boletiva.com/.well-known/security.txt',
+        '',
+      ].join('\n'),
+    );
+});
+
+/**
  * Serve static files from /browser
  */
 app.use(
@@ -94,6 +133,21 @@ app.use((req, res, next) => {
         ? 'no-store'
         : 'public, s-maxage=60, stale-while-revalidate=300',
     );
+  }
+  next();
+});
+
+/**
+ * I-03: 404 REAL para archivos estáticos inexistentes. `express.static` ya corrió; si un
+ * path con extensión de asset llega hasta aquí es que NO existe → devolvemos 404 en vez
+ * de dejar que el catch-all del SPA responda 200 con el index (que enmascara recursos y
+ * dificulta distinguir lo que existe). Las rutas del SPA no tienen extensión → pasan.
+ */
+const STATIC_EXT = /\.(js|mjs|css|map|png|jpe?g|gif|webp|avif|svg|ico|txt|json|woff2?|ttf|eot|xml|webmanifest|pdf)$/i;
+app.use((req, res, next) => {
+  if (req.method === 'GET' && STATIC_EXT.test(req.path)) {
+    res.status(404).type('txt').send('Not found');
+    return;
   }
   next();
 });

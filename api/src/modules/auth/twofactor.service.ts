@@ -1,7 +1,13 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { User } from '@prisma/client';
 import { authenticator } from 'otplib';
 import * as QRCode from 'qrcode';
+import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { EncryptionService } from '../../infra/crypto/encryption.service';
 import { ChallengesService } from './challenges.service';
@@ -14,12 +20,24 @@ export class TwoFactorService {
     private readonly encryption: EncryptionService,
   ) {}
 
-  /** Inicia el alta de TOTP: genera secret pendiente + URL otpauth + QR (data URL). */
+  /**
+   * Inicia el alta de TOTP: genera secret pendiente + URL otpauth + QR (data URL).
+   * Exige RE-AUTENTICACIÓN con la contraseña actual (step-up, B-02): un accessToken robado
+   * no basta para enrolar un TOTP propio en la cuenta de la víctima. Las cuentas SIN
+   * contraseña (solo Google) no pueden hacer step-up por password → se permite (su factor
+   * de re-auth es el propio Google).
+   */
   async setupTotp(
     userId: string,
+    password?: string,
   ): Promise<{ otpauthUrl: string; qrDataUrl: string; secret: string }> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException();
+    if (user.passwordHash) {
+      if (!password || !(await bcrypt.compare(password, user.passwordHash))) {
+        throw new UnauthorizedException('Contraseña incorrecta');
+      }
+    }
     const secret = authenticator.generateSecret();
     // El secret se persiste CIFRADO (AES-256-GCM) en reposo.
     await this.prisma.user.update({

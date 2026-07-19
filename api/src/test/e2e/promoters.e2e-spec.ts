@@ -441,11 +441,16 @@ describe('Autorización de promotores (e2e)', () => {
     expect(res.body.promoter).toMatchObject({ promoterStatus: 'pending', promoterTier: 'premium' });
   });
 
-  it('POST /promoters/register: correo duplicado → 409', async () => {
-    await http()
+  it('POST /promoters/register: correo duplicado → 202 genérico (anti-enumeración, sin sesión)', async () => {
+    // M-01: no revela que el correo existe; responde 202 con mensaje genérico y no crea
+    // ni promotor ni sesión (el dueño real recibe el aviso por correo).
+    const res = await http()
       .post('/api/v1/promoters/register')
       .send({ email: SEED.admin, password: 'Password123', firstName: 'Dup' })
-      .expect(409);
+      .expect(202);
+    expect(res.body.tokens).toBeUndefined();
+    expect(res.body.promoter).toBeUndefined();
+    expect(typeof res.body.message).toBe('string');
   });
 
   it('POST /promoters/register: payload inválido → 400', async () => {

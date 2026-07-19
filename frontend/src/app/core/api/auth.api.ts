@@ -90,8 +90,9 @@ export class AuthApi {
 
   // --- 2FA con app autenticadora (TOTP) ---
   /** Inicia el alta de TOTP: devuelve la URL otpauth, el QR (data URL) y el secret. */
-  totpSetup(): Observable<{ otpauthUrl: string; qrDataUrl: string; secret: string }> {
-    return this.api.post<{ otpauthUrl: string; qrDataUrl: string; secret: string }>('/auth/2fa/totp/setup', {});
+  /** Inicia el alta de TOTP. Requiere la contraseña actual (step-up, B-02) salvo cuentas solo-Google. */
+  totpSetup(password?: string): Observable<{ otpauthUrl: string; qrDataUrl: string; secret: string }> {
+    return this.api.post<{ otpauthUrl: string; qrDataUrl: string; secret: string }>('/auth/2fa/totp/setup', { password });
   }
 
   /** Confirma TOTP con un código de la app → el 2FA pasa a ser por app autenticadora. */

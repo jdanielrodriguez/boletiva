@@ -71,6 +71,8 @@ export const becomePromoter = {
   regHaveAccount: 'I already have an account',
   regCancel: 'Cancel',
   regError: 'We could not create your account. Check your details and try again.',
+  regCheckEmail:
+    'If the email is valid, we sent you instructions to continue. Please check your inbox.',
   regCompleteFields: 'Complete first name, email and password (at least 8 characters).',
   selectedPlan: 'Selected plan',
 };
