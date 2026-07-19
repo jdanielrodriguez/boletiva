@@ -19,6 +19,7 @@ import { SessionStore, type SessionUser } from './session.store';
 import { TokenStore } from './token-store.service';
 import { ImpersonationService } from './impersonation.service';
 import { I18nService } from '../i18n/i18n.service';
+import { ThemeService, type Franja } from '../theme/theme.service';
 
 /**
  * Orquesta la autenticación: enlaza el SDK (AuthApi) con el estado local (tokens
@@ -32,6 +33,7 @@ export class AuthService {
   private readonly session = inject(SessionStore);
   private readonly impersonation = inject(ImpersonationService);
   private readonly i18n = inject(I18nService);
+  private readonly theme = inject(ThemeService);
   private readonly recaptcha = inject(RecaptchaService);
 
   /**
@@ -65,6 +67,7 @@ export class AuthService {
         this.tokens.setAccessToken(tokens.accessToken);
         this.session.setUser(res.user);
         this.applyUserLanguage(res.user);
+        this.applyUserTheme(res.user);
       }),
     );
   }
@@ -94,6 +97,9 @@ export class AuthService {
     // idioma del visitante (v3.10 · GI): aunque el usuario recién salido tuviera
     // inglés, la app queda en español para el siguiente anónimo.
     this.i18n.reset();
+    // Igual que el idioma: al cerrar sesión se borra la preferencia de tema del usuario
+    // y se vuelve a la franja por defecto de la plataforma para el siguiente anónimo.
+    this.theme.reset();
     if (!hadSession) return EMPTY;
     // El estado local ya está limpio; la cookie httpOnly identifica la sesión a
     // revocar en el backend. Ignoramos errores de red del logout remoto.
@@ -133,5 +139,15 @@ export class AuthService {
   private applyUserLanguage(user: SessionUser): void {
     const lang = user.language;
     if (lang === 'es' || lang === 'en') this.i18n.use(lang);
+  }
+
+  /**
+   * Aplica el TEMA (franja día/noche) GUARDADO del usuario al iniciar sesión, en vez del
+   * del sistema/hora: espejo de {@link applyUserLanguage}. `hydrate` aplica sin re-persistir
+   * (la preferencia ya vive en BD). `null` → franja por defecto de la plataforma.
+   */
+  private applyUserTheme(user: SessionUser): void {
+    const pref = (user as { themePref?: string | null }).themePref ?? null;
+    this.theme.hydrate(pref === 'dia' || pref === 'noche' ? (pref as Franja) : null);
   }
 }

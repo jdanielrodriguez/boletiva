@@ -39,6 +39,14 @@ export const account = {
     saved: 'Idioma actualizado.',
     saveError: 'No se pudo guardar el idioma.',
   },
+  theme: {
+    title: 'Tema',
+    hint: 'Elige tu tema día o noche. Se guarda en tu cuenta y se aplica al iniciar sesión (en vez del tema del sistema).',
+    day: 'Día',
+    night: 'Noche',
+    saved: 'Tema actualizado.',
+    saveError: 'No se pudo guardar el tema.',
+  },
   twofa: {
     title: 'Verificación en dos pasos (2FA)',
     hint: 'Elige cómo recibir tu segundo factor al iniciar sesión en un dispositivo nuevo.',
