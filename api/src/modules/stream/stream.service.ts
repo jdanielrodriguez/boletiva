@@ -4,7 +4,7 @@ import type { Redis } from 'ioredis';
 import { Observable, Subject, filter, map, merge, of } from 'rxjs';
 import { RedisService } from '../../infra/redis/redis.service';
 
-type StreamKind = 'order' | 'seat' | 'wallet';
+type StreamKind = 'order' | 'seat' | 'wallet' | 'checkin';
 
 interface StreamEvent {
   kind: StreamKind;
@@ -85,6 +85,24 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
   }
   emitWallet(userId: string, data: unknown): void {
     this.emit({ kind: 'wallet', userId, data });
+  }
+  /** Un check-in ocurrió en el evento → refresca el dashboard de validación en vivo. */
+  emitCheckin(eventId: string, data: unknown): void {
+    this.emit({ kind: 'checkin', eventId, data });
+  }
+
+  /**
+   * Stream SSE del dashboard de check-ins de un evento (validadores). Abre con un
+   * evento `ready` y luego empuja un `checkin` por cada validación (el cliente
+   * recarga las stats). Sin polling agresivo.
+   */
+  streamCheckins(eventId: string): Observable<MessageEvent> {
+    const live = this.subject.pipe(
+      filter((e) => e.kind === 'checkin' && e.eventId === eventId),
+      map((e): MessageEvent => ({ type: 'checkin', data: e.data as object })),
+    );
+    const initial: MessageEvent = { type: 'ready', data: { ok: true } };
+    return merge(of(initial), live);
   }
 
   /**

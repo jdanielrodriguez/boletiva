@@ -193,6 +193,18 @@ interface PaymentProvider {
 - **Ingest** vía RabbitMQ (fan-in) → workers → `validation_events` (append-only, particionado). Reportes/tableros leen contadores Redis.
 - Doble-scan entre gates offline: mitigado por sync frecuente + zonas por gate + flag de revisión; el caso perfecto no es posible sin conexión (los grandes viven con lo mismo).
 
+### 8.1 Feature de Validadores (implementada, rama `feature/validadores-boletos`)
+
+Gestión de validadores + PWA de puerta + dashboard, sobre la infra SafeTix (Olas 5/6) sin tocarla. **Decisión clave: validador = `User` LIGERO (rol `gate_operator`, sin contraseña) + `gate_assignment`** → reusa manifiesto/verify/checkins/gate-token.
+
+- **F1 — Invitación** (`modules/validators`): el promotor/admin invita por email → crea el operador + asignación + `ValidatorInvitation` (código de un solo uso + token de magic-link, ambos hasheados; `status` active/disabled; TTL). `GET/POST/DELETE /events/:id/validators` (+ `/:id`, `/:id/enable`, DELETE all). `GET /validators/:token` (peek) y `POST /validators/claim` (PÚBLICO → **gate-token corto**). Deshabilitar revoca la asignación → corta manifiesto y link al instante; rehabilitar rota el acceso.
+- **F2 — Dashboard backend**: `GET /events/:id/validators/checkin-stats` (dueño): totales por estado, avance %, por localidad, **por validador** (atribución vía `actorId` de la custodia — el ingest ahora registra el operador), conflictos y timeline. `GET /events/:id/validators/checkin-stream` (SSE) empuja un evento por validación (auth por `?access_token`).
+- **F3 — UI de gestión** (editor de evento, tab "Validadores"): invitar, ver estado, deshabilitar/rehabilitar, deshabilitar todos, mostrar enlace+código una vez.
+- **F4 — PWA de validación** (`/validar/:token`, offline-first): canjea el gate-token, descarga el manifiesto a **IndexedDB** y valida ESCANEANDO el QR con la cámara **sin red** — recomputa el **TOTP** (Web Crypto HMAC-SHA1, paso 30 s, ±1) contra el secreto del manifiesto (screenshot inútil). Verde/ámbar/rojo. Store-and-forward: cada check-in se encola local y se drena en LOTE a `POST /events/:id/checkins/batch` (→ **RabbitMQ**, idempotente) al reconectar. Cámara obligatoria (permiso + error + reintentar); `BarcodeDetector` nativo + entrada manual de respaldo (Safari).
+- **F5 — Dashboard en vivo** (tab Validadores): consume `checkin-stats`, se actualiza por **SSE** (fallback de sondeo lento), con avance %, por validador/localidad, conflictos y timeline.
+
+Pendientes (follow-ups): `jsQR` para escaneo automático en Safari; service worker para arrancar la PWA 100% offline; hardening del SSE con ticket de un solo uso (hoy `?access_token`).
+
 ---
 
 ## 9. Transferencia de boletos

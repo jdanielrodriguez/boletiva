@@ -10,6 +10,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Role, TicketStatus, ValidatorStatus } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { MailService } from '../../infra/mail/mail.service';
+import { StreamService } from '../stream/stream.service';
 import { AuthUser } from '../../common/decorators/current-user.decorator';
 import { randomToken, sha256 } from '../../common/utils/crypto';
 
@@ -37,7 +38,14 @@ export class ValidatorsService {
     private readonly config: ConfigService,
     private readonly mail: MailService,
     private readonly jwt: JwtService,
+    private readonly stream: StreamService,
   ) {}
+
+  /** Stream SSE del dashboard de check-ins (admin/promotor dueño). Verifica ownership. */
+  async checkinStream(eventId: string, user: AuthUser) {
+    await this.assertManages(eventId, user);
+    return this.stream.streamCheckins(eventId);
+  }
 
   private origin(): string {
     return (this.config.get<string[]>('cors.origins') ?? [])[0] ?? '';

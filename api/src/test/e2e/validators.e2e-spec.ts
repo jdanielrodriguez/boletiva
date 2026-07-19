@@ -320,6 +320,15 @@ describe('Validadores de boletos (e2e)', () => {
       .expect(403);
   });
 
+  it('SSE checkin-stream: rechaza sin abrir el stream (buyer por rol; promotor ajeno por ownership)', async () => {
+    // Auth por ?access_token (EventSource no manda headers). El guard/ownership rechaza
+    // ANTES de abrir el text/event-stream → responde y no cuelga.
+    await http().get(`/api/v1/events/${eventId}/validators/checkin-stream?access_token=${buyerToken}`).expect(403);
+    await http()
+      .get(`/api/v1/events/${otherEventId}/validators/checkin-stream?access_token=${promoterToken}`)
+      .expect(403);
+  });
+
   it('evento sin boletos → dashboard en cero', async () => {
     const res = await http()
       .get(`/api/v1/events/${otherEventId}/validators/checkin-stats`)

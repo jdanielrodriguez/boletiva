@@ -4,6 +4,8 @@ import { of, throwError } from 'rxjs';
 import { CheckinStatsComponent } from './checkin-stats.component';
 import { ValidatorsApi, type CheckinStats } from '../../core/api/validators.api';
 import { provideI18nTesting } from '../../core/i18n/testing';
+import { API_BASE_URL } from '../../core/config/api.tokens';
+import { TokenStore } from '../../core/auth/token-store.service';
 
 const STATS: CheckinStats = {
   eventId: 'ev-1',
@@ -26,7 +28,14 @@ async function setup(ok = true): Promise<ComponentFixture<CheckinStatsComponent>
     : jasmine.createSpy().and.returnValue(throwError(() => new Error('x')));
   await TestBed.configureTestingModule({
     imports: [CheckinStatsComponent],
-    providers: [provideZonelessChangeDetection(), provideI18nTesting(), { provide: ValidatorsApi, useValue: { checkinStats } }],
+    providers: [
+      provideZonelessChangeDetection(),
+      provideI18nTesting(),
+      { provide: ValidatorsApi, useValue: { checkinStats } },
+      { provide: API_BASE_URL, useValue: 'http://localhost/api/v1' },
+      // Sin access token → no abre EventSource en el test (solo polling); evita red real.
+      { provide: TokenStore, useValue: { getAccessToken: () => null } },
+    ],
   }).compileComponents();
   const f = TestBed.createComponent(CheckinStatsComponent);
   f.componentRef.setInput('eventId', 'ev-1');

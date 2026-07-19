@@ -1,14 +1,28 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  MessageEvent,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Sse,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiProduces,
   ApiTags,
 } from '@nestjs/swagger';
+import { Observable } from 'rxjs';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { SkipRateLimit } from '../../common/rate-limit/rate-limit.decorator';
 import { AuthUser, CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ValidatorsService } from './validators.service';
 import {
@@ -43,6 +57,22 @@ export class EventValidatorsController {
   @ApiOkResponse({ type: CheckinStatsDto })
   checkinStats(@Param('eventId', ParseUUIDPipe) eventId: string, @CurrentUser() user: AuthUser) {
     return this.validators.checkinStats(eventId, user);
+  }
+
+  @Sse('checkin-stream')
+  @Roles(Role.admin, Role.promoter)
+  @SkipRateLimit()
+  @ApiOperation({
+    summary: 'Stream SSE del dashboard de check-ins (empuja un evento por validación; auth por ?access_token)',
+  })
+  @ApiProduces('text/event-stream')
+  checkinStream(
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+    @CurrentUser() user: AuthUser,
+  ): Promise<Observable<MessageEvent>> {
+    // EventSource no envía headers → el front pasa ?access_token=<token de sesión>, que
+    // la estrategia JWT global acepta como fallback. Ownership se valida en el service.
+    return this.validators.checkinStream(eventId, user);
   }
 
   @Post()

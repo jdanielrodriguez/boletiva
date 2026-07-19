@@ -6,6 +6,7 @@ import { RabbitService } from '../../infra/messaging/rabbit.service';
 import { withSpan } from '../../infra/observability/tracing';
 import { TicketCustodyService } from './ticket-custody.service';
 import { TicketSyncService } from './ticket-sync.service';
+import { StreamService } from '../stream/stream.service';
 
 const QUEUE = 'validation.ingest';
 
@@ -40,6 +41,7 @@ export class ValidationIngestService implements OnModuleInit {
     private readonly rabbit: RabbitService,
     private readonly custody: TicketCustodyService,
     private readonly sync: TicketSyncService,
+    private readonly stream: StreamService,
     config: ConfigService,
   ) {
     this.inline = config.get<boolean>('amqp.inline') ?? false;
@@ -131,6 +133,7 @@ export class ValidationIngestService implements OnModuleInit {
       meta: { source: 'offline_ingest', gateId: item.gateId ?? null },
     });
     await this.sync.record(ticket.eventId, ticket.id, 'checked_in');
+    this.stream.emitCheckin(ticket.eventId, { serial: ticket.serial }); // dashboard en vivo (SSE)
     return 'checked_in';
   }
 
