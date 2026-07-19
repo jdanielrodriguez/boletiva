@@ -12,7 +12,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { GateApi } from '../../core/api/gate.api';
-import { GateDb } from '../../core/gate/gate-db';
+import { GateDb, type QueuedCheckin } from '../../core/gate/gate-db';
 import { parseQr, verifyTotp } from '../../core/gate/totp';
 import { apiErrorMessage } from '../../core/http/api-error';
 
@@ -76,6 +76,11 @@ export class GateValidatePage implements OnDestroy {
   private canvas?: HTMLCanvasElement;
   private scanTimer?: ReturnType<typeof setInterval>;
   private busy = false;
+  /** Un solo drenaje de la cola a la vez (evita subir el mismo lote en paralelo). */
+  private flushing = false;
+  private audioCtx?: AudioContext;
+  /** Tamaño de lote al drenar la cola offline (evita payloads gigantes en 3G). */
+  private static readonly FLUSH_CHUNK = 200;
 
   constructor() {
     this.token = this.route.snapshot.paramMap.get('token') ?? '';
@@ -282,25 +287,88 @@ export class GateValidatePage implements OnDestroy {
 
   private show(r: ScanResult): void {
     this.result.set(r);
+    this.feedback(r.kind); // color + vibración + sonido: el operador NO necesita leer
     setTimeout(() => this.result.set(null), 1800);
   }
 
-  // ---- Ingest por lote (RabbitMQ) al reconectar ----
+  /**
+   * Feedback SOBERANO por color (pantalla completa) + vibración + sonido, para validar en
+   * puerta sin leer texto: ok = pulso corto/tono agudo; used(ámbar) = doble pulso; rojo =
+   * pulso largo/tono grave. Best-effort (si no hay soporte, el color manda).
+   */
+  private feedback(kind: ResultKind): void {
+    try {
+      const nav = navigator as Navigator & { vibrate?: (p: number | number[]) => boolean };
+      nav.vibrate?.(kind === 'ok' ? 120 : kind === 'used' ? [90, 60, 90] : 400);
+    } catch {
+      /* sin soporte de vibración */
+    }
+    this.beep(kind);
+  }
 
+  private beep(kind: ResultKind): void {
+    try {
+      const g = globalThis as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext };
+      const Ctx = g.AudioContext ?? g.webkitAudioContext;
+      if (!Ctx) return;
+      this.audioCtx ??= new Ctx();
+      const ctx = this.audioCtx;
+      if (ctx.state === 'suspended') void ctx.resume();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = kind === 'ok' ? 880 : kind === 'used' ? 620 : 200;
+      osc.type = kind === 'invalid' ? 'sawtooth' : 'sine';
+      const now = ctx.currentTime;
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.25, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.28);
+      osc.start(now);
+      osc.stop(now + 0.3);
+    } catch {
+      /* audio no disponible */
+    }
+  }
+
+  // ---- Ingest por lote (RabbitMQ) al reconectar — resiliente / idempotente ----
+
+  /**
+   * Drena la cola offline SIN bloquear el escáner: corre async y el escaneo sigue
+   * encolando en paralelo (el boleto 501 se valida mientras suben los primeros 500).
+   * Sube en LOTES y borra SOLO lo confirmado POR ID (idempotente) → si se encolan nuevos
+   * check-ins durante el drenaje NO se pierden. Un fallo (3G intermitente) corta el ciclo
+   * y se reintenta en el próximo `online`/check-in. Un solo flush a la vez (`flushing`).
+   */
   private async flush(): Promise<void> {
-    if (!this.online() || !this.gateToken) return;
-    const queued = await this.db.allQueued();
-    if (!queued.length) return;
-    this.api
-      .batchCheckin(this.eventId, queued.map((q) => ({ serial: q.serial, checkedInAt: q.at })), this.gateToken)
-      .subscribe({
-        next: async () => {
-          // Idempotente en backend → limpiar la cola tras subir es seguro.
-          await this.db.clearQueue();
-          this.pending.set(0);
-        },
-        error: () => undefined, // se reintenta en el próximo evento online / check-in
-      });
+    if (this.flushing || !this.online() || !this.gateToken) return;
+    this.flushing = true;
+    try {
+      for (;;) {
+        if (!this.online()) break;
+        const batch = (await this.db.allQueued()).slice(0, GateValidatePage.FLUSH_CHUNK);
+        if (!batch.length) break;
+        const ok = await this.uploadBatch(batch);
+        if (!ok) break; // red inestable → se reintenta luego (cero pérdida)
+        await this.db.deleteQueued(batch.map((q) => q.id).filter((x): x is number => x != null));
+        this.pending.set((await this.db.queueCount()) ?? 0);
+      }
+    } finally {
+      this.flushing = false;
+    }
+  }
+
+  /** Sube un lote; resuelve true si el backend lo aceptó (idempotente), false si falló. */
+  private uploadBatch(batch: QueuedCheckin[]): Promise<boolean> {
+    return new Promise((resolve) => {
+      this.api
+        .batchCheckin(
+          this.eventId,
+          batch.map((q) => ({ serial: q.serial, checkedInAt: q.at })),
+          this.gateToken,
+        )
+        .subscribe({ next: () => resolve(true), error: () => resolve(false) });
+    });
   }
 
   private readonly onOnline = (): void => {
@@ -312,6 +380,7 @@ export class GateValidatePage implements OnDestroy {
   ngOnDestroy(): void {
     if (this.scanTimer) clearInterval(this.scanTimer);
     this.stream?.getTracks().forEach((t) => t.stop());
+    void this.audioCtx?.close().catch(() => undefined);
     if (isPlatformBrowser(this.platformId)) {
       window.removeEventListener('online', this.onOnline);
       window.removeEventListener('offline', this.onOffline);

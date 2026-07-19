@@ -9,6 +9,8 @@ export interface GateTicket {
 
 /** Un check-in pendiente de subir (cola offline → ingest por RabbitMQ al reconectar). */
 export interface QueuedCheckin {
+  /** Clave autoincremental de IndexedDB (presente al leer con allQueued). */
+  id?: number;
   serial: string;
   at: string; // ISO
 }
@@ -115,8 +117,27 @@ export class GateDb {
     return rows ?? [];
   }
 
-  /** Vacía la cola (tras un ingest exitoso; el endpoint es idempotente). */
+  /** Vacía la cola completa (solo para reset; el drenaje normal borra por id). */
   async clearQueue(): Promise<void> {
     await this.tx(S_QUEUE, 'readwrite', (s) => s.clear());
+  }
+
+  /**
+   * Borra SOLO los check-ins ya confirmados por su id (idempotente). Clave para no
+   * perder datos: si se encolan nuevos check-ins MIENTRAS se drena un lote, un
+   * `clear()` los borraría; borrar por id elimina únicamente lo que ya se subió.
+   */
+  async deleteQueued(ids: number[]): Promise<void> {
+    const valid = ids.filter((id): id is number => typeof id === 'number');
+    if (!valid.length) return;
+    const db = await this.open();
+    if (!db) return;
+    await new Promise<void>((resolve) => {
+      const t = db.transaction(S_QUEUE, 'readwrite');
+      const s = t.objectStore(S_QUEUE);
+      for (const id of valid) s.delete(id);
+      t.oncomplete = () => resolve();
+      t.onerror = () => resolve();
+    });
   }
 }

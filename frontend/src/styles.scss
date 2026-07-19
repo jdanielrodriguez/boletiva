@@ -4168,20 +4168,25 @@ p.error {
   width: min(70vw, 320px); aspect-ratio: 1; border: 3px solid rgba(255, 255, 255, 0.85);
   border-radius: 18px; box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.35);
 }
+/* Resultado a PANTALLA COMPLETA (fixed): tapa TODO con color sólido de máximo contraste
+   — idéntico en tema día o noche (colores propios, no tokens) para que el operador
+   decida solo por el color, sin leer. z-index por encima de header/menús. */
 .gate-result {
-  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center;
-  justify-content: center; gap: 0.5rem; text-align: center; padding: 1rem;
-  animation: gate-pop 0.12s ease-out;
+  position: fixed; inset: 0; z-index: 3000; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 1rem; text-align: center; padding: 1.5rem;
+  color: #fff; animation: gate-pop 0.12s ease-out;
 }
-.gate-result.ok { background: rgba(30, 160, 80, 0.96); }
-.gate-result.used { background: rgba(210, 150, 20, 0.96); }
-.gate-result.bad { background: rgba(200, 40, 60, 0.96); }
+.gate-result.ok { background: #16a34a; }   /* verde sólido */
+.gate-result.used { background: #d97706; } /* ámbar sólido */
+.gate-result.bad { background: #dc2626; }  /* rojo sólido */
 .gate-result-icon {
-  width: 4.5rem; height: 4.5rem; border-radius: 50%; background: rgba(255, 255, 255, 0.22);
-  display: flex; align-items: center; justify-content: center; font-size: 2.6rem; font-weight: 800;
+  width: min(38vw, 9rem); height: min(38vw, 9rem); border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25); border: 4px solid rgba(255, 255, 255, 0.9);
+  display: flex; align-items: center; justify-content: center;
+  font-size: min(20vw, 5rem); font-weight: 900; line-height: 1;
 }
-.gate-result-msg { font-size: 1.7rem; font-weight: 800; letter-spacing: 0.02em; }
-.gate-result-serial { font-family: monospace; font-size: 1rem; opacity: 0.9; }
+.gate-result-msg { font-size: clamp(1.6rem, 7vw, 2.6rem); font-weight: 900; letter-spacing: 0.02em; }
+.gate-result-serial { font-family: monospace; font-size: 1.1rem; opacity: 0.92; }
 @keyframes gate-pop { from { transform: scale(0.96); opacity: 0.6; } to { transform: scale(1); opacity: 1; } }
 .gate-manual { display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0.8rem 0.9rem; background: #14141f; }
 .gate-manual input { flex: 1; min-width: 12rem; }

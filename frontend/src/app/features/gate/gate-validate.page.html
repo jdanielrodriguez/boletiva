@@ -55,24 +55,28 @@
         <div class="gate-viewport">
           <video #video class="gate-video" playsinline muted></video>
           <div class="gate-reticle" aria-hidden="true"></div>
-
-          @if (result(); as r) {
-            <div
-              class="gate-result"
-              [class.ok]="r.kind === 'ok'"
-              [class.used]="r.kind === 'used'"
-              [class.bad]="r.kind === 'invalid'"
-              role="alert"
-              data-testid="gate-result"
-            >
-              <span class="gate-result-icon" aria-hidden="true">
-                {{ r.kind === 'ok' ? '✓' : (r.kind === 'used' ? '!' : '✕') }}
-              </span>
-              <span class="gate-result-msg">{{ r.message }}</span>
-              @if (r.serial) { <span class="gate-result-serial">{{ r.serial }}</span> }
-            </div>
-          }
         </div>
+
+        <!-- Resultado a PANTALLA COMPLETA (fixed): color sólido de contraste absoluto
+             (verde/ámbar/rojo) igual en día o noche + ícono gigante. El operador decide
+             por el color; el texto es secundario. -->
+        @if (result(); as r) {
+          <div
+            class="gate-result"
+            [class.ok]="r.kind === 'ok'"
+            [class.used]="r.kind === 'used'"
+            [class.bad]="r.kind === 'invalid'"
+            role="alert"
+            aria-live="assertive"
+            data-testid="gate-result"
+          >
+            <span class="gate-result-icon" aria-hidden="true">
+              {{ r.kind === 'ok' ? '✓' : (r.kind === 'used' ? '!' : '✕') }}
+            </span>
+            <span class="gate-result-msg">{{ r.message }}</span>
+            @if (r.serial) { <span class="gate-result-serial">{{ r.serial }}</span> }
+          </div>
+        }
 
         @if (!manualSupported()) {
           <form class="gate-manual" (ngSubmit)="validateManual()">
