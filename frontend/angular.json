@@ -36,7 +36,8 @@
               "entry": "src/server.ts"
             },
             "externalDependencies": ["canvas"],
-            "allowedCommonJsDependencies": ["jsqr"]
+            "allowedCommonJsDependencies": ["jsqr"],
+            "serviceWorker": "ngsw-config.json"
           },
           "configurations": {
             "production": {
