@@ -5797,6 +5797,79 @@
         ]
       }
     },
+    "/api/v1/events/{eventId}/validators/stream-ticket": {
+      "post": {
+        "operationId": "EventValidatorsController_streamTicket_v1",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidatorStreamTicketDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Emite un ticket de un solo uso para abrir el SSE del dashboard",
+        "tags": [
+          "validators"
+        ]
+      }
+    },
+    "/api/v1/events/{eventId}/validators/checkin-stream": {
+      "get": {
+        "operationId": "EventValidatorsController_checkinStream_v1",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ticket",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Stream SSE del dashboard de check-ins (empuja un evento por validación). Auth: ?ticket=",
+        "tags": [
+          "validators"
+        ]
+      }
+    },
     "/api/v1/events/{eventId}/validators/{id}": {
       "delete": {
         "operationId": "EventValidatorsController_disable_v1",
@@ -7740,8 +7813,8 @@
     }
   },
   "info": {
-    "title": "Boletiva API",
-    "description": "API de la boletera Boletiva",
+    "title": "Pasa Eventos API",
+    "description": "API de la boletera Pasa Eventos",
     "version": "1.0",
     "contact": {}
   },
@@ -14808,6 +14881,24 @@
           "byValidator",
           "recent",
           "updatedAt"
+        ]
+      },
+      "ValidatorStreamTicketDto": {
+        "type": "object",
+        "properties": {
+          "ticket": {
+            "type": "string",
+            "description": "Ticket de un solo uso (pásalo como ?ticket= al abrir el SSE)"
+          },
+          "expiresIn": {
+            "type": "number",
+            "description": "Segundos de validez",
+            "example": 15
+          }
+        },
+        "required": [
+          "ticket",
+          "expiresIn"
         ]
       },
       "InviteValidatorDto": {

@@ -3,7 +3,6 @@ import { isPlatformBrowser } from '@angular/common';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ValidatorsApi, type CheckinStats } from '../../core/api/validators.api';
 import { API_BASE_URL } from '../../core/config/api.tokens';
-import { TokenStore } from '../../core/auth/token-store.service';
 
 /**
  * Dashboard de check-ins en TIEMPO REAL (F5). Consume el endpoint de stats
@@ -23,13 +22,14 @@ export class CheckinStatsComponent implements OnDestroy {
   private readonly api = inject(ValidatorsApi);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly baseUrl = inject(API_BASE_URL);
-  private readonly tokens = inject(TokenStore);
 
   protected readonly stats = signal<CheckinStats | null>(null);
   protected readonly loading = signal(true);
   protected readonly error = signal(false);
   private timer?: ReturnType<typeof setInterval>;
+  private reconnectTimer?: ReturnType<typeof setTimeout>;
   private es?: EventSource;
+  private destroyed = false;
 
   constructor() {
     if (!isPlatformBrowser(this.platformId)) return;
@@ -40,22 +40,48 @@ export class CheckinStatsComponent implements OnDestroy {
     });
   }
 
-  /** Abre el SSE del evento: en cada `checkin` recarga las stats (tiempo real). */
+  /**
+   * Abre el SSE del evento sin poner el token en la URL (CWE-317): pide un TICKET de un
+   * solo uso (Bearer en header) y abre EventSource con `?ticket=`. En cada `checkin`
+   * recarga las stats. Como el ticket se consume al abrir, la reconexión pide uno nuevo.
+   */
   private openStream(): void {
-    const token = this.tokens.getAccessToken();
-    if (!token || typeof EventSource === 'undefined') return; // sin token o SSR → solo polling
+    if (this.destroyed || typeof EventSource === 'undefined') return; // SSR/sin soporte → solo polling
+    this.api.streamTicket(this.eventId()).subscribe({
+      next: ({ ticket }) => this.connect(ticket),
+      error: () => {
+        /* sin ticket → el polling lento mantiene el dashboard; reintenta luego */
+        this.scheduleReconnect();
+      },
+    });
+  }
+
+  private connect(ticket: string): void {
+    if (this.destroyed) return;
     try {
       this.es = new EventSource(
-        `${this.baseUrl}/events/${this.eventId()}/validators/checkin-stream?access_token=${encodeURIComponent(token)}`,
+        `${this.baseUrl}/events/${this.eventId()}/validators/checkin-stream?ticket=${encodeURIComponent(ticket)}`,
       );
       // El backend emite eventos con nombre `checkin` (y `ready` al abrir).
       this.es.addEventListener('checkin', () => this.load());
       this.es.onerror = () => {
-        // Reconexión la maneja EventSource; el polling lento cubre el hueco.
+        // El ticket es de un solo uso → EventSource no puede auto-reconectar con la misma
+        // URL. Cerramos y pedimos un ticket nuevo (con retardo). El polling cubre el hueco.
+        this.es?.close();
+        this.es = undefined;
+        this.scheduleReconnect();
       };
     } catch {
-      /* si el SSE no abre, el polling lento mantiene el dashboard */
+      this.scheduleReconnect();
     }
+  }
+
+  private scheduleReconnect(): void {
+    if (this.destroyed || this.reconnectTimer) return;
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = undefined;
+      this.openStream();
+    }, 5000);
   }
 
   protected load(): void {
@@ -74,7 +100,9 @@ export class CheckinStatsComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.destroyed = true;
     if (this.timer) clearInterval(this.timer);
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
     this.es?.close();
   }
 }

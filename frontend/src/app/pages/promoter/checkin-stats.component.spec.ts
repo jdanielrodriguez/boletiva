@@ -5,7 +5,6 @@ import { CheckinStatsComponent } from './checkin-stats.component';
 import { ValidatorsApi, type CheckinStats } from '../../core/api/validators.api';
 import { provideI18nTesting } from '../../core/i18n/testing';
 import { API_BASE_URL } from '../../core/config/api.tokens';
-import { TokenStore } from '../../core/auth/token-store.service';
 
 const STATS: CheckinStats = {
   eventId: 'ev-1',
@@ -26,15 +25,15 @@ async function setup(ok = true): Promise<ComponentFixture<CheckinStatsComponent>
   const checkinStats = ok
     ? jasmine.createSpy().and.returnValue(of(STATS))
     : jasmine.createSpy().and.returnValue(throwError(() => new Error('x')));
+  // streamTicket falla → no se abre EventSource en el test (solo polling); evita red real.
+  const streamTicket = jasmine.createSpy().and.returnValue(throwError(() => new Error('no-sse')));
   await TestBed.configureTestingModule({
     imports: [CheckinStatsComponent],
     providers: [
       provideZonelessChangeDetection(),
       provideI18nTesting(),
-      { provide: ValidatorsApi, useValue: { checkinStats } },
+      { provide: ValidatorsApi, useValue: { checkinStats, streamTicket } },
       { provide: API_BASE_URL, useValue: 'http://localhost/api/v1' },
-      // Sin access token → no abre EventSource en el test (solo polling); evita red real.
-      { provide: TokenStore, useValue: { getAccessToken: () => null } },
     ],
   }).compileComponents();
   const f = TestBed.createComponent(CheckinStatsComponent);

@@ -4,11 +4,14 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { randomBytes } from 'node:crypto';
 import { Role, TicketStatus, ValidatorStatus } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { RedisService } from '../../infra/redis/redis.service';
 import { MailService } from '../../infra/mail/mail.service';
 import { StreamService } from '../stream/stream.service';
 import { AuthUser } from '../../common/decorators/current-user.decorator';
@@ -17,6 +20,8 @@ import { randomToken, sha256 } from '../../common/utils/crypto';
 /** Días de validez del magic-link de validación (mientras el validador esté habilitado). */
 const TTL_DAYS = 30;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/** TTL del ticket de un solo uso del SSE del dashboard (corto: solo para abrir la conexión). */
+const STREAM_TICKET_TTL_S = 15;
 
 /**
  * Validadores de boletos (autorizadores de acceso). El promotor invita por email a
@@ -39,11 +44,35 @@ export class ValidatorsService {
     private readonly mail: MailService,
     private readonly jwt: JwtService,
     private readonly stream: StreamService,
+    private readonly redis: RedisService,
   ) {}
 
-  /** Stream SSE del dashboard de check-ins (admin/promotor dueño). Verifica ownership. */
-  async checkinStream(eventId: string, user: AuthUser) {
+  /**
+   * Emite un TICKET de un solo uso (Redis, 15 s) acotado a este evento, para abrir el SSE
+   * del dashboard sin exponer el access token (900 s) en la URL/logs de Cloud Run/LB
+   * (CWE-317). Requiere sesión (Bearer en header) y gestionar el evento (admin/promotor dueño).
+   */
+  async issueStreamTicket(eventId: string, user: AuthUser) {
     await this.assertManages(eventId, user);
+    const ticket = randomBytes(24).toString('base64url');
+    await this.redis
+      .getClient()
+      .set(`sse:vticket:${ticket}`, eventId, 'EX', STREAM_TICKET_TTL_S);
+    return { ticket, expiresIn: STREAM_TICKET_TTL_S };
+  }
+
+  /**
+   * Stream SSE del dashboard de check-ins. Auth por TICKET de un solo uso (`?ticket=`): se
+   * consume con GETDEL y debe corresponder a ESTE evento. El ownership ya se validó al emitir
+   * el ticket (Bearer + rol), así que aquí no viaja ningún token de sesión por la URL.
+   */
+  async checkinStreamByTicket(eventId: string, ticket?: string) {
+    if (!ticket) throw new UnauthorizedException('Se requiere un ticket válido');
+    const raw = await this.redis
+      .getClient()
+      .getdel(`sse:vticket:${ticket}`)
+      .catch(() => null);
+    if (raw !== eventId) throw new UnauthorizedException('Ticket inválido o expirado');
     return this.stream.streamCheckins(eventId);
   }
 

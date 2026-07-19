@@ -2257,6 +2257,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{eventId}/validators/stream-ticket": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Emite un ticket de un solo uso para abrir el SSE del dashboard */
+        post: operations["EventValidatorsController_streamTicket_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{eventId}/validators/checkin-stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stream SSE del dashboard de check-ins (empuja un evento por validación). Auth: ?ticket= */
+        get: operations["EventValidatorsController_checkinStream_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{eventId}/validators/{id}": {
         parameters: {
             query?: never;
@@ -7064,6 +7098,15 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
+        ValidatorStreamTicketDto: {
+            /** @description Ticket de un solo uso (pásalo como ?ticket= al abrir el SSE) */
+            ticket: string;
+            /**
+             * @description Segundos de validez
+             * @example 15
+             */
+            expiresIn: number;
+        };
         InviteValidatorDto: {
             /**
              * @description Email del validador a habilitar
@@ -11356,6 +11399,48 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["CheckinStatsDto"];
                 };
+            };
+        };
+    };
+    EventValidatorsController_streamTicket_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidatorStreamTicketDto"];
+                };
+            };
+        };
+    };
+    EventValidatorsController_checkinStream_v1: {
+        parameters: {
+            query: {
+                ticket: string;
+            };
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

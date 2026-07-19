@@ -63,6 +63,15 @@ export class ValidatorPeekDto {
   @ApiProperty() valid!: boolean;
 }
 
+/** Ticket efímero de un solo uso para abrir el SSE del dashboard sin poner el token en la URL. */
+export class ValidatorStreamTicketDto {
+  @ApiProperty({ description: 'Ticket de un solo uso (pásalo como ?ticket= al abrir el SSE)' })
+  ticket!: string;
+
+  @ApiProperty({ description: 'Segundos de validez', example: 15 })
+  expiresIn!: number;
+}
+
 export class ValidatorDisabledDto {
   @ApiProperty({ description: 'true (uno) o cantidad deshabilitada (todos)' })
   disabled!: boolean | number;

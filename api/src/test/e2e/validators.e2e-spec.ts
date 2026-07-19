@@ -1,3 +1,4 @@
+import nodeHttp from 'node:http';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '../../infra/prisma/prisma.service';
@@ -29,6 +30,7 @@ describe('Validadores de boletos (e2e)', () => {
   let operatorId: string;
   let operatorToken: string;
   let stamp = 0;
+  let port = 0;
 
   const http = () => request(app.getHttpServer());
   const bearer = (t: string) => ({ Authorization: `Bearer ${t}` });
@@ -36,6 +38,8 @@ describe('Validadores de boletos (e2e)', () => {
 
   beforeAll(async () => {
     app = await createTestApp();
+    await app.listen(0); // puerto real para abrir el SSE con http crudo (supertest cuelga en streams)
+    port = (app.getHttpServer().address() as { port: number }).port;
     prisma = app.get(PrismaService);
     promoterToken = await login(app, SEED.promoter);
     adminToken = await login(app, SEED.admin);
@@ -320,14 +324,52 @@ describe('Validadores de boletos (e2e)', () => {
       .expect(403);
   });
 
-  it('SSE checkin-stream: rechaza sin abrir el stream (buyer por rol; promotor ajeno por ownership)', async () => {
-    // Auth por ?access_token (EventSource no manda headers). El guard/ownership rechaza
-    // ANTES de abrir el text/event-stream → responde y no cuelga.
-    await http().get(`/api/v1/events/${eventId}/validators/checkin-stream?access_token=${buyerToken}`).expect(403);
+  it('stream-ticket: authz (buyer 403; promotor ajeno 403; dueño/admin 200 con ticket)', async () => {
+    // El token de sesión (Bearer en HEADER) autoriza aquí; el rol/ownership se valida ANTES
+    // de emitir el ticket. El JWT NUNCA viaja por la URL del SSE (CWE-317).
     await http()
-      .get(`/api/v1/events/${otherEventId}/validators/checkin-stream?access_token=${promoterToken}`)
-      .expect(403);
+      .post(`/api/v1/events/${eventId}/validators/stream-ticket`)
+      .set(bearer(buyerToken))
+      .expect(403); // por rol
+    await http()
+      .post(`/api/v1/events/${otherEventId}/validators/stream-ticket`)
+      .set(bearer(promoterToken))
+      .expect(403); // por ownership
+    const t = await http()
+      .post(`/api/v1/events/${eventId}/validators/stream-ticket`)
+      .set(bearer(promoterToken))
+      .expect(200);
+    expect(typeof t.body.ticket).toBe('string');
+    expect(t.body.expiresIn).toBeGreaterThan(0);
   });
+
+  it('SSE checkin-stream: sin ticket / ticket inválido → 401 (no cuelga)', async () => {
+    await http().get(`/api/v1/events/${eventId}/validators/checkin-stream`).expect(401);
+    await http().get(`/api/v1/events/${eventId}/validators/checkin-stream?ticket=nope`).expect(401);
+  });
+
+  it('SSE checkin-stream: ticket válido abre (ready), es de UN SOLO USO y está ligado al evento', async () => {
+    // Ticket para ESTE evento usado en OTRO evento → 401 (ligado al evento que lo emitió).
+    const tCross = await http()
+      .post(`/api/v1/events/${eventId}/validators/stream-ticket`)
+      .set(bearer(adminToken))
+      .expect(200);
+    await http()
+      .get(`/api/v1/events/${otherEventId}/validators/checkin-stream?ticket=${tCross.body.ticket}`)
+      .expect(401);
+
+    const t = await http()
+      .post(`/api/v1/events/${eventId}/validators/stream-ticket`)
+      .set(bearer(adminToken))
+      .expect(200);
+    // Abre el SSE con el ticket → primer evento `ready`.
+    const events = await openSse(`/api/v1/events/${eventId}/validators/checkin-stream?ticket=${t.body.ticket}`);
+    expect(events[0]?.type).toBe('ready');
+    // Reusar el mismo ticket → 401 (getdel lo consumió al abrir).
+    await http()
+      .get(`/api/v1/events/${eventId}/validators/checkin-stream?ticket=${t.body.ticket}`)
+      .expect(401);
+  }, 15000);
 
   it('evento sin boletos → dashboard en cero', async () => {
     const res = await http()
@@ -338,4 +380,48 @@ describe('Validadores de boletos (e2e)', () => {
     expect(res.body.byValidator).toEqual([]);
     expect(res.body.byLocality).toEqual([]);
   });
+
+  /**
+   * Abre el SSE con http crudo (supertest cuelga en streams que no cierran), acumula
+   * eventos y resuelve al recibir `ready` (o al vencer un timeout de seguridad). Parsea
+   * el formato text/event-stream de Nest.
+   */
+  function openSse(path: string): Promise<Array<{ type: string; data: unknown }>> {
+    return new Promise((resolve, reject) => {
+      const req = nodeHttp.get({ host: '127.0.0.1', port, path }, (res) => {
+        if (res.statusCode !== 200) {
+          reject(new Error(`status ${res.statusCode}`));
+          return;
+        }
+        expect(res.headers['content-type']).toContain('text/event-stream');
+        const events: Array<{ type: string; data: unknown }> = [];
+        let buf = '';
+        const done = () => {
+          clearTimeout(timer);
+          req.destroy();
+          resolve(events);
+        };
+        const timer = setTimeout(done, 6000); // red de seguridad
+        res.on('data', (chunk: Buffer) => {
+          buf += chunk.toString('utf8');
+          let idx: number;
+          while ((idx = buf.indexOf('\n\n')) !== -1) {
+            const raw = buf.slice(0, idx);
+            buf = buf.slice(idx + 2);
+            const typeMatch = raw.match(/^event:\s*(.*)$/m);
+            const dataMatch = raw.match(/^data:\s*(.*)$/m);
+            if (dataMatch) {
+              events.push({
+                type: typeMatch ? typeMatch[1].trim() : 'message',
+                data: JSON.parse(dataMatch[1]),
+              });
+              if (typeMatch && typeMatch[1].trim() === 'ready') done();
+            }
+          }
+        });
+        res.on('error', reject);
+      });
+      req.on('error', reject);
+    });
+  }
 });

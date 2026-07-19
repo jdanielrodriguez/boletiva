@@ -8,6 +8,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
   Sse,
 } from '@nestjs/common';
 import {
@@ -34,6 +35,7 @@ import {
   ValidatorInviteResponseDto,
   ValidatorListItemDto,
   ValidatorPeekDto,
+  ValidatorStreamTicketDto,
 } from './dto/validators.dto';
 
 /** Gestión de validadores de un evento (admin/promotor dueño). */
@@ -59,20 +61,29 @@ export class EventValidatorsController {
     return this.validators.checkinStats(eventId, user);
   }
 
-  @Sse('checkin-stream')
+  @Post('stream-ticket')
+  @HttpCode(200)
   @Roles(Role.admin, Role.promoter)
+  @ApiOperation({ summary: 'Emite un ticket de un solo uso para abrir el SSE del dashboard' })
+  @ApiOkResponse({ type: ValidatorStreamTicketDto })
+  streamTicket(@Param('eventId', ParseUUIDPipe) eventId: string, @CurrentUser() user: AuthUser) {
+    return this.validators.issueStreamTicket(eventId, user);
+  }
+
+  @Public()
   @SkipRateLimit()
+  @Sse('checkin-stream')
   @ApiOperation({
-    summary: 'Stream SSE del dashboard de check-ins (empuja un evento por validación; auth por ?access_token)',
+    summary: 'Stream SSE del dashboard de check-ins (empuja un evento por validación). Auth: ?ticket=',
   })
   @ApiProduces('text/event-stream')
   checkinStream(
     @Param('eventId', ParseUUIDPipe) eventId: string,
-    @CurrentUser() user: AuthUser,
+    @Query('ticket') ticket?: string,
   ): Promise<Observable<MessageEvent>> {
-    // EventSource no envía headers → el front pasa ?access_token=<token de sesión>, que
-    // la estrategia JWT global acepta como fallback. Ownership se valida en el service.
-    return this.validators.checkinStream(eventId, user);
+    // EventSource no envía headers → se abre con un TICKET de un solo uso (?ticket=), emitido
+    // por POST stream-ticket con Bearer + ownership. Sin JWT en la URL (CWE-317).
+    return this.validators.checkinStreamByTicket(eventId, ticket);
   }
 
   @Post()

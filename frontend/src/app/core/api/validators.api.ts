@@ -30,6 +30,17 @@ export class ValidatorsApi {
     return this.api.get<CheckinStats>(`/events/${eventId}/validators/checkin-stats`);
   }
 
+  /**
+   * Emite un ticket de un solo uso (Bearer en header) para abrir el SSE del dashboard sin
+   * poner el token de sesión en la URL. Se consume al abrir la conexión (?ticket=).
+   */
+  streamTicket(eventId: string): Observable<{ ticket: string; expiresIn: number }> {
+    return this.api.post<{ ticket: string; expiresIn: number }>(
+      `/events/${eventId}/validators/stream-ticket`,
+      {},
+    );
+  }
+
   /** Invita/rehabilita por email → devuelve url + código (mostrar una sola vez). */
   invite(eventId: string, email: string): Observable<ValidatorInviteResponseDto> {
     return this.api.post<ValidatorInviteResponseDto>(`/events/${eventId}/validators`, { email });
