@@ -85,6 +85,16 @@ export class PromotersController {
       { email: dto.email, password: dto.password, firstName: dto.firstName },
       { deviceId: req.headers['x-device-id'] as string | undefined, userAgent: req.headers['user-agent'], ip: req.ip },
     );
+    // Anti-enumeración (M-01): si el correo ya existe, signup no crea cuenta ni sesión
+    // (devuelve `pending`). Respondemos 202 genérico — el dueño real recibe por correo el
+    // aviso con opciones de iniciar sesión y darse de alta como promotor desde su cuenta.
+    if ('pending' in signup) {
+      res.status(202);
+      return {
+        message:
+          'Si el correo es válido, te enviamos instrucciones para continuar. Revisa tu bandeja de entrada.',
+      };
+    }
     setRefreshCookie(res, this.config, signup.tokens?.refreshToken);
     const promoter = await this.promoters.apply(signup.user.id, dto.tier);
     return { ...signup, promoter };

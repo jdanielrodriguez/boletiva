@@ -47,6 +47,7 @@ import {
   ResetPasswordDto,
   SignupDto,
   TokenDto,
+  TotpSetupDto,
   TwoFactorVerifyDto,
   VerifyEmailCodeDto,
 } from './dto/auth.dto';
@@ -122,12 +123,26 @@ export class AuthController {
   @Post('signup')
   @ApiOperation({ summary: 'Registro con correo y contraseña (envía verificación)' })
   @ApiCreatedResponse({ type: SignupResponseDto })
+  @ApiAcceptedResponse({
+    type: MessageResponseDto,
+    description: 'Respuesta genérica anti-enumeración: el correo ya existe (se avisa por correo).',
+  })
   async signup(
     @Body() dto: SignupDto,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    return this.issueCookie(res, await this.auth.signup(dto, this.deviceCtx(req, res)));
+    const result = await this.auth.signup(dto, this.deviceCtx(req, res));
+    // Anti-enumeración (M-01): correo ya existente → 202 genérico (sin sesión). El alta
+    // real (correo nuevo) devuelve 201 + tokens y setea la cookie de refresh.
+    if ('pending' in result) {
+      res.status(202);
+      return {
+        message:
+          'Si el correo es válido, te enviamos instrucciones para continuar. Revisa tu bandeja de entrada.',
+      };
+    }
+    return this.issueCookie(res, result);
   }
 
   @Public()
@@ -349,11 +364,13 @@ export class AuthController {
   // ---- Gestión de 2FA ----
 
   @Post('2fa/totp/setup')
+  @RateLimit({ limit: 5, windowSec: 60 })
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Inicia el alta de TOTP (devuelve QR y secret)' })
+  @ApiOperation({ summary: 'Inicia el alta de TOTP (devuelve QR y secret). Requiere re-autenticación.' })
   @ApiCreatedResponse({ type: TotpSetupResponseDto })
-  totpSetup(@CurrentUser('userId') userId: string) {
-    return this.twofactor.setupTotp(userId);
+  totpSetup(@CurrentUser('userId') userId: string, @Body() dto: TotpSetupDto) {
+    // B-02: step-up con la contraseña actual (si la cuenta tiene contraseña).
+    return this.twofactor.setupTotp(userId, dto.password);
   }
 
   @Post('2fa/totp/enable')

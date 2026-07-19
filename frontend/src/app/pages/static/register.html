@@ -84,6 +84,9 @@
           @if (error(); as e) {
             <p class="error" data-testid="rg-error">{{ e }}</p>
           }
+          @if (info(); as i) {
+            <p class="info" data-testid="rg-info" role="status">{{ i }}</p>
+          }
         </form>
 
         <p class="auth-alt">{{ 'auth.haveAccountQ' | translate }} <a routerLink="/login">{{ 'auth.loginLink' | translate }}</a></p>

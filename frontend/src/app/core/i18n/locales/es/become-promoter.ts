@@ -71,6 +71,8 @@ export const becomePromoter = {
   regHaveAccount: 'Ya tengo cuenta',
   regCancel: 'Cancelar',
   regError: 'No pudimos crear tu cuenta. Revisa los datos e inténtalo de nuevo.',
+  regCheckEmail:
+    'Si el correo es válido, te enviamos instrucciones para continuar. Revisa tu bandeja de entrada.',
   regCompleteFields: 'Completa nombre, correo y contraseña (mínimo 8 caracteres).',
   selectedPlan: 'Plan seleccionado',
 };

@@ -65,7 +65,9 @@ export const auth = {
   // Mensajes (toasts / errores)
   msgInvitationInvalid: 'La invitación no es válida o venció.',
   msgCompleteFields: 'Completa nombre, correo y contraseña.',
-  msgCreateFailed: 'No se pudo crear la cuenta (¿el correo ya está registrado?).',
+  msgCreateFailed: 'No se pudo crear la cuenta. Revisa los datos e inténtalo de nuevo.',
+  msgSignupCheckEmail:
+    'Listo. Si el correo es válido, te enviamos instrucciones para continuar. Revisa tu bandeja de entrada.',
   msgActivateOk: '¡Listo! Tu cuenta ahora es promotora. Vuelve a iniciar sesión para verlo.',
   msgActivateFailed: 'No se pudo activar (¿la invitación venció o ya la usaste?).',
   msgEnterEmail: 'Ingresa tu correo.',

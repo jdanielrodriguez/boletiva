@@ -53,7 +53,10 @@ async function bootstrap(): Promise<void> {
       if (!origin || allowed.includes('*') || allowed.includes(origin) || !isProd) {
         return cb(null, true);
       }
-      return cb(new Error('Not allowed by CORS'), false);
+      // I-01: rechazo LIMPIO — no reflejamos las cabeceras CORS (el navegador bloquea
+      // igual) en vez de lanzar un Error, que se propagaba como 500 y ensuciaba el
+      // monitoreo / facilitaba fingerprinting. `cb(null, false)` = origen no permitido.
+      return cb(null, false);
     },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     credentials: true,
@@ -68,8 +71,11 @@ async function bootstrap(): Promise<void> {
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
   );
 
-  // Contrato de error uniforme.
-  app.useGlobalFilters(new AllExceptionsFilter(!!isProd));
+  // Contrato de error uniforme. El stack se expone SOLO si EXPOSE_ERROR_STACK=true
+  // (variable dedicada, no NODE_ENV) → B-03.
+  app.useGlobalFilters(
+    new AllExceptionsFilter(!!isProd, !!config.get<boolean>('exposeErrorStack')),
+  );
 
   app.enableShutdownHooks();
 

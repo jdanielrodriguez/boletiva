@@ -190,6 +190,19 @@ export class EnableTotpDto {
   code!: string;
 }
 
+/** Step-up (B-02): re-autenticación con la contraseña actual para iniciar el alta de TOTP. */
+export class TotpSetupDto {
+  @ApiProperty({
+    description: 'Contraseña actual (re-autenticación). Requerida si la cuenta tiene contraseña.',
+    required: false,
+    example: 'MiClaveActual123',
+  })
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  password?: string;
+}
+
 export class GoogleLoginDto {
   @ApiProperty({
     description: 'id_token de Google obtenido en el cliente',

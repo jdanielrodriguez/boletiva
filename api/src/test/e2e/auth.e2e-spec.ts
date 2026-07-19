@@ -32,11 +32,19 @@ describe('Auth (e2e)', () => {
     expect(res.body.tokens.refreshToken).toBeDefined();
   });
 
-  it('POST /auth/signup con email duplicado → 409', async () => {
-    await http()
+  it('POST /auth/signup con email duplicado → 202 genérico (anti-enumeración, sin tokens)', async () => {
+    // M-01: NO revela que el correo existe (no 409). Devuelve 202 con mensaje genérico y
+    // sin sesión; NO crea una segunda cuenta.
+    const before = await prisma.user.count({ where: { email } });
+    const res = await http()
       .post('/api/v1/auth/signup')
       .send({ email, password, firstName: 'Dup' })
-      .expect(409);
+      .expect(202);
+    expect(res.body.tokens).toBeUndefined();
+    expect(res.body.user).toBeUndefined();
+    expect(typeof res.body.message).toBe('string');
+    const after = await prisma.user.count({ where: { email } });
+    expect(after).toBe(before); // no se creó una cuenta nueva
   });
 
   it('POST /auth/signup con payload inválido → 400', async () => {
