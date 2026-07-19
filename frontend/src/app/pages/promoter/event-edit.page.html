@@ -30,11 +30,13 @@
             [countdown]="'promoter.edit.lockCountdown' | translate: { time: unlockRemaining() }"
           />
         }
-        <button type="button" class="btn primary" [disabled]="savingData() || locked()" (click)="saveData()" data-testid="save-draft-btn"
-          [title]="locked() ? ('promoter.edit.unlockToSaveTooltip' | translate) : ('common.save' | translate)">
-          <app-icon name="save" /> {{ savingData() ? ('promoter.edit.savingShort' | translate) : ('common.save' | translate) }}
-        </button>
-        @if (!isNew() && canEditLayout()) {
+        @if (isNew() || !isConcluded()) {
+          <button type="button" class="btn primary" [disabled]="savingData() || locked()" (click)="saveData()" data-testid="save-draft-btn"
+            [title]="locked() ? ('promoter.edit.unlockToSaveTooltip' | translate) : ('common.save' | translate)">
+            <app-icon name="save" /> {{ savingData() ? ('promoter.edit.savingShort' | translate) : ('common.save' | translate) }}
+          </button>
+        }
+        @if (!isNew() && canEditLayout() && !isConcluded()) {
           <button type="button" class="btn primary" [disabled]="!canPublish() || locked()" (click)="askPublish()" data-testid="publish-btn"
             [title]="publishBlock() ?? ('promoter.edit.publishEventTitle' | translate)">
             <app-icon name="publish" /> {{ isSuspended() ? ('promoter.edit.rePublish' | translate) : ('promoter.edit.publish' | translate) }}
@@ -45,13 +47,14 @@
             <app-icon name="delete" />
           </button>
         }
-        @if (isPublished()) {
+        @if (isPublished() && !isConcluded()) {
           <button type="button" class="btn" [disabled]="locked()" (click)="askSuspend()" data-testid="suspend-btn" [title]="'promoter.edit.suspendEventTitle' | translate">
             <app-icon name="cancel" /> {{ 'promoter.edit.suspendEvent' | translate }}
           </button>
         }
-        @if (isPublished() || isSuspended()) {
-          <button type="button" class="btn danger" [disabled]="locked()" (click)="askCancelEvent()" data-testid="cancel-btn" [title]="'promoter.edit.cancelEvent' | translate">
+        @if (canCancelEvent()) {
+          <button type="button" class="btn danger" [disabled]="locked()" (click)="askCancelEvent()" data-testid="cancel-btn"
+            [title]="(hasEnded() ? 'promoter.edit.cancelPastAdminTitle' : 'promoter.edit.cancelEvent') | translate">
             <app-icon name="cancel" /> {{ 'promoter.edit.cancelEvent' | translate }}
           </button>
         }
@@ -66,8 +69,10 @@
     }
 
     <!-- Aviso GRANDE de boletos vendidos: visible en TODAS las tabs (fuera del
-         switch de tabs). Especialmente relevante al reconfigurar un suspendido. -->
-    @if (!isNew() && soldTicketsCount() > 0) {
+         switch de tabs). Especialmente relevante al reconfigurar un suspendido. Se
+         OCULTA si el evento terminó por fecha sin suspender/cancelar (no hay
+         devoluciones en ese caso). -->
+    @if (showSoldWarning()) {
       <div class="sold-warning" role="alert" data-testid="sold-warning">
         <app-icon name="cancel" />
         <div class="sold-warning-body">
@@ -86,7 +91,11 @@
       <p class="muted small" data-testid="publish-block">{{ 'promoter.edit.publishBlockPrefix' | translate }} {{ publishBlock() }}</p>
     }
 
-    @if (isPublished()) {
+    @if (isConcluded()) {
+      <p class="muted small" data-testid="concluded-note">
+        {{ 'promoter.edit.concludedNote' | translate }}
+      </p>
+    } @else if (isPublished()) {
       <p class="muted small" data-testid="published-note">
         {{ 'promoter.edit.publishedNote' | translate }}
       </p>
@@ -107,7 +116,7 @@
       </nav>
     }
 
-    <fieldset class="lock-fieldset" [disabled]="locked()">
+    <fieldset class="lock-fieldset" [disabled]="editLocked()">
     @if (isNew() || tab() === 'datos') {
       <div class="card-block">
         <div class="form-grid">

@@ -199,6 +199,42 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
   protected readonly canEdit = computed(
     () => (this.isOwner() || this.unlockActive()) && !this.isConcluded(),
   );
+  /** Tabs con formularios editables (datos/localidades/banner/config). Cuentas y Dashboard NO. */
+  protected readonly isEditableTab = computed(
+    () =>
+      this.tab() === 'datos' ||
+      this.tab() === 'localidades' ||
+      this.tab() === 'banner' ||
+      this.tab() === 'config',
+  );
+  /**
+   * Edición bloqueada: por el candado de admin (no-dueño sin desbloquear) O porque el
+   * evento YA CONCLUYÓ (pasado/finalizado/cancelado) → SOLO LECTURA en las tabs de
+   * edición. Las tabs Cuentas/Dashboard NO se bloquean (devoluciones de un cancelado y
+   * el cierre de caja deben seguir funcionando).
+   */
+  protected readonly editLocked = computed(
+    () => this.locked() || (this.isConcluded() && this.isEditableTab()),
+  );
+  /**
+   * Aviso de "boletos vendidos": se OCULTA cuando el evento terminó por fecha sin
+   * suspender/cancelar (no hay devoluciones en ese caso). Se mantiene si está suspendido
+   * o cancelado (ahí sí aplican devoluciones), o si aún no termina.
+   */
+  protected readonly showSoldWarning = computed(
+    () =>
+      !this.isNew() &&
+      this.soldTicketsCount() > 0 &&
+      (this.isSuspended() || this.isCancelled() || !this.hasEnded()),
+  );
+  /**
+   * ¿Mostrar "Cancelar evento"? El dueño/promotor puede cancelar un evento VIGENTE
+   * (publicado/suspendido). Para un evento YA CONCLUIDO por fecha, solo el ADMIN REAL
+   * (corrige un evento que debió cancelarse y el promotor no lo marcó).
+   */
+  protected readonly canCancelEvent = computed(
+    () => (this.isPublished() || this.isSuspended()) && (!this.hasEnded() || this.isAdminReal()),
+  );
   /**
    * Tiempo restante del desbloqueo formateado mm:ss. Reactivo (el `remainingMs`
    * del store lee su `clock` interno → se recomputa cada segundo). Al llegar a 0
@@ -554,6 +590,15 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
     return false;
   }
 
+  /** Evento concluido (pasado/finalizado/cancelado) = solo lectura: bloquea mutaciones. */
+  private blockedByConcluded(): boolean {
+    if (this.isConcluded()) {
+      this.toasts.warning(this.translate.instant('promoter.edit.toastConcludedReadOnly'));
+      return true;
+    }
+    return false;
+  }
+
   // --- Salón: al elegirlo, prefija la ubicación del evento ---
   protected onHallChange(hallId: string): void {
     this.d.hallId.set(hallId);
@@ -700,7 +745,7 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
 
   // --- Datos / Guardar (crea en modo nuevo; actualiza en edición) ---
   protected saveData(): void {
-    if (this.blockedByLock()) return;
+    if (this.blockedByLock() || this.blockedByConcluded()) return;
     if (!this.d.name() || this.d.name().trim().length < 3) {
       this.toasts.warning(this.translate.instant('promoter.edit.toastNameRequired'));
       return;
@@ -807,7 +852,7 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
 
   // --- Configuración ---
   protected saveConfig(): void {
-    if (this.blockedByLock()) return;
+    if (this.blockedByLock() || this.blockedByConcluded()) return;
     this.savingConfig.set(true);
     this.api
       .update(this.eventId(), {
@@ -878,7 +923,7 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
   );
 
   protected addLocality(): void {
-    if (this.blockedByLock()) return;
+    if (this.blockedByLock() || this.blockedByConcluded()) return;
     if (!this.locForm.name()) {
       this.toasts.warning(this.translate.instant('promoter.edit.toastLocalityNameRequired'));
       return;
@@ -926,7 +971,7 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
   }
 
   protected askRemoveLocality(l: LocalityView): void {
-    if (this.blockedByLock()) return;
+    if (this.blockedByLock() || this.blockedByConcluded()) return;
     this.confirm.ask({
       title: this.translate.instant('promoter.edit.deleteLocalityTitle'),
       message: this.translate.instant('promoter.edit.confirmDeleteLocalityMsg', { name: l.name }),
