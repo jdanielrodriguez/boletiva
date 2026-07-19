@@ -4,19 +4,13 @@ import { PromoterEventsApi } from '../../core/api/promoter-events.api';
 import { LoadingComponent } from '../ui/loading.component';
 import { EmptyStateComponent } from '../ui/empty-state.component';
 import { ChartComponent, ChartOptions } from '../ui/chart.component';
+import { chartPalette } from '../ui/chart-palette';
 import { MoneyPipe } from '../money.pipe';
 import { ReportsMaintenanceGateComponent } from '../reports-maintenance/reports-maintenance-gate.component';
 import type { EventDashboardDto } from '../../core/api/types';
 
-/** Paleta coherente con los tokens --pe-* (accent rosa-morado + estados). */
-const PALETTE = {
-  accent: '#c026d3',
-  accent2: '#7c3aed',
-  success: '#16a34a',
-  warning: '#d97706',
-  danger: '#e11d48',
-  muted: '#94a3b8',
-};
+/** Paleta de gráficas leída de los tokens del rebranding (--pe-*), theme-aware. */
+const PALETTE = chartPalette();
 
 /**
  * Dashboard analítico de un evento: KPIs (recaudado/neto/ocupación/check-in) +

@@ -12,16 +12,13 @@ import { BackLinkComponent } from '../../shared/ui/back-link.component';
 import { LoadingComponent } from '../../shared/ui/loading.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { ChartComponent, ChartOptions } from '../../shared/ui/chart.component';
+import { chartPalette } from '../../shared/ui/chart-palette';
 import { ReportsMaintenanceGateComponent } from '../../shared/reports-maintenance/reports-maintenance-gate.component';
 import { MoneyPipe } from '../../shared/money.pipe';
 import type { PromoterDashboardDto, PromoterDimensionRowDto } from '../../core/api/types';
 
-const PALETTE = {
-  accent: '#c026d3',
-  accent2: '#7c3aed',
-  success: '#16a34a',
-  warning: '#d97706',
-};
+/** Paleta de gráficas leída de los tokens del rebranding (--pe-*), theme-aware. */
+const PALETTE = chartPalette();
 
 type DimKey = 'event' | 'category' | 'hall' | 'status' | 'month';
 const DIMENSIONS: DimKey[] = ['event', 'category', 'hall', 'status', 'month'];
