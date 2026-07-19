@@ -58,6 +58,12 @@
             <app-icon name="cancel" /> {{ 'promoter.edit.cancelEvent' | translate }}
           </button>
         }
+        <!-- Destacar en el slider del inicio: SOLO admin real. Solo eventos futuros
+             publicados aparecen en el slider (el backend filtra); si no hay, se oculta. -->
+        @if (isAdminReal() && !isNew()) {
+          <app-switch [checked]="promoted()" (checkedChange)="togglePromoted($event)" [disabled]="savingPromoted()"
+            [label]="'promoter.edit.promoteLabel' | translate" testId="ev-promote" />
+        }
       </div>
     </div>
 

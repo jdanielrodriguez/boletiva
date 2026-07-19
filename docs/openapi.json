@@ -1644,6 +1644,52 @@
         ]
       }
     },
+    "/api/v1/events/{id}/promote": {
+      "patch": {
+        "operationId": "EventsController_promote_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromoteEventDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Destaca/quita un evento del slider del inicio (solo admin)",
+        "tags": [
+          "events"
+        ]
+      }
+    },
     "/api/v1/events/{id}/publish": {
       "post": {
         "operationId": "EventsController_publish_v1",
@@ -10591,6 +10637,19 @@
             "nullable": true
           }
         }
+      },
+      "PromoteEventDto": {
+        "type": "object",
+        "properties": {
+          "featured": {
+            "type": "boolean",
+            "description": "true = destacar (aparece en el slider); false = quitar",
+            "example": true
+          }
+        },
+        "required": [
+          "featured"
+        ]
       },
       "EditUnlockRequestedDto": {
         "type": "object",

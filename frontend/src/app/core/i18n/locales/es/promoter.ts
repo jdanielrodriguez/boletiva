@@ -54,6 +54,10 @@ export const promoter = {
     publishEventTitle: 'Publicar evento',
     deleteEventTitle: 'Eliminar evento',
     cancelEvent: 'Cancelar evento',
+    promoteLabel: 'Destacar en el inicio',
+    promotedOn: 'Evento destacado: aparecerá en el slider del inicio (si es futuro).',
+    promotedOff: 'Evento quitado del slider del inicio.',
+    promoteError: 'No se pudo cambiar el destacado.',
     lockBanner:
       'Estás editando como <strong>administrador</strong>. Los campos están bloqueados para evitar cambios accidentales. Pulsa <strong>Desbloquear edición</strong> (te enviaremos un código al correo).',
     newNote:

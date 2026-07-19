@@ -385,13 +385,28 @@ export class EventsService {
         gatewayId,
         ivaOnNet: dto.ivaOnNet,
         absorbInstallmentCost: dto.absorbInstallmentCost,
-        promotedPriority: dto.promotedPriority,
+        // Destacar (slider del inicio) es SOLO admin: un promotor no puede autopromocionarse.
+        promotedPriority: isAdmin ? dto.promotedPriority : undefined,
         status: 'draft',
       },
       include: {
         promoter: { select: { id: true, firstName: true, lastName: true, email: true } },
       },
     });
+  }
+
+  /**
+   * Destacar/quitar un evento del slider del inicio (SOLO admin). featured → prioridad 0
+   * (primero); false → null (sale del slider). El slider ya filtra a futuros publicados y
+   * se oculta si no hay ninguno. Devuelve el detalle gestionable actualizado.
+   */
+  async setPromoted(id: string, featured: boolean, user: AuthUser) {
+    await this.getManaged(id, user); // 404/403 si no existe o no lo gestiona
+    await this.prisma.event.update({
+      where: { id },
+      data: { promotedPriority: featured ? 0 : null },
+    });
+    return this.getManaged(id, user);
   }
 
   /** Eventos destacados (slider del inicio), ordenados por prioridad ascendente. */
@@ -476,7 +491,8 @@ export class EventsService {
         // El flag de absorción de cuotas NO congela el precio base (el costo de
         // cuotas se resuelve al pagar): se puede ajustar aunque haya compras.
         absorbInstallmentCost: dto.absorbInstallmentCost,
-        promotedPriority: dto.promotedPriority,
+        // Destacar solo lo cambia un admin (o vía el endpoint /promote); ignorado para promotor.
+        promotedPriority: user.roles.includes(Role.admin) ? dto.promotedPriority : undefined,
       },
     });
   }

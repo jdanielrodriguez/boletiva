@@ -65,6 +65,11 @@ export class PromoterEventsApi {
     return this.api.patch<ManagedEventDetailDto>(`/events/${id}`, dto);
   }
 
+  /** Destaca/quita el evento del slider del inicio (solo admin). */
+  promote(id: string, featured: boolean): Observable<ManagedEventDetailDto> {
+    return this.api.patch<ManagedEventDetailDto>(`/events/${id}/promote`, { featured });
+  }
+
   publish(id: string): Observable<ManagedEventDetailDto> {
     return this.api.post<ManagedEventDetailDto>(`/events/${id}/publish`);
   }

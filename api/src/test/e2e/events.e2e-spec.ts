@@ -659,6 +659,32 @@ describe('Eventos: gestión (e2e)', () => {
       expect(ib).toBeLessThan(ia); // prioridad 1 va antes que 2
     });
 
+    it('PATCH /events/:id/promote: solo admin destaca (promotor 403); toggle entra/sale del slider', async () => {
+      const ev = await mkPublished(); // futuro publicado, sin prioridad → no está en el slider
+      // Promotor NO puede destacar (endpoint admin-only).
+      await http()
+        .patch(`/api/v1/events/${ev.id}/promote`)
+        .set(bearer(promoterToken))
+        .send({ featured: true })
+        .expect(403);
+      // Un promotor tampoco puede autopromocionarse por el update genérico (se ignora).
+      await http()
+        .patch(`/api/v1/events/${ev.id}`)
+        .set(bearer(promoterToken))
+        .send({ promotedPriority: 0 })
+        .expect(200);
+      const afterUpdate = await prisma.event.findUniqueOrThrow({ where: { id: ev.id } });
+      expect(afterUpdate.promotedPriority).toBeNull();
+      // Admin destaca → aparece en /promoted.
+      await http().patch(`/api/v1/events/${ev.id}/promote`).set(bearer(adminToken)).send({ featured: true }).expect(200);
+      let promoted = await http().get('/api/v1/events/promoted').expect(200);
+      expect(promoted.body.some((e: { id: string }) => e.id === ev.id)).toBe(true);
+      // Admin quita → sale del slider.
+      await http().patch(`/api/v1/events/${ev.id}/promote`).set(bearer(adminToken)).send({ featured: false }).expect(200);
+      promoted = await http().get('/api/v1/events/promoted').expect(200);
+      expect(promoted.body.some((e: { id: string }) => e.id === ev.id)).toBe(false);
+    });
+
     it('GET /events?category=<slug>: filtra por categoría', async () => {
       const cat = await prisma.category.create({
         data: { name: `Ev Cat ${stamp}`, slug: `ev-cat-${stamp}`, createdById: promoterId },
