@@ -143,11 +143,13 @@ export class AuthService {
 
   /**
    * Aplica el TEMA (franja día/noche) GUARDADO del usuario al iniciar sesión, en vez del
-   * del sistema/hora: espejo de {@link applyUserLanguage}. `hydrate` aplica sin re-persistir
-   * (la preferencia ya vive en BD). `null` → franja por defecto de la plataforma.
+   * del sistema/hora: espejo EXACTO de {@link applyUserLanguage} (que usa `i18n.use`, el
+   * cual PERSISTE). Usamos `theme.use` (no `hydrate`) para PERSISTIR la franja en la cookie
+   * `pe_franja`; si solo se hidratara, el próximo boot/hydratePreference no la vería y el
+   * tema se perdería al recargar o volver a loguear.
    */
   private applyUserTheme(user: SessionUser): void {
     const pref = (user as { themePref?: string | null }).themePref ?? null;
-    this.theme.hydrate(pref === 'dia' || pref === 'noche' ? (pref as Franja) : null);
+    if (pref === 'dia' || pref === 'noche') this.theme.use(pref as Franja);
   }
 }

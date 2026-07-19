@@ -55,10 +55,6 @@ export const promoter = {
     publishEventTitle: 'Publish event',
     deleteEventTitle: 'Delete event',
     cancelEvent: 'Cancel event',
-    promoteLabel: 'Feature on home',
-    promotedOn: 'Event featured: it will appear in the home slider (if upcoming).',
-    promotedOff: 'Event removed from the home slider.',
-    promoteError: 'Could not change the featured state.',
     lockBanner:
       'You are editing as an <strong>administrator</strong>. The fields are locked to prevent accidental changes. Press <strong>Unlock editing</strong> (we will send a code to your email).',
     newNote:

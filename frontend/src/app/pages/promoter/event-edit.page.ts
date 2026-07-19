@@ -120,9 +120,6 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
   protected readonly tab = signal<Tab>('datos');
   protected readonly savingData = signal(false);
   protected readonly savingConfig = signal(false);
-  /** Destacado (slider del inicio) — solo admin. Refleja event().promotedPriority. */
-  protected readonly promoted = signal(false);
-  protected readonly savingPromoted = signal(false);
 
   protected readonly isPublished = computed(() => this.event()?.status === 'published');
   protected readonly isSuspended = computed(() => this.event()?.status === 'suspended');
@@ -674,7 +671,6 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
     this.c.gatewayId.set(ev.gatewayId ?? '');
     this.c.ivaOnNet.set(ev.ivaOnNet);
     this.c.absorbInstallmentCost.set(ev.absorbInstallmentCost);
-    this.promoted.set(ev.promotedPriority != null);
     // El detalle gestionable no trae URL firmada del cover; si ya tenemos un
     // preview local (recién subido/generado) lo conservamos para no perderlo al
     // recargar. Solo se limpia si el evento realmente no tiene cover.
@@ -885,28 +881,6 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
           this.toasts.error(this.backendMessage(err, 'promoter.edit.toastConfigError'));
         },
       });
-  }
-
-  /**
-   * Destacar/quitar el evento del slider del inicio (SOLO admin real). El slider solo
-   * muestra eventos futuros destacados y se oculta si no hay ninguno.
-   */
-  protected togglePromoted(featured: boolean): void {
-    this.savingPromoted.set(true);
-    this.api.promote(this.eventId(), featured).subscribe({
-      next: (ev) => {
-        this.event.set(ev);
-        this.promoted.set(ev.promotedPriority != null);
-        this.savingPromoted.set(false);
-        this.toasts.success(
-          this.translate.instant(featured ? 'promoter.edit.promotedOn' : 'promoter.edit.promotedOff'),
-        );
-      },
-      error: (err) => {
-        this.savingPromoted.set(false);
-        this.toasts.error(this.backendMessage(err, 'promoter.edit.promoteError'));
-      },
-    });
   }
 
   // --- Localidades ---
