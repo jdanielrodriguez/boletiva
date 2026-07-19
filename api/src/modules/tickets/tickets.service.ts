@@ -14,6 +14,7 @@ import { TicketCryptoService, TicketIdentity } from './ticket-crypto.service';
 import { TicketCustodyService } from './ticket-custody.service';
 import { TicketSyncService } from './ticket-sync.service';
 import { GateAccessService } from './gate-access.service';
+import { StreamService } from '../stream/stream.service';
 
 export type VerifyResult =
   | {
@@ -46,6 +47,7 @@ export class TicketsService implements OnModuleInit {
     private readonly custody: TicketCustodyService,
     private readonly sync: TicketSyncService,
     private readonly gateAccess: GateAccessService,
+    private readonly stream: StreamService,
   ) {}
 
   onModuleInit(): void {
@@ -321,6 +323,7 @@ export class TicketsService implements OnModuleInit {
         actorId: actor?.userId ?? null,
       });
       await this.sync.record(ticket.eventId, ticket.id, 'checked_in');
+      this.stream.emitCheckin(ticket.eventId, { serial: ticket.serial }); // dashboard en vivo (SSE)
     }
 
     return {

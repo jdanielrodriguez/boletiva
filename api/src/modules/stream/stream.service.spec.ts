@@ -44,4 +44,20 @@ describe('StreamService (SSE bus, Ola 6.5)', () => {
     expect(a.filter((e) => e.type === 'order')).toHaveLength(1);
     expect(b.filter((e) => e.type === 'order')).toHaveLength(0);
   });
+
+  it('streamCheckins: abre con `ready` y solo entrega los check-ins de SU evento', () => {
+    const s = new StreamService();
+    const got: MessageEvent[] = [];
+    const sub = s.streamCheckins('e1').subscribe((e) => got.push(e));
+
+    s.emitCheckin('e1', { serial: 'PE1' }); // relevante
+    s.emitCheckin('e2', { serial: 'PE2' }); // otro evento → se ignora
+    s.emitCheckin('e1', { serial: 'PE3' }); // relevante
+    sub.unsubscribe();
+
+    expect(got[0]).toEqual({ type: 'ready', data: { ok: true } });
+    const checkins = got.filter((e) => e.type === 'checkin');
+    expect(checkins).toHaveLength(2);
+    expect(checkins.map((e) => (e.data as { serial: string }).serial)).toEqual(['PE1', 'PE3']);
+  });
 });

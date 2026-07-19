@@ -1,0 +1,71 @@
+<section class="checkin-stats" data-testid="checkin-stats">
+  @if (loading()) {
+    <p class="auth-sub">{{ 'common.loading' | translate }}</p>
+  } @else if (error()) {
+    <p class="error" data-testid="checkin-stats-error">{{ 'promoter.checkin.error' | translate }}</p>
+  } @else if (stats(); as s) {
+    <header class="checkin-head">
+      <h3>{{ 'promoter.checkin.title' | translate }}</h3>
+      <span class="checkin-live" data-testid="checkin-live">● {{ 'promoter.checkin.live' | translate }}</span>
+    </header>
+
+    <!-- Avance -->
+    <div class="checkin-progress">
+      <div class="checkin-progress-top">
+        <span class="checkin-pct" data-testid="checkin-percent">{{ s.percent }}%</span>
+        <span class="checkin-count">{{ 'promoter.checkin.progress' | translate: { done: s.checkedIn, total: s.total } }}</span>
+      </div>
+      <div class="checkin-bar"><span class="checkin-bar-fill" [style.width.%]="s.percent"></span></div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="checkin-kpis">
+      <div class="checkin-kpi ok"><strong>{{ s.checkedIn }}</strong><span>{{ 'promoter.checkin.in' | translate }}</span></div>
+      <div class="checkin-kpi"><strong>{{ s.pending }}</strong><span>{{ 'promoter.checkin.pending' | translate }}</span></div>
+      <div class="checkin-kpi" [class.bad]="s.conflicts > 0">
+        <strong>{{ s.conflicts }}</strong><span>{{ 'promoter.checkin.conflicts' | translate }}</span>
+      </div>
+    </div>
+
+    <!-- Por validador -->
+    @if (s.byValidator.length) {
+      <div class="checkin-block">
+        <h4>{{ 'promoter.checkin.byValidator' | translate }}</h4>
+        <ul class="checkin-list">
+          @for (v of s.byValidator; track v.operatorId) {
+            <li><span>{{ v.email ?? v.name ?? '—' }}</span><strong>{{ v.count }}</strong></li>
+          }
+        </ul>
+      </div>
+    }
+
+    <!-- Por localidad -->
+    @if (s.byLocality.length) {
+      <div class="checkin-block">
+        <h4>{{ 'promoter.checkin.byLocality' | translate }}</h4>
+        <ul class="checkin-list">
+          @for (l of s.byLocality; track l.localityId) {
+            <li><span>{{ l.name }}</span><strong>{{ l.checkedIn }} / {{ l.total }}</strong></li>
+          }
+        </ul>
+      </div>
+    }
+
+    <!-- Timeline -->
+    @if (s.recent.length) {
+      <div class="checkin-block">
+        <h4>{{ 'promoter.checkin.recent' | translate }}</h4>
+        <ul class="checkin-timeline">
+          @for (r of s.recent; track r.serial + r.at) {
+            <li>
+              <code>{{ r.serial }}</code>
+              <span class="checkin-tl-meta">{{ r.locality ?? '' }} · {{ r.validator ?? '—' }}</span>
+            </li>
+          }
+        </ul>
+      </div>
+    } @else {
+      <p class="auth-sub" data-testid="checkin-empty">{{ 'promoter.checkin.empty' | translate }}</p>
+    }
+  }
+</section>

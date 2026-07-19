@@ -1,11 +1,13 @@
 import {
   ApplicationConfig,
+  isDevMode,
   provideBrowserGlobalErrorListeners,
   provideZonelessChangeDetection,
 } from '@angular/core';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
+import { provideServiceWorker } from '@angular/service-worker';
 
 import { routes } from './app.routes';
 import { API_BASE_URL, SITE_URL } from './core/config/api.tokens';
@@ -41,5 +43,12 @@ export const appConfig: ApplicationConfig = {
     // Valor de navegador; el servidor lo sobreescribe en app.config.server.ts.
     { provide: API_BASE_URL, useValue: environment.apiBaseUrlBrowser },
     { provide: SITE_URL, useValue: environment.siteUrl },
+    // Service Worker (App Shell offline): cachea el shell + chunks lazy para que la PWA de
+    // validación en puerta ARRANQUE sin red (los datos ya viven en IndexedDB). Solo en
+    // producción (no interfiere en dev/SSR); se registra cuando la app estabiliza.
+    provideServiceWorker('ngsw-worker.js', {
+      enabled: !isDevMode(),
+      registrationStrategy: 'registerWhenStable:30000',
+    }),
   ],
 };

@@ -1,5 +1,6 @@
 /** Onboarding / guided tour. English. */
 export const tour = {
+  aria: 'Quick guide',
   skip: 'Skip',
   back: 'Back',
   next: 'Next',

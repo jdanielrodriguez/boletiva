@@ -70,6 +70,16 @@
                 }
               }
             }
+          },
+          "202": {
+            "description": "Respuesta genérica anti-enumeración: el correo ya existe (se avisa por correo).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponseDto"
+                }
+              }
+            }
           }
         },
         "summary": "Registro con correo y contraseña (envía verificación)",
@@ -582,6 +592,16 @@
       "post": {
         "operationId": "AuthController_totpSetup_v1",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TotpSetupDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "",
@@ -599,7 +619,7 @@
             "bearer": []
           }
         ],
-        "summary": "Inicia el alta de TOTP (devuelve QR y secret)",
+        "summary": "Inicia el alta de TOTP (devuelve QR y secret). Requiere re-autenticación.",
         "tags": [
           "auth"
         ]
@@ -5644,6 +5664,427 @@
         ]
       }
     },
+    "/api/v1/events/{eventId}/validators": {
+      "get": {
+        "operationId": "EventValidatorsController_list_v1",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ValidatorListItemDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lista los validadores del evento y su estado",
+        "tags": [
+          "validators"
+        ]
+      },
+      "post": {
+        "operationId": "EventValidatorsController_invite_v1",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteValidatorDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidatorInviteResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Invita/habilita un validador por email (envía código + magic-link)",
+        "tags": [
+          "validators"
+        ]
+      },
+      "delete": {
+        "operationId": "EventValidatorsController_disableAll_v1",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidatorDisabledDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Deshabilita TODOS los validadores del evento a la vez",
+        "tags": [
+          "validators"
+        ]
+      }
+    },
+    "/api/v1/events/{eventId}/validators/checkin-stats": {
+      "get": {
+        "operationId": "EventValidatorsController_checkinStats_v1",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckinStatsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Dashboard de check-ins del evento (avance, por localidad/validador, conflictos)",
+        "tags": [
+          "validators"
+        ]
+      }
+    },
+    "/api/v1/events/{eventId}/validators/stream-ticket": {
+      "post": {
+        "operationId": "EventValidatorsController_streamTicket_v1",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidatorStreamTicketDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Emite un ticket de un solo uso para abrir el SSE del dashboard",
+        "tags": [
+          "validators"
+        ]
+      }
+    },
+    "/api/v1/events/{eventId}/validators/checkin-stream": {
+      "get": {
+        "operationId": "EventValidatorsController_checkinStream_v1",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ticket",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Stream SSE del dashboard de check-ins (empuja un evento por validación). Auth: ?ticket=",
+        "tags": [
+          "validators"
+        ]
+      }
+    },
+    "/api/v1/events/{eventId}/validators/{id}": {
+      "delete": {
+        "operationId": "EventValidatorsController_disable_v1",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidatorDisabledDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Deshabilita un validador (revoca su acceso al instante)",
+        "tags": [
+          "validators"
+        ]
+      }
+    },
+    "/api/v1/events/{eventId}/validators/{id}/purge": {
+      "delete": {
+        "operationId": "EventValidatorsController_remove_v1",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidatorRemovedDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Elimina un validador deshabilitado (lo quita de la lista)",
+        "tags": [
+          "validators"
+        ]
+      }
+    },
+    "/api/v1/events/{eventId}/validators/{id}/enable": {
+      "post": {
+        "operationId": "EventValidatorsController_enable_v1",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidatorInviteResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Re-habilita un validador y le reenvía un nuevo acceso",
+        "tags": [
+          "validators"
+        ]
+      }
+    },
+    "/api/v1/validators/{token}": {
+      "get": {
+        "operationId": "ValidatorClaimController_peek_v1",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidatorPeekDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Previsualiza el acceso de validación (evento + email)",
+        "tags": [
+          "validators"
+        ]
+      }
+    },
+    "/api/v1/validators/claim": {
+      "post": {
+        "operationId": "ValidatorClaimController_claim_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimValidatorDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Canjea el magic-link por un token de puerta para validar",
+        "tags": [
+          "validators"
+        ]
+      }
+    },
     "/api/v1/payment-methods": {
       "get": {
         "operationId": "PaymentMethodsController_list_v1",
@@ -7699,6 +8140,19 @@
           "tokens"
         ]
       },
+      "MessageResponseDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "ok",
+            "description": "Mensaje de resultado"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
       "LoginDto": {
         "type": "object",
         "properties": {
@@ -7867,19 +8321,6 @@
           "email"
         ]
       },
-      "MessageResponseDto": {
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string",
-            "example": "ok",
-            "description": "Mensaje de resultado"
-          }
-        },
-        "required": [
-          "message"
-        ]
-      },
       "PasswordlessRequestDto": {
         "type": "object",
         "properties": {
@@ -8022,6 +8463,16 @@
           "currentPassword",
           "newPassword"
         ]
+      },
+      "TotpSetupDto": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "description": "Contraseña actual (re-autenticación). Requerida si la cuenta tiene contraseña.",
+            "example": "MiClaveActual123"
+          }
+        }
       },
       "TotpSetupResponseDto": {
         "type": "object",
@@ -14313,6 +14764,368 @@
         },
         "required": [
           "pct"
+        ]
+      },
+      "ValidatorListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string"
+          },
+          "operatorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "disabled"
+            ]
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "operatorId",
+          "status",
+          "expiresAt",
+          "createdAt"
+        ]
+      },
+      "CheckinByLocalityDto": {
+        "type": "object",
+        "properties": {
+          "localityId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "total": {
+            "type": "number",
+            "description": "Boletos vigentes de la localidad"
+          },
+          "checkedIn": {
+            "type": "number",
+            "description": "Ya validados (check-in)"
+          }
+        },
+        "required": [
+          "localityId",
+          "name",
+          "total",
+          "checkedIn"
+        ]
+      },
+      "CheckinByValidatorDto": {
+        "type": "object",
+        "properties": {
+          "operatorId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "count": {
+            "type": "number",
+            "description": "Boletos validados por este validador"
+          }
+        },
+        "required": [
+          "operatorId",
+          "email",
+          "name",
+          "count"
+        ]
+      },
+      "CheckinRecentDto": {
+        "type": "object",
+        "properties": {
+          "serial": {
+            "type": "string"
+          },
+          "locality": {
+            "type": "string",
+            "nullable": true
+          },
+          "validator": {
+            "type": "string",
+            "nullable": true,
+            "description": "Email del validador que escaneó"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "serial",
+          "locality",
+          "validator",
+          "at"
+        ]
+      },
+      "CheckinStatsDto": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "total": {
+            "type": "number",
+            "description": "Boletos vigentes (excluye revocados)"
+          },
+          "checkedIn": {
+            "type": "number",
+            "description": "Ya validados en puerta"
+          },
+          "pending": {
+            "type": "number",
+            "description": "Sin validar todavía"
+          },
+          "transferred": {
+            "type": "number"
+          },
+          "revoked": {
+            "type": "number"
+          },
+          "conflicts": {
+            "type": "number",
+            "description": "Intentos de doble check-in registrados"
+          },
+          "percent": {
+            "type": "number",
+            "description": "% de avance (checkedIn/total)"
+          },
+          "byLocality": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CheckinByLocalityDto"
+            }
+          },
+          "byValidator": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CheckinByValidatorDto"
+            }
+          },
+          "recent": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CheckinRecentDto"
+            }
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "eventId",
+          "total",
+          "checkedIn",
+          "pending",
+          "transferred",
+          "revoked",
+          "conflicts",
+          "percent",
+          "byLocality",
+          "byValidator",
+          "recent",
+          "updatedAt"
+        ]
+      },
+      "ValidatorStreamTicketDto": {
+        "type": "object",
+        "properties": {
+          "ticket": {
+            "type": "string",
+            "description": "Ticket de un solo uso (pásalo como ?ticket= al abrir el SSE)"
+          },
+          "expiresIn": {
+            "type": "number",
+            "description": "Segundos de validez",
+            "example": 15
+          }
+        },
+        "required": [
+          "ticket",
+          "expiresIn"
+        ]
+      },
+      "InviteValidatorDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "validador@correo.com",
+            "description": "Email del validador a habilitar"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "ValidatorInviteResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "disabled"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "description": "Magic-link para abrir el validador (mostrar/compartir una vez)"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "status",
+          "url",
+          "expiresAt"
+        ]
+      },
+      "ValidatorDisabledDto": {
+        "type": "object",
+        "properties": {
+          "disabled": {
+            "type": "object",
+            "description": "true (uno) o cantidad deshabilitada (todos)"
+          }
+        },
+        "required": [
+          "disabled"
+        ]
+      },
+      "ValidatorRemovedDto": {
+        "type": "object",
+        "properties": {
+          "removed": {
+            "type": "boolean",
+            "description": "true si el validador fue eliminado de la lista"
+          }
+        },
+        "required": [
+          "removed"
+        ]
+      },
+      "ValidatorPeekDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "eventName": {
+            "type": "string"
+          },
+          "valid": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "email",
+          "eventName",
+          "valid"
+        ]
+      },
+      "ClaimValidatorDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token del magic-link recibido por correo"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "ClaimEventDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "startsAt"
+        ]
+      },
+      "ClaimResponseDto": {
+        "type": "object",
+        "properties": {
+          "gateToken": {
+            "type": "string",
+            "description": "JWT de puerta (corto) para pedir el manifiesto y validar"
+          },
+          "expiresIn": {
+            "type": "number",
+            "description": "Vigencia del token de puerta (segundos)"
+          },
+          "gateEventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "event": {
+            "$ref": "#/components/schemas/ClaimEventDto"
+          }
+        },
+        "required": [
+          "gateToken",
+          "expiresIn",
+          "gateEventId",
+          "event"
         ]
       },
       "PaymentMethodResponseDto": {

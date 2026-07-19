@@ -75,6 +75,19 @@ describe('TourComponent', () => {
     expect(shown()).toBe(false);
   });
 
+  it('NO INVASIVO: recuadro flotante (.tour-pop) sin backdrop modal ni aria-modal, con botón cerrar', async () => {
+    user.set({ toursSeen: [] });
+    await render();
+    const el = fixture.nativeElement as HTMLElement;
+    const pop = el.querySelector('[data-testid="tour"]');
+    expect(pop?.classList.contains('tour-pop')).toBe(true);
+    // No es un diálogo modal: no bloquea el fondo.
+    expect(el.querySelector('.tour-backdrop')).toBeNull();
+    expect(pop?.getAttribute('aria-modal')).toBeNull();
+    // Tiene botón de cerrar (×).
+    expect(el.querySelector('[data-testid="tour-close"]')).not.toBeNull();
+  });
+
   it('anónimo con la config REAL sin cargar → no se muestra (default seguro / tests)', async () => {
     configLoaded.set(false);
     spyOn(Math, 'random').and.returnValue(0.1); // saldría elegido, pero config no cargó

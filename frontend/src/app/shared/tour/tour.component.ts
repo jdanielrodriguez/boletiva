@@ -28,13 +28,15 @@ export interface TourStep {
 const ANON_SHOW_PCT = 50;
 
 /**
- * Tour de onboarding LIGERO (overlay modal con pasos). Reglas de aparición:
+ * Tour de onboarding LIGERO y NO INVASIVO: un recuadro flotante abajo a la izquierda
+ * (sin backdrop ni bloqueo del contenido) que el usuario puede seguir o cerrar sin que
+ * le tape la página. Reglas de aparición:
  *  - Global OFF si el admin apaga `tour.enabled` (setting) → nunca aparece.
  *  - LOGUEADO: se muestra una vez por página y usuario; al ver/saltar se marca en el
  *    perfil (`POST /users/me/tours`) → no vuelve a salir.
  *  - ANÓNIMO: activación ALEATORIA estable (~{@link ANON_SHOW_PCT}% de visitantes) +
  *    "visto" persistido en localStorage por página → no molesta a todos ni se repite.
- * Sin anclaje a elementos (a prueba de layout); pasos como tarjetas.
+ * Sin anclaje a elementos (a prueba de layout); pasos como tarjeta compacta.
  */
 @Component({
   selector: 'app-tour',
@@ -43,38 +45,44 @@ const ANON_SHOW_PCT = 50;
   imports: [TranslatePipe],
   template: `
     @if (visible()) {
-      <div class="tour-backdrop" data-testid="tour" role="dialog" aria-modal="true">
-        <div class="tour-card">
-          <p class="tour-step-count">{{ index() + 1 }} / {{ steps().length }}</p>
-          <h3 class="tour-title">{{ steps()[index()].title | translate }}</h3>
-          <p class="tour-body">{{ steps()[index()].body | translate }}</p>
-          <div class="tour-actions">
-            <button type="button" class="btn ghost" (click)="skip()" data-testid="tour-skip">
-              {{ 'tour.skip' | translate }}
-            </button>
-            <span class="tour-spacer"></span>
-            @if (index() > 0) {
-              <button type="button" class="btn" (click)="back()" data-testid="tour-back">{{ 'tour.back' | translate }}</button>
-            }
-            @if (index() < steps().length - 1) {
-              <button type="button" class="btn primary" (click)="next()" data-testid="tour-next">{{ 'tour.next' | translate }}</button>
-            } @else {
-              <button type="button" class="btn primary" (click)="finish()" data-testid="tour-finish">{{ 'tour.finish' | translate }}</button>
-            }
-          </div>
+      <div class="tour-pop" data-testid="tour" role="complementary" [attr.aria-label]="'tour.aria' | translate">
+        <button type="button" class="tour-close" (click)="skip()" data-testid="tour-close" [attr.aria-label]="'tour.skip' | translate">×</button>
+        <p class="tour-step-count">{{ index() + 1 }} / {{ steps().length }}</p>
+        <h3 class="tour-title">{{ steps()[index()].title | translate }}</h3>
+        <p class="tour-body">{{ steps()[index()].body | translate }}</p>
+        <div class="tour-actions">
+          <button type="button" class="btn ghost tour-btn" (click)="skip()" data-testid="tour-skip">
+            {{ 'tour.skip' | translate }}
+          </button>
+          <span class="tour-spacer"></span>
+          @if (index() > 0) {
+            <button type="button" class="btn tour-btn" (click)="back()" data-testid="tour-back">{{ 'tour.back' | translate }}</button>
+          }
+          @if (index() < steps().length - 1) {
+            <button type="button" class="btn primary tour-btn" (click)="next()" data-testid="tour-next">{{ 'tour.next' | translate }}</button>
+          } @else {
+            <button type="button" class="btn primary tour-btn" (click)="finish()" data-testid="tour-finish">{{ 'tour.finish' | translate }}</button>
+          }
         </div>
       </div>
     }
   `,
   styles: [
     `
-      .tour-backdrop { position: fixed; inset: 0; z-index: 1200; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.45); padding: 1rem; }
-      .tour-card { background: var(--pe-surface, #14151c); color: var(--pe-text, #f5f6fa); border: 1px solid var(--pe-border, #2a2c36); border-radius: 14px; max-width: 420px; width: 100%; padding: 1.25rem; box-shadow: 0 20px 50px rgba(0,0,0,.4); }
-      .tour-step-count { color: var(--pe-muted); font-size: .78rem; margin: 0 0 .25rem; }
-      .tour-title { margin: 0 0 .5rem; }
-      .tour-body { color: var(--pe-muted); margin: 0 0 1rem; }
-      .tour-actions { display: flex; align-items: center; gap: .5rem; }
+      /* Recuadro flotante NO modal: abajo-izquierda, sin backdrop → el usuario puede
+         seguir usando la página. z-index alto pero solo el recuadro captura clics. */
+      .tour-pop { position: fixed; left: 1rem; bottom: 1rem; z-index: 1200; width: min(340px, calc(100vw - 2rem)); background: var(--pe-surface, #14151c); color: var(--pe-text, #f5f6fa); border: 1px solid var(--pe-border, #2a2c36); border-radius: 14px; padding: .95rem 1rem .85rem; box-shadow: 0 16px 40px rgba(0,0,0,.35); animation: tour-in .25s ease-out; }
+      .tour-close { position: absolute; top: .35rem; right: .45rem; background: none; border: 0; color: var(--pe-muted); font-size: 1.3rem; line-height: 1; cursor: pointer; padding: .1rem .35rem; border-radius: 8px; }
+      .tour-close:hover { color: var(--pe-text); background: var(--pe-border, #2a2c36); }
+      .tour-step-count { color: var(--pe-muted); font-size: .76rem; margin: 0 0 .2rem; }
+      .tour-title { margin: 0 0 .4rem; font-size: 1.02rem; padding-right: 1.3rem; }
+      .tour-body { color: var(--pe-muted); margin: 0 0 .8rem; font-size: .9rem; line-height: 1.4; }
+      .tour-actions { display: flex; align-items: center; gap: .4rem; }
       .tour-spacer { flex: 1; }
+      .tour-btn { padding: .35rem .7rem; font-size: .85rem; }
+      @keyframes tour-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+      @media (max-width: 480px) { .tour-pop { left: .5rem; right: .5rem; bottom: .5rem; width: auto; } }
+      @media (prefers-reduced-motion: reduce) { .tour-pop { animation: none; } }
     `,
   ],
 })

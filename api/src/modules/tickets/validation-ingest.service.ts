@@ -6,6 +6,7 @@ import { RabbitService } from '../../infra/messaging/rabbit.service';
 import { withSpan } from '../../infra/observability/tracing';
 import { TicketCustodyService } from './ticket-custody.service';
 import { TicketSyncService } from './ticket-sync.service';
+import { StreamService } from '../stream/stream.service';
 
 const QUEUE = 'validation.ingest';
 
@@ -15,6 +16,9 @@ export interface CheckinItem {
   checkedInAt?: string;
   /** Evento al que está acotado el lote (8.1): un serial de otro evento → invalid. */
   eventId?: string;
+  /** Operador/validador que hizo el check-in (se registra como actor en la custodia
+   * → atribución del dashboard "por validador"). Se estampa desde el token en submit. */
+  operatorId?: string | null;
 }
 
 export type CheckinOutcome = 'checked_in' | 'already_used' | 'not_found' | 'invalid';
@@ -37,6 +41,7 @@ export class ValidationIngestService implements OnModuleInit {
     private readonly rabbit: RabbitService,
     private readonly custody: TicketCustodyService,
     private readonly sync: TicketSyncService,
+    private readonly stream: StreamService,
     config: ConfigService,
   ) {
     this.inline = config.get<boolean>('amqp.inline') ?? false;
@@ -55,8 +60,13 @@ export class ValidationIngestService implements OnModuleInit {
    * Envía un lote de check-ins. Inline → aplica y devuelve la reconciliación;
    * async → publica al bus y devuelve lo aceptado (el consumidor reconcilia).
    */
-  async submit(items: CheckinItem[], eventId?: string, gateId?: string) {
-    const stamped = items.map((i) => ({ ...i, gateId: i.gateId ?? gateId, eventId: eventId ?? i.eventId }));
+  async submit(items: CheckinItem[], eventId?: string, gateId?: string, operatorId?: string) {
+    const stamped = items.map((i) => ({
+      ...i,
+      gateId: i.gateId ?? gateId,
+      eventId: eventId ?? i.eventId,
+      operatorId: i.operatorId ?? operatorId ?? null,
+    }));
     if (this.inline) {
       return { mode: 'inline' as const, ...(await this.ingestBatch(stamped)) };
     }
@@ -119,9 +129,11 @@ export class ValidationIngestService implements OnModuleInit {
     await this.custody.record({
       ticketId: ticket.id,
       type: 'checked_in',
+      actorId: item.operatorId ?? null, // atribución al validador (dashboard "por validador")
       meta: { source: 'offline_ingest', gateId: item.gateId ?? null },
     });
     await this.sync.record(ticket.eventId, ticket.id, 'checked_in');
+    this.stream.emitCheckin(ticket.eventId, { serial: ticket.serial }); // dashboard en vivo (SSE)
     return 'checked_in';
   }
 

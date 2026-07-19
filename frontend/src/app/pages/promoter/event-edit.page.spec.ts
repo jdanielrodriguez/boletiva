@@ -1192,6 +1192,60 @@ describe('EventEditPage (v3)', () => {
     expect(el.querySelector('[data-testid="cash-transfer-net"]')?.textContent).toContain('1234.56');
   });
 
+  // --- Bloque 2A: eventos concluidos (pasado/finalizado/cancelado) = SOLO LECTURA ---
+  const PAST = '2020-01-01T00:00:00.000Z';
+
+  it('concluido por fecha (published + endsAt pasado): SOLO LECTURA — sin Guardar/Suspender y datos deshabilitados', async () => {
+    await setup({ get: () => of({ ...EVENT, status: 'published', endsAt: PAST }) });
+    expect(inst()['isConcluded']()).toBe(true);
+    expect(inst()['editLocked']()).toBe(true);
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="concluded-note"]')).not.toBeNull();
+    // Sin Guardar ni Suspender en la cabecera.
+    expect(el.querySelector('[data-testid="save-draft-btn"]')).toBeNull();
+    expect(el.querySelector('[data-testid="suspend-btn"]')).toBeNull();
+    // El fieldset de edición queda deshabilitado → los campos heredan :disabled.
+    const fs = el.querySelector<HTMLFieldSetElement>('.lock-fieldset');
+    expect(fs?.disabled).toBe(true);
+    const name = el.querySelector<HTMLInputElement>('[data-testid="ed-name"]');
+    expect(name?.matches(':disabled')).toBe(true);
+  });
+
+  it('concluido: el PROMOTOR dueño NO ve el botón Cancelar', async () => {
+    await setup({ get: () => of({ ...EVENT, status: 'published', endsAt: PAST }) });
+    expect(inst()['canCancelEvent']()).toBe(false);
+    expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="cancel-btn"]')).toBeNull();
+  });
+
+  it('concluido: SOLO el ADMIN real ve el botón Cancelar (corrige un evento pasado sin marcar)', async () => {
+    await setup({ get: () => of({ ...EVENT, status: 'published', endsAt: PAST }) }, {}, 'e1', {
+      id: 'admin-9',
+      roles: ['admin'],
+    });
+    expect(inst()['canCancelEvent']()).toBe(true);
+    expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="cancel-btn"]')).not.toBeNull();
+  });
+
+  it('concluido: guardar datos NO llama al API (solo lectura) y avisa', async () => {
+    const update = jasmine.createSpy('u').and.returnValue(of(EVENT));
+    await setup({ update, get: () => of({ ...EVENT, status: 'published', endsAt: PAST }) });
+    fixture.componentInstance['saveData']();
+    expect(update).not.toHaveBeenCalled();
+    expect(lastToast()?.kind).toBe('warning');
+  });
+
+  it('concluido por fecha SIN suspender/cancelar: OCULTA el aviso de boletos vendidos (no hay devoluciones)', async () => {
+    await setup({ get: () => of({ ...EVENT, status: 'published', endsAt: PAST, soldTicketsCount: 5 }) });
+    expect(inst()['showSoldWarning']()).toBe(false);
+    expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="sold-warning"]')).toBeNull();
+  });
+
+  it('cancelado con ventas: SÍ muestra el aviso de boletos vendidos (sí hay devoluciones)', async () => {
+    await setup({ get: () => of({ ...EVENT, status: 'cancelled', endsAt: PAST, soldTicketsCount: 5 }) });
+    expect(inst()['showSoldWarning']()).toBe(true);
+    expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="sold-warning"]')).not.toBeNull();
+  });
+
   // --- i18n: cambiar el idioma traduce los textos ---
   it('traduce los textos al inglés al cambiar el idioma', async () => {
     await setup();
