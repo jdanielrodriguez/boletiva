@@ -211,3 +211,57 @@ prod-logs-errors:
 	gcloud logging read 'resource.type=cloud_run_revision AND resource.labels.service_name=pasaeventos-api AND severity>=ERROR' \
 		--project=$(PROD_PROJECT) --limit=50 --freshness=6h \
 		--format='value(timestamp, jsonPayload.msg, jsonPayload.err.stack)'
+
+# ============================================================================
+# Costos GCP: poda de Artifact Registry (driver #1 del gasto idle) + dormir/
+# despertar la BD de PROD (en alpha es válido apagarla cuando nadie prueba).
+# Requieren `gcloud` autenticado en el proyecto.
+# ============================================================================
+AR_REPO      ?= us-central1-docker.pkg.dev/$(PROD_PROJECT)/pasaeventos-backend
+KEEP_IMAGES  ?= 3
+# Instancia de Cloud SQL de PROD (defínela: PROD_SQL_INSTANCE=<nombre> make gcp-prod-sleep).
+PROD_SQL_INSTANCE ?=
+
+# Borra imágenes VIEJAS de Artifact Registry (api + frontend), conservando las
+# KEEP_IMAGES más recientes de cada una. Artifact Registry cobra por almacenamiento:
+# acumular cada build sin podar es lo que engorda la factura idle.
+.PHONY: gcp-clean-images
+gcp-clean-images:
+	@echo "🧹 Podando Artifact Registry en $(AR_REPO) (conservar $(KEEP_IMAGES) por imagen)…"
+	@for img in api frontend; do \
+	  echo "→ $$img:"; \
+	  gcloud artifacts docker images list "$(AR_REPO)/$$img" \
+	    --project=$(PROD_PROJECT) --sort-by=~CREATE_TIME --format='value(version)' 2>/dev/null \
+	    | tail -n +$$(( $(KEEP_IMAGES) + 1 )) \
+	    | while read -r digest; do \
+	        [ -n "$$digest" ] || continue; \
+	        echo "   borrando $$img@$$digest"; \
+	        gcloud artifacts docker images delete "$(AR_REPO)/$$img@$$digest" \
+	          --project=$(PROD_PROJECT) --delete-tags --quiet || true; \
+	      done; \
+	done
+	@echo "✅ Poda terminada."
+
+# Muestra cuánto ocupa cada imagen (para ver el ahorro antes/después).
+.PHONY: gcp-images-list
+gcp-images-list:
+	@for img in api frontend; do \
+	  echo "=== $$img ==="; \
+	  gcloud artifacts docker images list "$(AR_REPO)/$$img" \
+	    --project=$(PROD_PROJECT) --sort-by=~CREATE_TIME \
+	    --format='table(version.slice(7:19), createTime.date(), sizeBytes.size())' 2>/dev/null; \
+	done
+
+# Duerme la BD de PROD (solo paga disco). En alpha es válido apagarla cuando nadie prueba.
+# Despierta con gcp-prod-wake (levanta en segundos con los datos intactos).
+.PHONY: gcp-prod-sleep
+gcp-prod-sleep:
+	@[ -n "$(PROD_SQL_INSTANCE)" ] || { echo '❌ Define PROD_SQL_INSTANCE=<instancia Cloud SQL>'; exit 1; }
+	gcloud sql instances patch $(PROD_SQL_INSTANCE) --activation-policy NEVER --project=$(PROD_PROJECT)
+	@echo "💤 Cloud SQL PROD '$(PROD_SQL_INSTANCE)' detenida (solo se cobra el disco)."
+
+.PHONY: gcp-prod-wake
+gcp-prod-wake:
+	@[ -n "$(PROD_SQL_INSTANCE)" ] || { echo '❌ Define PROD_SQL_INSTANCE=<instancia Cloud SQL>'; exit 1; }
+	gcloud sql instances patch $(PROD_SQL_INSTANCE) --activation-policy ALWAYS --project=$(PROD_PROJECT)
+	@echo "☀️  Cloud SQL PROD '$(PROD_SQL_INSTANCE)' encendida."
