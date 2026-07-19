@@ -3,6 +3,7 @@ import {
   ElementRef,
   OnDestroy,
   PLATFORM_ID,
+  effect,
   inject,
   signal,
   viewChild,
@@ -76,6 +77,8 @@ export class GateValidatePage implements OnDestroy {
   private canvas?: HTMLCanvasElement;
   private scanTimer?: ReturnType<typeof setInterval>;
   private busy = false;
+  /** Stream ya adjuntado al <video> (evita re-adjuntar el mismo; permite re-adjuntar tras reintentar). */
+  private attachedStream?: MediaStream;
   /** Un solo drenaje de la cola a la vez (evita subir el mismo lote en paralelo). */
   private flushing = false;
   private audioCtx?: AudioContext;
@@ -88,6 +91,16 @@ export class GateValidatePage implements OnDestroy {
     this.online.set(navigator.onLine);
     window.addEventListener('online', this.onOnline);
     window.addEventListener('offline', this.onOffline);
+    // Adjuntar el stream al <video> de forma RACE-FREE: en zoneless, el <video> (viewChild)
+    // se crea en el CD que dispara `phase='scanning'`, que puede ocurrir DESPUÉS de un
+    // setTimeout(0). El effect corre cuando el elemento YA existe → adjunta sin carrera.
+    effect(() => {
+      const el = this.video()?.nativeElement;
+      if (this.phase() === 'scanning' && el && this.stream && this.attachedStream !== this.stream) {
+        this.attachedStream = this.stream;
+        void this.attachAndScan();
+      }
+    });
     this.peek();
   }
 
@@ -169,9 +182,9 @@ export class GateValidatePage implements OnDestroy {
         video: { facingMode: { ideal: 'environment' } },
         audio: false,
       });
+      // El <video> aparece en esta fase; el `effect` del constructor adjunta el stream en
+      // cuanto el elemento existe (race-free en zoneless).
       this.phase.set('scanning');
-      // El <video> aparece en esta fase; espera al próximo tick para adjuntar el stream.
-      setTimeout(() => void this.attachAndScan(), 0);
     } catch {
       // Permiso denegado, cámara ocupada o inexistente → error + botón reintentar.
       this.cameraError.set(this.translate.instant('gate.cameraDenied'));
