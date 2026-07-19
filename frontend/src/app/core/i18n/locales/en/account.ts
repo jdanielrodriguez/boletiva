@@ -56,6 +56,9 @@ export const account = {
     emailBack: 'Email second factor enabled.',
     error: 'Could not update 2FA.',
     codeError: 'Invalid code. Check the app and try again.',
+    confirmPasswordHint:
+      'For your security, confirm your current password before setting up the authenticator app.',
+    badPassword: 'Incorrect password. Please try again.',
   },
   password: {
     title: 'Change password',

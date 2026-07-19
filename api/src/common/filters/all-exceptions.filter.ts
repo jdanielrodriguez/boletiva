@@ -20,13 +20,22 @@ interface ErrorBody {
 
 /**
  * Filtro global de excepciones: normaliza toda respuesta de error a un contrato
- * estable, adjunta el requestId y oculta el stack en producción.
+ * estable, adjunta el requestId y oculta el stack/detalles internos.
+ *
+ * B-03: la inclusión del `stack` NO depende de `NODE_ENV` (un deploy mal configurado
+ * — staging/preview con NODE_ENV incorrecto — filtraría rutas internas). Se controla con
+ * una variable DEDICADA `exposeStack` (default false): el stack solo viaja al cliente
+ * cuando se enciende explícitamente (dev local). El mensaje de errores no-HTTP se sigue
+ * ocultando en prod.
  */
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger('ExceptionFilter');
 
-  constructor(private readonly isProd: boolean) {}
+  constructor(
+    private readonly isProd: boolean,
+    private readonly exposeStack = false,
+  ) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
@@ -62,7 +71,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
       timestamp: new Date().toISOString(),
     };
 
-    if (!this.isProd && exception instanceof Error) {
+    // Solo si se habilitó explícitamente (variable dedicada, no NODE_ENV).
+    if (this.exposeStack && exception instanceof Error) {
       body.stack = exception.stack;
     }
 

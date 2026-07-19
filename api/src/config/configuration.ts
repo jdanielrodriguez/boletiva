@@ -9,6 +9,7 @@ export interface AppConfig {
   isTest: boolean;
   port: number;
   appName: string;
+  exposeErrorStack: boolean;
   database: { url: string };
   redis: { url: string };
   amqp: { url: string; inline: boolean };
@@ -155,6 +156,9 @@ export const configuration = (): AppConfig => {
     isTest: env === 'test',
     port: parseInt(process.env.PORT ?? '8080', 10),
     appName: process.env.APP_NAME ?? 'Boletiva',
+    // B-03: incluir el stack de errores en la respuesta HTTP. Variable DEDICADA (no
+    // NODE_ENV) → un deploy mal configurado no filtra rutas internas. Default false.
+    exposeErrorStack: bool(process.env.EXPOSE_ERROR_STACK, false),
     database: { url: process.env.DATABASE_URL as string },
     redis: { url: process.env.REDIS_URL as string },
     // inline: el ingest de validación se aplica síncrono (tests deterministas y sin

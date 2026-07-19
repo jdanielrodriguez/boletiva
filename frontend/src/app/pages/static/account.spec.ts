@@ -150,6 +150,25 @@ describe('Account (mi cuenta)', () => {
     expect(el.textContent).toContain('ana@correo.com');
   });
 
+  it('B-02: alta de TOTP pide la contraseña (step-up) ANTES de generar el QR', async () => {
+    const totpSetup = jasmine
+      .createSpy('totpSetup')
+      .and.returnValue(of({ otpauthUrl: 'otpauth://x', qrDataUrl: 'data:image/png;base64,x', secret: 'ABC' }));
+    await setup({ authApi: { totpSetup, me: () => of({ twoFactorMethod: 'email' }) } });
+    (el.querySelector('[data-testid="twofa-start-totp"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    // Paso de contraseña visible y SIN llamar al backend todavía.
+    expect(el.querySelector('[data-testid="twofa-password"]')).not.toBeNull();
+    expect(totpSetup).not.toHaveBeenCalled();
+    // Ingresa la contraseña → continúa → llama totpSetup(password) y muestra el QR.
+    (fixture.componentInstance as unknown as { totpPassword: { set: (v: string) => void } }).totpPassword.set('Password123');
+    fixture.detectChanges();
+    (el.querySelector('[data-testid="twofa-password-submit"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(totpSetup).toHaveBeenCalledWith('Password123');
+    expect(el.querySelector('[data-testid="twofa-qr"]')).not.toBeNull();
+  });
+
   it('guardar perfil llama updateMe, refresca la sesión y notifica con toast', async () => {
     const updateMe = jasmine.createSpy('updateMe').and.returnValue(of({ firstName: 'Nuevo' }));
     await setup({ users: { updateMe } });

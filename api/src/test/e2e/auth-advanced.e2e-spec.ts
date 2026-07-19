@@ -86,9 +86,17 @@ describe('Auth avanzado (e2e)', () => {
       .send({ email, password });
     const token = session.body.tokens.accessToken;
 
+    // B-02: sin re-autenticación (contraseña) → 401 (un token robado no basta).
+    await http()
+      .post('/api/v1/auth/2fa/totp/setup')
+      .set('Authorization', `Bearer ${token}`)
+      .send({})
+      .expect(401);
+    // Con la contraseña correcta (step-up) → 201.
     const setup = await http()
       .post('/api/v1/auth/2fa/totp/setup')
       .set('Authorization', `Bearer ${token}`)
+      .send({ password })
       .expect(201);
     const secret = setup.body.secret;
     expect(setup.body.qrDataUrl).toContain('data:image/png');

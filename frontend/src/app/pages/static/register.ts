@@ -45,6 +45,8 @@ export class Register {
   protected readonly confirmPassword = signal('');
   protected readonly working = signal(false);
   protected readonly error = signal<string | null>(null);
+  /** Aviso genérico (p.ej. correo ya existente → anti-enumeración): no revela nada. */
+  protected readonly info = signal<string | null>(null);
 
   /** Chequeos de fortaleza (checklist en vivo). */
   protected readonly checks = computed(() => {
@@ -135,7 +137,17 @@ export class Register {
         lastName: this.lastName() || undefined,
       })
       .subscribe({
-        next: () => (this.token ? this.acceptThenGo(this.token) : this.done()),
+        next: () => {
+          // Correo YA existente (202 anti-enumeración): no hay sesión → aviso genérico
+          // (no revela si el correo existe; el backend avisó por correo al dueño real).
+          if (!this.session.isAuthenticated()) {
+            this.working.set(false);
+            this.info.set(this.translate.instant('auth.msgSignupCheckEmail'));
+            return;
+          }
+          if (this.token) this.acceptThenGo(this.token);
+          else this.done();
+        },
         error: () => {
           this.working.set(false);
           this.error.set(this.translate.instant('auth.msgCreateFailed'));

@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ConflictException,
   HttpException,
   HttpStatus,
   Injectable,
@@ -121,10 +120,16 @@ export class AuthService {
   async signup(
     dto: SignupDto,
     ctx: DeviceContext,
-  ): Promise<{ user: PublicUser; tokens: TokenPair }> {
+  ): Promise<{ pending: true } | { user: PublicUser; tokens: TokenPair }> {
     const email = dto.email.toLowerCase().trim();
+    // Anti-enumeración (M-01): si el correo YA existe NO devolvemos 409 (que revelaría la
+    // existencia de la cuenta a un atacante que itera correos). En su lugar enviamos un
+    // correo de cortesía ("ya tienes una cuenta") y devolvemos una respuesta genérica
+    // `pending` (202) — sin sesión, sin crear nada. El flujo de alta real (correo nuevo)
+    // sigue devolviendo 201 + tokens.
     if (await this.prisma.user.findUnique({ where: { email } })) {
-      throw new ConflictException('El correo ya está registrado');
+      await this.sendAlreadyRegisteredEmail(email);
+      return { pending: true };
     }
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
     const user = await this.prisma.user.create({
@@ -371,6 +376,24 @@ export class AuthService {
       bodyHtml: `<p style="margin:0 0 12px 0;">Recibimos una solicitud para restablecer tu contraseña. El enlace es válido por 1 hora.</p>
         <p class="pe-muted" style="margin:0;font-size:14px;color:#6b6b76;">Si no fuiste tú, ignora este correo: tu contraseña no cambiará.</p>`,
       cta: { url: `${origin}/reset-password?token=${raw}`, label: 'Restablecer contraseña' },
+    });
+  }
+
+  /**
+   * Correo de cortesía cuando alguien intenta registrarse con un correo YA existente
+   * (M-01): en vez de revelar "el correo ya está registrado" por HTTP, avisamos por
+   * correo al dueño real de la cuenta con opciones de iniciar sesión o recuperar la
+   * contraseña. Best-effort (no bloquea ni lanza).
+   */
+  private async sendAlreadyRegisteredEmail(email: string): Promise<void> {
+    const origin = (this.config.get<string[]>('cors.origins') ?? [])[0] ?? '';
+    await this.safeSend(email, 'Sobre tu cuenta en Boletiva', {
+      title: 'Ya tienes una cuenta',
+      preheader: 'Intentaron registrar este correo, pero ya tiene una cuenta en Boletiva.',
+      bodyHtml: `<p style="margin:0 0 12px 0;">Recibimos un intento de registro con este correo, pero <strong>ya tienes una cuenta</strong> en Boletiva. No creamos una nueva.</p>
+        <p style="margin:0 0 12px 0;">Si fuiste tú, inicia sesión normalmente. Si no recuerdas tu contraseña, puedes restablecerla.</p>
+        <p class="pe-muted" style="margin:0;font-size:14px;color:#6b6b76;">Si no fuiste tú, puedes ignorar este correo: tu cuenta sigue protegida.</p>`,
+      cta: { url: `${origin}/login`, label: 'Iniciar sesión' },
     });
   }
 

@@ -13,14 +13,17 @@ import { Register } from './register';
 /** Refresh falso: devuelve un token nuevo (relee roles tras aceptar invitación). */
 const refresherStub = { refresh: () => of({ accessToken: 'new' }) } as unknown as AuthRefreshService;
 
-/** Sesión falsa configurable (autenticada o no, con un correo dado). */
+/** Sesión falsa configurable (autenticada o no). Expone el signal `_authed` para que la
+ * prueba simule el auto-login que hace el AuthService real tras un signup con correo nuevo. */
 function sessionStub(opts: { authed?: boolean; email?: string } = {}) {
   const authed = signal(opts.authed ?? false);
-  return {
+  const stub = {
     isAuthenticated: () => authed(),
-    user: () => (opts.authed ? { email: opts.email ?? 'x@x.com' } : null),
+    user: () => (authed() ? { email: opts.email ?? 'x@x.com' } : null),
     loadMe: () => of(null),
   } as unknown as SessionStore;
+  (stub as unknown as { _authed: typeof authed })._authed = authed;
+  return stub;
 }
 
 describe('Register (F4/v3.5)', () => {
@@ -36,14 +39,22 @@ describe('Register (F4/v3.5)', () => {
     token?: string,
     opts: {
       signupOk?: boolean;
+      signupPending?: boolean;
       accountExists?: boolean;
       valid?: boolean;
       session?: SessionStore;
     } = {},
   ) {
-    signup = jasmine
-      .createSpy('signup')
-      .and.returnValue(opts.signupOk === false ? throwError(() => new Error('dup')) : of({ user: {}, tokens: {} }));
+    const session = opts.session ?? sessionStub();
+    const authedSig = (session as unknown as { _authed?: ReturnType<typeof signal<boolean>> })._authed;
+    signup = jasmine.createSpy('signup').and.callFake(() => {
+      if (opts.signupOk === false) return throwError(() => new Error('dup'));
+      // Correo nuevo → 201 con tokens: el AuthService real autentica la sesión (aquí lo
+      // simulamos flipando el signal). Correo YA existente → 202 sin tokens (pendiente):
+      // no autentica.
+      if (!opts.signupPending && authedSig) authedSig.set(true);
+      return of(opts.signupPending ? { message: 'check email' } : { user: {}, tokens: {} });
+    });
     byToken = jasmine
       .createSpy('byToken')
       .and.returnValue(of({ email: 'inv@correo.com', accountExists: opts.accountExists ?? false, valid: opts.valid ?? true }));
@@ -59,7 +70,7 @@ describe('Register (F4/v3.5)', () => {
         { provide: AuthService, useValue: { signup } },
         { provide: AuthRefreshService, useValue: refresherStub },
         { provide: InvitationsApi, useValue: { byToken, accept, acceptByToken } },
-        { provide: SessionStore, useValue: opts.session ?? sessionStub() },
+        { provide: SessionStore, useValue: session },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { queryParamMap: convertToParamMap(token ? { token } : {}) } },
@@ -172,6 +183,20 @@ describe('Register (F4/v3.5)', () => {
     set('password', 'Password123');
     submit();
     expect(el.querySelector('[data-testid="rg-error"]')).not.toBeNull();
+  });
+
+  it('M-01: correo YA existente (202 sin tokens) → aviso genérico, NO navega ni revela nada', async () => {
+    await setup(undefined, { signupPending: true });
+    set('firstName', 'Ana');
+    set('email', 'ya@correo.com');
+    set('password', 'Password123');
+    set('confirmPassword', 'Password123');
+    submit();
+    expect(signup).toHaveBeenCalled();
+    // Aviso genérico (no error), sin navegar al inicio (no hubo sesión).
+    expect(el.querySelector('[data-testid="rg-info"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="rg-error"]')).toBeNull();
+    expect(navSpy).not.toHaveBeenCalledWith(['/']);
   });
 
   // Helper para el caso de token inválido (byToken personalizado).

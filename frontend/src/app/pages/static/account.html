@@ -180,6 +180,21 @@
                   {{ 'account.twofa.useEmail' | translate }}
                 </button>
               }
+            } @else if (totpStep() === 'password') {
+              <!-- Step-up (B-02): re-autenticación con la contraseña antes de generar el QR. -->
+              <div class="twofa-setup" data-testid="twofa-password">
+                <p class="muted small">{{ 'account.twofa.confirmPasswordHint' | translate }}</p>
+                <div class="field">
+                  <label for="totp-pw">{{ 'account.password.current' | translate }}</label>
+                  <input id="totp-pw" type="password" [ngModel]="totpPassword()" (ngModelChange)="totpPassword.set($event)" name="totppw" data-testid="twofa-password-input" autocomplete="current-password" />
+                </div>
+                <div class="actions">
+                  <button type="button" class="primary" [disabled]="totpBusy() || totpPassword().length < 1" (click)="submitTotpPassword()" data-testid="twofa-password-submit">
+                    {{ (totpBusy() ? 'account.twofa.activating' : 'common.continue') | translate }}
+                  </button>
+                  <button type="button" class="btn ghost" [disabled]="totpBusy()" (click)="cancelTotp()" data-testid="twofa-password-cancel">{{ 'common.cancel' | translate }}</button>
+                </div>
+              </div>
             } @else {
               <!-- Paso de alta: escanea el QR y confirma con un código de la app. -->
               <div class="twofa-setup" data-testid="twofa-setup">

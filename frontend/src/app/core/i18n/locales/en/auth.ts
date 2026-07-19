@@ -64,7 +64,9 @@ export const auth = {
   // Messages (toasts / errors)
   msgInvitationInvalid: 'The invitation is not valid or has expired.',
   msgCompleteFields: 'Complete name, email and password.',
-  msgCreateFailed: 'Could not create the account (is the email already registered?).',
+  msgCreateFailed: 'Could not create the account. Check your details and try again.',
+  msgSignupCheckEmail:
+    'Done. If the email is valid, we sent you instructions to continue. Please check your inbox.',
   msgActivateOk: 'Done! Your account is now a promoter. Sign in again to see it.',
   msgActivateFailed: 'Could not activate (has the invitation expired or been used?).',
   msgEnterEmail: 'Enter your email.',
