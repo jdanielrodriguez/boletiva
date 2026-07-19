@@ -1043,6 +1043,15 @@ export class Account {
     void this.router.navigate(['/cuenta/transaccion', orderId]);
   }
 
+  /**
+   * Retoma el pago de una compra que quedó PENDIENTE (el pago falló o no se completó):
+   * lleva de vuelta al checkout de ESA orden, donde puede elegir método y pagar. El
+   * checkout carga la orden por id y muestra las opciones de pago (recupera la venta).
+   */
+  protected pagarPendiente(orderId: string): void {
+    void this.router.navigate(['/checkout', orderId]);
+  }
+
   // --- Liquidación del promotor (W7) ---
   /** Evento cuya liquidación se está descargando ahora (para el spinner del botón). */
   protected readonly downloadingSettlement = signal<string | null>(null);

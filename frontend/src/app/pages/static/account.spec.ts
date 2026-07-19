@@ -630,6 +630,27 @@ describe('Account (mi cuenta)', () => {
     expect(list?.textContent).toContain('25.00'); // el ingreso
   });
 
+  // Bloque 2C: compra PENDIENTE (pago fallido/incompleto) → "Volver a pagar".
+  const PENDING_MOVEMENT = [
+    { id: 'order:oP', direction: 'expense', kind: 'purchase', amount: '129.68', currency: 'GTQ', status: 'pending', eventName: 'Fiesta', orderId: 'oP', createdAt: '2026-07-02T10:00:00Z' },
+  ];
+
+  it('compra PENDIENTE: muestra "Volver a pagar" y navega al checkout de esa orden', async () => {
+    await setup({ orders: { movements: () => of({ items: PENDING_MOVEMENT }) } });
+    const nav = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    go('menu-facturacion');
+    const btn = el.querySelector<HTMLButtonElement>('[data-testid="mv-pay-pending"]');
+    expect(btn).not.toBeNull();
+    btn!.click();
+    expect(nav).toHaveBeenCalledWith(['/checkout', 'oP']);
+  });
+
+  it('compra PAGADA: NO muestra "Volver a pagar"', async () => {
+    await setup({ orders: { movements: () => of({ items: MOVEMENTS }) } });
+    go('menu-facturacion');
+    expect(el.querySelector('[data-testid="mv-pay-pending"]')).toBeNull();
+  });
+
   // W7: liquidación del promotor (movimiento event_settlement).
   const SETTLEMENT = [
     { id: 'settle:e9', direction: 'income', kind: 'event_settlement', amount: '5000.00', currency: 'GTQ', status: 'paid', eventName: 'Gran Concierto', eventId: 'e9', orderId: null, createdAt: '2026-07-10T10:00:00Z' },

@@ -107,6 +107,7 @@ export const account = {
     fel: 'FEL {{serie}}-{{numero}}',
     nit: 'Tax ID {{nit}}',
     viewFullDetail: 'View full detail',
+    payPending: 'Pay again',
     showChain: 'View transaction chain',
     hideChain: 'Hide transaction chain',
     movementType: 'Movement type',
