@@ -11,6 +11,7 @@ import {
   PromoterListItemDto,
 } from '../../core/api/admin.api';
 import { InvitationsApi } from '../../core/api/invitations.api';
+import { PromoterEventsApi } from '../../core/api/promoter-events.api';
 import { SettingsApi } from '../../core/api/settings.api';
 import { AuditApi } from '../../core/api/audit.api';
 import { ImpersonationService } from '../../core/auth/impersonation.service';
@@ -101,6 +102,7 @@ export class ConfigPage {
     { title: 'tour.admin.configTitle', body: 'tour.admin.configBody' },
   ];
   private readonly admin = inject(AdminApi);
+  private readonly promoterEvents = inject(PromoterEventsApi);
   private readonly invitationsApi = inject(InvitationsApi);
   private readonly settingsApi = inject(SettingsApi);
   private readonly audit = inject(AuditApi);
@@ -151,6 +153,8 @@ export class ConfigPage {
 
   // --- Eventos ---
   protected readonly events = signal<AdminEventListItemDto[]>([]);
+  /** Evento cuyo destacado se está guardando (deshabilita su check mientras). */
+  protected readonly promotingId = signal<string | null>(null);
   protected readonly eventsPage = signal(1);
   protected readonly eventsPageSize = EVENTS_PAGE;
   protected readonly eventSearch = signal('');
@@ -337,6 +341,31 @@ export class ConfigPage {
       error: () => this.toasts.error(this.translate.instant('config.events.loadError')),
     });
   }
+
+  /**
+   * Destaca/quita un evento del slider del inicio (solo admin). Actualiza el estado local
+   * del item para reflejar el check al instante. El slider solo muestra futuros publicados
+   * destacados y se oculta si no hay ninguno.
+   */
+  protected togglePromoted(e: AdminEventListItemDto, featured: boolean): void {
+    this.promotingId.set(e.id);
+    this.promoterEvents.promote(e.id, featured).subscribe({
+      next: () => {
+        this.events.update((list) =>
+          list.map((x) => (x.id === e.id ? { ...x, promotedPriority: featured ? 0 : null } : x)),
+        );
+        this.promotingId.set(null);
+        this.toasts.success(
+          this.translate.instant(featured ? 'config.events.featured' : 'config.events.unfeatured'),
+        );
+      },
+      error: () => {
+        this.promotingId.set(null);
+        this.toasts.error(this.translate.instant('config.events.featureError'));
+      },
+    });
+  }
+
   protected goToEventsPage(p: number): void {
     this.eventsPage.set(Math.min(Math.max(1, p), this.eventsTotalPages()));
   }

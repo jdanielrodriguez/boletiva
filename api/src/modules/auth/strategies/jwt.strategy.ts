@@ -10,6 +10,8 @@ export interface JwtPayload {
   roles: AuthUser['roles'];
   /** Solo en tokens de puerta SafeTix: evento al que está acotado el token. */
   gateEventId?: string;
+  /** Solo en gate-tokens de VALIDADOR: sesión "último gana" (sid) del enlace. */
+  sid?: string;
   /** Solo en tokens de IMPERSONACIÓN (soporte, v3.8). */
   impersonation?: boolean;
   impersonatedBy?: string;
@@ -38,6 +40,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       email: payload.email,
       roles: payload.roles,
       gateEventId: payload.gateEventId,
+      sid: payload.sid,
       impersonation: payload.impersonation,
       impersonatedBy: payload.impersonatedBy,
     };

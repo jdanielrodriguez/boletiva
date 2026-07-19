@@ -27,7 +27,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { RequireVerifiedEmail } from '../../common/decorators/verified-email.decorator';
 import { AuthUser, CurrentUser } from '../../common/decorators/current-user.decorator';
 import { EventsService } from './events.service';
-import { CreateEventDto, UpdateEventDto } from './dto/events.dto';
+import { CreateEventDto, PromoteEventDto, UpdateEventDto } from './dto/events.dto';
 import {
   EventAvailabilityDto,
   EventResponseDto,
@@ -143,6 +143,19 @@ export class EventsController {
     @Headers('x-edit-unlock') unlockToken?: string,
   ) {
     return this.events.update(id, dto, user, unlockToken);
+  }
+
+  @Patch(':id/promote')
+  @Roles(Role.admin)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Destaca/quita un evento del slider del inicio (solo admin)' })
+  @ApiOkResponse({ type: EventResponseDto })
+  promote(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: PromoteEventDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.events.setPromoted(id, dto.featured, user);
   }
 
   @Post(':id/publish')

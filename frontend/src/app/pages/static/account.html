@@ -137,6 +137,25 @@
             }
           </div>
 
+          <!-- Preferencia de TEMA (día/noche): espejo del idioma; al loguear se aplica esta. -->
+          <div class="card-block">
+            <h3>{{ 'account.theme.title' | translate }}</h3>
+            <p class="muted">{{ 'account.theme.hint' | translate }}</p>
+            <div class="lang-choice" role="group" [attr.aria-label]="'account.theme.title' | translate" data-testid="account-theme-switcher">
+              <button type="button" class="lang-opt" [class.active]="profileTheme() === 'dia'" [attr.aria-pressed]="profileTheme() === 'dia'" (click)="setProfileTheme('dia')" data-testid="account-theme-dia">
+                <span class="theme-emoji" aria-hidden="true">☀️</span> {{ 'account.theme.day' | translate }}
+              </button>
+              <button type="button" class="lang-opt" [class.active]="profileTheme() === 'noche'" [attr.aria-pressed]="profileTheme() === 'noche'" (click)="setProfileTheme('noche')" data-testid="account-theme-noche">
+                <span class="theme-emoji" aria-hidden="true">🌙</span> {{ 'account.theme.night' | translate }}
+              </button>
+            </div>
+            @if (themeDirty()) {
+              <button type="button" class="primary lang-save" [disabled]="savingTheme()" (click)="saveTheme()" data-testid="save-theme">
+                <app-icon name="save" /> {{ (savingTheme() ? 'account.profile.saving' : 'common.save') | translate }}
+              </button>
+            }
+          </div>
+
           <div class="card-block">
             <h3>{{ 'account.password.title' | translate }}</h3>
             <p class="muted">{{ 'account.password.hint' | translate }}</p>

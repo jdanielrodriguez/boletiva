@@ -5,6 +5,7 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { I18nService } from '../../core/i18n/i18n.service';
 import type { Lang } from '../../core/i18n/i18n.types';
+import { ThemeService, type Franja } from '../../core/theme/theme.service';
 import { MoneyPipe } from '../../shared/money.pipe';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -127,6 +128,7 @@ export class Account {
   private readonly toasts = inject(ToastService);
   private readonly translate = inject(TranslateService);
   private readonly i18n = inject(I18nService);
+  private readonly theme = inject(ThemeService);
   private readonly router = inject(Router);
   private readonly document = inject(DOCUMENT);
   private readonly platformId = inject(PLATFORM_ID);
@@ -195,6 +197,37 @@ export class Account {
       error: () => {
         this.savingLanguage.set(false);
         this.toasts.error(this.translate.instant('account.language.saveError'));
+      },
+    });
+  }
+
+  // --- Preferencia de TEMA (día/noche) persistente en BD (espejo del idioma) ---
+  /** Franja persistida del usuario (o la franja activa si aún no eligió). */
+  protected readonly persistedTheme = computed<Franja>(() => {
+    const saved = ((this.session.user() as { themePref?: string | null })?.themePref ?? '') as Franja;
+    return saved === 'dia' || saved === 'noche' ? saved : this.theme.franja();
+  });
+  /** Franja seleccionada en el perfil (sin aplicar hasta Guardar). */
+  protected readonly profileTheme = signal<Franja>(this.persistedTheme());
+  protected readonly themeDirty = computed(() => this.profileTheme() !== this.persistedTheme());
+  protected readonly savingTheme = signal(false);
+  protected setProfileTheme(f: Franja): void {
+    this.profileTheme.set(f);
+  }
+  /** Persiste la preferencia de tema en BD (PATCH /users/me), actualiza sesión y aplica. */
+  protected saveTheme(): void {
+    const franja = this.profileTheme();
+    this.savingTheme.set(true);
+    this.usersApi.updateMe({ themePref: franja }).subscribe({
+      next: (user) => {
+        this.session.setUser(user);
+        this.theme.use(franja);
+        this.savingTheme.set(false);
+        this.toasts.success(this.translate.instant('account.theme.saved'));
+      },
+      error: () => {
+        this.savingTheme.set(false);
+        this.toasts.error(this.translate.instant('account.theme.saveError'));
       },
     });
   }
