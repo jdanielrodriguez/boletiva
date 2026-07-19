@@ -1058,6 +1058,10 @@ model ValidatorInvitation {
   status      ValidatorStatus @default(active)
   invitedById String          @map("invited_by_id") @db.Uuid
   expiresAt   DateTime        @map("expires_at")
+  // Sesión activa "último gana": cada canje (claim) genera un sid que se guarda aquí y se
+  // incrusta en el gate-token; canjear en OTRO dispositivo lo rota → el gate-token anterior
+  // deja de poder refrescar el manifiesto o subir check-ins (operaciones ONLINE).
+  activeSessionId String?      @map("active_session_id")
   createdAt   DateTime        @default(now()) @map("created_at")
   updatedAt   DateTime        @updatedAt @map("updated_at")
 

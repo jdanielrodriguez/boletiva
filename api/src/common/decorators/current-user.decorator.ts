@@ -7,6 +7,8 @@ export interface AuthUser {
   roles: Role[];
   /** Solo en tokens de PUERTA (SafeTix): evento al que está acotado el token. */
   gateEventId?: string;
+  /** Solo en gate-tokens de VALIDADOR: sesión "último gana" (sid) del enlace. */
+  sid?: string;
   /** Solo en tokens de IMPERSONACIÓN (soporte, v3.8): true si el token actúa como
    * otro usuario. */
   impersonation?: boolean;

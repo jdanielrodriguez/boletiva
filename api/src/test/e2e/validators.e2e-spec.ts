@@ -227,6 +227,30 @@ describe('Validadores de boletos (e2e)', () => {
     await http().post('/api/v1/validators/claim').send({ token }).expect(404);
   });
 
+  it('un dispositivo a la vez ("último gana"): canjear en otro rota el sid → el manifiesto del gate-token viejo → 403', async () => {
+    const inv = await http()
+      .post(`/api/v1/events/${eventId}/validators`)
+      .set(bearer(promoterToken))
+      .send({ email: emailFor() })
+      .expect(201);
+    // El vencimiento del enlace se ata al evento (endsAt + gracia), no a 30 días fijos.
+    expect(new Date(inv.body.expiresAt).getTime()).toBeGreaterThan(new Date('2028-05-01T23:00:00-06:00').getTime());
+    const token = inv.body.url.split('/validar/')[1] as string;
+
+    // Dispositivo A canjea → gate-token A funciona para el manifiesto.
+    const a = await http().post('/api/v1/validators/claim').send({ token }).expect(200);
+    const gateA = a.body.gateToken as string;
+    await http().get(`/api/v1/events/${eventId}/manifest`).set(bearer(gateA)).expect(200);
+
+    // Dispositivo B canjea el MISMO enlace → rota el sid.
+    const b = await http().post('/api/v1/validators/claim').send({ token }).expect(200);
+    const gateB = b.body.gateToken as string;
+
+    // El gate-token A (sid viejo) ya NO puede refrescar el manifiesto (último gana); B sí.
+    await http().get(`/api/v1/events/${eventId}/manifest`).set(bearer(gateA)).expect(403);
+    await http().get(`/api/v1/events/${eventId}/manifest`).set(bearer(gateB)).expect(200);
+  });
+
   it('deshabilitar TODOS de una vez', async () => {
     await http().post(`/api/v1/events/${eventId}/validators`).set(bearer(promoterToken)).send({ email: emailFor() }).expect(201);
     await http().post(`/api/v1/events/${eventId}/validators`).set(bearer(promoterToken)).send({ email: emailFor() }).expect(201);
