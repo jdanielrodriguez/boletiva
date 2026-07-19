@@ -75,6 +75,11 @@ export class ValidatorDisabledDto {
   disabled!: boolean | number;
 }
 
+export class ValidatorRemovedDto {
+  @ApiProperty({ description: 'true si el validador fue eliminado de la lista' })
+  removed!: boolean;
+}
+
 // ---- Dashboard de check-ins (Fase 2) ----
 
 class CheckinByLocalityDto {

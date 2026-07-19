@@ -35,6 +35,7 @@ import {
   ValidatorInviteResponseDto,
   ValidatorListItemDto,
   ValidatorPeekDto,
+  ValidatorRemovedDto,
   ValidatorStreamTicketDto,
 } from './dto/validators.dto';
 
@@ -119,6 +120,19 @@ export class EventValidatorsController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.validators.disable(eventId, id, user);
+  }
+
+  @Delete(':id/purge')
+  @HttpCode(200)
+  @Roles(Role.admin, Role.promoter)
+  @ApiOperation({ summary: 'Elimina un validador deshabilitado (lo quita de la lista)' })
+  @ApiOkResponse({ type: ValidatorRemovedDto })
+  remove(
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.validators.remove(eventId, id, user);
   }
 
   @Post(':id/enable')

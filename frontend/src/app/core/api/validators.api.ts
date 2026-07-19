@@ -50,6 +50,11 @@ export class ValidatorsApi {
     return this.api.delete<ValidatorDisabledDto>(`/events/${eventId}/validators/${id}`);
   }
 
+  /** Elimina un validador DESHABILITADO (lo quita de la lista). */
+  remove(eventId: string, id: string): Observable<{ removed: boolean }> {
+    return this.api.delete<{ removed: boolean }>(`/events/${eventId}/validators/${id}/purge`);
+  }
+
   disableAll(eventId: string): Observable<ValidatorDisabledDto> {
     return this.api.delete<ValidatorDisabledDto>(`/events/${eventId}/validators`);
   }

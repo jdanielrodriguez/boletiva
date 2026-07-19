@@ -84,7 +84,7 @@ export class ValidatorsService {
   private async assertManages(eventId: string, user: AuthUser) {
     const event = await this.prisma.event.findUnique({
       where: { id: eventId },
-      select: { promoterId: true, name: true },
+      select: { promoterId: true, name: true, status: true, endsAt: true },
     });
     if (!event) throw new NotFoundException('Evento no encontrado');
     if (!user.roles.includes(Role.admin) && event.promoterId !== user.userId) {
@@ -93,9 +93,22 @@ export class ValidatorsService {
     return event;
   }
 
+  /**
+   * Evento CONCLUIDO: terminó por fecha (`endsAt` pasado) o está finalizado/cancelado. Se
+   * usa para BLOQUEAR el alta/rotación de accesos de validadores en eventos pasados (ya no
+   * tiene sentido dar/rotar acceso de puerta). La lectura (lista, stats) sigue disponible.
+   */
+  private assertEventActiveForAccess(event: { status: string; endsAt: Date | null }) {
+    const ended = !!event.endsAt && event.endsAt.getTime() < Date.now();
+    if (ended || event.status === 'finished' || event.status === 'cancelled') {
+      throw new BadRequestException('El evento ya concluyó: no se pueden emitir accesos de validación.');
+    }
+  }
+
   /** Crea/actualiza un validador para el evento e (re)envía su código + magic-link. */
   async invite(eventId: string, rawEmail: string, user: AuthUser) {
     const event = await this.assertManages(eventId, user);
+    this.assertEventActiveForAccess(event);
     const email = (rawEmail ?? '').trim().toLowerCase();
     if (!EMAIL_RE.test(email)) throw new BadRequestException('Correo inválido');
 
@@ -307,6 +320,26 @@ export class ValidatorsService {
     return { disabled: true };
   }
 
+  /**
+   * ELIMINA un validador del evento (borra la invitación + su asignación). A diferencia de
+   * deshabilitar (que conserva el registro para poder rehabilitar), esto lo quita de la
+   * lista. Solo se permite sobre validadores DESHABILITADOS (para eliminar uno activo,
+   * primero deshabilítalo). El User operador se conserva (puede validar otros eventos).
+   */
+  async remove(eventId: string, id: string, user: AuthUser) {
+    await this.assertManages(eventId, user);
+    const inv = await this.prisma.validatorInvitation.findFirst({ where: { id, eventId } });
+    if (!inv) throw new NotFoundException('Validador no encontrado');
+    if (inv.status !== ValidatorStatus.disabled) {
+      throw new BadRequestException('Deshabilita el validador antes de eliminarlo');
+    }
+    await this.prisma.$transaction([
+      this.prisma.gateAssignment.deleteMany({ where: { eventId, operatorId: inv.operatorId } }),
+      this.prisma.validatorInvitation.delete({ where: { id } }),
+    ]);
+    return { removed: true };
+  }
+
   /** Deshabilita TODOS los validadores activos del evento de una vez. */
   async disableAll(eventId: string, user: AuthUser) {
     await this.assertManages(eventId, user);
@@ -333,6 +366,7 @@ export class ValidatorsService {
    */
   async enable(eventId: string, id: string, user: AuthUser) {
     const event = await this.assertManages(eventId, user);
+    this.assertEventActiveForAccess(event);
     const inv = await this.prisma.validatorInvitation.findFirst({ where: { id, eventId } });
     if (!inv) throw new NotFoundException('Validador no encontrado');
     const token = randomToken(24);

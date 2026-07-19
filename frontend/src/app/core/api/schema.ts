@@ -2308,6 +2308,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{eventId}/validators/{id}/purge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Elimina un validador deshabilitado (lo quita de la lista) */
+        delete: operations["EventValidatorsController_remove_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{eventId}/validators/{id}/enable": {
         parameters: {
             query?: never;
@@ -7136,6 +7153,10 @@ export interface components {
             /** @description true (uno) o cantidad deshabilitada (todos) */
             disabled: Record<string, never>;
         };
+        ValidatorRemovedDto: {
+            /** @description true si el validador fue eliminado de la lista */
+            removed: boolean;
+        };
         ValidatorPeekDto: {
             email: string;
             eventName: string;
@@ -11480,6 +11501,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ValidatorDisabledDto"];
+                };
+            };
+        };
+    };
+    EventValidatorsController_remove_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eventId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidatorRemovedDto"];
                 };
             };
         };

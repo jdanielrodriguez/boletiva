@@ -203,13 +203,18 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
   protected readonly canEdit = computed(
     () => (this.isOwner() || this.unlockActive()) && !this.isConcluded(),
   );
-  /** Tabs con formularios editables (datos/localidades/banner/config). Cuentas y Dashboard NO. */
+  /**
+   * Tabs con acciones editables (datos/localidades/banner/config/validadores). Cuentas y
+   * Dashboard son de solo lectura. En eventos CONCLUIDOS estas tabs se bloquean (fieldset)
+   * → no se invita/deshabilita/reenvía validadores de un evento pasado.
+   */
   protected readonly isEditableTab = computed(
     () =>
       this.tab() === 'datos' ||
       this.tab() === 'localidades' ||
       this.tab() === 'banner' ||
-      this.tab() === 'config',
+      this.tab() === 'config' ||
+      this.tab() === 'validadores',
   );
   /**
    * Edición bloqueada: por el candado de admin (no-dueño sin desbloquear) O porque el

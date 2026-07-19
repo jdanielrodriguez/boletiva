@@ -239,6 +239,47 @@ describe('Validadores de boletos (e2e)', () => {
     expect(list.body.every((v: { status: string }) => v.status === 'disabled')).toBe(true);
   });
 
+  it('eliminar: solo un DESHABILITADO se puede purgar (activo → 400); tras eliminar sale de la lista', async () => {
+    const email = emailFor();
+    const inv = await http()
+      .post(`/api/v1/events/${eventId}/validators`)
+      .set(bearer(promoterToken))
+      .send({ email })
+      .expect(201);
+    const id = inv.body.id as string;
+    // Activo → no se puede eliminar (primero deshabilitar).
+    await http().delete(`/api/v1/events/${eventId}/validators/${id}/purge`).set(bearer(promoterToken)).expect(400);
+    // Deshabilitar y luego eliminar → 200 removed.
+    await http().delete(`/api/v1/events/${eventId}/validators/${id}`).set(bearer(promoterToken)).expect(200);
+    const del = await http()
+      .delete(`/api/v1/events/${eventId}/validators/${id}/purge`)
+      .set(bearer(promoterToken))
+      .expect(200);
+    expect(del.body.removed).toBe(true);
+    // Ya no aparece en la lista.
+    const list = await http().get(`/api/v1/events/${eventId}/validators`).set(bearer(promoterToken)).expect(200);
+    expect(list.body.some((v: { id: string }) => v.id === id)).toBe(false);
+  });
+
+  it('evento CONCLUIDO (pasado): NO se pueden emitir accesos (invitar → 400)', async () => {
+    const promoter = await prisma.user.findUniqueOrThrow({ where: { email: SEED.promoter } });
+    const past = await prisma.event.create({
+      data: {
+        promoterId: promoter.id,
+        name: `VAL past ${stamp}`,
+        slug: `val-past-${stamp}`,
+        startsAt: new Date('2020-01-01T20:00:00-06:00'),
+        endsAt: new Date('2020-01-01T23:00:00-06:00'),
+        status: 'published',
+      },
+    });
+    await http()
+      .post(`/api/v1/events/${past.id}/validators`)
+      .set(bearer(promoterToken))
+      .send({ email: emailFor() })
+      .expect(400);
+  });
+
   it('admin puede gestionar validadores de cualquier evento', async () => {
     await http()
       .post(`/api/v1/events/${otherEventId}/validators`)

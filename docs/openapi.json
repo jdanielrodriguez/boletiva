@@ -5934,6 +5934,50 @@
         ]
       }
     },
+    "/api/v1/events/{eventId}/validators/{id}/purge": {
+      "delete": {
+        "operationId": "EventValidatorsController_remove_v1",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidatorRemovedDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Elimina un validador deshabilitado (lo quita de la lista)",
+        "tags": [
+          "validators"
+        ]
+      }
+    },
     "/api/v1/events/{eventId}/validators/{id}/enable": {
       "post": {
         "operationId": "EventValidatorsController_enable_v1",
@@ -14988,6 +15032,18 @@
         },
         "required": [
           "disabled"
+        ]
+      },
+      "ValidatorRemovedDto": {
+        "type": "object",
+        "properties": {
+          "removed": {
+            "type": "boolean",
+            "description": "true si el validador fue eliminado de la lista"
+          }
+        },
+        "required": [
+          "removed"
         ]
       },
       "ValidatorPeekDto": {

@@ -118,6 +118,24 @@ export class EventValidatorsComponent {
     });
   }
 
+  /** Elimina de la lista un validador DESHABILITADO (con confirmación). */
+  protected remove(v: ValidatorListItemDto): void {
+    this.confirm.ask({
+      title: this.translate.instant('promoter.validators.removeTitle'),
+      message: this.translate.instant('promoter.validators.removeBody', { email: v.email }),
+      confirmLabel: this.translate.instant('promoter.validators.removeConfirm'),
+      danger: true,
+      onConfirm: () =>
+        this.api.remove(this.eventId(), v.id).subscribe({
+          next: () => {
+            this.toasts.success(this.translate.instant('promoter.validators.removed'));
+            this.load();
+          },
+          error: (err) => this.toasts.error(apiErrorMessage(err, this.translate.instant('promoter.validators.actionError'))),
+        }),
+    });
+  }
+
   protected disableAll(): void {
     this.confirm.ask({
       title: this.translate.instant('promoter.validators.disableAllTitle'),

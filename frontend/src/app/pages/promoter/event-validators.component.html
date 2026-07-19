@@ -84,6 +84,10 @@
               <button type="button" class="link-btn" (click)="enable(v)" [attr.data-testid]="'validators-enable-' + v.id">
                 {{ 'promoter.validators.reenable' | translate }}
               </button>
+              <button type="button" class="link-btn danger" (click)="remove(v)" [attr.data-testid]="'validators-remove-' + v.id"
+                [title]="'promoter.validators.removeTitle' | translate">
+                {{ 'promoter.validators.remove' | translate }}
+              </button>
             }
           </div>
         </li>
