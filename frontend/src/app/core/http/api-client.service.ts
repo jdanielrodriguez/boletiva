@@ -30,6 +30,7 @@ export class ApiClient {
       params: this.params(query),
       withCredentials: true,
       context: opts?.silent ? silentContext() : undefined,
+      headers: opts?.headers,
     });
   }
 

@@ -409,6 +409,11 @@
                         {{ (chains()[chainKey(m)] ? 'account.billing.hideChain' : 'account.billing.showChain') | translate }}
                       </button>
                     } @else if (m.orderId) {
+                      @if (m.status === 'pending') {
+                        <button type="button" class="btn small primary" (click)="pagarPendiente(m.orderId)" data-testid="mv-pay-pending" [title]="'account.billing.payPending' | translate">
+                          <app-icon name="save" /> {{ 'account.billing.payPending' | translate }}
+                        </button>
+                      }
                       <button type="button" class="link-btn" (click)="verCompra(m.orderId)" data-testid="ver-detalle">
                         {{ 'account.billing.viewFullDetail' | translate }}
                       </button>

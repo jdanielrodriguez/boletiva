@@ -93,10 +93,14 @@ describe('SafeTix: acceso de operadores de puerta (e2e)', () => {
   const assignEndpoint = () => `/api/v1/events/${eventId}/gate-operators`;
 
   // Firma un token de puerta arbitrario (para probar expiración / otro evento).
+  // `expiresIn` se castea porque @types/jsonwebtoken v9 endureció el tipo (ya no acepta
+  // `string` plano, sino `number | ms.StringValue`); en el test pasamos ambos.
   const gateJwt = (gateEventId: string, expiresIn: string | number) =>
-    jwt.sign({ sub: opId, email: `gate_op_${stamp}@test.com`, roles: ['gate_operator'], gateEventId }, secret, {
-      expiresIn,
-    });
+    jwt.sign(
+      { sub: opId, email: `gate_op_${stamp}@test.com`, roles: ['gate_operator'], gateEventId },
+      secret,
+      { expiresIn } as jwt.SignOptions,
+    );
 
   // ---- Asignación (CRUD) ----
 

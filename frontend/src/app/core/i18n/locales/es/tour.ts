@@ -1,5 +1,6 @@
 /** Onboarding / tour guiado. Español. */
 export const tour = {
+  aria: 'Guía rápida',
   skip: 'Saltar',
   back: 'Atrás',
   next: 'Siguiente',

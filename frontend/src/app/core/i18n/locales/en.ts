@@ -17,6 +17,7 @@ import { terms } from './en/terms';
 import { maintenance } from './en/maintenance';
 import { tour } from './en/tour';
 import { reportsMaintenance } from './en/reports-maintenance';
+import { gate } from './en/gate';
 
 /** ENGLISH dictionary (en-US). Composed from namespaces. */
 export const en: TranslationObject = {
@@ -38,4 +39,5 @@ export const en: TranslationObject = {
   maintenance,
   tour,
   reportsMaintenance,
+  gate,
 };

@@ -90,6 +90,22 @@ describe('SeatManagerPage (vista de asientos a página completa)', () => {
     expect(el.querySelector('[data-testid="seat-admin-locked"]')).toBeNull();
   });
 
+  it('dueño en evento CONCLUIDO (endsAt pasado) → SOLO LECTURA (no edita un evento pasado)', async () => {
+    await setup({
+      get: () =>
+        of({
+          id: 'e1',
+          promoterId: 'owner-1',
+          name: 'Show',
+          status: 'published',
+          endsAt: '2020-01-01T00:00:00.000Z',
+          media: [],
+        }),
+    });
+    expect(fixture.componentInstance['isConcluded']()).toBe(true);
+    expect(fixture.componentInstance['readonly']()).toBe(true);
+  });
+
   it('admin NO dueño en evento PUBLICADO → bloqueado hasta desbloquear', async () => {
     await setup(
       { get: () => of({ id: 'e1', promoterId: 'owner-1', name: 'Show', status: 'published', media: [] }) },

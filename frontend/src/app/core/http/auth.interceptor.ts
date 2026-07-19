@@ -34,6 +34,13 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const isApiRequest = req.url.startsWith(baseUrl);
   if (!isApiRequest) return next(req);
 
+  // Si la petición YA trae su propio Authorization (p.ej. el gate-token del validador,
+  // que no pertenece a la sesión del navegador), NO lo pisamos con el token de sesión ni
+  // intentamos refresh: es un token ajeno a la sesión. Evita que, al probar el validador
+  // en un navegador logueado como promotor/admin, el token de sesión gane sobre el
+  // gate-token y el manifiesto responda 403.
+  if (req.headers.has('Authorization')) return next(req);
+
   const isAuthFlow = req.url === refresher.refreshUrl || req.url.endsWith('/auth/login');
 
   const access = tokens.getAccessToken();

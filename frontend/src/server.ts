@@ -51,7 +51,10 @@ app.use((_req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
-  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  // La PWA de validación en puerta (/validar) usa la CÁMARA para escanear QRs, así que se
+  // permite `camera` al PROPIO origen (self). Con `camera=()` (allowlist vacía) el navegador
+  // bloqueaba getUserMedia incluso con el permiso concedido. micrófono/geoloc siguen off.
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=(self)');
   next();
 });
 

@@ -35,6 +35,7 @@ import { WalletModule } from './modules/wallet/wallet.module';
 import { PaymentGatewaysModule } from './modules/payment-gateways/payment-gateways.module';
 import { CostShareModule } from './modules/cost-share/cost-share.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
+import { ValidatorsModule } from './modules/validators/validators.module';
 import { PromotersModule } from './modules/promoters/promoters.module';
 import { PaymentMethodsModule } from './modules/payment-methods/payment-methods.module';
 import { RetentionModule } from './modules/retention/retention.module';
@@ -126,6 +127,7 @@ import { FelModule } from './modules/fel/fel.module';
     PaymentGatewaysModule,
     CostShareModule,
     TicketsModule,
+    ValidatorsModule,
     PromotersModule,
     PaymentMethodsModule,
     RetentionModule,

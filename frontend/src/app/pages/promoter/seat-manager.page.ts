@@ -53,11 +53,23 @@ export class SeatManagerPage implements OnDestroy {
     );
   });
   /**
-   * SOLO LECTURA cuando un ADMIN no-dueño no ha desbloqueado (v3.10 · GIV). El DUEÑO
-   * (promotor propietario o admin impersonándolo) edita SIEMPRE, aunque el evento
-   * esté publicado — el gate por `status` NO aplica al dueño. El backend también valida.
+   * Evento CONCLUIDO (terminado por fecha, finalizado o cancelado): sus asientos son de
+   * SOLO LECTURA para todos — se pueden ver, no editar (ya no tiene sentido reacomodar un
+   * evento pasado). El backend también lo valida.
    */
-  protected readonly readonly = computed(() => this.adminLocked());
+  protected readonly isConcluded = computed(() => {
+    const ev = this.event();
+    if (!ev) return false;
+    const ended = !!ev.endsAt && new Date(ev.endsAt).getTime() < Date.now();
+    return ended || ev.status === 'finished' || ev.status === 'cancelled';
+  });
+  /**
+   * SOLO LECTURA cuando un ADMIN no-dueño no ha desbloqueado (v3.10 · GIV) O cuando el
+   * evento ya concluyó. El DUEÑO (promotor propietario o admin impersonándolo) edita un
+   * evento VIGENTE aunque esté publicado — el gate por `status` NO aplica al dueño; el
+   * gate por conclusión SÍ aplica a todos. El backend también valida.
+   */
+  protected readonly readonly = computed(() => this.adminLocked() || this.isConcluded());
 
   /** Vuelve al editor del evento (pestaña Localidades), preservando el origen. */
   protected readonly backLink = computed(() => `/promotor/eventos/${this.eventId()}/editar`);

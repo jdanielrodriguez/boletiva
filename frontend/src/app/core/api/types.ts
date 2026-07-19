@@ -26,6 +26,16 @@ export type MessageResponseDto = Schemas['MessageResponseDto'];
 export type VerifyEmailCodeDto = Schemas['VerifyEmailCodeDto'];
 export type ResendVerificationDto = Schemas['ResendVerificationDto'];
 
+// --- Validadores ---
+export type InviteValidatorDto = Schemas['InviteValidatorDto'];
+export type ValidatorInviteResponseDto = Schemas['ValidatorInviteResponseDto'];
+export type ValidatorListItemDto = Schemas['ValidatorListItemDto'];
+export type ValidatorDisabledDto = Schemas['ValidatorDisabledDto'];
+export type ClaimResponseDto = Schemas['ClaimResponseDto'];
+export type ValidatorPeekDto = Schemas['ValidatorPeekDto'];
+export type BatchCheckinResultDto = Schemas['BatchCheckinResultDto'];
+export type CheckinStatsDto = Schemas['CheckinStatsDto'];
+
 // --- Events (catálogo público) ---
 export type PublicEventListDto = Schemas['PublicEventListDto'];
 export type PublicEventListItemDto = Schemas['PublicEventListItemDto'];
