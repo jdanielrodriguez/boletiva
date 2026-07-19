@@ -62,7 +62,9 @@ export class GateValidatePage implements OnDestroy {
   protected readonly ticketCount = signal(0);
   protected readonly pending = signal(0);
   protected readonly online = signal(true);
-  protected readonly manualSupported = signal(true); // BarcodeDetector disponible
+  // Escaneo AUTOMÁTICO disponible (BarcodeDetector nativo o jsQR). Si es false, la única
+  // vía es la entrada MANUAL del contenido del QR (respaldo).
+  protected readonly manualSupported = signal(true);
   protected readonly manualCode = signal('');
 
   private token = '';
@@ -70,6 +72,8 @@ export class GateValidatePage implements OnDestroy {
   private gateToken = '';
   private stream?: MediaStream;
   private detector?: BarcodeDetectorLike;
+  private jsqr?: (data: Uint8ClampedArray, w: number, h: number, opts?: { inversionAttempts?: string }) => { data: string } | null;
+  private canvas?: HTMLCanvasElement;
   private scanTimer?: ReturnType<typeof setInterval>;
   private busy = false;
 
@@ -162,7 +166,7 @@ export class GateValidatePage implements OnDestroy {
       });
       this.phase.set('scanning');
       // El <video> aparece en esta fase; espera al próximo tick para adjuntar el stream.
-      setTimeout(() => this.attachAndScan(), 0);
+      setTimeout(() => void this.attachAndScan(), 0);
     } catch {
       // Permiso denegado, cámara ocupada o inexistente → error + botón reintentar.
       this.cameraError.set(this.translate.instant('gate.cameraDenied'));
@@ -175,7 +179,7 @@ export class GateValidatePage implements OnDestroy {
     void this.startCamera();
   }
 
-  private attachAndScan(): void {
+  private async attachAndScan(): Promise<void> {
     const el = this.video()?.nativeElement;
     if (!el || !this.stream) return;
     el.srcObject = this.stream;
@@ -184,21 +188,51 @@ export class GateValidatePage implements OnDestroy {
     const Detector = (globalThis as { BarcodeDetector?: new (o: { formats: string[] }) => BarcodeDetectorLike })
       .BarcodeDetector;
     if (Detector) {
+      // Ruta nativa (Chrome/Android): decodifica el frame directamente.
       this.detector = new Detector({ formats: ['qr_code'] });
       this.manualSupported.set(true);
       this.scanTimer = setInterval(() => void this.tick(el), 350);
-    } else {
-      // Sin BarcodeDetector (p.ej. Safari): la cámara se ve, pero se valida por
-      // entrada MANUAL del contenido del QR (respaldo). Se documenta como follow-up.
+      return;
+    }
+    // Sin BarcodeDetector (p.ej. Safari/Firefox) → jsQR sobre un canvas oculto: se sigue
+    // escaneando AUTOMÁTICAMENTE con la cámara (import dinámico, solo navegador). La
+    // entrada manual queda como respaldo si jsQR tampoco cargara.
+    try {
+      this.jsqr = (await import('jsqr')).default as typeof this.jsqr;
+      this.canvas = document.createElement('canvas');
+      this.manualSupported.set(true);
+      this.scanTimer = setInterval(() => void this.tickJsqr(el), 350);
+    } catch {
       this.manualSupported.set(false);
     }
   }
 
+  /** Escaneo nativo con BarcodeDetector. */
   private async tick(el: HTMLVideoElement): Promise<void> {
     if (this.busy || !this.detector || el.readyState < 2) return;
     try {
       const codes = await this.detector.detect(el);
       if (codes.length) await this.validate(codes[0].rawValue);
+    } catch {
+      // frame ilegible; siguiente tick
+    }
+  }
+
+  /** Escaneo con jsQR: dibuja el frame en un canvas y decodifica el QR (Safari/Firefox). */
+  private async tickJsqr(el: HTMLVideoElement): Promise<void> {
+    if (this.busy || !this.jsqr || !this.canvas || el.readyState < 2) return;
+    const w = el.videoWidth;
+    const h = el.videoHeight;
+    if (!w || !h) return;
+    const ctx = this.canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return;
+    this.canvas.width = w;
+    this.canvas.height = h;
+    ctx.drawImage(el, 0, 0, w, h);
+    try {
+      const img = ctx.getImageData(0, 0, w, h);
+      const code = this.jsqr(img.data, w, h, { inversionAttempts: 'dontInvert' });
+      if (code?.data) await this.validate(code.data);
     } catch {
       // frame ilegible; siguiente tick
     }
