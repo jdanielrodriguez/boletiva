@@ -64,6 +64,10 @@ export const promoter = {
       'Published event: localities and seats are locked and the gateway and VAT cannot be changed. Suspend it if you need to reconfigure the hall or the seats.',
     suspendedNote:
       'SUSPENDED event: it is not visible or on sale. You can reconfigure the hall, template, localities and seats, and publish it again when ready.',
+    concludedNote:
+      'CONCLUDED event: its date has passed (or it was finalized/cancelled). Its details, banner, localities and seats are READ-ONLY; you can view the seat map and the accounts, but cannot edit anything.',
+    cancelPastAdminTitle: 'Cancel past event (admin only)',
+    toastConcludedReadOnly: 'The event has already concluded: it is read-only and cannot be edited.',
     suspendEvent: 'Suspend event',
     suspendEventTitle: 'Suspend event',
     confirmSuspendMsg:

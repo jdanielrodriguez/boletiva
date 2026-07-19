@@ -63,6 +63,10 @@ export const promoter = {
       'Evento publicado: las localidades y asientos están bloqueados y no se puede cambiar la pasarela ni el IVA. Suspéndelo si necesitas reconfigurar el salón o los asientos.',
     suspendedNote:
       'Evento SUSPENDIDO: no está visible ni a la venta. Puedes reconfigurar el salón, la plantilla, las localidades y los asientos, y volver a publicarlo cuando esté listo.',
+    concludedNote:
+      'Evento CONCLUIDO: ya pasó su fecha (o fue finalizado/cancelado). Los datos, el banner, las localidades y los asientos son de SOLO LECTURA; puedes ver el mapa de asientos y las cuentas, pero no editar nada.',
+    cancelPastAdminTitle: 'Cancelar evento pasado (solo administrador)',
+    toastConcludedReadOnly: 'El evento ya concluyó: es de solo lectura y no se puede editar.',
     suspendEvent: 'Suspender evento',
     suspendEventTitle: 'Suspender evento',
     confirmSuspendMsg:

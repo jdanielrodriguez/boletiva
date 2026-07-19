@@ -110,6 +110,7 @@ export const account = {
     fel: 'FEL {{serie}}-{{numero}}',
     nit: 'NIT {{nit}}',
     viewFullDetail: 'Ver detalle completo',
+    payPending: 'Volver a pagar',
     showChain: 'Ver cadena de la transacción',
     hideChain: 'Ocultar cadena de la transacción',
     movementType: 'Tipo de movimiento',
