@@ -1,9 +1,10 @@
 /** Gate validation PWA (F4). English. */
 export const gate = {
   invalidTitle: 'Invalid link',
-  linkInvalid: 'The validation link is invalid or expired. Ask the organizer to resend your access.',
+  linkInvalid: 'The validation link is invalid or expired.',
+  invalidNote: 'Ask the organizer to RESEND your access from the event panel.',
   welcomeTitle: 'Gate validation',
-  welcomeAs: 'Signed in as <strong>{{email}}</strong>.',
+  welcomeAsLabel: 'Signed in as',
   welcomeHint: 'You will scan tickets with the camera. It works offline once the event is loaded.',
   start: 'Start',
   preparing: 'Preparing the event…',

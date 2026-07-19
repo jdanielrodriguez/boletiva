@@ -109,9 +109,10 @@ export class ValidatorsService {
       update: {},
     });
 
-    // 3) Invitación con código de un solo uso + token de magic-link (hasheados).
+    // 3) Invitación con token de magic-link (hasheado). El acceso es SOLO por el enlace;
+    //    no se usa un código aparte. `codeHash` es vestigial (columna NOT NULL) → se rellena
+    //    con un valor desechable que nunca se expone ni se usa para validar.
     const token = randomToken(24);
-    const code = String(Math.floor(100000 + Math.random() * 900000)); // 6 dígitos
     const expiresAt = new Date(Date.now() + TTL_DAYS * 24 * 60 * 60 * 1000);
     const inv = await this.prisma.validatorInvitation.upsert({
       where: { eventId_email: { eventId, email } },
@@ -119,13 +120,13 @@ export class ValidatorsService {
         eventId,
         email,
         operatorId: operator.id,
-        codeHash: sha256(code),
+        codeHash: sha256(randomToken(16)),
         tokenHash: sha256(token),
         invitedById: user.userId,
         expiresAt,
       },
       update: {
-        codeHash: sha256(code),
+        codeHash: sha256(randomToken(16)),
         tokenHash: sha256(token),
         status: ValidatorStatus.active,
         expiresAt,
@@ -134,9 +135,9 @@ export class ValidatorsService {
     });
 
     const url = `${this.origin()}/validar/${token}`;
-    await this.sendInviteEmail(email, event.name, url, code);
-    // url + code se devuelven UNA sola vez (no se pueden re-derivar del hash).
-    return { id: inv.id, email, status: inv.status, url, code, expiresAt: expiresAt.toISOString() };
+    await this.sendInviteEmail(email, event.name, url);
+    // url se devuelve UNA sola vez (no se puede re-derivar del hash).
+    return { id: inv.id, email, status: inv.status, url, expiresAt: expiresAt.toISOString() };
   }
 
   /** User ligero solo-validación: crea con rol gate_operator o añade el rol si ya existe. */
@@ -324,13 +325,17 @@ export class ValidatorsService {
     return { disabled: opIds.length };
   }
 
-  /** Re-habilita un validador: re-crea la asignación, rota el token/código y reenvía. */
+  /**
+   * (Re)habilita un validador y REENVÍA su enlace: re-crea la asignación (restaura el
+   * acceso), rota el token (invalida el enlace anterior) y reenvía el correo. Sirve tanto
+   * para "rehabilitar" (estaba deshabilitado) como para "reenviar enlace" (estaba activo
+   * pero se venció/perdió). Idempotente respecto al estado final (queda activo).
+   */
   async enable(eventId: string, id: string, user: AuthUser) {
     const event = await this.assertManages(eventId, user);
     const inv = await this.prisma.validatorInvitation.findFirst({ where: { id, eventId } });
     if (!inv) throw new NotFoundException('Validador no encontrado');
     const token = randomToken(24);
-    const code = String(Math.floor(100000 + Math.random() * 900000));
     const expiresAt = new Date(Date.now() + TTL_DAYS * 24 * 60 * 60 * 1000);
     await this.prisma.$transaction([
       this.prisma.gateAssignment.upsert({
@@ -342,15 +347,15 @@ export class ValidatorsService {
         where: { id },
         data: {
           status: ValidatorStatus.active,
-          codeHash: sha256(code),
+          codeHash: sha256(randomToken(16)),
           tokenHash: sha256(token),
           expiresAt,
         },
       }),
     ]);
     const url = `${this.origin()}/validar/${token}`;
-    await this.sendInviteEmail(inv.email, event.name, url, code);
-    return { id: inv.id, email: inv.email, status: ValidatorStatus.active, url, code, expiresAt: expiresAt.toISOString() };
+    await this.sendInviteEmail(inv.email, event.name, url);
+    return { id: inv.id, email: inv.email, status: ValidatorStatus.active, url, expiresAt: expiresAt.toISOString() };
   }
 
   /**
@@ -412,14 +417,12 @@ export class ValidatorsService {
     return inv;
   }
 
-  private async sendInviteEmail(email: string, eventName: string, url: string, code: string): Promise<void> {
+  private async sendInviteEmail(email: string, eventName: string, url: string): Promise<void> {
     try {
       await this.mail.enqueueTemplated(email, `Valida boletos de "${eventName}" — Boletiva`, {
         title: 'Acceso de validación',
         preheader: `Te habilitaron para validar boletos de ${eventName}.`,
         bodyHtml: `<p style="margin:0 0 12px 0;">Te habilitaron como <strong>validador</strong> de boletos de <strong>${escapeHtml(eventName)}</strong> en Boletiva. Abre el enlace para entrar directo al validador (usa la cámara para escanear los boletos).</p>
-          <p style="margin:0 0 6px 0;">Tu código de acceso:</p>
-          <p style="margin:0;font-size:28px;font-weight:700;letter-spacing:6px;color:#7c3aed;">${code}</p>
           <p class="pe-muted" style="margin:14px 0 0 0;font-size:14px;color:#6b6b76;">El acceso vale mientras el organizador te mantenga habilitado. Si no esperabas esto, ignora este correo.</p>`,
         cta: { url, label: 'Abrir el validador' },
       });

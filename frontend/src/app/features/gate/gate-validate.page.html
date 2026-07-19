@@ -6,21 +6,30 @@
 
     @case ('invalid') {
       <div class="gate-center gate-invalid" data-testid="gate-invalid">
-        <h1>{{ 'gate.invalidTitle' | translate }}</h1>
-        <p class="error">{{ error() ?? ('gate.linkInvalid' | translate) }}</p>
+        <div class="gate-card">
+          <span class="gate-badge bad" aria-hidden="true">✕</span>
+          <h1>{{ 'gate.invalidTitle' | translate }}</h1>
+          <p class="gate-msg">{{ error() ?? ('gate.linkInvalid' | translate) }}</p>
+          <p class="gate-note">{{ 'gate.invalidNote' | translate }}</p>
+        </div>
       </div>
     }
 
     @case ('welcome') {
       <div class="gate-center gate-welcome" data-testid="gate-welcome">
-        <h1>{{ 'gate.welcomeTitle' | translate }}</h1>
-        <p class="gate-event">{{ eventName() }}</p>
-        <p class="auth-sub">{{ 'gate.welcomeAs' | translate: { email: validatorEmail() } }}</p>
-        <p class="auth-sub">{{ 'gate.welcomeHint' | translate }}</p>
-        @if (error()) { <p class="error">{{ error() }}</p> }
-        <button type="button" class="primary btn-block" (click)="start()" data-testid="gate-start">
-          {{ 'gate.start' | translate }}
-        </button>
+        <div class="gate-card">
+          <span class="gate-badge brand" aria-hidden="true">🎟️</span>
+          <h1>{{ 'gate.welcomeTitle' | translate }}</h1>
+          <p class="gate-event">{{ eventName() }}</p>
+          <p class="gate-welcome-as">
+            {{ 'gate.welcomeAsLabel' | translate }} <strong>{{ validatorEmail() }}</strong>
+          </p>
+          <p class="gate-note">{{ 'gate.welcomeHint' | translate }}</p>
+          @if (error()) { <p class="gate-msg error">{{ error() }}</p> }
+          <button type="button" class="primary btn-block gate-cta" (click)="start()" data-testid="gate-start">
+            {{ 'gate.start' | translate }}
+          </button>
+        </div>
       </div>
     }
 
@@ -30,12 +39,15 @@
 
     @case ('cameraError') {
       <div class="gate-center gate-camera-error" data-testid="gate-camera-error">
-        <h1>{{ 'gate.cameraNeededTitle' | translate }}</h1>
-        <p class="error">{{ cameraError() ?? ('gate.cameraDenied' | translate) }}</p>
-        <p class="auth-sub">{{ 'gate.cameraNeededHint' | translate }}</p>
-        <button type="button" class="primary btn-block" (click)="retryCamera()" data-testid="gate-retry-camera">
-          {{ 'gate.retryCamera' | translate }}
-        </button>
+        <div class="gate-card">
+          <span class="gate-badge warn" aria-hidden="true">📷</span>
+          <h1>{{ 'gate.cameraNeededTitle' | translate }}</h1>
+          <p class="gate-msg">{{ cameraError() ?? ('gate.cameraDenied' | translate) }}</p>
+          <p class="gate-note">{{ 'gate.cameraNeededHint' | translate }}</p>
+          <button type="button" class="primary btn-block gate-cta" (click)="retryCamera()" data-testid="gate-retry-camera">
+            {{ 'gate.retryCamera' | translate }}
+          </button>
+        </div>
       </div>
     }
 

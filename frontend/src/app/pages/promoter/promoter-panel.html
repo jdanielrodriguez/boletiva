@@ -75,6 +75,11 @@
               <a class="btn small" [routerLink]="['/promotor/eventos', ev.id, 'editar']" data-testid="ev-edit" [title]="'promoter.panel.editTitle' | translate">
                 <app-icon name="edit" /> {{ 'common.edit' | translate }}
               </a>
+              <!-- Ver cuentas directo (no solo entrando a editar) para cualquier evento. -->
+              <a class="btn small" [routerLink]="['/promotor/eventos', ev.id, 'editar']" [queryParams]="{ tab: 'cuentas' }"
+                data-testid="ev-accounts" [title]="'promoter.panel.accountsTitle' | translate">
+                <app-icon name="accounts" /> {{ 'promoter.panel.accounts' | translate }}
+              </a>
               @if (ev.status === 'draft') {
                 <button type="button" class="btn small danger icon-only" (click)="askRemove(ev)" data-testid="ev-delete" [attr.aria-label]="'common.delete' | translate" [title]="'promoter.panel.deleteTitle' | translate">
                   <app-icon name="delete" />

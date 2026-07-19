@@ -10,6 +10,7 @@ interface Priv {
   invite(): void;
   disableAll(): void;
   disable(v: { id: string; email: string; status: string }): void;
+  resend(v: { id: string; email: string; status: string }): void;
   email: { set(v: string): void };
   issued(): unknown;
   hasActive(): boolean;
@@ -21,21 +22,26 @@ describe('EventValidatorsComponent', () => {
   let invite: jasmine.Spy;
   let disable: jasmine.Spy;
   let disableAll: jasmine.Spy;
+  let enable: jasmine.Spy;
 
   async function setup(rows: unknown[] = []) {
     list = jasmine.createSpy('list').and.returnValue(of(rows));
+    // El acceso ya NO trae `code`: solo la url del enlace.
     invite = jasmine
       .createSpy('invite')
-      .and.returnValue(of({ id: 'i1', email: 'val@x.com', status: 'active', url: 'http://x/validar/tok', code: '123456' }));
+      .and.returnValue(of({ id: 'i1', email: 'val@x.com', status: 'active', url: 'http://x/validar/tok' }));
     disable = jasmine.createSpy('disable').and.returnValue(of({ disabled: true }));
     disableAll = jasmine.createSpy('disableAll').and.returnValue(of({ disabled: 2 }));
+    enable = jasmine
+      .createSpy('enable')
+      .and.returnValue(of({ id: 'i1', email: 'val@x.com', status: 'active', url: 'http://x/validar/tok2' }));
 
     await TestBed.configureTestingModule({
       imports: [EventValidatorsComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideI18nTesting(),
-        { provide: ValidatorsApi, useValue: { list, invite, disable, disableAll, enable: () => of({}) } },
+        { provide: ValidatorsApi, useValue: { list, invite, disable, disableAll, enable } },
         {
           provide: ToastService,
           useValue: { success: jasmine.createSpy(), error: jasmine.createSpy(), info: jasmine.createSpy() },
@@ -55,7 +61,7 @@ describe('EventValidatorsComponent', () => {
     expect(list).toHaveBeenCalledWith('ev-1');
   });
 
-  it('invitar llama al API y muestra el acceso emitido (url + código) una vez', async () => {
+  it('invitar llama al API y muestra el acceso emitido (SOLO el enlace, sin código) una vez', async () => {
     const f = await setup();
     const c = f.componentInstance as unknown as Priv;
     c.email.set('val@x.com');
@@ -63,7 +69,19 @@ describe('EventValidatorsComponent', () => {
     expect(invite).toHaveBeenCalledWith('ev-1', 'val@x.com');
     expect(c.issued()).toBeTruthy();
     f.detectChanges();
-    expect((f.nativeElement as HTMLElement).querySelector('[data-testid="validators-issued"]')).not.toBeNull();
+    const el = f.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="validators-issued"]')).not.toBeNull();
+    // Se muestra el botón de copiar enlace; ya NO hay fila de código.
+    expect(el.querySelector('[data-testid="validators-copy-link"]')).not.toBeNull();
+    expect(el.textContent).not.toContain('123456');
+  });
+
+  it('reenviar enlace de un validador activo llama a enable (rota el token) y muestra el nuevo acceso', async () => {
+    const f = await setup([{ id: 'v9', email: 'v@x.com', status: 'active' }]);
+    const c = f.componentInstance as unknown as Priv;
+    c.resend({ id: 'v9', email: 'v@x.com', status: 'active' });
+    expect(enable).toHaveBeenCalledWith('ev-1', 'v9');
+    expect(c.issued()).toBeTruthy();
   });
 
   it('sin validadores activos NO se ofrece "deshabilitar todos"', async () => {

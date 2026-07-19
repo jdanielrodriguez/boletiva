@@ -19,15 +19,13 @@ export class ClaimValidatorDto {
 
 // ---- Responses ----
 
-/** Resultado de invitar/re-habilitar: url y code se muestran UNA sola vez. */
+/** Resultado de invitar/re-habilitar/reenviar: la url se muestra UNA sola vez. */
 export class ValidatorInviteResponseDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty() email!: string;
   @ApiProperty({ enum: ValidatorStatus }) status!: ValidatorStatus;
   @ApiProperty({ description: 'Magic-link para abrir el validador (mostrar/compartir una vez)' })
   url!: string;
-  @ApiProperty({ description: 'Código de acceso de un solo uso (mostrar una vez)' })
-  code!: string;
   @ApiProperty({ format: 'date-time' }) expiresAt!: string;
 }
 

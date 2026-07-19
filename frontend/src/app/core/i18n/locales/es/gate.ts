@@ -1,9 +1,10 @@
 /** PWA de validación en puerta (F4). Español. */
 export const gate = {
   invalidTitle: 'Enlace no válido',
-  linkInvalid: 'El enlace de validación no es válido o venció. Pide al organizador que te reenvíe el acceso.',
+  linkInvalid: 'El enlace de validación no es válido o venció.',
+  invalidNote: 'Pide al organizador que te REENVÍE el acceso desde el panel del evento.',
   welcomeTitle: 'Validación en puerta',
-  welcomeAs: 'Ingresaste como <strong>{{email}}</strong>.',
+  welcomeAsLabel: 'Ingresaste como',
   welcomeHint: 'Vas a escanear los boletos con la cámara. Funciona sin internet una vez cargado el evento.',
   start: 'Comenzar',
   preparing: 'Preparando el evento…',

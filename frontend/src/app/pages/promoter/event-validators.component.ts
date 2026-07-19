@@ -102,6 +102,22 @@ export class EventValidatorsComponent {
     });
   }
 
+  /**
+   * Reenvía el enlace a un validador ACTIVO (p.ej. si se le venció o lo perdió): rota el
+   * token (invalida el anterior), restaura la asignación y reenvía el correo. Reusa el
+   * mismo endpoint que rehabilitar (deja el acceso activo con un enlace nuevo).
+   */
+  protected resend(v: ValidatorListItemDto): void {
+    this.api.enable(this.eventId(), v.id).subscribe({
+      next: (res) => {
+        this.issued.set(res);
+        this.toasts.success(this.translate.instant('promoter.validators.resent', { email: res.email }));
+        this.load();
+      },
+      error: (err) => this.toasts.error(apiErrorMessage(err, this.translate.instant('promoter.validators.actionError'))),
+    });
+  }
+
   protected disableAll(): void {
     this.confirm.ask({
       title: this.translate.instant('promoter.validators.disableAllTitle'),

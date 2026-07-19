@@ -353,7 +353,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Inicia el alta de TOTP (devuelve QR y secret) */
+        /** Inicia el alta de TOTP (devuelve QR y secret). Requiere re-autenticación. */
         post: operations["AuthController_totpSetup_v1"];
         delete?: never;
         options?: never;
@@ -3257,6 +3257,13 @@ export interface components {
             /** @description Par de tokens de la sesión */
             tokens: components["schemas"]["TokenPairResponseDto"];
         };
+        MessageResponseDto: {
+            /**
+             * @description Mensaje de resultado
+             * @example ok
+             */
+            message: string;
+        };
         LoginDto: {
             /**
              * @description Correo electrónico registrado
@@ -3341,13 +3348,6 @@ export interface components {
              * @example ana@correo.com
              */
             email: string;
-        };
-        MessageResponseDto: {
-            /**
-             * @description Mensaje de resultado
-             * @example ok
-             */
-            message: string;
         };
         PasswordlessRequestDto: {
             /**
@@ -3434,6 +3434,13 @@ export interface components {
              * @example NuevaClave456
              */
             newPassword: string;
+        };
+        TotpSetupDto: {
+            /**
+             * @description Contraseña actual (re-autenticación). Requerida si la cuenta tiene contraseña.
+             * @example MiClaveActual123
+             */
+            password?: string;
         };
         TotpSetupResponseDto: {
             /**
@@ -7122,8 +7129,6 @@ export interface components {
             status: "active" | "disabled";
             /** @description Magic-link para abrir el validador (mostrar/compartir una vez) */
             url: string;
-            /** @description Código de acceso de un solo uso (mostrar una vez) */
-            code: string;
             /** Format: date-time */
             expiresAt: string;
         };
@@ -7994,6 +7999,15 @@ export interface operations {
                     "application/json": components["schemas"]["SignupResponseDto"];
                 };
             };
+            /** @description Respuesta genérica anti-enumeración: el correo ya existe (se avisa por correo). */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponseDto"];
+                };
+            };
         };
     };
     AuthController_login_v1: {
@@ -8361,7 +8375,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TotpSetupDto"];
+            };
+        };
         responses: {
             201: {
                 headers: {

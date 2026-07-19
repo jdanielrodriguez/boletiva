@@ -171,7 +171,8 @@ describe('Validadores de boletos (e2e)', () => {
       .expect(201);
     expect(inv.body.status).toBe('active');
     expect(inv.body.url).toContain('/validar/');
-    expect(inv.body.code).toMatch(/^\d{6}$/);
+    // El acceso es SOLO por el enlace: ya no se genera/expone un código aparte.
+    expect(inv.body.code).toBeUndefined();
     const token = inv.body.url.split('/validar/')[1] as string;
 
     // Se creó el User ligero con rol gate_operator + su asignación.

@@ -70,6 +70,16 @@
                 }
               }
             }
+          },
+          "202": {
+            "description": "Respuesta genérica anti-enumeración: el correo ya existe (se avisa por correo).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponseDto"
+                }
+              }
+            }
           }
         },
         "summary": "Registro con correo y contraseña (envía verificación)",
@@ -582,6 +592,16 @@
       "post": {
         "operationId": "AuthController_totpSetup_v1",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TotpSetupDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "",
@@ -599,7 +619,7 @@
             "bearer": []
           }
         ],
-        "summary": "Inicia el alta de TOTP (devuelve QR y secret)",
+        "summary": "Inicia el alta de TOTP (devuelve QR y secret). Requiere re-autenticación.",
         "tags": [
           "auth"
         ]
@@ -8076,6 +8096,19 @@
           "tokens"
         ]
       },
+      "MessageResponseDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "ok",
+            "description": "Mensaje de resultado"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
       "LoginDto": {
         "type": "object",
         "properties": {
@@ -8244,19 +8277,6 @@
           "email"
         ]
       },
-      "MessageResponseDto": {
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string",
-            "example": "ok",
-            "description": "Mensaje de resultado"
-          }
-        },
-        "required": [
-          "message"
-        ]
-      },
       "PasswordlessRequestDto": {
         "type": "object",
         "properties": {
@@ -8399,6 +8419,16 @@
           "currentPassword",
           "newPassword"
         ]
+      },
+      "TotpSetupDto": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "description": "Contraseña actual (re-autenticación). Requerida si la cuenta tiene contraseña.",
+            "example": "MiClaveActual123"
+          }
+        }
       },
       "TotpSetupResponseDto": {
         "type": "object",
@@ -14935,10 +14965,6 @@
             "type": "string",
             "description": "Magic-link para abrir el validador (mostrar/compartir una vez)"
           },
-          "code": {
-            "type": "string",
-            "description": "Código de acceso de un solo uso (mostrar una vez)"
-          },
           "expiresAt": {
             "type": "string",
             "format": "date-time"
@@ -14949,7 +14975,6 @@
           "email",
           "status",
           "url",
-          "code",
           "expiresAt"
         ]
       },
