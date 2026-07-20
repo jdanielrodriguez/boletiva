@@ -135,6 +135,14 @@ export class SupportExtrasController {
     );
   }
 
+  // --- Métricas / dashboard ---
+  @Get('metrics')
+  @Roles(Role.admin, Role.advisor)
+  @ApiOperation({ summary: 'Resumen operativo del soporte (volumen, SLA, CSAT)' })
+  metrics(@CurrentUser() user: AuthUser) {
+    return this.support.metrics(user);
+  }
+
   // --- Configuración de SLA ---
   @Get('sla')
   @Roles(Role.admin, Role.advisor)

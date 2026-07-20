@@ -1,5 +1,6 @@
 import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { firstValueFrom } from 'rxjs';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import {
@@ -9,8 +10,10 @@ import {
   type QueueFilters,
   type SupportCategory,
   type SupportMacro,
+  type SupportMetrics,
   type SupportPriority,
   type SupportStatus,
+  type UploadedAttachment,
 } from '../../core/api/chat.api';
 import { ChatSocketService } from '../../core/chat/chat-socket.service';
 import { SessionStore } from '../../core/auth/session.store';
@@ -77,12 +80,18 @@ export class SupportChatPage implements OnDestroy {
   protected readonly macros = signal<SupportMacro[]>([]);
   protected readonly showMacros = signal(false);
 
+  // Adjuntos pendientes de enviar + métricas del agente
+  protected readonly pendingFiles = signal<File[]>([]);
+  protected readonly metrics = signal<SupportMetrics | null>(null);
+  protected readonly showMetrics = signal(false);
+
   constructor() {
     this.config.load();
     if (!this.chatEnabled()) return;
     if (this.isAgent()) {
       this.loadQueue(true);
       this.loadMacros();
+      this.loadMetrics();
     } else {
       this.reloadOwn();
     }
@@ -147,6 +156,36 @@ export class SupportChatPage implements OnDestroy {
     });
   }
 
+  protected loadMetrics(): void {
+    this.api.metrics().subscribe({ next: (m) => this.metrics.set(m), error: () => undefined });
+  }
+  protected toggleMetrics(): void {
+    this.showMetrics.update((v) => !v);
+    if (this.showMetrics()) this.loadMetrics();
+  }
+
+  // --- Adjuntos ---
+  protected onFiles(ev: Event): void {
+    const input = ev.target as HTMLInputElement;
+    this.pendingFiles.set(input.files ? Array.from(input.files) : []);
+  }
+  protected clearFiles(): void {
+    this.pendingFiles.set([]);
+  }
+
+  /** Sube cada archivo (presign → PUT directo) y devuelve los adjuntos listos para el mensaje. */
+  private async uploadFiles(ticketId: string): Promise<UploadedAttachment[]> {
+    const files = this.pendingFiles();
+    const out: UploadedAttachment[] = [];
+    for (const f of files) {
+      const { key, uploadUrl } = await firstValueFrom(this.api.presignAttachment(ticketId, f.name, f.type));
+      const res = await fetch(uploadUrl, { method: 'PUT', body: f, headers: { 'Content-Type': f.type } });
+      if (!res.ok) throw new Error('upload failed');
+      out.push({ key, filename: f.name, mime: f.type, size: f.size });
+    }
+    return out;
+  }
+
   // --- Crear (promotor) ---
   protected startNew(): void {
     this.composingNew.set(true);
@@ -197,22 +236,30 @@ export class SupportChatPage implements OnDestroy {
   protected send(): void {
     const t = this.active();
     const body = this.draft().trim();
-    if (!t || !body || this.working()) return;
+    const hasFiles = this.pendingFiles().length > 0;
+    if (!t || (!body && !hasFiles) || this.working()) return;
     this.working.set(true);
     const note = this.isAgent() && this.internalNote();
-    this.api.postMessage(t.id, body, note).subscribe({
-      next: (m) => {
+    void this.uploadFiles(t.id)
+      .then((attachments) => {
+        this.api.postMessage(t.id, body || ' ', note, attachments).subscribe({
+          next: (m) => {
+            this.working.set(false);
+            this.draft.set('');
+            this.clearFiles();
+            if (!this.messages().some((x) => x.id === m.id)) this.messages.update((list) => [...list, m]);
+            this.refreshActive();
+          },
+          error: () => {
+            this.working.set(false);
+            this.toasts.error(this.translate.instant('chat.sendError'));
+          },
+        });
+      })
+      .catch(() => {
         this.working.set(false);
-        this.draft.set('');
-        if (!this.messages().some((x) => x.id === m.id)) this.messages.update((list) => [...list, m]);
-        // El estado del ticket pudo cambiar (awaiting_*). Refresca cabecera + lista.
-        this.refreshActive();
-      },
-      error: () => {
-        this.working.set(false);
-        this.toasts.error(this.translate.instant('chat.sendError'));
-      },
-    });
+        this.toasts.error(this.translate.instant('chat.uploadError'));
+      });
   }
 
   protected applyMacro(m: SupportMacro): void {

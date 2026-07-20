@@ -329,4 +329,49 @@ describe('Tickets de soporte (e2e)', () => {
     // Limpia el override para no afectar otras corridas.
     await prisma.setting.deleteMany({ where: { key: 'support.sla' } });
   });
+
+  // --- T4: adjuntos, métricas y auto-cierre ---
+
+  it('adjuntos: presign valida el tipo; el mensaje guarda el adjunto y se devuelve con URL firmada', async () => {
+    const created = await open('Con adjunto').expect(201);
+    // Tipo no permitido → 400.
+    await http().post(`/api/v1/support/tickets/${created.body.id}/attachments/presign`).set(bearer(promoterToken)).send({ filename: 'x.exe', mime: 'application/x-msdownload' }).expect(400);
+    // Tipo permitido → { key, uploadUrl }.
+    const pre = await http().post(`/api/v1/support/tickets/${created.body.id}/attachments/presign`).set(bearer(promoterToken)).send({ filename: 'captura.png', mime: 'image/png' }).expect(200);
+    expect(pre.body.key).toContain(`support/${created.body.id}/`);
+    expect(typeof pre.body.uploadUrl).toBe('string');
+    // Adjunto con key ajena → 400 (no puede referenciar otro ticket).
+    await http().post(`/api/v1/support/tickets/${created.body.id}/messages`).set(bearer(promoterToken)).send({ body: 'malicioso', attachments: [{ key: 'support/otro/abc.png', filename: 'a.png', mime: 'image/png', size: 10 }] }).expect(400);
+    // Mensaje con adjunto válido → 201 y el historial lo muestra con URL.
+    const msg = await http().post(`/api/v1/support/tickets/${created.body.id}/messages`).set(bearer(promoterToken)).send({ body: 'aquí va', attachments: [{ key: pre.body.key, filename: 'captura.png', mime: 'image/png', size: 1234 }] }).expect(201);
+    expect(msg.body.attachments.length).toBe(1);
+    expect(msg.body.attachments[0].url).toContain('http');
+    const hist = await http().get(`/api/v1/support/tickets/${created.body.id}/messages`).set(bearer(promoterToken)).expect(200);
+    const withAtt = hist.body.messages.find((m: { attachments?: unknown[] }) => (m.attachments?.length ?? 0) > 0);
+    expect(withAtt.attachments[0].filename).toBe('captura.png');
+  });
+
+  it('métricas: solo agentes; devuelve volumen por estado + SLA + CSAT', async () => {
+    await http().get('/api/v1/support/metrics').set(bearer(promoterToken)).expect(403);
+    const m = await http().get('/api/v1/support/metrics').set(bearer(adminToken)).expect(200);
+    expect(m.body.byStatus).toBeDefined();
+    expect(m.body.byCategory).toBeDefined();
+    expect(m.body.slaBreach).toHaveProperty('firstResponse');
+    expect(m.body.csat).toHaveProperty('avg');
+    expect(typeof m.body.unassigned).toBe('number');
+  });
+
+  it('auto-cierre: cierra tickets resueltos cuya resolución superó el umbral (idempotente)', async () => {
+    const created = await open('Auto cierre').expect(201);
+    await http().post(`/api/v1/support/tickets/${created.body.id}/resolve`).set(bearer(adminToken)).expect(200);
+    // Antigüedad artificial: resuelto hace 10 días.
+    await prisma.supportTicket.update({ where: { id: created.body.id }, data: { resolvedAt: new Date(Date.now() - 10 * 24 * 3_600_000) } });
+    const closed = await support.autoCloseResolved(7);
+    expect(closed).toBeGreaterThanOrEqual(1);
+    const t = await prisma.supportTicket.findUniqueOrThrow({ where: { id: created.body.id } });
+    expect(t.status).toBe('closed');
+    // Idempotente: una 2ª pasada no vuelve a cerrarlo.
+    const again = await support.autoCloseResolved(7);
+    expect(again).toBe(0);
+  });
 });

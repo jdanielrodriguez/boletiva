@@ -39,6 +39,14 @@ export interface ChatThread {
 export type SupportPriority = 'low' | 'medium' | 'high' | 'urgent';
 export type SupportCategory = 'billing' | 'payments_settlement' | 'event' | 'technical' | 'account' | 'other';
 
+export interface SupportAttachment {
+  id: string;
+  filename: string;
+  mime: string;
+  size: number;
+  url: string;
+}
+
 export interface ChatMessage {
   id: string;
   ticketId: string;
@@ -46,7 +54,26 @@ export interface ChatMessage {
   senderRole: string;
   body: string;
   internalNote?: boolean;
+  attachments?: SupportAttachment[];
   createdAt: string;
+}
+
+/** Adjunto ya subido, listo para enviarse con el mensaje. */
+export interface UploadedAttachment {
+  key: string;
+  filename: string;
+  mime: string;
+  size: number;
+}
+
+export interface SupportMetrics {
+  byStatus: Record<string, number>;
+  byCategory: Record<string, number>;
+  byPriority: Record<string, number>;
+  unassigned: number;
+  slaBreach: { firstResponse: number; resolution: number };
+  csat: { avg: number | null; count: number };
+  resolvedTotal: number;
 }
 
 export interface SupportMacro {
@@ -93,8 +120,19 @@ export class ChatApi {
   getMessages(ticketId: string): Observable<{ ticket: ChatThread; messages: ChatMessage[] }> {
     return this.api.get<{ ticket: ChatThread; messages: ChatMessage[] }>(`/support/tickets/${ticketId}/messages`);
   }
-  postMessage(ticketId: string, body: string, internalNote = false): Observable<ChatMessage> {
-    return this.api.post<ChatMessage>(`/support/tickets/${ticketId}/messages`, { body, internalNote });
+  postMessage(
+    ticketId: string,
+    body: string,
+    internalNote = false,
+    attachments: UploadedAttachment[] = [],
+  ): Observable<ChatMessage> {
+    return this.api.post<ChatMessage>(`/support/tickets/${ticketId}/messages`, { body, internalNote, attachments });
+  }
+  presignAttachment(ticketId: string, filename: string, mime: string): Observable<{ key: string; uploadUrl: string }> {
+    return this.api.post<{ key: string; uploadUrl: string }>(`/support/tickets/${ticketId}/attachments/presign`, { filename, mime });
+  }
+  metrics(): Observable<SupportMetrics> {
+    return this.api.get<SupportMetrics>('/support/metrics');
   }
   close(ticketId: string): Observable<ChatThread> {
     return this.api.post<ChatThread>(`/support/tickets/${ticketId}/close`, {});

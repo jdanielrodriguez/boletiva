@@ -4,6 +4,21 @@
   @if (!chatEnabled()) {
     <app-empty-state variant="generic" [title]="'chat.disabledTitle' | translate" [subtitle]="'chat.disabledSubtitle' | translate" />
   } @else {
+    @if (isAgent()) {
+      <div class="chat-metrics-bar">
+        <button type="button" class="link-btn small" (click)="toggleMetrics()" data-testid="chat-metrics-toggle">
+          {{ (showMetrics() ? 'chat.hideMetrics' : 'chat.showMetrics') | translate }}
+        </button>
+        @if (showMetrics() && metrics(); as mx) {
+          <div class="chat-metrics" data-testid="chat-metrics">
+            <div class="metric"><span class="metric-n">{{ mx.unassigned }}</span><span class="metric-l">{{ 'chat.mUnassigned' | translate }}</span></div>
+            <div class="metric"><span class="metric-n">{{ mx.slaBreach.firstResponse + mx.slaBreach.resolution }}</span><span class="metric-l">{{ 'chat.mSlaBreach' | translate }}</span></div>
+            <div class="metric"><span class="metric-n">{{ mx.csat.avg ?? '—' }}</span><span class="metric-l">{{ 'chat.mCsat' | translate }}</span></div>
+            <div class="metric"><span class="metric-n">{{ mx.resolvedTotal }}</span><span class="metric-l">{{ 'chat.mResolved' | translate }}</span></div>
+          </div>
+        }
+      </div>
+    }
     <div class="chat-layout">
       <aside class="chat-threads" data-testid="chat-threads">
         <!-- PROMOTOR: abrir + archivados -->
@@ -126,6 +141,19 @@
               <div class="chat-msg" [class.mine]="m.senderId === myId()" [class.agent]="m.senderRole !== 'promoter'" [class.note]="m.internalNote">
                 @if (m.internalNote) { <span class="chat-note-tag">{{ 'chat.internalNote' | translate }}</span> }
                 <span class="chat-msg-body">{{ m.body }}</span>
+                @if (m.attachments && m.attachments.length) {
+                  <span class="chat-attachments">
+                    @for (a of m.attachments; track a.id) {
+                      <a class="chat-attachment" [href]="a.url" target="_blank" rel="noopener" [attr.data-testid]="'chat-att-' + a.id" [title]="a.filename">
+                        @if (a.mime.startsWith('image/')) {
+                          <img [src]="a.url" [alt]="a.filename" loading="lazy" />
+                        } @else {
+                          <span class="chat-attachment-file">📎 {{ a.filename }}</span>
+                        }
+                      </a>
+                    }
+                  </span>
+                }
                 <time class="muted small">{{ m.createdAt | localizedDate: 'HH:mm' }}</time>
               </div>
             }
@@ -165,9 +193,19 @@
                   }
                 </div>
               }
+              @if (pendingFiles().length) {
+                <div class="chat-pending-files" data-testid="chat-pending-files">
+                  @for (f of pendingFiles(); track f.name) { <span class="chat-file-chip">📎 {{ f.name }}</span> }
+                  <button type="button" class="link-btn small" (click)="clearFiles()">{{ 'common.cancel' | translate }}</button>
+                </div>
+              }
               <div class="chat-composer-row">
+                <label class="chat-attach-btn" [title]="'chat.attach' | translate" [attr.aria-label]="'chat.attach' | translate">
+                  📎
+                  <input type="file" accept="image/*,application/pdf" (change)="onFiles($event)" data-testid="chat-file" hidden />
+                </label>
                 <input [(ngModel)]="draft" name="draft" [attr.aria-label]="'chat.typeMessage' | translate" [placeholder]="(internalNote() ? 'chat.typeNote' : 'chat.typeMessage') | translate" data-testid="chat-input" />
-                <button type="submit" class="btn primary" [disabled]="working() || !draft().trim()" data-testid="chat-send">{{ 'chat.send' | translate }}</button>
+                <button type="submit" class="btn primary" [disabled]="working() || (!draft().trim() && !pendingFiles().length)" data-testid="chat-send">{{ 'chat.send' | translate }}</button>
               </div>
             </form>
           }

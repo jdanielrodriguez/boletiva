@@ -166,11 +166,30 @@ model SupportMessage {
   readByPromoterAt DateTime? @map("read_by_promoter_at")
   createdAt    DateTime  @default(now()) @map("created_at")
 
-  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  sender User          @relation("supportSender", fields: [senderId], references: [id])
+  ticket      SupportTicket       @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  sender      User                @relation("supportSender", fields: [senderId], references: [id])
+  attachments SupportAttachment[]
 
   @@index([ticketId, createdAt])
   @@map("support_messages")
+}
+
+/// Adjunto de un mensaje de soporte (T4): archivo en storage (captura, comprobante).
+/// Solo se guarda la referencia (key + metadatos); el binario vive en S3/GCS y se
+/// sirve con URL firmada de corta duración.
+model SupportAttachment {
+  id         String   @id @default(uuid()) @db.Uuid
+  messageId  String   @map("message_id") @db.Uuid
+  storageKey String   @map("storage_key")
+  filename   String
+  mime       String
+  size       Int
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  message SupportMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@map("support_attachments")
 }
 
 enum UserStatus {

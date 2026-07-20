@@ -5,8 +5,10 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   Prisma,
   Role,
@@ -15,10 +17,13 @@ import {
   SupportPriority,
   SupportStatus,
 } from '@prisma/client';
+import { randomUUID } from 'crypto';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { QueueService } from '../../infra/queue/queue.service';
 import { QUEUES } from '../../infra/queue/queue.constants';
 import { MailService } from '../../infra/mail/mail.service';
+import { StorageService } from '../../infra/storage/storage.service';
+import { RedisService } from '../../infra/redis/redis.service';
 import { AuditService } from '../audit/audit.service';
 import { AuthUser } from '../../common/decorators/current-user.decorator';
 import { PremiumService } from '../promoters/premium.service';
@@ -43,6 +48,17 @@ export interface QueueFilters {
 /** Ventana para que un promotor REABRA (respondiendo) un ticket ya resuelto. */
 const REOPEN_WINDOW_MS = 3 * 24 * 3_600_000; // 3 días
 
+/** Adjuntos (T4): tipos permitidos y tamaño máximo (defensa server-side). */
+const ATTACH_ALLOWED_MIME = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'application/pdf']);
+const ATTACH_MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+
+interface AttachmentInput {
+  key: string;
+  filename: string;
+  mime: string;
+  size: number;
+}
+
 interface CreateTicketInput {
   subject: string;
   message: string;
@@ -61,8 +77,9 @@ type SlaJob = { ticketId: string; kind: 'first_response' | 'resolution' };
  * por socket.io (SupportGateway). Gating: `chat.enabled` global + beneficios premium.
  */
 @Injectable()
-export class SupportService implements OnModuleInit {
+export class SupportService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(SupportService.name);
+  private autoCloseTimer?: ReturnType<typeof setInterval>;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -71,10 +88,29 @@ export class SupportService implements OnModuleInit {
     private readonly premium: PremiumService,
     private readonly gateway: SupportGateway,
     private readonly audit: AuditService,
+    private readonly storage: StorageService,
+    private readonly redis: RedisService,
+    private readonly config: ConfigService,
   ) {}
 
   onModuleInit(): void {
     this.queue.registerHandler(QUEUES.SUPPORT, (name, data) => this.handleJob(name, data));
+    // Sweeper de auto-cierre (apagado por defecto y en test). Una sola instancia por
+    // día vía lock distribuido de Redis (igual que retención).
+    if (this.config.get<boolean>('support.autoCloseEnabled')) {
+      const days = this.config.get<number>('support.autoCloseDays') ?? 7;
+      this.autoCloseTimer = setInterval(() => {
+        void this.redis.tryLock('support-autoclose', 10 * 60 * 1000).then((got) => {
+          if (!got) return;
+          return this.autoCloseResolved(days).catch((e) => this.logger.error(`Auto-cierre falló: ${(e as Error).message}`));
+        });
+      }, 24 * 3_600_000);
+      this.logger.log(`Auto-cierre de soporte activo (cada 24h, ${days} días)`);
+    }
+  }
+
+  onModuleDestroy(): void {
+    if (this.autoCloseTimer) clearInterval(this.autoCloseTimer);
   }
 
   private async handleJob(name: string, data: unknown): Promise<void> {
@@ -177,6 +213,7 @@ export class SupportService implements OnModuleInit {
     const messages = await this.prisma.supportMessage.findMany({
       where: { ticketId: ticket.id, ...(agent ? {} : { internalNote: false }) },
       orderBy: { createdAt: 'asc' },
+      include: { attachments: true },
     });
     // Marca leído del lado que abre el historial.
     await this.prisma.supportMessage.updateMany({
@@ -185,33 +222,63 @@ export class SupportService implements OnModuleInit {
         : { ticketId: ticket.id, internalNote: false, readByPromoterAt: null },
       data: agent ? { readByAgentAt: new Date() } : { readByPromoterAt: new Date() },
     });
-    return { ticket: this.summarize(ticket), messages };
+    return { ticket: this.summarize(ticket), messages: await this.withAttachmentUrls(messages) };
   }
 
   // ---------------------------------------------------------------------------
   // Mensajes (auto-transiciones de estado + SLA)
   // ---------------------------------------------------------------------------
 
-  /** Publica un mensaje. Agente → 1ª respuesta + awaiting_promoter; promotor → awaiting_support. */
-  async postMessage(ticketId: string, user: AuthUser, body: string, internalNote = false) {
+  /** Genera una URL firmada de subida para un adjunto del ticket (agente o dueño). IDOR → 404. */
+  async presignAttachment(ticketId: string, user: AuthUser, filename: string, mime: string) {
+    await this.getAccessible(ticketId, user);
+    if (!ATTACH_ALLOWED_MIME.has(mime)) {
+      throw new BadRequestException('Tipo de archivo no permitido');
+    }
+    const safe = filename.replace(/[^\w.-]+/g, '_').slice(-80);
+    const key = `support/${ticketId}/${randomUUID()}-${safe}`;
+    const uploadUrl = await this.storage.signedPutUrl(key, mime);
+    return { key, uploadUrl };
+  }
+
+  /** Publica un mensaje (con adjuntos opcionales). Agente → awaiting_promoter; promotor → awaiting_support. */
+  async postMessage(
+    ticketId: string,
+    user: AuthUser,
+    body: string,
+    internalNote = false,
+    attachments: AttachmentInput[] = [],
+  ) {
     const ticket = await this.getAccessible(ticketId, user);
     const agent = this.isAgent(user);
     if (internalNote && !agent) throw new ForbiddenException('Solo los agentes escriben notas internas');
     if (!internalNote && isFinal(ticket.status)) {
       throw new ForbiddenException('El ticket está cerrado');
     }
+    this.validateAttachments(ticket.id, attachments);
     const senderRole = this.senderRoleOf(user);
     const message = await this.prisma.supportMessage.create({
-      data: { ticketId: ticket.id, senderId: user.userId, senderRole, body: body.trim(), internalNote },
+      data: {
+        ticketId: ticket.id,
+        senderId: user.userId,
+        senderRole,
+        body: body.trim(),
+        internalNote,
+        attachments: attachments.length
+          ? { create: attachments.map((a) => ({ storageKey: a.key, filename: a.filename, mime: a.mime, size: a.size })) }
+          : undefined,
+      },
+      include: { attachments: true },
     });
     await this.prisma.supportTicket.update({
       where: { id: ticket.id },
       data: { lastMessageAt: new Date() },
     });
-    this.gateway.emitMessage(ticket.id, message);
+    const withUrls = (await this.withAttachmentUrls([message]))[0];
+    this.gateway.emitMessage(ticket.id, withUrls);
 
     // Nota interna: no cambia estado ni SLA.
-    if (internalNote) return message;
+    if (internalNote) return withUrls;
 
     if (agent) {
       // 1ª respuesta del agente: marca SLA de primera respuesta y espera al promotor.
@@ -230,7 +297,7 @@ export class SupportService implements OnModuleInit {
       // En cualquier caso, ahora espera al soporte (reloj corre) + limpia archivado.
       await this.transition(ticket.id, SupportStatus.awaiting_support, { archivedByPromoterAt: null });
     }
-    return message;
+    return withUrls;
   }
 
   // ---------------------------------------------------------------------------
@@ -544,6 +611,85 @@ export class SupportService implements OnModuleInit {
   // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------
+
+  /** Valida los adjuntos: tipo permitido, tamaño y que la key pertenezca a ESTE ticket. */
+  private validateAttachments(ticketId: string, attachments: AttachmentInput[]): void {
+    for (const a of attachments) {
+      if (!ATTACH_ALLOWED_MIME.has(a.mime)) throw new BadRequestException('Tipo de archivo no permitido');
+      if (!(a.size > 0) || a.size > ATTACH_MAX_BYTES) throw new BadRequestException('Archivo demasiado grande');
+      if (!a.key.startsWith(`support/${ticketId}/`)) throw new BadRequestException('Adjunto inválido');
+    }
+  }
+
+  /** Añade a cada mensaje sus adjuntos con URL firmada de descarga (corta duración). */
+  private async withAttachmentUrls<
+    M extends { attachments?: { id: string; storageKey: string; filename: string; mime: string; size: number }[] },
+  >(messages: M[]) {
+    return Promise.all(
+      messages.map(async (m) => ({
+        ...m,
+        attachments: await Promise.all(
+          (m.attachments ?? []).map(async (a) => ({
+            id: a.id,
+            filename: a.filename,
+            mime: a.mime,
+            size: a.size,
+            url: await this.storage.signedGetUrl(a.storageKey),
+          })),
+        ),
+      })),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Métricas (T4): panel del agente / dashboard de soporte
+  // ---------------------------------------------------------------------------
+
+  /** (Agente) Resumen operativo: volumen por estado/categoría/prioridad, SLA y CSAT. */
+  async metrics(user: AuthUser) {
+    if (!this.isAgent(user)) throw new ForbiddenException('Solo agentes ven las métricas');
+    const [byStatus, byCategory, byPriority, unassigned, breachedFirst, breachedRes, csat, resolvedAgg] =
+      await Promise.all([
+        this.prisma.supportTicket.groupBy({ by: ['status'], _count: true }),
+        this.prisma.supportTicket.groupBy({ by: ['category'], _count: true }),
+        this.prisma.supportTicket.groupBy({ by: ['priority'], _count: true }),
+        this.prisma.supportTicket.count({ where: { assignedToId: null, status: { notIn: ['closed', 'resolved'] } } }),
+        this.prisma.supportTicket.count({ where: { firstResponseBreachedAt: { not: null } } }),
+        this.prisma.supportTicket.count({ where: { resolveBreachedAt: { not: null } } }),
+        this.prisma.supportTicket.aggregate({ _avg: { csatScore: true }, _count: { csatScore: true } }),
+        this.prisma.supportTicket.count({ where: { resolvedAt: { not: null } } }),
+      ]);
+    type GroupRow = { _count: number } & Record<string, string | number | null>;
+    const toMap = (rows: GroupRow[], key: string): Record<string, number> =>
+      Object.fromEntries(rows.map((r) => [String(r[key]), r._count]));
+    return {
+      byStatus: toMap(byStatus as unknown as GroupRow[], 'status'),
+      byCategory: toMap(byCategory as unknown as GroupRow[], 'category'),
+      byPriority: toMap(byPriority as unknown as GroupRow[], 'priority'),
+      unassigned,
+      slaBreach: { firstResponse: breachedFirst, resolution: breachedRes },
+      csat: { avg: csat._avg.csatScore ? Number(csat._avg.csatScore.toFixed(2)) : null, count: csat._count.csatScore },
+      resolvedTotal: resolvedAgg,
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Auto-cierre (T4): cierra tickets resueltos que llevan mucho sin actividad
+  // ---------------------------------------------------------------------------
+
+  /** Cierra tickets `resolved` cuya resolución superó `days` (idempotente). Devuelve cuántos cerró. */
+  async autoCloseResolved(days: number): Promise<number> {
+    const cutoff = new Date(Date.now() - days * 24 * 3_600_000);
+    const stale = await this.prisma.supportTicket.findMany({
+      where: { status: SupportStatus.resolved, resolvedAt: { lt: cutoff } },
+      select: { id: true },
+    });
+    for (const t of stale) {
+      await this.transition(t.id, SupportStatus.closed, { closedAt: new Date() }).catch(() => undefined);
+      await this.record('support.ticket.auto_closed', null, t.id, { days });
+    }
+    return stale.length;
+  }
 
   /** Ticket accesible por el usuario (dueño promotor o agente). IDOR → 404. */
   private async getAccessible(ticketId: string, user: AuthUser) {

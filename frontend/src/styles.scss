@@ -3287,6 +3287,22 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
 .chat-stars { display: inline-flex; gap: 0.15rem; }
 .chat-star { border: none; background: none; cursor: pointer; font-size: 1.35rem; line-height: 1; color: var(--pe-border); padding: 0 0.05rem; }
 .chat-star.on { color: var(--pe-warning); }
+
+/* --- Soporte T4: métricas + adjuntos --- */
+.chat-metrics-bar { margin: 0 0 0.6rem; }
+.chat-metrics { display: grid; grid-template-columns: repeat(4, minmax(90px, 1fr)); gap: 0.6rem; margin-top: 0.5rem; }
+.chat-metrics .metric { display: flex; flex-direction: column; align-items: center; gap: 0.15rem; padding: 0.7rem 0.4rem; border: 1px solid var(--pe-border); border-radius: var(--pe-radius-sm); background: var(--pe-surface); }
+.chat-metrics .metric-n { font-size: 1.5rem; font-weight: 800; color: var(--pe-accent); }
+.chat-metrics .metric-l { font-size: 0.75rem; color: var(--pe-text-muted, #6b6b76); text-align: center; }
+@media (max-width: 560px) { .chat-metrics { grid-template-columns: repeat(2, 1fr); } }
+
+.chat-attachments { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.35rem; }
+.chat-attachment img { max-width: 160px; max-height: 120px; border-radius: 8px; display: block; }
+.chat-attachment-file { display: inline-block; padding: 0.3rem 0.55rem; border: 1px solid var(--pe-border); border-radius: 999px; font-size: 0.82rem; background: var(--pe-surface); }
+.chat-pending-files { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; padding: 0.3rem 0; }
+.chat-file-chip { font-size: 0.8rem; padding: 0.2rem 0.5rem; border-radius: 999px; background: var(--pe-surface-2); }
+.chat-attach-btn { display: inline-flex; align-items: center; justify-content: center; width: 2.4rem; min-height: 2.4rem; border: 1px solid var(--pe-border); border-radius: var(--pe-radius-sm); cursor: pointer; background: var(--pe-surface); flex: 0 0 auto; }
+.chat-attach-btn:hover { background: var(--pe-surface-2); }
 /* Barra superior del editor: acciones alineadas a la derecha y CENTRADAS
    verticalmente (W5) → el botón/chip de desbloqueo queda a la misma altura que
    Guardar/Publicar (antes se estiraban a distinta altura por el default stretch). */

@@ -1,6 +1,7 @@
 import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiProperty, ApiTags } from '@nestjs/swagger';
 import {
+  IsArray,
   IsBoolean,
   IsEnum,
   IsInt,
@@ -11,7 +12,9 @@ import {
   MaxLength,
   Min,
   MinLength,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { Role, SupportCategory, SupportContextType, SupportPriority } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AdminOnly } from '../../common/decorators/admin-only.decorator';
@@ -53,6 +56,28 @@ export class CreateTicketDto {
   contextId?: string;
 }
 
+export class AttachmentDto {
+  @ApiProperty({ description: 'Key devuelta por el presign' })
+  @IsString()
+  @MaxLength(300)
+  key!: string;
+
+  @ApiProperty()
+  @IsString()
+  @MaxLength(160)
+  filename!: string;
+
+  @ApiProperty()
+  @IsString()
+  @MaxLength(120)
+  mime!: string;
+
+  @ApiProperty()
+  @IsInt()
+  @Min(1)
+  size!: number;
+}
+
 export class PostMessageDto {
   @ApiProperty({ example: 'Gracias, ya lo revisé.' })
   @IsString()
@@ -64,6 +89,26 @@ export class PostMessageDto {
   @IsOptional()
   @IsBoolean()
   internalNote?: boolean;
+
+  @ApiProperty({ required: false, type: [AttachmentDto], description: 'Adjuntos ya subidos vía presign' })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AttachmentDto)
+  attachments?: AttachmentDto[];
+}
+
+export class PresignAttachmentDto {
+  @ApiProperty({ example: 'captura.png' })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(160)
+  filename!: string;
+
+  @ApiProperty({ example: 'image/png' })
+  @IsString()
+  @MaxLength(120)
+  mime!: string;
 }
 
 export class AssignTicketDto {
@@ -127,9 +172,17 @@ export class SupportController {
   @Post(':id/messages')
   @RequireVerifiedEmail()
   @HttpCode(201)
-  @ApiOperation({ summary: 'Publica un mensaje (o nota interna del agente)' })
+  @ApiOperation({ summary: 'Publica un mensaje (o nota interna del agente), con adjuntos opcionales' })
   post(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser, @Body() dto: PostMessageDto) {
-    return this.support.postMessage(id, user, dto.body, dto.internalNote ?? false);
+    return this.support.postMessage(id, user, dto.body, dto.internalNote ?? false, dto.attachments ?? []);
+  }
+
+  @Post(':id/attachments/presign')
+  @RequireVerifiedEmail()
+  @HttpCode(200)
+  @ApiOperation({ summary: 'URL firmada para subir un adjunto (el cliente hace PUT directo)' })
+  presign(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser, @Body() dto: PresignAttachmentDto) {
+    return this.support.presignAttachment(id, user, dto.filename, dto.mime);
   }
 
   @Post(':id/take')
