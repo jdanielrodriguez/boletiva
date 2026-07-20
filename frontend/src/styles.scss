@@ -2953,6 +2953,54 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
    misma altura) → los botones quedan alineados aunque una card tenga menos/deshabilitados. */
 .ev-card-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: auto; padding-top: 0.6rem; }
 .ev-card-actions .btn.small { flex: 1 1 auto; justify-content: center; min-width: 96px; }
+
+/* --- Destacar evento (solo admin, en la lista) --- */
+/* Card destacada: realce con el acento del proyecto + estrella arriba. */
+.ev-card { position: relative; transition: box-shadow 0.18s ease, border-color 0.18s ease; }
+.ev-card-featured {
+  border-color: var(--pe-accent-border, var(--pe-accent));
+  box-shadow: 0 0 0 1px var(--pe-accent-border, var(--pe-accent)),
+    0 6px 20px -8px var(--pe-accent-soft);
+}
+.ev-featured-flag {
+  position: absolute;
+  top: -0.6rem;
+  right: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: var(--pe-accent);
+  box-shadow: 0 2px 8px -2px var(--pe-accent-soft);
+}
+/* Fila del switch de destacar: ocupa toda la fila bajo las acciones. */
+.ev-promote {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1 1 100%;
+  padding: 0.5rem 0.6rem;
+  margin-top: 0.15rem;
+  border-radius: var(--pe-radius);
+  background: var(--pe-surface-2);
+  border: 1px dashed var(--pe-border);
+}
+.ev-card-featured .ev-promote {
+  border-style: solid;
+  border-color: var(--pe-accent-border, var(--pe-accent));
+  background: var(--pe-accent-soft);
+}
+.ev-promote-star { color: var(--pe-accent); font-size: 1.05rem; line-height: 1; }
+.ev-promote-label { font-size: 0.9rem; font-weight: 600; margin-right: auto; }
+
+/* Botón "Rentabilidad": destacado (primario) con icono, no se pierde con el fondo. */
+.btn-profit { display: inline-flex; align-items: center; gap: 0.4rem; }
+.btn-profit app-icon { width: 1.05rem; height: 1.05rem; }
 /* Barra superior del editor: acciones alineadas a la derecha y CENTRADAS
    verticalmente (W5) → el botón/chip de desbloqueo queda a la misma altura que
    Guardar/Publicar (antes se estiraban a distinta altura por el default stretch). */

@@ -14,14 +14,21 @@
     @case ('eventos') {
       <div class="section-head-row">
         <h2>{{ 'config.events.heading' | translate }}</h2>
-        <a class="btn btn-outline" routerLink="/configuracion/rentabilidad" data-testid="link-profitability">
-          {{ 'config.profit.title' | translate }}
+        <a class="btn btn-primary btn-profit" routerLink="/configuracion/rentabilidad" data-testid="link-profitability">
+          <app-icon name="chart" /> {{ 'config.profit.title' | translate }}
         </a>
       </div>
       <div class="filters-row">
         <label class="field"><span>{{ 'common.search' | translate }}</span>
           <app-search-field [value]="eventSearch()" (valueChange)="setEventSearch($event)" (searched)="setEventSearch($event)"
             [placeholder]="'config.events.searchPlaceholder' | translate" name="esearch" testId="event-search" />
+        </label>
+        <label class="field"><span>{{ 'config.events.when' | translate }}</span>
+          <select [ngModel]="eventTime()" (ngModelChange)="setEventTime($event)" name="etime" data-testid="event-time-filter">
+            @for (o of eventTimeOptions; track o.value) {
+              <option [value]="o.value">{{ o.key | translate }}</option>
+            }
+          </select>
         </label>
         <label class="field"><span>{{ 'common.status' | translate }}</span>
           <select [ngModel]="eventStatus()" (ngModelChange)="setEventStatus($event)" name="estatus" data-testid="event-status-filter">
@@ -49,7 +56,10 @@
       @if (filteredEvents().length > 0) {
         <div class="admin-events-grid" data-testid="admin-events">
           @for (e of pageEvents(); track e.id) {
-            <article class="ev-card" data-testid="ev-card">
+            <article class="ev-card" [class.ev-card-featured]="e.promotedPriority != null" data-testid="ev-card">
+              @if (e.promotedPriority != null) {
+                <span class="ev-featured-flag" aria-hidden="true">★ {{ 'config.events.featuredFlag' | translate }}</span>
+              }
               <div class="ev-card-top">
                 <span class="badge badge-{{ e.status }}">{{ e.status | statusLabel }}</span>
                 <span class="muted small">{{ 'config.events.localitiesCount' | translate: { n: e._count.localities } }}</span>
@@ -66,11 +76,13 @@
                 </button>
                 <!-- Destacar en el slider del inicio (solo admin, aquí en la lista). Solo los
                      futuros publicados destacados salen en el slider; si no hay, se oculta. -->
-                <label class="ev-promote" [title]="'config.events.featureHint' | translate">
-                  <input type="checkbox" [checked]="e.promotedPriority != null" [disabled]="promotingId() === e.id"
-                    (change)="togglePromoted(e, $any($event.target).checked)" [attr.data-testid]="'ev-promote-' + e.id" />
-                  <span aria-hidden="true">★</span> {{ 'config.events.feature' | translate }}
-                </label>
+                <span class="ev-promote" [title]="'config.events.featureHint' | translate">
+                  <span class="ev-promote-star" aria-hidden="true">★</span>
+                  <span class="ev-promote-label">{{ 'config.events.feature' | translate }}</span>
+                  <app-switch [checked]="e.promotedPriority != null" [disabled]="promotingId() === e.id"
+                    (checkedChange)="togglePromoted(e, $event)"
+                    [ariaLabel]="'config.events.feature' | translate" [testId]="'ev-promote-' + e.id" />
+                </span>
               </div>
             </article>
           }

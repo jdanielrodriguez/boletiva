@@ -40,6 +40,9 @@ import type {
 
 type AdminTab = 'eventos' | 'promotores' | 'sistema' | 'invitaciones' | 'salones' | 'plantillas';
 
+/** Grupos de la lista de eventos del admin por tiempo (default = futuros). */
+type EventTimeGroup = 'upcoming' | 'ongoing' | 'past' | 'all';
+
 /** Borrador de nueva pasarela (crear con OTP de desbloqueo). */
 interface NewGatewayDraft {
   name: string;
@@ -159,6 +162,15 @@ export class ConfigPage {
   protected readonly eventsPageSize = EVENTS_PAGE;
   protected readonly eventSearch = signal('');
   protected readonly eventStatus = signal('');
+  /** Filtro por tiempo (futuros/en curso/pasados/todos). Default = futuros. */
+  protected readonly eventTime = signal<EventTimeGroup>('upcoming');
+  /** Opciones FIJAS del filtro de tiempo (label vía i18n). */
+  protected readonly eventTimeOptions: { value: EventTimeGroup; key: string }[] = [
+    { value: 'upcoming', key: 'config.events.timeUpcoming' },
+    { value: 'ongoing', key: 'config.events.timeOngoing' },
+    { value: 'past', key: 'config.events.timePast' },
+    { value: 'all', key: 'common.all' },
+  ];
   /** Filtro por promotor (id del promotor seleccionado; '' = todos). */
   protected readonly eventPromoter = signal('');
   /** Filtro por categoría: '' (todas) | 'none' (sin categoría) | <categoryId>. Detecta eventos sin categorizar. */
@@ -182,10 +194,12 @@ export class ConfigPage {
   protected readonly filteredEvents = computed(() => {
     const q = this.eventSearch().trim().toLowerCase();
     const status = this.eventStatus();
+    const time = this.eventTime();
     const promoterId = this.eventPromoter();
     const cat = this.eventCategory();
     return this.events().filter((e) => {
       if (status && e.status !== status) return false;
+      if (time !== 'all' && this.timeGroupOf(e) !== time) return false;
       if (promoterId && e.promoter?.id !== promoterId) return false;
       if (cat === 'none' && e.category) return false;
       if (cat && cat !== 'none' && e.category?.id !== cat) return false;
@@ -203,6 +217,24 @@ export class ConfigPage {
     const start = (this.eventsPage() - 1) * EVENTS_PAGE;
     return this.filteredEvents().slice(start, start + EVENTS_PAGE);
   });
+
+  /** Clasifica un evento del admin por tiempo (estado + fechas), como en el panel promotor. */
+  private timeGroupOf(e: AdminEventListItemDto): Exclude<EventTimeGroup, 'all'> {
+    if (e.status === 'finished' || e.status === 'cancelled') return 'past';
+    const now = Date.now();
+    const starts = new Date(e.startsAt).getTime();
+    const ends = new Date(e.endsAt).getTime();
+    if (!Number.isNaN(ends) && ends < now) return 'past';
+    if (
+      e.status === 'published' &&
+      !Number.isNaN(starts) &&
+      starts <= now &&
+      (Number.isNaN(ends) || ends >= now)
+    ) {
+      return 'ongoing';
+    }
+    return 'upcoming';
+  }
 
   /** Abre el evento en la consola (vista de edición), como ADMIN (sin impersonar). */
   protected openEvent(id: string, tab?: string): void {
@@ -309,6 +341,7 @@ export class ConfigPage {
   private resetFilters(): void {
     this.eventSearch.set('');
     this.eventStatus.set('');
+    this.eventTime.set('upcoming');
     this.eventPromoter.set('');
     this.eventCategory.set('');
     this.eventsPage.set(1);
@@ -375,6 +408,10 @@ export class ConfigPage {
   }
   protected setEventStatus(v: string): void {
     this.eventStatus.set(v);
+    this.eventsPage.set(1);
+  }
+  protected setEventTime(v: EventTimeGroup): void {
+    this.eventTime.set(v);
     this.eventsPage.set(1);
   }
   protected setEventPromoter(v: string): void {
