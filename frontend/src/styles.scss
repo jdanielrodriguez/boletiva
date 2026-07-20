@@ -3197,8 +3197,9 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
   .chat-thread-item { min-width: 160px; flex: 0 0 auto; }
   .chat-main { min-height: 50vh; }
   .chat-msg { max-width: 90%; }
-  /* Composer fijado al fondo del panel para que el teclado no lo empuje fuera. */
-  .chat-composer { position: sticky; bottom: 0; background: var(--pe-surface); }
+  /* Composer/creación fijados al fondo para que el teclado no los empuje fuera. */
+  .chat-composer,
+  .chat-compose-new { position: sticky; bottom: 0; background: var(--pe-surface); }
 }
 /* Barra superior del editor: acciones alineadas a la derecha y CENTRADAS
    verticalmente (W5) → el botón/chip de desbloqueo queda a la misma altura que
