@@ -5,15 +5,9 @@ import { SeatTemplatesApi } from '../../core/api/seat-templates.api';
 import { LoadingComponent } from '../ui/loading.component';
 import { EmptyStateComponent } from '../ui/empty-state.component';
 import { ChartComponent, ChartOptions } from '../ui/chart.component';
+import { chartPalette } from '../ui/chart-palette';
 import { MoneyPipe } from '../money.pipe';
 import type { ScopeDashboardDto } from '../../core/api/types';
-
-const PALETTE = {
-  accent: '#c026d3',
-  accent2: '#7c3aed',
-  success: '#16a34a',
-  warning: '#d97706',
-};
 
 /**
  * Dashboard de un ALCANCE (salón o plantilla): mismas métricas y estilo que el
@@ -35,10 +29,10 @@ const PALETTE = {
       .dash-preview-note {
         margin: 0;
         padding: 0.6rem 0.9rem;
-        border: 1px dashed var(--pe-accent, #c026d3);
+        border: 1px dashed var(--pe-accent);
         border-radius: 10px;
         background: var(--pe-accent-soft, rgba(192, 38, 211, 0.08));
-        color: var(--pe-accent, #c026d3);
+        color: var(--pe-accent);
         font-size: 0.9rem;
       }
       .dash-kpis {
@@ -66,7 +60,7 @@ const PALETTE = {
         font-weight: 700;
       }
       .kpi-value.accent {
-        color: var(--pe-accent, #c026d3);
+        color: var(--pe-accent);
       }
       .dash-card {
         border: 1px solid var(--pe-border, rgba(148, 163, 184, 0.25));
@@ -165,11 +159,11 @@ export class ScopeDashboardComponent {
       series: [{ name: this.t.instant('config.dash.revenue'), data: pts.map((p) => Number(p.revenue)) }],
       xaxis: { categories: pts.map((p) => p.day) },
       yaxis: { labels: { formatter: (v: number) => v.toFixed(0) } },
-      colors: [PALETTE.accent],
+      colors: [chartPalette().accent],
       stroke: { width: 2, curve: 'smooth' },
       fill: { type: 'gradient', opacity: 0.35 },
       dataLabels: { enabled: false },
-      grid: { borderColor: 'rgba(148,163,184,0.2)' },
+      grid: { borderColor: chartPalette().muted + '33' },
       noData: this.noData(),
     };
   });
@@ -181,10 +175,10 @@ export class ScopeDashboardComponent {
       plotOptions: { bar: { horizontal: true, borderRadius: 4, distributed: true } },
       series: [{ name: this.t.instant('config.dash.revenue'), data: top.map((e) => Number(e.gross)) }],
       xaxis: { categories: top.map((e) => e.name) },
-      colors: [PALETTE.accent, PALETTE.accent2, PALETTE.success, PALETTE.warning],
+      colors: (() => { const p = chartPalette(); return [p.accent, p.accent2, p.success, p.warning]; })(),
       dataLabels: { enabled: false },
       legend: { show: false },
-      grid: { borderColor: 'rgba(148,163,184,0.2)' },
+      grid: { borderColor: chartPalette().muted + '33' },
       noData: this.noData(),
     };
   });

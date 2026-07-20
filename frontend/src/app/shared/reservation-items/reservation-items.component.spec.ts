@@ -69,7 +69,8 @@ describe('ReservationItems (ficha técnica)', () => {
     expect(el.querySelectorAll('.res-group li').length).toBe(10);
     // Paginador presente.
     expect(el.querySelector('[data-testid="reservation-items-pager"]')).not.toBeNull();
-    // El subtotal refleja los 15 boletos (15 × 100 = 1500.00), no solo la página.
-    expect(el.querySelector('.res-subtotal')?.textContent).toContain('1500.00');
+    // El subtotal refleja los 15 boletos (15 × 100 = 1500) con formato de moneda
+    // (MoneyPipe → separador de miles), no solo la página.
+    expect(el.querySelector('.res-subtotal')?.textContent).toContain('1,500.00');
   });
 });

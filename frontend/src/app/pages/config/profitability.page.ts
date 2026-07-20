@@ -9,9 +9,8 @@ import { BackLinkComponent } from '../../shared/ui/back-link.component';
 import { LoadingComponent } from '../../shared/ui/loading.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { ChartComponent, ChartOptions } from '../../shared/ui/chart.component';
+import { chartPalette } from '../../shared/ui/chart-palette';
 import { MoneyPipe } from '../../shared/money.pipe';
-
-const PALETTE = { accent: '#c026d3', accent2: '#7c3aed', success: '#16a34a', warning: '#d97706' };
 
 /**
  * Fase 4 — Rentabilidad de la plataforma por evento (admin). Muestra KPIs globales
@@ -77,10 +76,10 @@ export class ProfitabilityPage {
       plotOptions: { bar: { horizontal: true, borderRadius: 4, distributed: true } },
       series: [{ name: this.t.instant('config.profit.platformProfit'), data: rows.map((r) => Number(r.platformFee)) }],
       xaxis: { categories: rows.map((r) => r.name) },
-      colors: [PALETTE.accent, PALETTE.accent2, PALETTE.success, PALETTE.warning],
+      colors: (() => { const p = chartPalette(); return [p.accent, p.accent2, p.success, p.warning]; })(),
       dataLabels: { enabled: false },
       legend: { show: false },
-      grid: { borderColor: 'rgba(148,163,184,0.2)' },
+      grid: { borderColor: chartPalette().muted + '33' },
       noData: { text: this.t.instant('config.profit.noData') },
     };
   });

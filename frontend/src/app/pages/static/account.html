@@ -3,12 +3,12 @@
 
   <div class="account-grid">
     <nav class="account-menu" [attr.aria-label]="'account.sectionsAria' | translate">
-      <button type="button" [class.active]="section() === 'perfil'" (click)="select('perfil')">{{ 'account.nav.profile' | translate }}</button>
-      <button type="button" [class.active]="section() === 'metodos'" (click)="select('metodos')" data-testid="menu-metodos">{{ 'account.nav.methods' | translate }}</button>
-      <button type="button" [class.active]="section() === 'facturacion'" (click)="select('facturacion')" data-testid="menu-facturacion">{{ 'account.nav.billing' | translate }}</button>
-      <button type="button" [class.active]="section() === 'wallet'" (click)="select('wallet')" data-testid="menu-wallet">{{ 'account.nav.wallet' | translate }}</button>
-      <button type="button" [class.active]="section() === 'activos'" (click)="select('activos')" data-testid="menu-activos">{{ 'account.nav.activeTickets' | translate }}</button>
-      <button type="button" [class.active]="section() === 'pasados'" (click)="select('pasados')" data-testid="menu-pasados">{{ 'account.nav.pastTickets' | translate }}</button>
+      <button type="button" [class.active]="section() === 'perfil'" [attr.aria-current]="section() === 'perfil' ? 'page' : null" (click)="select('perfil')">{{ 'account.nav.profile' | translate }}</button>
+      <button type="button" [class.active]="section() === 'metodos'" [attr.aria-current]="section() === 'metodos' ? 'page' : null" (click)="select('metodos')" data-testid="menu-metodos">{{ 'account.nav.methods' | translate }}</button>
+      <button type="button" [class.active]="section() === 'facturacion'" [attr.aria-current]="section() === 'facturacion' ? 'page' : null" (click)="select('facturacion')" data-testid="menu-facturacion">{{ 'account.nav.billing' | translate }}</button>
+      <button type="button" [class.active]="section() === 'wallet'" [attr.aria-current]="section() === 'wallet' ? 'page' : null" (click)="select('wallet')" data-testid="menu-wallet">{{ 'account.nav.wallet' | translate }}</button>
+      <button type="button" [class.active]="section() === 'activos'" [attr.aria-current]="section() === 'activos' ? 'page' : null" (click)="select('activos')" data-testid="menu-activos">{{ 'account.nav.activeTickets' | translate }}</button>
+      <button type="button" [class.active]="section() === 'pasados'" [attr.aria-current]="section() === 'pasados' ? 'page' : null" (click)="select('pasados')" data-testid="menu-pasados">{{ 'account.nav.pastTickets' | translate }}</button>
     </nav>
 
     <div class="account-content">

@@ -33,7 +33,7 @@
       @if (store.reservation(); as r) {
         <h2>{{ 'purchase.yourTickets' | translate }}</h2>
         <app-reservation-items [items]="r.items" />
-        <p class="total reserved-total">{{ 'purchase.reservedTotal' | translate: { n: r.items.length, total: r.total } }}</p>
+        <p class="total reserved-total">{{ 'purchase.reservedTotal' | translate: { n: r.items.length, total: (r.total | money) } }}</p>
       }
 
       <app-share-box [url]="shareUrl()" />
@@ -73,7 +73,7 @@
     <aside class="cart-summary cart-top">
       <div>
         <p class="cart-count">{{ 'purchase.selectedCount' | translate: { n: store.totalCount() } }}</p>
-        <p class="total">{{ 'purchase.totalAmount' | translate: { total: store.totalDisplay() } }}</p>
+        <p class="total">{{ 'purchase.totalAmount' | translate: { total: (store.totalDisplay() | money) } }}</p>
       </div>
       <button
         type="button"

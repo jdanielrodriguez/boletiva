@@ -5214,6 +5214,8 @@ export interface components {
              * @description Admin que ejecutó (solo status; null = sistema)
              */
             adminId: string | null;
+            /** @description Nombre del admin que ejecutó (null = sistema) */
+            adminName: string | null;
             /** @description Estado origen (solo status) */
             statusFrom: string | null;
             /** @description Estado destino (solo status) */

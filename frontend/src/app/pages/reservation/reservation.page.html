@@ -10,7 +10,7 @@
     }
 
     <app-reservation-items [items]="r.items" />
-    <p class="total">{{ 'reservation.total' | translate: { total: r.total } }}</p>
+    <p class="total">{{ 'reservation.total' | translate: { total: (r.total | money) } }}</p>
 
     @if (error()) {
       <p class="error" data-testid="reservation-error">{{ error() }}</p>

@@ -239,6 +239,9 @@ export class PromoterHistoryItemDto {
   @ApiProperty({ format: 'uuid', nullable: true, description: 'Admin que ejecutó (solo status; null = sistema)' })
   adminId!: string | null;
 
+  @ApiProperty({ type: String, nullable: true, description: 'Nombre del admin que ejecutó (null = sistema)' })
+  adminName!: string | null;
+
   @ApiProperty({ type: String, nullable: true, description: 'Estado origen (solo status)' })
   statusFrom!: string | null;
 

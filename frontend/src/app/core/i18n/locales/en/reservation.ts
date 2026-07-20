@@ -3,7 +3,7 @@ export const reservation = {
   title: 'Ticket reservation',
   expiresIn: 'Expires in {{mm}}:{{ss}}',
   expired: 'This reservation expired.',
-  total: 'Total: Q{{total}}',
+  total: 'Total: {{total}}',
   processing: 'Processing…',
   continueToPay: 'Continue to payment',
   loading: 'Loading reservation…',
@@ -12,7 +12,7 @@ export const reservation = {
   seeEvents: 'See events',
   // Items
   ticketsCount: '{{count}} ticket(s)',
-  subtotal: 'Subtotal {{name}}: Q{{amount}}',
+  subtotal: 'Subtotal {{name}}: {{amount}}',
   rowLabel: 'Row {{n}}',
   seatLabel: 'Seat {{n}}',
   ticketsPager: 'Ticket pages',

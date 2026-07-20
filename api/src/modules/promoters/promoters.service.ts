@@ -200,6 +200,19 @@ export class PromotersService implements OnApplicationBootstrap {
       orderBy: { createdAt: 'desc' },
     });
 
+    // Resuelve el NOMBRE del admin que ejecutó cada transición (evita mostrar el UUID
+    // crudo). Lookup batch por los adminId distintos presentes.
+    const adminIds = [...new Set(statusEvents.map((e) => e.adminId).filter((x): x is string => !!x))];
+    const admins = adminIds.length
+      ? await this.prisma.user.findMany({
+          where: { id: { in: adminIds } },
+          select: { id: true, firstName: true, lastName: true },
+        })
+      : [];
+    const adminNameById = new Map(
+      admins.map((a) => [a.id, `${a.firstName} ${a.lastName ?? ''}`.trim()]),
+    );
+
     // Liquidaciones: eventos del promotor con caja transferida + su asiento en el ledger.
     const settledEvents = await this.prisma.event.findMany({
       where: { promoterId: id, cashTransferredAt: { not: null } },
@@ -219,6 +232,7 @@ export class PromotersService implements OnApplicationBootstrap {
       kind: 'status' as const,
       createdAt: e.createdAt,
       adminId: e.adminId as string | null,
+      adminName: (e.adminId && adminNameById.get(e.adminId)) || null,
       statusFrom: e.statusFrom as string | null,
       statusTo: e.statusTo as string | null,
       reason: e.reason,
@@ -234,6 +248,7 @@ export class PromotersService implements OnApplicationBootstrap {
         kind: 'settlement' as const,
         createdAt: t.createdAt,
         adminId: null as string | null,
+        adminName: null as string | null,
         statusFrom: null as string | null,
         statusTo: null as string | null,
         reason: t.memo ?? null,

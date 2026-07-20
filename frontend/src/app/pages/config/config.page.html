@@ -25,14 +25,14 @@
   }
 
   <nav class="config-tabs" [attr.aria-label]="'config.tabsAria' | translate">
-    <button type="button" [class.active]="tab() === 'eventos'" (click)="selectTab('eventos')" data-testid="tab-eventos">{{ 'config.tabs.events' | translate }}</button>
-    <button type="button" [class.active]="tab() === 'promotores'" (click)="selectTab('promotores')" data-testid="tab-promotores">{{ 'config.tabs.promoters' | translate }}</button>
-    <button type="button" [class.active]="tab() === 'salones'" (click)="selectTab('salones')" data-testid="tab-salones">{{ 'config.tabs.halls' | translate }}</button>
-    <button type="button" [class.active]="tab() === 'plantillas'" (click)="selectTab('plantillas')" data-testid="tab-plantillas">{{ 'config.tabs.templates' | translate }}</button>
+    <button type="button" [class.active]="tab() === 'eventos'" [attr.aria-current]="tab() === 'eventos' ? 'page' : null" (click)="selectTab('eventos')" data-testid="tab-eventos">{{ 'config.tabs.events' | translate }}</button>
+    <button type="button" [class.active]="tab() === 'promotores'" [attr.aria-current]="tab() === 'promotores' ? 'page' : null" (click)="selectTab('promotores')" data-testid="tab-promotores">{{ 'config.tabs.promoters' | translate }}</button>
+    <button type="button" [class.active]="tab() === 'salones'" [attr.aria-current]="tab() === 'salones' ? 'page' : null" (click)="selectTab('salones')" data-testid="tab-salones">{{ 'config.tabs.halls' | translate }}</button>
+    <button type="button" [class.active]="tab() === 'plantillas'" [attr.aria-current]="tab() === 'plantillas' ? 'page' : null" (click)="selectTab('plantillas')" data-testid="tab-plantillas">{{ 'config.tabs.templates' | translate }}</button>
     @if (!hideSystemTab()) {
-      <button type="button" [class.active]="tab() === 'sistema'" (click)="selectTab('sistema')" data-testid="tab-sistema">{{ 'config.tabs.system' | translate }}</button>
+      <button type="button" [class.active]="tab() === 'sistema'" [attr.aria-current]="tab() === 'sistema' ? 'page' : null" (click)="selectTab('sistema')" data-testid="tab-sistema">{{ 'config.tabs.system' | translate }}</button>
     }
-    <button type="button" [class.active]="tab() === 'invitaciones'" (click)="selectTab('invitaciones')" data-testid="tab-invitaciones">{{ 'config.tabs.invitations' | translate }}</button>
+    <button type="button" [class.active]="tab() === 'invitaciones'" [attr.aria-current]="tab() === 'invitaciones' ? 'page' : null" (click)="selectTab('invitaciones')" data-testid="tab-invitaciones">{{ 'config.tabs.invitations' | translate }}</button>
   </nav>
 
   @switch (tab()) {
@@ -220,8 +220,8 @@
 
       @if (suspendTarget(); as target) {
         <div class="modal-backdrop" data-testid="suspend-modal">
-          <div class="modal-card">
-            <h3>{{ 'config.promoters.suspendModalTitle' | translate: { name: target.firstName } }}</h3>
+          <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="suspend-modal-title">
+            <h3 id="suspend-modal-title">{{ 'config.promoters.suspendModalTitle' | translate: { name: target.firstName } }}</h3>
             <label class="field"><span>{{ 'config.promoters.suspendReasonLabel' | translate }}</span>
               <textarea rows="3" [ngModel]="suspendReason()" (ngModelChange)="suspendReason.set($event)" name="susreason" data-testid="suspend-reason" [attr.placeholder]="'config.promoters.suspendReasonPlaceholder' | translate"></textarea>
             </label>
@@ -301,8 +301,8 @@
         <!-- Modal del candado: explica qué es/para qué + envía y valida el OTP. -->
         @if (lockModalOpen()) {
           <div class="modal-backdrop" data-testid="gw-unlock-modal">
-            <div class="modal-card">
-              <h3><app-icon name="lock" /> {{ 'config.system.lockModalTitle' | translate }}</h3>
+            <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="gw-unlock-title">
+              <h3 id="gw-unlock-title"><app-icon name="lock" /> {{ 'config.system.lockModalTitle' | translate }}</h3>
               <p class="muted">{{ 'config.system.lockModalWhat' | translate }}</p>
               @if (!unlockSent()) {
                 <div class="ev-card-actions modal-actions">

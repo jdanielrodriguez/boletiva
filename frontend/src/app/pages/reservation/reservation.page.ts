@@ -10,6 +10,7 @@ import type { ReservationResponseDto } from '../../core/api/types';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { LoginModal } from '../../shared/login-modal/login-modal.component';
 import { ReservationItems } from '../../shared/reservation-items/reservation-items.component';
+import { MoneyPipe } from '../../shared/money.pipe';
 
 /**
  * Vista de una reserva compartida (`/reserva/:token`) — lo que abre la persona
@@ -18,7 +19,7 @@ import { ReservationItems } from '../../shared/reservation-items/reservation-ite
  */
 @Component({
   selector: 'app-reservation',
-  imports: [DecimalPipe, LocalizedDatePipe, TranslatePipe, RouterLink, LoginModal, ReservationItems],
+  imports: [DecimalPipe, LocalizedDatePipe, TranslatePipe, RouterLink, LoginModal, ReservationItems, MoneyPipe],
   templateUrl: './reservation.page.html',
 })
 export class ReservationPage implements OnDestroy {

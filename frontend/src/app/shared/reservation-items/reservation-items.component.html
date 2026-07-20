@@ -22,7 +22,7 @@
           </li>
         }
       </ul>
-      <div class="res-subtotal">{{ 'reservation.subtotal' | translate: { name: g.localityName, amount: g.subtotal } }}</div>
+      <div class="res-subtotal">{{ 'reservation.subtotal' | translate: { name: g.localityName, amount: (g.subtotal | money) } }}</div>
     </div>
   }
 
