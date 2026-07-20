@@ -520,7 +520,7 @@
                 @for (o of orders().slice(0, 5); track o.id) {
                   <li>
                     <span>{{ o.createdAt | localizedDate: 'dd/MM/yyyy' }}</span>
-                    <span class="badge badge-{{ o.status }}">{{ o.status }}</span>
+                    <span class="badge badge-{{ o.status }}">{{ o.status | statusLabel }}</span>
                     <span>{{ o.total | money }}</span>
                     <button type="button" class="link-btn" (click)="verCompra(o.id)" data-testid="wallet-ver-transaccion">{{ 'account.wallet.viewTransaction' | translate }}</button>
                   </li>
@@ -550,7 +550,7 @@
                   <select id="wd-f-status" [ngModel]="wdFilterStatus()" (ngModelChange)="wdFilterStatus.set($event)" name="wdfstatus" data-testid="wd-filter-status">
                     <option value="">{{ 'common.all' | translate }}</option>
                     @for (s of withdrawalStatuses(); track s) {
-                      <option [value]="s">{{ s }}</option>
+                      <option [value]="s">{{ s | statusLabel }}</option>
                     }
                   </select>
                 </div>
@@ -565,7 +565,7 @@
                     <li>
                       <span>{{ w.amount | money }}</span>
                       <span class="muted">{{ 'account.wallet.net' | translate }} {{ w.net | money }}</span>
-                      <span class="badge badge-{{ w.status }}">{{ w.status }}</span>
+                      <span class="badge badge-{{ w.status }}">{{ w.status | statusLabel }}</span>
                       @if (w.status === 'pending') {
                         <button type="button" (click)="askCancelWithdrawal(w)" data-testid="cancel-withdrawal" [title]="'account.wallet.cancelWithdrawalTitle' | translate">
                           <app-icon name="cancel" /> {{ 'common.cancel' | translate }}

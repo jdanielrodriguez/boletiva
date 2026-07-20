@@ -476,7 +476,7 @@
                         <td>{{ t.createdAt | localizedDate: 'medium' }}</td>
                         <td>{{ t.localities.length ? t.localities.join(', ') : '—' }}</td>
                         <td class="tx-num">{{ t.itemCount }}</td>
-                        <td><span class="badge badge-{{ t.status }}">{{ t.status }}</span></td>
+                        <td><span class="badge badge-{{ t.status }}">{{ t.status | statusLabel }}</span></td>
                         <td class="tx-num">{{ t.total | money }}</td>
                         @if (canRefund()) {
                           <td>

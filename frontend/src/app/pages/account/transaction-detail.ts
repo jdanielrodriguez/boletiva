@@ -5,6 +5,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { catchError, of, switchMap } from 'rxjs';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { BackLinkComponent } from '../../shared/ui/back-link.component';
+import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
 import { MoneyPipe } from '../../shared/money.pipe';
 import { OrdersApi } from '../../core/api/orders.api';
 import type { OrderLedgerChainDto, OrderResponseDto } from '../../core/api/types';
@@ -18,7 +19,7 @@ import { ToastService } from '../../core/ui/toast.service';
  */
 @Component({
   selector: 'app-transaction-detail',
-  imports: [TranslatePipe, LocalizedDatePipe, BackLinkComponent, MoneyPipe],
+  imports: [TranslatePipe, LocalizedDatePipe, BackLinkComponent, StatusLabelPipe, MoneyPipe],
   templateUrl: './transaction-detail.html',
 })
 export class TransactionDetail {

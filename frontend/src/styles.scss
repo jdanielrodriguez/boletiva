@@ -974,10 +974,17 @@ app-root {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0;
+  flex-wrap: wrap;
 }
 
-.field.inline input {
+/* Solo los inputs NUMÉRICOS (%, cantidades) van angostos; el texto libre (nota
+   del promotor) toma el ancho disponible en vez de aplastarse a 90px. */
+.field.inline input[type='number'] {
   width: 90px;
+}
+.field.inline input[type='text'] {
+  flex: 1 1 180px;
+  min-width: 0;
 }
 
 /* Métodos de pago (tarjetas) */
@@ -1281,7 +1288,8 @@ app-root {
 .badge-paid,
 .badge-settled,
 .badge-approved,
-.badge-open {
+.badge-open,
+.badge-accepted {
   color: var(--pe-success);
   border-color: var(--pe-success-border);
 }
@@ -1294,7 +1302,8 @@ app-root {
 .badge-cancelled,
 .badge-rejected,
 .badge-refunded,
-.badge-expired {
+.badge-expired,
+.badge-revoked {
   color: var(--pe-danger, #ef4444);
   border-color: rgba(239, 68, 68, 0.5);
 }
@@ -3224,6 +3233,8 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
   .btn.small { min-height: 44px; }
   .btn.icon-only { width: 44px; height: 44px; }
   .pe-switch .pe-switch-track { margin: 0.6rem 0; }
+  /* Acciones tipo enlace (validadores, cuenta): blanco táctil vertical decente. */
+  .link-btn { min-height: 40px; display: inline-flex; align-items: center; }
 }
 
 /* Edición de evento */
@@ -4525,3 +4536,67 @@ p.error {
 .checkin-timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.3rem; }
 .checkin-timeline li { display: flex; justify-content: space-between; gap: 0.6rem; font-size: 0.85rem; }
 .checkin-tl-meta { color: var(--pe-text-muted, #6b6b76); }
+
+/* =====================================================================
+   Clases huérfanas detectadas en la auditoría UX/UI (definiciones que
+   faltaban → antes degradaban en silencio). Agrupadas por pantalla.
+   ===================================================================== */
+
+/* Detalle de transacción (PÁGINA — distinta del <dl> inline .txn-detail). */
+.txn-detail-page { max-width: 720px; margin: 0 auto; }
+.txn-items { list-style: none; margin: 0.4rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+.txn-items li { display: flex; justify-content: space-between; gap: 1rem; }
+.txn-item-desc { flex: 1 1 auto; min-width: 0; }
+.txn-item-amt { white-space: nowrap; font-weight: 600; }
+.chain-kind { color: var(--pe-muted); font-size: 0.85rem; }
+
+/* Reclamar transferencia (página). */
+.transfer-claim { max-width: 480px; margin: 0 auto; }
+.claim-ok { text-align: center; padding: 1rem 0; color: var(--pe-success); font-weight: 600; }
+
+/* Detalle de evento. */
+.event-description { line-height: 1.6; margin: 0.75rem 0; color: var(--pe-text); white-space: pre-wrap; }
+.event-notfound { max-width: 640px; margin: 2.5rem auto; text-align: center; }
+
+/* Cuenta: alta 2FA (QR con tamaño acotado) + fila NIT/DPI. */
+.twofa-setup { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 0.75rem; }
+.twofa-qr { width: 180px; height: 180px; max-width: 60vw; align-self: center; image-rendering: pixelated; }
+.twofa-current { color: var(--pe-muted); }
+.field-row { display: flex; gap: 0.8rem; flex-wrap: wrap; }
+.field-row > .field { flex: 1 1 180px; }
+
+/* Checkout: contenedores/nota (heredaban texto plano). */
+.checkout-main { min-width: 0; }
+.billing-box { border: 1px solid var(--pe-border); border-radius: var(--pe-radius); padding: 0.9rem; margin-top: 0.6rem; }
+.billing-title { font-weight: 600; margin-bottom: 0.4rem; }
+.awaiting { color: var(--pe-muted); }
+
+/* Editor de evento: preview de precio de localidad (transparencia — debe destacar). */
+.price-preview {
+  margin-top: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--pe-radius);
+  background: var(--pe-surface-2);
+  border: 1px solid var(--pe-border);
+}
+.pp-total { font-weight: 700; }
+.pp-breakdown { list-style: none; margin: 0.4rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.85rem; color: var(--pe-muted); }
+.pp-service { font-weight: 600; color: var(--pe-text); }
+.cash-transfer-result {
+  margin-top: 0.6rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: var(--pe-radius);
+  background: var(--pe-success-soft, var(--pe-surface-2));
+  border: 1px solid var(--pe-success-border, var(--pe-border));
+}
+
+/* Dashboard del promotor: fila de filtros. */
+.dash-filters { display: flex; gap: 0.8rem; flex-wrap: wrap; align-items: flex-end; margin-bottom: 1rem; }
+
+/* Historial de promotor: nombre del evento en filas de liquidación. */
+.ph-event { font-weight: 600; }
+
+/* Menú "Generar" del editor de asientos: no salirse del viewport en móvil. */
+@media (max-width: 480px) {
+  .gen-menu { max-width: calc(100vw - 2rem); left: auto; right: 0; }
+}

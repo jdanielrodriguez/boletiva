@@ -51,6 +51,7 @@
     <section class="dash-card" data-testid="scope-top">
       <h3>{{ 'config.dash.topTitle' | translate }}</h3>
       <app-chart [options]="topEventsOptions()" />
+      <div class="dash-table-scroll">
       <table class="dash-table">
         <thead>
           <tr>
@@ -69,6 +70,7 @@
           }
         </tbody>
       </table>
+      </div>
     </section>
   }
 </div>

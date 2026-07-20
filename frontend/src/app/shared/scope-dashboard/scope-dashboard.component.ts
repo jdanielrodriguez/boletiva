@@ -82,11 +82,18 @@ const PALETTE = {
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         gap: 1rem;
       }
+      .dash-table-scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
       .dash-table {
         width: 100%;
         border-collapse: collapse;
         margin-top: 0.75rem;
         font-size: 0.9rem;
+      }
+      .dash-table td:first-child {
+        min-width: 8rem;
       }
       .dash-table th,
       .dash-table td {
