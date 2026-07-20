@@ -422,6 +422,8 @@ export const config = {
     saveTitle: 'Save setting',
     defaultLabel: 'default: {{value}}',
     loading: 'Loading settings…',
+    emptyTitle: 'No settings',
+    emptySubtitle: 'There are no settings available to display.',
     loadError: 'Could not load the settings.',
     saved: 'Setting "{{key}}" saved.',
     saveError: 'Could not save (check the value type/range).',

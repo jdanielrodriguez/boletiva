@@ -122,7 +122,7 @@ export class ConfigPage {
   );
   protected readonly hideSystemTab = this.isAdvisor;
   /** Estado de desbloqueo del asesor (banner en la consola). */
-  protected readonly advisorUnlock = signal<{ lockEnabled: boolean; unlocked: boolean; pending: boolean } | null>(null);
+  protected readonly advisorUnlock = signal<{ lockEnabled: boolean; unlocked: boolean; pending: boolean; expiresAt: string | null } | null>(null);
   protected readonly requestingUnlock = signal(false);
   private readonly theme = inject(ThemeService);
   private readonly toasts = inject(ToastService);
@@ -345,7 +345,7 @@ export class ConfigPage {
 
   private loadAdvisorUnlock(): void {
     this.advisorApi.status().subscribe({
-      next: (s) => this.advisorUnlock.set({ lockEnabled: s.lockEnabled, unlocked: s.unlocked, pending: s.pending }),
+      next: (s) => this.advisorUnlock.set({ lockEnabled: s.lockEnabled, unlocked: s.unlocked, pending: s.pending, expiresAt: s.expiresAt }),
       error: () => undefined,
     });
   }
@@ -925,17 +925,27 @@ export class ConfigPage {
   // --- Configuraciones del sistema (catálogo) — dentro del tab Sistema ---
   protected readonly settings = signal<SettingViewDto[]>([]);
   protected readonly settingEdits = signal<Record<string, number | boolean | string>>({});
+  /** false hasta que la 1ª carga resuelve o falla → distingue "cargando" de "vacío". */
+  protected readonly settingsLoaded = signal(false);
   private loadSettings(): void {
     this.settingsApi.list().subscribe({
       next: (s) => {
         this.settings.set(s);
         this.settingEdits.set(Object.fromEntries(s.map((x) => [x.key, x.value])));
+        this.settingsLoaded.set(true);
       },
-      error: () => this.toasts.error(this.translate.instant('config.settings.loadError')),
+      error: () => {
+        this.settingsLoaded.set(true);
+        this.toasts.error(this.translate.instant('config.settings.loadError'));
+      },
     });
   }
   protected setSettingValue(key: string, value: number | boolean | string): void {
     this.settingEdits.update((e) => ({ ...e, [key]: value }));
+  }
+  /** ¿El valor editado difiere del guardado? (habilita el botón Guardar). */
+  protected settingDirty(s: SettingViewDto): boolean {
+    return this.settingEdits()[s.key] !== s.value;
   }
 
   /** Etiqueta traducible de una opción de un setting enum (p.ej. temas / franjas). */

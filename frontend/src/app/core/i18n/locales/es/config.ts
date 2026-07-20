@@ -422,6 +422,8 @@ export const config = {
     saveTitle: 'Guardar configuración',
     defaultLabel: 'default: {{value}}',
     loading: 'Cargando configuraciones…',
+    emptyTitle: 'Sin configuraciones',
+    emptySubtitle: 'No hay configuraciones disponibles para mostrar.',
     loadError: 'No se pudieron cargar las configuraciones.',
     saved: 'Configuración "{{key}}" guardada.',
     saveError: 'No se pudo guardar (revisa el tipo/rango del valor).',

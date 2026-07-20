@@ -18,6 +18,7 @@ export const promoter = {
     accountsTitle: 'Ver las cuentas del evento (concluido)',
     loading: 'Cargando eventos…',
     empty: 'Aún no tienes eventos. Crea el primero con "+ Nuevo evento".',
+    emptySubtitle: 'Crea tu primer evento con "+ Nuevo evento" para empezar a vender boletos.',
     localitiesCount: '{{n}} localidad(es)',
     publish: 'Publicar evento',
     publishShort: 'Publicar',

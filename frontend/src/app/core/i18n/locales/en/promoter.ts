@@ -18,6 +18,7 @@ export const promoter = {
     accountsTitle: 'View the event accounts (concluded)',
     loading: 'Loading events…',
     empty: 'You have no events yet. Create the first one with "+ New event".',
+    emptySubtitle: 'Create your first event with "+ New event" to start selling tickets.',
     localitiesCount: '{{n}} locality(ies)',
     publish: 'Publish event',
     publishShort: 'Publish',

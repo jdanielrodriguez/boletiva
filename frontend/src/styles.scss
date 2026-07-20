@@ -892,6 +892,17 @@ app-root {
   margin-bottom: 1.25rem;
   flex-wrap: wrap;
 }
+/* Móvil: tabs en una tira scrolleable en vez de 2-3 filas de pills que comen alto. */
+@media (max-width: 560px) {
+  .config-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .config-tabs::-webkit-scrollbar { display: none; }
+  .config-tabs button { flex: 0 0 auto; white-space: nowrap; }
+}
 
 .config-tabs button {
   background: transparent;
@@ -2470,6 +2481,10 @@ app-root {
   position: relative;
   width: 100%;
   max-width: 420px;
+  /* Móvil + teclado virtual: nunca desbordar el viewport; scroll interno para que
+     el botón de envío siga alcanzable (bug responsive: el modal de registro se cortaba). */
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
   background: var(--pe-surface);
   border: 1px solid var(--pe-border);
   border-radius: var(--pe-radius);
@@ -2477,6 +2492,43 @@ app-root {
   padding: 2rem;
   animation: pe-modal-card-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+
+/* Botón X de cierre del modal (esquina superior derecha). */
+.modal-x {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--pe-muted);
+  cursor: pointer;
+}
+.modal-x:hover { background: var(--pe-surface-2); color: var(--pe-text); }
+
+/* Campo de contraseña con botón mostrar/ocultar + helper. */
+.pass-wrap { position: relative; display: flex; align-items: center; }
+.pass-wrap input { flex: 1 1 auto; padding-right: 2.6rem; }
+.pass-toggle {
+  position: absolute;
+  right: 0.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  background: transparent;
+  color: var(--pe-muted);
+  cursor: pointer;
+}
+.pass-toggle:hover { color: var(--pe-text); }
+.field-hint { display: block; margin-top: 0.3rem; font-size: 0.8rem; color: var(--pe-muted); }
 
 @media (prefers-reduced-motion: reduce) {
   .modal-backdrop,
@@ -3141,9 +3193,12 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
 /* Móvil: el chat colapsa a una sola columna (hilos arriba, conversación abajo). */
 @media (max-width: 720px) {
   .chat-layout { grid-template-columns: 1fr; min-height: 0; }
-  .chat-threads { max-height: 40vh; flex-direction: row; overflow-x: auto; }
-  .chat-thread-item { min-width: 160px; }
+  .chat-threads { max-height: 32vh; flex-direction: row; overflow-x: auto; }
+  .chat-thread-item { min-width: 160px; flex: 0 0 auto; }
+  .chat-main { min-height: 50vh; }
   .chat-msg { max-width: 90%; }
+  /* Composer fijado al fondo del panel para que el teclado no lo empuje fuera. */
+  .chat-composer { position: sticky; bottom: 0; background: var(--pe-surface); }
 }
 /* Barra superior del editor: acciones alineadas a la derecha y CENTRADAS
    verticalmente (W5) → el botón/chip de desbloqueo queda a la misma altura que
@@ -3162,6 +3217,13 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
 }
 .btn.icon-only app-icon,
 .btn.icon-only svg { margin: 0; }
+
+/* Móvil: agranda los blancos táctiles a ≥44px (accesibilidad WCAG 2.5.5). */
+@media (max-width: 480px) {
+  .btn.small { min-height: 44px; }
+  .btn.icon-only { width: 44px; height: 44px; }
+  .pe-switch .pe-switch-track { margin: 0.6rem 0; }
+}
 
 /* Edición de evento */
 .event-edit { max-width: 960px; margin: 0 auto; }
@@ -3426,6 +3488,11 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
 .promoter-card-name { display: flex; flex-direction: column; }
 .promoter-card-body { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: flex-end; }
 .filters-row { display: flex; flex-wrap: wrap; gap: 0.8rem; align-items: flex-end; margin-bottom: 1rem; }
+/* Móvil: cada filtro ocupa la fila completa (evita columnas angostas y desalineadas). */
+@media (max-width: 560px) {
+  .filters-row { align-items: stretch; }
+  .filters-row .field { flex: 1 1 100%; }
+}
 
 .gateway-edit {
   background: var(--pe-surface-2);

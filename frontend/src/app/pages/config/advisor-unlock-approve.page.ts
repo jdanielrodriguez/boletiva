@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { AdvisorApi } from '../../core/api/advisor.api';
 
 /**
@@ -9,7 +10,7 @@ import { AdvisorApi } from '../../core/api/advisor.api';
  */
 @Component({
   selector: 'app-advisor-unlock-approve',
-  imports: [TranslatePipe, RouterLink],
+  imports: [TranslatePipe, RouterLink, LocalizedDatePipe],
   template: `
     <section class="auth-card">
       <h1>{{ 'advisor.approveTitle' | translate }}</h1>
@@ -18,7 +19,12 @@ import { AdvisorApi } from '../../core/api/advisor.api';
           <p class="muted" data-testid="adv-loading">{{ 'advisor.approving' | translate }}</p>
         }
         @case ('ok') {
-          <p class="ok" data-testid="adv-ok">{{ 'advisor.approved' | translate }}</p>
+          <p class="ok" data-testid="adv-ok">
+            {{ 'advisor.approved' | translate }}
+            @if (expiresAt()) {
+              <br />{{ 'advisor.approvedUntil' | translate: { time: (expiresAt() | localizedDate: 'HH:mm') } }}
+            }
+          </p>
         }
         @case ('error') {
           <p class="error" data-testid="adv-error">{{ 'advisor.approveError' | translate }}</p>
@@ -52,6 +58,7 @@ export class AdvisorUnlockApprovePage {
   private readonly route = inject(ActivatedRoute);
   private readonly advisor = inject(AdvisorApi);
   protected readonly state = signal<'loading' | 'ok' | 'error'>('loading');
+  protected readonly expiresAt = signal<string | null>(null);
 
   constructor() {
     const token = this.route.snapshot.queryParamMap.get('token');
@@ -60,7 +67,10 @@ export class AdvisorUnlockApprovePage {
       return;
     }
     this.advisor.approve(token).subscribe({
-      next: () => this.state.set('ok'),
+      next: (r) => {
+        this.expiresAt.set(r.expiresAt);
+        this.state.set('ok');
+      },
       error: () => this.state.set('error'),
     });
   }

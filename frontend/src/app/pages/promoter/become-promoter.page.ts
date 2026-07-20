@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -114,6 +114,29 @@ export class BecomePromoterPage {
   protected readonly regFirstName = signal('');
   protected readonly regEmail = signal('');
   protected readonly regPassword = signal('');
+  /** Mostrar/ocultar la contraseña del registro. */
+  protected readonly showPassword = signal(false);
+
+  /** ¿Hay algún modal abierto? (para cerrar con Escape/backdrop). */
+  protected readonly anyModalOpen = computed(
+    () => this.showInfo() || this.showRegister() || this.showStarted(),
+  );
+
+  /** Cierra el modal abierto (Escape / clic en backdrop / botón X). Respeta `working`. */
+  protected dismissModal(): void {
+    if (this.working()) return;
+    if (this.showStarted()) {
+      this.closeStarted();
+      return;
+    }
+    this.showInfo.set(false);
+    this.showRegister.set(false);
+  }
+
+  @HostListener('document:keydown.escape')
+  protected onEscape(): void {
+    if (this.anyModalOpen()) this.dismissModal();
+  }
 
   constructor() {
     this.config.load(); // asegura tener el gating premium al render (idempotente)

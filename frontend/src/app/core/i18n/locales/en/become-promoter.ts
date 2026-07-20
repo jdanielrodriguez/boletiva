@@ -75,5 +75,6 @@ export const becomePromoter = {
   regCheckEmail:
     'If the email is valid, we sent you instructions to continue. Please check your inbox.',
   regCompleteFields: 'Complete first name, email and password (at least 8 characters).',
+  regPasswordHint: 'At least 8 characters.',
   selectedPlan: 'Selected plan',
 };

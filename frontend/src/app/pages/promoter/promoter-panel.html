@@ -64,7 +64,9 @@
   @if (loading()) {
     <p class="muted">{{ 'promoter.panel.loading' | translate }}</p>
   } @else if (events().length === 0) {
-    <p class="muted" data-testid="events-empty">{{ 'promoter.panel.empty' | translate }}</p>
+    <app-empty-state variant="generic" data-testid="events-empty"
+      [title]="'promoter.panel.empty' | translate"
+      [subtitle]="'promoter.panel.emptySubtitle' | translate" />
   } @else {
     <div class="events-grid" data-testid="events-grid">
       @for (ev of pageEvents(); track ev.id) {
@@ -132,7 +134,8 @@
           </div>
         </article>
       } @empty {
-        <p class="muted" data-testid="events-no-match">{{ 'promoter.panel.noMatch' | translate }}</p>
+        <app-empty-state variant="generic" data-testid="events-no-match"
+          [title]="'promoter.panel.noMatch' | translate" />
       }
     </div>
 

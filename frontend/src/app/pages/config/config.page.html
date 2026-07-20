@@ -14,7 +14,12 @@
       </div>
     } @else if (au.unlocked && au.lockEnabled) {
       <div class="advisor-banner ok" data-testid="advisor-unlocked-banner">
-        <span>{{ 'advisor.bannerUnlocked' | translate }}</span>
+        <span>
+          {{ 'advisor.bannerUnlocked' | translate }}
+          @if (au.expiresAt) {
+            · {{ 'advisor.activeUntil' | translate: { time: (au.expiresAt | localizedDate: 'HH:mm') } }}
+          }
+        </span>
       </div>
     }
   }
@@ -471,7 +476,7 @@
                   } @else {
                     <input type="number" step="0.01" [ngModel]="settingEdits()[s.key]" (ngModelChange)="setSettingValue(s.key, +$event)" [name]="'set-' + s.key" [attr.data-testid]="'setting-input-' + s.key" />
                   }
-                  <button type="button" class="btn small primary icon-only" (click)="saveSetting(s)" [attr.data-testid]="'setting-save-' + s.key" [title]="'config.settings.saveTitle' | translate" [attr.aria-label]="'config.settings.saveTitle' | translate">
+                  <button type="button" class="btn small primary icon-only" [disabled]="!settingDirty(s)" (click)="saveSetting(s)" [attr.data-testid]="'setting-save-' + s.key" [title]="'config.settings.saveTitle' | translate" [attr.aria-label]="'config.settings.saveTitle' | translate">
                     <app-icon name="disk" />
                   </button>
                   <span class="muted small setting-default">{{ 'config.settings.defaultLabel' | translate: { value: s.default } }}</span>
@@ -479,8 +484,12 @@
               </div>
             }
           </div>
+        } @else if (!settingsLoaded()) {
+          <p class="muted" data-testid="settings-loading">{{ 'config.settings.loading' | translate }}</p>
         } @else {
-          <p class="muted" data-testid="settings-empty">{{ 'config.settings.loading' | translate }}</p>
+          <app-empty-state variant="generic" data-testid="settings-empty"
+            [title]="'config.settings.emptyTitle' | translate"
+            [subtitle]="'config.settings.emptySubtitle' | translate" />
         }
       </div>
 

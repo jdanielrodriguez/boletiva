@@ -75,5 +75,6 @@ export const becomePromoter = {
   regCheckEmail:
     'Si el correo es válido, te enviamos instrucciones para continuar. Revisa tu bandeja de entrada.',
   regCompleteFields: 'Completa nombre, correo y contraseña (mínimo 8 caracteres).',
+  regPasswordHint: 'Mínimo 8 caracteres.',
   selectedPlan: 'Plan seleccionado',
 };

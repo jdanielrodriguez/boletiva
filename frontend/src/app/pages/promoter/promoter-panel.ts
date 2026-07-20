@@ -16,6 +16,7 @@ import { PagerComponent } from '../../shared/ui/pager.component';
 import { SearchFieldComponent } from '../../shared/ui/search-field.component';
 import { SwitchComponent } from '../../shared/ui/switch.component';
 import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
+import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { TourComponent, TourStep } from '../../shared/tour/tour.component';
 import type { MyEventListItemDto } from '../../core/api/types';
 
@@ -37,7 +38,7 @@ type EventFilterGroup = 'upcoming' | 'ongoing' | 'suspended' | 'past' | 'all';
  */
 @Component({
   selector: 'app-promoter-panel',
-  imports: [FormsModule, LocalizedDatePipe, TranslatePipe, RouterLink, IconComponent, ConfirmDialogComponent, PagerComponent, StatusLabelPipe, SearchFieldComponent, SwitchComponent, TourComponent],
+  imports: [FormsModule, LocalizedDatePipe, TranslatePipe, RouterLink, IconComponent, ConfirmDialogComponent, PagerComponent, StatusLabelPipe, SearchFieldComponent, SwitchComponent, EmptyStateComponent, TourComponent],
   templateUrl: './promoter-panel.html',
 })
 export class PromoterPanel {
