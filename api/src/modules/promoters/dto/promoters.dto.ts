@@ -1,8 +1,40 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PromoterStatus, PromoterTier, Role } from '@prisma/client';
-import { IsBoolean, IsEmail, IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsEmail,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+} from 'class-validator';
 
 const TIERS = ['free', 'premium'] as const;
+
+/** Cambio de plan por el propio promotor (upgrade/downgrade). Premium exige tarjeta. */
+export class SetTierDto {
+  @ApiProperty({ description: 'Nuevo plan', enum: TIERS, example: 'premium' })
+  @IsIn(TIERS)
+  tier!: PromoterTier;
+}
+
+/** Cambio de plan por un admin (puede conceder prueba de N días o premium a mano). */
+export class AdminSetTierDto {
+  @ApiProperty({ description: 'Nuevo plan', enum: TIERS, example: 'premium' })
+  @IsIn(TIERS)
+  tier!: PromoterTier;
+
+  @ApiPropertyOptional({ description: 'Si se otorga como PRUEBA gratis, días de la prueba (1–90)', example: 7 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(90)
+  trialDays?: number;
+}
 
 /** Elección de plan al solicitar ser promotor (free/premium). */
 export class ApplyPromoterDto {
@@ -97,10 +129,34 @@ export class PromoterInternalNoteResponseDto {
   promoterInternalNote!: string | null;
 }
 
-/** Mi estado de promotor + si el modo de autorización está activo. */
+/** Mi estado de promotor + si el modo de autorización está activo + estado premium. */
 export class MyPromoterStatusResponseDto extends PromoterStatusResponseDto {
   @ApiProperty({ description: 'true = se exige autorización de admin; false = modo pruebas' })
   requireApproval!: boolean;
+
+  @ApiProperty({ format: 'date-time', nullable: true, description: 'Fin de la prueba premium (null = premium pagado o free)' })
+  premiumTrialEndsAt!: Date | null;
+
+  @ApiProperty({ description: 'true si el premium proviene de una prueba gratis vigente' })
+  onTrial!: boolean;
+
+  @ApiProperty({ description: 'true si los beneficios premium (chat, destacar propio, dashboards) aplican ya' })
+  premiumBenefitsActive!: boolean;
+}
+
+/** Estado premium del promotor tras cambiar de plan. */
+export class PremiumTierResponseDto {
+  @ApiProperty({ enum: PromoterTier })
+  promoterTier!: PromoterTier;
+
+  @ApiProperty({ format: 'date-time', nullable: true })
+  premiumTrialEndsAt!: Date | null;
+
+  @ApiProperty({ format: 'date-time', nullable: true })
+  premiumSince!: Date | null;
+
+  @ApiProperty({ description: 'true si el premium proviene de una prueba gratis vigente' })
+  onTrial!: boolean;
 }
 
 /** Config de autorización de promotores. */

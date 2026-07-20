@@ -257,6 +257,11 @@ model User {
   // un admin lo aprueba antes de que pueda operar (salvo en modo pruebas).
   promoterStatus    PromoterStatus @default(none) @map("promoter_status")
   promoterTier      PromoterTier   @default(free) @map("promoter_tier")
+  // Premium (B1): si `premiumTrialEndsAt` está en el futuro, el tier premium viene de una
+  // PRUEBA GRATIS (al vencer, un job lo baja a free). null con tier=premium = premium PAGADO
+  // (permanente, exige tarjeta). `premiumSince` = cuándo se activó premium (informativo).
+  premiumTrialEndsAt DateTime? @map("premium_trial_ends_at")
+  premiumSince       DateTime? @map("premium_since")
   promoterAppliedAt DateTime?      @map("promoter_applied_at")
   promoterDecidedAt DateTime?      @map("promoter_decided_at")
   promoterNote      String?        @map("promoter_note") // motivo de rechazo/suspensión

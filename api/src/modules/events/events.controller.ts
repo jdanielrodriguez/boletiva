@@ -146,9 +146,9 @@ export class EventsController {
   }
 
   @Patch(':id/promote')
-  @Roles(Role.admin)
+  @Roles(Role.promoter, Role.admin)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Destaca/quita un evento del slider del inicio (solo admin)' })
+  @ApiOperation({ summary: 'Destaca/quita un evento del slider del inicio (admin cualquiera; promotor premium el suyo)' })
   @ApiOkResponse({ type: EventResponseDto })
   promote(
     @Param('id', ParseUUIDPipe) id: string,

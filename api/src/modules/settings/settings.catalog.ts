@@ -178,6 +178,47 @@ export const SETTINGS_CATALOG: SettingDef[] = [
     max: 24,
     description: 'Hora (1–24, GT) en que termina la franja DÍA (a partir de ahí es NOCHE) con tema automático.',
   },
+  // --- Premium / Asesor / Chat (B1/B2/B3) ---
+  {
+    key: 'premium.enabled',
+    type: 'bool',
+    default: false,
+    description:
+      'Interruptor maestro del perfil PREMIUM. false = se oculta la tarjeta de selección de plan y ' +
+      'los beneficios premium (chat, destacar el propio evento, dashboards avanzados) quedan HABILITADOS ' +
+      'para TODOS los promotores (sin distinción). true = aplica la distinción free/premium.',
+  },
+  {
+    key: 'premium.trial_enabled',
+    type: 'bool',
+    default: false,
+    description:
+      'Habilita la PRUEBA GRATIS de premium (solo tiene efecto con premium.enabled=true). ' +
+      'Si premium.enabled=true y esto es false, los promotores normales nunca ven beneficios premium ' +
+      '(solo por upgrade explícito con tarjeta).',
+  },
+  {
+    key: 'premium.trial_days',
+    type: 'int',
+    default: 7,
+    min: 1,
+    max: 90,
+    description: 'Días de la prueba gratis de premium.',
+  },
+  {
+    key: 'chat.enabled',
+    type: 'bool',
+    default: false,
+    description: 'Habilita el chat de soporte (promotor premium ↔ asesor/admin). false = chat deshabilitado.',
+  },
+  {
+    key: 'advisor.lock_enabled',
+    type: 'bool',
+    default: true,
+    description:
+      'Exigir DESBLOQUEO por tiempo (aprobado por el admin vía enlace) para que un ASESOR mute datos. ' +
+      'false = los asesores editan igual que el admin (sin pedir desbloqueo). El chat siempre disponible.',
+  },
 ];
 
 /** Claves expuestas al frontend SIN login (config pública). */
@@ -193,6 +234,10 @@ export const PUBLIC_CONFIG_KEYS = {
   themeAutoByHour: 'theme.auto_by_hour',
   themeDayStartHour: 'theme.day_start_hour',
   themeDayEndHour: 'theme.day_end_hour',
+  premiumEnabled: 'premium.enabled',
+  premiumTrialEnabled: 'premium.trial_enabled',
+  premiumTrialDays: 'premium.trial_days',
+  chatEnabled: 'chat.enabled',
 } as const;
 
 export const SETTINGS_BY_KEY: Map<string, SettingDef> = new Map(

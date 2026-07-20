@@ -10,6 +10,7 @@ import { PromoterStatus, PromoterTier, Role, User } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { QueueService } from '../../infra/queue/queue.service';
 import { QUEUES } from '../../infra/queue/queue.constants';
+import { PremiumService } from './premium.service';
 import type { PromoterMailStatus } from './promoter-mail.service';
 
 const REQUIRE_KEY = 'promoters.require_approval';
@@ -28,6 +29,7 @@ export class PromotersService implements OnApplicationBootstrap {
     private readonly prisma: PrismaService,
     private readonly queue: QueueService,
     private readonly config: ConfigService,
+    private readonly premium: PremiumService,
   ) {}
 
   /**
@@ -83,6 +85,9 @@ export class PromotersService implements OnApplicationBootstrap {
       await this.prisma.user.update({ where: { id: userId }, data: { promoterTier: tier } });
       user.promoterTier = tier;
     }
+    // Si eligió premium y hay prueba gratis habilitada, la arranca (una sola vez). Sin prueba,
+    // el tier queda como intención y sube a premium con tarjeta luego (POST /promoters/tier).
+    if (tier === PromoterTier.premium) await this.premium.maybeStartTrialOnApply(userId);
     if (user.promoterStatus === PromoterStatus.approved) return this.summarize(user);
 
     if (!(await this.requireApproval())) {
@@ -103,10 +108,17 @@ export class PromotersService implements OnApplicationBootstrap {
     return this.summarize(updated);
   }
 
-  /** Estado de promotor del usuario autenticado (+ si el modo pruebas está activo). */
+  /** Estado de promotor del usuario autenticado (+ modo pruebas + estado premium). */
   async myStatus(userId: string) {
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
-    return { ...this.summarize(user), requireApproval: await this.requireApproval() };
+    const premium = await this.premium.myPremium(userId);
+    return {
+      ...this.summarize(user),
+      requireApproval: await this.requireApproval(),
+      premiumTrialEndsAt: premium.premiumTrialEndsAt,
+      onTrial: premium.onTrial,
+      premiumBenefitsActive: premium.benefitsActive,
+    };
   }
 
   /** Lista de solicitudes (admin). Filtra por estado; excluye 'none' por defecto. */
