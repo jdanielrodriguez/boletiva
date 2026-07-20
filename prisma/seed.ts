@@ -1,4 +1,4 @@
-import { PrismaClient, PromoterStatus, Role } from '@prisma/client';
+import { PromoterStatus, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import {
   BASE_FIXED_FEES,
@@ -7,8 +7,9 @@ import {
   PLATFORM_FEE_PCT,
   toFeeString,
 } from '../api/src/config/pricing-defaults';
+import { makePrismaClient } from './prisma-client';
 
-const prisma = new PrismaClient();
+const prisma = makePrismaClient();
 
 /**
  * Seed base (BASELINE MÍNIMA v3.8): SOLO los datos funcionales imprescindibles para
