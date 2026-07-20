@@ -452,6 +452,11 @@ export const config = {
     theme_auto_by_hour: 'Tema automático por hora',
     theme_day_start_hour: 'Hora de inicio del Día',
     theme_day_end_hour: 'Hora de fin del Día',
+    premium_enabled: 'Perfil premium',
+    premium_trial_enabled: 'Prueba gratis de premium',
+    premium_trial_days: 'Días de prueba premium',
+    chat_enabled: 'Chat de soporte',
+    advisor_lock_enabled: 'Desbloqueo del asesor',
   },
 
   /** Opciones de settings tipo enum (temas y franjas). */
@@ -505,6 +510,14 @@ export const config = {
       'Cambia el tema AUTOMÁTICAMENTE según la hora del día (America/Guatemala). Si está activo, el botón de cambio de tema se desactiva para todos (decide el reloj).',
     theme_day_start_hour: 'Hora (0–23, GT) en que empieza la franja Día con el tema automático.',
     theme_day_end_hour: 'Hora (1–24, GT) en que termina la franja Día (después es Noche) con el tema automático.',
+    premium_enabled:
+      'Interruptor maestro del perfil premium. Si está apagado, se oculta la tarjeta de plan y los beneficios premium (chat, destacar el propio evento, dashboards avanzados) quedan para TODOS los promotores. Si está encendido, aplica la distinción free/premium.',
+    premium_trial_enabled:
+      'Habilita la prueba gratis de premium (solo con el perfil premium encendido). Si está encendido, elegir premium arranca la prueba automáticamente.',
+    premium_trial_days: 'Días que dura la prueba gratis de premium.',
+    chat_enabled: 'Habilita el chat de soporte (promotor premium ↔ asesor/admin). Si está apagado, nadie ve el chat.',
+    advisor_lock_enabled:
+      'Exige que un asesor obtenga un desbloqueo aprobado por el admin (vía enlace) para poder editar. Si está apagado, los asesores editan igual que el admin, sin pedir desbloqueo.',
   },
 
   // --- Dashboards de salón / plantilla (página aparte) ---

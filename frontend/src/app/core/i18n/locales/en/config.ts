@@ -452,6 +452,11 @@ export const config = {
     theme_auto_by_hour: 'Auto theme by hour',
     theme_day_start_hour: 'Day start hour',
     theme_day_end_hour: 'Day end hour',
+    premium_enabled: 'Premium profile',
+    premium_trial_enabled: 'Premium free trial',
+    premium_trial_days: 'Premium trial days',
+    chat_enabled: 'Support chat',
+    advisor_lock_enabled: 'Advisor unlock',
   },
 
   /** Enum setting options (themes and slots). */
@@ -502,6 +507,14 @@ export const config = {
       'Switches the theme AUTOMATICALLY by time of day (America/Guatemala). When on, the theme toggle is disabled for everyone (the clock decides).',
     theme_day_start_hour: 'Hour (0–23, GT) when the Day slot begins in auto theme mode.',
     theme_day_end_hour: 'Hour (1–24, GT) when the Day slot ends (Night after that) in auto theme mode.',
+    premium_enabled:
+      'Master switch for the premium profile. When off, the plan card is hidden and premium benefits (chat, featuring your own event, advanced dashboards) apply to ALL promoters. When on, the free/premium distinction applies.',
+    premium_trial_enabled:
+      'Enables the premium free trial (only with the premium profile on). When on, choosing premium starts the trial automatically.',
+    premium_trial_days: 'Number of days the premium free trial lasts.',
+    chat_enabled: 'Enables the support chat (premium promoter ↔ advisor/admin). When off, no one sees the chat.',
+    advisor_lock_enabled:
+      'Requires an advisor to get an admin-approved unlock (via link) before editing. When off, advisors edit like the admin with no unlock.',
   },
 
   // --- Hall / template dashboards (separate page) ---
