@@ -34,7 +34,7 @@
     @case ('eventos') {
       <div class="section-head-row">
         <h2>{{ 'config.events.heading' | translate }}</h2>
-        <a class="btn btn-primary btn-profit" routerLink="/configuracion/rentabilidad" data-testid="link-profitability">
+        <a class="btn primary btn-profit" routerLink="/configuracion/rentabilidad" data-testid="link-profitability">
           <app-icon name="chart" /> {{ 'config.profit.title' | translate }}
         </a>
       </div>
@@ -78,7 +78,7 @@
           @for (e of pageEvents(); track e.id) {
             <article class="ev-card" [class.ev-card-featured]="e.promotedPriority != null" data-testid="ev-card">
               @if (e.promotedPriority != null) {
-                <span class="ev-featured-flag" aria-hidden="true">★ {{ 'config.events.featuredFlag' | translate }}</span>
+                <span class="ev-featured-flag"><span aria-hidden="true">★</span> {{ 'config.events.featuredFlag' | translate }}</span>
               }
               <div class="ev-card-top">
                 <span class="badge badge-{{ e.status }}">{{ e.status | statusLabel }}</span>

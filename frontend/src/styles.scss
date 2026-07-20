@@ -1269,7 +1269,8 @@ app-root {
 
 .badge-paid,
 .badge-settled,
-.badge-approved {
+.badge-approved,
+.badge-open {
   color: var(--pe-success);
   border-color: var(--pe-success-border);
 }
@@ -2881,8 +2882,10 @@ button.warning { border-color: var(--pe-warning-border); color: var(--pe-warning
 button.warning:hover:not(:disabled) { background: var(--pe-warning-soft); border-color: var(--pe-warning); }
 
 .btn.outline,
+.btn-outline,
 button.outline { background: transparent; border-color: var(--pe-border); color: var(--pe-text); }
 .btn.outline:hover:not(:disabled),
+.btn-outline:hover:not(:disabled),
 button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var(--pe-accent); }
 
 .panel-header {
@@ -3020,6 +3023,127 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
 .advisor-banner.ok {
   background: var(--pe-success-soft, var(--pe-surface-2));
   border-color: var(--pe-success-border, var(--pe-border));
+}
+
+/* --- Chip de plan del promotor (B1) --- */
+.tier-chip {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.12rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+  color: var(--pe-muted);
+  background: var(--pe-surface-2);
+  border: 1px solid var(--pe-border);
+}
+.tier-chip.premium {
+  color: #fff;
+  background: var(--pe-accent);
+  border-color: var(--pe-accent-border, var(--pe-accent));
+}
+
+/* --- Chat de soporte (B3) --- */
+.support-chat { max-width: 1100px; margin: 0 auto; }
+.chat-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) 1fr;
+  gap: 1rem;
+  align-items: stretch;
+  min-height: 60vh;
+}
+.chat-threads {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius);
+  padding: 0.6rem;
+  background: var(--pe-surface);
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.chat-thread-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.55rem 0.6rem;
+  border-radius: var(--pe-radius);
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  color: var(--pe-text);
+  font: inherit;
+}
+.chat-thread-item:hover { background: var(--pe-surface-2); }
+.chat-thread-item.active { background: var(--pe-accent-soft); border-color: var(--pe-accent-border, var(--pe-accent)); }
+.chat-main {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius);
+  background: var(--pe-surface);
+  min-height: 60vh;
+}
+.chat-thread-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--pe-border);
+}
+.chat-thread-head h2 { margin: 0; font-size: 1.05rem; }
+.chat-messages {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  overflow-y: auto;
+  min-height: 200px;
+}
+.chat-msg {
+  align-self: flex-start;
+  max-width: 78%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 14px;
+  background: var(--pe-surface-2);
+  border: 1px solid var(--pe-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.chat-msg.agent { align-self: flex-start; background: var(--pe-surface-2); }
+.chat-msg.mine {
+  align-self: flex-end;
+  background: var(--pe-accent-soft);
+  border-color: var(--pe-accent-border, var(--pe-accent));
+}
+.chat-msg-body { white-space: pre-wrap; word-break: break-word; }
+.chat-composer,
+.chat-compose-new {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--pe-border);
+}
+.chat-composer input { flex: 1 1 auto; }
+.chat-compose-new { flex-direction: column; }
+.chat-compose-new input,
+.chat-compose-new textarea { width: 100%; }
+
+/* Móvil: el chat colapsa a una sola columna (hilos arriba, conversación abajo). */
+@media (max-width: 720px) {
+  .chat-layout { grid-template-columns: 1fr; min-height: 0; }
+  .chat-threads { max-height: 40vh; flex-direction: row; overflow-x: auto; }
+  .chat-thread-item { min-width: 160px; }
+  .chat-msg { max-width: 90%; }
 }
 /* Barra superior del editor: acciones alineadas a la derecha y CENTRADAS
    verticalmente (W5) → el botón/chip de desbloqueo queda a la misma altura que

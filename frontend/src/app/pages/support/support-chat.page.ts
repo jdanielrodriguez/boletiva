@@ -61,7 +61,7 @@ import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
                   }
                 </div>
               </div>
-              <div class="chat-messages" data-testid="chat-messages">
+              <div class="chat-messages" data-testid="chat-messages" aria-live="polite" aria-atomic="false">
                 @for (m of messages(); track m.id) {
                   <div class="chat-msg" [class.mine]="m.senderId === myId()" [class.agent]="m.senderRole !== 'promoter'">
                     <span class="chat-msg-body">{{ m.body }}</span>
@@ -71,7 +71,8 @@ import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
               </div>
               @if (t.status === 'open') {
                 <form class="chat-composer" (ngSubmit)="send()">
-                  <input [(ngModel)]="draft" name="draft" [placeholder]="'chat.typeMessage' | translate" data-testid="chat-input" />
+                  <input [(ngModel)]="draft" name="draft" [attr.aria-label]="'chat.typeMessage' | translate"
+                    [placeholder]="'chat.typeMessage' | translate" data-testid="chat-input" />
                   <button type="submit" class="btn primary" [disabled]="working() || !draft().trim()" data-testid="chat-send">{{ 'chat.send' | translate }}</button>
                 </form>
               }

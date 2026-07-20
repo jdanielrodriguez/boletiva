@@ -27,6 +27,26 @@ import { AdvisorApi } from '../../core/api/advisor.api';
       <a class="btn btn-outline" routerLink="/configuracion">{{ 'advisor.backToConsole' | translate }}</a>
     </section>
   `,
+  styles: [
+    `
+      .ok {
+        color: var(--pe-success);
+        font-weight: 600;
+        padding: 0.6rem 0.9rem;
+        border-radius: var(--pe-radius);
+        background: var(--pe-success-soft, transparent);
+        border: 1px solid var(--pe-success-border, transparent);
+      }
+      .error {
+        color: var(--pe-danger);
+        font-weight: 600;
+        padding: 0.6rem 0.9rem;
+        border-radius: var(--pe-radius);
+        background: var(--pe-danger-soft, transparent);
+        border: 1px solid var(--pe-danger-border, transparent);
+      }
+    `,
+  ],
 })
 export class AdvisorUnlockApprovePage {
   private readonly route = inject(ActivatedRoute);
