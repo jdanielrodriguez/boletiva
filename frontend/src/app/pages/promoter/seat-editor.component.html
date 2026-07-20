@@ -119,10 +119,10 @@
           @if (filteredBackendTemplates().length > 0) {
             <p class="gen-group-title muted small">{{ 'promoter.seat.savedTemplatesGroup' | translate }}</p>
             @for (t of filteredBackendTemplates(); track t.id) {
-              <button type="button" class="tpl-item" (click)="applyBackendTemplate(t)" [attr.data-testid]="'bpl-' + t.id" role="menuitem" [title]="t.kind" [attr.aria-label]="t.name">
+              <button type="button" class="tpl-item" (click)="applyBackendTemplate(t)" [attr.data-testid]="'bpl-' + t.id" role="menuitem" [title]="'promoter.seat.kindLabels.' + t.kind | translate" [attr.aria-label]="t.name">
                 <span class="tpl-text">
                   <strong>{{ t.name }}</strong>
-                  <small class="muted">{{ t.kind }}</small>
+                  <small class="muted">{{ 'promoter.seat.kindLabels.' + t.kind | translate }}</small>
                 </span>
               </button>
             }

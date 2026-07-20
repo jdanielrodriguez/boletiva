@@ -1684,7 +1684,7 @@
             "bearer": []
           }
         ],
-        "summary": "Destaca/quita un evento del slider del inicio (solo admin)",
+        "summary": "Destaca/quita un evento del slider del inicio (admin cualquiera; promotor premium el suyo)",
         "tags": [
           "events"
         ]
@@ -1996,6 +1996,109 @@
           }
         ],
         "summary": "Mi estado de promotor",
+        "tags": [
+          "promoters"
+        ]
+      }
+    },
+    "/api/v1/promoters/tier": {
+      "post": {
+        "operationId": "PromotersController_setMyTier_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetTierDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PremiumTierResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cambia mi plan de promotor (upgrade/downgrade). Premium exige tarjeta registrada.",
+        "tags": [
+          "promoters"
+        ]
+      }
+    },
+    "/api/v1/promoters/{id}/tier": {
+      "patch": {
+        "operationId": "PromotersController_adminSetTier_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminSetTierDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PremiumTierResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Fija el plan de un promotor a mano (admin): premium directo o prueba de N días",
+        "tags": [
+          "promoters"
+        ]
+      }
+    },
+    "/api/v1/promoters/premium/expire-trials": {
+      "post": {
+        "operationId": "PromotersController_expireTrials_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Baja a free las pruebas premium vencidas (disparo manual; también corre a diario)",
         "tags": [
           "promoters"
         ]
@@ -7920,6 +8023,294 @@
           "billing"
         ]
       }
+    },
+    "/api/v1/advisor/unlock/request": {
+      "post": {
+        "operationId": "AdvisorController_request_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "El asesor solicita desbloqueo → correo con enlace al admin",
+        "tags": [
+          "advisor"
+        ]
+      }
+    },
+    "/api/v1/advisor/unlock/status": {
+      "get": {
+        "operationId": "AdvisorController_status_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdvisorUnlockStatusDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Estado de desbloqueo del asesor autenticado",
+        "tags": [
+          "advisor"
+        ]
+      }
+    },
+    "/api/v1/advisor/unlock/approve": {
+      "post": {
+        "operationId": "AdvisorController_approve_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveAdvisorUnlockDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "El admin aprueba el desbloqueo del asesor (desde el enlace)",
+        "tags": [
+          "advisor"
+        ]
+      }
+    },
+    "/api/v1/chat/threads": {
+      "post": {
+        "operationId": "ChatController_createThread_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateThreadDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Abre un hilo de soporte (promotor premium)",
+        "tags": [
+          "chat"
+        ]
+      },
+      "get": {
+        "operationId": "ChatController_listThreads_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lista de hilos (promotor: los suyos; agente: todos)",
+        "tags": [
+          "chat"
+        ]
+      }
+    },
+    "/api/v1/chat/threads/{id}/messages": {
+      "get": {
+        "operationId": "ChatController_messages_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Historial de mensajes de un hilo",
+        "tags": [
+          "chat"
+        ]
+      },
+      "post": {
+        "operationId": "ChatController_post_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostMessageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publica un mensaje en un hilo",
+        "tags": [
+          "chat"
+        ]
+      }
+    },
+    "/api/v1/chat/threads/{id}/close": {
+      "post": {
+        "operationId": "ChatController_close_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cierra un hilo",
+        "tags": [
+          "chat"
+        ]
+      }
+    },
+    "/api/v1/chat/threads/{id}/reopen": {
+      "post": {
+        "operationId": "ChatController_reopen_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reabre un hilo",
+        "tags": [
+          "chat"
+        ]
+      }
+    },
+    "/api/v1/chat/threads/{id}/assign": {
+      "post": {
+        "operationId": "ChatController_assign_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignThreadDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reasigna un hilo a un asesor/admin (handoff, admin)",
+        "tags": [
+          "chat"
+        ]
+      }
     }
   },
   "info": {
@@ -8721,6 +9112,7 @@
               "type": "string",
               "enum": [
                 "admin",
+                "advisor",
                 "promoter",
                 "promoter_staff",
                 "gate_operator",
@@ -8879,6 +9271,7 @@
               "type": "string",
               "enum": [
                 "admin",
+                "advisor",
                 "promoter",
                 "promoter_staff",
                 "gate_operator",
@@ -10842,6 +11235,20 @@
           "requireApproval": {
             "type": "boolean",
             "description": "true = se exige autorización de admin; false = modo pruebas"
+          },
+          "premiumTrialEndsAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true,
+            "description": "Fin de la prueba premium (null = premium pagado o free)"
+          },
+          "onTrial": {
+            "type": "boolean",
+            "description": "true si el premium proviene de una prueba gratis vigente"
+          },
+          "premiumBenefitsActive": {
+            "type": "boolean",
+            "description": "true si los beneficios premium (chat, destacar propio, dashboards) aplican ya"
           }
         },
         "required": [
@@ -10851,7 +11258,81 @@
           "promoterDecidedAt",
           "promoterNote",
           "promoterTier",
-          "requireApproval"
+          "requireApproval",
+          "premiumTrialEndsAt",
+          "onTrial",
+          "premiumBenefitsActive"
+        ]
+      },
+      "SetTierDto": {
+        "type": "object",
+        "properties": {
+          "tier": {
+            "type": "string",
+            "description": "Nuevo plan",
+            "enum": [
+              "free",
+              "premium"
+            ],
+            "example": "premium"
+          }
+        },
+        "required": [
+          "tier"
+        ]
+      },
+      "PremiumTierResponseDto": {
+        "type": "object",
+        "properties": {
+          "promoterTier": {
+            "type": "string",
+            "enum": [
+              "free",
+              "premium"
+            ]
+          },
+          "premiumTrialEndsAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "premiumSince": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "onTrial": {
+            "type": "boolean",
+            "description": "true si el premium proviene de una prueba gratis vigente"
+          }
+        },
+        "required": [
+          "promoterTier",
+          "premiumTrialEndsAt",
+          "premiumSince",
+          "onTrial"
+        ]
+      },
+      "AdminSetTierDto": {
+        "type": "object",
+        "properties": {
+          "tier": {
+            "type": "string",
+            "description": "Nuevo plan",
+            "enum": [
+              "free",
+              "premium"
+            ],
+            "example": "premium"
+          },
+          "trialDays": {
+            "type": "number",
+            "description": "Si se otorga como PRUEBA gratis, días de la prueba (1–90)",
+            "example": 7
+          }
+        },
+        "required": [
+          "tier"
         ]
       },
       "RequireApprovalResponseDto": {
@@ -10902,6 +11383,7 @@
               "type": "string",
               "enum": [
                 "admin",
+                "advisor",
                 "promoter",
                 "promoter_staff",
                 "gate_operator",
@@ -10985,6 +11467,11 @@
             "nullable": true,
             "description": "Admin que ejecutó (solo status; null = sistema)"
           },
+          "adminName": {
+            "type": "string",
+            "nullable": true,
+            "description": "Nombre del admin que ejecutó (null = sistema)"
+          },
           "statusFrom": {
             "type": "string",
             "nullable": true,
@@ -11016,6 +11503,7 @@
           "kind",
           "createdAt",
           "adminId",
+          "adminName",
           "statusFrom",
           "statusTo",
           "reason",
@@ -16478,6 +16966,20 @@
               "dayStartHour": 6,
               "dayEndHour": 18
             }
+          },
+          "premium": {
+            "type": "object",
+            "description": "Perfil premium: interruptor maestro + prueba gratis + días (gating de UI del plan).",
+            "example": {
+              "enabled": false,
+              "trialEnabled": false,
+              "trialDays": 7
+            }
+          },
+          "chatEnabled": {
+            "type": "boolean",
+            "description": "Si el chat de soporte está habilitado.",
+            "example": false
           }
         },
         "required": [
@@ -16487,7 +16989,9 @@
           "tourEnabled",
           "capabilities",
           "recaptchaSiteKey",
-          "theme"
+          "theme",
+          "premium",
+          "chatEnabled"
         ]
       },
       "MaintenanceStatusDto": {
@@ -16664,6 +17168,7 @@
               "type": "string",
               "enum": [
                 "admin",
+                "advisor",
                 "promoter",
                 "promoter_staff",
                 "gate_operator",
@@ -16724,6 +17229,89 @@
         "required": [
           "available",
           "name"
+        ]
+      },
+      "AdvisorUnlockStatusDto": {
+        "type": "object",
+        "properties": {
+          "lockEnabled": {
+            "type": "boolean",
+            "description": "true si la exigencia de desbloqueo está activa (setting)"
+          },
+          "unlocked": {
+            "type": "boolean",
+            "description": "true si el asesor puede mutar ya (ventana vigente o lock apagado)"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true,
+            "description": "Fin de la ventana vigente"
+          },
+          "pending": {
+            "type": "boolean",
+            "description": "true si hay una solicitud pendiente de aprobación"
+          }
+        },
+        "required": [
+          "lockEnabled",
+          "unlocked",
+          "expiresAt",
+          "pending"
+        ]
+      },
+      "ApproveAdvisorUnlockDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token del enlace de desbloqueo recibido por el admin"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "CreateThreadDto": {
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string",
+            "example": "Duda con mi evento"
+          },
+          "message": {
+            "type": "string",
+            "example": "Hola, tengo una duda sobre las comisiones."
+          }
+        },
+        "required": [
+          "subject",
+          "message"
+        ]
+      },
+      "PostMessageDto": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string",
+            "example": "Gracias, ya lo revisé."
+          }
+        },
+        "required": [
+          "body"
+        ]
+      },
+      "AssignThreadDto": {
+        "type": "object",
+        "properties": {
+          "assignedToId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Asesor/admin al que se reasigna el hilo"
+          }
+        },
+        "required": [
+          "assignedToId"
         ]
       }
     }

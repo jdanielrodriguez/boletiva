@@ -72,12 +72,30 @@ export class HeroSlider implements OnDestroy {
 
   private startAutoplay(): void {
     if (this.count() <= 1) return;
+    // Respeta prefers-reduced-motion: no auto-avanzar si el usuario lo pidió.
+    if (
+      typeof matchMedia !== 'undefined' &&
+      matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      return;
+    }
     this.timer = setInterval(() => this.next(), AUTOPLAY_MS);
   }
 
   private restartAutoplay(): void {
     if (this.timer) clearInterval(this.timer);
     this.startAutoplay();
+  }
+
+  /** Pausa el autoplay mientras el puntero/foco está sobre el slider. */
+  protected pause(): void {
+    if (this.timer) clearInterval(this.timer);
+    this.timer = null;
+  }
+
+  /** Reanuda el autoplay al salir. */
+  protected resume(): void {
+    if (!this.timer) this.startAutoplay();
   }
 
   ngOnDestroy(): void {

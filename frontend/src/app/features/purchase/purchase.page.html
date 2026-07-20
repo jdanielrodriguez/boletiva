@@ -33,7 +33,7 @@
       @if (store.reservation(); as r) {
         <h2>{{ 'purchase.yourTickets' | translate }}</h2>
         <app-reservation-items [items]="r.items" />
-        <p class="total reserved-total">{{ 'purchase.reservedTotal' | translate: { n: r.items.length, total: r.total } }}</p>
+        <p class="total reserved-total">{{ 'purchase.reservedTotal' | translate: { n: r.items.length, total: (r.total | money) } }}</p>
       }
 
       <app-share-box [url]="shareUrl()" />
@@ -73,7 +73,7 @@
     <aside class="cart-summary cart-top">
       <div>
         <p class="cart-count">{{ 'purchase.selectedCount' | translate: { n: store.totalCount() } }}</p>
-        <p class="total">{{ 'purchase.totalAmount' | translate: { total: store.totalDisplay() } }}</p>
+        <p class="total">{{ 'purchase.totalAmount' | translate: { total: (store.totalDisplay() | money) } }}</p>
       </div>
       <button
         type="button"
@@ -113,14 +113,14 @@
           (click)="store.setActiveLocality(loc.id)"
         >
           <strong>{{ loc.name }}</strong>
-          @if (loc.price) { <span class="loc-tab-price">Q{{ loc.price.total }}</span> }
+          @if (loc.price) { <span class="loc-tab-price">{{ loc.price.total | money }}</span> }
         </button>
       }
     </div>
 
     @if (store.activeLocality(); as loc) {
       <section class="loc-active">
-        <h2>{{ loc.name }} @if (loc.price) { · Q{{ loc.price.total }} {{ 'purchase.perTicket' | translate }} }</h2>
+        <h2>{{ loc.name }} @if (loc.price) { · {{ loc.price.total | money }} {{ 'purchase.perTicket' | translate }} }</h2>
 
         @if (store.activeIsSeated()) {
           <app-seat-map
@@ -128,6 +128,20 @@
             [selected]="store.selectedSet()"
             (seatToggle)="store.toggleSeat($event)"
           />
+          <!-- a11y: el canvas Konva no es operable por teclado/lector. Lista paralela
+               (sr-only, se revela al enfocar) para elegir asientos sin mouse. -->
+          <div class="sr-only" role="group" [attr.aria-label]="'purchase.seatPickerAria' | translate">
+            @for (s of store.activeSeats(); track s.id) {
+              @if (s.status === 'available' || store.selectedSet().has(s.id)) {
+                <button type="button" class="seat-a11y-btn"
+                  [attr.aria-pressed]="store.selectedSet().has(s.id)"
+                  (click)="store.toggleSeat(s.id)"
+                  [attr.data-testid]="'seat-a11y-' + s.id">
+                  {{ s.section ? s.section + ' · ' : '' }}{{ s.row ? s.row + ' · ' : '' }}{{ s.label }}
+                </button>
+              }
+            }
+          </div>
           <p class="seat-legend">
             <span class="legend av">{{ 'purchase.legendAvailable' | translate }}</span>
             <span class="legend sel">{{ 'purchase.legendSelected' | translate }}</span>
@@ -181,7 +195,7 @@
                 {{ it.label }}
                 @if (it.kind === 'seat' && it.localityName) { <em class="ci-loc">· {{ it.localityName }}</em> }
               </span>
-              <span class="ci-amount">Q{{ it.amountDisplay }}</span>
+              <span class="ci-amount">{{ it.amountDisplay | money }}</span>
               <button
                 type="button"
                 class="ci-remove"

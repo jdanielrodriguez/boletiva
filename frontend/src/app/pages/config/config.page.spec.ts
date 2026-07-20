@@ -5,6 +5,7 @@ import { of, throwError } from 'rxjs';
 import { UsersApi } from '../../core/api/users.api';
 import { SessionStore } from '../../core/auth/session.store';
 import { AdminApi } from '../../core/api/admin.api';
+import { AdvisorApi } from '../../core/api/advisor.api';
 import { InvitationsApi } from '../../core/api/invitations.api';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
 import { SettingsApi } from '../../core/api/settings.api';
@@ -35,11 +36,23 @@ describe('ConfigPage (v3, admin console)', () => {
   let el: HTMLElement;
   let toasts: ToastService;
 
-  async function setup(admin: Record<string, unknown> = {}, inv: Record<string, unknown> = {}) {
+  async function setup(
+    admin: Record<string, unknown> = {},
+    inv: Record<string, unknown> = {},
+    opts: { roles?: string[]; advisorStatus?: Record<string, unknown> } = {},
+  ) {
+    const roles = opts.roles ?? [];
     TestBed.configureTestingModule({
       providers: [
         { provide: UsersApi, useValue: { markTourSeen: () => of({}) } },
-        { provide: SessionStore, useValue: { user: () => null } },
+        { provide: SessionStore, useValue: { user: () => null, hasRole: (r: string) => roles.includes(r) } },
+        {
+          provide: AdvisorApi,
+          useValue: {
+            status: () => of(opts.advisorStatus ?? { lockEnabled: false, unlocked: true, pending: false }),
+            requestUnlock: () => of({ requested: true }),
+          },
+        },
         ...provideI18nTesting(),
         provideZonelessChangeDetection(),
         provideRouter([]),
@@ -80,7 +93,7 @@ describe('ConfigPage (v3, admin console)', () => {
             ...inv,
           } as unknown as InvitationsApi,
         },
-        { provide: PromoterEventsApi, useValue: { settlement: () => of({ net: '0.00' }) } },
+        { provide: PromoterEventsApi, useValue: { settlement: () => of({ net: '0.00' }), promote: () => of({}) } },
         { provide: AuditApi, useValue: { confirm: () => of({ ok: true }) } },
         { provide: ImpersonationService, useValue: { start: () => of(null), active: () => false, asUser: () => null } },
         {
@@ -136,6 +149,52 @@ describe('ConfigPage (v3, admin console)', () => {
   it('error al cargar eventos muestra toast', async () => {
     await setup({ listAllEvents: () => throwError(() => new Error('x')) });
     expect(lastToast()?.kind).toBe('error');
+  });
+
+  it('asesor (B2): NO ve la tab Sistema y muestra el banner de desbloqueo bloqueado', async () => {
+    await setup(undefined, undefined, {
+      roles: ['advisor'],
+      advisorStatus: { lockEnabled: true, unlocked: false, pending: false },
+    });
+    expect(el.querySelector('[data-testid="tab-sistema"]')).toBeNull();
+    const banner = el.querySelector('[data-testid="advisor-unlock-banner"]');
+    expect(banner).not.toBeNull();
+    expect(el.querySelector('[data-testid="advisor-request-unlock"]')).not.toBeNull();
+  });
+
+  it('admin: SÍ ve la tab Sistema y no muestra banner de asesor', async () => {
+    await setup(undefined, undefined, { roles: ['admin'] });
+    expect(el.querySelector('[data-testid="tab-sistema"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="advisor-unlock-banner"]')).toBeNull();
+  });
+
+  it('eventos: el filtro por tiempo por defecto es "futuros" y oculta los pasados', async () => {
+    const MIXED = [
+      { id: 'e1', name: 'Futuro', status: 'published', startsAt: '2099-01-01T20:00:00Z', endsAt: '2099-01-01T23:00:00Z', promoter: { id: 'u1', firstName: 'Ana', lastName: 'P' }, _count: { localities: 1 } },
+      { id: 'e2', name: 'Pasado', status: 'finished', startsAt: '2020-01-01T20:00:00Z', endsAt: '2020-01-01T23:00:00Z', promoter: { id: 'u2', firstName: 'Leo', lastName: 'G' }, _count: { localities: 1 } },
+    ];
+    await setup({ listAllEvents: () => of(MIXED) });
+    // Default = futuros → solo el futuro aparece.
+    expect(fixture.componentInstance['eventTime']()).toBe('upcoming');
+    let events = el.querySelector('[data-testid="admin-events"]');
+    expect(events?.textContent).toContain('Futuro');
+    expect(events?.textContent).not.toContain('Pasado');
+    // Cambiar a "pasados" muestra el pasado y oculta el futuro.
+    fixture.componentInstance['setEventTime']('past');
+    fixture.detectChanges();
+    events = el.querySelector('[data-testid="admin-events"]');
+    expect(events?.textContent).toContain('Pasado');
+    expect(events?.textContent).not.toContain('Futuro');
+  });
+
+  it('eventos: destacar usa el switch y llama a promote(true)', async () => {
+    await setup();
+    const promoterEvents = TestBed.inject(PromoterEventsApi);
+    const promote = spyOn(promoterEvents, 'promote').and.returnValue(of({}) as never);
+    const sw = el.querySelector('[data-testid="ev-promote-e1"]') as HTMLButtonElement;
+    expect(sw).not.toBeNull();
+    sw.click();
+    expect(promote).toHaveBeenCalledWith('e1', true);
   });
 
   it('promotores: lista, busca y aprueba (acción contextual)', async () => {

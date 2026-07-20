@@ -38,6 +38,10 @@
   --pe-accent: #e14eca;
   --pe-accent-strong: #f06be0;
   --pe-accent-soft: color-mix(in srgb, var(--pe-accent) 16%, transparent);
+  --pe-accent-border: color-mix(in srgb, var(--pe-accent) 45%, transparent);
+
+  --pe-text-muted: var(--pe-muted);
+  --pe-focus-ring: color-mix(in srgb, var(--pe-primary) 40%, transparent);
 
   --pe-danger: #ff6b81;
   --pe-danger-strong: #e14b63;
@@ -82,6 +86,10 @@
   --pe-accent: #d1521f;
   --pe-accent-strong: #b8431a;
   --pe-accent-soft: color-mix(in srgb, var(--pe-accent) 14%, transparent);
+  --pe-accent-border: color-mix(in srgb, var(--pe-accent) 40%, transparent);
+
+  --pe-text-muted: var(--pe-muted);
+  --pe-focus-ring: color-mix(in srgb, var(--pe-primary) 40%, transparent);
 
   --pe-danger: #d83a4e;
   --pe-danger-strong: #c02338;
@@ -126,8 +134,8 @@ body {
 }
 
 body {
-  background-image: radial-gradient(1100px 500px at 80% -10%, rgba(123, 92, 255, 0.12), transparent 70%),
-    radial-gradient(900px 480px at -10% 0%, rgba(225, 78, 202, 0.08), transparent 70%);
+  background-image: radial-gradient(1100px 500px at 80% -10%, color-mix(in srgb, var(--pe-primary) 12%, transparent), transparent 70%),
+    radial-gradient(900px 480px at -10% 0%, color-mix(in srgb, var(--pe-accent) 8%, transparent), transparent 70%);
   background-attachment: fixed;
 }
 
@@ -252,7 +260,7 @@ select:focus,
 textarea:focus {
   outline: none;
   border-color: var(--pe-primary);
-  box-shadow: 0 0 0 3px rgba(123, 92, 255, 0.25);
+  box-shadow: 0 0 0 3px var(--pe-focus-ring);
 }
 
 /* Formularios más prolijos: separación clara de labels y campos. */
@@ -841,6 +849,17 @@ app-root {
   .account-grid {
     grid-template-columns: minmax(0, 1fr);
   }
+  /* Menú de cuenta como tira scrolleable (no 6 botones apilados empujando el contenido). */
+  .account-menu {
+    flex-direction: row;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 0.4rem;
+    padding-bottom: 0.25rem;
+  }
+  .account-menu::-webkit-scrollbar { display: none; }
+  .account-menu button { flex: 0 0 auto; white-space: nowrap; }
 }
 
 .account-menu {
@@ -891,6 +910,17 @@ app-root {
   gap: 0.5rem;
   margin-bottom: 1.25rem;
   flex-wrap: wrap;
+}
+/* Móvil: tabs en una tira scrolleable en vez de 2-3 filas de pills que comen alto. */
+@media (max-width: 560px) {
+  .config-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .config-tabs::-webkit-scrollbar { display: none; }
+  .config-tabs button { flex: 0 0 auto; white-space: nowrap; }
 }
 
 .config-tabs button {
@@ -963,10 +993,17 @@ app-root {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0;
+  flex-wrap: wrap;
 }
 
-.field.inline input {
+/* Solo los inputs NUMÉRICOS (%, cantidades) van angostos; el texto libre (nota
+   del promotor) toma el ancho disponible en vez de aplastarse a 90px. */
+.field.inline input[type='number'] {
   width: 90px;
+}
+.field.inline input[type='text'] {
+  flex: 1 1 180px;
+  min-width: 0;
 }
 
 /* Métodos de pago (tarjetas) */
@@ -1269,7 +1306,9 @@ app-root {
 
 .badge-paid,
 .badge-settled,
-.badge-approved {
+.badge-approved,
+.badge-open,
+.badge-accepted {
   color: var(--pe-success);
   border-color: var(--pe-success-border);
 }
@@ -1282,9 +1321,18 @@ app-root {
 .badge-cancelled,
 .badge-rejected,
 .badge-refunded,
-.badge-expired {
+.badge-expired,
+.badge-revoked {
   color: var(--pe-danger, #ef4444);
   border-color: rgba(239, 68, 68, 0.5);
+}
+
+/* Estados neutros/concluidos (hilo cerrado, evento finalizado): gris del badge base
+   pero definidos explícitamente para dejar clara la intención. */
+.badge-closed,
+.badge-finished {
+  color: var(--pe-muted);
+  border-color: var(--pe-border);
 }
 
 .badge-warn {
@@ -1423,8 +1471,8 @@ app-root {
 }
 .lang-choice .lang-opt.active {
   opacity: 1;
-  border-color: rgba(123, 92, 255, 0.6);
-  background: rgba(123, 92, 255, 0.12);
+  border-color: color-mix(in srgb, var(--pe-accent) 60%, transparent);
+  background: var(--pe-accent-soft);
 }
 .lang-choice .lang-code {
   font-weight: 700;
@@ -1489,7 +1537,7 @@ app-root {
   justify-content: space-between;
   gap: 1rem;
   padding: 0.9rem 1.1rem;
-  background: rgba(123, 92, 255, 0.1);
+  background: color-mix(in srgb, var(--pe-accent) 10%, transparent);
   border-bottom: 1px solid var(--pe-border);
 }
 
@@ -1978,11 +2026,13 @@ app-root {
   vertical-align: -1px;
 }
 
+/* Swatches con los MISMOS hex que la paleta Konva (seat-map.component.ts COLORS)
+   para que la leyenda coincida exactamente con el mapa en ambos temas. */
 .seat-legend .legend.av::before {
-  background: var(--pe-success);
+  background: #35d07f;
 }
 .seat-legend .legend.sel::before {
-  background: #7b5cff;
+  background: #e14eca;
 }
 .seat-legend .legend.tk::before {
   background: #3a3f52;
@@ -2216,15 +2266,11 @@ app-root {
   font-size: 1.2rem;
 }
 
-.method-card {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-  padding: 0.9rem 1rem;
+/* La tarjeta de método destacada (borde primario + degradado) solo cuando está
+   marcada como predeterminada; la lista neutral usa la base de arriba. */
+.method-card.is-default {
   border: 2px solid var(--pe-primary);
-  border-radius: var(--pe-radius-sm);
   background: var(--pe-grad-soft);
-  margin-bottom: 1.1rem;
 }
 
 .method-icon {
@@ -2469,6 +2515,10 @@ app-root {
   position: relative;
   width: 100%;
   max-width: 420px;
+  /* Móvil + teclado virtual: nunca desbordar el viewport; scroll interno para que
+     el botón de envío siga alcanzable (bug responsive: el modal de registro se cortaba). */
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
   background: var(--pe-surface);
   border: 1px solid var(--pe-border);
   border-radius: var(--pe-radius);
@@ -2476,6 +2526,43 @@ app-root {
   padding: 2rem;
   animation: pe-modal-card-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+
+/* Botón X de cierre del modal (esquina superior derecha). */
+.modal-x {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--pe-muted);
+  cursor: pointer;
+}
+.modal-x:hover { background: var(--pe-surface-2); color: var(--pe-text); }
+
+/* Campo de contraseña con botón mostrar/ocultar + helper. */
+.pass-wrap { position: relative; display: flex; align-items: center; }
+.pass-wrap input { flex: 1 1 auto; padding-right: 2.6rem; }
+.pass-toggle {
+  position: absolute;
+  right: 0.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  background: transparent;
+  color: var(--pe-muted);
+  cursor: pointer;
+}
+.pass-toggle:hover { color: var(--pe-text); }
+.field-hint { display: block; margin-top: 0.3rem; font-size: 0.8rem; color: var(--pe-muted); }
 
 @media (prefers-reduced-motion: reduce) {
   .modal-backdrop,
@@ -2881,8 +2968,10 @@ button.warning { border-color: var(--pe-warning-border); color: var(--pe-warning
 button.warning:hover:not(:disabled) { background: var(--pe-warning-soft); border-color: var(--pe-warning); }
 
 .btn.outline,
+.btn-outline,
 button.outline { background: transparent; border-color: var(--pe-border); color: var(--pe-text); }
 .btn.outline:hover:not(:disabled),
+.btn-outline:hover:not(:disabled),
 button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var(--pe-accent); }
 
 .panel-header {
@@ -2953,6 +3042,199 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
    misma altura) → los botones quedan alineados aunque una card tenga menos/deshabilitados. */
 .ev-card-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: auto; padding-top: 0.6rem; }
 .ev-card-actions .btn.small { flex: 1 1 auto; justify-content: center; min-width: 96px; }
+
+/* --- Destacar evento (solo admin, en la lista) --- */
+/* Card destacada: realce con el acento del proyecto + estrella arriba. */
+.ev-card { position: relative; transition: box-shadow 0.18s ease, border-color 0.18s ease; }
+.ev-card-featured {
+  border-color: var(--pe-accent-border, var(--pe-accent));
+  box-shadow: 0 0 0 1px var(--pe-accent-border, var(--pe-accent)),
+    0 6px 20px -8px var(--pe-accent-soft);
+}
+.ev-featured-flag {
+  position: absolute;
+  top: -0.6rem;
+  right: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: var(--pe-accent);
+  box-shadow: 0 2px 8px -2px var(--pe-accent-soft);
+}
+/* Fila del switch de destacar: ocupa toda la fila bajo las acciones. */
+.ev-promote {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1 1 100%;
+  padding: 0.5rem 0.6rem;
+  margin-top: 0.15rem;
+  border-radius: var(--pe-radius);
+  background: var(--pe-surface-2);
+  border: 1px dashed var(--pe-border);
+}
+.ev-card-featured .ev-promote {
+  border-style: solid;
+  border-color: var(--pe-accent-border, var(--pe-accent));
+  background: var(--pe-accent-soft);
+}
+.ev-promote-star { color: var(--pe-accent); font-size: 1.05rem; line-height: 1; }
+.ev-promote-label { font-size: 0.9rem; font-weight: 600; margin-right: auto; }
+
+/* Botón "Rentabilidad": destacado (primario) con icono, no se pierde con el fondo. */
+.btn-profit { display: inline-flex; align-items: center; gap: 0.4rem; }
+.btn-profit app-icon { width: 1.05rem; height: 1.05rem; }
+
+/* --- Banner de desbloqueo del asesor (B2) --- */
+.advisor-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin: 0.5rem 0 1rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: var(--pe-radius);
+  background: var(--pe-warning-soft, var(--pe-surface-2));
+  border: 1px solid var(--pe-warning-border, var(--pe-border));
+  color: var(--pe-text);
+  font-size: 0.92rem;
+}
+.advisor-banner.ok {
+  background: var(--pe-success-soft, var(--pe-surface-2));
+  border-color: var(--pe-success-border, var(--pe-border));
+}
+
+/* --- Chip de plan del promotor (B1) --- */
+.tier-chip {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.12rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+  color: var(--pe-muted);
+  background: var(--pe-surface-2);
+  border: 1px solid var(--pe-border);
+}
+.tier-chip.premium {
+  color: #fff;
+  background: var(--pe-accent);
+  border-color: var(--pe-accent-border, var(--pe-accent));
+}
+
+/* --- Chat de soporte (B3) --- */
+.support-chat { max-width: 1100px; margin: 0 auto; }
+.chat-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) 1fr;
+  gap: 1rem;
+  align-items: stretch;
+  min-height: 60vh;
+}
+.chat-threads {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius);
+  padding: 0.6rem;
+  background: var(--pe-surface);
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.chat-thread-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.55rem 0.6rem;
+  border-radius: var(--pe-radius);
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  color: var(--pe-text);
+  font: inherit;
+}
+.chat-thread-item:hover { background: var(--pe-surface-2); }
+.chat-thread-item.active { background: var(--pe-accent-soft); border-color: var(--pe-accent-border, var(--pe-accent)); }
+.chat-main {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius);
+  background: var(--pe-surface);
+  min-height: 60vh;
+}
+.chat-thread-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--pe-border);
+}
+.chat-thread-head h2 { margin: 0; font-size: 1.05rem; }
+.chat-messages {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  overflow-y: auto;
+  min-height: 200px;
+}
+.chat-msg {
+  align-self: flex-start;
+  max-width: 78%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 14px;
+  background: var(--pe-surface-2);
+  border: 1px solid var(--pe-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.chat-msg.agent { align-self: flex-start; background: var(--pe-surface-2); }
+.chat-msg.mine {
+  align-self: flex-end;
+  background: var(--pe-accent-soft);
+  border-color: var(--pe-accent-border, var(--pe-accent));
+}
+.chat-msg-body { white-space: pre-wrap; word-break: break-word; }
+.chat-composer,
+.chat-compose-new {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--pe-border);
+}
+.chat-composer input { flex: 1 1 auto; }
+.chat-compose-new { flex-direction: column; }
+.chat-compose-new input,
+.chat-compose-new textarea { width: 100%; }
+
+/* Móvil: el chat colapsa a una sola columna (hilos arriba, conversación abajo). */
+@media (max-width: 720px) {
+  .chat-layout { grid-template-columns: 1fr; min-height: 0; }
+  .chat-threads { max-height: 32vh; flex-direction: row; overflow-x: auto; }
+  .chat-thread-item { min-width: 160px; flex: 0 0 auto; }
+  .chat-main { min-height: 50vh; }
+  .chat-msg { max-width: 90%; }
+  /* Composer/creación fijados al fondo para que el teclado no los empuje fuera. */
+  .chat-composer,
+  .chat-compose-new { position: sticky; bottom: 0; background: var(--pe-surface); }
+}
 /* Barra superior del editor: acciones alineadas a la derecha y CENTRADAS
    verticalmente (W5) → el botón/chip de desbloqueo queda a la misma altura que
    Guardar/Publicar (antes se estiraban a distinta altura por el default stretch). */
@@ -2970,6 +3252,17 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
 }
 .btn.icon-only app-icon,
 .btn.icon-only svg { margin: 0; }
+
+/* Móvil: agranda los blancos táctiles a ≥44px (accesibilidad WCAG 2.5.5). */
+@media (max-width: 480px) {
+  .btn.small { min-height: 44px; }
+  .btn.icon-only { width: 44px; height: 44px; }
+  .pe-switch .pe-switch-track { margin: 0.6rem 0; }
+  /* Acciones tipo enlace (validadores, cuenta): blanco táctil vertical decente. */
+  .link-btn { min-height: 40px; display: inline-flex; align-items: center; }
+  /* Steppers de cantidad (compra GA): 44px táctiles. */
+  .qty-btn { min-width: 44px; min-height: 44px; }
+}
 
 /* Edición de evento */
 .event-edit { max-width: 960px; margin: 0 auto; }
@@ -3234,6 +3527,11 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
 .promoter-card-name { display: flex; flex-direction: column; }
 .promoter-card-body { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: flex-end; }
 .filters-row { display: flex; flex-wrap: wrap; gap: 0.8rem; align-items: flex-end; margin-bottom: 1rem; }
+/* Móvil: cada filtro ocupa la fila completa (evita columnas angostas y desalineadas). */
+@media (max-width: 560px) {
+  .filters-row { align-items: stretch; }
+  .filters-row .field { flex: 1 1 100%; }
+}
 
 .gateway-edit {
   background: var(--pe-surface-2);
@@ -3550,6 +3848,13 @@ button.danger {
   gap: 1rem;
   margin: 1rem 0;
 }
+/* Móvil: colapsar a 1 columna (el track de 320px desbordaba a 320/360px). */
+@media (max-width: 560px) {
+  .promoters-grid,
+  .inv-grid {
+    grid-template-columns: 1fr;
+  }
+}
 
 /* Formulario de invitar (ancho completo, igual que el grid) */
 .inv-form {
@@ -3631,7 +3936,7 @@ button.danger {
   width: 22px;
   height: 22px;
   border-radius: 50% 50% 50% 0;
-  background: var(--pe-accent, #7b5cff);
+  background: var(--pe-accent);
   border: 2px solid #fff;
   transform: rotate(-45deg);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
@@ -4106,6 +4411,36 @@ p.error {
   border: 1px solid var(--pe-danger-border, rgba(255, 107, 129, 0.4));
 }
 
+/* Estados de mensaje análogos a .error (avisos/éxito/info) — antes salían como
+   texto plano por no estar definidos. Mismo patrón: color + caja suave con borde. */
+.warn { color: var(--pe-warning-ink, var(--pe-warning)); font-weight: 600; }
+p.warn,
+.warn.box {
+  margin: 0.5rem 0;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  background: var(--pe-warning-soft);
+  border: 1px solid var(--pe-warning-border, var(--pe-warning));
+}
+.ok { color: var(--pe-success); font-weight: 600; }
+p.ok,
+.ok.box {
+  margin: 0.5rem 0;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  background: var(--pe-success-soft);
+  border: 1px solid var(--pe-success-border, var(--pe-success));
+}
+.info { color: var(--pe-text); font-weight: 500; }
+p.info,
+.info.box {
+  margin: 0.5rem 0;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  background: var(--pe-accent-soft);
+  border: 1px solid var(--pe-accent-border, var(--pe-accent));
+}
+
 /* Signup: checklist de contraseña segura + pistas + error de campo. */
 .auth-hint {
   margin: 0.35rem 0 0.6rem;
@@ -4244,7 +4579,14 @@ p.error {
 .checkin-stats { display: grid; gap: 1rem; margin-bottom: 1.4rem; }
 .checkin-head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
 .checkin-head h3 { margin: 0; }
-.checkin-live { color: var(--pe-success-strong, #1f9d57); font-weight: 600; font-size: 0.85rem; }
+.checkin-live { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--pe-success-strong, #1f9d57); font-weight: 600; font-size: 0.85rem; }
+.checkin-live-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--pe-success);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--pe-success) 55%, transparent);
+  animation: live-pulse 1.6s infinite;
+}
+@media (prefers-reduced-motion: reduce) { .checkin-live-dot { animation: none; } }
 .checkin-progress-top { display: flex; align-items: baseline; justify-content: space-between; gap: 0.6rem; }
 .checkin-pct { font-size: 2rem; font-weight: 800; color: var(--pe-accent, #e14eca); }
 .checkin-count { color: var(--pe-text-muted, #6b6b76); font-size: 0.9rem; }
@@ -4265,3 +4607,122 @@ p.error {
 .checkin-timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.3rem; }
 .checkin-timeline li { display: flex; justify-content: space-between; gap: 0.6rem; font-size: 0.85rem; }
 .checkin-tl-meta { color: var(--pe-text-muted, #6b6b76); }
+
+/* =====================================================================
+   Clases huérfanas detectadas en la auditoría UX/UI (definiciones que
+   faltaban → antes degradaban en silencio). Agrupadas por pantalla.
+   ===================================================================== */
+
+/* Detalle de transacción (PÁGINA — distinta del <dl> inline .txn-detail). */
+.txn-detail-page { max-width: 720px; margin: 0 auto; }
+.txn-items { list-style: none; margin: 0.4rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+.txn-items li { display: flex; justify-content: space-between; gap: 1rem; }
+.txn-item-desc { flex: 1 1 auto; min-width: 0; }
+.txn-item-amt { white-space: nowrap; font-weight: 600; }
+.chain-kind { color: var(--pe-muted); font-size: 0.85rem; }
+
+/* Reclamar transferencia (página). */
+.transfer-claim { max-width: 480px; margin: 0 auto; }
+.claim-ok { text-align: center; padding: 1rem 0; color: var(--pe-success); font-weight: 600; }
+
+/* Detalle de evento. */
+.event-description { line-height: 1.6; margin: 0.75rem 0; color: var(--pe-text); white-space: pre-wrap; }
+.event-notfound { max-width: 640px; margin: 2.5rem auto; text-align: center; }
+
+/* Cuenta: alta 2FA (QR con tamaño acotado) + fila NIT/DPI. */
+.twofa-setup { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 0.75rem; }
+.twofa-qr { width: 180px; height: 180px; max-width: 60vw; align-self: center; image-rendering: pixelated; }
+.twofa-current { color: var(--pe-muted); }
+.field-row { display: flex; gap: 0.8rem; flex-wrap: wrap; }
+.field-row > .field { flex: 1 1 180px; }
+
+/* Checkout: contenedores/nota (heredaban texto plano). */
+.checkout-main { min-width: 0; }
+.billing-box { border: 1px solid var(--pe-border); border-radius: var(--pe-radius); padding: 0.9rem; margin-top: 0.6rem; }
+.billing-title { font-weight: 600; margin-bottom: 0.4rem; }
+.awaiting { color: var(--pe-muted); }
+
+/* Editor de evento: preview de precio de localidad (transparencia — debe destacar). */
+.price-preview {
+  margin-top: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--pe-radius);
+  background: var(--pe-surface-2);
+  border: 1px solid var(--pe-border);
+}
+.pp-total { font-weight: 700; }
+.pp-breakdown { list-style: none; margin: 0.4rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.85rem; color: var(--pe-muted); }
+.pp-service { font-weight: 600; color: var(--pe-text); }
+.cash-transfer-result {
+  margin-top: 0.6rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: var(--pe-radius);
+  background: var(--pe-success-soft, var(--pe-surface-2));
+  border: 1px solid var(--pe-success-border, var(--pe-border));
+}
+
+/* Dashboard del promotor: fila de filtros. */
+.dash-filters { display: flex; gap: 0.8rem; flex-wrap: wrap; align-items: flex-end; margin-bottom: 1rem; }
+
+/* Historial de promotor: nombre del evento en filas de liquidación. */
+.ph-event { font-weight: 600; }
+
+/* Menú "Generar" del editor de asientos: no salirse del viewport en móvil. */
+@media (max-width: 480px) {
+  .gen-menu { max-width: calc(100vw - 2rem); left: auto; right: 0; }
+}
+
+/* Input con valor inválido (validación en vivo, p.ej. JSON de plantilla). */
+input.invalid,
+select.invalid,
+textarea.invalid {
+  border-color: var(--pe-danger, #ef4444);
+}
+
+/* Badge de marca de tarjeta (Visa/Mastercard) en métodos de pago. */
+.card-brand-badge {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--pe-text);
+  background: var(--pe-surface-2);
+  border: 1px solid var(--pe-border);
+}
+/* Precio del ítem en la ficha de reserva. */
+.res-price { font-weight: 600; white-space: nowrap; }
+
+/* Contenido solo para lectores de pantalla / navegación por teclado (accesible pero
+   invisible). Se usa p.ej. para la lista de asientos disponibles paralela al canvas
+   Konva, que no es operable por teclado. `focus` la revela para no perder el foco. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.sr-only:focus-within {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0.5rem 0;
+  clip: auto;
+  white-space: normal;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.sr-only:focus-within .seat-a11y-btn {
+  border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius);
+  padding: 0.35rem 0.6rem;
+  min-height: 40px;
+}

@@ -79,7 +79,7 @@ describe('Paginación keyset (e2e)', () => {
     const seen = new Set<string>();
     let cursor: string | null = null;
     let pages = 0;
-    let last: string[] = [];
+    let last!: string[];
     do {
       const qs: string = cursor ? `?limit=25&cursor=${cursor}` : '?limit=25';
       const res = await users(qs).expect(200);

@@ -155,3 +155,9 @@
   min-width: 130px;
   justify-content: center;
 }
+
+/* Lista de beneficios del plan (sin viñetas disc; acorde a la tarjeta). */
+.bp-benefits { list-style: none; margin: 0.75rem 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+.bp-benefits li { display: flex; align-items: flex-start; gap: 0.5rem; }
+/* Nota de prueba gratis dentro de la tarjeta premium. */
+.bp-trial { margin: 0.5rem 0 0; font-size: 0.88rem; font-weight: 600; color: var(--pe-accent); }

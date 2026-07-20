@@ -1,4 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -10,11 +11,13 @@ import {
   GatewayResponseDto,
   PromoterListItemDto,
 } from '../../core/api/admin.api';
+import { AdvisorApi } from '../../core/api/advisor.api';
 import { InvitationsApi } from '../../core/api/invitations.api';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
 import { SettingsApi } from '../../core/api/settings.api';
 import { AuditApi } from '../../core/api/audit.api';
 import { ImpersonationService } from '../../core/auth/impersonation.service';
+import { SessionStore } from '../../core/auth/session.store';
 import { PublicConfigStore } from '../../core/config/public-config.store';
 import { ThemeService } from '../../core/theme/theme.service';
 import { ToastService } from '../../core/ui/toast.service';
@@ -39,6 +42,9 @@ import type {
 } from '../../core/api/types';
 
 type AdminTab = 'eventos' | 'promotores' | 'sistema' | 'invitaciones' | 'salones' | 'plantillas';
+
+/** Grupos de la lista de eventos del admin por tiempo (default = futuros). */
+type EventTimeGroup = 'upcoming' | 'ongoing' | 'past' | 'all';
 
 /** Borrador de nueva pasarela (crear con OTP de desbloqueo). */
 interface NewGatewayDraft {
@@ -76,6 +82,7 @@ const INV_PAGE = 9;
   imports: [
     FormsModule,
     TranslatePipe,
+    DecimalPipe,
     LocalizedDatePipe,
     StatusLabelPipe,
     IconComponent,
@@ -93,6 +100,8 @@ const INV_PAGE = 9;
     TourComponent,
   ],
   templateUrl: './config.page.html',
+  // Escape cierra el modal abierto (suspender o candado), como en confirm-dialog.
+  host: { '(document:keydown.escape)': 'onEscape()' },
 })
 export class ConfigPage {
   /** Tour de onboarding de la consola admin (solo admins que no lo han visto). */
@@ -102,12 +111,23 @@ export class ConfigPage {
     { title: 'tour.admin.configTitle', body: 'tour.admin.configBody' },
   ];
   private readonly admin = inject(AdminApi);
+  private readonly advisorApi = inject(AdvisorApi);
   private readonly promoterEvents = inject(PromoterEventsApi);
   private readonly invitationsApi = inject(InvitationsApi);
   private readonly settingsApi = inject(SettingsApi);
   private readonly audit = inject(AuditApi);
   private readonly impersonation = inject(ImpersonationService);
+  private readonly session = inject(SessionStore);
   private readonly publicConfig = inject(PublicConfigStore);
+
+  /** B2: el ASESOR (no admin) NO ve ni puede abrir la tab "Sistema" (exclusiva admin). */
+  protected readonly isAdvisor = computed(
+    () => this.session.hasRole('advisor') && !this.session.hasRole('admin'),
+  );
+  protected readonly hideSystemTab = this.isAdvisor;
+  /** Estado de desbloqueo del asesor (banner en la consola). */
+  protected readonly advisorUnlock = signal<{ lockEnabled: boolean; unlocked: boolean; pending: boolean; expiresAt: string | null } | null>(null);
+  protected readonly requestingUnlock = signal(false);
   private readonly theme = inject(ThemeService);
   private readonly toasts = inject(ToastService);
 
@@ -125,6 +145,10 @@ export class ConfigPage {
     'theme.slot.noche': (s, v) => s.setThemeSlot('noche', String(v)),
     'theme.allow_visitor_switch': (s, v) => s.setThemeAllowVisitorSwitch(Boolean(v)),
     'theme.auto_by_hour': (s, v) => s.setThemeAutoByHour(Boolean(v)),
+    'premium.enabled': (s, v) => s.setPremiumEnabled(Boolean(v)),
+    'premium.trial_enabled': (s, v) => s.setPremiumTrialEnabled(Boolean(v)),
+    'premium.trial_days': (s, v) => s.setPremiumTrialDays(Number(v)),
+    'chat.enabled': (s, v) => s.setChatEnabled(Boolean(v)),
   };
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -159,6 +183,15 @@ export class ConfigPage {
   protected readonly eventsPageSize = EVENTS_PAGE;
   protected readonly eventSearch = signal('');
   protected readonly eventStatus = signal('');
+  /** Filtro por tiempo (futuros/en curso/pasados/todos). Default = futuros. */
+  protected readonly eventTime = signal<EventTimeGroup>('upcoming');
+  /** Opciones FIJAS del filtro de tiempo (label vía i18n). */
+  protected readonly eventTimeOptions: { value: EventTimeGroup; key: string }[] = [
+    { value: 'upcoming', key: 'config.events.timeUpcoming' },
+    { value: 'ongoing', key: 'config.events.timeOngoing' },
+    { value: 'past', key: 'config.events.timePast' },
+    { value: 'all', key: 'common.all' },
+  ];
   /** Filtro por promotor (id del promotor seleccionado; '' = todos). */
   protected readonly eventPromoter = signal('');
   /** Filtro por categoría: '' (todas) | 'none' (sin categoría) | <categoryId>. Detecta eventos sin categorizar. */
@@ -182,10 +215,12 @@ export class ConfigPage {
   protected readonly filteredEvents = computed(() => {
     const q = this.eventSearch().trim().toLowerCase();
     const status = this.eventStatus();
+    const time = this.eventTime();
     const promoterId = this.eventPromoter();
     const cat = this.eventCategory();
     return this.events().filter((e) => {
       if (status && e.status !== status) return false;
+      if (time !== 'all' && this.timeGroupOf(e) !== time) return false;
       if (promoterId && e.promoter?.id !== promoterId) return false;
       if (cat === 'none' && e.category) return false;
       if (cat && cat !== 'none' && e.category?.id !== cat) return false;
@@ -203,6 +238,24 @@ export class ConfigPage {
     const start = (this.eventsPage() - 1) * EVENTS_PAGE;
     return this.filteredEvents().slice(start, start + EVENTS_PAGE);
   });
+
+  /** Clasifica un evento del admin por tiempo (estado + fechas), como en el panel promotor. */
+  private timeGroupOf(e: AdminEventListItemDto): Exclude<EventTimeGroup, 'all'> {
+    if (e.status === 'finished' || e.status === 'cancelled') return 'past';
+    const now = Date.now();
+    const starts = new Date(e.startsAt).getTime();
+    const ends = new Date(e.endsAt).getTime();
+    if (!Number.isNaN(ends) && ends < now) return 'past';
+    if (
+      e.status === 'published' &&
+      !Number.isNaN(starts) &&
+      starts <= now &&
+      (Number.isNaN(ends) || ends >= now)
+    ) {
+      return 'ongoing';
+    }
+    return 'upcoming';
+  }
 
   /** Abre el evento en la consola (vista de edición), como ADMIN (sin impersonar). */
   protected openEvent(id: string, tab?: string): void {
@@ -290,10 +343,38 @@ export class ConfigPage {
       const t = pm.get('tab') as AdminTab | null;
       this.applyTab(t && ConfigPage.TABS.includes(t) ? t : 'eventos');
     });
+    // B2: si es asesor, carga su estado de desbloqueo (banner en la consola).
+    if (this.isAdvisor()) this.loadAdvisorUnlock();
+  }
+
+  private loadAdvisorUnlock(): void {
+    this.advisorApi.status().subscribe({
+      next: (s) => this.advisorUnlock.set({ lockEnabled: s.lockEnabled, unlocked: s.unlocked, pending: s.pending, expiresAt: s.expiresAt }),
+      error: () => undefined,
+    });
+  }
+
+  /** El asesor solicita desbloqueo (correo con enlace al admin). */
+  protected requestAdvisorUnlock(): void {
+    if (this.requestingUnlock()) return;
+    this.requestingUnlock.set(true);
+    this.advisorApi.requestUnlock().subscribe({
+      next: () => {
+        this.requestingUnlock.set(false);
+        this.toasts.success(this.translate.instant('advisor.requestSent'));
+        this.loadAdvisorUnlock();
+      },
+      error: () => {
+        this.requestingUnlock.set(false);
+        this.toasts.error(this.translate.instant('advisor.requestError'));
+      },
+    });
   }
 
   /** Fija el tab y hace la carga perezosa de sus datos (sin tocar la URL). */
   private applyTab(t: AdminTab): void {
+    // B2: un asesor jamás entra a "Sistema" (aunque manipule el ?tab=). Cae a eventos.
+    if (t === 'sistema' && this.hideSystemTab()) t = 'eventos';
     // Punto 9: cambiar de tab CIERRA cualquier form de pasarela (crear/editar).
     this.closeGatewayForms();
     // v3.8 · G2-3: cambiar de tab RESETEA los filtros a su vista por defecto.
@@ -309,6 +390,7 @@ export class ConfigPage {
   private resetFilters(): void {
     this.eventSearch.set('');
     this.eventStatus.set('');
+    this.eventTime.set('upcoming');
     this.eventPromoter.set('');
     this.eventCategory.set('');
     this.eventsPage.set(1);
@@ -375,6 +457,10 @@ export class ConfigPage {
   }
   protected setEventStatus(v: string): void {
     this.eventStatus.set(v);
+    this.eventsPage.set(1);
+  }
+  protected setEventTime(v: EventTimeGroup): void {
+    this.eventTime.set(v);
     this.eventsPage.set(1);
   }
   protected setEventPromoter(v: string): void {
@@ -510,6 +596,12 @@ export class ConfigPage {
       },
       error: () => this.toasts.error(this.translate.instant('config.promoters.impersonateError')),
     });
+  }
+
+  /** Escape → cierra el modal abierto (candado tiene prioridad si ambos, no ocurre). */
+  protected onEscape(): void {
+    if (this.lockModalOpen()) this.closeLockModal();
+    else if (this.suspendTarget()) this.cancelSuspend();
   }
 
   // --- Suspensión con modal + motivo ---
@@ -843,17 +935,27 @@ export class ConfigPage {
   // --- Configuraciones del sistema (catálogo) — dentro del tab Sistema ---
   protected readonly settings = signal<SettingViewDto[]>([]);
   protected readonly settingEdits = signal<Record<string, number | boolean | string>>({});
+  /** false hasta que la 1ª carga resuelve o falla → distingue "cargando" de "vacío". */
+  protected readonly settingsLoaded = signal(false);
   private loadSettings(): void {
     this.settingsApi.list().subscribe({
       next: (s) => {
         this.settings.set(s);
         this.settingEdits.set(Object.fromEntries(s.map((x) => [x.key, x.value])));
+        this.settingsLoaded.set(true);
       },
-      error: () => this.toasts.error(this.translate.instant('config.settings.loadError')),
+      error: () => {
+        this.settingsLoaded.set(true);
+        this.toasts.error(this.translate.instant('config.settings.loadError'));
+      },
     });
   }
   protected setSettingValue(key: string, value: number | boolean | string): void {
     this.settingEdits.update((e) => ({ ...e, [key]: value }));
+  }
+  /** ¿El valor editado difiere del guardado? (habilita el botón Guardar). */
+  protected settingDirty(s: SettingViewDto): boolean {
+    return this.settingEdits()[s.key] !== s.value;
   }
 
   /** Etiqueta traducible de una opción de un setting enum (p.ej. temas / franjas). */

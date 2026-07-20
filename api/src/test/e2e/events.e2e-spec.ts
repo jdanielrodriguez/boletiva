@@ -659,14 +659,8 @@ describe('Eventos: gestión (e2e)', () => {
       expect(ib).toBeLessThan(ia); // prioridad 1 va antes que 2
     });
 
-    it('PATCH /events/:id/promote: solo admin destaca (promotor 403); toggle entra/sale del slider', async () => {
+    it('PATCH /events/:id/promote: dueño destaca (premium off = todos), NO dueño 403; toggle entra/sale del slider', async () => {
       const ev = await mkPublished(); // futuro publicado, sin prioridad → no está en el slider
-      // Promotor NO puede destacar (endpoint admin-only).
-      await http()
-        .patch(`/api/v1/events/${ev.id}/promote`)
-        .set(bearer(promoterToken))
-        .send({ featured: true })
-        .expect(403);
       // Un promotor tampoco puede autopromocionarse por el update genérico (se ignora).
       await http()
         .patch(`/api/v1/events/${ev.id}`)
@@ -675,14 +669,39 @@ describe('Eventos: gestión (e2e)', () => {
         .expect(200);
       const afterUpdate = await prisma.event.findUniqueOrThrow({ where: { id: ev.id } });
       expect(afterUpdate.promotedPriority).toBeNull();
-      // Admin destaca → aparece en /promoted.
-      await http().patch(`/api/v1/events/${ev.id}/promote`).set(bearer(adminToken)).send({ featured: true }).expect(200);
+      // Un promotor NO dueño → 403 por ownership.
+      await http()
+        .patch(`/api/v1/events/${ev.id}/promote`)
+        .set(bearer(promoterBToken))
+        .send({ featured: true })
+        .expect(403);
+      // El DUEÑO destaca su propio evento (premium.enabled=false → beneficios para todos).
+      await http().patch(`/api/v1/events/${ev.id}/promote`).set(bearer(promoterToken)).send({ featured: true }).expect(200);
       let promoted = await http().get('/api/v1/events/promoted').expect(200);
       expect(promoted.body.some((e: { id: string }) => e.id === ev.id)).toBe(true);
       // Admin quita → sale del slider.
       await http().patch(`/api/v1/events/${ev.id}/promote`).set(bearer(adminToken)).send({ featured: false }).expect(200);
       promoted = await http().get('/api/v1/events/promoted').expect(200);
       expect(promoted.body.some((e: { id: string }) => e.id === ev.id)).toBe(false);
+    });
+
+    it('PATCH /events/:id/promote: con premium ENCENDIDO, un promotor free NO destaca (403) hasta ser premium', async () => {
+      const ev = await mkPublished();
+      // Enciende la distinción premium y deja al dueño en free.
+      await http().patch('/api/v1/settings/premium.enabled').set(bearer(adminToken)).send({ value: true }).expect(200);
+      await prisma.user.update({ where: { id: promoterId }, data: { promoterTier: 'free', premiumSince: null, premiumTrialEndsAt: null } });
+      try {
+        // free + premium on → destacar es beneficio premium → 403.
+        await http().patch(`/api/v1/events/${ev.id}/promote`).set(bearer(promoterToken)).send({ featured: true }).expect(403);
+        // El admin lo hace premium a mano → ahora sí destaca.
+        await http().patch(`/api/v1/promoters/${promoterId}/tier`).set(bearer(adminToken)).send({ tier: 'premium' }).expect(200);
+        await http().patch(`/api/v1/events/${ev.id}/promote`).set(bearer(promoterToken)).send({ featured: true }).expect(200);
+      } finally {
+        // Restaura el estado global (suite serial): premium off + dueño free.
+        await http().patch('/api/v1/settings/premium.enabled').set(bearer(adminToken)).send({ value: false }).expect(200);
+        await prisma.user.update({ where: { id: promoterId }, data: { promoterTier: 'free', premiumSince: null, premiumTrialEndsAt: null } });
+        await prisma.event.update({ where: { id: ev.id }, data: { promotedPriority: null } });
+      }
     });
 
     it('GET /events?category=<slug>: filtra por categoría', async () => {

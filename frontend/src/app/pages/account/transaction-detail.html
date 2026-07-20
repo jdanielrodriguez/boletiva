@@ -1,4 +1,4 @@
-<section class="txn-detail">
+<section class="txn-detail-page">
   <app-back-link link="/cuenta" [queryParams]="{ s: 'facturacion' }" testId="txn-back" [label]="'account.txn.back' | translate" />
 
   <h1>{{ 'account.txn.title' | translate }}</h1>
@@ -13,7 +13,7 @@
           <h2>{{ o.event?.name ?? o.eventId }}</h2>
           <span class="muted">{{ o.createdAt | localizedDate: 'EEEE d MMM y, HH:mm' }}</span>
         </div>
-        <span class="badge badge-{{ o.status }}" data-testid="txn-status">{{ o.status }}</span>
+        <span class="badge badge-{{ o.status }}" data-testid="txn-status">{{ o.status | statusLabel }}</span>
       </header>
 
       <dl class="txn-meta">

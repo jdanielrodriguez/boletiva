@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 
 /**
  * Paginador COMPARTIDO y homogéneo — misma apariencia que el catálogo de inicio:
@@ -12,14 +13,14 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (alwaysShow() || total() > 1) {
-      <nav class="catalog-pager" [attr.aria-label]="label()" data-testid="pager">
+      <nav class="catalog-pager" [attr.aria-label]="ariaLabel()" data-testid="pager">
         <button
           type="button"
           class="pager-arrow"
           [disabled]="page() <= 1"
           (click)="go(1)"
-          aria-label="Primera página"
-          title="Primera página"
+          [attr.aria-label]="t('pager.first')"
+          [attr.title]="t('pager.first')"
           data-testid="pager-first"
         >«</button>
         <button
@@ -27,8 +28,8 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
           class="pager-arrow"
           [disabled]="page() <= 1"
           (click)="go(page() - 1)"
-          aria-label="Página anterior"
-          title="Anterior"
+          [attr.aria-label]="t('pager.prev')"
+          [attr.title]="t('pager.prev')"
           data-testid="pager-prev"
         >‹</button>
 
@@ -56,8 +57,8 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
           class="pager-arrow"
           [disabled]="page() >= total()"
           (click)="go(page() + 1)"
-          aria-label="Página siguiente"
-          title="Siguiente"
+          [attr.aria-label]="t('pager.next')"
+          [attr.title]="t('pager.next')"
           data-testid="pager-next"
         >›</button>
         <button
@@ -65,8 +66,8 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
           class="pager-arrow"
           [disabled]="page() >= total()"
           (click)="go(total())"
-          aria-label="Última página"
-          title="Última página"
+          [attr.aria-label]="t('pager.last')"
+          [attr.title]="t('pager.last')"
           data-testid="pager-last"
         >»</button>
       </nav>
@@ -74,11 +75,20 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
   `,
 })
 export class PagerComponent {
+  private readonly translate = inject(TranslateService);
   readonly page = input.required<number>();
   readonly totalPages = input.required<number>();
-  readonly label = input('Paginación');
+  /** aria-label del nav; si no se pasa, usa la clave i18n `pager.nav`. */
+  readonly label = input('');
   readonly alwaysShow = input(false);
   readonly pageChange = output<number>();
+
+  protected t(key: string): string {
+    return this.translate.instant(key);
+  }
+  protected ariaLabel(): string {
+    return this.label() || this.t('pager.nav');
+  }
 
   protected readonly total = computed(() => Math.max(1, this.totalPages()));
 

@@ -62,3 +62,8 @@ promot_fixes.md
 qa-out/
 qashots/
 qashots2/
+
+.claude/worktrees
+.nx/polygraph
+.nx/self-healing
+.nx/migrate-runs

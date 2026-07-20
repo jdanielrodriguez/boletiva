@@ -62,6 +62,18 @@ export class TemplateEditPage implements HasUnsavedChanges {
     this.isNew ? 'config.templates.newPageTitle' : 'config.templates.editPageTitle',
   );
 
+  /** Validación EN VIVO del JSON de parámetros (feedback antes de guardar). */
+  protected readonly paramsInvalid = computed(() => {
+    const raw = this.draft()?.paramsJson?.trim() ?? '';
+    if (!raw) return false; // vacío es válido (sin params)
+    try {
+      const v = JSON.parse(raw);
+      return typeof v !== 'object' || v === null || Array.isArray(v);
+    } catch {
+      return true;
+    }
+  });
+
   constructor() {
     if (this.templateId) {
       this.loadTemplate(this.templateId);

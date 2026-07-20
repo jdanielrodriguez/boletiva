@@ -3,6 +3,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
+import { AuditApi } from '../../core/api/audit.api';
 import { OrdersApi } from '../../core/api/orders.api';
 import { PaymentMethodsApi } from '../../core/api/payment-methods.api';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
@@ -70,6 +71,7 @@ describe('Account (mi cuenta)', () => {
         { provide: TicketsApi, useValue: { list: () => of(TICKETS), media: () => of({}), transfer: () => of({}), ...o.tickets } as unknown as TicketsApi },
         { provide: OrdersApi, useValue: { list: () => of({ items: [], nextCursor: null }), movements: () => of({ items: [] }), ledgerChain: () => of({ orderId: 'o1', transactions: [], chainValid: true }), eventLedgerChain: () => of({ eventId: 'e1', transactions: [], chainValid: true }), ...o.orders } as unknown as OrdersApi },
         { provide: TransfersApi, useValue: { claim: () => of({}), outgoing: () => of([]), cancel: () => of({}), ...o.transfers } as unknown as TransfersApi },
+        { provide: AuditApi, useValue: { confirm: () => of({}) } },
         {
           provide: PromoterEventsApi,
           useValue: {

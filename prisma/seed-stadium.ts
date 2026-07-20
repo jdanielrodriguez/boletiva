@@ -1,8 +1,8 @@
 import { createHash } from 'crypto';
 import { mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
-import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { makePrismaClient } from './prisma-client';
 
 /**
  * Seeder de carga: un "estadio" con N asientos disponibles + un pool de
@@ -21,7 +21,7 @@ const SLUG = 'estadio-load-test';
 const DEVICE_PREFIX = 'k6-device-';
 const CHUNK = 5000;
 
-const prisma = new PrismaClient();
+const prisma = makePrismaClient();
 const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
 
 async function main(): Promise<void> {

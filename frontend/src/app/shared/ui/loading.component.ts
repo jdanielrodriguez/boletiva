@@ -58,8 +58,8 @@ export type LoadingVariant = 'spinner' | 'skeleton';
         inset: 0;
         z-index: 1000;
         background: var(--pe-bg);
-        background-image: radial-gradient(900px 460px at 80% -10%, rgba(123, 92, 255, 0.14), transparent 70%),
-          radial-gradient(760px 420px at -10% 0%, rgba(225, 78, 202, 0.1), transparent 70%);
+        background-image: radial-gradient(900px 460px at 80% -10%, color-mix(in srgb, var(--pe-primary) 14%, transparent), transparent 70%),
+          radial-gradient(760px 420px at -10% 0%, color-mix(in srgb, var(--pe-accent) 10%, transparent), transparent 70%);
       }
       /* Overlay OSCURECIDO sobre el contenido (peticiones en vuelo): scrim
          translúcido + desenfoque, el loader queda por encima (v3.9 · C1). */

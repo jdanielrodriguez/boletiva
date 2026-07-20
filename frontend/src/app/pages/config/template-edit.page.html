@@ -24,11 +24,16 @@
           </select>
         </label>
         <label class="field full"><span>{{ 'config.templates.paramsJson' | translate }}</span>
-          <input type="text" placeholder='{"rows":5,"cols":10}' [ngModel]="d.paramsJson" (ngModelChange)="patch('paramsJson', $event)" name="tp" [disabled]="builtIn()" data-testid="tpl-params" />
+          <input type="text" placeholder='{"rows":5,"cols":10}' [ngModel]="d.paramsJson" (ngModelChange)="patch('paramsJson', $event)" name="tp" [disabled]="builtIn()" [class.invalid]="paramsInvalid()" data-testid="tpl-params" />
+          @if (paramsInvalid()) {
+            <small class="form-error" data-testid="tpl-params-error">{{ 'config.templates.paramsJsonInvalid' | translate }}</small>
+          } @else {
+            <small class="field-hint">{{ 'config.templates.paramsJsonHint' | translate }}</small>
+          }
         </label>
       </div>
       <div class="ev-card-actions">
-        <button type="button" class="btn primary" (click)="save()" [disabled]="saving() || builtIn()" data-testid="tpl-save" [title]="'config.templates.saveTitle' | translate">
+        <button type="button" class="btn primary" (click)="save()" [disabled]="saving() || builtIn() || paramsInvalid()" data-testid="tpl-save" [title]="'config.templates.saveTitle' | translate">
           <app-icon name="save" /> {{ 'common.save' | translate }}
         </button>
         <button type="button" class="btn" (click)="cancel()" [title]="'common.cancel' | translate">

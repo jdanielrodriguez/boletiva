@@ -33,10 +33,10 @@ const PALETTE = chartPalette();
       .dash-preview-note {
         margin: 0;
         padding: 0.6rem 0.9rem;
-        border: 1px dashed var(--pe-accent, #c026d3);
+        border: 1px dashed var(--pe-accent);
         border-radius: 10px;
         background: var(--pe-accent-soft, rgba(192, 38, 211, 0.08));
-        color: var(--pe-accent, #c026d3);
+        color: var(--pe-accent);
         font-size: 0.9rem;
       }
       .dash-kpis {
@@ -64,7 +64,7 @@ const PALETTE = chartPalette();
         font-weight: 700;
       }
       .kpi-value.accent {
-        color: var(--pe-accent, #c026d3);
+        color: var(--pe-accent);
       }
       .dash-card {
         border: 1px solid var(--pe-border, rgba(148, 163, 184, 0.25));
@@ -198,7 +198,7 @@ export class EventDashboardComponent {
       fill: { type: ['gradient', 'solid'], opacity: [0.35, 1] },
       dataLabels: { enabled: false },
       legend: { position: 'top' },
-      grid: { borderColor: 'rgba(148,163,184,0.2)' },
+      grid: { borderColor: chartPalette().muted + '33' },
       noData: this.noData(),
     };
   });
@@ -214,7 +214,7 @@ export class EventDashboardComponent {
       colors: [PALETTE.accent, PALETTE.accent2, PALETTE.success, PALETTE.warning],
       dataLabels: { enabled: true, formatter: (v: number) => `${v}%` },
       legend: { show: false },
-      grid: { borderColor: 'rgba(148,163,184,0.2)' },
+      grid: { borderColor: chartPalette().muted + '33' },
       noData: this.noData(),
     };
   });

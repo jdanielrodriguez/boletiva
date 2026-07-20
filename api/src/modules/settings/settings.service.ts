@@ -37,6 +37,9 @@ export interface PublicConfig {
   capabilities: Record<IntegrationService, boolean>;
   /** Site key pública de reCAPTCHA (vacía si no está configurada). */
   recaptchaSiteKey: string;
+  /** Perfil premium / chat (para gating de UI: tarjeta de plan, CTA de chat). */
+  premium: { enabled: boolean; trialEnabled: boolean; trialDays: number };
+  chatEnabled: boolean;
 }
 
 export interface SettingView {
@@ -119,6 +122,12 @@ export class SettingsService {
       // desactivado (dev/test/`RECAPTCHA_DISABLED`), devolvemos '' → el frontend no
       // intenta cargar el script de Google (evita error de CSP y llamadas inútiles).
       recaptchaSiteKey: caps.recaptcha ? (this.config.get<string>('recaptcha.siteKey') ?? '') : '',
+      premium: {
+        enabled: resolveBool(PUBLIC_CONFIG_KEYS.premiumEnabled),
+        trialEnabled: resolveBool(PUBLIC_CONFIG_KEYS.premiumTrialEnabled),
+        trialDays: resolveInt(PUBLIC_CONFIG_KEYS.premiumTrialDays),
+      },
+      chatEnabled: resolveBool(PUBLIC_CONFIG_KEYS.chatEnabled),
     };
   }
 

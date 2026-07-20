@@ -10,6 +10,7 @@ import { PromoterStatus, PromoterTier, Role, User } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { QueueService } from '../../infra/queue/queue.service';
 import { QUEUES } from '../../infra/queue/queue.constants';
+import { PremiumService } from './premium.service';
 import type { PromoterMailStatus } from './promoter-mail.service';
 
 const REQUIRE_KEY = 'promoters.require_approval';
@@ -28,6 +29,7 @@ export class PromotersService implements OnApplicationBootstrap {
     private readonly prisma: PrismaService,
     private readonly queue: QueueService,
     private readonly config: ConfigService,
+    private readonly premium: PremiumService,
   ) {}
 
   /**
@@ -83,6 +85,9 @@ export class PromotersService implements OnApplicationBootstrap {
       await this.prisma.user.update({ where: { id: userId }, data: { promoterTier: tier } });
       user.promoterTier = tier;
     }
+    // Si eligió premium y hay prueba gratis habilitada, la arranca (una sola vez). Sin prueba,
+    // el tier queda como intención y sube a premium con tarjeta luego (POST /promoters/tier).
+    if (tier === PromoterTier.premium) await this.premium.maybeStartTrialOnApply(userId);
     if (user.promoterStatus === PromoterStatus.approved) return this.summarize(user);
 
     if (!(await this.requireApproval())) {
@@ -103,10 +108,17 @@ export class PromotersService implements OnApplicationBootstrap {
     return this.summarize(updated);
   }
 
-  /** Estado de promotor del usuario autenticado (+ si el modo pruebas está activo). */
+  /** Estado de promotor del usuario autenticado (+ modo pruebas + estado premium). */
   async myStatus(userId: string) {
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
-    return { ...this.summarize(user), requireApproval: await this.requireApproval() };
+    const premium = await this.premium.myPremium(userId);
+    return {
+      ...this.summarize(user),
+      requireApproval: await this.requireApproval(),
+      premiumTrialEndsAt: premium.premiumTrialEndsAt,
+      onTrial: premium.onTrial,
+      premiumBenefitsActive: premium.benefitsActive,
+    };
   }
 
   /** Lista de solicitudes (admin). Filtra por estado; excluye 'none' por defecto. */
@@ -188,6 +200,19 @@ export class PromotersService implements OnApplicationBootstrap {
       orderBy: { createdAt: 'desc' },
     });
 
+    // Resuelve el NOMBRE del admin que ejecutó cada transición (evita mostrar el UUID
+    // crudo). Lookup batch por los adminId distintos presentes.
+    const adminIds = [...new Set(statusEvents.map((e) => e.adminId).filter((x): x is string => !!x))];
+    const admins = adminIds.length
+      ? await this.prisma.user.findMany({
+          where: { id: { in: adminIds } },
+          select: { id: true, firstName: true, lastName: true },
+        })
+      : [];
+    const adminNameById = new Map(
+      admins.map((a) => [a.id, `${a.firstName} ${a.lastName ?? ''}`.trim()]),
+    );
+
     // Liquidaciones: eventos del promotor con caja transferida + su asiento en el ledger.
     const settledEvents = await this.prisma.event.findMany({
       where: { promoterId: id, cashTransferredAt: { not: null } },
@@ -207,6 +232,7 @@ export class PromotersService implements OnApplicationBootstrap {
       kind: 'status' as const,
       createdAt: e.createdAt,
       adminId: e.adminId as string | null,
+      adminName: (e.adminId && adminNameById.get(e.adminId)) || null,
       statusFrom: e.statusFrom as string | null,
       statusTo: e.statusTo as string | null,
       reason: e.reason,
@@ -222,6 +248,7 @@ export class PromotersService implements OnApplicationBootstrap {
         kind: 'settlement' as const,
         createdAt: t.createdAt,
         adminId: null as string | null,
+        adminName: null as string | null,
         statusFrom: null as string | null,
         statusTo: null as string | null,
         reason: t.memo ?? null,

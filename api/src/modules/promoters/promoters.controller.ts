@@ -32,9 +32,12 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthService } from '../auth/auth.service';
 import { setRefreshCookie } from '../auth/refresh-cookie';
 import { PromotersService } from './promoters.service';
+import { PremiumService } from './premium.service';
 import {
+  AdminSetTierDto,
   ApplyPromoterDto,
   MyPromoterStatusResponseDto,
+  PremiumTierResponseDto,
   PromoterDecisionDto,
   PromoterInternalNoteResponseDto,
   PromoterListItemDto,
@@ -44,6 +47,7 @@ import {
   RequireApprovalResponseDto,
   SetPromoterNoteDto,
   SetRequireApprovalDto,
+  SetTierDto,
 } from './dto/promoters.dto';
 
 @ApiTags('promoters')
@@ -54,6 +58,7 @@ export class PromotersController {
     private readonly promoters: PromotersService,
     private readonly auth: AuthService,
     private readonly config: ConfigService,
+    private readonly premium: PremiumService,
   ) {}
 
   @Post('apply')
@@ -105,6 +110,31 @@ export class PromotersController {
   @ApiOkResponse({ type: MyPromoterStatusResponseDto })
   me(@CurrentUser('userId') userId: string) {
     return this.promoters.myStatus(userId);
+  }
+
+  @Post('tier')
+  @RequireVerifiedEmail()
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Cambia mi plan de promotor (upgrade/downgrade). Premium exige tarjeta registrada.' })
+  @ApiOkResponse({ type: PremiumTierResponseDto })
+  setMyTier(@CurrentUser('userId') userId: string, @Body() dto: SetTierDto) {
+    return this.premium.setTier(userId, dto.tier);
+  }
+
+  @Patch(':id/tier')
+  @Roles(Role.admin)
+  @ApiOperation({ summary: 'Fija el plan de un promotor a mano (admin): premium directo o prueba de N días' })
+  @ApiOkResponse({ type: PremiumTierResponseDto })
+  adminSetTier(@Param('id', ParseUUIDPipe) id: string, @Body() dto: AdminSetTierDto) {
+    return this.premium.setTier(id, dto.tier, { byAdmin: true, trialDays: dto.trialDays });
+  }
+
+  @Post('premium/expire-trials')
+  @Roles(Role.admin)
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Baja a free las pruebas premium vencidas (disparo manual; también corre a diario)' })
+  expireTrials() {
+    return this.premium.expireTrials().then((expired) => ({ expired }));
   }
 
   @Get('settings')

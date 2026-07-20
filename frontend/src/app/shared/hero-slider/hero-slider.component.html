@@ -1,5 +1,6 @@
 @if (count() > 0) {
-  <section class="hero" [attr.aria-roledescription]="'catalog.heroCarousel' | translate" [attr.aria-label]="'catalog.heroAria' | translate">
+  <section class="hero" [attr.aria-roledescription]="'catalog.heroCarousel' | translate" [attr.aria-label]="'catalog.heroAria' | translate"
+    (mouseenter)="pause()" (mouseleave)="resume()" (focusin)="pause()" (focusout)="resume()">
     <div class="hero-viewport">
       <div class="hero-track" [style.transform]="'translateX(' + offset() + '%)'">
         @for (slide of slides(); track slide.slug) {
@@ -28,6 +29,7 @@
         @for (slide of slides(); track slide.slug; let i = $index) {
           <button
             type="button"
+            role="tab"
             class="hero-dot"
             [class.active]="i === index()"
             [attr.aria-label]="'catalog.heroGoTo' | translate: { n: i + 1 }"

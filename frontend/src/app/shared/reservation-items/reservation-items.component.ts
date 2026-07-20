@@ -2,6 +2,7 @@ import { Component, computed, inject, input, signal } from '@angular/core';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { ReservationItemDto } from '../../core/api/types';
 import { PagerComponent } from '../ui/pager.component';
+import { MoneyPipe } from '../money.pipe';
 
 interface Group {
   localityName: string;
@@ -25,7 +26,7 @@ interface Group {
  */
 @Component({
   selector: 'app-reservation-items',
-  imports: [TranslatePipe, PagerComponent],
+  imports: [TranslatePipe, PagerComponent, MoneyPipe],
   templateUrl: './reservation-items.component.html',
 })
 export class ReservationItems {

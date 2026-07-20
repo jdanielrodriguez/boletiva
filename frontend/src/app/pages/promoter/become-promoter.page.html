@@ -28,7 +28,7 @@
       }
 
       <div class="bp-plans">
-        @for (plan of plans; track plan.tier) {
+        @for (plan of visiblePlans(); track plan.tier) {
           <article class="bp-plan" [class.recommended]="plan.recommended" [attr.data-testid]="'bp-plan-' + plan.tier">
             @if (plan.recommended) {
               <span class="bp-badge">{{ 'becomePromoter.recommended' | translate }}</span>
@@ -48,6 +48,11 @@
             </ul>
             @if (plan.tier === 'premium') {
               <p class="bp-note">{{ 'becomePromoter.premiumNote' | translate }}</p>
+              @if (config.premium().trialEnabled) {
+                <p class="bp-trial" data-testid="bp-trial">
+                  {{ 'becomePromoter.trialHint' | translate: { days: trialDays() } }}
+                </p>
+              }
             }
             <button
               type="button"
@@ -74,8 +79,11 @@
 
 <!-- MODAL: instrucciones (usuario logueado) -->
 @if (showInfo()) {
-  <div class="modal-backdrop" data-testid="bp-info-modal">
-    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="bp-info-title">
+  <div class="modal-backdrop" data-testid="bp-info-modal" (click)="dismissModal()">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="bp-info-title" (click)="$event.stopPropagation()">
+      <button type="button" class="modal-x" [attr.aria-label]="'common.close' | translate" (click)="dismissModal()" data-testid="bp-info-x">
+        <app-icon name="close" [size]="18" />
+      </button>
       <div class="bp-modal-head">
         <span class="bp-modal-icon" aria-hidden="true"><app-icon name="help" [size]="28" /></span>
         <h2 id="bp-info-title">{{ 'becomePromoter.infoTitle' | translate }}</h2>
@@ -102,8 +110,11 @@
 
 <!-- MODAL: registro de visitante (sin sesión) -->
 @if (showRegister()) {
-  <div class="modal-backdrop" data-testid="bp-register-modal">
-    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="bp-reg-title">
+  <div class="modal-backdrop" data-testid="bp-register-modal" (click)="dismissModal()">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="bp-reg-title" (click)="$event.stopPropagation()">
+      <button type="button" class="modal-x" [attr.aria-label]="'common.close' | translate" (click)="dismissModal()" data-testid="bp-reg-x">
+        <app-icon name="close" [size]="18" />
+      </button>
       <div class="bp-modal-head">
         <span class="bp-modal-icon" aria-hidden="true"><app-icon name="accounts" [size]="28" /></span>
         <h2 id="bp-reg-title">{{ 'becomePromoter.regTitle' | translate }}</h2>
@@ -130,8 +141,15 @@
         </div>
         <div class="field">
           <label for="reg-pass">{{ 'becomePromoter.regPassword' | translate }}</label>
-          <input id="reg-pass" name="regPass" type="password" autocomplete="new-password" data-testid="bp-reg-pass"
-            [ngModel]="regPassword()" (ngModelChange)="regPassword.set($event)" />
+          <div class="pass-wrap">
+            <input id="reg-pass" name="regPass" [type]="showPassword() ? 'text' : 'password'" autocomplete="new-password" data-testid="bp-reg-pass"
+              [ngModel]="regPassword()" (ngModelChange)="regPassword.set($event)" />
+            <button type="button" class="pass-toggle" [attr.aria-label]="(showPassword() ? 'common.hide' : 'common.show') | translate"
+              (click)="showPassword.set(!showPassword())" data-testid="bp-reg-pass-toggle">
+              <app-icon [name]="showPassword() ? 'hide' : 'view'" [size]="18" />
+            </button>
+          </div>
+          <small class="field-hint">{{ 'becomePromoter.regPasswordHint' | translate }}</small>
         </div>
         <div class="ev-card-actions confirm-actions">
           <button type="submit" class="btn primary" data-testid="bp-reg-submit" [disabled]="working()">
@@ -148,8 +166,8 @@
 
 <!-- MODAL: proceso iniciado (requiere aprobación del admin) -->
 @if (showStarted()) {
-  <div class="modal-backdrop" data-testid="bp-started-modal">
-    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="bp-started-title">
+  <div class="modal-backdrop" data-testid="bp-started-modal" (click)="dismissModal()">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="bp-started-title" (click)="$event.stopPropagation()">
       <div class="bp-modal-head">
         <span class="bp-modal-icon ok" aria-hidden="true"><app-icon name="activate" [size]="28" /></span>
         <h2 id="bp-started-title">{{ 'becomePromoter.startedTitle' | translate }}</h2>

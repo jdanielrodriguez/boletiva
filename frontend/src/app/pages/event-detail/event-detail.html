@@ -59,7 +59,7 @@
                 </div>
                 <div class="locality-price">
                   @if (loc.price) {
-                    <span class="price-amount">Q{{ loc.price.total }}</span>
+                    <span class="price-amount">{{ loc.price.total | money }}</span>
                     <span class="price-label">{{ 'eventDetail.perTicket' | translate }}</span>
                   } @else {
                     <span class="price-label">{{ 'eventDetail.priceTbd' | translate }}</span>

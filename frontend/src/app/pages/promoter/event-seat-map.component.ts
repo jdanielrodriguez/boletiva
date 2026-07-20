@@ -18,7 +18,7 @@ import type { LocalityView } from '../../core/api/types';
 import { IconComponent } from '../../shared/icon/icon.component';
 
 /** Paleta estable para distinguir localidades en el mapa combinado. */
-const PALETTE = ['#7b5cff', '#22c55e', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#eab308', '#14b8a6'];
+const PALETTE = ['#e14eca', '#22c55e', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#eab308', '#14b8a6'];
 const PAD = 26;
 const CLUSTER_GAP = 60;
 const MAX_ROW_WIDTH = 1100;

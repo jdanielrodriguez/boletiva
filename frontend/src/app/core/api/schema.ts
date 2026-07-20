@@ -770,7 +770,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Destaca/quita un evento del slider del inicio (solo admin) */
+        /** Destaca/quita un evento del slider del inicio (admin cualquiera; promotor premium el suyo) */
         patch: operations["EventsController_promote_v1"];
         trace?: never;
     };
@@ -904,6 +904,57 @@ export interface paths {
         get: operations["PromotersController_me_v1"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/promoters/tier": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cambia mi plan de promotor (upgrade/downgrade). Premium exige tarjeta registrada. */
+        post: operations["PromotersController_setMyTier_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/promoters/{id}/tier": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Fija el plan de un promotor a mano (admin): premium directo o prueba de N días */
+        patch: operations["PromotersController_adminSetTier_v1"];
+        trace?: never;
+    };
+    "/api/v1/promoters/premium/expire-trials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Baja a free las pruebas premium vencidas (disparo manual; también corre a diario) */
+        post: operations["PromotersController_expireTrials_v1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3132,6 +3183,144 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/advisor/unlock/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** El asesor solicita desbloqueo → correo con enlace al admin */
+        post: operations["AdvisorController_request_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/advisor/unlock/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Estado de desbloqueo del asesor autenticado */
+        get: operations["AdvisorController_status_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/advisor/unlock/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** El admin aprueba el desbloqueo del asesor (desde el enlace) */
+        post: operations["AdvisorController_approve_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/chat/threads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lista de hilos (promotor: los suyos; agente: todos) */
+        get: operations["ChatController_listThreads_v1"];
+        put?: never;
+        /** Abre un hilo de soporte (promotor premium) */
+        post: operations["ChatController_createThread_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/chat/threads/{id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Historial de mensajes de un hilo */
+        get: operations["ChatController_messages_v1"];
+        put?: never;
+        /** Publica un mensaje en un hilo */
+        post: operations["ChatController_post_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/chat/threads/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cierra un hilo */
+        post: operations["ChatController_close_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/chat/threads/{id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reabre un hilo */
+        post: operations["ChatController_reopen_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/chat/threads/{id}/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reasigna un hilo a un asesor/admin (handoff, admin) */
+        post: operations["ChatController_assign_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3623,7 +3812,7 @@ export interface components {
              *       "buyer"
              *     ]
              */
-            roles: ("admin" | "promoter" | "promoter_staff" | "gate_operator" | "buyer")[];
+            roles: ("admin" | "advisor" | "promoter" | "promoter_staff" | "gate_operator" | "buyer")[];
             /**
              * @description Estado de la cuenta
              * @example active
@@ -3704,7 +3893,7 @@ export interface components {
              *       "promoter"
              *     ]
              */
-            roles: ("admin" | "promoter" | "promoter_staff" | "gate_operator" | "buyer")[];
+            roles: ("admin" | "advisor" | "promoter" | "promoter_staff" | "gate_operator" | "buyer")[];
         };
         UpdateUserStatusDto: {
             /**
@@ -4942,6 +5131,46 @@ export interface components {
             promoterTier: "free" | "premium";
             /** @description true = se exige autorización de admin; false = modo pruebas */
             requireApproval: boolean;
+            /**
+             * Format: date-time
+             * @description Fin de la prueba premium (null = premium pagado o free)
+             */
+            premiumTrialEndsAt: string | null;
+            /** @description true si el premium proviene de una prueba gratis vigente */
+            onTrial: boolean;
+            /** @description true si los beneficios premium (chat, destacar propio, dashboards) aplican ya */
+            premiumBenefitsActive: boolean;
+        };
+        SetTierDto: {
+            /**
+             * @description Nuevo plan
+             * @example premium
+             * @enum {string}
+             */
+            tier: "free" | "premium";
+        };
+        PremiumTierResponseDto: {
+            /** @enum {string} */
+            promoterTier: "free" | "premium";
+            /** Format: date-time */
+            premiumTrialEndsAt: string | null;
+            /** Format: date-time */
+            premiumSince: string | null;
+            /** @description true si el premium proviene de una prueba gratis vigente */
+            onTrial: boolean;
+        };
+        AdminSetTierDto: {
+            /**
+             * @description Nuevo plan
+             * @example premium
+             * @enum {string}
+             */
+            tier: "free" | "premium";
+            /**
+             * @description Si se otorga como PRUEBA gratis, días de la prueba (1–90)
+             * @example 7
+             */
+            trialDays?: number;
         };
         RequireApprovalResponseDto: {
             /** @description true = se exige autorización de admin; false = modo pruebas */
@@ -4958,7 +5187,7 @@ export interface components {
             email: string;
             firstName: string;
             lastName: string | null;
-            roles: ("admin" | "promoter" | "promoter_staff" | "gate_operator" | "buyer")[];
+            roles: ("admin" | "advisor" | "promoter" | "promoter_staff" | "gate_operator" | "buyer")[];
             /** @enum {string} */
             promoterStatus: "none" | "pending" | "approved" | "rejected" | "suspended";
             /** Format: date-time */
@@ -4985,6 +5214,8 @@ export interface components {
              * @description Admin que ejecutó (solo status; null = sistema)
              */
             adminId: string | null;
+            /** @description Nombre del admin que ejecutó (null = sistema) */
+            adminName: string | null;
             /** @description Estado origen (solo status) */
             statusFrom: string | null;
             /** @description Estado destino (solo status) */
@@ -7873,6 +8104,20 @@ export interface components {
              *     }
              */
             theme: Record<string, never>;
+            /**
+             * @description Perfil premium: interruptor maestro + prueba gratis + días (gating de UI del plan).
+             * @example {
+             *       "enabled": false,
+             *       "trialEnabled": false,
+             *       "trialDays": 7
+             *     }
+             */
+            premium: Record<string, never>;
+            /**
+             * @description Si el chat de soporte está habilitado.
+             * @example false
+             */
+            chatEnabled: boolean;
         };
         MaintenanceStatusDto: {
             /** @description true si la plataforma está en mantenimiento */
@@ -7934,7 +8179,7 @@ export interface components {
              * @example promotor@pasaeventos.com
              */
             email: string;
-            roles: ("admin" | "promoter" | "promoter_staff" | "gate_operator" | "buyer")[];
+            roles: ("admin" | "advisor" | "promoter" | "promoter_staff" | "gate_operator" | "buyer")[];
         };
         ImpersonationResponseDto: {
             /** @description Access token de vida corta que actúa como el promotor */
@@ -7962,6 +8207,40 @@ export interface components {
              * @example null
              */
             name: string | null;
+        };
+        AdvisorUnlockStatusDto: {
+            /** @description true si la exigencia de desbloqueo está activa (setting) */
+            lockEnabled: boolean;
+            /** @description true si el asesor puede mutar ya (ventana vigente o lock apagado) */
+            unlocked: boolean;
+            /**
+             * Format: date-time
+             * @description Fin de la ventana vigente
+             */
+            expiresAt: string | null;
+            /** @description true si hay una solicitud pendiente de aprobación */
+            pending: boolean;
+        };
+        ApproveAdvisorUnlockDto: {
+            /** @description Token del enlace de desbloqueo recibido por el admin */
+            token: string;
+        };
+        CreateThreadDto: {
+            /** @example Duda con mi evento */
+            subject: string;
+            /** @example Hola, tengo una duda sobre las comisiones. */
+            message: string;
+        };
+        PostMessageDto: {
+            /** @example Gracias, ya lo revisé. */
+            body: string;
+        };
+        AssignThreadDto: {
+            /**
+             * Format: uuid
+             * @description Asesor/admin al que se reasigna el hilo
+             */
+            assignedToId: string;
         };
     };
     responses: never;
@@ -9255,6 +9534,71 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["MyPromoterStatusResponseDto"];
                 };
+            };
+        };
+    };
+    PromotersController_setMyTier_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetTierDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PremiumTierResponseDto"];
+                };
+            };
+        };
+    };
+    PromotersController_adminSetTier_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminSetTierDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PremiumTierResponseDto"];
+                };
+            };
+        };
+    };
+    PromotersController_expireTrials_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -12723,6 +13067,204 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["NitNameLookupDto"];
                 };
+            };
+        };
+    };
+    AdvisorController_request_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdvisorController_status_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdvisorUnlockStatusDto"];
+                };
+            };
+        };
+    };
+    AdvisorController_approve_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApproveAdvisorUnlockDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ChatController_listThreads_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ChatController_createThread_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateThreadDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ChatController_messages_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ChatController_post_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PostMessageDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ChatController_close_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ChatController_reopen_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ChatController_assign_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignThreadDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
