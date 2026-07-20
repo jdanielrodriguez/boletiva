@@ -96,7 +96,7 @@ jobs:
       #     ./cloud-sql-proxy --unix-socket /cloudsql "${CLOUDSQL}" &
       #     sleep 6
       #     DATABASE_URL="$(gcloud secrets versions access latest --secret=pasaeventos-database-url)" \
-      #       npx prisma db push --skip-generate
+      #       npx prisma db push
 
       - name: Deploy to Cloud Run
         run: |

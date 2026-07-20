@@ -52,12 +52,17 @@ export const config = {
     statusPublished: 'Published',
     statusSuspended: 'Suspended',
     statusCancelled: 'Cancelled',
+    when: 'When',
+    timeUpcoming: 'Upcoming',
+    timeOngoing: 'Ongoing',
+    timePast: 'Past',
     localitiesCount: '{{n}} locality(-ies)',
     accounts: 'Accounts',
     accountsTitle: 'View event accounts',
     viewEvent: 'View event',
     viewEventTitle: 'Open the event',
-    feature: 'Feature',
+    feature: 'Feature on home',
+    featuredFlag: 'Featured',
     featureHint: 'Feature the event in the home slider (only upcoming published events show; if none, the slider is hidden).',
     featured: 'Event featured on home.',
     unfeatured: 'Event removed from home.',
@@ -386,6 +391,7 @@ export const config = {
     builtInEditWarn: 'System templates cannot be edited.',
     nameRequired: 'The template needs a name.',
     paramsJsonInvalid: 'Parameters must be valid JSON (e.g. {"rows":5,"cols":10}).',
+    paramsJsonHint: 'JSON object with the template parameters (e.g. {"rows":5,"cols":10}).',
     updated: 'Template updated.',
     created: 'Template created.',
     builtInSaveError: 'System templates cannot be modified.',
@@ -417,6 +423,8 @@ export const config = {
     saveTitle: 'Save setting',
     defaultLabel: 'default: {{value}}',
     loading: 'Loading settings…',
+    emptyTitle: 'No settings',
+    emptySubtitle: 'There are no settings available to display.',
     loadError: 'Could not load the settings.',
     saved: 'Setting "{{key}}" saved.',
     saveError: 'Could not save (check the value type/range).',
@@ -447,6 +455,11 @@ export const config = {
     theme_auto_by_hour: 'Auto theme by hour',
     theme_day_start_hour: 'Day start hour',
     theme_day_end_hour: 'Day end hour',
+    premium_enabled: 'Premium profile',
+    premium_trial_enabled: 'Premium free trial',
+    premium_trial_days: 'Premium trial days',
+    chat_enabled: 'Support chat',
+    advisor_lock_enabled: 'Advisor unlock',
   },
 
   /** Enum setting options (themes and slots). */
@@ -497,6 +510,14 @@ export const config = {
       'Switches the theme AUTOMATICALLY by time of day (America/Guatemala). When on, the theme toggle is disabled for everyone (the clock decides).',
     theme_day_start_hour: 'Hour (0–23, GT) when the Day slot begins in auto theme mode.',
     theme_day_end_hour: 'Hour (1–24, GT) when the Day slot ends (Night after that) in auto theme mode.',
+    premium_enabled:
+      'Master switch for the premium profile. When off, the plan card is hidden and premium benefits (chat, featuring your own event, advanced dashboards) apply to ALL promoters. When on, the free/premium distinction applies.',
+    premium_trial_enabled:
+      'Enables the premium free trial (only with the premium profile on). When on, choosing premium starts the trial automatically.',
+    premium_trial_days: 'Number of days the premium free trial lasts.',
+    chat_enabled: 'Enables the support chat (premium promoter ↔ advisor/admin). When off, no one sees the chat.',
+    advisor_lock_enabled:
+      'Requires an advisor to get an admin-approved unlock (via link) before editing. When off, advisors edit like the admin with no unlock.',
   },
 
   // --- Hall / template dashboards (separate page) ---

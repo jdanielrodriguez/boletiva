@@ -64,8 +64,8 @@
             <span class="validators-item-email">{{ v.email }}</span>
             <span
               class="badge"
-              [class.badge-ok]="v.status === 'active'"
-              [class.badge-off]="v.status !== 'active'"
+              [class.badge-active]="v.status === 'active'"
+              [class.badge-disabled]="v.status !== 'active'"
               data-testid="validators-status"
             >
               {{ (v.status === 'active' ? 'promoter.validators.active' : 'promoter.validators.disabledStatus') | translate }}

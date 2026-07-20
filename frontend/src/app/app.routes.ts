@@ -149,22 +149,38 @@ export const routes: Routes = [
   {
     path: 'configuracion',
     loadComponent: () => import('./pages/config/config.page').then((m) => m.ConfigPage),
-    canActivate: [roleGuard('admin')],
+    canActivate: [roleGuard('admin', 'advisor')],
     title: 'Configuración — Boletiva',
+  },
+  {
+    // B3: chat de soporte (promotor premium ↔ asesor/admin). El contenido se auto-gatea
+    // por `chat.enabled` + rol/beneficios; el backend es la autoridad.
+    path: 'soporte',
+    loadComponent: () => import('./pages/support/support-chat.page').then((m) => m.SupportChatPage),
+    canActivate: [authGuard, verifiedEmailGuard],
+    title: 'Soporte — Boletiva',
+  },
+  {
+    // B2: el admin llega aquí desde el enlace del correo para aprobar el desbloqueo del asesor.
+    path: 'admin/asesor-desbloqueo',
+    loadComponent: () =>
+      import('./pages/config/advisor-unlock-approve.page').then((m) => m.AdvisorUnlockApprovePage),
+    canActivate: [roleGuard('admin')],
+    title: 'Desbloqueo de asesor — Boletiva',
   },
   {
     // La LISTA de salones vive en `/configuracion?tab=salones` (v3.9 · B1). Aquí
     // solo quedan las páginas de creación/edición.
     path: 'configuracion/salones/nuevo',
     loadComponent: () => import('./pages/config/hall-edit.page').then((m) => m.HallEditPage),
-    canActivate: [roleGuard('admin')],
+    canActivate: [roleGuard('admin', 'advisor')],
     canDeactivate: [unsavedChangesGuard],
     title: 'Nuevo salón — Boletiva',
   },
   {
     path: 'configuracion/salones/:id/editar',
     loadComponent: () => import('./pages/config/hall-edit.page').then((m) => m.HallEditPage),
-    canActivate: [roleGuard('admin')],
+    canActivate: [roleGuard('admin', 'advisor')],
     canDeactivate: [unsavedChangesGuard],
     title: 'Editar salón — Boletiva',
   },
@@ -172,7 +188,7 @@ export const routes: Routes = [
     path: 'configuracion/salones/:id/dashboard',
     loadComponent: () =>
       import('./pages/config/hall-dashboard.page').then((m) => m.HallDashboardPage),
-    canActivate: [roleGuard('admin')],
+    canActivate: [roleGuard('admin', 'advisor')],
     title: 'Dashboard de salón — Boletiva',
   },
   {
@@ -180,14 +196,14 @@ export const routes: Routes = [
     // Aquí solo quedan las páginas de creación/edición.
     path: 'configuracion/plantillas/nuevo',
     loadComponent: () => import('./pages/config/template-edit.page').then((m) => m.TemplateEditPage),
-    canActivate: [roleGuard('admin')],
+    canActivate: [roleGuard('admin', 'advisor')],
     canDeactivate: [unsavedChangesGuard],
     title: 'Nueva plantilla — Boletiva',
   },
   {
     path: 'configuracion/plantillas/:id/editar',
     loadComponent: () => import('./pages/config/template-edit.page').then((m) => m.TemplateEditPage),
-    canActivate: [roleGuard('admin')],
+    canActivate: [roleGuard('admin', 'advisor')],
     canDeactivate: [unsavedChangesGuard],
     title: 'Editar plantilla — Boletiva',
   },
@@ -195,20 +211,20 @@ export const routes: Routes = [
     path: 'configuracion/plantillas/:id/dashboard',
     loadComponent: () =>
       import('./pages/config/template-dashboard.page').then((m) => m.TemplateDashboardPage),
-    canActivate: [roleGuard('admin')],
+    canActivate: [roleGuard('admin', 'advisor')],
     title: 'Dashboard de plantilla — Boletiva',
   },
   {
     path: 'configuracion/promotores/:id/historial',
     loadComponent: () =>
       import('./pages/config/promoter-history.page').then((m) => m.PromoterHistoryPage),
-    canActivate: [roleGuard('admin')],
+    canActivate: [roleGuard('admin', 'advisor')],
     title: 'Historial del promotor — Boletiva',
   },
   {
     path: 'configuracion/rentabilidad',
     loadComponent: () => import('./pages/config/profitability.page').then((m) => m.ProfitabilityPage),
-    canActivate: [roleGuard('admin')],
+    canActivate: [roleGuard('admin', 'advisor')],
     title: 'Rentabilidad por evento — Boletiva',
   },
   {

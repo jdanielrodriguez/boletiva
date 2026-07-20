@@ -1,5 +1,6 @@
 const { execSync } = require('child_process');
 const { PrismaClient } = require('@prisma/client');
+const { PrismaPg } = require('@prisma/adapter-pg');
 
 /**
  * Teardown GLOBAL de la suite e2e (v3.8). Los e2e escriben libremente en la BD
@@ -14,7 +15,9 @@ const { PrismaClient } = require('@prisma/client');
  * no la limpieza). Se deja en CommonJS (.js) para que Jest lo cargue sin transform.
  */
 module.exports = async function globalTeardown() {
-  const prisma = new PrismaClient();
+  const prisma = new PrismaClient({
+    adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+  });
   try {
     const rows = await prisma.$queryRawUnsafe(
       `SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename <> '_prisma_migrations'`,

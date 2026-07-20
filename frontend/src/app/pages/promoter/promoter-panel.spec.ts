@@ -4,6 +4,8 @@ import { provideRouter, Router } from '@angular/router';
 import { of } from 'rxjs';
 import { CategoriesApi } from '../../core/api/categories.api';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
+import { PromotersApi } from '../../core/api/promoters.api';
+import { PublicConfigStore } from '../../core/config/public-config.store';
 import { SessionStore } from '../../core/auth/session.store';
 import { UsersApi } from '../../core/api/users.api';
 import { initI18nTesting, provideI18nTesting } from '../../core/i18n/testing';
@@ -25,6 +27,21 @@ describe('PromoterPanel (v3 grid)', () => {
         { provide: SessionStore, useValue: { user: () => null } },
         { provide: UsersApi, useValue: { markTourSeen: () => of({}) } },
         { provide: CategoriesApi, useValue: { list: () => of([]) } },
+        {
+          provide: PromotersApi,
+          useValue: {
+            myStatus: () => of({ promoterTier: 'free', premiumBenefitsActive: true, premiumTrialEndsAt: null }),
+          } as unknown as PromotersApi,
+        },
+        {
+          provide: PublicConfigStore,
+          useValue: {
+            load: () => undefined,
+            premium: () => ({ enabled: false, trialEnabled: false, trialDays: 7 }),
+            tourEnabled: () => false,
+            chatEnabled: () => false,
+          },
+        },
         provideZonelessChangeDetection(),
         ...provideI18nTesting(),
         provideRouter([]),
@@ -182,5 +199,21 @@ describe('PromoterPanel (v3 grid)', () => {
     fixture.detectChanges();
     // El título "Mis eventos" pasa a "My events".
     expect(el.querySelector('h1')?.textContent).toContain('My events');
+  });
+
+  // --- Premium (B1): destacar propio + chip de plan ---
+  it('destacar: con beneficios activos, el evento publicado ofrece el switch y llama a promote', async () => {
+    const promote = jasmine.createSpy('promote').and.returnValue(of(EVENTS[1]));
+    await setup({ promote });
+    const sw = el.querySelector('[data-testid="ev-promote-e2"]') as HTMLButtonElement; // e2 = published
+    expect(sw).not.toBeNull(); // premium off (stub) → beneficios para todos → switch visible
+    sw.click();
+    fixture.detectChanges();
+    expect(promote).toHaveBeenCalledWith('e2', true);
+  });
+
+  it('chip de plan: con premium APAGADO no se muestra (sin distinción)', async () => {
+    await setup();
+    expect(el.querySelector('[data-testid="tier-chip"]')).toBeNull();
   });
 });

@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, HostListener, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -7,6 +7,7 @@ import { PromotersApi, type PromoterStatusResponseDto, type PromoterTier } from 
 import { AuthRefreshService } from '../../core/auth/auth-refresh.service';
 import { SessionStore } from '../../core/auth/session.store';
 import { TokenStore } from '../../core/auth/token-store.service';
+import { PublicConfigStore } from '../../core/config/public-config.store';
 import { RecaptchaService } from '../../core/security/recaptcha.service';
 import { ToastService } from '../../core/ui/toast.service';
 import { IconComponent } from '../../shared/icon/icon.component';
@@ -53,7 +54,7 @@ const PLANS: Plan[] = [
       'becomePromoter.planPremiumF5',
     ],
     recommended: true,
-    comingSoon: true,
+    comingSoon: false,
   },
 ];
 
@@ -84,7 +85,18 @@ export class BecomePromoterPage {
   private readonly router = inject(Router);
   private readonly toasts = inject(ToastService);
   private readonly translate = inject(TranslateService);
+  protected readonly config = inject(PublicConfigStore);
 
+  /** ¿La distinción premium está activa? (si no, se oculta la tarjeta de plan premium). */
+  protected readonly premiumEnabled = computed(() => this.config.premium().enabled);
+  protected readonly trialDays = computed(() => this.config.premium().trialDays);
+  /**
+   * Planes visibles: con premium apagado se muestra SOLO el free (los beneficios
+   * aplican a todos, no hay que elegir). Con premium encendido, ambos.
+   */
+  protected readonly visiblePlans = computed(() =>
+    this.premiumEnabled() ? PLANS : PLANS.filter((p) => p.tier !== 'premium'),
+  );
   protected readonly plans = PLANS;
   protected readonly view = signal<View>('loading');
   protected readonly working = signal(false);
@@ -102,8 +114,32 @@ export class BecomePromoterPage {
   protected readonly regFirstName = signal('');
   protected readonly regEmail = signal('');
   protected readonly regPassword = signal('');
+  /** Mostrar/ocultar la contraseña del registro. */
+  protected readonly showPassword = signal(false);
+
+  /** ¿Hay algún modal abierto? (para cerrar con Escape/backdrop). */
+  protected readonly anyModalOpen = computed(
+    () => this.showInfo() || this.showRegister() || this.showStarted(),
+  );
+
+  /** Cierra el modal abierto (Escape / clic en backdrop / botón X). Respeta `working`. */
+  protected dismissModal(): void {
+    if (this.working()) return;
+    if (this.showStarted()) {
+      this.closeStarted();
+      return;
+    }
+    this.showInfo.set(false);
+    this.showRegister.set(false);
+  }
+
+  @HostListener('document:keydown.escape')
+  protected onEscape(): void {
+    if (this.anyModalOpen()) this.dismissModal();
+  }
 
   constructor() {
+    this.config.load(); // asegura tener el gating premium al render (idempotente)
     // Ya es promotor/admin → no tiene sentido solicitar; a su panel.
     if (this.session.hasAnyRole(['promoter', 'admin'])) {
       void this.router.navigate(['/promotor']);

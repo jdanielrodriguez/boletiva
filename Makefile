@@ -183,7 +183,7 @@ endef
 prod-db-seed:
 	@URL="$(call _prod_db_url)"; [ -n "$$URL" ] || { echo '❌ No pude leer $(PROD_DB_SECRET) (¿gcloud autenticado?)'; exit 1; }; \
 	echo "→ Sembrando baseline en PROD ($(PROD_PROJECT))…"; \
-	docker exec -e DATABASE_URL="$$URL" -w /app/api $(API) sh -lc 'npx prisma db push --skip-generate --accept-data-loss && npm run db:seed'
+	docker exec -e DATABASE_URL="$$URL" -w /app $(API) sh -lc 'npx prisma db push --accept-data-loss && npm run db:seed'
 
 # ⚠️ DESTRUCTIVO: borra TODA la data de PROD y re-siembra la baseline (pruebas alpha).
 .PHONY: prod-db-reset
@@ -192,7 +192,7 @@ prod-db-reset:
 	read ans; [ "$$ans" = "RESET" ] || { echo 'Cancelado.'; exit 1; }; \
 	URL="$(call _prod_db_url)"; [ -n "$$URL" ] || { echo '❌ No pude leer $(PROD_DB_SECRET)'; exit 1; }; \
 	echo "→ Truncando + resembrando PROD…"; \
-	docker exec -e DATABASE_URL="$$URL" -w /app $(API) sh -lc 'cd /app/api && npx prisma db push --skip-generate --accept-data-loss && npx ts-node --project tsconfig.tools.json ../prisma/truncate.ts && npm run db:seed'
+	docker exec -e DATABASE_URL="$$URL" -w /app $(API) sh -lc 'npx prisma db push --accept-data-loss && npx ts-node --project tsconfig.tools.json prisma/truncate.ts && npm run db:seed'
 
 # --- Logs de PROD limpios (sin ruido) ---
 .PHONY: prod-logs

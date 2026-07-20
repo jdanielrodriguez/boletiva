@@ -69,20 +69,20 @@
         </div>
         <div class="kpi">
           <span class="kpi-label">{{ 'promoter.dash.gross' | translate }}</span>
-          <span class="kpi-value">{{ currency() }} {{ d.summary.gross | money }}</span>
+          <span class="kpi-value">{{ d.summary.gross | money }}</span>
         </div>
         <div class="kpi">
           <span class="kpi-label">{{ 'promoter.dash.net' | translate }}</span>
-          <span class="kpi-value accent">{{ currency() }} {{ d.summary.net | money }}</span>
+          <span class="kpi-value accent">{{ d.summary.net | money }}</span>
         </div>
         <div class="kpi">
           <span class="kpi-label">{{ 'promoter.dash.services' | translate }}</span>
-          <span class="kpi-value">{{ currency() }} {{ d.summary.services | money }}</span>
+          <span class="kpi-value">{{ d.summary.services | money }}</span>
         </div>
         @if (isAdmin()) {
           <div class="kpi">
             <span class="kpi-label">{{ 'promoter.dash.iva' | translate }}</span>
-            <span class="kpi-value">{{ currency() }} {{ d.summary.iva | money }}</span>
+            <span class="kpi-value">{{ d.summary.iva | money }}</span>
           </div>
         }
         <div class="kpi">
@@ -99,7 +99,7 @@
         </div>
         <div class="kpi">
           <span class="kpi-label">{{ 'promoter.dash.refunds' | translate }}</span>
-          <span class="kpi-value">{{ currency() }} {{ d.summary.refundsIssued | money }}</span>
+          <span class="kpi-value">{{ d.summary.refundsIssued | money }}</span>
         </div>
       </div>
 
@@ -153,10 +153,10 @@
                   <td>{{ r.label }}</td>
                   <td class="num">{{ r.events }}</td>
                   <td class="num">{{ r.ticketsSold }}</td>
-                  <td class="num">{{ currency() }} {{ r.gross | money }}</td>
-                  <td class="num accent">{{ currency() }} {{ r.net | money }}</td>
-                  <td class="num">{{ currency() }} {{ r.services | money }}</td>
-                  <td class="num">{{ currency() }} {{ r.refunds | money }}</td>
+                  <td class="num">{{ r.gross | money }}</td>
+                  <td class="num accent">{{ r.net | money }}</td>
+                  <td class="num">{{ r.services | money }}</td>
+                  <td class="num">{{ r.refunds | money }}</td>
                   <td class="num">{{ r.occupancyPct }}%</td>
                   <td class="num">{{ r.checkedIn }}</td>
                 </tr>

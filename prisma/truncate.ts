@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { makePrismaClient } from './prisma-client';
 
 /**
  * Trunca TODAS las tablas del esquema público (CASCADE resuelve las FKs), dejando
@@ -6,7 +6,7 @@ import { PrismaClient } from '@prisma/client';
  * tanto local como contra PROD (el Makefile `prod-db-reset` lo invoca inyectando el
  * DATABASE_URL de Secret Manager). DESTRUCTIVO: no siembra (eso lo hace `db:seed`).
  */
-const prisma = new PrismaClient();
+const prisma = makePrismaClient();
 
 async function main(): Promise<void> {
   const rows = await prisma.$queryRawUnsafe<{ tablename: string }[]>(

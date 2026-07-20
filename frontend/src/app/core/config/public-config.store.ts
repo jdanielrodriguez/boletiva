@@ -34,6 +34,12 @@ export class PublicConfigStore {
   private readonly _tourEnabled = signal(true); // tour de onboarding activo por defecto
   private readonly _theme = signal<ThemeConfig>(DEFAULT_THEME);
   private readonly _recaptchaSiteKey = signal('');
+  private readonly _premium = signal<{ enabled: boolean; trialEnabled: boolean; trialDays: number }>({
+    enabled: false,
+    trialEnabled: false,
+    trialDays: 7,
+  });
+  private readonly _chatEnabled = signal(false);
   private readonly _loaded = signal(false);
 
   readonly allowVisitorLangSwitch = this._allowVisitorLangSwitch.asReadonly();
@@ -46,6 +52,10 @@ export class PublicConfigStore {
   readonly theme = this._theme.asReadonly();
   /** Site key pública de reCAPTCHA v3 ('' = deshabilitado; RecaptchaService la lee). */
   readonly recaptchaSiteKey = this._recaptchaSiteKey.asReadonly();
+  /** Perfil premium: enabled (distinción free/premium), trialEnabled, trialDays. */
+  readonly premium = this._premium.asReadonly();
+  /** ¿El chat de soporte está habilitado globalmente? */
+  readonly chatEnabled = this._chatEnabled.asReadonly();
   /** true una vez resuelta (o fallida) la consulta inicial. */
   readonly loaded = this._loaded.asReadonly();
 
@@ -73,6 +83,8 @@ export class PublicConfigStore {
         this._tourEnabled.set(c.tourEnabled ?? true);
         if (c.theme) this._theme.set(c.theme);
         this._recaptchaSiteKey.set(c.recaptchaSiteKey ?? '');
+        if (c.premium) this._premium.set(c.premium);
+        this._chatEnabled.set(c.chatEnabled ?? false);
         this._loaded.set(true);
       },
       error: () => this._loaded.set(true),
@@ -100,5 +112,18 @@ export class PublicConfigStore {
   /** Encender/apagar el tema automático por hora sin F5 (consola admin). */
   setThemeAutoByHour(value: boolean): void {
     this._theme.update((t) => ({ ...t, autoByHour: value }));
+  }
+  /** Togglear el interruptor maestro premium / prueba / días sin F5 (consola admin). */
+  setPremiumEnabled(value: boolean): void {
+    this._premium.update((p) => ({ ...p, enabled: value }));
+  }
+  setPremiumTrialEnabled(value: boolean): void {
+    this._premium.update((p) => ({ ...p, trialEnabled: value }));
+  }
+  setPremiumTrialDays(value: number): void {
+    this._premium.update((p) => ({ ...p, trialDays: value }));
+  }
+  setChatEnabled(value: boolean): void {
+    this._chatEnabled.set(value);
   }
 }

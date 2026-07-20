@@ -26,4 +26,4 @@ COPY . .
 EXPOSE 8080
 
 # Genera el cliente Prisma, sincroniza el esquema con la BD y levanta la API en watch.
-CMD ["sh", "-c", "npx prisma generate && npx prisma db push --skip-generate --accept-data-loss && npx nx serve api"]
+CMD ["sh", "-c", "npx prisma generate && npx prisma db push --accept-data-loss && npx nx serve api"]

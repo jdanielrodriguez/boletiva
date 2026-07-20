@@ -31,6 +31,8 @@ export interface ConfirmRequest {
 @Component({
   selector: 'app-confirm-dialog',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // Escape cancela (nunca confirma → seguro incluso en acciones destructivas).
+  host: { '(document:keydown.escape)': 'cancelled.emit()' },
   imports: [IconComponent, TranslatePipe],
   template: `<div class="modal-backdrop" data-testid="confirm-dialog">
     <div class="modal-card confirm-card" role="alertdialog" aria-modal="true" [attr.aria-labelledby]="'confirm-title'" [attr.aria-describedby]="'confirm-msg'">
@@ -67,12 +69,12 @@ export interface ConfirmRequest {
         width: 56px;
         height: 56px;
         border-radius: 50%;
-        background: rgba(123, 92, 255, 0.14);
-        color: var(--pe-primary, #7b5cff);
+        background: var(--pe-accent-soft);
+        color: var(--pe-primary);
       }
       .confirm-icon.is-danger {
-        background: rgba(239, 68, 68, 0.16);
-        color: #ef4444;
+        background: var(--pe-danger-soft);
+        color: var(--pe-danger);
       }
       .confirm-title {
         margin: 0;

@@ -5,13 +5,11 @@
 // El pricing, órdenes, pagos, boletos, transferencias y ledger llegan en 2+.
 
 generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // ---------------------------------------------------------------------------
@@ -20,10 +18,76 @@ datasource db {
 
 enum Role {
   admin
+  advisor // asesor de soporte: hace lo del admin MENOS la tab "Sistema"; muta con desbloqueo por link del admin (B2)
   promoter
   promoter_staff
   gate_operator
   buyer
+}
+
+/// Desbloqueo temporal de un ASESOR para MUTAR (B2). El asesor lo solicita y se
+/// aprueba desde un enlace que recibe el ADMIN; abre una ventana de tiempo.
+model AdvisorUnlock {
+  id           String    @id @default(uuid()) @db.Uuid
+  advisorId    String    @map("advisor_id") @db.Uuid
+  tokenHash    String    @unique @map("token_hash") // sha256 del token del enlace (se muestra una vez)
+  approved     Boolean   @default(false)
+  approvedById String?   @map("approved_by_id") @db.Uuid
+  approvedAt   DateTime? @map("approved_at")
+  expiresAt    DateTime? @map("expires_at") // fin de la ventana (se fija al aprobar)
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  advisor    User  @relation("advisorUnlocks", fields: [advisorId], references: [id], onDelete: Cascade)
+  approvedBy User? @relation("advisorUnlocksApproved", fields: [approvedById], references: [id])
+
+  @@index([advisorId])
+  @@map("advisor_unlocks")
+}
+
+/// Estado de un hilo de chat de soporte (B3).
+enum ChatThreadStatus {
+  open
+  closed
+}
+
+/// Hilo (ticket) de chat de soporte de un promotor PREMIUM (B3). Varios por promotor,
+/// con estado abierto/cerrado + historial. `answered` = si ya respondió un agente
+/// (para el fallback: si nadie responde en 2 min → correo al admin).
+model ChatThread {
+  id            String           @id @default(uuid()) @db.Uuid
+  promoterId    String           @map("promoter_id") @db.Uuid
+  subject       String
+  status        ChatThreadStatus @default(open)
+  assignedToId  String?          @map("assigned_to_id") @db.Uuid
+  answered      Boolean          @default(false)
+  lastMessageAt DateTime         @default(now()) @map("last_message_at")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+
+  promoter   User          @relation("chatPromoter", fields: [promoterId], references: [id], onDelete: Cascade)
+  assignedTo User?         @relation("chatAssigned", fields: [assignedToId], references: [id])
+  messages   ChatMessage[]
+
+  @@index([promoterId])
+  @@index([assignedToId])
+  @@index([status, lastMessageAt])
+  @@map("chat_threads")
+}
+
+/// Mensaje de un hilo de chat (B3). `senderRole` deja auditar quién habló (promotor/asesor/admin).
+model ChatMessage {
+  id         String   @id @default(uuid()) @db.Uuid
+  threadId   String   @map("thread_id") @db.Uuid
+  senderId   String   @map("sender_id") @db.Uuid
+  senderRole Role     @map("sender_role")
+  body       String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender User       @relation("chatSender", fields: [senderId], references: [id])
+
+  @@index([threadId, createdAt])
+  @@map("chat_messages")
 }
 
 enum UserStatus {
@@ -259,6 +323,11 @@ model User {
   // un admin lo aprueba antes de que pueda operar (salvo en modo pruebas).
   promoterStatus    PromoterStatus @default(none) @map("promoter_status")
   promoterTier      PromoterTier   @default(free) @map("promoter_tier")
+  // Premium (B1): si `premiumTrialEndsAt` está en el futuro, el tier premium viene de una
+  // PRUEBA GRATIS (al vencer, un job lo baja a free). null con tier=premium = premium PAGADO
+  // (permanente, exige tarjeta). `premiumSince` = cuándo se activó premium (informativo).
+  premiumTrialEndsAt DateTime? @map("premium_trial_ends_at")
+  premiumSince       DateTime? @map("premium_since")
   promoterAppliedAt DateTime?      @map("promoter_applied_at")
   promoterDecidedAt DateTime?      @map("promoter_decided_at")
   promoterNote      String?        @map("promoter_note") // motivo de rechazo/suspensión
@@ -307,6 +376,11 @@ model User {
   promoterInvitations PromoterInvitation[] @relation("InvitedBy")
   validatorInvites ValidatorInvitation[] @relation("ValidatorOperator")
   savedCards SavedCard[]
+  advisorUnlocks         AdvisorUnlock[] @relation("advisorUnlocks")
+  advisorUnlocksApproved AdvisorUnlock[] @relation("advisorUnlocksApproved")
+  chatThreads         ChatThread[]  @relation("chatPromoter")
+  chatThreadsAssigned ChatThread[]  @relation("chatAssigned")
+  chatMessages        ChatMessage[] @relation("chatSender")
 
   @@index([status])
   @@map("users")

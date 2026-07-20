@@ -20,7 +20,7 @@ import { SessionStore } from '../../core/auth/session.store';
       <div class="footer-inner">
         <div class="footer-brand" aria-hidden="true"></div>
         <div class="footer-legal-block">
-          <p class="footer-copy">{{ 'shell.copyright' | translate }}</p>
+          <p class="footer-copy">{{ 'shell.copyright' | translate: { year: year } }}</p>
           <nav class="footer-legal" [attr.aria-label]="'shell.legal' | translate">
             <a routerLink="/terminos">{{ 'shell.terms' | translate }}</a>
           </nav>
@@ -51,4 +51,6 @@ import { SessionStore } from '../../core/auth/session.store';
 })
 export class Footer {
   protected readonly session = inject(SessionStore);
+  /** Año dinámico para el copyright (evita que quede viejo). */
+  protected readonly year = new Date().getFullYear();
 }

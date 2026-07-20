@@ -13,6 +13,8 @@ export const checkout = {
   goToTicketsNow: 'View my tickets now',
   failedTitle: 'The payment was not completed',
   orderWas: 'The order was {{state}}.',
+  failedHint: 'No charge was made. You can pick your tickets again and retry.',
+  backToCatalog: 'Browse events',
   expired: 'expired',
   cancelled: 'cancelled',
   paymentMethod: 'Payment method',

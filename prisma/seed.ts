@@ -1,4 +1,4 @@
-import { PrismaClient, PromoterStatus, Role } from '@prisma/client';
+import { PromoterStatus, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import {
   BASE_FIXED_FEES,
@@ -7,8 +7,9 @@ import {
   PLATFORM_FEE_PCT,
   toFeeString,
 } from '../api/src/config/pricing-defaults';
+import { makePrismaClient } from './prisma-client';
 
-const prisma = new PrismaClient();
+const prisma = makePrismaClient();
 
 /**
  * Seed base (BASELINE MÍNIMA v3.8): SOLO los datos funcionales imprescindibles para
@@ -103,6 +104,32 @@ async function seedSettings(): Promise<void> {
       key: 'theme.allow_visitor_switch',
       value: false,
       description: 'Mostrar el botón de cambio de tema (día/noche) a todos (false = solo admin)',
+    },
+    // Premium / Asesor / Chat (B1/B2/B3) — apagados por defecto (beneficios para todos).
+    {
+      key: 'premium.enabled',
+      value: false,
+      description: 'Interruptor maestro del perfil premium (false = beneficios para todos los promotores)',
+    },
+    {
+      key: 'premium.trial_enabled',
+      value: false,
+      description: 'Habilita la prueba gratis de premium (solo con premium.enabled=true)',
+    },
+    {
+      key: 'premium.trial_days',
+      value: 7,
+      description: 'Días de la prueba gratis de premium',
+    },
+    {
+      key: 'chat.enabled',
+      value: false,
+      description: 'Habilita el chat de soporte (promotor premium ↔ asesor/admin)',
+    },
+    {
+      key: 'advisor.lock_enabled',
+      value: true,
+      description: 'Exigir desbloqueo por tiempo (aprobado por admin) para que un asesor mute datos',
     },
   ];
   for (const s of defaults) {

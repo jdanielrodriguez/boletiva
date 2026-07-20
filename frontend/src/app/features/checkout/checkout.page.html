@@ -15,10 +15,14 @@
         </a>
       </app-confirmation-splash>
     } @else if (status() === 'cancelled' || status() === 'expired') {
-      <div class="failed" data-testid="status-failed">
-        <h2>{{ 'checkout.failedTitle' | translate }}</h2>
-        <p>{{ 'checkout.orderWas' | translate: { state: (status() === 'expired' ? ('checkout.expired' | translate) : ('checkout.cancelled' | translate)) } }}</p>
-      </div>
+      <app-empty-state
+        variant="card"
+        data-testid="status-failed"
+        [title]="'checkout.failedTitle' | translate"
+        [subtitle]="('checkout.orderWas' | translate: { state: (status() === 'expired' ? ('checkout.expired' | translate) : ('checkout.cancelled' | translate)) }) + ' ' + ('checkout.failedHint' | translate)"
+        [ctaLabel]="'checkout.backToCatalog' | translate"
+        ctaLink="/"
+      />
     } @else {
       @if (processing()) {
         <app-loading

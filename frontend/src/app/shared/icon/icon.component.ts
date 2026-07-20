@@ -30,6 +30,7 @@ export type IconName =
   | 'help'
   | 'draft'
   | 'eraser'
+  | 'chart'
   | 'banner';
 
 /**
@@ -182,6 +183,10 @@ export type IconName =
         <path d="m7 21-4.3-4.3a1.7 1.7 0 0 1 0-2.4l9.6-9.6a1.7 1.7 0 0 1 2.4 0l5.6 5.6a1.7 1.7 0 0 1 0 2.4L13 21" />
         <path d="M22 21H7" />
         <path d="m5 11 9 9" />
+      }
+      @case ('chart') {
+        <path d="M3 3v18h18" />
+        <path d="M7 14l3-4 3 3 5-7" />
       }
     }
   </svg>`,

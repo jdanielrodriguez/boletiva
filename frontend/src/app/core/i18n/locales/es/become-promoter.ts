@@ -58,7 +58,8 @@ export const becomePromoter = {
   planPremiumF3: 'Eventos destacados con prioridad',
   planPremiumF4: 'Dashboards y reportes avanzados',
   planPremiumF5: 'Soporte prioritario',
-  premiumNote: 'Las funciones Premium se irán activando pronto; hoy solo registramos tu preferencia de plan.',
+  premiumNote: 'Premium desbloquea chat de soporte, destacar tu propio evento y dashboards avanzados. Para activarlo por pago necesitas una tarjeta registrada.',
+  trialHint: 'Incluye {{days}} días de prueba gratis.',
 
   // --- Registro de visitante (sin sesión) ---
   guestCta: 'Crea tu cuenta de promotor',
@@ -74,5 +75,6 @@ export const becomePromoter = {
   regCheckEmail:
     'Si el correo es válido, te enviamos instrucciones para continuar. Revisa tu bandeja de entrada.',
   regCompleteFields: 'Completa nombre, correo y contraseña (mínimo 8 caracteres).',
+  regPasswordHint: 'Mínimo 8 caracteres.',
   selectedPlan: 'Plan seleccionado',
 };

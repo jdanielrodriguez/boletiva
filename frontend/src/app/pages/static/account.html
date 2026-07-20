@@ -3,12 +3,12 @@
 
   <div class="account-grid">
     <nav class="account-menu" [attr.aria-label]="'account.sectionsAria' | translate">
-      <button type="button" [class.active]="section() === 'perfil'" (click)="select('perfil')">{{ 'account.nav.profile' | translate }}</button>
-      <button type="button" [class.active]="section() === 'metodos'" (click)="select('metodos')" data-testid="menu-metodos">{{ 'account.nav.methods' | translate }}</button>
-      <button type="button" [class.active]="section() === 'facturacion'" (click)="select('facturacion')" data-testid="menu-facturacion">{{ 'account.nav.billing' | translate }}</button>
-      <button type="button" [class.active]="section() === 'wallet'" (click)="select('wallet')" data-testid="menu-wallet">{{ 'account.nav.wallet' | translate }}</button>
-      <button type="button" [class.active]="section() === 'activos'" (click)="select('activos')" data-testid="menu-activos">{{ 'account.nav.activeTickets' | translate }}</button>
-      <button type="button" [class.active]="section() === 'pasados'" (click)="select('pasados')" data-testid="menu-pasados">{{ 'account.nav.pastTickets' | translate }}</button>
+      <button type="button" [class.active]="section() === 'perfil'" [attr.aria-current]="section() === 'perfil' ? 'page' : null" (click)="select('perfil')">{{ 'account.nav.profile' | translate }}</button>
+      <button type="button" [class.active]="section() === 'metodos'" [attr.aria-current]="section() === 'metodos' ? 'page' : null" (click)="select('metodos')" data-testid="menu-metodos">{{ 'account.nav.methods' | translate }}</button>
+      <button type="button" [class.active]="section() === 'facturacion'" [attr.aria-current]="section() === 'facturacion' ? 'page' : null" (click)="select('facturacion')" data-testid="menu-facturacion">{{ 'account.nav.billing' | translate }}</button>
+      <button type="button" [class.active]="section() === 'wallet'" [attr.aria-current]="section() === 'wallet' ? 'page' : null" (click)="select('wallet')" data-testid="menu-wallet">{{ 'account.nav.wallet' | translate }}</button>
+      <button type="button" [class.active]="section() === 'activos'" [attr.aria-current]="section() === 'activos' ? 'page' : null" (click)="select('activos')" data-testid="menu-activos">{{ 'account.nav.activeTickets' | translate }}</button>
+      <button type="button" [class.active]="section() === 'pasados'" [attr.aria-current]="section() === 'pasados' ? 'page' : null" (click)="select('pasados')" data-testid="menu-pasados">{{ 'account.nav.pastTickets' | translate }}</button>
     </nav>
 
     <div class="account-content">
@@ -251,7 +251,7 @@
           @if (cards().length > 0) {
             <ul class="card-methods" data-testid="cards-list">
               @for (c of cards(); track c.id) {
-                <li class="method-card">
+                <li class="method-card" [class.is-default]="c.isDefault">
                   <span class="method-brand">{{ c.brand | uppercase }}</span>
                   <span class="method-dots">•••• {{ c.last4 }}</span>
                   @if (c.isDefault) {
@@ -337,11 +337,11 @@
               <div class="field field-dir">
                 <label>{{ 'account.billing.movementType' | translate }}</label>
                 <div class="seg" role="group" [attr.aria-label]="'account.billing.movementType' | translate" data-testid="filter-dir">
-                  <button type="button" [class.active]="movementDir() === ''" (click)="setMovementDir('')" data-testid="dir-all">{{ 'common.all' | translate }}</button>
+                  <button type="button" [class.active]="movementDir() === ''" [attr.aria-pressed]="movementDir() === ''" (click)="setMovementDir('')" data-testid="dir-all">{{ 'common.all' | translate }}</button>
                   @if (showIncomeFilter()) {
-                    <button type="button" [class.active]="movementDir() === 'income'" (click)="setMovementDir('income')" data-testid="dir-income">{{ 'account.billing.income' | translate }}</button>
+                    <button type="button" [class.active]="movementDir() === 'income'" [attr.aria-pressed]="movementDir() === 'income'" (click)="setMovementDir('income')" data-testid="dir-income">{{ 'account.billing.income' | translate }}</button>
                   }
-                  <button type="button" [class.active]="movementDir() === 'expense'" (click)="setMovementDir('expense')" data-testid="dir-expense">{{ 'account.billing.expense' | translate }}</button>
+                  <button type="button" [class.active]="movementDir() === 'expense'" [attr.aria-pressed]="movementDir() === 'expense'" (click)="setMovementDir('expense')" data-testid="dir-expense">{{ 'account.billing.expense' | translate }}</button>
                 </div>
               </div>
               @if (movementStatuses().length > 0) {
@@ -520,7 +520,7 @@
                 @for (o of orders().slice(0, 5); track o.id) {
                   <li>
                     <span>{{ o.createdAt | localizedDate: 'dd/MM/yyyy' }}</span>
-                    <span class="badge badge-{{ o.status }}">{{ o.status }}</span>
+                    <span class="badge badge-{{ o.status }}">{{ o.status | statusLabel }}</span>
                     <span>{{ o.total | money }}</span>
                     <button type="button" class="link-btn" (click)="verCompra(o.id)" data-testid="wallet-ver-transaccion">{{ 'account.wallet.viewTransaction' | translate }}</button>
                   </li>
@@ -550,7 +550,7 @@
                   <select id="wd-f-status" [ngModel]="wdFilterStatus()" (ngModelChange)="wdFilterStatus.set($event)" name="wdfstatus" data-testid="wd-filter-status">
                     <option value="">{{ 'common.all' | translate }}</option>
                     @for (s of withdrawalStatuses(); track s) {
-                      <option [value]="s">{{ s }}</option>
+                      <option [value]="s">{{ s | statusLabel }}</option>
                     }
                   </select>
                 </div>
@@ -565,7 +565,7 @@
                     <li>
                       <span>{{ w.amount | money }}</span>
                       <span class="muted">{{ 'account.wallet.net' | translate }} {{ w.net | money }}</span>
-                      <span class="badge badge-{{ w.status }}">{{ w.status }}</span>
+                      <span class="badge badge-{{ w.status }}">{{ w.status | statusLabel }}</span>
                       @if (w.status === 'pending') {
                         <button type="button" (click)="askCancelWithdrawal(w)" data-testid="cancel-withdrawal" [title]="'account.wallet.cancelWithdrawalTitle' | translate">
                           <app-icon name="cancel" /> {{ 'common.cancel' | translate }}
@@ -764,7 +764,7 @@
                           <li>
                             <span>{{ t.serial }}</span>
                             <span class="muted">{{ t.localityName ?? ('account.general' | translate) }}@if (t.seatLabel) { · {{ 'account.tickets.seat' | translate }} {{ t.seatLabel }}}</span>
-                            @if (t.amount) { <span class="ticket-amount">Q{{ t.amount }}</span> }
+                            @if (t.amount) { <span class="ticket-amount">{{ t.amount | money }}</span> }
                           </li>
                         }
                       </ul>

@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swa
 import { Request } from 'express';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { AdminOnly } from '../../common/decorators/admin-only.decorator';
 import { AuthUser, CurrentUser } from '../../common/decorators/current-user.decorator';
 import { MessageResponseDto } from '../../common/dto/response.dto';
 import { ImpersonationService } from './impersonation.service';
@@ -10,6 +11,7 @@ import { ImpersonationResponseDto } from './dto/impersonation.dto';
 
 @ApiTags('admin')
 @ApiBearerAuth()
+@AdminOnly()
 @Controller('admin')
 export class AdminController {
   constructor(private readonly impersonation: ImpersonationService) {}

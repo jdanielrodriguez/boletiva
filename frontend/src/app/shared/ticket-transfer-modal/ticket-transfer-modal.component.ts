@@ -24,6 +24,7 @@ type Step = 'info' | 'share';
 @Component({
   selector: 'app-ticket-transfer-modal',
   imports: [FormsModule, TranslatePipe],
+  host: { '(document:keydown.escape)': 'closed.emit()' },
   template: `
     <div class="modal-backdrop" data-testid="transfer-modal">
       <div class="modal-card transfer-modal" role="dialog" aria-modal="true" aria-labelledby="tt-title">

@@ -355,7 +355,6 @@ export class VenuesService {
           let created = 0;
           let updated = 0;
           let deleted = 0;
-          let preserved = 0;
 
           // (3) Borrar SOLO asientos disponibles cuyo label ya no está en el layout.
           const toDelete = existing
@@ -366,7 +365,7 @@ export class VenuesService {
             deleted = del.count;
           }
           // (4) Ocupados fuera del layout nuevo → preservados (arrastrados).
-          preserved = existing.filter(
+          const preserved = existing.filter(
             (s) => occupied.has(s.id) && !incomingSet.has(s.label),
           ).length;
 

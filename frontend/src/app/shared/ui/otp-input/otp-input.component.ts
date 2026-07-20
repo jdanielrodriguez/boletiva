@@ -8,6 +8,7 @@ import {
   untracked,
   viewChildren,
 } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 /**
  * Input de CÓDIGO OTP por dígito (reutilizable). Muestra N casillas de un solo
@@ -25,6 +26,7 @@ import {
 @Component({
   selector: 'app-otp-input',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [TranslatePipe],
   styles: [
     `
       .otp-input {
@@ -57,7 +59,7 @@ import {
     `,
   ],
   template: `
-    <div class="otp-input" data-testid="otp-input" role="group" aria-label="Código de verificación">
+    <div class="otp-input" data-testid="otp-input" role="group" [attr.aria-label]="'common.otpGroup' | translate">
       @for (i of indexes(); track i) {
         <input
           #box
@@ -65,7 +67,7 @@ import {
           type="text"
           inputmode="numeric"
           [attr.autocomplete]="i === 0 ? 'one-time-code' : 'off'"
-          [attr.aria-label]="'Dígito ' + (i + 1) + ' de ' + length()"
+          [attr.aria-label]="'common.otpDigit' | translate: { n: i + 1, total: length() }"
           [attr.data-testid]="'otp-box-' + i"
           maxlength="1"
           [disabled]="disabled()"

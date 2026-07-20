@@ -13,6 +13,7 @@ import { RedisService } from '../../infra/redis/redis.service';
 import { AuthUser } from '../../common/decorators/current-user.decorator';
 import { slugify, slugWithSuffix } from '../../common/utils/slug';
 import { PromotersService } from '../promoters/promoters.service';
+import { PremiumService } from '../promoters/premium.service';
 import { PricingService } from '../pricing/pricing.service';
 import { PriceQuote } from '../pricing/pricing.engine';
 import { CostShareService } from '../cost-share/cost-share.service';
@@ -35,6 +36,7 @@ export class EventsService {
     private readonly costShare: CostShareService,
     private readonly gateways: PaymentGatewaysService,
     private readonly editUnlock: EditUnlockService,
+    private readonly premium: PremiumService,
   ) {}
 
   /**
@@ -402,6 +404,11 @@ export class EventsService {
    */
   async setPromoted(id: string, featured: boolean, user: AuthUser) {
     await this.getManaged(id, user); // 404/403 si no existe o no lo gestiona
+    // Beneficio PREMIUM (B1): un promotor puede destacar SU evento solo si sus beneficios
+    // premium están activos (con premium apagado, aplica a todos). El admin destaca cualquiera.
+    if (!user.roles.includes(Role.admin) && !(await this.premium.benefitsActive(user.userId))) {
+      throw new ForbiddenException('Destacar eventos es un beneficio premium');
+    }
     await this.prisma.event.update({
       where: { id },
       data: { promotedPriority: featured ? 0 : null },

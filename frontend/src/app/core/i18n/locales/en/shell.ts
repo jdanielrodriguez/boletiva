@@ -18,7 +18,7 @@ export const shell = {
   footerMenu: 'Footer links',
   legal: 'Legal',
   terms: 'Terms and conditions',
-  copyright: '© 2026 Boletiva · All rights reserved',
+  copyright: '© {{year}} Boletiva · All rights reserved',
   language: 'Language',
   langEs: 'Spanish (Guatemala)',
   langEn: 'English (United States)',

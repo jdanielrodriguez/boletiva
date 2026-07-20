@@ -18,6 +18,7 @@ import {
 } from '@nestjs/swagger';
 import { ChallengePurpose, Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { AdminOnly } from '../../common/decorators/admin-only.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ChallengesService } from '../auth/challenges.service';
 import { PaymentGatewaysService } from './payment-gateways.service';
@@ -32,6 +33,7 @@ import {
 
 @ApiTags('payment-gateways')
 @ApiBearerAuth()
+@AdminOnly()
 @Controller('payment-gateways')
 export class PaymentGatewaysController {
   constructor(

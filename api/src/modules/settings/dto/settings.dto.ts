@@ -76,6 +76,15 @@ export class PublicConfigDto {
     dayStartHour: number;
     dayEndHour: number;
   };
+
+  @ApiProperty({
+    description: 'Perfil premium: interruptor maestro + prueba gratis + días (gating de UI del plan).',
+    example: { enabled: false, trialEnabled: false, trialDays: 7 },
+  })
+  premium!: { enabled: boolean; trialEnabled: boolean; trialDays: number };
+
+  @ApiProperty({ description: 'Si el chat de soporte está habilitado.', example: false })
+  chatEnabled!: boolean;
 }
 
 export class SettingViewDto {

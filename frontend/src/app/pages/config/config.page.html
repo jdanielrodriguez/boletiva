@@ -1,27 +1,59 @@
 <section class="config-page">
   <h1>{{ 'config.title' | translate }}</h1>
 
+  @if (isAdvisor() && advisorUnlock(); as au) {
+    @if (au.lockEnabled && !au.unlocked) {
+      <div class="advisor-banner" data-testid="advisor-unlock-banner">
+        <span>{{ (au.pending ? 'advisor.bannerPending' : 'advisor.bannerLocked') | translate }}</span>
+        @if (!au.pending) {
+          <button type="button" class="btn small primary" [disabled]="requestingUnlock()"
+            (click)="requestAdvisorUnlock()" data-testid="advisor-request-unlock">
+            {{ 'advisor.requestUnlock' | translate }}
+          </button>
+        }
+      </div>
+    } @else if (au.unlocked && au.lockEnabled) {
+      <div class="advisor-banner ok" data-testid="advisor-unlocked-banner">
+        <span>
+          {{ 'advisor.bannerUnlocked' | translate }}
+          @if (au.expiresAt) {
+            · {{ 'advisor.activeUntil' | translate: { time: (au.expiresAt | localizedDate: 'HH:mm') } }}
+          }
+        </span>
+      </div>
+    }
+  }
+
   <nav class="config-tabs" [attr.aria-label]="'config.tabsAria' | translate">
-    <button type="button" [class.active]="tab() === 'eventos'" (click)="selectTab('eventos')" data-testid="tab-eventos">{{ 'config.tabs.events' | translate }}</button>
-    <button type="button" [class.active]="tab() === 'promotores'" (click)="selectTab('promotores')" data-testid="tab-promotores">{{ 'config.tabs.promoters' | translate }}</button>
-    <button type="button" [class.active]="tab() === 'salones'" (click)="selectTab('salones')" data-testid="tab-salones">{{ 'config.tabs.halls' | translate }}</button>
-    <button type="button" [class.active]="tab() === 'plantillas'" (click)="selectTab('plantillas')" data-testid="tab-plantillas">{{ 'config.tabs.templates' | translate }}</button>
-    <button type="button" [class.active]="tab() === 'sistema'" (click)="selectTab('sistema')" data-testid="tab-sistema">{{ 'config.tabs.system' | translate }}</button>
-    <button type="button" [class.active]="tab() === 'invitaciones'" (click)="selectTab('invitaciones')" data-testid="tab-invitaciones">{{ 'config.tabs.invitations' | translate }}</button>
+    <button type="button" [class.active]="tab() === 'eventos'" [attr.aria-current]="tab() === 'eventos' ? 'page' : null" (click)="selectTab('eventos')" data-testid="tab-eventos">{{ 'config.tabs.events' | translate }}</button>
+    <button type="button" [class.active]="tab() === 'promotores'" [attr.aria-current]="tab() === 'promotores' ? 'page' : null" (click)="selectTab('promotores')" data-testid="tab-promotores">{{ 'config.tabs.promoters' | translate }}</button>
+    <button type="button" [class.active]="tab() === 'salones'" [attr.aria-current]="tab() === 'salones' ? 'page' : null" (click)="selectTab('salones')" data-testid="tab-salones">{{ 'config.tabs.halls' | translate }}</button>
+    <button type="button" [class.active]="tab() === 'plantillas'" [attr.aria-current]="tab() === 'plantillas' ? 'page' : null" (click)="selectTab('plantillas')" data-testid="tab-plantillas">{{ 'config.tabs.templates' | translate }}</button>
+    @if (!hideSystemTab()) {
+      <button type="button" [class.active]="tab() === 'sistema'" [attr.aria-current]="tab() === 'sistema' ? 'page' : null" (click)="selectTab('sistema')" data-testid="tab-sistema">{{ 'config.tabs.system' | translate }}</button>
+    }
+    <button type="button" [class.active]="tab() === 'invitaciones'" [attr.aria-current]="tab() === 'invitaciones' ? 'page' : null" (click)="selectTab('invitaciones')" data-testid="tab-invitaciones">{{ 'config.tabs.invitations' | translate }}</button>
   </nav>
 
   @switch (tab()) {
     @case ('eventos') {
       <div class="section-head-row">
         <h2>{{ 'config.events.heading' | translate }}</h2>
-        <a class="btn btn-outline" routerLink="/configuracion/rentabilidad" data-testid="link-profitability">
-          {{ 'config.profit.title' | translate }}
+        <a class="btn primary btn-profit" routerLink="/configuracion/rentabilidad" data-testid="link-profitability">
+          <app-icon name="chart" /> {{ 'config.profit.title' | translate }}
         </a>
       </div>
       <div class="filters-row">
         <label class="field"><span>{{ 'common.search' | translate }}</span>
           <app-search-field [value]="eventSearch()" (valueChange)="setEventSearch($event)" (searched)="setEventSearch($event)"
             [placeholder]="'config.events.searchPlaceholder' | translate" name="esearch" testId="event-search" />
+        </label>
+        <label class="field"><span>{{ 'config.events.when' | translate }}</span>
+          <select [ngModel]="eventTime()" (ngModelChange)="setEventTime($event)" name="etime" data-testid="event-time-filter">
+            @for (o of eventTimeOptions; track o.value) {
+              <option [value]="o.value">{{ o.key | translate }}</option>
+            }
+          </select>
         </label>
         <label class="field"><span>{{ 'common.status' | translate }}</span>
           <select [ngModel]="eventStatus()" (ngModelChange)="setEventStatus($event)" name="estatus" data-testid="event-status-filter">
@@ -49,7 +81,10 @@
       @if (filteredEvents().length > 0) {
         <div class="admin-events-grid" data-testid="admin-events">
           @for (e of pageEvents(); track e.id) {
-            <article class="ev-card" data-testid="ev-card">
+            <article class="ev-card" [class.ev-card-featured]="e.promotedPriority != null" data-testid="ev-card">
+              @if (e.promotedPriority != null) {
+                <span class="ev-featured-flag"><span aria-hidden="true">★</span> {{ 'config.events.featuredFlag' | translate }}</span>
+              }
               <div class="ev-card-top">
                 <span class="badge badge-{{ e.status }}">{{ e.status | statusLabel }}</span>
                 <span class="muted small">{{ 'config.events.localitiesCount' | translate: { n: e._count.localities } }}</span>
@@ -66,11 +101,13 @@
                 </button>
                 <!-- Destacar en el slider del inicio (solo admin, aquí en la lista). Solo los
                      futuros publicados destacados salen en el slider; si no hay, se oculta. -->
-                <label class="ev-promote" [title]="'config.events.featureHint' | translate">
-                  <input type="checkbox" [checked]="e.promotedPriority != null" [disabled]="promotingId() === e.id"
-                    (change)="togglePromoted(e, $any($event.target).checked)" [attr.data-testid]="'ev-promote-' + e.id" />
-                  <span aria-hidden="true">★</span> {{ 'config.events.feature' | translate }}
-                </label>
+                <span class="ev-promote" [title]="'config.events.featureHint' | translate">
+                  <span class="ev-promote-star" aria-hidden="true">★</span>
+                  <span class="ev-promote-label">{{ 'config.events.feature' | translate }}</span>
+                  <app-switch [checked]="e.promotedPriority != null" [disabled]="promotingId() === e.id"
+                    (checkedChange)="togglePromoted(e, $event)"
+                    [ariaLabel]="'config.events.feature' | translate" [testId]="'ev-promote-' + e.id" />
+                </span>
               </div>
             </article>
           }
@@ -183,8 +220,8 @@
 
       @if (suspendTarget(); as target) {
         <div class="modal-backdrop" data-testid="suspend-modal">
-          <div class="modal-card">
-            <h3>{{ 'config.promoters.suspendModalTitle' | translate: { name: target.firstName } }}</h3>
+          <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="suspend-modal-title">
+            <h3 id="suspend-modal-title">{{ 'config.promoters.suspendModalTitle' | translate: { name: target.firstName } }}</h3>
             <label class="field"><span>{{ 'config.promoters.suspendReasonLabel' | translate }}</span>
               <textarea rows="3" [ngModel]="suspendReason()" (ngModelChange)="suspendReason.set($event)" name="susreason" data-testid="suspend-reason" [attr.placeholder]="'config.promoters.suspendReasonPlaceholder' | translate"></textarea>
             </label>
@@ -264,8 +301,8 @@
         <!-- Modal del candado: explica qué es/para qué + envía y valida el OTP. -->
         @if (lockModalOpen()) {
           <div class="modal-backdrop" data-testid="gw-unlock-modal">
-            <div class="modal-card">
-              <h3><app-icon name="lock" /> {{ 'config.system.lockModalTitle' | translate }}</h3>
+            <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="gw-unlock-title">
+              <h3 id="gw-unlock-title"><app-icon name="lock" /> {{ 'config.system.lockModalTitle' | translate }}</h3>
               <p class="muted">{{ 'config.system.lockModalWhat' | translate }}</p>
               @if (!unlockSent()) {
                 <div class="ev-card-actions modal-actions">
@@ -305,7 +342,7 @@
                   <strong>{{ g.name }}</strong>
                   <span class="badge badge-{{ g.status }}">{{ g.status | statusLabel }}</span>
                   @if (g.isPlatformDefault) { <span class="badge badge-approved">{{ 'config.system.defaultBadge' | translate }}</span> }
-                  <span class="muted small">{{ g.provider }} · {{ g.feePct }} + Q{{ g.transactionFixedFee }}</span>
+                  <span class="muted small">{{ g.provider }} · {{ +g.feePct * 100 | number: '1.0-2' }}% + Q{{ g.transactionFixedFee }}</span>
                   <span class="gateway-edit-actions" style="margin-left:auto; display:flex; gap:0.4rem;">
                     @if (!g.isPlatformDefault) {
                       <button type="button" class="btn small" (click)="makeDefault(g)" data-testid="gw-make-default" [title]="'config.system.makeDefaultTitle' | translate">
@@ -439,16 +476,20 @@
                   } @else {
                     <input type="number" step="0.01" [ngModel]="settingEdits()[s.key]" (ngModelChange)="setSettingValue(s.key, +$event)" [name]="'set-' + s.key" [attr.data-testid]="'setting-input-' + s.key" />
                   }
-                  <button type="button" class="btn small primary icon-only" (click)="saveSetting(s)" [attr.data-testid]="'setting-save-' + s.key" [title]="'config.settings.saveTitle' | translate" [attr.aria-label]="'config.settings.saveTitle' | translate">
-                    <app-icon name="disk" />
+                  <button type="button" class="btn small primary icon-only" [disabled]="!settingDirty(s)" (click)="saveSetting(s)" [attr.data-testid]="'setting-save-' + s.key" [title]="'config.settings.saveTitle' | translate" [attr.aria-label]="'config.settings.saveTitle' | translate">
+                    <app-icon name="save" />
                   </button>
                   <span class="muted small setting-default">{{ 'config.settings.defaultLabel' | translate: { value: s.default } }}</span>
                 </div>
               </div>
             }
           </div>
+        } @else if (!settingsLoaded()) {
+          <p class="muted" data-testid="settings-loading">{{ 'config.settings.loading' | translate }}</p>
         } @else {
-          <p class="muted" data-testid="settings-empty">{{ 'config.settings.loading' | translate }}</p>
+          <app-empty-state variant="generic" data-testid="settings-empty"
+            [title]="'config.settings.emptyTitle' | translate"
+            [subtitle]="'config.settings.emptySubtitle' | translate" />
         }
       </div>
 

@@ -3,7 +3,7 @@ export const reservation = {
   title: 'Reserva de boletos',
   expiresIn: 'Expira en {{mm}}:{{ss}}',
   expired: 'Esta reserva expiró.',
-  total: 'Total: Q{{total}}',
+  total: 'Total: {{total}}',
   processing: 'Procesando…',
   continueToPay: 'Continuar al pago',
   loading: 'Cargando reserva…',
@@ -12,7 +12,7 @@ export const reservation = {
   seeEvents: 'Ver eventos',
   // Ítems
   ticketsCount: '{{count}} boleto(s)',
-  subtotal: 'Subtotal {{name}}: Q{{amount}}',
+  subtotal: 'Subtotal {{name}}: {{amount}}',
   rowLabel: 'Fila {{n}}',
   seatLabel: 'Asiento {{n}}',
   ticketsPager: 'Páginas de boletos',

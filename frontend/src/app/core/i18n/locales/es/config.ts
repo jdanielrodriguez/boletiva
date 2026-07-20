@@ -52,12 +52,17 @@ export const config = {
     statusPublished: 'Publicado',
     statusSuspended: 'Suspendido',
     statusCancelled: 'Cancelado',
+    when: 'Cuándo',
+    timeUpcoming: 'Futuros',
+    timeOngoing: 'En curso',
+    timePast: 'Pasados',
     localitiesCount: '{{n}} localidad(es)',
     accounts: 'Cuentas',
     accountsTitle: 'Ver cuentas del evento',
     viewEvent: 'Ver evento',
     viewEventTitle: 'Abrir el evento',
-    feature: 'Destacar',
+    feature: 'Destacar en el inicio',
+    featuredFlag: 'Destacado',
     featureHint: 'Destaca el evento en el slider del inicio (solo eventos futuros publicados aparecen; si no hay ninguno, el slider se oculta).',
     featured: 'Evento destacado en el inicio.',
     unfeatured: 'Evento quitado del inicio.',
@@ -386,6 +391,7 @@ export const config = {
     builtInEditWarn: 'Las plantillas del sistema no se pueden editar.',
     nameRequired: 'La plantilla necesita un nombre.',
     paramsJsonInvalid: 'Los parámetros deben ser JSON válido (p.ej. {"rows":5,"cols":10}).',
+    paramsJsonHint: 'Objeto JSON con los parámetros de la plantilla (p.ej. {"rows":5,"cols":10}).',
     updated: 'Plantilla actualizada.',
     created: 'Plantilla creada.',
     builtInSaveError: 'Las plantillas del sistema no se pueden modificar.',
@@ -417,6 +423,8 @@ export const config = {
     saveTitle: 'Guardar configuración',
     defaultLabel: 'default: {{value}}',
     loading: 'Cargando configuraciones…',
+    emptyTitle: 'Sin configuraciones',
+    emptySubtitle: 'No hay configuraciones disponibles para mostrar.',
     loadError: 'No se pudieron cargar las configuraciones.',
     saved: 'Configuración "{{key}}" guardada.',
     saveError: 'No se pudo guardar (revisa el tipo/rango del valor).',
@@ -447,6 +455,11 @@ export const config = {
     theme_auto_by_hour: 'Tema automático por hora',
     theme_day_start_hour: 'Hora de inicio del Día',
     theme_day_end_hour: 'Hora de fin del Día',
+    premium_enabled: 'Perfil premium',
+    premium_trial_enabled: 'Prueba gratis de premium',
+    premium_trial_days: 'Días de prueba premium',
+    chat_enabled: 'Chat de soporte',
+    advisor_lock_enabled: 'Desbloqueo del asesor',
   },
 
   /** Opciones de settings tipo enum (temas y franjas). */
@@ -500,6 +513,14 @@ export const config = {
       'Cambia el tema AUTOMÁTICAMENTE según la hora del día (America/Guatemala). Si está activo, el botón de cambio de tema se desactiva para todos (decide el reloj).',
     theme_day_start_hour: 'Hora (0–23, GT) en que empieza la franja Día con el tema automático.',
     theme_day_end_hour: 'Hora (1–24, GT) en que termina la franja Día (después es Noche) con el tema automático.',
+    premium_enabled:
+      'Interruptor maestro del perfil premium. Si está apagado, se oculta la tarjeta de plan y los beneficios premium (chat, destacar el propio evento, dashboards avanzados) quedan para TODOS los promotores. Si está encendido, aplica la distinción free/premium.',
+    premium_trial_enabled:
+      'Habilita la prueba gratis de premium (solo con el perfil premium encendido). Si está encendido, elegir premium arranca la prueba automáticamente.',
+    premium_trial_days: 'Días que dura la prueba gratis de premium.',
+    chat_enabled: 'Habilita el chat de soporte (promotor premium ↔ asesor/admin). Si está apagado, nadie ve el chat.',
+    advisor_lock_enabled:
+      'Exige que un asesor obtenga un desbloqueo aprobado por el admin (vía enlace) para poder editar. Si está apagado, los asesores editan igual que el admin, sin pedir desbloqueo.',
   },
 
   // --- Dashboards de salón / plantilla (página aparte) ---

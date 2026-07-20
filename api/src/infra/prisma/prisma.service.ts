@@ -1,13 +1,30 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 
 /**
  * Cliente Prisma gestionado por el ciclo de vida de Nest.
  * Fuente de verdad transaccional (PostgreSQL).
+ *
+ * Prisma 7 eliminó `datasource.url` del schema y el motor Rust: el cliente se
+ * conecta vía DRIVER ADAPTER (`@prisma/adapter-pg` sobre `pg.Pool`). El `max` del
+ * pool se dimensiona holgado (25 por defecto, override `PG_POOL_MAX`) para que la
+ * concurrencia del on-sale (holds + commit con FOR UPDATE + advisory-lock del
+ * ledger) no agote conexiones — se mantiene la regla de leer parámetros ANTES de
+ * abrir la transacción para no reservar dos conexiones a la vez (anti-deadlock).
  */
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaService.name);
+
+  constructor() {
+    super({
+      adapter: new PrismaPg({
+        connectionString: process.env.DATABASE_URL,
+        max: Number(process.env.PG_POOL_MAX ?? 25),
+      }),
+    });
+  }
 
   async onModuleInit(): Promise<void> {
     await this.$connect();

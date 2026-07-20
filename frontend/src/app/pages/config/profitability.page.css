@@ -14,10 +14,10 @@
 .dash-preview-note {
   margin: 0;
   padding: 0.6rem 0.9rem;
-  border: 1px dashed var(--pe-accent, #c026d3);
+  border: 1px dashed var(--pe-accent);
   border-radius: 10px;
   background: var(--pe-accent-soft, rgba(192, 38, 211, 0.08));
-  color: var(--pe-accent, #c026d3);
+  color: var(--pe-accent);
   font-size: 0.9rem;
 }
 .dash-kpis {
@@ -45,7 +45,7 @@
   font-weight: 700;
 }
 .kpi-value.accent {
-  color: var(--pe-accent, #c026d3);
+  color: var(--pe-accent);
 }
 .dash-card {
   border: 1px solid var(--pe-border, rgba(148, 163, 184, 0.25));
@@ -80,11 +80,11 @@
   transition: all 0.15s ease;
 }
 .dim-tab:hover {
-  border-color: var(--pe-accent, #c026d3);
+  border-color: var(--pe-accent);
 }
 .dim-tab.active {
-  background: var(--pe-accent, #c026d3);
-  border-color: var(--pe-accent, #c026d3);
+  background: var(--pe-accent);
+  border-color: var(--pe-accent);
   color: #fff;
 }
 .table-scroll {
@@ -108,7 +108,7 @@
   font-variant-numeric: tabular-nums;
 }
 .dash-table .accent {
-  color: var(--pe-accent, #c026d3);
+  color: var(--pe-accent);
   font-weight: 600;
 }
 .dim-empty {

@@ -4,6 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AdminApi, PromoterHistoryItemDto } from '../../core/api/admin.api';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
+import { MoneyPipe } from '../../shared/money.pipe';
 import { ToastService } from '../../core/ui/toast.service';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { BackLinkComponent } from '../../shared/ui/back-link.component';
@@ -25,6 +26,7 @@ import { SearchFieldComponent } from '../../shared/ui/search-field.component';
     FormsModule,
     TranslatePipe,
     LocalizedDatePipe,
+    MoneyPipe,
     IconComponent,
     BackLinkComponent,
     EmptyStateComponent,
