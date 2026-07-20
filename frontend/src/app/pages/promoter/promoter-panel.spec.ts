@@ -39,6 +39,7 @@ describe('PromoterPanel (v3 grid)', () => {
             load: () => undefined,
             premium: () => ({ enabled: false, trialEnabled: false, trialDays: 7 }),
             tourEnabled: () => false,
+            chatEnabled: () => false,
           },
         },
         provideZonelessChangeDetection(),

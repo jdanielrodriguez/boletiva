@@ -8100,6 +8100,217 @@
           "advisor"
         ]
       }
+    },
+    "/api/v1/chat/threads": {
+      "post": {
+        "operationId": "ChatController_createThread_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateThreadDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Abre un hilo de soporte (promotor premium)",
+        "tags": [
+          "chat"
+        ]
+      },
+      "get": {
+        "operationId": "ChatController_listThreads_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lista de hilos (promotor: los suyos; agente: todos)",
+        "tags": [
+          "chat"
+        ]
+      }
+    },
+    "/api/v1/chat/threads/{id}/messages": {
+      "get": {
+        "operationId": "ChatController_messages_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Historial de mensajes de un hilo",
+        "tags": [
+          "chat"
+        ]
+      },
+      "post": {
+        "operationId": "ChatController_post_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostMessageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publica un mensaje en un hilo",
+        "tags": [
+          "chat"
+        ]
+      }
+    },
+    "/api/v1/chat/threads/{id}/close": {
+      "post": {
+        "operationId": "ChatController_close_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cierra un hilo",
+        "tags": [
+          "chat"
+        ]
+      }
+    },
+    "/api/v1/chat/threads/{id}/reopen": {
+      "post": {
+        "operationId": "ChatController_reopen_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reabre un hilo",
+        "tags": [
+          "chat"
+        ]
+      }
+    },
+    "/api/v1/chat/threads/{id}/assign": {
+      "post": {
+        "operationId": "ChatController_assign_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignThreadDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reasigna un hilo a un asesor/admin (handoff, admin)",
+        "tags": [
+          "chat"
+        ]
+      }
     }
   },
   "info": {
@@ -17053,6 +17264,48 @@
         },
         "required": [
           "token"
+        ]
+      },
+      "CreateThreadDto": {
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string",
+            "example": "Duda con mi evento"
+          },
+          "message": {
+            "type": "string",
+            "example": "Hola, tengo una duda sobre las comisiones."
+          }
+        },
+        "required": [
+          "subject",
+          "message"
+        ]
+      },
+      "PostMessageDto": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string",
+            "example": "Gracias, ya lo revisé."
+          }
+        },
+        "required": [
+          "body"
+        ]
+      },
+      "AssignThreadDto": {
+        "type": "object",
+        "properties": {
+          "assignedToId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Asesor/admin al que se reasigna el hilo"
+          }
+        },
+        "required": [
+          "assignedToId"
         ]
       }
     }

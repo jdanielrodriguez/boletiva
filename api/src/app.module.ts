@@ -51,6 +51,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { FelModule } from './modules/fel/fel.module';
 import { AdvisorModule } from './modules/advisor/advisor.module';
 import { AdvisorUnlockGuard } from './modules/advisor/advisor-unlock.guard';
+import { ChatModule } from './modules/chat/chat.module';
 
 @Module({
   imports: [
@@ -143,6 +144,7 @@ import { AdvisorUnlockGuard } from './modules/advisor/advisor-unlock.guard';
     AdminModule,
     FelModule,
     AdvisorModule,
+    ChatModule,
   ],
   providers: [
     // Orden importa: rate-limit por IP PRIMERO (frena floods antes de autenticar) →

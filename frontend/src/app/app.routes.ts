@@ -153,6 +153,14 @@ export const routes: Routes = [
     title: 'Configuración — Boletiva',
   },
   {
+    // B3: chat de soporte (promotor premium ↔ asesor/admin). El contenido se auto-gatea
+    // por `chat.enabled` + rol/beneficios; el backend es la autoridad.
+    path: 'soporte',
+    loadComponent: () => import('./pages/support/support-chat.page').then((m) => m.SupportChatPage),
+    canActivate: [authGuard, verifiedEmailGuard],
+    title: 'Soporte — Boletiva',
+  },
+  {
     // B2: el admin llega aquí desde el enlace del correo para aprobar el desbloqueo del asesor.
     path: 'admin/asesor-desbloqueo',
     loadComponent: () =>

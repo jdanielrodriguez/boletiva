@@ -22,6 +22,11 @@
       }
     </div>
     <div class="panel-header-actions">
+      @if (chatEnabled() && canFeature()) {
+        <a class="btn btn-outline" routerLink="/soporte" data-testid="go-support" [title]="'chat.title' | translate">
+          {{ 'chat.title' | translate }}
+        </a>
+      }
       <a class="btn btn-outline" routerLink="/promotor/dashboard" data-testid="go-dashboard" [title]="'promoter.dash.title' | translate">
         <app-icon name="accounts" /> {{ 'promoter.dash.title' | translate }}
       </a>

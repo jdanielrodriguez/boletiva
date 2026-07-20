@@ -102,6 +102,9 @@
     "rxjs": "^7.8.2",
     "uuid": "^14.0.1",
     "@prisma/adapter-pg": "^7.8.0",
-    "pg": "^8.13.0"
+    "pg": "^8.13.0",
+    "@nestjs/websockets": "^11.1.28",
+    "@nestjs/platform-socket.io": "^11.1.28",
+    "socket.io": "^4.8.3"
   }
 }
