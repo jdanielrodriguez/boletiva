@@ -4651,3 +4651,35 @@ textarea.invalid {
 }
 /* Precio del ítem en la ficha de reserva. */
 .res-price { font-weight: 600; white-space: nowrap; }
+
+/* Contenido solo para lectores de pantalla / navegación por teclado (accesible pero
+   invisible). Se usa p.ej. para la lista de asientos disponibles paralela al canvas
+   Konva, que no es operable por teclado. `focus` la revela para no perder el foco. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.sr-only:focus-within {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0.5rem 0;
+  clip: auto;
+  white-space: normal;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.sr-only:focus-within .seat-a11y-btn {
+  border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius);
+  padding: 0.35rem 0.6rem;
+  min-height: 40px;
+}

@@ -16,6 +16,7 @@ export const purchase = {
   reserve: 'Reserve',
   localities: 'Sections',
   perTicket: 'per ticket',
+  seatPickerAria: 'Choose seat (accessible list)',
   legendAvailable: 'Available',
   legendSelected: 'Selected',
   legendTaken: 'Taken',

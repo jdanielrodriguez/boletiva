@@ -128,6 +128,20 @@
             [selected]="store.selectedSet()"
             (seatToggle)="store.toggleSeat($event)"
           />
+          <!-- a11y: el canvas Konva no es operable por teclado/lector. Lista paralela
+               (sr-only, se revela al enfocar) para elegir asientos sin mouse. -->
+          <div class="sr-only" role="group" [attr.aria-label]="'purchase.seatPickerAria' | translate">
+            @for (s of store.activeSeats(); track s.id) {
+              @if (s.status === 'available' || store.selectedSet().has(s.id)) {
+                <button type="button" class="seat-a11y-btn"
+                  [attr.aria-pressed]="store.selectedSet().has(s.id)"
+                  (click)="store.toggleSeat(s.id)"
+                  [attr.data-testid]="'seat-a11y-' + s.id">
+                  {{ s.section ? s.section + ' · ' : '' }}{{ s.row ? s.row + ' · ' : '' }}{{ s.label }}
+                </button>
+              }
+            }
+          </div>
           <p class="seat-legend">
             <span class="legend av">{{ 'purchase.legendAvailable' | translate }}</span>
             <span class="legend sel">{{ 'purchase.legendSelected' | translate }}</span>

@@ -16,6 +16,7 @@ export const purchase = {
   reserve: 'Reservar',
   localities: 'Localidades',
   perTicket: 'por boleto',
+  seatPickerAria: 'Elegir asiento (lista accesible)',
   legendAvailable: 'Disponible',
   legendSelected: 'Seleccionada',
   legendTaken: 'Ocupada',
