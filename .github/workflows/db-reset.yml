@@ -53,6 +53,13 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
+      # Prisma 7: `db push` YA NO genera el cliente (se quitó el auto-generate),
+      # y `npm install` no lo hace (no hay postinstall). Sin este paso, los scripts
+      # ts-node (truncate/seed) fallan al compilar: '@prisma/client' no exporta
+      # PrismaClient hasta que se genera.
+      - name: Generate Prisma client
+        run: npx prisma generate
+
       - name: Authenticate to GCP (WIF, no keys)
         uses: google-github-actions/auth@v2
         with:
