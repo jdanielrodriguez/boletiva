@@ -12,6 +12,8 @@ import { AuditService } from '../audit/audit.service';
 import { QueueService } from '../../infra/queue/queue.service';
 import { QUEUES } from '../../infra/queue/queue.constants';
 import { AuthUser } from '../../common/decorators/current-user.decorator';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../notifications/notification.types';
 
 Decimal.set({ rounding: Decimal.ROUND_HALF_EVEN });
 
@@ -36,6 +38,7 @@ export class SettlementService {
     private readonly ledger: LedgerService,
     private readonly audit: AuditService,
     private readonly queue: QueueService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async forEvent(eventId: string, user: AuthUser) {
@@ -222,6 +225,23 @@ export class SettlementService {
       eventId,
       promoterId: event.promoterId,
       transferred: net.toFixed(2),
+    });
+
+    // Notificaciones in-app (T5): evento finalizado + liquidación acreditada al promotor.
+    await this.notifications.emit(event.promoterId, {
+      type: NotificationType.EVENT_FINISHED,
+      title: 'Evento finalizado',
+      body: `"${event.name}" se cerró.`,
+      resourceType: 'event',
+      resourceId: eventId,
+    });
+    await this.notifications.emit(event.promoterId, {
+      type: NotificationType.SETTLEMENT_PAID,
+      title: 'Liquidación acreditada',
+      body: `Se acreditó Q${net.toFixed(2)} a tu saldo por "${event.name}".`,
+      payload: { net: net.toFixed(2) },
+      resourceType: 'event',
+      resourceId: eventId,
     });
 
     return {

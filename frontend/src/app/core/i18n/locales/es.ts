@@ -20,6 +20,7 @@ import { reportsMaintenance } from './es/reports-maintenance';
 import { gate } from './es/gate';
 import { advisor } from './es/advisor';
 import { chat } from './es/chat';
+import { notifications } from './es/notifications';
 import { pager } from './es/pager';
 
 /** Diccionario ESPAÑOL (default, es-GT). Compuesto por namespaces. */
@@ -45,5 +46,6 @@ export const es: TranslationObject = {
   gate,
   advisor,
   chat,
+  notifications,
   pager,
 };

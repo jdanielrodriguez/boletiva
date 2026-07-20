@@ -32,6 +32,7 @@
     }
     @if (session.isAuthenticated()) {
       <span class="greeting" data-testid="session-greeting">{{ 'shell.greeting' | translate: { name: session.user()?.firstName } }}</span>
+      <app-notification-bell />
       <div class="user-menu">
         <button
           type="button"
@@ -69,6 +70,7 @@
             }
             @if (session.hasAnyRole(['admin'])) {
               <a routerLink="/configuracion" (click)="closeMenu()" data-testid="config-link">{{ 'shell.configuration' | translate }}</a>
+              <a routerLink="/admin/notificaciones" (click)="closeMenu()" data-testid="admin-notif-link">{{ 'notifications.adminSendTitle' | translate }}</a>
             }
             <button type="button" data-testid="logout-btn" (click)="logout()">{{ 'shell.logout' | translate }}</button>
           </div>

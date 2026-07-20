@@ -52,6 +52,7 @@ import { FelModule } from './modules/fel/fel.module';
 import { AdvisorModule } from './modules/advisor/advisor.module';
 import { AdvisorUnlockGuard } from './modules/advisor/advisor-unlock.guard';
 import { SupportModule } from './modules/support/support.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -145,6 +146,7 @@ import { SupportModule } from './modules/support/support.module';
     FelModule,
     AdvisorModule,
     SupportModule,
+    NotificationsModule,
   ],
   providers: [
     // Orden importa: rate-limit por IP PRIMERO (frena floods antes de autenticar) →

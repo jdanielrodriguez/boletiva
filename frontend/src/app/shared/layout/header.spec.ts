@@ -1,9 +1,11 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
-import { EMPTY, of } from 'rxjs';
+import { EMPTY, of, Subject } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { SessionStore } from '../../core/auth/session.store';
+import { NotificationsApi } from '../../core/api/notifications.api';
+import { NotificationsSocketService } from '../../core/notifications/notifications-socket.service';
 import { provideI18nTesting } from '../../core/i18n/testing';
 import { Header } from './header';
 
@@ -31,6 +33,9 @@ describe('Header', () => {
             hasAnyRole: (r: string[]) => (opts.roles ?? []).some((x) => r.includes(x)),
           },
         },
+        // La campanita (montada en el header) necesita sus deps stubbeadas.
+        { provide: NotificationsApi, useValue: { unreadCount: () => of({ count: 0 }), list: () => of({ items: [], nextCursor: null }) } },
+        { provide: NotificationsSocketService, useValue: { connect: () => Promise.resolve(), disconnect: () => undefined, notification$: new Subject(), unread$: new Subject() } },
       ],
     });
     fixture = TestBed.createComponent(Header);

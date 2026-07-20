@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
@@ -27,7 +28,10 @@ import { RedisService } from '../../infra/redis/redis.service';
 import { AuditService } from '../audit/audit.service';
 import { AuthUser } from '../../common/decorators/current-user.decorator';
 import { PremiumService } from '../promoters/premium.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../notifications/notification.types';
 import { SupportGateway } from './support.gateway';
+import { SUPPORT_AUTORESPONDER, SupportAutoResponder } from './support-autoresponder';
 import { canTransition, isFinal } from './support.states';
 import { initialDueDates, mergeSlaTargets, shiftDue, slaRunning, SlaTargets } from './support-sla';
 import { KeysetQuery, keysetResult, keysetTake } from '../../common/utils/pagination';
@@ -91,6 +95,8 @@ export class SupportService implements OnModuleInit, OnModuleDestroy {
     private readonly storage: StorageService,
     private readonly redis: RedisService,
     private readonly config: ConfigService,
+    private readonly notifications: NotificationsService,
+    @Inject(SUPPORT_AUTORESPONDER) private readonly autoResponder: SupportAutoResponder,
   ) {}
 
   onModuleInit(): void {
@@ -187,6 +193,14 @@ export class SupportService implements OnModuleInit, OnModuleDestroy {
       subject: ticket.subject,
       category: ticket.category,
       priority: ticket.priority,
+    });
+    // Aviso a los admins: nuevo ticket de soporte.
+    await this.notifications.emitToRole(Role.admin, {
+      type: NotificationType.SUPPORT_ACTIVITY,
+      title: 'Nuevo ticket de soporte',
+      body: ticket.subject,
+      resourceType: 'ticket',
+      resourceId: ticket.id,
     });
     return this.summarize(ticket);
   }
@@ -285,6 +299,14 @@ export class SupportService implements OnModuleInit, OnModuleDestroy {
       const patch: Prisma.SupportTicketUpdateInput = {};
       if (!ticket.firstRespondedAt) patch.firstRespondedAt = new Date();
       await this.transition(ticket.id, SupportStatus.awaiting_promoter, patch);
+      // Aviso al promotor: su ticket tuvo respuesta.
+      await this.notifications.emit(ticket.promoterId, {
+        type: NotificationType.TICKET_UPDATE,
+        title: 'Respuesta de soporte',
+        body: ticket.subject,
+        resourceType: 'ticket',
+        resourceId: ticket.id,
+      });
     } else {
       // El promotor responde. Si el ticket estaba resuelto dentro de la ventana → reabre.
       const resolvedRecently =
@@ -296,8 +318,41 @@ export class SupportService implements OnModuleInit, OnModuleDestroy {
       }
       // En cualquier caso, ahora espera al soporte (reloj corre) + limpia archivado.
       await this.transition(ticket.id, SupportStatus.awaiting_support, { archivedByPromoterAt: null });
+      // Aviso a los admins: actividad del promotor en soporte.
+      await this.notifications.emitToRole(Role.admin, {
+        type: NotificationType.SUPPORT_ACTIVITY,
+        title: 'Mensaje de soporte',
+        body: ticket.subject,
+        resourceType: 'ticket',
+        resourceId: ticket.id,
+      });
+      // Hook bot/IA (no-op por defecto): respuesta automática opcional, no bloquea.
+      void this.runAutoResponder(ticket.id, ticket.promoterId, body.trim());
     }
     return withUrls;
+  }
+
+  /**
+   * Invoca al respondedor automático (bot/IA) fuera del camino crítico. Con el noop
+   * por defecto no hace nada; una impl. real publicaría una respuesta del sistema.
+   * Marcado para la fase IA (fundamentado en la KB de T6).
+   */
+  private async runAutoResponder(ticketId: string, promoterId: string, message: string): Promise<void> {
+    try {
+      const msgCount = await this.prisma.supportMessage.count({ where: { ticketId } });
+      const reply = await this.autoResponder.onPromoterMessage({
+        ticketId,
+        promoterId,
+        message,
+        isFirstMessage: msgCount <= 1,
+      });
+      if (!reply) return;
+      // Cuando exista un bot real: publicar `reply` como mensaje del sistema. Hoy nunca
+      // ocurre (noop). Se deja el punto de extensión explícito.
+      this.logger.debug(`autoResponder sugirió respuesta para ${ticketId} (no publicada: falta usuario sistema)`);
+    } catch (e) {
+      this.logger.warn(`autoResponder ${ticketId}: ${(e as Error).message}`);
+    }
   }
 
   // ---------------------------------------------------------------------------

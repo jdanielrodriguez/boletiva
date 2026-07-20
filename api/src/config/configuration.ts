@@ -56,6 +56,8 @@ export interface AppConfig {
   // Soporte (T1): activa el Redis adapter de socket.io para fan-out multi-instancia
   // (Cloud Run). Apagado por defecto (in-memory, 1 instancia) y en test.
   support: { socketRedis: boolean; autoCloseEnabled: boolean; autoCloseDays: number };
+  // Recordatorios de evento por empezar/finalizado (sweeper horario). Off por defecto y en test.
+  notifications: { eventReminders: boolean };
   tickets: { signingSeed: string; signingKeyId: string };
   // SafeTix (Ola 6.5): TTL del token de puerta (corto/fresco) y del manifiesto
   // firmado (caduca offline; lleva secretos TOTP en claro), en segundos.
@@ -235,6 +237,7 @@ export const configuration = (): AppConfig => {
       autoCloseEnabled: bool(process.env.SUPPORT_AUTOCLOSE_ENABLED, false),
       autoCloseDays: Number(process.env.SUPPORT_AUTOCLOSE_DAYS ?? 7),
     },
+    notifications: { eventReminders: bool(process.env.NOTIFICATIONS_EVENT_REMINDERS, false) },
     // Firma de boletos (Ed25519). El seed (32 bytes hex) construye el par de llaves
     // de forma determinista; en prod DEBE venir de Secret Manager y ser rotable.
     tickets: {

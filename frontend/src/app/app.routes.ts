@@ -169,6 +169,13 @@ export const routes: Routes = [
     title: 'Desbloqueo de asesor — Boletiva',
   },
   {
+    // T5: tab de admin para enviar notificaciones a un promotor o a todos.
+    path: 'admin/notificaciones',
+    loadComponent: () => import('./pages/admin/admin-notifications.page').then((m) => m.AdminNotificationsPage),
+    canActivate: [roleGuard('admin')],
+    title: 'Enviar notificaciones — Boletiva',
+  },
+  {
     // La LISTA de salones vive en `/configuracion?tab=salones` (v3.9 · B1). Aquí
     // solo quedan las páginas de creación/edición.
     path: 'configuracion/salones/nuevo',

@@ -12,6 +12,8 @@ import { QueueService } from '../../infra/queue/queue.service';
 import { QUEUES } from '../../infra/queue/queue.constants';
 import { PremiumService } from './premium.service';
 import type { PromoterMailStatus } from './promoter-mail.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../notifications/notification.types';
 
 const REQUIRE_KEY = 'promoters.require_approval';
 
@@ -30,6 +32,7 @@ export class PromotersService implements OnApplicationBootstrap {
     private readonly queue: QueueService,
     private readonly config: ConfigService,
     private readonly premium: PremiumService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /**
@@ -54,6 +57,14 @@ export class PromotersService implements OnApplicationBootstrap {
   /** Encola (cola MAIL) el correo del estado de promotor. Nunca bloquea/lanza. */
   private async notify(userId: string, status: PromoterMailStatus, note?: string | null) {
     await this.queue.enqueue(QUEUES.MAIL, 'promoter-status', { userId, status, note: note ?? null });
+    // Notificación in-app (T5) para las transiciones relevantes al promotor.
+    const map: Partial<Record<PromoterMailStatus, { type: string; title: string; body: string }>> = {
+      approved: { type: NotificationType.PROMOTER_APPROVED, title: '¡Cuenta de promotor aprobada!', body: 'Ya puedes crear y publicar tus eventos.' },
+      rejected: { type: NotificationType.PROMOTER_REJECTED, title: 'Solicitud de promotor rechazada', body: note ?? 'Tu solicitud no fue aprobada.' },
+      suspended: { type: NotificationType.PROMOTER_SUSPENDED, title: 'Cuenta de promotor suspendida', body: note ?? 'Tu cuenta de promotor fue suspendida.' },
+    };
+    const n = map[status];
+    if (n) await this.notifications.emit(userId, { ...n, resourceType: 'promoter', resourceId: userId });
   }
 
   /** ¿Se exige autorización del admin? (true por defecto; false = modo pruebas). */

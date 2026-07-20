@@ -192,6 +192,42 @@ model SupportAttachment {
   @@map("support_attachments")
 }
 
+/// Notificación in-app (T5) para promotores/admins. `type` es una cadena libre
+/// (documentada) para no migrar al añadir disparadores; el frontend mapea type→i18n.
+/// `payload` lleva datos extra (montos, ids) para render/enlace. `readAt` = leída.
+model Notification {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  type         String
+  title        String
+  body         String?
+  payload      Json?
+  resourceType String?   @map("resource_type")
+  resourceId   String?   @map("resource_id") @db.Uuid
+  readAt       DateTime? @map("read_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  user User @relation("userNotifications", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+/// Preferencia de notificación por usuario/tipo/canal (T5). Ausente → default ON.
+model NotificationPreference {
+  id      String  @id @default(uuid()) @db.Uuid
+  userId  String  @map("user_id") @db.Uuid
+  type    String
+  channel String
+  enabled Boolean @default(true)
+
+  user User @relation("userNotifPrefs", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type, channel])
+  @@map("notification_preferences")
+}
+
 enum UserStatus {
   active
   inactive
@@ -484,6 +520,8 @@ model User {
   supportTicketsAssigned SupportTicket[]         @relation("supportAssigned")
   supportMessages        SupportMessage[]        @relation("supportSender")
   supportMacros          SupportCannedResponse[] @relation("supportMacroAuthor")
+  notifications          Notification[]          @relation("userNotifications")
+  notificationPrefs      NotificationPreference[] @relation("userNotifPrefs")
 
   @@index([status])
   @@map("users")

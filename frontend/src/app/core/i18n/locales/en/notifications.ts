@@ -1,0 +1,20 @@
+/** Notifications (T5). */
+export const notifications = {
+  title: 'Notifications',
+  bellAria: 'Notifications: {{n}} unread',
+  markAll: 'Mark all read',
+  empty: 'You have no notifications.',
+  adminSendTitle: 'Send notifications',
+  adminSendHint: 'Write a message and send it to one promoter or to all.',
+  back: 'Back to settings',
+  toOne: 'To one promoter',
+  toAll: 'To all promoters',
+  promoter: 'Promoter',
+  pickPromoter: 'Pick a promoter…',
+  fieldTitle: 'Title',
+  fieldBody: 'Message',
+  preview: 'Preview',
+  send: 'Send',
+  sent: 'Notification sent to {{n}} recipient(s).',
+  sendError: 'Could not send the notification.',
+};
