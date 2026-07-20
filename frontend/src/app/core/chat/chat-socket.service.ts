@@ -5,7 +5,7 @@ import { API_BASE_URL } from '../config/api.tokens';
 import { TokenStore } from '../auth/token-store.service';
 import type { ChatMessage } from '../api/chat.api';
 
-/** Cliente socket.io del chat (B3). SSR-safe: solo conecta en el navegador. */
+/** Cliente socket.io de soporte (T1; namespace `/support`). SSR-safe: solo en el navegador. */
 @Injectable({ providedIn: 'root' })
 export class ChatSocketService {
   private readonly platformId = inject(PLATFORM_ID);
@@ -16,8 +16,8 @@ export class ChatSocketService {
   private socket: any = null;
   /** Mensaje nuevo recibido en vivo. */
   readonly message$ = new Subject<ChatMessage>();
-  /** Aviso a agentes de actividad en un hilo. */
-  readonly activity$ = new Subject<{ threadId: string }>();
+  /** Aviso a agentes de actividad en un ticket. */
+  readonly activity$ = new Subject<{ ticketId: string }>();
 
   /** Abre la conexión (idempotente). Requiere token de acceso y navegador. */
   async connect(): Promise<void> {
@@ -26,20 +26,20 @@ export class ChatSocketService {
     if (!token) return;
     const origin = new URL(this.apiBaseUrl, 'http://localhost').origin;
     const { io } = await import('socket.io-client');
-    this.socket = io(`${origin}/chat`, {
+    this.socket = io(`${origin}/support`, {
       auth: { token },
       transports: ['websocket', 'polling'],
       autoConnect: true,
     });
     this.socket.on('message', (m: ChatMessage) => this.message$.next(m));
-    this.socket.on('thread-activity', (a: { threadId: string }) => this.activity$.next(a));
+    this.socket.on('ticket-activity', (a: { ticketId: string }) => this.activity$.next(a));
   }
 
-  joinThread(threadId: string): void {
-    this.socket?.emit('join-thread', { threadId });
+  joinThread(ticketId: string): void {
+    this.socket?.emit('join-ticket', { ticketId });
   }
-  leaveThread(threadId: string): void {
-    this.socket?.emit('leave-thread', { threadId });
+  leaveThread(ticketId: string): void {
+    this.socket?.emit('leave-ticket', { ticketId });
   }
   disconnect(): void {
     this.socket?.disconnect();

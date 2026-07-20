@@ -44,50 +44,115 @@ model AdvisorUnlock {
   @@map("advisor_unlocks")
 }
 
-/// Estado de un hilo de chat de soporte (B3).
-enum ChatThreadStatus {
+/// Estado de un ticket de soporte (T1). Máquina de estados formal:
+/// new → open (asignado) → awaiting_promoter/awaiting_support → resolved → closed.
+/// Transversales: suspended (congela el reloj SLA), reopened (promotor responde tras resolved).
+enum SupportStatus {
+  new
   open
+  awaiting_promoter
+  awaiting_support
+  resolved
   closed
+  suspended
+  reopened
 }
 
-/// Hilo (ticket) de chat de soporte de un promotor PREMIUM (B3). Varios por promotor,
-/// con estado abierto/cerrado + historial. `answered` = si ya respondió un agente
-/// (para el fallback: si nadie responde en 2 min → correo al admin).
-model ChatThread {
-  id            String           @id @default(uuid()) @db.Uuid
-  promoterId    String           @map("promoter_id") @db.Uuid
-  subject       String
-  status        ChatThreadStatus @default(open)
-  assignedToId  String?          @map("assigned_to_id") @db.Uuid
-  answered      Boolean          @default(false)
-  lastMessageAt DateTime         @default(now()) @map("last_message_at")
-  createdAt     DateTime         @default(now()) @map("created_at")
-  updatedAt     DateTime         @updatedAt @map("updated_at")
+/// Categoría del ticket (enrutamiento al agente correcto + métricas).
+enum SupportCategory {
+  billing
+  payments_settlement
+  event
+  technical
+  account
+  other
+}
 
-  promoter   User          @relation("chatPromoter", fields: [promoterId], references: [id], onDelete: Cascade)
-  assignedTo User?         @relation("chatAssigned", fields: [assignedToId], references: [id])
-  messages   ChatMessage[]
+/// Prioridad del ticket (define el objetivo de SLA de 1ª respuesta y resolución).
+enum SupportPriority {
+  low
+  medium
+  high
+  urgent
+}
+
+/// Tipo de recurso ligado al ticket (da contexto al agente), opcional.
+enum SupportContextType {
+  event
+  order
+  settlement
+}
+
+/// Ticket de soporte de un promotor (T1; evoluciona el chat B3). El chat vive DENTRO
+/// del ticket (los mensajes en vivo). Estados formales + SLA + archivar (no borrar).
+model SupportTicket {
+  id           String          @id @default(uuid()) @db.Uuid
+  promoterId   String          @map("promoter_id") @db.Uuid
+  subject      String
+  category     SupportCategory @default(other)
+  priority     SupportPriority @default(medium)
+  status       SupportStatus   @default(new)
+  assignedToId String?         @map("assigned_to_id") @db.Uuid
+
+  /// Contexto opcional: evento / orden / liquidación ligados al reclamo.
+  contextType SupportContextType? @map("context_type")
+  contextId   String?             @map("context_id") @db.Uuid
+
+  /// SLA (reloj). Los *DueAt se calculan por prioridad; el reloj se PAUSA en
+  /// suspended y awaiting_promoter (se recalcula al reanudar). Los *At son marcas.
+  firstResponseDueAt DateTime? @map("first_response_due_at")
+  resolveDueAt       DateTime? @map("resolve_due_at")
+  firstRespondedAt   DateTime? @map("first_responded_at")
+  resolvedAt         DateTime? @map("resolved_at")
+  closedAt           DateTime? @map("closed_at")
+  suspendedAt        DateTime? @map("suspended_at")
+  /// Marca desde cuándo el reloj SLA está en pausa (awaiting_promoter/suspended);
+  /// al reanudar se corren los *DueAt por el tiempo pausado y se limpia.
+  slaPausedAt        DateTime? @map("sla_paused_at")
+  /// Marcas de incumplimiento ya alertado (idempotencia del job de breach).
+  firstResponseBreachedAt DateTime? @map("first_response_breached_at")
+  resolveBreachedAt       DateTime? @map("resolve_breached_at")
+
+  /// El promotor ARCHIVA (oculta su vista); NO se borra → no-repudio y trazabilidad.
+  archivedByPromoterAt DateTime? @map("archived_by_promoter_at")
+
+  /// Satisfacción al cerrar (1..5), opcional.
+  csatScore Int? @map("csat_score")
+
+  lastMessageAt DateTime @default(now()) @map("last_message_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  promoter   User             @relation("supportPromoter", fields: [promoterId], references: [id], onDelete: Cascade)
+  assignedTo User?            @relation("supportAssigned", fields: [assignedToId], references: [id])
+  messages   SupportMessage[]
 
   @@index([promoterId])
   @@index([assignedToId])
   @@index([status, lastMessageAt])
-  @@map("chat_threads")
+  @@index([firstResponseDueAt])
+  @@index([resolveDueAt])
+  @@map("support_tickets")
 }
 
-/// Mensaje de un hilo de chat (B3). `senderRole` deja auditar quién habló (promotor/asesor/admin).
-model ChatMessage {
-  id         String   @id @default(uuid()) @db.Uuid
-  threadId   String   @map("thread_id") @db.Uuid
-  senderId   String   @map("sender_id") @db.Uuid
-  senderRole Role     @map("sender_role")
-  body       String
-  createdAt  DateTime @default(now()) @map("created_at")
+/// Mensaje de un ticket de soporte (T1). `senderRole` audita quién habló.
+/// `internalNote` = nota del agente NO visible para el promotor.
+model SupportMessage {
+  id           String    @id @default(uuid()) @db.Uuid
+  ticketId     String    @map("ticket_id") @db.Uuid
+  senderId     String    @map("sender_id") @db.Uuid
+  senderRole   Role      @map("sender_role")
+  body         String
+  internalNote Boolean   @default(false) @map("internal_note")
+  readByAgentAt    DateTime? @map("read_by_agent_at")
+  readByPromoterAt DateTime? @map("read_by_promoter_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
 
-  thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  sender User       @relation("chatSender", fields: [senderId], references: [id])
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  sender User          @relation("supportSender", fields: [senderId], references: [id])
 
-  @@index([threadId, createdAt])
-  @@map("chat_messages")
+  @@index([ticketId, createdAt])
+  @@map("support_messages")
 }
 
 enum UserStatus {
@@ -378,9 +443,9 @@ model User {
   savedCards SavedCard[]
   advisorUnlocks         AdvisorUnlock[] @relation("advisorUnlocks")
   advisorUnlocksApproved AdvisorUnlock[] @relation("advisorUnlocksApproved")
-  chatThreads         ChatThread[]  @relation("chatPromoter")
-  chatThreadsAssigned ChatThread[]  @relation("chatAssigned")
-  chatMessages        ChatMessage[] @relation("chatSender")
+  supportTickets         SupportTicket[]  @relation("supportPromoter")
+  supportTicketsAssigned SupportTicket[]  @relation("supportAssigned")
+  supportMessages        SupportMessage[] @relation("supportSender")
 
   @@index([status])
   @@map("users")

@@ -55,7 +55,7 @@ import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
               <div class="chat-thread-head">
                 <h2>{{ t.subject }}</h2>
                 <div class="chat-thread-actions">
-                  @if (t.status === 'open') {
+                  @if (t.status !== 'closed') {
                     <button type="button" class="btn small" (click)="close(t)" data-testid="chat-close">{{ 'chat.close' | translate }}</button>
                   } @else {
                     <button type="button" class="btn small" (click)="reopen(t)" data-testid="chat-reopen">{{ 'chat.reopen' | translate }}</button>
@@ -70,7 +70,7 @@ import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
                   </div>
                 }
               </div>
-              @if (t.status === 'open') {
+              @if (t.status !== 'closed') {
                 <form class="chat-composer" (ngSubmit)="send()">
                   <input [(ngModel)]="draft" name="draft" [attr.aria-label]="'chat.typeMessage' | translate"
                     [placeholder]="'chat.typeMessage' | translate" data-testid="chat-input" />
@@ -114,7 +114,7 @@ export class SupportChatPage implements OnDestroy {
     this.reload();
     void this.socket.connect();
     this.socket.message$.subscribe((m) => {
-      if (this.active()?.id === m.threadId && !this.messages().some((x) => x.id === m.id)) {
+      if (this.active()?.id === m.ticketId && !this.messages().some((x) => x.id === m.id)) {
         this.messages.update((list) => [...list, m]);
       }
     });
@@ -162,7 +162,7 @@ export class SupportChatPage implements OnDestroy {
     this.api.getMessages(t.id).subscribe({
       next: (res) => {
         this.messages.set(res.messages);
-        this.active.set(res.thread);
+        this.active.set(res.ticket);
         this.socket.joinThread(t.id);
       },
       error: () => undefined,

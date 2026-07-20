@@ -2,55 +2,70 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiClient } from '../http/api-client.service';
 
+/** Estado del ticket (T1). El backend maneja la máquina completa; el front distingue
+ *  sobre todo "closed" para bloquear la escritura. */
+export type SupportStatus =
+  | 'new'
+  | 'open'
+  | 'awaiting_promoter'
+  | 'awaiting_support'
+  | 'resolved'
+  | 'closed'
+  | 'suspended'
+  | 'reopened';
+
 export interface ChatThread {
   id: string;
   promoterId: string;
   subject: string;
-  status: 'open' | 'closed';
+  status: SupportStatus;
+  category?: string;
+  priority?: string;
   assignedToId: string | null;
-  answered: boolean;
   lastMessageAt: string;
   createdAt: string;
+  archived?: boolean;
   promoter?: { id: string; firstName: string; lastName: string | null; email: string };
 }
 
 export interface ChatMessage {
   id: string;
-  threadId: string;
+  ticketId: string;
   senderId: string;
   senderRole: string;
   body: string;
+  internalNote?: boolean;
   createdAt: string;
 }
 
 /**
- * SDK del chat de soporte (B3). Historial + ruteo por REST; la entrega en vivo va
- * por socket.io (ChatSocketService). El promotor premium abre hilos y escribe;
- * asesor/admin responden y (admin) reasignan.
+ * SDK de tickets de soporte (T1; evoluciona el chat B3). Historial + ciclo de vida por
+ * REST (/support/tickets); la entrega en vivo va por socket.io (ChatSocketService). El
+ * promotor abre tickets y escribe; asesor/admin atienden. UI rica (bandeja/SLA) = T3.
  */
 @Injectable({ providedIn: 'root' })
 export class ChatApi {
   private readonly api = inject(ApiClient);
 
   createThread(subject: string, message: string): Observable<ChatThread> {
-    return this.api.post<ChatThread>('/chat/threads', { subject, message });
+    return this.api.post<ChatThread>('/support/tickets', { subject, message });
   }
   listThreads(): Observable<ChatThread[]> {
-    return this.api.get<ChatThread[]>('/chat/threads');
+    return this.api.get<ChatThread[]>('/support/tickets');
   }
-  getMessages(threadId: string): Observable<{ thread: ChatThread; messages: ChatMessage[] }> {
-    return this.api.get<{ thread: ChatThread; messages: ChatMessage[] }>(`/chat/threads/${threadId}/messages`);
+  getMessages(ticketId: string): Observable<{ ticket: ChatThread; messages: ChatMessage[] }> {
+    return this.api.get<{ ticket: ChatThread; messages: ChatMessage[] }>(`/support/tickets/${ticketId}/messages`);
   }
-  postMessage(threadId: string, body: string): Observable<ChatMessage> {
-    return this.api.post<ChatMessage>(`/chat/threads/${threadId}/messages`, { body });
+  postMessage(ticketId: string, body: string): Observable<ChatMessage> {
+    return this.api.post<ChatMessage>(`/support/tickets/${ticketId}/messages`, { body });
   }
-  close(threadId: string): Observable<ChatThread> {
-    return this.api.post<ChatThread>(`/chat/threads/${threadId}/close`, {});
+  close(ticketId: string): Observable<ChatThread> {
+    return this.api.post<ChatThread>(`/support/tickets/${ticketId}/close`, {});
   }
-  reopen(threadId: string): Observable<ChatThread> {
-    return this.api.post<ChatThread>(`/chat/threads/${threadId}/reopen`, {});
+  reopen(ticketId: string): Observable<ChatThread> {
+    return this.api.post<ChatThread>(`/support/tickets/${ticketId}/reopen`, {});
   }
-  assign(threadId: string, assignedToId: string): Observable<ChatThread> {
-    return this.api.post<ChatThread>(`/chat/threads/${threadId}/assign`, { assignedToId });
+  assign(ticketId: string, assignedToId: string): Observable<ChatThread> {
+    return this.api.post<ChatThread>(`/support/tickets/${ticketId}/assign`, { assignedToId });
   }
 }

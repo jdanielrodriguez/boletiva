@@ -89,6 +89,10 @@ export class QueueService implements OnApplicationBootstrap, OnModuleDestroy {
   async enqueue(queue: string, name: string, data: unknown, opts?: JobsOptions): Promise<void> {
     try {
       if (this.inline) {
+        // Un job DIFERIDO (delay>0) está programado para el futuro; ejecutarlo al
+        // instante en modo inline es incorrecto (p.ej. un chequeo de SLA que aún no
+        // vence y se re-agendaría en bucle). En tests se dispara a mano cuando toca.
+        if (opts?.delay && opts.delay > 0) return;
         const list = this.handlers.get(queue);
         if (!list?.length) {
           this.logger.warn(`Sin handler para la cola ${queue} (job ${name}); se ignora`);

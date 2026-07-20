@@ -14,7 +14,7 @@ describe('SupportChatPage (B3)', () => {
   let el: HTMLElement;
 
   const THREADS = [
-    { id: 't1', promoterId: 'p1', subject: 'Duda', status: 'open', assignedToId: null, answered: false, lastMessageAt: '', createdAt: '' },
+    { id: 't1', promoterId: 'p1', subject: 'Duda', status: 'open', assignedToId: null, lastMessageAt: '', createdAt: '' },
   ];
 
   async function setup(opts: { chatEnabled?: boolean; roles?: string[]; api?: Record<string, unknown> } = {}) {
@@ -29,9 +29,9 @@ describe('SupportChatPage (B3)', () => {
           provide: ChatApi,
           useValue: {
             listThreads: () => of(THREADS),
-            getMessages: () => of({ thread: THREADS[0], messages: [{ id: 'm1', threadId: 't1', senderId: 'p1', senderRole: 'promoter', body: 'Hola', createdAt: '' }] }),
+            getMessages: () => of({ ticket: THREADS[0], messages: [{ id: 'm1', ticketId: 't1', senderId: 'p1', senderRole: 'promoter', body: 'Hola', createdAt: '' }] }),
             createThread: () => of(THREADS[0]),
-            postMessage: () => of({ id: 'm2', threadId: 't1', senderId: 'p1', senderRole: 'promoter', body: 'x', createdAt: '' }),
+            postMessage: () => of({ id: 'm2', ticketId: 't1', senderId: 'p1', senderRole: 'promoter', body: 'x', createdAt: '' }),
             close: () => of({ ...THREADS[0], status: 'closed' }),
             reopen: () => of(THREADS[0]),
             ...opts.api,
