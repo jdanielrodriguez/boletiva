@@ -22,6 +22,8 @@ export const common = {
   search: 'Search',
   all: 'All',
   none: 'None',
+  otpGroup: 'Verification code',
+  otpDigit: 'Digit {{n}} of {{total}}',
   optional: 'optional',
   required: 'required',
   view: 'View',

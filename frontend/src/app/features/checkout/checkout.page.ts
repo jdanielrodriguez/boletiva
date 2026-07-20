@@ -9,6 +9,7 @@ import { MoneyPipe } from '../../shared/money.pipe';
 import { TourComponent, type TourStep } from '../../shared/tour/tour.component';
 import { ConfirmationSplashComponent } from '../../shared/ui/confirmation-splash.component';
 import { LoadingComponent } from '../../shared/ui/loading.component';
+import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { OrderStreamService } from '../../core/api/order-stream.service';
 import { SessionStore } from '../../core/auth/session.store';
 import { BillingApi } from '../../core/api/billing.api';
@@ -49,6 +50,7 @@ type PayMode = 'saved' | 'wallet' | 'new';
     RouterLink,
     ConfirmationSplashComponent,
     LoadingComponent,
+    EmptyStateComponent,
     TourComponent,
   ],
   templateUrl: './checkout.page.html',

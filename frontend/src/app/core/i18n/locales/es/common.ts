@@ -21,6 +21,8 @@ export const common = {
   sending: 'Enviando…',
   search: 'Buscar',
   all: 'Todos',
+  otpGroup: 'Código de verificación',
+  otpDigit: 'Dígito {{n}} de {{total}}',
   none: 'Ninguno',
   optional: 'opcional',
   required: 'requerido',

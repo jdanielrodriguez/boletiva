@@ -101,8 +101,8 @@ import type { Lang } from '../../core/i18n/i18n.types';
       }
       .lang-flag.active {
         opacity: 1;
-        border-color: rgba(123, 92, 255, 0.6);
-        background: rgba(123, 92, 255, 0.12);
+        border-color: color-mix(in srgb, var(--pe-accent) 60%, transparent);
+        background: var(--pe-accent-soft);
       }
       .flag {
         width: 22px;

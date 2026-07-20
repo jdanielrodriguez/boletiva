@@ -38,6 +38,10 @@
   --pe-accent: #e14eca;
   --pe-accent-strong: #f06be0;
   --pe-accent-soft: color-mix(in srgb, var(--pe-accent) 16%, transparent);
+  --pe-accent-border: color-mix(in srgb, var(--pe-accent) 45%, transparent);
+
+  --pe-text-muted: var(--pe-muted);
+  --pe-focus-ring: color-mix(in srgb, var(--pe-primary) 40%, transparent);
 
   --pe-danger: #ff6b81;
   --pe-danger-strong: #e14b63;
@@ -82,6 +86,10 @@
   --pe-accent: #d1521f;
   --pe-accent-strong: #b8431a;
   --pe-accent-soft: color-mix(in srgb, var(--pe-accent) 14%, transparent);
+  --pe-accent-border: color-mix(in srgb, var(--pe-accent) 40%, transparent);
+
+  --pe-text-muted: var(--pe-muted);
+  --pe-focus-ring: color-mix(in srgb, var(--pe-primary) 40%, transparent);
 
   --pe-danger: #d83a4e;
   --pe-danger-strong: #c02338;
@@ -126,8 +134,8 @@ body {
 }
 
 body {
-  background-image: radial-gradient(1100px 500px at 80% -10%, rgba(123, 92, 255, 0.12), transparent 70%),
-    radial-gradient(900px 480px at -10% 0%, rgba(225, 78, 202, 0.08), transparent 70%);
+  background-image: radial-gradient(1100px 500px at 80% -10%, color-mix(in srgb, var(--pe-primary) 12%, transparent), transparent 70%),
+    radial-gradient(900px 480px at -10% 0%, color-mix(in srgb, var(--pe-accent) 8%, transparent), transparent 70%);
   background-attachment: fixed;
 }
 
@@ -252,7 +260,7 @@ select:focus,
 textarea:focus {
   outline: none;
   border-color: var(--pe-primary);
-  box-shadow: 0 0 0 3px rgba(123, 92, 255, 0.25);
+  box-shadow: 0 0 0 3px var(--pe-focus-ring);
 }
 
 /* Formularios más prolijos: separación clara de labels y campos. */
@@ -1463,8 +1471,8 @@ app-root {
 }
 .lang-choice .lang-opt.active {
   opacity: 1;
-  border-color: rgba(123, 92, 255, 0.6);
-  background: rgba(123, 92, 255, 0.12);
+  border-color: color-mix(in srgb, var(--pe-accent) 60%, transparent);
+  background: var(--pe-accent-soft);
 }
 .lang-choice .lang-code {
   font-weight: 700;
@@ -1529,7 +1537,7 @@ app-root {
   justify-content: space-between;
   gap: 1rem;
   padding: 0.9rem 1.1rem;
-  background: rgba(123, 92, 255, 0.1);
+  background: color-mix(in srgb, var(--pe-accent) 10%, transparent);
   border-bottom: 1px solid var(--pe-border);
 }
 
@@ -2018,11 +2026,13 @@ app-root {
   vertical-align: -1px;
 }
 
+/* Swatches con los MISMOS hex que la paleta Konva (seat-map.component.ts COLORS)
+   para que la leyenda coincida exactamente con el mapa en ambos temas. */
 .seat-legend .legend.av::before {
-  background: var(--pe-success);
+  background: #35d07f;
 }
 .seat-legend .legend.sel::before {
-  background: #7b5cff;
+  background: #e14eca;
 }
 .seat-legend .legend.tk::before {
   background: #3a3f52;
@@ -2256,15 +2266,11 @@ app-root {
   font-size: 1.2rem;
 }
 
-.method-card {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-  padding: 0.9rem 1rem;
+/* La tarjeta de método destacada (borde primario + degradado) solo cuando está
+   marcada como predeterminada; la lista neutral usa la base de arriba. */
+.method-card.is-default {
   border: 2px solid var(--pe-primary);
-  border-radius: var(--pe-radius-sm);
   background: var(--pe-grad-soft);
-  margin-bottom: 1.1rem;
 }
 
 .method-icon {
@@ -4405,6 +4411,36 @@ p.error {
   border: 1px solid var(--pe-danger-border, rgba(255, 107, 129, 0.4));
 }
 
+/* Estados de mensaje análogos a .error (avisos/éxito/info) — antes salían como
+   texto plano por no estar definidos. Mismo patrón: color + caja suave con borde. */
+.warn { color: var(--pe-warning-ink, var(--pe-warning)); font-weight: 600; }
+p.warn,
+.warn.box {
+  margin: 0.5rem 0;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  background: var(--pe-warning-soft);
+  border: 1px solid var(--pe-warning-border, var(--pe-warning));
+}
+.ok { color: var(--pe-success); font-weight: 600; }
+p.ok,
+.ok.box {
+  margin: 0.5rem 0;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  background: var(--pe-success-soft);
+  border: 1px solid var(--pe-success-border, var(--pe-success));
+}
+.info { color: var(--pe-text); font-weight: 500; }
+p.info,
+.info.box {
+  margin: 0.5rem 0;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  background: var(--pe-accent-soft);
+  border: 1px solid var(--pe-accent-border, var(--pe-accent));
+}
+
 /* Signup: checklist de contraseña segura + pistas + error de campo. */
 .auth-hint {
   margin: 0.35rem 0 0.6rem;
@@ -4543,7 +4579,14 @@ p.error {
 .checkin-stats { display: grid; gap: 1rem; margin-bottom: 1.4rem; }
 .checkin-head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
 .checkin-head h3 { margin: 0; }
-.checkin-live { color: var(--pe-success-strong, #1f9d57); font-weight: 600; font-size: 0.85rem; }
+.checkin-live { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--pe-success-strong, #1f9d57); font-weight: 600; font-size: 0.85rem; }
+.checkin-live-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--pe-success);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--pe-success) 55%, transparent);
+  animation: live-pulse 1.6s infinite;
+}
+@media (prefers-reduced-motion: reduce) { .checkin-live-dot { animation: none; } }
 .checkin-progress-top { display: flex; align-items: baseline; justify-content: space-between; gap: 0.6rem; }
 .checkin-pct { font-size: 2rem; font-weight: 800; color: var(--pe-accent, #e14eca); }
 .checkin-count { color: var(--pe-text-muted, #6b6b76); font-size: 0.9rem; }

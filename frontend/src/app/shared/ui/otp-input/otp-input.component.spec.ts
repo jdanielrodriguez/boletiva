@@ -1,5 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideI18nTesting } from '../../../core/i18n/testing';
 import { OtpInputComponent } from './otp-input.component';
 
 describe('OtpInputComponent', () => {
@@ -9,7 +10,7 @@ describe('OtpInputComponent', () => {
 
   async function setup(length?: number): Promise<void> {
     TestBed.configureTestingModule({
-      providers: [provideZonelessChangeDetection()],
+      providers: [...provideI18nTesting(), provideZonelessChangeDetection()],
     });
     fixture = TestBed.createComponent(OtpInputComponent);
     comp = fixture.componentInstance;

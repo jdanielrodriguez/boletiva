@@ -39,8 +39,8 @@ import { IconComponent } from '../icon/icon.component';
         justify-content: center;
         padding: 1.5rem;
         background: var(--pe-bg);
-        background-image: radial-gradient(900px 460px at 80% -10%, rgba(123, 92, 255, 0.16), transparent 70%),
-          radial-gradient(760px 420px at -10% 0%, rgba(225, 78, 202, 0.12), transparent 70%);
+        background-image: radial-gradient(900px 460px at 80% -10%, color-mix(in srgb, var(--pe-primary) 16%, transparent), transparent 70%),
+          radial-gradient(760px 420px at -10% 0%, color-mix(in srgb, var(--pe-accent) 12%, transparent), transparent 70%);
       }
       .mnt-card {
         max-width: 30rem;

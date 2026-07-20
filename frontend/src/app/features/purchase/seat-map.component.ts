@@ -12,9 +12,12 @@ import {
 import type Konva from 'konva';
 import type { SeatAvailabilityDto } from '../../core/api/types';
 
+// Paleta alineada a la marca (mismos hex que la leyenda en styles.scss:
+// .seat-legend .legend.{av,sel,tk}). Konva pinta sobre canvas → hex literal,
+// no tokens CSS; si cambian aquí, cambiar también la leyenda.
 const COLORS = {
-  available: '#2ecc71',
-  selected: '#7b5cff',
+  available: '#35d07f', // = --pe-success (noche)
+  selected: '#e14eca', // = --pe-accent (rosa de marca), antes morado residual
   taken: '#3a3f52',
 };
 const PAD = 40;

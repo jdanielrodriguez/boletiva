@@ -25,25 +25,25 @@ export const SEAT_TEMPLATES: SeatTemplateDef[] = [
     id: 'rows',
     name: 'Filas rectas',
     hint: '8 filas × 12 asientos alineados',
-    icon: '<svg viewBox="0 0 40 40" width="40" height="40"><g fill="#7b5cff"><rect x="6" y="8" width="28" height="4" rx="2"/><rect x="6" y="18" width="28" height="4" rx="2"/><rect x="6" y="28" width="28" height="4" rx="2"/></g></svg>',
+    icon: '<svg viewBox="0 0 40 40" width="40" height="40"><g fill="#e14eca"><rect x="6" y="8" width="28" height="4" rx="2"/><rect x="6" y="18" width="28" height="4" rx="2"/><rect x="6" y="28" width="28" height="4" rx="2"/></g></svg>',
   },
   {
     id: 'theater',
     name: 'Teatro (curvo)',
     hint: 'Filas curvadas hacia el escenario',
-    icon: '<svg viewBox="0 0 40 40" width="40" height="40"><g fill="none" stroke="#7b5cff" stroke-width="4" stroke-linecap="round"><path d="M6 14 Q20 8 34 14"/><path d="M6 24 Q20 18 34 24"/><path d="M6 34 Q20 28 34 34"/></g></svg>',
+    icon: '<svg viewBox="0 0 40 40" width="40" height="40"><g fill="none" stroke="#e14eca" stroke-width="4" stroke-linecap="round"><path d="M6 14 Q20 8 34 14"/><path d="M6 24 Q20 18 34 24"/><path d="M6 34 Q20 28 34 34"/></g></svg>',
   },
   {
     id: 'stadium',
     name: 'Estadio',
     hint: 'Gradas en los cuatro lados de la cancha',
-    icon: '<svg viewBox="0 0 40 40" width="40" height="40"><rect x="4" y="4" width="32" height="32" rx="6" fill="none" stroke="#7b5cff" stroke-width="4"/><rect x="14" y="14" width="12" height="12" rx="2" fill="#7b5cff" opacity="0.4"/></svg>',
+    icon: '<svg viewBox="0 0 40 40" width="40" height="40"><rect x="4" y="4" width="32" height="32" rx="6" fill="none" stroke="#e14eca" stroke-width="4"/><rect x="14" y="14" width="12" height="12" rx="2" fill="#e14eca" opacity="0.4"/></svg>',
   },
   {
     id: 'tables',
     name: 'Mesas redondas',
     hint: '6 mesas de 8 asientos',
-    icon: '<svg viewBox="0 0 40 40" width="40" height="40"><g fill="#7b5cff"><circle cx="12" cy="12" r="5"/><circle cx="28" cy="12" r="5"/><circle cx="12" cy="28" r="5"/><circle cx="28" cy="28" r="5"/></g></svg>',
+    icon: '<svg viewBox="0 0 40 40" width="40" height="40"><g fill="#e14eca"><circle cx="12" cy="12" r="5"/><circle cx="28" cy="12" r="5"/><circle cx="12" cy="28" r="5"/><circle cx="28" cy="28" r="5"/></g></svg>',
   },
 ];
 

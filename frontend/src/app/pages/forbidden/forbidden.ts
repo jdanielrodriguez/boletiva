@@ -1,15 +1,20 @@
 import { Component } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
+import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 
 /** Página 403: sesión válida pero sin el rol necesario. */
 @Component({
   selector: 'app-forbidden',
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, EmptyStateComponent],
   template: `
     <section class="forbidden">
-      <h1>{{ 'shell.forbiddenTitle' | translate }}</h1>
-      <p>{{ 'shell.forbiddenBody' | translate }}</p>
-      <a href="/">{{ 'shell.verifyBackHome' | translate }}</a>
+      <app-empty-state
+        variant="generic"
+        [title]="'shell.forbiddenTitle' | translate"
+        [subtitle]="'shell.forbiddenBody' | translate"
+        [ctaLabel]="'shell.verifyBackHome' | translate"
+        ctaLink="/"
+      />
     </section>
   `,
 })

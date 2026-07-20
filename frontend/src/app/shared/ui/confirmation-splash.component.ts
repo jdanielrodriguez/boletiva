@@ -74,7 +74,7 @@ export type SplashIcon = 'check' | 'mail';
       }
       .splash-halo--mail {
         color: var(--pe-primary);
-        background: rgba(123, 92, 255, 0.14);
+        background: color-mix(in srgb, var(--pe-primary) 14%, transparent);
       }
       @media (prefers-reduced-motion: reduce) {
         .splash-halo {

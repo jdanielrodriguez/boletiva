@@ -31,6 +31,8 @@ export interface ConfirmRequest {
 @Component({
   selector: 'app-confirm-dialog',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // Escape cancela (nunca confirma → seguro incluso en acciones destructivas).
+  host: { '(document:keydown.escape)': 'cancelled.emit()' },
   imports: [IconComponent, TranslatePipe],
   template: `<div class="modal-backdrop" data-testid="confirm-dialog">
     <div class="modal-card confirm-card" role="alertdialog" aria-modal="true" [attr.aria-labelledby]="'confirm-title'" [attr.aria-describedby]="'confirm-msg'">

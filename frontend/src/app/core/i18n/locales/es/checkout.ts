@@ -13,6 +13,8 @@ export const checkout = {
   goToTicketsNow: 'Ver mis boletos ahora',
   failedTitle: 'El pago no se completó',
   orderWas: 'La orden fue {{state}}.',
+  failedHint: 'No se realizó ningún cargo. Puedes volver a elegir tus boletos e intentarlo de nuevo.',
+  backToCatalog: 'Explorar eventos',
   expired: 'expirada',
   cancelled: 'cancelada',
   paymentMethod: 'Método de pago',

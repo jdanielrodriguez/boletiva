@@ -342,7 +342,7 @@
                   <strong>{{ g.name }}</strong>
                   <span class="badge badge-{{ g.status }}">{{ g.status | statusLabel }}</span>
                   @if (g.isPlatformDefault) { <span class="badge badge-approved">{{ 'config.system.defaultBadge' | translate }}</span> }
-                  <span class="muted small">{{ g.provider }} · {{ g.feePct }} + Q{{ g.transactionFixedFee }}</span>
+                  <span class="muted small">{{ g.provider }} · {{ +g.feePct * 100 | number: '1.0-2' }}% + Q{{ g.transactionFixedFee }}</span>
                   <span class="gateway-edit-actions" style="margin-left:auto; display:flex; gap:0.4rem;">
                     @if (!g.isPlatformDefault) {
                       <button type="button" class="btn small" (click)="makeDefault(g)" data-testid="gw-make-default" [title]="'config.system.makeDefaultTitle' | translate">

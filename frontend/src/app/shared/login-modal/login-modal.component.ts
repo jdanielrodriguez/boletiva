@@ -12,6 +12,7 @@ import { OtpInputComponent } from '../ui/otp-input/otp-input.component';
 @Component({
   selector: 'app-login-modal',
   imports: [FormsModule, TranslatePipe, OtpInputComponent],
+  host: { '(document:keydown.escape)': 'dismiss.emit()' },
   templateUrl: './login-modal.component.html',
 })
 export class LoginModal {

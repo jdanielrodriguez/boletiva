@@ -251,7 +251,7 @@
           @if (cards().length > 0) {
             <ul class="card-methods" data-testid="cards-list">
               @for (c of cards(); track c.id) {
-                <li class="method-card">
+                <li class="method-card" [class.is-default]="c.isDefault">
                   <span class="method-brand">{{ c.brand | uppercase }}</span>
                   <span class="method-dots">•••• {{ c.last4 }}</span>
                   @if (c.isDefault) {

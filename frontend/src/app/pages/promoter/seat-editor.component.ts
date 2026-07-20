@@ -375,8 +375,8 @@ export class SeatEditorComponent {
     const draggable = editable && this.mode() === 'move';
     this.draft().forEach((seat, index) => {
       const g = new K.Group({ x: seat.x, y: seat.y, draggable });
-      g.add(new K.Rect({ x: -11, y: -16, width: 22, height: 6, cornerRadius: 3, fill: '#7b5cff' }));
-      g.add(new K.Rect({ x: -13, y: -8, width: 26, height: 16, cornerRadius: 5, fill: '#7b5cff' }));
+      g.add(new K.Rect({ x: -11, y: -16, width: 22, height: 6, cornerRadius: 3, fill: '#e14eca' }));
+      g.add(new K.Rect({ x: -13, y: -8, width: 26, height: 16, cornerRadius: 5, fill: '#e14eca' }));
       if (editable) {
         g.on('mouseenter', () => this.setCursor(this.mode() === 'delete' ? 'not-allowed' : 'pointer'));
         g.on('mouseleave', () => this.setCursor('default'));
@@ -406,7 +406,7 @@ export class SeatEditorComponent {
       const pos = this.stage?.getPointerPosition();
       if (!pos) return;
       if (!this.previewLine) {
-        this.previewLine = new this.konva.Line({ stroke: '#7b5cff', strokeWidth: 2, dash: [6, 4], listening: false });
+        this.previewLine = new this.konva.Line({ stroke: '#e14eca', strokeWidth: 2, dash: [6, 4], listening: false });
         this.layer.add(this.previewLine);
       }
       this.previewLine.points([this.lineStart.x, this.lineStart.y, pos.x, pos.y]);

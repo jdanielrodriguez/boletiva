@@ -1,4 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -81,6 +82,7 @@ const INV_PAGE = 9;
   imports: [
     FormsModule,
     TranslatePipe,
+    DecimalPipe,
     LocalizedDatePipe,
     StatusLabelPipe,
     IconComponent,
@@ -98,6 +100,8 @@ const INV_PAGE = 9;
     TourComponent,
   ],
   templateUrl: './config.page.html',
+  // Escape cierra el modal abierto (suspender o candado), como en confirm-dialog.
+  host: { '(document:keydown.escape)': 'onEscape()' },
 })
 export class ConfigPage {
   /** Tour de onboarding de la consola admin (solo admins que no lo han visto). */
@@ -592,6 +596,12 @@ export class ConfigPage {
       },
       error: () => this.toasts.error(this.translate.instant('config.promoters.impersonateError')),
     });
+  }
+
+  /** Escape → cierra el modal abierto (candado tiene prioridad si ambos, no ocurre). */
+  protected onEscape(): void {
+    if (this.lockModalOpen()) this.closeLockModal();
+    else if (this.suspendTarget()) this.cancelSuspend();
   }
 
   // --- Suspensión con modal + motivo ---
