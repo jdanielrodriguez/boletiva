@@ -1,6 +1,7 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
+import { AuditApi } from '../../core/api/audit.api';
 import { TicketsApi } from '../../core/api/tickets.api';
 import { SITE_URL } from '../../core/config/api.tokens';
 import { I18nService } from '../../core/i18n/i18n.service';
@@ -28,6 +29,7 @@ describe('TicketTransferModal', () => {
         ...provideI18nTesting(),
         ToastService,
         { provide: TicketsApi, useValue: { transfer } },
+        { provide: AuditApi, useValue: { confirm: () => of({}) } },
         { provide: SITE_URL, useValue: 'http://localhost:4200' },
       ],
     });
