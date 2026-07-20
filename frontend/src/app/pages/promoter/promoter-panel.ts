@@ -4,7 +4,9 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { Router, RouterLink } from '@angular/router';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
+import { PromotersApi } from '../../core/api/promoters.api';
 import { CategoriesApi } from '../../core/api/categories.api';
+import { PublicConfigStore } from '../../core/config/public-config.store';
 import { SessionStore } from '../../core/auth/session.store';
 import { ToastService } from '../../core/ui/toast.service';
 import { ConfirmController } from '../../shared/confirm-dialog/confirm-controller';
@@ -12,6 +14,7 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dial
 import { IconComponent } from '../../shared/icon/icon.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
 import { SearchFieldComponent } from '../../shared/ui/search-field.component';
+import { SwitchComponent } from '../../shared/ui/switch.component';
 import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
 import { TourComponent, TourStep } from '../../shared/tour/tour.component';
 import type { MyEventListItemDto } from '../../core/api/types';
@@ -34,12 +37,14 @@ type EventFilterGroup = 'upcoming' | 'ongoing' | 'suspended' | 'past' | 'all';
  */
 @Component({
   selector: 'app-promoter-panel',
-  imports: [FormsModule, LocalizedDatePipe, TranslatePipe, RouterLink, IconComponent, ConfirmDialogComponent, PagerComponent, StatusLabelPipe, SearchFieldComponent, TourComponent],
+  imports: [FormsModule, LocalizedDatePipe, TranslatePipe, RouterLink, IconComponent, ConfirmDialogComponent, PagerComponent, StatusLabelPipe, SearchFieldComponent, SwitchComponent, TourComponent],
   templateUrl: './promoter-panel.html',
 })
 export class PromoterPanel {
   private readonly eventsApi = inject(PromoterEventsApi);
+  private readonly promotersApi = inject(PromotersApi);
   private readonly categoriesApi = inject(CategoriesApi);
+  private readonly config = inject(PublicConfigStore);
   private readonly session = inject(SessionStore);
   private readonly toasts = inject(ToastService);
   private readonly router = inject(Router);
@@ -47,6 +52,18 @@ export class PromoterPanel {
 
   /** Promotor de PRUEBA → sus eventos van por Sandbox; se marcan con un chip TEST. */
   protected readonly isTestUser = computed(() => this.session.user()?.isTestUser === true);
+
+  // --- Estado premium (B1): chip de plan + prueba + gating del botón "Destacar". ---
+  protected readonly premiumConfig = computed(() => this.config.premium());
+  protected readonly promoterTier = signal<'free' | 'premium'>('free');
+  protected readonly premiumBenefitsActive = signal(false);
+  protected readonly premiumTrialEndsAt = signal<string | null>(null);
+  /** ¿Muestro el chip premium? (solo si la distinción está activa). */
+  protected readonly showPremiumChip = computed(() => this.premiumConfig().enabled);
+  /** ¿Puede el promotor destacar SU evento? (beneficio premium; con premium off = todos). */
+  protected readonly canFeature = computed(() => this.premiumBenefitsActive());
+  /** Evento cuyo destacado se está guardando (deshabilita su switch mientras). */
+  protected readonly promotingId = signal<string | null>(null);
 
   /** Tour de onboarding del panel del promotor. */
   protected readonly tourSteps: TourStep[] = [
@@ -130,10 +147,44 @@ export class PromoterPanel {
   }
 
   constructor() {
+    this.config.load();
     this.loadEvents();
     this.categoriesApi.list().subscribe({
       next: (cs) => this.categories.set(cs.map((c) => ({ id: c.id, name: c.name }))),
       error: () => this.categories.set([]),
+    });
+    // Estado premium propio (para el chip + gating del botón "Destacar").
+    this.promotersApi.myStatus().subscribe({
+      next: (s) => {
+        this.promoterTier.set(s.promoterTier);
+        this.premiumBenefitsActive.set(s.premiumBenefitsActive ?? false);
+        this.premiumTrialEndsAt.set((s.premiumTrialEndsAt as string | null) ?? null);
+      },
+      error: () => undefined,
+    });
+  }
+
+  /** Destaca/quita SU evento del slider del inicio (beneficio premium). */
+  protected togglePromoted(e: MyEventListItemDto, featured: boolean): void {
+    if (!this.canFeature()) {
+      this.toasts.info(this.translate.instant('promoter.panel.featurePremiumOnly'));
+      return;
+    }
+    this.promotingId.set(e.id);
+    this.eventsApi.promote(e.id, featured).subscribe({
+      next: () => {
+        this.events.update((list) =>
+          list.map((x) => (x.id === e.id ? { ...x, promotedPriority: featured ? 0 : null } : x)),
+        );
+        this.promotingId.set(null);
+        this.toasts.success(
+          this.translate.instant(featured ? 'promoter.panel.featured' : 'promoter.panel.unfeatured'),
+        );
+      },
+      error: () => {
+        this.promotingId.set(null);
+        this.toasts.error(this.translate.instant('promoter.panel.featureError'));
+      },
     });
   }
 

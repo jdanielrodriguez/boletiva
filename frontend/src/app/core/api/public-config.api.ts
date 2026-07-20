@@ -32,6 +32,10 @@ export interface PublicConfig {
   theme?: ThemeConfig;
   /** Site key pública de reCAPTCHA v3 (vacía = deshabilitado, no se carga). */
   recaptchaSiteKey?: string;
+  /** Perfil premium: interruptor maestro + prueba gratis + días (gating de UI del plan). */
+  premium?: { enabled: boolean; trialEnabled: boolean; trialDays: number };
+  /** ¿El chat de soporte está habilitado? */
+  chatEnabled?: boolean;
 }
 
 /**

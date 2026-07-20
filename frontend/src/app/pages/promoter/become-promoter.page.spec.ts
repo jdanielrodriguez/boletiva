@@ -4,6 +4,7 @@ import { Router, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { provideI18nTesting } from '../../core/i18n/testing';
 import { PromotersApi } from '../../core/api/promoters.api';
+import { PublicConfigStore } from '../../core/config/public-config.store';
 import { AuthRefreshService } from '../../core/auth/auth-refresh.service';
 import { SessionStore } from '../../core/auth/session.store';
 import { TokenStore } from '../../core/auth/token-store.service';
@@ -82,6 +83,10 @@ describe('BecomePromoterPage (planes free/premium)', () => {
         provideRouter([]),
         ToastService,
         { provide: PromotersApi, useValue: { myStatus, apply, register } },
+        {
+          provide: PublicConfigStore,
+          useValue: { load: () => undefined, premium: () => ({ enabled: true, trialEnabled: false, trialDays: 7 }) },
+        },
         { provide: AuthRefreshService, useValue: { refresh } },
         { provide: SessionStore, useValue: session },
         { provide: TokenStore, useValue: { setAccessToken } },

@@ -128,6 +128,10 @@ export class ConfigPage {
     'theme.slot.noche': (s, v) => s.setThemeSlot('noche', String(v)),
     'theme.allow_visitor_switch': (s, v) => s.setThemeAllowVisitorSwitch(Boolean(v)),
     'theme.auto_by_hour': (s, v) => s.setThemeAutoByHour(Boolean(v)),
+    'premium.enabled': (s, v) => s.setPremiumEnabled(Boolean(v)),
+    'premium.trial_enabled': (s, v) => s.setPremiumTrialEnabled(Boolean(v)),
+    'premium.trial_days': (s, v) => s.setPremiumTrialDays(Number(v)),
+    'chat.enabled': (s, v) => s.setChatEnabled(Boolean(v)),
   };
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);

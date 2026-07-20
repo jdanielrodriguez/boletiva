@@ -28,7 +28,7 @@
       }
 
       <div class="bp-plans">
-        @for (plan of plans; track plan.tier) {
+        @for (plan of visiblePlans(); track plan.tier) {
           <article class="bp-plan" [class.recommended]="plan.recommended" [attr.data-testid]="'bp-plan-' + plan.tier">
             @if (plan.recommended) {
               <span class="bp-badge">{{ 'becomePromoter.recommended' | translate }}</span>
@@ -48,6 +48,11 @@
             </ul>
             @if (plan.tier === 'premium') {
               <p class="bp-note">{{ 'becomePromoter.premiumNote' | translate }}</p>
+              @if (config.premium().trialEnabled) {
+                <p class="bp-trial" data-testid="bp-trial">
+                  {{ 'becomePromoter.trialHint' | translate: { days: trialDays() } }}
+                </p>
+              }
             }
             <button
               type="button"

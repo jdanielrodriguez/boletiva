@@ -770,7 +770,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Destaca/quita un evento del slider del inicio (solo admin) */
+        /** Destaca/quita un evento del slider del inicio (admin cualquiera; promotor premium el suyo) */
         patch: operations["EventsController_promote_v1"];
         trace?: never;
     };
@@ -904,6 +904,57 @@ export interface paths {
         get: operations["PromotersController_me_v1"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/promoters/tier": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cambia mi plan de promotor (upgrade/downgrade). Premium exige tarjeta registrada. */
+        post: operations["PromotersController_setMyTier_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/promoters/{id}/tier": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Fija el plan de un promotor a mano (admin): premium directo o prueba de N días */
+        patch: operations["PromotersController_adminSetTier_v1"];
+        trace?: never;
+    };
+    "/api/v1/promoters/premium/expire-trials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Baja a free las pruebas premium vencidas (disparo manual; también corre a diario) */
+        post: operations["PromotersController_expireTrials_v1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4942,6 +4993,46 @@ export interface components {
             promoterTier: "free" | "premium";
             /** @description true = se exige autorización de admin; false = modo pruebas */
             requireApproval: boolean;
+            /**
+             * Format: date-time
+             * @description Fin de la prueba premium (null = premium pagado o free)
+             */
+            premiumTrialEndsAt: string | null;
+            /** @description true si el premium proviene de una prueba gratis vigente */
+            onTrial: boolean;
+            /** @description true si los beneficios premium (chat, destacar propio, dashboards) aplican ya */
+            premiumBenefitsActive: boolean;
+        };
+        SetTierDto: {
+            /**
+             * @description Nuevo plan
+             * @example premium
+             * @enum {string}
+             */
+            tier: "free" | "premium";
+        };
+        PremiumTierResponseDto: {
+            /** @enum {string} */
+            promoterTier: "free" | "premium";
+            /** Format: date-time */
+            premiumTrialEndsAt: string | null;
+            /** Format: date-time */
+            premiumSince: string | null;
+            /** @description true si el premium proviene de una prueba gratis vigente */
+            onTrial: boolean;
+        };
+        AdminSetTierDto: {
+            /**
+             * @description Nuevo plan
+             * @example premium
+             * @enum {string}
+             */
+            tier: "free" | "premium";
+            /**
+             * @description Si se otorga como PRUEBA gratis, días de la prueba (1–90)
+             * @example 7
+             */
+            trialDays?: number;
         };
         RequireApprovalResponseDto: {
             /** @description true = se exige autorización de admin; false = modo pruebas */
@@ -7873,6 +7964,20 @@ export interface components {
              *     }
              */
             theme: Record<string, never>;
+            /**
+             * @description Perfil premium: interruptor maestro + prueba gratis + días (gating de UI del plan).
+             * @example {
+             *       "enabled": false,
+             *       "trialEnabled": false,
+             *       "trialDays": 7
+             *     }
+             */
+            premium: Record<string, never>;
+            /**
+             * @description Si el chat de soporte está habilitado.
+             * @example false
+             */
+            chatEnabled: boolean;
         };
         MaintenanceStatusDto: {
             /** @description true si la plataforma está en mantenimiento */
@@ -9255,6 +9360,71 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["MyPromoterStatusResponseDto"];
                 };
+            };
+        };
+    };
+    PromotersController_setMyTier_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetTierDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PremiumTierResponseDto"];
+                };
+            };
+        };
+    };
+    PromotersController_adminSetTier_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminSetTierDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PremiumTierResponseDto"];
+                };
+            };
+        };
+    };
+    PromotersController_expireTrials_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

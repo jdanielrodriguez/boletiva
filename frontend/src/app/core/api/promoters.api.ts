@@ -5,6 +5,7 @@ import type { Schemas } from './types';
 
 export type MyPromoterStatusResponseDto = Schemas['MyPromoterStatusResponseDto'];
 export type PromoterStatusResponseDto = Schemas['PromoterStatusResponseDto'];
+export type PremiumTierResponseDto = Schemas['PremiumTierResponseDto'];
 export type PromoterTier = 'free' | 'premium';
 
 /** Respuesta del registro en un paso: sesión iniciada + estado de promotor. */
@@ -47,6 +48,19 @@ export class PromotersApi {
     captchaToken?: string,
   ): Observable<RegisterPromoterResponse> {
     return this.api.post<RegisterPromoterResponse>('/promoters/register', body, undefined, captchaOpts(captchaToken));
+  }
+
+  /**
+   * Cambia MI plan (upgrade/downgrade). Premium exige una tarjeta registrada (si no,
+   * el backend responde 400 y el frontend invita a agregarla).
+   */
+  setTier(tier: PromoterTier): Observable<PremiumTierResponseDto> {
+    return this.api.post<PremiumTierResponseDto>('/promoters/tier', { tier });
+  }
+
+  /** (Admin) Fija el plan de un promotor a mano: premium directo o prueba de N días. */
+  adminSetTier(id: string, tier: PromoterTier, trialDays?: number): Observable<PremiumTierResponseDto> {
+    return this.api.patch<PremiumTierResponseDto>(`/promoters/${id}/tier`, { tier, ...(trialDays ? { trialDays } : {}) });
   }
 }
 

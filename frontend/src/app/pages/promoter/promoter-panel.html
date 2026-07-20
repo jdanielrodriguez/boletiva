@@ -1,8 +1,25 @@
 <section class="promoter-panel">
   <div class="panel-header">
     <div>
-      <h1>{{ 'promoter.panel.title' | translate }}</h1>
+      <h1>
+        {{ 'promoter.panel.title' | translate }}
+        @if (showPremiumChip()) {
+          <span class="tier-chip" [class.premium]="promoterTier() === 'premium'" data-testid="tier-chip">
+            {{ (promoterTier() === 'premium' ? 'promoter.panel.tierPremium' : 'promoter.panel.tierFree') | translate }}
+          </span>
+        }
+      </h1>
       <p class="muted">{{ 'promoter.panel.subtitle' | translate }}</p>
+      @if (showPremiumChip() && promoterTier() === 'premium' && premiumTrialEndsAt()) {
+        <p class="muted small" data-testid="tier-trial">
+          {{ 'promoter.panel.trialUntil' | translate: { date: (premiumTrialEndsAt() | localizedDate: 'd MMM y') } }}
+        </p>
+      }
+      @if (showPremiumChip() && promoterTier() !== 'premium') {
+        <a class="link-btn small" routerLink="/conviertete-en-promotor" data-testid="tier-upsell">
+          {{ 'promoter.panel.upgradeCta' | translate }}
+        </a>
+      }
     </div>
     <div class="panel-header-actions">
       <a class="btn btn-outline" routerLink="/promotor/dashboard" data-testid="go-dashboard" [title]="'promoter.dash.title' | translate">
@@ -94,6 +111,17 @@
                 <button type="button" class="btn small danger" (click)="askCancelEvent(ev)" data-testid="ev-cancel" [title]="'promoter.panel.cancelTitle' | translate">
                   <app-icon name="cancel" /> {{ 'common.cancel' | translate }}
                 </button>
+              }
+              <!-- Destacar SU evento en el slider del inicio (beneficio premium). Solo
+                   eventos publicados; se muestra si sus beneficios premium están activos. -->
+              @if (ev.status === 'published' && canFeature()) {
+                <span class="ev-promote" [title]="'promoter.panel.featureHint' | translate">
+                  <span class="ev-promote-star" aria-hidden="true">★</span>
+                  <span class="ev-promote-label">{{ 'promoter.panel.feature' | translate }}</span>
+                  <app-switch [checked]="ev.promotedPriority != null" [disabled]="promotingId() === ev.id"
+                    (checkedChange)="togglePromoted(ev, $event)"
+                    [ariaLabel]="'promoter.panel.feature' | translate" [testId]="'ev-promote-' + ev.id" />
+                </span>
               }
             }
           </div>

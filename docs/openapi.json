@@ -1684,7 +1684,7 @@
             "bearer": []
           }
         ],
-        "summary": "Destaca/quita un evento del slider del inicio (solo admin)",
+        "summary": "Destaca/quita un evento del slider del inicio (admin cualquiera; promotor premium el suyo)",
         "tags": [
           "events"
         ]
@@ -1996,6 +1996,109 @@
           }
         ],
         "summary": "Mi estado de promotor",
+        "tags": [
+          "promoters"
+        ]
+      }
+    },
+    "/api/v1/promoters/tier": {
+      "post": {
+        "operationId": "PromotersController_setMyTier_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetTierDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PremiumTierResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cambia mi plan de promotor (upgrade/downgrade). Premium exige tarjeta registrada.",
+        "tags": [
+          "promoters"
+        ]
+      }
+    },
+    "/api/v1/promoters/{id}/tier": {
+      "patch": {
+        "operationId": "PromotersController_adminSetTier_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminSetTierDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PremiumTierResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Fija el plan de un promotor a mano (admin): premium directo o prueba de N días",
+        "tags": [
+          "promoters"
+        ]
+      }
+    },
+    "/api/v1/promoters/premium/expire-trials": {
+      "post": {
+        "operationId": "PromotersController_expireTrials_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Baja a free las pruebas premium vencidas (disparo manual; también corre a diario)",
         "tags": [
           "promoters"
         ]
@@ -10842,6 +10945,20 @@
           "requireApproval": {
             "type": "boolean",
             "description": "true = se exige autorización de admin; false = modo pruebas"
+          },
+          "premiumTrialEndsAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true,
+            "description": "Fin de la prueba premium (null = premium pagado o free)"
+          },
+          "onTrial": {
+            "type": "boolean",
+            "description": "true si el premium proviene de una prueba gratis vigente"
+          },
+          "premiumBenefitsActive": {
+            "type": "boolean",
+            "description": "true si los beneficios premium (chat, destacar propio, dashboards) aplican ya"
           }
         },
         "required": [
@@ -10851,7 +10968,81 @@
           "promoterDecidedAt",
           "promoterNote",
           "promoterTier",
-          "requireApproval"
+          "requireApproval",
+          "premiumTrialEndsAt",
+          "onTrial",
+          "premiumBenefitsActive"
+        ]
+      },
+      "SetTierDto": {
+        "type": "object",
+        "properties": {
+          "tier": {
+            "type": "string",
+            "description": "Nuevo plan",
+            "enum": [
+              "free",
+              "premium"
+            ],
+            "example": "premium"
+          }
+        },
+        "required": [
+          "tier"
+        ]
+      },
+      "PremiumTierResponseDto": {
+        "type": "object",
+        "properties": {
+          "promoterTier": {
+            "type": "string",
+            "enum": [
+              "free",
+              "premium"
+            ]
+          },
+          "premiumTrialEndsAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "premiumSince": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "onTrial": {
+            "type": "boolean",
+            "description": "true si el premium proviene de una prueba gratis vigente"
+          }
+        },
+        "required": [
+          "promoterTier",
+          "premiumTrialEndsAt",
+          "premiumSince",
+          "onTrial"
+        ]
+      },
+      "AdminSetTierDto": {
+        "type": "object",
+        "properties": {
+          "tier": {
+            "type": "string",
+            "description": "Nuevo plan",
+            "enum": [
+              "free",
+              "premium"
+            ],
+            "example": "premium"
+          },
+          "trialDays": {
+            "type": "number",
+            "description": "Si se otorga como PRUEBA gratis, días de la prueba (1–90)",
+            "example": 7
+          }
+        },
+        "required": [
+          "tier"
         ]
       },
       "RequireApprovalResponseDto": {
@@ -16478,6 +16669,20 @@
               "dayStartHour": 6,
               "dayEndHour": 18
             }
+          },
+          "premium": {
+            "type": "object",
+            "description": "Perfil premium: interruptor maestro + prueba gratis + días (gating de UI del plan).",
+            "example": {
+              "enabled": false,
+              "trialEnabled": false,
+              "trialDays": 7
+            }
+          },
+          "chatEnabled": {
+            "type": "boolean",
+            "description": "Si el chat de soporte está habilitado.",
+            "example": false
           }
         },
         "required": [
@@ -16487,7 +16692,9 @@
           "tourEnabled",
           "capabilities",
           "recaptchaSiteKey",
-          "theme"
+          "theme",
+          "premium",
+          "chatEnabled"
         ]
       },
       "MaintenanceStatusDto": {
