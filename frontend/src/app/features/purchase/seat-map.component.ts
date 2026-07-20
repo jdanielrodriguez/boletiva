@@ -32,7 +32,9 @@ const PAD = 40;
     // El CANVAS ocupa el 100% del ancho del contenedor; el CONTENIDO (los asientos)
     // se centra dentro del stage vía offset del layer (no con CSS del canvas).
     ':host { display: block; width: 100%; }',
-    '.seat-map-host { display: block; width: 100%; }',
+    // overflow-x:auto → si el mapa es más ancho que el viewport (evento grande en móvil)
+    // se scrollea DENTRO en vez de desbordar la página. touch-action permite el pan.
+    '.seat-map-host { display: block; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }',
   ],
 })
 export class SeatMapComponent {

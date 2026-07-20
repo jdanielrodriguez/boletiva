@@ -47,7 +47,7 @@
                     @if (e.eventName) { <span class="ph-event">{{ e.eventName }}</span> }
                   </td>
                   <td class="muted small">{{ 'promoterHistory.system' | translate }}</td>
-                  <td><strong>Q{{ e.amount }}</strong> {{ 'promoterHistory.transferred' | translate }}</td>
+                  <td><strong>{{ e.amount | money }}</strong> {{ 'promoterHistory.transferred' | translate }}</td>
                 } @else {
                   <td class="ph-change">
                     <span class="badge badge-{{ e.statusFrom }}">{{ statusLabel(e.statusFrom) }}</span>

@@ -341,7 +341,10 @@ export class SeatEditorComponent {
     // del propio host, por eso se mide el padre): el lienzo llena el 100% del ancho
     // aun VACÍO → se puede dibujar en toda la superficie. Crece si los asientos exceden.
     const el = this.host()?.nativeElement;
-    const avail = Math.max(420, el?.parentElement?.clientWidth ?? el?.clientWidth ?? 420);
+    // Ancho = el del contenedor (para que en MÓVIL quepa sin overflow forzado); piso 280
+    // solo para no colapsar a 0 en el primer render. En desktop el contenedor es ancho.
+    const containerW = el?.parentElement?.clientWidth ?? el?.clientWidth ?? 0;
+    const avail = Math.max(280, containerW || 420);
     const pts = this.draft();
     if (pts.length === 0) return { width: avail, height: 300 };
     const maxX = Math.max(...pts.map((s) => s.x));

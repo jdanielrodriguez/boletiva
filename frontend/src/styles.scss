@@ -841,6 +841,17 @@ app-root {
   .account-grid {
     grid-template-columns: minmax(0, 1fr);
   }
+  /* Menú de cuenta como tira scrolleable (no 6 botones apilados empujando el contenido). */
+  .account-menu {
+    flex-direction: row;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 0.4rem;
+    padding-bottom: 0.25rem;
+  }
+  .account-menu::-webkit-scrollbar { display: none; }
+  .account-menu button { flex: 0 0 auto; white-space: nowrap; }
 }
 
 .account-menu {
@@ -3235,6 +3246,8 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
   .pe-switch .pe-switch-track { margin: 0.6rem 0; }
   /* Acciones tipo enlace (validadores, cuenta): blanco táctil vertical decente. */
   .link-btn { min-height: 40px; display: inline-flex; align-items: center; }
+  /* Steppers de cantidad (compra GA): 44px táctiles. */
+  .qty-btn { min-width: 44px; min-height: 44px; }
 }
 
 /* Edición de evento */
@@ -4599,4 +4612,11 @@ p.error {
 /* Menú "Generar" del editor de asientos: no salirse del viewport en móvil. */
 @media (max-width: 480px) {
   .gen-menu { max-width: calc(100vw - 2rem); left: auto; right: 0; }
+}
+
+/* Input con valor inválido (validación en vivo, p.ej. JSON de plantilla). */
+input.invalid,
+select.invalid,
+textarea.invalid {
+  border-color: var(--pe-danger, #ef4444);
 }

@@ -391,6 +391,7 @@ export const config = {
     builtInEditWarn: 'Las plantillas del sistema no se pueden editar.',
     nameRequired: 'La plantilla necesita un nombre.',
     paramsJsonInvalid: 'Los parámetros deben ser JSON válido (p.ej. {"rows":5,"cols":10}).',
+    paramsJsonHint: 'Objeto JSON con los parámetros de la plantilla (p.ej. {"rows":5,"cols":10}).',
     updated: 'Plantilla actualizada.',
     created: 'Plantilla creada.',
     builtInSaveError: 'Las plantillas del sistema no se pueden modificar.',

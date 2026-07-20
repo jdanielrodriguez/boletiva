@@ -391,6 +391,7 @@ export const config = {
     builtInEditWarn: 'System templates cannot be edited.',
     nameRequired: 'The template needs a name.',
     paramsJsonInvalid: 'Parameters must be valid JSON (e.g. {"rows":5,"cols":10}).',
+    paramsJsonHint: 'JSON object with the template parameters (e.g. {"rows":5,"cols":10}).',
     updated: 'Template updated.',
     created: 'Template created.',
     builtInSaveError: 'System templates cannot be modified.',
