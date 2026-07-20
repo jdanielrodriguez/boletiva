@@ -4620,3 +4620,19 @@ select.invalid,
 textarea.invalid {
   border-color: var(--pe-danger, #ef4444);
 }
+
+/* Badge de marca de tarjeta (Visa/Mastercard) en métodos de pago. */
+.card-brand-badge {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--pe-text);
+  background: var(--pe-surface-2);
+  border: 1px solid var(--pe-border);
+}
+/* Precio del ítem en la ficha de reserva. */
+.res-price { font-weight: 600; white-space: nowrap; }

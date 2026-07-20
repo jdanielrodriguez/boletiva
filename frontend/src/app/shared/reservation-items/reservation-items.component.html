@@ -18,7 +18,7 @@
               </span>
               {{ seatDesc(it) }}
             </span>
-            <span class="res-price">Q{{ it.price.total }}</span>
+            <span class="res-price">{{ it.price.total | money }}</span>
           </li>
         }
       </ul>
