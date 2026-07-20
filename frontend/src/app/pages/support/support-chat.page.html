@@ -1,0 +1,180 @@
+<section class="support-chat">
+  <h1>{{ 'chat.title' | translate }}</h1>
+
+  @if (!chatEnabled()) {
+    <app-empty-state variant="generic" [title]="'chat.disabledTitle' | translate" [subtitle]="'chat.disabledSubtitle' | translate" />
+  } @else {
+    <div class="chat-layout">
+      <aside class="chat-threads" data-testid="chat-threads">
+        <!-- PROMOTOR: abrir + archivados -->
+        @if (canOpen()) {
+          <button type="button" class="btn primary btn-block" (click)="startNew()" data-testid="chat-new">
+            {{ 'chat.newThread' | translate }}
+          </button>
+          <button type="button" class="link-btn small chat-archived-toggle" (click)="toggleArchived()" data-testid="chat-archived-toggle">
+            {{ (showArchived() ? 'chat.hideArchived' : 'chat.showArchived') | translate }}
+          </button>
+        }
+
+        <!-- AGENTE: filtros de cola -->
+        @if (isAgent()) {
+          <div class="seg chat-quick" role="group" [attr.aria-label]="'chat.filterQuick' | translate">
+            <button type="button" [class.active]="quick() === 'unassigned'" [attr.aria-pressed]="quick() === 'unassigned'" (click)="setQuick('unassigned')" data-testid="q-unassigned">{{ 'chat.unassigned' | translate }}</button>
+            <button type="button" [class.active]="quick() === 'mine'" [attr.aria-pressed]="quick() === 'mine'" (click)="setQuick('mine')" data-testid="q-mine">{{ 'chat.mine' | translate }}</button>
+            <button type="button" [class.active]="quick() === 'all'" [attr.aria-pressed]="quick() === 'all'" (click)="setQuick('all')" data-testid="q-all">{{ 'chat.all' | translate }}</button>
+          </div>
+          <label class="chat-status-filter">
+            <span class="sr-only">{{ 'chat.filterStatus' | translate }}</span>
+            <select [ngModel]="statusFilter()" (ngModelChange)="setStatus($event)" data-testid="chat-status-filter" [attr.aria-label]="'chat.filterStatus' | translate">
+              @for (s of agentStatuses; track s) {
+                <option [ngValue]="s">{{ s ? (s | statusLabel) : ('chat.allStatuses' | translate) }}</option>
+              }
+            </select>
+          </label>
+        }
+
+        @for (t of threads(); track t.id) {
+          <button type="button" class="chat-thread-item" [class.active]="active()?.id === t.id" (click)="open(t)" [attr.data-testid]="'chat-thread-' + t.id">
+            <strong>{{ t.subject }}</strong>
+            <span class="chat-thread-badges">
+              <span class="badge badge-{{ t.status }}">{{ t.status | statusLabel }}</span>
+              @if (t.priority) { <span class="badge prio-{{ t.priority }}">{{ 'chat.priority.' + t.priority | translate }}</span> }
+            </span>
+            @if (slaHint(t); as sla) {
+              <span class="chat-sla" [class.breached]="sla.breached">{{ sla.text }}</span>
+            }
+            @if (isAgent() && t.promoter) { <span class="muted small">{{ t.promoter.firstName }}</span> }
+          </button>
+        } @empty {
+          <p class="muted small" data-testid="chat-empty">{{ 'chat.noThreads' | translate }}</p>
+        }
+
+        @if (isAgent() && nextCursor()) {
+          <button type="button" class="btn small btn-block" (click)="loadQueue(false)" data-testid="chat-load-more">{{ 'chat.loadMore' | translate }}</button>
+        }
+      </aside>
+
+      <div class="chat-main">
+        @if (composingNew()) {
+          <form class="chat-compose-new" (ngSubmit)="createThread()">
+            <input [(ngModel)]="newSubject" name="subject" [placeholder]="'chat.subject' | translate" data-testid="chat-subject" />
+            <div class="chat-new-meta">
+              <label>
+                <span>{{ 'chat.category' | translate }}</span>
+                <select [(ngModel)]="newCategory" name="category" data-testid="chat-category">
+                  @for (c of categories; track c) { <option [ngValue]="c">{{ 'chat.categoryLabel.' + c | translate }}</option> }
+                </select>
+              </label>
+              <label>
+                <span>{{ 'chat.priorityLabel' | translate }}</span>
+                <select [(ngModel)]="newPriority" name="priority" data-testid="chat-priority">
+                  @for (p of priorities; track p) { <option [ngValue]="p">{{ 'chat.priority.' + p | translate }}</option> }
+                </select>
+              </label>
+            </div>
+            <textarea [(ngModel)]="newBody" name="body" rows="3" [placeholder]="'chat.firstMessage' | translate" data-testid="chat-first-message"></textarea>
+            <button type="submit" class="btn primary" [disabled]="working()" data-testid="chat-create">{{ 'chat.send' | translate }}</button>
+          </form>
+        } @else if (active(); as t) {
+          <div class="chat-thread-head">
+            <div class="chat-head-title">
+              <h2>{{ t.subject }}</h2>
+              <span class="chat-head-badges">
+                <span class="badge badge-{{ t.status }}">{{ t.status | statusLabel }}</span>
+                @if (t.priority) { <span class="badge prio-{{ t.priority }}">{{ 'chat.priority.' + t.priority | translate }}</span> }
+                @if (t.category) { <span class="badge">{{ 'chat.categoryLabel.' + t.category | translate }}</span> }
+              </span>
+            </div>
+
+            <!-- AGENTE: acciones de ciclo de vida -->
+            @if (isAgent()) {
+              <div class="chat-actions" data-testid="chat-agent-actions">
+                @if (t.status === 'new' || !t.assignedToId) {
+                  <button type="button" class="btn small" [disabled]="working()" (click)="take()" data-testid="chat-take">{{ 'chat.take' | translate }}</button>
+                }
+                @if (t.status !== 'resolved' && t.status !== 'closed') {
+                  <button type="button" class="btn small" [disabled]="working()" (click)="resolve()" data-testid="chat-resolve">{{ 'chat.resolve' | translate }}</button>
+                }
+                @if (t.status === 'suspended') {
+                  <button type="button" class="btn small" [disabled]="working()" (click)="resume()" data-testid="chat-resume">{{ 'chat.resume' | translate }}</button>
+                } @else if (t.status !== 'closed') {
+                  <button type="button" class="btn small" [disabled]="working()" (click)="suspend()" data-testid="chat-suspend">{{ 'chat.suspend' | translate }}</button>
+                }
+                @if (t.status === 'resolved' || t.status === 'closed') {
+                  <button type="button" class="btn small" [disabled]="working()" (click)="reopen()" data-testid="chat-reopen">{{ 'chat.reopen' | translate }}</button>
+                }
+                @if (t.status !== 'closed') {
+                  <button type="button" class="btn small" [disabled]="working()" (click)="close()" data-testid="chat-close">{{ 'chat.close' | translate }}</button>
+                }
+                <select class="chat-prio-select" [ngModel]="t.priority" (ngModelChange)="changePriority($event)" data-testid="chat-set-priority" [attr.aria-label]="'chat.priorityLabel' | translate">
+                  @for (p of priorities; track p) { <option [ngValue]="p">{{ 'chat.priority.' + p | translate }}</option> }
+                </select>
+              </div>
+            } @else {
+              <!-- PROMOTOR: cerrar / archivar -->
+              <div class="chat-actions">
+                @if (t.status !== 'closed') {
+                  <button type="button" class="btn small" (click)="close()" data-testid="chat-close">{{ 'chat.close' | translate }}</button>
+                }
+                <button type="button" class="btn small" (click)="archive()" data-testid="chat-archive">{{ 'chat.archive' | translate }}</button>
+              </div>
+            }
+          </div>
+
+          <div class="chat-messages" data-testid="chat-messages" aria-live="polite" aria-atomic="false">
+            @for (m of messages(); track m.id) {
+              <div class="chat-msg" [class.mine]="m.senderId === myId()" [class.agent]="m.senderRole !== 'promoter'" [class.note]="m.internalNote">
+                @if (m.internalNote) { <span class="chat-note-tag">{{ 'chat.internalNote' | translate }}</span> }
+                <span class="chat-msg-body">{{ m.body }}</span>
+                <time class="muted small">{{ m.createdAt | localizedDate: 'HH:mm' }}</time>
+              </div>
+            }
+          </div>
+
+          <!-- CSAT: el promotor califica un ticket resuelto/cerrado -->
+          @if (canOpen() && (t.status === 'resolved' || t.status === 'closed')) {
+            <div class="chat-csat" data-testid="chat-csat">
+              <span>{{ 'chat.rateQuestion' | translate }}</span>
+              <div class="chat-stars" role="group" [attr.aria-label]="'chat.rateQuestion' | translate">
+                @for (n of [1, 2, 3, 4, 5]; track n) {
+                  <button type="button" class="chat-star" [class.on]="(t.csatScore ?? 0) >= n" (click)="rate(n)" [attr.data-testid]="'chat-star-' + n" [attr.aria-label]="'chat.rateStar' | translate: { n: n }">★</button>
+                }
+              </div>
+            </div>
+          }
+
+          @if (canWrite(t)) {
+            <form class="chat-composer" (ngSubmit)="send()">
+              @if (isAgent()) {
+                <div class="chat-composer-tools">
+                  <label class="chat-internal-toggle">
+                    <input type="checkbox" [ngModel]="internalNote()" (ngModelChange)="internalNote.set($event)" name="internalNote" data-testid="chat-internal-toggle" />
+                    {{ 'chat.internalNote' | translate }}
+                  </label>
+                  @if (macros().length > 0) {
+                    <div class="chat-macros">
+                      <button type="button" class="link-btn small" (click)="showMacros.set(!showMacros())" data-testid="chat-macros-toggle">{{ 'chat.macros' | translate }}</button>
+                      @if (showMacros()) {
+                        <ul class="chat-macros-list" data-testid="chat-macros-list">
+                          @for (mac of macros(); track mac.id) {
+                            <li><button type="button" (click)="applyMacro(mac)" [attr.data-testid]="'chat-macro-' + mac.id">{{ mac.title }}</button></li>
+                          }
+                        </ul>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+              <div class="chat-composer-row">
+                <input [(ngModel)]="draft" name="draft" [attr.aria-label]="'chat.typeMessage' | translate" [placeholder]="(internalNote() ? 'chat.typeNote' : 'chat.typeMessage') | translate" data-testid="chat-input" />
+                <button type="submit" class="btn primary" [disabled]="working() || !draft().trim()" data-testid="chat-send">{{ 'chat.send' | translate }}</button>
+              </div>
+            </form>
+          }
+        } @else {
+          <app-empty-state variant="generic" [title]="'chat.pickThread' | translate" />
+        }
+      </div>
+    </div>
+  }
+</section>

@@ -10,6 +10,7 @@ import { MaintenancePageComponent } from './shared/maintenance/maintenance-page.
 import { MaintenanceBannerComponent } from './shared/maintenance/maintenance-banner.component';
 import { ImpersonationBannerComponent } from './shared/layout/impersonation-banner.component';
 import { EmailVerificationModal } from './shared/email-verification/email-verification-modal.component';
+import { SupportBubbleComponent } from './shared/support/support-bubble.component';
 import { SessionStore } from './core/auth/session.store';
 import { TokenStore } from './core/auth/token-store.service';
 import { ImpersonationService } from './core/auth/impersonation.service';
@@ -31,6 +32,7 @@ import { PublicConfigStore } from './core/config/public-config.store';
     MaintenanceBannerComponent,
     ImpersonationBannerComponent,
     EmailVerificationModal,
+    SupportBubbleComponent,
     TranslatePipe,
   ],
   templateUrl: './app.html',

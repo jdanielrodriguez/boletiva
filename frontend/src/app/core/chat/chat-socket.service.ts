@@ -14,10 +14,28 @@ export class ChatSocketService {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private socket: any = null;
+  /** Ref-count: la conexión se mantiene mientras haya ≥1 consumidor (página + burbuja). */
+  private refs = 0;
   /** Mensaje nuevo recibido en vivo. */
   readonly message$ = new Subject<ChatMessage>();
   /** Aviso a agentes de actividad en un ticket. */
   readonly activity$ = new Subject<{ ticketId: string }>();
+
+  /**
+   * Toma una referencia a la conexión (la abre si es la primera). Cada consumidor
+   * (SupportChatPage, burbuja global) debe hacer `release()` al terminar. Evita que
+   * la página, al destruirse, corte la conexión que la burbuja global necesita viva.
+   */
+  async acquire(): Promise<void> {
+    this.refs++;
+    await this.connect();
+  }
+
+  /** Libera una referencia; desconecta solo cuando ya nadie la usa. */
+  release(): void {
+    this.refs = Math.max(0, this.refs - 1);
+    if (this.refs === 0) this.disconnect();
+  }
 
   /** Abre la conexión (idempotente). Requiere token de acceso y navegador. */
   async connect(): Promise<void> {

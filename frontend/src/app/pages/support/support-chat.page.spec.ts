@@ -9,12 +9,12 @@ import { ToastService } from '../../core/ui/toast.service';
 import { initI18nTesting, provideI18nTesting } from '../../core/i18n/testing';
 import { SupportChatPage } from './support-chat.page';
 
-describe('SupportChatPage (B3)', () => {
+describe('SupportChatPage (T3)', () => {
   let fixture: ComponentFixture<SupportChatPage>;
   let el: HTMLElement;
 
   const THREADS = [
-    { id: 't1', promoterId: 'p1', subject: 'Duda', status: 'open', assignedToId: null, lastMessageAt: '', createdAt: '' },
+    { id: 't1', promoterId: 'p1', subject: 'Duda', status: 'open', priority: 'medium', assignedToId: null, lastMessageAt: '', createdAt: '', promoter: { id: 'p1', firstName: 'Ana', lastName: null, email: 'a@a.co' } },
   ];
 
   async function setup(opts: { chatEnabled?: boolean; roles?: string[]; api?: Record<string, unknown> } = {}) {
@@ -29,17 +29,25 @@ describe('SupportChatPage (B3)', () => {
           provide: ChatApi,
           useValue: {
             listThreads: () => of(THREADS),
+            queue: () => of({ items: THREADS, nextCursor: null }),
+            listMacros: () => of([]),
             getMessages: () => of({ ticket: THREADS[0], messages: [{ id: 'm1', ticketId: 't1', senderId: 'p1', senderRole: 'promoter', body: 'Hola', createdAt: '' }] }),
             createThread: () => of(THREADS[0]),
             postMessage: () => of({ id: 'm2', ticketId: 't1', senderId: 'p1', senderRole: 'promoter', body: 'x', createdAt: '' }),
             close: () => of({ ...THREADS[0], status: 'closed' }),
             reopen: () => of(THREADS[0]),
+            take: () => of({ ...THREADS[0], status: 'open' }),
+            resolve: () => of({ ...THREADS[0], status: 'resolved' }),
+            suspend: () => of({ ...THREADS[0], status: 'suspended' }),
+            resume: () => of(THREADS[0]),
+            archive: () => of(THREADS[0]),
+            rate: () => of({ ...THREADS[0], csatScore: 5 }),
             ...opts.api,
           } as unknown as ChatApi,
         },
         {
           provide: ChatSocketService,
-          useValue: { connect: () => Promise.resolve(), disconnect: () => undefined, joinThread: () => undefined, message$: new Subject(), activity$: new Subject() },
+          useValue: { acquire: () => Promise.resolve(), release: () => undefined, joinThread: () => undefined, message$: new Subject(), activity$: new Subject() },
         },
         { provide: SessionStore, useValue: { hasRole: (r: string) => roles.includes(r), hasAnyRole: (rs: string[]) => rs.some((r) => roles.includes(r)), user: () => ({ id: 'p1' }) } },
         { provide: PublicConfigStore, useValue: { load: () => undefined, chatEnabled: () => chatEnabled } },
@@ -53,25 +61,27 @@ describe('SupportChatPage (B3)', () => {
     el = fixture.nativeElement as HTMLElement;
   }
 
-  it('chat deshabilitado → muestra estado vacío y no lista hilos', async () => {
+  it('soporte deshabilitado → estado vacío y no lista tickets', async () => {
     await setup({ chatEnabled: false });
     expect(el.querySelector('[data-testid="chat-threads"]')).toBeNull();
-    expect(el.textContent).toContain('Chat no disponible');
+    expect(el.textContent).toContain('Soporte no disponible');
   });
 
-  it('promotor: ve el botón "nueva conversación" y sus hilos', async () => {
+  it('promotor: ve el botón "nuevo ticket" y sus tickets (sin filtros de agente)', async () => {
     await setup({ roles: ['promoter'] });
     expect(el.querySelector('[data-testid="chat-new"]')).not.toBeNull();
     expect(el.querySelector('[data-testid="chat-thread-t1"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="q-unassigned"]')).toBeNull(); // filtros solo agente
   });
 
-  it('agente (admin): NO ve el botón de abrir, pero sí los hilos', async () => {
+  it('agente (admin): NO ve el botón de abrir, sí la cola con filtros', async () => {
     await setup({ roles: ['admin'] });
     expect(el.querySelector('[data-testid="chat-new"]')).toBeNull();
+    expect(el.querySelector('[data-testid="q-unassigned"]')).not.toBeNull();
     expect(el.querySelector('[data-testid="chat-thread-t1"]')).not.toBeNull();
   });
 
-  it('abrir un hilo carga los mensajes y permite enviar', async () => {
+  it('abrir un ticket carga los mensajes y permite escribir', async () => {
     await setup();
     (el.querySelector('[data-testid="chat-thread-t1"]') as HTMLButtonElement).click();
     fixture.detectChanges();
@@ -79,5 +89,15 @@ describe('SupportChatPage (B3)', () => {
     fixture.detectChanges();
     expect(el.querySelector('[data-testid="chat-messages"]')?.textContent).toContain('Hola');
     expect(el.querySelector('[data-testid="chat-send"]')).not.toBeNull();
+  });
+
+  it('agente al abrir un ticket ve las acciones de ciclo de vida', async () => {
+    await setup({ roles: ['admin'] });
+    (el.querySelector('[data-testid="chat-thread-t1"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(el.querySelector('[data-testid="chat-agent-actions"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="chat-resolve"]')).not.toBeNull();
   });
 });

@@ -3235,6 +3235,58 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
   .chat-composer,
   .chat-compose-new { position: sticky; bottom: 0; background: var(--pe-surface); }
 }
+
+/* --- Soporte T3: bandeja, acciones, SLA, macros, CSAT --- */
+.chat-thread-item { display: flex; flex-direction: column; gap: 0.3rem; align-items: flex-start; text-align: left; }
+.chat-thread-badges { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.chat-sla { font-size: 0.72rem; color: var(--pe-text-muted, #6b6b76); }
+.chat-sla.breached { color: var(--pe-danger-strong); font-weight: 700; }
+.chat-archived-toggle { align-self: flex-start; }
+.chat-quick { margin-bottom: 0.5rem; }
+.chat-status-filter { display: block; margin-bottom: 0.5rem; }
+.chat-status-filter select { width: 100%; }
+
+/* Badges de estado de soporte que no existían */
+.badge-new { background: var(--pe-accent-soft); color: var(--pe-accent-strong); }
+.badge-awaiting_promoter { background: var(--pe-warning-soft); color: var(--pe-warning-strong); }
+.badge-awaiting_support { background: color-mix(in srgb, var(--pe-primary) 16%, transparent); color: var(--pe-primary); }
+.badge-resolved { background: var(--pe-success-soft); color: var(--pe-success-strong); }
+.badge-reopened { background: var(--pe-warning-soft); color: var(--pe-warning-strong); }
+
+/* Badges de prioridad */
+.badge.prio-low { background: var(--pe-surface-2); color: var(--pe-text-muted, #6b6b76); }
+.badge.prio-medium { background: color-mix(in srgb, var(--pe-primary) 15%, transparent); color: var(--pe-primary); }
+.badge.prio-high { background: var(--pe-warning-soft); color: var(--pe-warning-strong); }
+.badge.prio-urgent { background: var(--pe-danger-soft); color: var(--pe-danger-strong); }
+
+.chat-thread-head { flex-wrap: wrap; gap: 0.6rem; }
+.chat-head-title { display: flex; flex-direction: column; gap: 0.35rem; }
+.chat-head-badges { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.chat-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.chat-prio-select, .chat-new-meta select { min-height: 2.2rem; }
+.chat-new-meta { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+.chat-new-meta label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.85rem; }
+
+/* Nota interna (solo agentes la ven) */
+.chat-msg.note { align-self: stretch; background: var(--pe-warning-soft); border: 1px dashed var(--pe-warning-border, var(--pe-warning)); }
+.chat-note-tag { display: inline-block; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; color: var(--pe-warning-strong); margin-bottom: 0.2rem; }
+
+/* Composer: herramientas del agente + macros */
+.chat-composer-tools { display: flex; align-items: center; gap: 1rem; padding: 0.4rem 0; flex-wrap: wrap; }
+.chat-internal-toggle { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; }
+.chat-composer-row { display: flex; gap: 0.5rem; width: 100%; }
+.chat-composer-row input { flex: 1 1 auto; }
+.chat-composer { flex-direction: column; align-items: stretch; }
+.chat-macros { position: relative; }
+.chat-macros-list { position: absolute; bottom: 100%; left: 0; z-index: 5; margin: 0 0 0.3rem; padding: 0.3rem; list-style: none; background: var(--pe-surface); border: 1px solid var(--pe-border); border-radius: var(--pe-radius-sm); box-shadow: var(--pe-shadow); min-width: 220px; max-height: 40vh; overflow-y: auto; }
+.chat-macros-list li button { display: block; width: 100%; text-align: left; padding: 0.4rem 0.55rem; border: none; background: none; color: var(--pe-text); border-radius: 6px; cursor: pointer; }
+.chat-macros-list li button:hover { background: var(--pe-surface-2); }
+
+/* CSAT (estrellas) */
+.chat-csat { display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 1rem; border-top: 1px solid var(--pe-border); flex-wrap: wrap; }
+.chat-stars { display: inline-flex; gap: 0.15rem; }
+.chat-star { border: none; background: none; cursor: pointer; font-size: 1.35rem; line-height: 1; color: var(--pe-border); padding: 0 0.05rem; }
+.chat-star.on { color: var(--pe-warning); }
 /* Barra superior del editor: acciones alineadas a la derecha y CENTRADAS
    verticalmente (W5) → el botón/chip de desbloqueo queda a la misma altura que
    Guardar/Publicar (antes se estiraban a distinta altura por el default stretch). */
