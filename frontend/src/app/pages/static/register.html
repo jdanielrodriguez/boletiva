@@ -21,7 +21,7 @@
           </button>
         } @else {
           <p class="auth-sub" data-testid="activate-login-note" [innerHTML]="'auth.activateLoginNote' | translate: { email: invitedEmail() }"></p>
-          <a class="primary btn-link" [routerLink]="['/login']" [queryParams]="{ returnUrl: loginReturnUrl() }" data-testid="activate-login">
+          <a class="btn primary" [routerLink]="['/login']" [queryParams]="{ returnUrl: loginReturnUrl() }" data-testid="activate-login">
             {{ 'auth.signIn' | translate }}
           </a>
         }

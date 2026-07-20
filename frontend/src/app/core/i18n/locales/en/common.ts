@@ -6,6 +6,8 @@ export const common = {
   delete: 'Delete',
   remove: 'Remove',
   close: 'Close',
+  notifications: 'Notifications',
+  dismissNotification: 'Dismiss notification',
   add: 'Add',
   create: 'Create',
   back: 'Back',
@@ -70,5 +72,9 @@ export const common = {
     hidden: 'Hidden',
     disabled: 'Disabled',
     visible: 'Visible',
+    finished: 'Finished',
+    open: 'Open',
+    closed: 'Closed',
+    settled: 'Settled',
   },
 };

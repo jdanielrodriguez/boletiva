@@ -1,4 +1,4 @@
-import { Component, inject, output, signal } from '@angular/core';
+import { Component, HostListener, inject, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../core/auth/auth.service';
@@ -70,5 +70,10 @@ export class LoginModal {
 
   close(): void {
     this.dismiss.emit();
+  }
+
+  @HostListener('document:keydown.escape')
+  protected onEscape(): void {
+    this.close();
   }
 }

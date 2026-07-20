@@ -67,12 +67,12 @@ export interface ConfirmRequest {
         width: 56px;
         height: 56px;
         border-radius: 50%;
-        background: rgba(123, 92, 255, 0.14);
-        color: var(--pe-primary, #7b5cff);
+        background: var(--pe-accent-soft);
+        color: var(--pe-primary);
       }
       .confirm-icon.is-danger {
-        background: rgba(239, 68, 68, 0.16);
-        color: #ef4444;
+        background: var(--pe-danger-soft);
+        color: var(--pe-danger);
       }
       .confirm-title {
         margin: 0;

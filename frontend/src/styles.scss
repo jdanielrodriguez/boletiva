@@ -1319,6 +1319,14 @@ app-root {
   border-color: rgba(239, 68, 68, 0.5);
 }
 
+/* Estados neutros/concluidos (hilo cerrado, evento finalizado): gris del badge base
+   pero definidos explícitamente para dejar clara la intención. */
+.badge-closed,
+.badge-finished {
+  color: var(--pe-muted);
+  border-color: var(--pe-border);
+}
+
 .badge-warn {
   color: var(--pe-warn, #f59e0b);
   border-color: rgba(245, 158, 11, 0.55);
@@ -3834,6 +3842,13 @@ button.danger {
   gap: 1rem;
   margin: 1rem 0;
 }
+/* Móvil: colapsar a 1 columna (el track de 320px desbordaba a 320/360px). */
+@media (max-width: 560px) {
+  .promoters-grid,
+  .inv-grid {
+    grid-template-columns: 1fr;
+  }
+}
 
 /* Formulario de invitar (ancho completo, igual que el grid) */
 .inv-form {
@@ -3915,7 +3930,7 @@ button.danger {
   width: 22px;
   height: 22px;
   border-radius: 50% 50% 50% 0;
-  background: var(--pe-accent, #7b5cff);
+  background: var(--pe-accent);
   border: 2px solid #fff;
   transform: rotate(-45deg);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);

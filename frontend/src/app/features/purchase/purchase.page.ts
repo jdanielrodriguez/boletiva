@@ -16,6 +16,7 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dial
 import { LoginModal } from '../../shared/login-modal/login-modal.component';
 import { ShareBox } from '../../shared/share-box/share-box.component';
 import { ReservationItems } from '../../shared/reservation-items/reservation-items.component';
+import { MoneyPipe } from '../../shared/money.pipe';
 import { LoadingComponent } from '../../shared/ui/loading.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
@@ -36,6 +37,7 @@ type Phase = 'select' | 'reserved' | 'expired';
   imports: [
     SeatMapComponent,
     DecimalPipe,
+    MoneyPipe,
     ShareBox,
     LoginModal,
     ReservationItems,

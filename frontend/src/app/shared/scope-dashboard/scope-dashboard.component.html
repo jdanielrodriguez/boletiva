@@ -23,11 +23,11 @@
       </div>
       <div class="kpi">
         <span class="kpi-label">{{ 'config.dash.gross' | translate }}</span>
-        <span class="kpi-value">{{ currency() }} {{ d.summary.gross | money }}</span>
+        <span class="kpi-value">{{ d.summary.gross | money }}</span>
       </div>
       <div class="kpi">
         <span class="kpi-label">{{ 'config.dash.net' | translate }}</span>
-        <span class="kpi-value accent">{{ currency() }} {{ d.summary.net | money }}</span>
+        <span class="kpi-value accent">{{ d.summary.net | money }}</span>
       </div>
       <div class="kpi">
         <span class="kpi-label">{{ 'config.dash.paidOrders' | translate }}</span>
@@ -65,7 +65,7 @@
             <tr>
               <td>{{ e.name }}</td>
               <td class="num">{{ e.ticketsSold }}</td>
-              <td class="num">{{ currency() }} {{ e.gross | money }}</td>
+              <td class="num">{{ e.gross | money }}</td>
             </tr>
           }
         </tbody>

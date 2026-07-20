@@ -10,6 +10,7 @@ import type {
   PublicEventDetailDto,
 } from '../../core/api/types';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
+import { MoneyPipe } from '../../shared/money.pipe';
 import { BackLinkComponent } from '../../shared/ui/back-link.component';
 import { TourComponent, type TourStep } from '../../shared/tour/tour.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
@@ -33,6 +34,7 @@ const EMPTY_AV: EventAvailabilityDto = { seatMap: null, localities: [], seats: [
   imports: [
     RouterLink,
     LocalizedDatePipe,
+    MoneyPipe,
     TranslatePipe,
     BackLinkComponent,
     EmptyStateComponent,

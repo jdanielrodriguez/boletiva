@@ -73,7 +73,7 @@ export type SplashIcon = 'check' | 'mail';
         animation: splash-pop 0.4s cubic-bezier(0.22, 1, 0.36, 1);
       }
       .splash-halo--mail {
-        color: var(--pe-primary, #7b5cff);
+        color: var(--pe-primary);
         background: rgba(123, 92, 255, 0.14);
       }
       @media (prefers-reduced-motion: reduce) {

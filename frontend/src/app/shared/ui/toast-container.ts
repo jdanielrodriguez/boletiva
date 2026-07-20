@@ -1,4 +1,5 @@
 import { Component, inject } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 import { ToastService } from '../../core/ui/toast.service';
 
 /**
@@ -10,7 +11,7 @@ import { ToastService } from '../../core/ui/toast.service';
 @Component({
   selector: 'app-toast-container',
   template: `
-    <div class="toast-stack" role="region" aria-live="polite" aria-label="Notificaciones">
+    <div class="toast-stack" role="region" aria-live="polite" [attr.aria-label]="tr('common.notifications')">
       @for (t of toasts.toasts(); track t.id) {
         <div
           class="toast toast-{{ t.kind }}"
@@ -39,7 +40,7 @@ import { ToastService } from '../../core/ui/toast.service';
             </svg>
           </span>
           <span class="toast-msg">{{ t.message }}</span>
-          <button type="button" class="toast-close" aria-label="Cerrar notificación" (click)="toasts.dismiss(t.id)">
+          <button type="button" class="toast-close" [attr.aria-label]="tr('common.dismissNotification')" (click)="toasts.dismiss(t.id)">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
               <path d="M6 6l12 12M18 6L6 18" />
             </svg>
@@ -51,4 +52,8 @@ import { ToastService } from '../../core/ui/toast.service';
 })
 export class ToastContainer {
   protected readonly toasts = inject(ToastService);
+  private readonly translate = inject(TranslateService);
+  protected tr(key: string): string {
+    return this.translate.instant(key);
+  }
 }

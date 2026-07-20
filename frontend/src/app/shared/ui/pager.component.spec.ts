@@ -1,5 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { initI18nTesting, provideI18nTesting } from '../../core/i18n/testing';
 import { PagerComponent } from './pager.component';
 
 describe('PagerComponent (paginador compartido, estilo numerado del inicio)', () => {
@@ -7,7 +8,8 @@ describe('PagerComponent (paginador compartido, estilo numerado del inicio)', ()
 
   beforeEach(() => {
     TestBed.resetTestingModule();
-    TestBed.configureTestingModule({ providers: [provideZonelessChangeDetection()] });
+    TestBed.configureTestingModule({ providers: [provideZonelessChangeDetection(), ...provideI18nTesting()] });
+    initI18nTesting();
   });
 
   function setup(page: number, totalPages: number, alwaysShow = false): void {

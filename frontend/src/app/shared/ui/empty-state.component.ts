@@ -93,7 +93,7 @@ export type EmptyVariant = 'tickets' | 'billing' | 'wallet' | 'card' | 'generic'
         width: 108px;
         height: 108px;
         border-radius: 50%;
-        background: rgba(123, 92, 255, 0.12);
+        background: var(--pe-accent-soft);
         margin-bottom: 0.25rem;
       }
       .empty-title {

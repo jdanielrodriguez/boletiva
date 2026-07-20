@@ -6,6 +6,8 @@ export const common = {
   delete: 'Eliminar',
   remove: 'Quitar',
   close: 'Cerrar',
+  notifications: 'Notificaciones',
+  dismissNotification: 'Cerrar notificación',
   add: 'Agregar',
   create: 'Crear',
   back: 'Volver',
@@ -70,5 +72,9 @@ export const common = {
     hidden: 'Oculta',
     disabled: 'Deshabilitada',
     visible: 'Visible',
+    finished: 'Finalizado',
+    open: 'Abierto',
+    closed: 'Cerrado',
+    settled: 'Liquidada',
   },
 };

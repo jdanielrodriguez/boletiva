@@ -1,5 +1,6 @@
 import { PLATFORM_ID, provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { initI18nTesting, provideI18nTesting } from '../../core/i18n/testing';
 import { ToastService } from '../../core/ui/toast.service';
 import { ToastContainer } from './toast-container';
 
@@ -12,10 +13,12 @@ describe('ToastContainer', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
+        ...provideI18nTesting(),
         ToastService,
         { provide: PLATFORM_ID, useValue: 'browser' },
       ],
     });
+    initI18nTesting();
     toasts = TestBed.inject(ToastService);
     fixture = TestBed.createComponent(ToastContainer);
     fixture.detectChanges();

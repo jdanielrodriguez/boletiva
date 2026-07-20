@@ -8,6 +8,7 @@ import { SessionStore } from '../../core/auth/session.store';
 import { PublicConfigStore } from '../../core/config/public-config.store';
 import { ToastService } from '../../core/ui/toast.service';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
+import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
 
 /**
  * Chat de soporte (B3). El promotor PREMIUM abre hilos y escribe; asesor/admin ven
@@ -16,7 +17,7 @@ import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
  */
 @Component({
   selector: 'app-support-chat',
-  imports: [FormsModule, TranslatePipe, LocalizedDatePipe, EmptyStateComponent],
+  imports: [FormsModule, TranslatePipe, LocalizedDatePipe, StatusLabelPipe, EmptyStateComponent],
   template: `
     <section class="support-chat">
       <h1>{{ 'chat.title' | translate }}</h1>
@@ -35,7 +36,7 @@ import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
               <button type="button" class="chat-thread-item" [class.active]="active()?.id === t.id"
                 (click)="open(t)" [attr.data-testid]="'chat-thread-' + t.id">
                 <strong>{{ t.subject }}</strong>
-                <span class="badge badge-{{ t.status }}">{{ t.status }}</span>
+                <span class="badge badge-{{ t.status }}">{{ t.status | statusLabel }}</span>
                 @if (isAgent() && t.promoter) { <span class="muted small">{{ t.promoter.firstName }}</span> }
               </button>
             } @empty {

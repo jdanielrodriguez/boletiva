@@ -113,14 +113,14 @@
           (click)="store.setActiveLocality(loc.id)"
         >
           <strong>{{ loc.name }}</strong>
-          @if (loc.price) { <span class="loc-tab-price">Q{{ loc.price.total }}</span> }
+          @if (loc.price) { <span class="loc-tab-price">{{ loc.price.total | money }}</span> }
         </button>
       }
     </div>
 
     @if (store.activeLocality(); as loc) {
       <section class="loc-active">
-        <h2>{{ loc.name }} @if (loc.price) { · Q{{ loc.price.total }} {{ 'purchase.perTicket' | translate }} }</h2>
+        <h2>{{ loc.name }} @if (loc.price) { · {{ loc.price.total | money }} {{ 'purchase.perTicket' | translate }} }</h2>
 
         @if (store.activeIsSeated()) {
           <app-seat-map
@@ -181,7 +181,7 @@
                 {{ it.label }}
                 @if (it.kind === 'seat' && it.localityName) { <em class="ci-loc">· {{ it.localityName }}</em> }
               </span>
-              <span class="ci-amount">Q{{ it.amountDisplay }}</span>
+              <span class="ci-amount">{{ it.amountDisplay | money }}</span>
               <button
                 type="button"
                 class="ci-remove"

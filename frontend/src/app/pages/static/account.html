@@ -764,7 +764,7 @@
                           <li>
                             <span>{{ t.serial }}</span>
                             <span class="muted">{{ t.localityName ?? ('account.general' | translate) }}@if (t.seatLabel) { · {{ 'account.tickets.seat' | translate }} {{ t.seatLabel }}}</span>
-                            @if (t.amount) { <span class="ticket-amount">Q{{ t.amount }}</span> }
+                            @if (t.amount) { <span class="ticket-amount">{{ t.amount | money }}</span> }
                           </li>
                         }
                       </ul>
