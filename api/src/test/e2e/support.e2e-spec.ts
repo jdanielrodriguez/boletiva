@@ -275,4 +275,58 @@ describe('Tickets de soporte (e2e)', () => {
     await http().post('/api/v1/support/tickets').set(bearer(token)).send({ subject: 'Comprador', message: 'hola' }).expect(403);
     await prisma.user.deleteMany({ where: { email } });
   });
+
+  // --- T2: cola (filtros + keyset), macros y SLA configurable ---
+
+  it('cola: solo agentes; filtra por sin-asignar y por estado; pagina por cursor', async () => {
+    // El promotor NO accede a la cola.
+    await http().get('/api/v1/support/queue').set(bearer(promoterToken)).expect(403);
+    // Crea 3 tickets nuevos (sin asignar).
+    const ids: string[] = [];
+    for (let i = 0; i < 3; i++) ids.push((await open(`Cola ${i}`).expect(201)).body.id);
+    // unassigned=true los incluye.
+    const unassigned = await http().get('/api/v1/support/queue?unassigned=true&status=new').set(bearer(adminToken)).expect(200);
+    expect(unassigned.body.items.length).toBeGreaterThanOrEqual(3);
+    expect(unassigned.body.items.every((t: { status: string }) => t.status === 'new')).toBe(true);
+    // keyset: limit=2 → 2 items + nextCursor; 2ª página trae el resto.
+    const p1 = await http().get('/api/v1/support/queue?unassigned=true&limit=2').set(bearer(adminToken)).expect(200);
+    expect(p1.body.items.length).toBe(2);
+    expect(p1.body.nextCursor).toBeTruthy();
+    const p2 = await http().get(`/api/v1/support/queue?unassigned=true&limit=2&cursor=${p1.body.nextCursor}`).set(bearer(adminToken)).expect(200);
+    const idsP1 = p1.body.items.map((t: { id: string }) => t.id);
+    expect(p2.body.items.every((t: { id: string }) => !idsP1.includes(t.id))).toBe(true);
+    // Al tomar uno, 'mine' del admin lo incluye.
+    await http().post(`/api/v1/support/tickets/${ids[0]}/take`).set(bearer(adminToken)).expect(200);
+    const mine = await http().get('/api/v1/support/queue?mine=true').set(bearer(adminToken)).expect(200);
+    expect(mine.body.items.some((t: { id: string }) => t.id === ids[0])).toBe(true);
+  });
+
+  it('macros: agente crea/lista/edita/borra; el promotor NO (403)', async () => {
+    await http().post('/api/v1/support/macros').set(bearer(promoterToken)).send({ title: 'x', body: 'y' }).expect(403);
+    const created = await http().post('/api/v1/support/macros').set(bearer(adminToken)).send({ title: 'Saludo', body: 'Hola, reviso tu caso', lang: 'es', category: 'billing' }).expect(201);
+    const list = await http().get('/api/v1/support/macros?lang=es').set(bearer(adminToken)).expect(200);
+    expect(list.body.some((m: { id: string }) => m.id === created.body.id)).toBe(true);
+    // filtro por idioma distinto NO lo trae
+    const en = await http().get('/api/v1/support/macros?lang=en').set(bearer(adminToken)).expect(200);
+    expect(en.body.some((m: { id: string }) => m.id === created.body.id)).toBe(false);
+    const upd = await http().patch(`/api/v1/support/macros/${created.body.id}`).set(bearer(adminToken)).send({ body: 'Actualizado' }).expect(200);
+    expect(upd.body.body).toBe('Actualizado');
+    await http().delete(`/api/v1/support/macros/${created.body.id}`).set(bearer(adminToken)).expect(200);
+    const gone = await http().get('/api/v1/support/macros').set(bearer(adminToken)).expect(200);
+    expect(gone.body.some((m: { id: string }) => m.id === created.body.id)).toBe(false);
+  });
+
+  it('SLA configurable: el admin ajusta los objetivos y un ticket nuevo los usa; el promotor no puede ajustar', async () => {
+    await http().patch('/api/v1/support/sla').set(bearer(promoterToken)).send({ targets: {} }).expect(403);
+    // Ajusta urgent a 10 min de 1ª respuesta.
+    const cfg = await http().patch('/api/v1/support/sla').set(bearer(adminToken)).send({ targets: { urgent: { firstResponseMins: 10 } } }).expect(200);
+    expect(cfg.body.urgent.firstResponseMins).toBe(10);
+    // Un ticket urgent nuevo debe vencer ~10 min después (no el default 15).
+    const created = await open('SLA cfg', { priority: 'urgent' }).expect(201);
+    const t = await prisma.supportTicket.findUniqueOrThrow({ where: { id: created.body.id } });
+    const mins = ((t.firstResponseDueAt as Date).getTime() - t.createdAt.getTime()) / 60_000;
+    expect(Math.round(mins)).toBe(10);
+    // Limpia el override para no afectar otras corridas.
+    await prisma.setting.deleteMany({ where: { key: 'support.sla' } });
+  });
 });

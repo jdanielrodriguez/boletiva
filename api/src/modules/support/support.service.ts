@@ -24,7 +24,21 @@ import { AuthUser } from '../../common/decorators/current-user.decorator';
 import { PremiumService } from '../promoters/premium.service';
 import { SupportGateway } from './support.gateway';
 import { canTransition, isFinal } from './support.states';
-import { initialDueDates, shiftDue, slaRunning } from './support-sla';
+import { initialDueDates, mergeSlaTargets, shiftDue, slaRunning, SlaTargets } from './support-sla';
+import { KeysetQuery, keysetResult, keysetTake } from '../../common/utils/pagination';
+
+/** Setting (json) con los objetivos SLA que edita el admin; ausente → defaults. */
+const SLA_SETTING_KEY = 'support.sla';
+
+/** Filtros de la cola del agente. */
+export interface QueueFilters {
+  status?: SupportStatus;
+  priority?: SupportPriority;
+  category?: SupportCategory;
+  assigneeId?: string;
+  unassigned?: boolean;
+  mine?: boolean;
+}
 
 /** Ventana para que un promotor REABRA (respondiendo) un ticket ya resuelto. */
 const REOPEN_WINDOW_MS = 3 * 24 * 3_600_000; // 3 días
@@ -112,7 +126,7 @@ export class SupportService implements OnModuleInit {
     if (this.isAgent(user)) throw new ForbiddenException('Los agentes atienden tickets, no los abren');
     const now = new Date();
     const priority = input.priority ?? SupportPriority.medium;
-    const { firstResponseDueAt, resolveDueAt } = initialDueDates(priority, now);
+    const { firstResponseDueAt, resolveDueAt } = initialDueDates(priority, now, await this.resolveSlaTargets());
     const ticket = await this.prisma.supportTicket.create({
       data: {
         promoterId: user.userId,
@@ -303,7 +317,7 @@ export class SupportService implements OnModuleInit {
     const ticket = await this.getAccessible(ticketId, user);
     if (!this.isAgent(user)) throw new ForbiddenException('Solo un agente cambia la prioridad');
     const now = new Date();
-    const due = initialDueDates(priority, now);
+    const due = initialDueDates(priority, now, await this.resolveSlaTargets());
     const patch: Prisma.SupportTicketUpdateInput = { priority };
     if (!ticket.firstRespondedAt) {
       patch.firstResponseDueAt = due.firstResponseDueAt;
@@ -368,6 +382,61 @@ export class SupportService implements OnModuleInit {
     });
     await this.record('support.ticket.rated', user.userId, ticketId, { score });
     return this.summarize(updated);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Cola del agente (T2): filtros + keyset pagination (alto volumen)
+  // ---------------------------------------------------------------------------
+
+  /** (Agente) Cola de tickets con filtros y paginación por cursor. */
+  async listQueue(user: AuthUser, filters: QueueFilters, page: KeysetQuery) {
+    if (!this.isAgent(user)) throw new ForbiddenException('Solo agentes acceden a la cola');
+    const where: Prisma.SupportTicketWhereInput = {};
+    if (filters.status) where.status = filters.status;
+    if (filters.priority) where.priority = filters.priority;
+    if (filters.category) where.category = filters.category;
+    if (filters.unassigned) where.assignedToId = null;
+    else if (filters.mine) where.assignedToId = user.userId;
+    else if (filters.assigneeId) where.assignedToId = filters.assigneeId;
+    const rows = await this.prisma.supportTicket.findMany({
+      where,
+      orderBy: [{ lastMessageAt: 'desc' }, { id: 'desc' }],
+      include: { promoter: { select: { id: true, firstName: true, lastName: true, email: true } } },
+      ...keysetTake(page),
+    });
+    const result = keysetResult(rows, page);
+    return { items: result.items.map((t) => this.summarize(t)), nextCursor: result.nextCursor };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Configuración de SLA (T2): el admin ajusta los objetivos por prioridad
+  // ---------------------------------------------------------------------------
+
+  /** Objetivos SLA efectivos (defaults + override del setting). */
+  private async resolveSlaTargets(): Promise<SlaTargets> {
+    const s = await this.prisma.setting.findUnique({ where: { key: SLA_SETTING_KEY } });
+    return mergeSlaTargets(s?.value ?? null);
+  }
+
+  /** (Admin/agente) Lee la configuración SLA efectiva. */
+  async getSlaConfig(): Promise<SlaTargets> {
+    return this.resolveSlaTargets();
+  }
+
+  /** (Admin) Guarda overrides de SLA (se fusionan con los defaults; valores inválidos se ignoran). */
+  async setSlaConfig(overrides: unknown, actorId: string): Promise<SlaTargets> {
+    const merged = mergeSlaTargets(overrides);
+    await this.prisma.setting.upsert({
+      where: { key: SLA_SETTING_KEY },
+      update: { value: merged as unknown as Prisma.InputJsonValue },
+      create: {
+        key: SLA_SETTING_KEY,
+        value: merged as unknown as Prisma.InputJsonValue,
+        description: 'Objetivos SLA de soporte por prioridad (T2)',
+      },
+    });
+    await this.record('support.sla.config', actorId, SLA_SETTING_KEY, merged);
+    return merged;
   }
 
   // ---------------------------------------------------------------------------

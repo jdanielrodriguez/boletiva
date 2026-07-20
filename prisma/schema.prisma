@@ -135,6 +135,24 @@ model SupportTicket {
   @@map("support_tickets")
 }
 
+/// Respuesta rápida / macro (T2): texto reutilizable que un agente inserta al responder,
+/// por idioma y (opcional) categoría. Acelera la atención y mantiene tono consistente.
+model SupportCannedResponse {
+  id          String           @id @default(uuid()) @db.Uuid
+  title       String
+  body        String
+  lang        String           @default("es")
+  category    SupportCategory?
+  createdById String?          @map("created_by_id") @db.Uuid
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  createdBy User? @relation("supportMacroAuthor", fields: [createdById], references: [id])
+
+  @@index([lang])
+  @@map("support_canned_responses")
+}
+
 /// Mensaje de un ticket de soporte (T1). `senderRole` audita quién habló.
 /// `internalNote` = nota del agente NO visible para el promotor.
 model SupportMessage {
@@ -443,9 +461,10 @@ model User {
   savedCards SavedCard[]
   advisorUnlocks         AdvisorUnlock[] @relation("advisorUnlocks")
   advisorUnlocksApproved AdvisorUnlock[] @relation("advisorUnlocksApproved")
-  supportTickets         SupportTicket[]  @relation("supportPromoter")
-  supportTicketsAssigned SupportTicket[]  @relation("supportAssigned")
-  supportMessages        SupportMessage[] @relation("supportSender")
+  supportTickets         SupportTicket[]         @relation("supportPromoter")
+  supportTicketsAssigned SupportTicket[]         @relation("supportAssigned")
+  supportMessages        SupportMessage[]        @relation("supportSender")
+  supportMacros          SupportCannedResponse[] @relation("supportMacroAuthor")
 
   @@index([status])
   @@map("users")
