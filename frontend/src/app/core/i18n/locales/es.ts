@@ -18,6 +18,7 @@ import { maintenance } from './es/maintenance';
 import { tour } from './es/tour';
 import { reportsMaintenance } from './es/reports-maintenance';
 import { gate } from './es/gate';
+import { advisor } from './es/advisor';
 
 /** Diccionario ESPAÑOL (default, es-GT). Compuesto por namespaces. */
 export const es: TranslationObject = {
@@ -40,4 +41,5 @@ export const es: TranslationObject = {
   tour,
   reportsMaintenance,
   gate,
+  advisor,
 };

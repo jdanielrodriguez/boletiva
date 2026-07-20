@@ -1,0 +1,63 @@
+import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiProperty, ApiTags } from '@nestjs/swagger';
+import { IsString, MinLength } from 'class-validator';
+import { Role } from '@prisma/client';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { AdminOnly } from '../../common/decorators/admin-only.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { AdvisorUnlockService } from './advisor-unlock.service';
+
+export class ApproveAdvisorUnlockDto {
+  @ApiProperty({ description: 'Token del enlace de desbloqueo recibido por el admin' })
+  @IsString()
+  @MinLength(10)
+  token!: string;
+}
+
+export class AdvisorUnlockStatusDto {
+  @ApiProperty({ description: 'true si la exigencia de desbloqueo está activa (setting)' })
+  lockEnabled!: boolean;
+  @ApiProperty({ description: 'true si el asesor puede mutar ya (ventana vigente o lock apagado)' })
+  unlocked!: boolean;
+  @ApiProperty({ format: 'date-time', nullable: true, description: 'Fin de la ventana vigente' })
+  expiresAt!: Date | null;
+  @ApiProperty({ description: 'true si hay una solicitud pendiente de aprobación' })
+  pending!: boolean;
+}
+
+/**
+ * Desbloqueo del ASESOR (B2). El asesor SOLICITA (correo con enlace al admin) y
+ * consulta su estado; el ADMIN aprueba desde el enlace. La ventana la aplica el
+ * `AdvisorUnlockGuard` global sobre las mutaciones de área admin del asesor.
+ */
+@ApiTags('advisor')
+@ApiBearerAuth()
+@Controller('advisor/unlock')
+export class AdvisorController {
+  constructor(private readonly unlock: AdvisorUnlockService) {}
+
+  @Post('request')
+  @Roles(Role.advisor)
+  @HttpCode(200)
+  @ApiOperation({ summary: 'El asesor solicita desbloqueo → correo con enlace al admin' })
+  request(@CurrentUser('userId') advisorId: string) {
+    return this.unlock.request(advisorId);
+  }
+
+  @Get('status')
+  @Roles(Role.advisor)
+  @ApiOperation({ summary: 'Estado de desbloqueo del asesor autenticado' })
+  @ApiOkResponse({ type: AdvisorUnlockStatusDto })
+  status(@CurrentUser('userId') advisorId: string) {
+    return this.unlock.status(advisorId);
+  }
+
+  @Post('approve')
+  @Roles(Role.admin)
+  @AdminOnly() // EXCLUSIVO admin: un asesor (que hereda admin) NO puede auto-aprobarse.
+  @HttpCode(200)
+  @ApiOperation({ summary: 'El admin aprueba el desbloqueo del asesor (desde el enlace)' })
+  approve(@Body() dto: ApproveAdvisorUnlockDto, @CurrentUser('userId') adminId: string) {
+    return this.unlock.approve(dto.token, adminId);
+  }
+}

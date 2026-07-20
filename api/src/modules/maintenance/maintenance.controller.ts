@@ -3,11 +3,13 @@ import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swa
 import { Role } from '@prisma/client';
 import { Public } from '../../common/decorators/public.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { AdminOnly } from '../../common/decorators/admin-only.decorator';
 import { AllowDuringMaintenance } from '../../common/decorators/maintenance.decorator';
 import { MaintenanceService } from './maintenance.service';
 import { MaintenanceStatusDto, UpdateMaintenanceDto } from './dto/maintenance.dto';
 
 @ApiTags('maintenance')
+@AdminOnly()
 @Controller()
 export class MaintenanceController {
   constructor(private readonly maintenance: MaintenanceService) {}

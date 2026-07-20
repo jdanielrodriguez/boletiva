@@ -49,6 +49,8 @@ import { MaintenanceGuard } from './modules/maintenance/maintenance.guard';
 import { AuditModule } from './modules/audit/audit.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { FelModule } from './modules/fel/fel.module';
+import { AdvisorModule } from './modules/advisor/advisor.module';
+import { AdvisorUnlockGuard } from './modules/advisor/advisor-unlock.guard';
 
 @Module({
   imports: [
@@ -140,6 +142,7 @@ import { FelModule } from './modules/fel/fel.module';
     AuditModule,
     AdminModule,
     FelModule,
+    AdvisorModule,
   ],
   providers: [
     // Orden importa: rate-limit por IP PRIMERO (frena floods antes de autenticar) →
@@ -149,6 +152,9 @@ import { FelModule } from './modules/fel/fel.module';
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: MaintenanceGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    // B2: tras autorizar por rol, si el actor es ASESOR exige ventana de desbloqueo
+    // para mutar en área admin (salvo advisor.lock_enabled=false).
+    { provide: APP_GUARD, useClass: AdvisorUnlockGuard },
     { provide: APP_GUARD, useClass: VerifiedEmailGuard },
   ],
 })

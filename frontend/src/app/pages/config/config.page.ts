@@ -10,11 +10,13 @@ import {
   GatewayResponseDto,
   PromoterListItemDto,
 } from '../../core/api/admin.api';
+import { AdvisorApi } from '../../core/api/advisor.api';
 import { InvitationsApi } from '../../core/api/invitations.api';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
 import { SettingsApi } from '../../core/api/settings.api';
 import { AuditApi } from '../../core/api/audit.api';
 import { ImpersonationService } from '../../core/auth/impersonation.service';
+import { SessionStore } from '../../core/auth/session.store';
 import { PublicConfigStore } from '../../core/config/public-config.store';
 import { ThemeService } from '../../core/theme/theme.service';
 import { ToastService } from '../../core/ui/toast.service';
@@ -105,12 +107,23 @@ export class ConfigPage {
     { title: 'tour.admin.configTitle', body: 'tour.admin.configBody' },
   ];
   private readonly admin = inject(AdminApi);
+  private readonly advisorApi = inject(AdvisorApi);
   private readonly promoterEvents = inject(PromoterEventsApi);
   private readonly invitationsApi = inject(InvitationsApi);
   private readonly settingsApi = inject(SettingsApi);
   private readonly audit = inject(AuditApi);
   private readonly impersonation = inject(ImpersonationService);
+  private readonly session = inject(SessionStore);
   private readonly publicConfig = inject(PublicConfigStore);
+
+  /** B2: el ASESOR (no admin) NO ve ni puede abrir la tab "Sistema" (exclusiva admin). */
+  protected readonly isAdvisor = computed(
+    () => this.session.hasRole('advisor') && !this.session.hasRole('admin'),
+  );
+  protected readonly hideSystemTab = this.isAdvisor;
+  /** Estado de desbloqueo del asesor (banner en la consola). */
+  protected readonly advisorUnlock = signal<{ lockEnabled: boolean; unlocked: boolean; pending: boolean } | null>(null);
+  protected readonly requestingUnlock = signal(false);
   private readonly theme = inject(ThemeService);
   private readonly toasts = inject(ToastService);
 
@@ -326,10 +339,38 @@ export class ConfigPage {
       const t = pm.get('tab') as AdminTab | null;
       this.applyTab(t && ConfigPage.TABS.includes(t) ? t : 'eventos');
     });
+    // B2: si es asesor, carga su estado de desbloqueo (banner en la consola).
+    if (this.isAdvisor()) this.loadAdvisorUnlock();
+  }
+
+  private loadAdvisorUnlock(): void {
+    this.advisorApi.status().subscribe({
+      next: (s) => this.advisorUnlock.set({ lockEnabled: s.lockEnabled, unlocked: s.unlocked, pending: s.pending }),
+      error: () => undefined,
+    });
+  }
+
+  /** El asesor solicita desbloqueo (correo con enlace al admin). */
+  protected requestAdvisorUnlock(): void {
+    if (this.requestingUnlock()) return;
+    this.requestingUnlock.set(true);
+    this.advisorApi.requestUnlock().subscribe({
+      next: () => {
+        this.requestingUnlock.set(false);
+        this.toasts.success(this.translate.instant('advisor.requestSent'));
+        this.loadAdvisorUnlock();
+      },
+      error: () => {
+        this.requestingUnlock.set(false);
+        this.toasts.error(this.translate.instant('advisor.requestError'));
+      },
+    });
   }
 
   /** Fija el tab y hace la carga perezosa de sus datos (sin tocar la URL). */
   private applyTab(t: AdminTab): void {
+    // B2: un asesor jamás entra a "Sistema" (aunque manipule el ?tab=). Cae a eventos.
+    if (t === 'sistema' && this.hideSystemTab()) t = 'eventos';
     // Punto 9: cambiar de tab CIERRA cualquier form de pasarela (crear/editar).
     this.closeGatewayForms();
     // v3.8 · G2-3: cambiar de tab RESETEA los filtros a su vista por defecto.

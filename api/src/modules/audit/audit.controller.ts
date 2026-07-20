@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swa
 import { Request } from 'express';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { AdminOnly } from '../../common/decorators/admin-only.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { PageQueryDto } from '../../common/dto/page-query.dto';
 import { MessageResponseDto } from '../../common/dto/response.dto';
@@ -11,6 +12,7 @@ import { AuditPageDto, AuditVerifyDto, ConfirmAuditDto } from './dto/audit.dto';
 
 @ApiTags('audit')
 @ApiBearerAuth()
+@AdminOnly()
 @Controller('audit')
 export class AuditController {
   constructor(private readonly audit: AuditService) {}

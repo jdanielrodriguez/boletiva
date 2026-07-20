@@ -1,0 +1,47 @@
+import { Component, inject, signal } from '@angular/core';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
+import { AdvisorApi } from '../../core/api/advisor.api';
+
+/**
+ * B2 · Página a la que llega el ADMIN desde el enlace del correo para APROBAR el
+ * desbloqueo temporal de un asesor. Toma `?token=` y llama al backend (admin-only).
+ */
+@Component({
+  selector: 'app-advisor-unlock-approve',
+  imports: [TranslatePipe, RouterLink],
+  template: `
+    <section class="auth-card">
+      <h1>{{ 'advisor.approveTitle' | translate }}</h1>
+      @switch (state()) {
+        @case ('loading') {
+          <p class="muted" data-testid="adv-loading">{{ 'advisor.approving' | translate }}</p>
+        }
+        @case ('ok') {
+          <p class="ok" data-testid="adv-ok">{{ 'advisor.approved' | translate }}</p>
+        }
+        @case ('error') {
+          <p class="error" data-testid="adv-error">{{ 'advisor.approveError' | translate }}</p>
+        }
+      }
+      <a class="btn btn-outline" routerLink="/configuracion">{{ 'advisor.backToConsole' | translate }}</a>
+    </section>
+  `,
+})
+export class AdvisorUnlockApprovePage {
+  private readonly route = inject(ActivatedRoute);
+  private readonly advisor = inject(AdvisorApi);
+  protected readonly state = signal<'loading' | 'ok' | 'error'>('loading');
+
+  constructor() {
+    const token = this.route.snapshot.queryParamMap.get('token');
+    if (!token) {
+      this.state.set('error');
+      return;
+    }
+    this.advisor.approve(token).subscribe({
+      next: () => this.state.set('ok'),
+      error: () => this.state.set('error'),
+    });
+  }
+}

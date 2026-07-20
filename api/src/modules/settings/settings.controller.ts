@@ -2,12 +2,14 @@ import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { AdminOnly } from '../../common/decorators/admin-only.decorator';
 import { SettingsService } from './settings.service';
 import { SettingViewDto, UpdateSettingDto } from './dto/settings.dto';
 
 @ApiTags('settings')
 @ApiBearerAuth()
 @Roles(Role.admin)
+@AdminOnly()
 @Controller('settings')
 export class SettingsController {
   constructor(private readonly settings: SettingsService) {}

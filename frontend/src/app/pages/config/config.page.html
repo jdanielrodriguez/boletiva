@@ -1,12 +1,32 @@
 <section class="config-page">
   <h1>{{ 'config.title' | translate }}</h1>
 
+  @if (isAdvisor() && advisorUnlock(); as au) {
+    @if (au.lockEnabled && !au.unlocked) {
+      <div class="advisor-banner" data-testid="advisor-unlock-banner">
+        <span>{{ (au.pending ? 'advisor.bannerPending' : 'advisor.bannerLocked') | translate }}</span>
+        @if (!au.pending) {
+          <button type="button" class="btn small primary" [disabled]="requestingUnlock()"
+            (click)="requestAdvisorUnlock()" data-testid="advisor-request-unlock">
+            {{ 'advisor.requestUnlock' | translate }}
+          </button>
+        }
+      </div>
+    } @else if (au.unlocked && au.lockEnabled) {
+      <div class="advisor-banner ok" data-testid="advisor-unlocked-banner">
+        <span>{{ 'advisor.bannerUnlocked' | translate }}</span>
+      </div>
+    }
+  }
+
   <nav class="config-tabs" [attr.aria-label]="'config.tabsAria' | translate">
     <button type="button" [class.active]="tab() === 'eventos'" (click)="selectTab('eventos')" data-testid="tab-eventos">{{ 'config.tabs.events' | translate }}</button>
     <button type="button" [class.active]="tab() === 'promotores'" (click)="selectTab('promotores')" data-testid="tab-promotores">{{ 'config.tabs.promoters' | translate }}</button>
     <button type="button" [class.active]="tab() === 'salones'" (click)="selectTab('salones')" data-testid="tab-salones">{{ 'config.tabs.halls' | translate }}</button>
     <button type="button" [class.active]="tab() === 'plantillas'" (click)="selectTab('plantillas')" data-testid="tab-plantillas">{{ 'config.tabs.templates' | translate }}</button>
-    <button type="button" [class.active]="tab() === 'sistema'" (click)="selectTab('sistema')" data-testid="tab-sistema">{{ 'config.tabs.system' | translate }}</button>
+    @if (!hideSystemTab()) {
+      <button type="button" [class.active]="tab() === 'sistema'" (click)="selectTab('sistema')" data-testid="tab-sistema">{{ 'config.tabs.system' | translate }}</button>
+    }
     <button type="button" [class.active]="tab() === 'invitaciones'" (click)="selectTab('invitaciones')" data-testid="tab-invitaciones">{{ 'config.tabs.invitations' | translate }}</button>
   </nav>
 

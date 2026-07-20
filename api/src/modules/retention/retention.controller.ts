@@ -10,6 +10,7 @@ import {
 import { IsInt, IsOptional, Max, Min } from 'class-validator';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { AdminOnly } from '../../common/decorators/admin-only.decorator';
 import { RetentionService } from './retention.service';
 
 class RunRetentionDto {
@@ -46,6 +47,7 @@ class RunRetentionResponseDto {
 @ApiTags('retention')
 @ApiBearerAuth()
 @Roles(Role.admin)
+@AdminOnly()
 @Controller('admin')
 export class RetentionController {
   constructor(private readonly retention: RetentionService) {}

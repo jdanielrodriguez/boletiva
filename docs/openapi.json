@@ -8023,6 +8023,83 @@
           "billing"
         ]
       }
+    },
+    "/api/v1/advisor/unlock/request": {
+      "post": {
+        "operationId": "AdvisorController_request_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "El asesor solicita desbloqueo → correo con enlace al admin",
+        "tags": [
+          "advisor"
+        ]
+      }
+    },
+    "/api/v1/advisor/unlock/status": {
+      "get": {
+        "operationId": "AdvisorController_status_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdvisorUnlockStatusDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Estado de desbloqueo del asesor autenticado",
+        "tags": [
+          "advisor"
+        ]
+      }
+    },
+    "/api/v1/advisor/unlock/approve": {
+      "post": {
+        "operationId": "AdvisorController_approve_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveAdvisorUnlockDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "El admin aprueba el desbloqueo del asesor (desde el enlace)",
+        "tags": [
+          "advisor"
+        ]
+      }
     }
   },
   "info": {
@@ -8824,6 +8901,7 @@
               "type": "string",
               "enum": [
                 "admin",
+                "advisor",
                 "promoter",
                 "promoter_staff",
                 "gate_operator",
@@ -8982,6 +9060,7 @@
               "type": "string",
               "enum": [
                 "admin",
+                "advisor",
                 "promoter",
                 "promoter_staff",
                 "gate_operator",
@@ -11093,6 +11172,7 @@
               "type": "string",
               "enum": [
                 "admin",
+                "advisor",
                 "promoter",
                 "promoter_staff",
                 "gate_operator",
@@ -16871,6 +16951,7 @@
               "type": "string",
               "enum": [
                 "admin",
+                "advisor",
                 "promoter",
                 "promoter_staff",
                 "gate_operator",
@@ -16931,6 +17012,47 @@
         "required": [
           "available",
           "name"
+        ]
+      },
+      "AdvisorUnlockStatusDto": {
+        "type": "object",
+        "properties": {
+          "lockEnabled": {
+            "type": "boolean",
+            "description": "true si la exigencia de desbloqueo está activa (setting)"
+          },
+          "unlocked": {
+            "type": "boolean",
+            "description": "true si el asesor puede mutar ya (ventana vigente o lock apagado)"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true,
+            "description": "Fin de la ventana vigente"
+          },
+          "pending": {
+            "type": "boolean",
+            "description": "true si hay una solicitud pendiente de aprobación"
+          }
+        },
+        "required": [
+          "lockEnabled",
+          "unlocked",
+          "expiresAt",
+          "pending"
+        ]
+      },
+      "ApproveAdvisorUnlockDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token del enlace de desbloqueo recibido por el admin"
+          }
+        },
+        "required": [
+          "token"
         ]
       }
     }
