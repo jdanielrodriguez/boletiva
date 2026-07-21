@@ -60,5 +60,9 @@ export const checkout = {
   secureNote:
     'Secure, encrypted payment. Your card details are processed safely; we never store the full number.',
   loading: 'Loading order…',
+  loadErrorTitle: 'Could not load the order',
+  loadErrorBody: 'The order does not exist, expired, or is unavailable. Check your tickets or go back to the catalog.',
+  goToAccount: 'Go to my account',
+  goToCatalog: 'Back to catalog',
   payError: 'We couldn’t start the payment. Please try again.',
 };

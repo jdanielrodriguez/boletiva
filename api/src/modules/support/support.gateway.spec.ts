@@ -17,9 +17,12 @@ describe('SupportGateway', () => {
   const redis = {
     getClient: () => ({ duplicate: () => ({}) }),
   } as unknown as import('../../infra/redis/redis.service').RedisService;
+  const prisma = {
+    supportTicket: { findUnique: async () => null },
+  } as unknown as import('../../infra/prisma/prisma.service').PrismaService;
 
   function makeGateway(): SupportGateway {
-    const g = new SupportGateway(jwt, config, redis);
+    const g = new SupportGateway(jwt, config, redis, prisma);
     // Server falso con adapter.rooms para handleDisconnect.
     (g as unknown as { server: unknown }).server = {
       sockets: { adapter: { rooms: new Map<string, Set<string>>() } },
@@ -78,7 +81,7 @@ describe('SupportGateway', () => {
   });
 
   it('emitMessage sin server no lanza', () => {
-    const g = new SupportGateway(jwt, config, redis);
+    const g = new SupportGateway(jwt, config, redis, prisma);
     expect(() => g.emitMessage('t1', { body: 'x' })).not.toThrow();
   });
 });

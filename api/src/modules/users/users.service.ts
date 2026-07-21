@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, User } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../infra/prisma/prisma.service';
@@ -152,7 +152,12 @@ export class UsersService {
     return this.present(user);
   }
 
-  async setRoles(id: string, dto: UpdateUserRolesDto) {
+  async setRoles(id: string, dto: UpdateUserRolesDto, actorId?: string) {
+    // Defensa en profundidad (además de @AdminOnly): nadie edita sus propios roles →
+    // cierra la auto-escalada aunque el endpoint quedara mal decorado en el futuro.
+    if (actorId && actorId === id) {
+      throw new ForbiddenException('No puedes modificar tus propios roles');
+    }
     await this.assertExists(id);
     const user = await this.prisma.user.update({
       where: { id },
@@ -162,7 +167,10 @@ export class UsersService {
     return this.present(user);
   }
 
-  async setStatus(id: string, dto: UpdateUserStatusDto) {
+  async setStatus(id: string, dto: UpdateUserStatusDto, actorId?: string) {
+    if (actorId && actorId === id) {
+      throw new ForbiddenException('No puedes cambiar tu propio estado');
+    }
     await this.assertExists(id);
     const user = await this.prisma.user.update({
       where: { id },

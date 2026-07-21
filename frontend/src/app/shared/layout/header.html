@@ -24,8 +24,9 @@
   <div class="session-area" data-testid="session-area">
     <app-theme-switcher />
     <app-lang-switcher />
-    <!-- CTA "Conviértete en promotor": visitante Y cliente logueado; oculto a promotor/admin. -->
-    @if (!session.hasAnyRole(['promoter', 'admin'])) {
+    <!-- CTA "Conviértete en promotor": visitante Y cliente logueado; oculto a promotor/admin/asesor.
+         En móvil se oculta del header (evita overflow horizontal); sigue disponible en el footer. -->
+    @if (!session.hasAnyRole(['promoter', 'admin', 'advisor'])) {
       <a class="btn cta-promoter" routerLink="/conviertete-en-promotor" data-testid="become-promoter-link">{{
         'shell.becomePromoter' | translate
       }}</a>

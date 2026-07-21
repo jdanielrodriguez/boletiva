@@ -1,5 +1,6 @@
 import { Component, ElementRef, OnDestroy, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
@@ -38,7 +39,7 @@ const AGENT_STATUS: (SupportStatus | '')[] = ['', 'new', 'open', 'awaiting_suppo
  */
 @Component({
   selector: 'app-support-chat',
-  imports: [FormsModule, TranslatePipe, LocalizedDatePipe, StatusLabelPipe, EmptyStateComponent],
+  imports: [FormsModule, RouterLink, TranslatePipe, LocalizedDatePipe, StatusLabelPipe, EmptyStateComponent],
   templateUrl: './support-chat.page.html',
 })
 export class SupportChatPage implements OnDestroy {
@@ -64,6 +65,8 @@ export class SupportChatPage implements OnDestroy {
 
   protected readonly threads = signal<ChatThread[]>([]);
   protected readonly nextCursor = signal<string | null>(null);
+  /** El backend gatea el soporte por beneficio premium; un 403 en la carga → upsell (M-4). */
+  protected readonly premiumRequired = signal(false);
   /** Estado de carga/error de la bandeja (evita el falso "sin tickets" y errores silenciados). */
   protected readonly loading = signal(false);
   protected readonly listError = signal(false);
@@ -114,16 +117,27 @@ export class SupportChatPage implements OnDestroy {
       }
     });
     this.socket.activity$.subscribe((a) => this.applyActivity(a.ticketId));
-    // Auto-scroll al fondo de la conversación cuando cambia el nº de mensajes (envío/recepción).
+    // Auto-scroll al fondo SOLO cuando conviene (QA final): al abrir/cargar un ticket,
+    // cuando el último mensaje es MÍO (acabo de enviar), o si el usuario YA estaba cerca
+    // del fondo. Un mensaje entrante mientras leo historial arriba NO arrebata la vista.
     effect(() => {
-      const n = this.messages().length;
-      if (n === 0) return;
+      const msgs = this.messages();
+      const prev = this.prevMsgCount;
+      this.prevMsgCount = msgs.length;
+      if (msgs.length === 0) return;
+      const justLoaded = prev === 0;
+      const lastMine = msgs[msgs.length - 1]?.senderId === this.myId();
       setTimeout(() => {
-        const box = this.host.nativeElement.querySelector('[data-testid="chat-messages"]');
-        if (box) box.scrollTop = box.scrollHeight;
+        const box = this.host.nativeElement.querySelector('[data-testid="chat-messages"]') as HTMLElement | null;
+        if (!box) return;
+        const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 120;
+        if (justLoaded || lastMine || nearBottom) box.scrollTop = box.scrollHeight;
       }, 0);
     });
   }
+
+  /** Nº de mensajes en el render anterior (para decidir el auto-scroll). */
+  private prevMsgCount = 0;
 
   ngOnDestroy(): void {
     if (this.chatEnabled()) this.socket.release();
@@ -165,9 +179,11 @@ export class SupportChatPage implements OnDestroy {
         this.threads.set(t);
         this.loading.set(false);
       },
-      error: () => {
+      error: (err: { status?: number }) => {
         this.loading.set(false);
-        this.listError.set(true);
+        // 403 del promotor no premium → upsell en vez de "error" genérico (M-4).
+        if (err?.status === 403) this.premiumRequired.set(true);
+        else this.listError.set(true);
       },
     });
   }

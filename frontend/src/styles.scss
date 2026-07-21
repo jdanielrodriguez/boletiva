@@ -188,10 +188,15 @@ button:disabled,
   cursor: not-allowed;
 }
 
+/* Estado ACTIVO base (chips de filtro): indicador de SELECCIÓN, no un CTA. Tinte suave
+   + borde de acento en vez del gradiente primario, para no competir con el botón de
+   acción real (jerarquía visual — QA final M4). Los tabs/menú/segmentados de navegación
+   conservan su propio estilo activo (reglas scoped más abajo). */
 button.active {
-  background: var(--pe-grad);
-  border-color: transparent;
-  color: #fff;
+  background: var(--pe-accent-soft);
+  border-color: var(--pe-accent-border, var(--pe-accent));
+  color: var(--pe-accent-strong, var(--pe-accent));
+  font-weight: 600;
 }
 
 button.primary,
@@ -261,6 +266,19 @@ textarea:focus {
   outline: none;
   border-color: var(--pe-primary);
   box-shadow: 0 0 0 3px var(--pe-focus-ring);
+}
+
+/* Anillo de foco de MARCA consistente para navegación por teclado (a11y, QA final):
+   botones, enlaces, tabs y controles custom. Solo :focus-visible (no molesta al ratón). */
+a:focus-visible,
+button:focus-visible,
+[role='button']:focus-visible,
+[role='tab']:focus-visible,
+summary:focus-visible,
+.btn:focus-visible {
+  outline: 2px solid var(--pe-focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--pe-radius-sm);
 }
 
 /* Formularios más prolijos: separación clara de labels y campos. */
@@ -478,6 +496,11 @@ app-root {
     min-width: 0;
   }
   .session-area .greeting {
+    display: none;
+  }
+  /* La CTA "Conviértete en promotor" se oculta del header en móvil para no desbordar
+     la fila (nombre largo + campana + avatar); sigue disponible en el footer (QA final). */
+  .session-area .cta-promoter {
     display: none;
   }
   .brand {
@@ -3351,26 +3374,26 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
 
 /* Móvil: agranda los blancos táctiles a ≥44px (accesibilidad WCAG 2.5.5). */
 @media (max-width: 480px) {
-  /* Cualquier botón de acción llega a 44px (incluye .primary/.outline/.small base). */
-  .btn { min-height: 44px; }
-  .btn.icon-only { width: 44px; height: 44px; min-height: 44px; }
+  /* REGLA BASE robusta (QA verificación final): TODO control interactivo llega a 44px de
+     alto sin enumerar clase por clase — cubre .primary suelto, pager, chips, .dim-tab,
+     .gen-item-btn, .tpl-item, etc. que el enfoque por-clase dejaba fuera. */
+  button,
+  .btn,
+  select,
+  .link-btn { min-height: 44px; }
+  /* Controles cuadrados: además ancho ≥44px. */
+  .btn.icon-only,
+  .notif-trigger,
+  .user-trigger,
+  .icon-btn,
+  .chat-attach-btn,
+  .chat-star,
+  .qty-btn,
+  .pager-arrow,
+  .pager-page,
+  .ci-remove { min-width: 44px; min-height: 44px; }
+  .link-btn { display: inline-flex; align-items: center; }
   .pe-switch .pe-switch-track { margin: 0.6rem 0; }
-  /* Acciones tipo enlace (validadores, cuenta): blanco táctil vertical decente. */
-  .link-btn { min-height: 44px; display: inline-flex; align-items: center; }
-  /* Steppers de cantidad (compra GA): 44px táctiles. */
-  .qty-btn { min-width: 44px; min-height: 44px; }
-  /* Controles señalados por la auditoría QA móvil que quedaban por debajo de 44px:
-     campanita, menú de usuario, iconos, tabs, filtros segmentados, adjuntar, estrellas
-     CSAT, salir de impersonación y los <select> nativos de formularios/soporte. */
-  .notif-trigger { width: 44px; height: 44px; }
-  .user-trigger { min-width: 44px; min-height: 44px; }
-  .icon-btn { width: 44px; height: 44px; }
-  .config-tabs button { min-height: 44px; }
-  .seg button { min-height: 44px; }
-  .chat-attach-btn { width: 44px; min-height: 44px; }
-  .chat-star { min-width: 44px; min-height: 44px; }
-  .imp-exit { min-height: 44px; }
-  select { min-height: 44px; }
 }
 
 /* Aviso móvil del editor de asientos (oculto en pantallas grandes). */

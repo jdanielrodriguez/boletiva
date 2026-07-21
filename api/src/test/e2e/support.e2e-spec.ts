@@ -49,7 +49,9 @@ describe('Tickets de soporte (e2e)', () => {
   });
 
   afterAll(async () => {
-    await setSupport(false);
+    // Restaura el DEFAULT (chat.enabled=true) — dejarlo en false contaminaba la BD
+    // compartida y hacía fallar a premium.e2e (chatEnabled) según el orden de suites.
+    await setSupport(true);
     await prisma.supportMessage.deleteMany({ where: { ticket: { promoterId } } });
     await prisma.supportTicket.deleteMany({ where: { promoterId } });
     await prisma.user.deleteMany({ where: { email: { contains: `supprom_${stamp}@test.com` } } });

@@ -15,6 +15,7 @@ import {
 import { createAdapter } from '@socket.io/redis-adapter';
 import type { Server, Socket } from 'socket.io';
 import { RedisService } from '../../infra/redis/redis.service';
+import { PrismaService } from '../../infra/prisma/prisma.service';
 
 interface SocketUser {
   userId: string;
@@ -43,6 +44,7 @@ export class SupportGateway implements OnGatewayInit, OnGatewayConnection, OnGat
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     private readonly redis: RedisService,
+    private readonly prisma: PrismaService,
   ) {}
 
   afterInit(server: Server): void {
@@ -80,10 +82,31 @@ export class SupportGateway implements OnGatewayInit, OnGatewayConnection, OnGat
     if (!room || room.size === 0) this.agents.delete(user.userId);
   }
 
-  /** El cliente pide unirse a la sala de un ticket (para recibir mensajes en vivo). */
+  /**
+   * El cliente pide unirse a la sala de un ticket (para recibir mensajes en vivo).
+   * AUTORIZA el join (H-1): solo un agente (asesor/admin) o el PROMOTOR DUEÑO del ticket
+   * pueden entrar → un usuario autenticado que conozca/acierte el UUID de un ticket ajeno
+   * ya no recibe sus mensajes. Sin permiso → `join-denied` y no se une.
+   */
   @SubscribeMessage('join-ticket')
-  onJoinTicket(@ConnectedSocket() client: Socket, @MessageBody() data: { ticketId?: string }): void {
-    if (data?.ticketId) client.join(`ticket:${data.ticketId}`);
+  async onJoinTicket(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { ticketId?: string },
+  ): Promise<void> {
+    const user = client.data.user as SocketUser | undefined;
+    if (!user || !data?.ticketId) return;
+    const isAgent = user.roles.includes(Role.advisor) || user.roles.includes(Role.admin);
+    if (!isAgent) {
+      const ticket = await this.prisma.supportTicket.findUnique({
+        where: { id: data.ticketId },
+        select: { promoterId: true },
+      });
+      if (!ticket || ticket.promoterId !== user.userId) {
+        client.emit('join-denied', { ticketId: data.ticketId });
+        return;
+      }
+    }
+    client.join(`ticket:${data.ticketId}`);
   }
 
   @SubscribeMessage('leave-ticket')

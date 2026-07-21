@@ -20,6 +20,7 @@ export const promoter = {
     empty: 'Aún no tienes eventos. Crea el primero con "+ Nuevo evento".',
     emptySubtitle: 'Crea tu primer evento con "+ Nuevo evento" para empezar a vender boletos.',
     localitiesCount: '{{n}} localidad(es)',
+    featuredFlag: 'Destacado',
     publish: 'Publicar evento',
     publishShort: 'Publicar',
     editTitle: 'Editar evento',
@@ -291,6 +292,7 @@ export const promoter = {
   seat: {
     readonlyNote: 'El mapa de asientos está en modo solo lectura.',
     mobileHint: 'Consejo: el editor del mapa se usa mejor en una pantalla grande (computadora o tablet en horizontal).',
+    tooManySeats: 'Demasiados asientos (máx {{max}}). Reduce filas/columnas o divide la localidad.',
     rows: 'Filas',
     seatsPerRow: 'Asientos por fila',
     section: 'Sección',

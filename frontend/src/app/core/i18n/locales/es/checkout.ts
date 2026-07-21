@@ -60,5 +60,9 @@ export const checkout = {
   secureNote:
     'Pago seguro y cifrado. Tus datos de tarjeta se procesan de forma protegida; nunca guardamos el número completo.',
   loading: 'Cargando orden…',
+  loadErrorTitle: 'No se pudo cargar la orden',
+  loadErrorBody: 'La orden no existe, expiró o no está disponible. Revisa tus boletos o vuelve al catálogo.',
+  goToAccount: 'Ir a mi cuenta',
+  goToCatalog: 'Volver al catálogo',
   payError: 'No se pudo iniciar el pago. Intenta de nuevo.',
 };

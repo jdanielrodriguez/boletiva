@@ -18,6 +18,7 @@ import { Type } from 'class-transformer';
 import { Role, SupportCategory, SupportContextType, SupportPriority } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AdminOnly } from '../../common/decorators/admin-only.decorator';
+import { SkipAdvisorUnlock } from '../../common/decorators/skip-advisor-unlock.decorator';
 import { RequireVerifiedEmail } from '../../common/decorators/verified-email.decorator';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user.decorator';
 import { SupportService } from './support.service';
@@ -187,6 +188,7 @@ export class SupportController {
 
   @Post(':id/take')
   @Roles(Role.admin, Role.advisor)
+  @SkipAdvisorUnlock()
   @HttpCode(200)
   @ApiOperation({ summary: 'El agente toma el ticket (auto-asignación)' })
   take(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
@@ -204,6 +206,7 @@ export class SupportController {
 
   @Post(':id/resolve')
   @Roles(Role.admin, Role.advisor)
+  @SkipAdvisorUnlock()
   @HttpCode(200)
   @ApiOperation({ summary: 'Marca el ticket como resuelto (agente)' })
   resolve(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
@@ -219,6 +222,7 @@ export class SupportController {
 
   @Post(':id/reopen')
   @Roles(Role.admin, Role.advisor)
+  @SkipAdvisorUnlock()
   @HttpCode(200)
   @ApiOperation({ summary: 'Reabre un ticket resuelto/cerrado (agente)' })
   reopen(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
@@ -227,6 +231,7 @@ export class SupportController {
 
   @Post(':id/suspend')
   @Roles(Role.admin, Role.advisor)
+  @SkipAdvisorUnlock()
   @HttpCode(200)
   @ApiOperation({ summary: 'Suspende el ticket (congela SLA, agente)' })
   suspend(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
@@ -235,6 +240,7 @@ export class SupportController {
 
   @Post(':id/resume')
   @Roles(Role.admin, Role.advisor)
+  @SkipAdvisorUnlock()
   @HttpCode(200)
   @ApiOperation({ summary: 'Reanuda un ticket suspendido (agente)' })
   resume(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
@@ -243,6 +249,7 @@ export class SupportController {
 
   @Post(':id/priority')
   @Roles(Role.admin, Role.advisor)
+  @SkipAdvisorUnlock()
   @HttpCode(200)
   @ApiOperation({ summary: 'Cambia la prioridad (recalcula SLA, agente)' })
   priority(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser, @Body() dto: SetPriorityDto) {
@@ -251,6 +258,7 @@ export class SupportController {
 
   @Post(':id/category')
   @Roles(Role.admin, Role.advisor)
+  @SkipAdvisorUnlock()
   @HttpCode(200)
   @ApiOperation({ summary: 'Cambia la categoría (agente)' })
   category(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser, @Body() dto: SetCategoryDto) {

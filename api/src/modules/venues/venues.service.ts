@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -59,9 +60,12 @@ export class VenuesService {
 
   async addLocality(eventId: string, dto: CreateLocalityDto, user: AuthUser, unlockToken?: string) {
     await this.assertEditable(eventId, user, unlockToken);
+    const kind = dto.kind ?? 'general';
+    // Enforcement del kill-switch `seatmap.enabled` en el BACKEND (no solo la UI):
+    // con el mapa apagado no se pueden crear localidades con asiento vía API directa.
+    if (kind === 'seated') await this.assertSeatmapEnabled();
     const base = slugify(dto.name);
     const exists = await this.prisma.locality.findFirst({ where: { eventId, slug: base } });
-    const kind = dto.kind ?? 'general';
     const capacity = dto.capacity ?? 0;
     const locality = await this.prisma.locality.create({
       data: {
@@ -79,6 +83,15 @@ export class VenuesService {
       return this.prisma.locality.findUniqueOrThrow({ where: { id: locality.id } });
     }
     return locality;
+  }
+
+  /** Kill-switch global del mapa de asientos (`seatmap.enabled`, default true). */
+  private async assertSeatmapEnabled(): Promise<void> {
+    const s = await this.prisma.setting.findUnique({ where: { key: 'seatmap.enabled' } });
+    const enabled = s ? s.value === true : true;
+    if (!enabled) {
+      throw new ForbiddenException('El mapa de asientos está deshabilitado; usa aforo general');
+    }
   }
 
   private async getLocalityManaged(localityId: string, user: AuthUser) {
@@ -104,6 +117,8 @@ export class VenuesService {
   ) {
     const current = await this.getLocalityEditable(localityId, user, unlockToken);
     const nextKind = dto.kind ?? current.kind;
+    // Cambiar una localidad a "seated" también exige el kill-switch encendido.
+    if (nextKind === 'seated' && current.kind !== 'seated') await this.assertSeatmapEnabled();
     const isGa = nextKind === 'general';
     const updated = await this.prisma.locality.update({
       where: { id: localityId },

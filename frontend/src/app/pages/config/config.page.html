@@ -194,9 +194,13 @@
                   </button>
                 }
                 @if (p.promoterStatus === 'approved') {
-                  <button type="button" class="btn small" (click)="askImpersonate(p)" data-testid="promoter-impersonate" [title]="'config.promoters.impersonateTitle' | translate">
-                    <app-icon name="view" /> {{ 'config.promoters.impersonate' | translate }}
-                  </button>
+                  <!-- Impersonar es admin-only en backend (@AdminOnly): el asesor NUNCA puede,
+                       ni desbloqueado → se oculta para no dar feedback falso (A-2 QA). -->
+                  @if (!isAdvisor()) {
+                    <button type="button" class="btn small" (click)="askImpersonate(p)" data-testid="promoter-impersonate" [title]="'config.promoters.impersonateTitle' | translate">
+                      <app-icon name="view" /> {{ 'config.promoters.impersonate' | translate }}
+                    </button>
+                  }
                   <button type="button" class="btn small danger" (click)="openSuspend(p)" data-testid="promoter-suspend" [title]="'config.promoters.suspendTitle' | translate">
                     <app-icon name="suspend" /> {{ 'config.promoters.suspend' | translate }}
                   </button>
@@ -501,6 +505,10 @@
           </div>
         } @else if (!settingsLoaded()) {
           <p class="muted" data-testid="settings-loading">{{ 'config.settings.loading' | translate }}</p>
+        } @else if (settingsError()) {
+          <app-empty-state variant="generic" data-testid="settings-error"
+            [title]="'config.settings.loadErrorTitle' | translate"
+            [subtitle]="'config.settings.loadError' | translate" />
         } @else {
           <app-empty-state variant="generic" data-testid="settings-empty"
             [title]="'config.settings.emptyTitle' | translate"

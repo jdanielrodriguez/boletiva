@@ -11,6 +11,7 @@ export const NotificationType = {
   PROMOTER_REJECTED: 'promoter_rejected',
   PROMOTER_SUSPENDED: 'promoter_suspended',
   SETTLEMENT_PAID: 'settlement_paid',
+  PREMIUM_ACTIVATED: 'premium_activated',
   EVENT_STARTING: 'event_starting',
   EVENT_FINISHED: 'event_finished',
   TICKET_UPDATE: 'ticket_update',

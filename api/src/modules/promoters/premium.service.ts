@@ -8,6 +8,8 @@ import {
 } from '@nestjs/common';
 import { PromoterTier } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../notifications/notification.types';
 
 /** Config del perfil premium resuelta de los settings (con defaults). */
 export interface PremiumConfig {
@@ -31,7 +33,18 @@ export class PremiumService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PremiumService.name);
   private timer?: ReturnType<typeof setInterval>;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
+
+  /** Quita del slider los eventos destacados de un promotor que pierde los beneficios premium. */
+  private async clearPromotedFor(userId: string): Promise<void> {
+    await this.prisma.event.updateMany({
+      where: { promoterId: userId, promotedPriority: { not: null } },
+      data: { promotedPriority: null },
+    });
+  }
 
   /** Sweeper diario de pruebas vencidas (apagado en test — NODE_ENV=test). */
   onModuleInit(): void {
@@ -103,12 +116,14 @@ export class PremiumService implements OnModuleInit, OnModuleDestroy {
     if (!user) throw new NotFoundException('Usuario no encontrado');
 
     if (tier === PromoterTier.free) {
-      return this.summarize(
-        await this.prisma.user.update({
-          where: { id: userId },
-          data: { promoterTier: PromoterTier.free, premiumTrialEndsAt: null, premiumSince: null },
-        }),
-      );
+      const updated = await this.prisma.user.update({
+        where: { id: userId },
+        data: { promoterTier: PromoterTier.free, premiumTrialEndsAt: null, premiumSince: null },
+      });
+      // M-3 (QA): al perder premium se DES-destacan sus eventos (si no, el evento
+      // destacado durante el trial quedaría en el slider para siempre = bypass).
+      await this.clearPromotedFor(userId);
+      return this.summarize(updated);
     }
 
     const cfg = await this.config();
@@ -122,12 +137,12 @@ export class PremiumService implements OnModuleInit, OnModuleDestroy {
       }
       const days = opts.byAdmin ? opts.trialDays : cfg.trialDays;
       const endsAt = new Date(Date.now() + days * 24 * 3600 * 1000);
-      return this.summarize(
-        await this.prisma.user.update({
-          where: { id: userId },
-          data: { promoterTier: PromoterTier.premium, premiumTrialEndsAt: endsAt, premiumSince: new Date() },
-        }),
-      );
+      const updated = await this.prisma.user.update({
+        where: { id: userId },
+        data: { promoterTier: PromoterTier.premium, premiumTrialEndsAt: endsAt, premiumSince: new Date() },
+      });
+      if (opts.byAdmin) await this.notifyPremiumActivated(userId);
+      return this.summarize(updated);
     }
 
     // Premium PAGADO: exige una tarjeta registrada (tokenización PCI) salvo concesión admin.
@@ -137,12 +152,25 @@ export class PremiumService implements OnModuleInit, OnModuleDestroy {
         throw new BadRequestException('Debes registrar una tarjeta de crédito para activar premium');
       }
     }
-    return this.summarize(
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: { promoterTier: PromoterTier.premium, premiumTrialEndsAt: null, premiumSince: new Date() },
-      }),
-    );
+    const paid = await this.prisma.user.update({
+      where: { id: userId },
+      data: { promoterTier: PromoterTier.premium, premiumTrialEndsAt: null, premiumSince: new Date() },
+    });
+    if (opts.byAdmin) await this.notifyPremiumActivated(userId);
+    return this.summarize(paid);
+  }
+
+  /**
+   * M-2 (QA): avisa al promotor que pasó a Premium y que su comisión se reduce por
+   * beneficios premium (la reducción del % la aplica el admin a mano — T8/grandfathering).
+   * No lanza (una notificación fallida no debe tumbar el cambio de tier ya realizado).
+   */
+  private async notifyPremiumActivated(userId: string): Promise<void> {
+    await this.notifications.emit(userId, {
+      type: NotificationType.PREMIUM_ACTIVATED,
+      title: 'Ahora eres Premium',
+      body: 'Tu comisión de cobro se ha reducido por beneficios premium. ¡Gracias por confiar en Boletiva!',
+    });
   }
 
   /**
@@ -177,12 +205,23 @@ export class PremiumService implements OnModuleInit, OnModuleDestroy {
 
   /** Baja a `free` las pruebas vencidas (job diario / disparo manual admin). */
   async expireTrials(): Promise<number> {
-    const res = await this.prisma.user.updateMany({
+    // Se resuelven los ids ANTES de actualizar para poder des-destacar sus eventos (M-3).
+    const expiring = await this.prisma.user.findMany({
       where: { promoterTier: PromoterTier.premium, premiumTrialEndsAt: { lte: new Date() } },
+      select: { id: true },
+    });
+    if (expiring.length === 0) return 0;
+    const ids = expiring.map((u) => u.id);
+    await this.prisma.user.updateMany({
+      where: { id: { in: ids } },
       data: { promoterTier: PromoterTier.free, premiumTrialEndsAt: null },
     });
-    if (res.count > 0) this.logger.log(`Pruebas premium vencidas → free: ${res.count}`);
-    return res.count;
+    await this.prisma.event.updateMany({
+      where: { promoterId: { in: ids }, promotedPriority: { not: null } },
+      data: { promotedPriority: null },
+    });
+    this.logger.log(`Pruebas premium vencidas → free: ${ids.length}`);
+    return ids.length;
   }
 
   private summarize(u: {

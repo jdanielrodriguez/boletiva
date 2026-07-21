@@ -1007,7 +1007,10 @@ export class ConfigPage {
   protected readonly settingEdits = signal<Record<string, number | boolean | string>>({});
   /** false hasta que la 1ª carga resuelve o falla → distingue "cargando" de "vacío". */
   protected readonly settingsLoaded = signal(false);
+  /** La carga de settings falló → estado de error (no confundir con "sin configuraciones"). */
+  protected readonly settingsError = signal(false);
   private loadSettings(): void {
+    this.settingsError.set(false);
     this.settingsApi.list().subscribe({
       next: (s) => {
         this.settings.set(s);
@@ -1016,6 +1019,7 @@ export class ConfigPage {
       },
       error: () => {
         this.settingsLoaded.set(true);
+        this.settingsError.set(true);
         this.toasts.error(this.translate.instant('config.settings.loadError'));
       },
     });

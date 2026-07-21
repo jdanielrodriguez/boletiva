@@ -427,6 +427,7 @@ export const config = {
     emptyTitle: 'Sin configuraciones',
     emptySubtitle: 'No hay configuraciones disponibles para mostrar.',
     loadError: 'No se pudieron cargar las configuraciones.',
+    loadErrorTitle: 'Error al cargar',
     saved: 'Configuración "{{key}}" guardada.',
     saveError: 'No se pudo guardar (revisa el tipo/rango del valor).',
     typeLabel: 'Tipo: {{type}}',

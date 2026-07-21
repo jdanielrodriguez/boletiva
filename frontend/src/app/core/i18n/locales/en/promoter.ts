@@ -20,6 +20,7 @@ export const promoter = {
     empty: 'You have no events yet. Create the first one with "+ New event".',
     emptySubtitle: 'Create your first event with "+ New event" to start selling tickets.',
     localitiesCount: '{{n}} locality(ies)',
+    featuredFlag: 'Featured',
     publish: 'Publish event',
     publishShort: 'Publish',
     editTitle: 'Edit event',
@@ -292,6 +293,7 @@ export const promoter = {
   seat: {
     readonlyNote: 'The seat map is in read-only mode.',
     mobileHint: 'Tip: the map editor works best on a large screen (desktop or a tablet in landscape).',
+    tooManySeats: 'Too many seats (max {{max}}). Reduce rows/columns or split the locality.',
     rows: 'Rows',
     seatsPerRow: 'Seats per row',
     section: 'Section',

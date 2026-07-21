@@ -1,5 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { Prisma, Role } from '@prisma/client';
+import { Prisma, PromoterStatus, Role } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { QueueService } from '../../infra/queue/queue.service';
 import { QUEUES } from '../../infra/queue/queue.constants';
@@ -7,6 +7,16 @@ import { KeysetQuery, keysetResult, keysetTake } from '../../common/utils/pagina
 import { AuditService } from '../audit/audit.service';
 import { NotificationsGateway } from './notifications.gateway';
 import { CHANNEL_DEFAULT, NotificationChannel, NotificationType } from './notification.types';
+
+/** Escapa texto para interpolarlo con seguridad en HTML (correos de notificación). */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 export interface EmitInput {
   type: string;
@@ -48,12 +58,15 @@ export class NotificationsService {
       type: NotificationType.ADMIN_MESSAGE,
       title: input.title,
       body: input.body,
-      email: { subject: input.title, html: `<p>${input.body}</p>` },
+      // Escapar el cuerpo antes de interpolarlo en el HTML del correo (evita inyección).
+      email: { subject: input.title, html: `<p>${escapeHtml(input.body)}</p>` },
     };
     let recipients: string[];
     if (input.all) {
+      // Solo promotores APROBADOS (no pendientes/rechazados/suspendidos aunque la cuenta
+      // esté activa) — coherente con el picker "a uno" que solo lista aprobados.
       const promoters = await this.prisma.user.findMany({
-        where: { roles: { has: Role.promoter }, status: 'active' },
+        where: { roles: { has: Role.promoter }, status: 'active', promoterStatus: PromoterStatus.approved },
         select: { id: true },
       });
       recipients = promoters.map((p) => p.id);

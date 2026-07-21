@@ -3,6 +3,12 @@
 
   @if (!chatEnabled()) {
     <app-empty-state variant="generic" [title]="'chat.disabledTitle' | translate" [subtitle]="'chat.disabledSubtitle' | translate" />
+  } @else if (premiumRequired()) {
+    <div class="chat-premium-upsell" data-testid="chat-premium-upsell">
+      <h2>{{ 'chat.premiumTitle' | translate }}</h2>
+      <p class="muted">{{ 'chat.premiumSubtitle' | translate }}</p>
+      <a class="btn primary" routerLink="/conviertete-en-promotor" data-testid="chat-premium-cta">{{ 'chat.premiumCta' | translate }}</a>
+    </div>
   } @else {
     @if (isAgent()) {
       <div class="chat-metrics-bar">

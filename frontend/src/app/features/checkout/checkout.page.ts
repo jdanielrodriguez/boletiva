@@ -10,6 +10,7 @@ import { TourComponent, type TourStep } from '../../shared/tour/tour.component';
 import { ConfirmationSplashComponent } from '../../shared/ui/confirmation-splash.component';
 import { LoadingComponent } from '../../shared/ui/loading.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
+import { apiErrorMessage } from '../../core/http/api-error';
 import { OrderStreamService } from '../../core/api/order-stream.service';
 import { SessionStore } from '../../core/auth/session.store';
 import { BillingApi } from '../../core/api/billing.api';
@@ -121,15 +122,24 @@ export class CheckoutPage implements OnDestroy {
   protected readonly cardCvv = signal('');
   protected readonly cardName = signal('');
 
+  /** La orden no se pudo cargar (404 / orden ajena / red). Evita el "Cargando…" infinito (A1). */
+  protected readonly loadError = signal(false);
+
   private readonly data = toSignal(
     this.route.paramMap.pipe(
       switchMap((pm) => {
         const id = pm.get('orderId') ?? '';
         this.orderId.set(id);
+        this.loadError.set(false);
         return forkJoin({
           order: this.ordersApi.get(id),
           options: this.ordersApi.paymentOptions(id),
-        });
+        }).pipe(
+          catchError(() => {
+            this.loadError.set(true);
+            return of(null);
+          }),
+        );
       }),
       startWith(null as { order: OrderResponseDto; options: PaymentOptionsResponseDto } | null),
     ),
@@ -196,6 +206,31 @@ export class CheckoutPage implements OnDestroy {
   }
 
   /** ¿Puede confirmar el pago con el modo/campos actuales? */
+  /**
+   * Validez del formulario de tarjeta NUEVA (M1 QA): antes `canPay('new')` era `true`
+   * incondicional → se podía pulsar Pagar con el formulario vacío. Ahora exige número
+   * válido (Luhn), vencimiento MM/YY, CVV 3-4 dígitos y nombre.
+   */
+  protected readonly newCardValid = computed(() => {
+    const digits = this.cardNumber().replace(/\D/g, '');
+    const exp = /^(0[1-9]|1[0-2])\/?\d{2}$/.test(this.cardExp().trim());
+    const cvv = /^\d{3,4}$/.test(this.cardCvv().trim());
+    const name = this.cardName().trim().length >= 2;
+    return digits.length >= 13 && digits.length <= 19 && CheckoutPage.luhn(digits) && exp && cvv && name;
+  });
+
+  private static luhn(digits: string): boolean {
+    let sum = 0;
+    let dbl = false;
+    for (let i = digits.length - 1; i >= 0; i--) {
+      let d = digits.charCodeAt(i) - 48;
+      if (dbl && (d *= 2) > 9) d -= 9;
+      sum += d;
+      dbl = !dbl;
+    }
+    return sum % 10 === 0;
+  }
+
   protected readonly canPay = computed(() => {
     // Bloqueado mientras se procesa (evita doble envío durante el jitter del webhook).
     if (this.paying() || this.submitted()) return false;
@@ -205,7 +240,7 @@ export class CheckoutPage implements OnDestroy {
       case 'saved':
         return !!this.selectedCardId() && this.cvvValid();
       case 'new':
-        return true;
+        return this.newCardValid();
     }
   });
 
@@ -352,11 +387,12 @@ export class CheckoutPage implements OnDestroy {
       })
       .subscribe({
         next: () => this.paying.set(false),
-        error: () => {
+        error: (err) => {
           this.paying.set(false);
           // Reintentable: libera el estado de envío para que el comprador pueda pagar de nuevo.
           this.submitted.set(false);
-          this.error.set(this.translate.instant('checkout.payError'));
+          // Muestra la causa real del backend (M2 QA) con fallback al mensaje genérico.
+          this.error.set(apiErrorMessage(err, this.translate.instant('checkout.payError')));
         },
       });
   }

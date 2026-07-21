@@ -152,4 +152,52 @@ describe('Rol asesor (e2e)', () => {
     await http().post('/api/v1/advisor/unlock/request').set(bearer(adminToken)).expect(403);
     await http().post('/api/v1/advisor/unlock/approve').set(bearer(advisorToken)).send({ token: 'y'.repeat(20) }).expect(403);
   });
+
+  // --- Seguridad QA (verificación final) ---
+
+  it('C-1: el asesor, AUN DESBLOQUEADO, NO puede asignar roles ni estado (@AdminOnly) → 403', async () => {
+    await setLock(true);
+    await unlock(); // ventana aprobada vigente
+    // Escalada de privilegios: intentar auto-ascenderse a admin o tocar roles/estado ajenos.
+    await http()
+      .patch(`/api/v1/users/${advisorId}/roles`)
+      .set(bearer(advisorToken))
+      .send({ roles: ['admin'] })
+      .expect(403);
+    await http()
+      .patch(`/api/v1/users/${promoterId}/roles`)
+      .set(bearer(advisorToken))
+      .send({ roles: ['admin'] })
+      .expect(403);
+    await http()
+      .patch(`/api/v1/users/${promoterId}/status`)
+      .set(bearer(advisorToken))
+      .send({ status: 'inactive' })
+      .expect(403);
+  });
+
+  it('C-1: ni el admin puede modificar SUS PROPIOS roles/estado (auto-bloqueo) → 403', async () => {
+    const adminId = (await prisma.user.findUniqueOrThrow({ where: { email: SEED.admin.toLowerCase().trim() } })).id;
+    await http()
+      .patch(`/api/v1/users/${adminId}/roles`)
+      .set(bearer(adminToken))
+      .send({ roles: ['admin', 'promoter'] })
+      .expect(403);
+    await http()
+      .patch(`/api/v1/users/${adminId}/status`)
+      .set(bearer(adminToken))
+      .send({ status: 'inactive' })
+      .expect(403);
+  });
+
+  it('A-1: el candado NO bloquea la bandeja de soporte del asesor (take pasa el guard → 404 por ticket inexistente, no 403)', async () => {
+    await setLock(true);
+    await prisma.advisorUnlock.deleteMany({ where: { advisorId } }); // sin ventana
+    // Con el fix @SkipAdvisorUnlock, el guard deja pasar → el servicio responde 404
+    // (ticket inexistente), NO 403 de desbloqueo. Antes del fix era 403.
+    await http()
+      .post(`/api/v1/support/00000000-0000-0000-0000-000000000000/take`)
+      .set(bearer(advisorToken))
+      .expect(404);
+  });
 });
