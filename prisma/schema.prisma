@@ -517,6 +517,7 @@ model User {
   withdrawals   WalletWithdrawal[]
   gateAssignments GateAssignment[] @relation("GateOperator")
   promoterInvitations PromoterInvitation[] @relation("InvitedBy")
+  advisorInvitations  AdvisorInvitation[]  @relation("AdvisorInvitedBy")
   validatorInvites ValidatorInvitation[] @relation("ValidatorOperator")
   savedCards SavedCard[]
   advisorUnlocks         AdvisorUnlock[] @relation("advisorUnlocks")
@@ -1317,6 +1318,30 @@ model PromoterInvitation {
   @@index([email])
   @@index([invitedById])
   @@map("promoter_invitations")
+}
+
+/// Invitación de ASESOR (T7). Un admin invita por correo. Si el usuario YA existe, el
+/// link CONFIRMA la subida a rol asesor; si NO existía, se crea el User (sin password)
+/// y el link lleva a FIJAR CONTRASEÑA. `createdUserId` guarda el usuario creado para el
+/// caso "nuevo". Reusa PromoterInvitationStatus (pending/accepted/revoked/expired).
+model AdvisorInvitation {
+  id               String                   @id @default(uuid()) @db.Uuid
+  email            String
+  tokenHash        String                   @unique @map("token_hash")
+  status           PromoterInvitationStatus @default(pending)
+  invitedById      String                   @map("invited_by_id") @db.Uuid
+  createdUserId    String?                  @map("created_user_id") @db.Uuid
+  acceptedByUserId String?                  @map("accepted_by_user_id") @db.Uuid
+  expiresAt        DateTime                 @map("expires_at")
+  acceptedAt       DateTime?                @map("accepted_at")
+  createdAt        DateTime                 @default(now()) @map("created_at")
+  updatedAt        DateTime                 @updatedAt @map("updated_at")
+
+  invitedBy User @relation("AdvisorInvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([email])
+  @@index([invitedById])
+  @@map("advisor_invitations")
 }
 
 /// Historial APPEND-ONLY de transiciones de estado de un promotor (v3.2). El

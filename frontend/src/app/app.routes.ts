@@ -176,6 +176,24 @@ export const routes: Routes = [
     title: 'Enviar notificaciones — Boletiva',
   },
   {
+    // T7e: admin invita asesores.
+    path: 'admin/asesores',
+    loadComponent: () => import('./pages/admin/admin-advisors.page').then((m) => m.AdminAdvisorsPage),
+    canActivate: [roleGuard('admin')],
+    title: 'Asesores — Boletiva',
+  },
+  {
+    // T7e: onboarding de asesor por token (nuevo → fija contraseña; existente → confirma).
+    path: 'asesor/fijar-password',
+    loadComponent: () => import('./pages/advisor/advisor-onboarding.page').then((m) => m.AdvisorOnboardingPage),
+    title: 'Activar cuenta de asesor — Boletiva',
+  },
+  {
+    path: 'asesor/confirmar',
+    loadComponent: () => import('./pages/advisor/advisor-onboarding.page').then((m) => m.AdvisorOnboardingPage),
+    title: 'Confirmar rol de asesor — Boletiva',
+  },
+  {
     // La LISTA de salones vive en `/configuracion?tab=salones` (v3.9 · B1). Aquí
     // solo quedan las páginas de creación/edición.
     path: 'configuracion/salones/nuevo',

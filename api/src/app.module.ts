@@ -53,6 +53,7 @@ import { AdvisorModule } from './modules/advisor/advisor.module';
 import { AdvisorUnlockGuard } from './modules/advisor/advisor-unlock.guard';
 import { SupportModule } from './modules/support/support.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { AdvisorsModule } from './modules/advisors/advisors.module';
 
 @Module({
   imports: [
@@ -147,6 +148,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     AdvisorModule,
     SupportModule,
     NotificationsModule,
+    AdvisorsModule,
   ],
   providers: [
     // Orden importa: rate-limit por IP PRIMERO (frena floods antes de autenticar) →
