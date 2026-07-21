@@ -459,8 +459,15 @@ export const config = {
     premium_enabled: 'Perfil premium',
     premium_trial_enabled: 'Prueba gratis de premium',
     premium_trial_days: 'Días de prueba premium',
-    chat_enabled: 'Chat de soporte',
+    chat_enabled: 'Soporte / chat',
     advisor_lock_enabled: 'Desbloqueo del asesor',
+    promoter_can_feature_events: 'Destacar eventos (promotores)',
+    events_creation_enabled: 'Creación de eventos',
+    home_slider_enabled: 'Slider del inicio',
+    seatmap_enabled: 'Mapa de asientos',
+    advisors_enabled: 'Rol asesor',
+    advisors_maintenance: 'Mantenimiento de asesores',
+    billing_maintenance: 'Mantenimiento de facturación',
   },
 
   /** Opciones de settings tipo enum (temas y franjas). */
@@ -519,9 +526,16 @@ export const config = {
     premium_trial_enabled:
       'Habilita la prueba gratis de premium (solo con el perfil premium encendido). Si está encendido, elegir premium arranca la prueba automáticamente.',
     premium_trial_days: 'Días que dura la prueba gratis de premium.',
-    chat_enabled: 'Habilita el chat de soporte (promotor premium ↔ asesor/admin). Si está apagado, nadie ve el chat.',
+    chat_enabled: 'Habilita el soporte/chat (promotor ↔ asesor/admin). Si está apagado, nadie ve el soporte.',
     advisor_lock_enabled:
       'Exige que un asesor obtenga un desbloqueo aprobado por el admin (vía enlace) para poder editar. Si está apagado, los asesores editan igual que el admin, sin pedir desbloqueo.',
+    promoter_can_feature_events: 'Permite a los promotores destacar su evento en el inicio. Apagado = no ven la opción.',
+    events_creation_enabled: 'Habilita la creación de eventos por promotores. Apagado = nadie puede crear eventos.',
+    home_slider_enabled: 'Muestra el slider del inicio (con los eventos destacados). Apagado = siempre oculto.',
+    seatmap_enabled: 'Habilita el uso del mapa de asientos. Apagado = solo aforo general.',
+    advisors_enabled: 'Habilita el rol asesor de soporte.',
+    advisors_maintenance: 'Muestra a los asesores una pantalla de acceso temporalmente deshabilitado.',
+    billing_maintenance: 'Oculta la facturación con una vista de mantenimiento (para descuadres).',
   },
 
   // --- Dashboards de salón / plantilla (página aparte) ---

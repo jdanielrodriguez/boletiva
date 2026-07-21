@@ -459,8 +459,15 @@ export const config = {
     premium_enabled: 'Premium profile',
     premium_trial_enabled: 'Premium free trial',
     premium_trial_days: 'Premium trial days',
-    chat_enabled: 'Support chat',
+    chat_enabled: 'Support / chat',
     advisor_lock_enabled: 'Advisor unlock',
+    promoter_can_feature_events: 'Feature events (promoters)',
+    events_creation_enabled: 'Event creation',
+    home_slider_enabled: 'Home slider',
+    seatmap_enabled: 'Seat map',
+    advisors_enabled: 'Advisor role',
+    advisors_maintenance: 'Advisors maintenance',
+    billing_maintenance: 'Billing maintenance',
   },
 
   /** Enum setting options (themes and slots). */
@@ -516,9 +523,16 @@ export const config = {
     premium_trial_enabled:
       'Enables the premium free trial (only with the premium profile on). When on, choosing premium starts the trial automatically.',
     premium_trial_days: 'Number of days the premium free trial lasts.',
-    chat_enabled: 'Enables the support chat (premium promoter ↔ advisor/admin). When off, no one sees the chat.',
+    chat_enabled: 'Enables support/chat (promoter ↔ advisor/admin). When off, no one sees support.',
     advisor_lock_enabled:
       'Requires an advisor to get an admin-approved unlock (via link) before editing. When off, advisors edit like the admin with no unlock.',
+    promoter_can_feature_events: 'Lets promoters feature their event on the home page. Off = they do not see the option.',
+    events_creation_enabled: 'Enables event creation by promoters. Off = no one can create events.',
+    home_slider_enabled: 'Shows the home slider (built from featured events). Off = always hidden.',
+    seatmap_enabled: 'Enables the seat map. Off = general admission only.',
+    advisors_enabled: 'Enables the support advisor role.',
+    advisors_maintenance: 'Shows advisors an "access temporarily disabled" screen.',
+    billing_maintenance: 'Hides billing behind a maintenance view (for reconciliations).',
   },
 
   // --- Hall / template dashboards (separate page) ---
