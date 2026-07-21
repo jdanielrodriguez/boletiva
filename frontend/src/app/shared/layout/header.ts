@@ -6,6 +6,7 @@ import { SessionStore } from '../../core/auth/session.store';
 import { LangSwitcherComponent } from './lang-switcher.component';
 import { ThemeSwitcherComponent } from './theme-switcher.component';
 import { NotificationBellComponent } from '../notifications/notification-bell.component';
+import { IconComponent } from '../icon/icon.component';
 
 /**
  * Cabecera con navegación y área de sesión. El estado se hidrata en el cliente
@@ -15,7 +16,7 @@ import { NotificationBellComponent } from '../notifications/notification-bell.co
  */
 @Component({
   selector: 'app-header',
-  imports: [RouterLink, TranslatePipe, LangSwitcherComponent, ThemeSwitcherComponent, NotificationBellComponent],
+  imports: [RouterLink, TranslatePipe, LangSwitcherComponent, ThemeSwitcherComponent, NotificationBellComponent, IconComponent],
   templateUrl: './header.html',
 })
 export class Header {

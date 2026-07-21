@@ -69,14 +69,26 @@
             @if (session.hasAnyRole(['promoter']) && !session.hasAnyRole(['admin'])) {
               <a routerLink="/promotor" (click)="closeMenu()" data-testid="promoter-link">{{ 'shell.configuration' | translate }}</a>
             }
-            @if (session.hasAnyRole(['admin'])) {
-              <a routerLink="/configuracion" (click)="closeMenu()" data-testid="config-link">{{ 'shell.configuration' | translate }}</a>
-              <a routerLink="/admin/notificaciones" (click)="closeMenu()" data-testid="admin-notif-link">{{ 'notifications.adminSendTitle' | translate }}</a>
-              <a routerLink="/admin/asesores" (click)="closeMenu()" data-testid="admin-advisors-link">{{ 'advisor.admin.title' | translate }}</a>
+            <!-- Admin: consola completa + gobernanza exclusiva (notificaciones/asesores/
+                 invitaciones). Asesor: consola + soporte. Soporte es admin + asesor. -->
+            @if (session.hasAnyRole(['admin', 'advisor'])) {
+              <a class="dd-item" routerLink="/configuracion" (click)="closeMenu()" data-testid="config-link">
+                <app-icon name="default" [size]="16" /> {{ 'shell.configuration' | translate }}
+              </a>
+              <a class="dd-item" routerLink="/soporte" (click)="closeMenu()" data-testid="support-link">
+                <app-icon name="chat" [size]="16" /> {{ 'chat.title' | translate }}
+              </a>
             }
-            @if (session.hasAnyRole(['advisor']) && !session.hasAnyRole(['admin'])) {
-              <a routerLink="/configuracion" (click)="closeMenu()" data-testid="advisor-config-link">{{ 'shell.configuration' | translate }}</a>
-              <a routerLink="/soporte" (click)="closeMenu()" data-testid="advisor-support-link">{{ 'chat.title' | translate }}</a>
+            @if (session.hasAnyRole(['admin'])) {
+              <a class="dd-item" routerLink="/admin/notificaciones" (click)="closeMenu()" data-testid="admin-notif-link">
+                <app-icon name="alert" [size]="16" /> {{ 'notifications.adminSendTitle' | translate }}
+              </a>
+              <a class="dd-item" routerLink="/admin/asesores" (click)="closeMenu()" data-testid="admin-advisors-link">
+                <app-icon name="accounts" [size]="16" /> {{ 'advisor.admin.title' | translate }}
+              </a>
+              <a class="dd-item" routerLink="/configuracion" [queryParams]="{ tab: 'invitaciones' }" (click)="closeMenu()" data-testid="admin-invitations-link">
+                <app-icon name="invite" [size]="16" /> {{ 'config.tabs.invitations' | translate }}
+              </a>
             }
             <button type="button" data-testid="logout-btn" (click)="logout()">{{ 'shell.logout' | translate }}</button>
           </div>

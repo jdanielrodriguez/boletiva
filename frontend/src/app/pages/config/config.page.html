@@ -32,8 +32,9 @@
     @if (!hideSystemTab()) {
       <button type="button" [class.active]="tab() === 'sistema'" [attr.aria-current]="tab() === 'sistema' ? 'page' : null" (click)="selectTab('sistema')" data-testid="tab-sistema">{{ 'config.tabs.system' | translate }}</button>
     }
-    <button type="button" [class.active]="tab() === 'invitaciones'" [attr.aria-current]="tab() === 'invitaciones' ? 'page' : null" (click)="selectTab('invitaciones')" data-testid="tab-invitaciones">{{ 'config.tabs.invitations' | translate }}</button>
-    <button type="button" [class.active]="tab() === 'soporte'" [attr.aria-current]="tab() === 'soporte' ? 'page' : null" (click)="selectTab('soporte')" data-testid="tab-soporte">{{ 'config.tabs.support' | translate }}</button>
+    <!-- Invitaciones se MOVIÓ al menú superior de admin (deep-link ?tab=invitaciones); el
+         contenido sigue aquí pero sin botón de tab. Soporte también se movió al menú (a la
+         página /soporte, admin+asesor) → ya no es tab embebido. -->
   </nav>
 
   @switch (tab()) {
@@ -645,10 +646,6 @@
           [title]="'config.invitations.emptyTitle' | translate"
           [subtitle]="'config.invitations.emptySubtitle' | translate" />
       }
-    }
-    @case ('soporte') {
-      <!-- Bandeja de tickets embebida (misma que /soporte): el agente atiende aquí. -->
-      <app-support-chat [embedded]="true" data-testid="config-support" />
     }
   }
 

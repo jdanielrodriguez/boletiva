@@ -199,14 +199,16 @@ async function seedGateway(): Promise<void> {
     status?: 'active' | 'inactive';
   }> = [
     {
+      // Tarifas REALES de Recurrente (plan EMPRESA, verificadas en recurrente.com/precios,
+      // jul 2026): 4.5% + Q2 fijo por transacción exitosa con tarjeta. Cuotas (cada una
+      // + el mismo Q2): 3→8% · 6→9% · 12→10% · 18→14%. Así, al integrar el key de test de
+      // Recurrente, el precio que calculamos coincide con lo que Recurrente cobra.
+      // NOTA: Recurrente NO es la default en alpha (lo es Sandbox) → los e2e generales
+      // siguen cobrando por Sandbox (129.68 canónico); Recurrente se prueba aparte.
       name: 'Recurrente',
       provider: 'simulator',
-      feePct: '0.05000',
-      // En producción Recurrente cobra Q2 fijo por transacción; en seed/demo se deja
-      // en 0 para preservar el precio canónico (129.68) que usan los e2e generales.
-      // El mecanismo del fijo + surplus se prueba con pasarelas dedicadas en los
-      // e2e de cuotas y de Ola 6.6.
-      transactionFixedFee: '0.00',
+      feePct: '0.04500',
+      transactionFixedFee: '2.00',
       installmentRates: { '3': 0.08, '6': 0.09, '12': 0.1, '18': 0.14 },
       sandbox: true,
     },
@@ -238,18 +240,18 @@ async function seedGateway(): Promise<void> {
       },
     });
   }
-  // Default de plataforma = RECURRENTE (5% sin fijo en seed → mismo precio canónico
-  // 129.68 que Sandbox): es la pasarela real por defecto fuera de modo test. Los
-  // usuarios de PRUEBA (isTestUser) quedan anclados a Sandbox por código
-  // (events/payments.resolveGateway), así que en modo test se cobra por Sandbox.
-  // Una sola default (índice parcial). Pagalo/Sandbox quedan seleccionables.
+  // Default de plataforma = SANDBOX en FASE ALPHA (diseño original: "sandbox es la
+  // default para alpha/beta; prod exige ≥1 pasarela real"). Sandbox = 5% sin fijo →
+  // precio canónico 129.68 que usan TODOS los e2e generales. Recurrente lleva sus
+  // tarifas REALES (4.5%+Q2) y queda SELECCIONABLE / para sus e2e dedicados; al ir a
+  // prod, flipear el default a Recurrente es 1 línea. Una sola default (índice parcial).
   await prisma.$transaction([
     prisma.paymentGateway.updateMany({
-      where: { isPlatformDefault: true, name: { not: 'Recurrente' } },
+      where: { isPlatformDefault: true, name: { not: 'Sandbox' } },
       data: { isPlatformDefault: false },
     }),
     prisma.paymentGateway.updateMany({
-      where: { name: 'Recurrente' },
+      where: { name: 'Sandbox' },
       data: { isPlatformDefault: true, status: 'active' },
     }),
   ]);

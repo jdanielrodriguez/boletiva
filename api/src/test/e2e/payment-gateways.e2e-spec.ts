@@ -79,6 +79,17 @@ describe('Pasarelas de pago configurables (e2e)', () => {
     expect(res.body.some((g: { name: string }) => g.name === 'Sandbox')).toBe(true);
   });
 
+  it('Recurrente trae las tarifas REALES (empresa): 4.5% + Q2 + cuotas 8/9/10/14', async () => {
+    const res = await http().get('/api/v1/payment-gateways').set(bearer(adminToken)).expect(200);
+    const rec = res.body.find((g: { name: string }) => g.name === 'Recurrente');
+    expect(rec).toBeDefined();
+    expect(Number(rec.feePct)).toBeCloseTo(0.045, 5);
+    expect(Number(rec.transactionFixedFee)).toBeCloseTo(2, 2);
+    expect(rec.installmentRates).toMatchObject({ '3': 0.08, '6': 0.09, '12': 0.1, '18': 0.14 });
+    // En alpha la default es Sandbox (Recurrente se prueba aparte / se activa en prod).
+    expect(rec.isPlatformDefault).toBe(false);
+  });
+
   it('GET /active lista pasarelas activas', async () => {
     const res = await http()
       .get('/api/v1/payment-gateways/active')

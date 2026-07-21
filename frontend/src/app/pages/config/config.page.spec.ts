@@ -138,6 +138,14 @@ describe('ConfigPage (v3, admin console)', () => {
     fixture.detectChanges();
   };
 
+  // Invitaciones se movió al menú superior (sin botón de tab en la consola): se activa
+  // por el método del componente (equivale al deep-link ?tab=invitaciones).
+  const openInvitations = async () => {
+    (fixture.componentInstance as unknown as { selectTab: (t: string) => void }).selectTab('invitaciones');
+    await fixture.whenStable();
+    fixture.detectChanges();
+  };
+
   it('muestra los eventos en un grid con su promotor', async () => {
     await setup();
     const events = el.querySelector('[data-testid="admin-events"]');
@@ -316,7 +324,7 @@ describe('ConfigPage (v3, admin console)', () => {
   // --- v3.8 · G2-6: invitaciones abren con el filtro "Pendientes" por defecto ---
   it('invitaciones: el filtro por defecto es "pending"', async () => {
     await setup();
-    await selectTab('tab-invitaciones');
+    await openInvitations();
     expect(fixture.componentInstance['invFilterStatus']()).toBe('pending');
     const filter = el.querySelector('[data-testid="inv-filter"]') as HTMLSelectElement;
     expect(filter.value).toBe('pending');
@@ -380,7 +388,7 @@ describe('ConfigPage (v3, admin console)', () => {
   it('invitaciones: parsea correos y llama create (con flag de usuario de prueba)', async () => {
     const create = jasmine.createSpy('c').and.returnValue(of({ invitations: [{ id: 'i1', email: 'a@b.com', url: 'http://x/registro?token=t' }] }));
     await setup({}, { create });
-    await selectTab('tab-invitaciones');
+    await openInvitations();
     click('inv-toggle'); // abre el form (oculto por defecto)
     fixture.componentInstance['emailsText'].set('a@b.com, c@d.com');
     fixture.componentInstance['inviteTestUser'].set(true);
@@ -392,7 +400,7 @@ describe('ConfigPage (v3, admin console)', () => {
   it('invitaciones: correo con formato inválido NO llama al backend y avisa', async () => {
     const create = jasmine.createSpy('c').and.returnValue(of({ invitations: [] }));
     await setup({}, { create });
-    await selectTab('tab-invitaciones');
+    await openInvitations();
     click('inv-toggle'); // abre el form
     fixture.componentInstance['emailsText'].set('a@b.com, no-es-correo');
     click('inv-toggle'); // abierto → intenta enviar
@@ -403,7 +411,7 @@ describe('ConfigPage (v3, admin console)', () => {
   it('invitaciones: todos los correos válidos → SÍ llama al backend', async () => {
     const create = jasmine.createSpy('c').and.returnValue(of({ invitations: [{ id: 'i1', email: 'a@b.com', url: 'http://x/registro?token=t' }] }));
     await setup({}, { create });
-    await selectTab('tab-invitaciones');
+    await openInvitations();
     click('inv-toggle');
     fixture.componentInstance['emailsText'].set('a@b.com c@d.com');
     click('inv-toggle');
@@ -496,7 +504,7 @@ describe('ConfigPage (v3, admin console)', () => {
   it('invitaciones: revocar pide confirmación (modal) antes de llamar al API', async () => {
     const revoke = jasmine.createSpy('r').and.returnValue(of({ id: 'i1', status: 'revoked' }));
     await setup({}, { revoke });
-    await selectTab('tab-invitaciones');
+    await openInvitations();
     click('inv-revoke');
     expect(revoke).not.toHaveBeenCalled();
     expect(el.querySelector('[data-testid="confirm-dialog"]')).not.toBeNull();
@@ -551,7 +559,7 @@ describe('ConfigPage (v3, admin console)', () => {
       status: 'pending',
     }));
     await setup({}, { list: () => of(many) });
-    await selectTab('tab-invitaciones');
+    await openInvitations();
     const c = fixture.componentInstance as unknown as {
       pageInvitations: () => unknown[];
       invTotalPages: () => number;
@@ -570,7 +578,7 @@ describe('ConfigPage (v3, admin console)', () => {
   it('invitaciones: buscar reinicia a la página 1', async () => {
     const many = Array.from({ length: 20 }, (_, i) => ({ id: `i${i}`, email: `p${i}@x.com`, status: 'pending' }));
     await setup({}, { list: () => of(many) });
-    await selectTab('tab-invitaciones');
+    await openInvitations();
     const c = fixture.componentInstance as unknown as {
       goToInvPage: (p: number) => void;
       setInvSearch: (v: string) => void;
@@ -653,7 +661,7 @@ describe('ConfigPage (v3, admin console)', () => {
   // --- v3.6: form de invitar OCULTO con toggle "Invitar" ---
   it('invitaciones: el form está oculto por defecto y "Invitar" lo abre', async () => {
     await setup();
-    await selectTab('tab-invitaciones');
+    await openInvitations();
     expect(el.querySelector('[data-testid="inv-form"]')).toBeNull();
     click('inv-toggle');
     expect(el.querySelector('[data-testid="inv-form"]')).not.toBeNull();
@@ -662,7 +670,7 @@ describe('ConfigPage (v3, admin console)', () => {
   it('invitaciones: abierto + correo válido invita; inválido no invita', async () => {
     const create = jasmine.createSpy('c').and.returnValue(of({ invitations: [] }));
     await setup({}, { create });
-    await selectTab('tab-invitaciones');
+    await openInvitations();
     click('inv-toggle'); // abre el form
     // Correo vacío/mal escrito → NO invita, muestra warning.
     fixture.componentInstance['onInviteButton']();
@@ -676,7 +684,7 @@ describe('ConfigPage (v3, admin console)', () => {
 
   it('invitaciones: "Cancelar" oculta el form y limpia el correo', async () => {
     await setup();
-    await selectTab('tab-invitaciones');
+    await openInvitations();
     click('inv-toggle');
     fixture.componentInstance['emailsText'].set('x@y.com');
     click('inv-cancel');

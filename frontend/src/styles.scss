@@ -581,6 +581,17 @@ app-root {
   background: var(--pe-surface-2);
 }
 
+/* Ítems del menú con icono (Configuración/Soporte/Notificaciones/Asesores/Invitaciones). */
+.user-dropdown .dd-item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+.user-dropdown .dd-item app-icon {
+  color: var(--pe-text-muted, #6b6b76);
+  flex: 0 0 auto;
+}
+
 /* Ítems reservados (detalle de boletos) */
 .reserved-items {
   list-style: none;
