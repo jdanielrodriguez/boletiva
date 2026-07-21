@@ -90,12 +90,18 @@ describe('Pasarelas de pago configurables (e2e)', () => {
     expect(rec.isPlatformDefault).toBe(false);
   });
 
-  it('GET /active lista pasarelas activas', async () => {
+  it('GET /active: admin/promotor 200 (sin credentialsRef); buyer 403 (QA M2)', async () => {
+    // Endurecimiento QA (M2): /active es para admin/promotor (elegir método); un buyer
+    // NO debe leer la config de pasarelas (feePct, credentialsRef). El comprador usa
+    // GET /orders/:id/payment-options en el checkout.
+    await http().get('/api/v1/payment-gateways/active').set(bearer(buyerToken)).expect(403);
     const res = await http()
       .get('/api/v1/payment-gateways/active')
-      .set(bearer(buyerToken))
+      .set(bearer(adminToken))
       .expect(200);
     expect(res.body.every((g: { status: string }) => g.status === 'active')).toBe(true);
+    // La referencia al secreto NO se expone en la vista pública.
+    expect(res.body.every((g: Record<string, unknown>) => g.credentialsRef === undefined)).toBe(true);
   });
 
   it('agregar pasarela exige desbloqueo por OTP: sin/ mal código → 400; con código → 201; buyer → 403', async () => {

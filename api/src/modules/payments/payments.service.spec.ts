@@ -19,7 +19,12 @@ describe('PaymentsService (ramas de borde, unit)', () => {
 
   const build = (providerOverride?: Record<string, unknown>) => {
     const prisma = {
-      order: { findUnique: jest.fn(), findUniqueOrThrow: jest.fn(), update: jest.fn() },
+      order: {
+        findUnique: jest.fn(),
+        findUniqueOrThrow: jest.fn(),
+        update: jest.fn(),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
       payment: {
         findFirst: jest.fn(),
         findUnique: jest.fn(),
@@ -33,7 +38,9 @@ describe('PaymentsService (ramas de borde, unit)', () => {
       ledgerTransaction: { findFirst: jest.fn() },
       orderItem: { updateMany: jest.fn(), update: jest.fn() },
       seat: { updateMany: jest.fn() },
-      $transaction: jest.fn().mockResolvedValue([]),
+      // Resuelve los ops reales (como una tx): fulfill desestructura [, claim] del
+      // updateMany condicional (pending→paid) → debe devolver su {count}.
+      $transaction: jest.fn().mockImplementation((ops: unknown[]) => Promise.all(ops)),
     };
     const ledger = { walletBalance: jest.fn().mockResolvedValue(new Prisma.Decimal(0)), post: jest.fn() };
     const pricing = {
@@ -562,6 +569,7 @@ describe('PaymentsService (ramas de borde, unit)', () => {
       eventId: 'e1',
       net: dec(100),
       platformFee: dec(10),
+      fixedFees: dec(0),
       iva: dec('13.20'),
       gatewayFee: dec('6.48'),
       total: dec('129.68'),

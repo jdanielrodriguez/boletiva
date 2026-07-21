@@ -602,6 +602,7 @@ export class PaymentsService {
     if (!already) {
       const net = new Decimal(order.net.toString());
       const platformFee = new Decimal(order.platformFee.toString());
+      const fixedFees = new Decimal(order.fixedFees.toString());
       const iva = new Decimal(order.iva.toString());
       const gatewayFee = new Decimal(order.gatewayFee.toString());
       const total = new Decimal(order.total.toString());
@@ -633,7 +634,10 @@ export class PaymentsService {
 
       const entries: Array<{ type: string; ownerId?: string; amount: string }> = [
         { type: 'promoter_payable', ownerId: promoterId, amount: net.toFixed(2) },
-        { type: 'platform_revenue', amount: platformFee.add(savedFee).toFixed(2) },
+        // La plataforma retiene su comisión + el surplus de pasarela + los cargos FIJOS
+        // (fixedFees). Incluir fixedFees es OBLIGATORIO: forman parte del `total` del
+        // snapshot; omitirlos desbalancea el asiento en −fixedFees y tumba el fulfillment.
+        { type: 'platform_revenue', amount: platformFee.add(savedFee).add(fixedFees).toFixed(2) },
         { type: 'tax_payable', amount: iva.toFixed(2) },
       ];
       if (walletPortion.gt(0)) {
@@ -661,16 +665,27 @@ export class PaymentsService {
       });
     }
 
-    await this.prisma.$transaction([
+    // Marca pagada de forma CONDICIONAL (compare-and-set status='pending'): si el
+    // orders-sweeper expiró la orden entre la lectura y aquí (pago tardío tras
+    // expiración), NO la resucitamos a `paid` — el sweeper ya liberó sus asientos y
+    // reactivarla los revendería (doble-venta). El asiento contable ya quedó asentado
+    // (idempotente); este caso raro requiere reconciliación/refund, no reventa.
+    const [, claim] = await this.prisma.$transaction([
       this.prisma.payment.update({
         where: { id: paymentId },
         data: { status: 'succeeded', succeededAt: new Date() },
       }),
-      this.prisma.order.update({
-        where: { id: order.id },
+      this.prisma.order.updateMany({
+        where: { id: order.id, status: 'pending' },
         data: { status: 'paid', paidAt: new Date() },
       }),
     ]);
+    if (claim.count === 0) {
+      this.logger.warn(
+        `Orden ${order.id} ya no estaba pending al confirmar (sweeper/expiración); no se reactiva a paid`,
+      );
+      return;
+    }
 
     // Trabajo pesado FUERA del camino crítico: la emisión de boletos (y, en
     // cascada, QR/PDF y correos) se encola tras asentar el pago (condición del
@@ -709,8 +724,12 @@ export class PaymentsService {
     if (!already) {
       const net = new Decimal(order.net.toString());
       const platformFee = new Decimal(order.platformFee.toString());
+      const fixedFees = new Decimal(order.fixedFees.toString());
       const iva = new Decimal(order.iva.toString());
-      const inflow = net.add(platformFee).add(iva);
+      // Simétrico con fulfill: se revierte también el cargo FIJO (platform_revenue lo
+      // recibió al pagar). No se reembolsa el gatewayFee (COGS real que la pasarela
+      // retuvo). inflow = lo que se devuelve al comprador.
+      const inflow = net.add(platformFee).add(fixedFees).add(iva);
       const destination =
         mode === 'chargeback'
           ? { type: 'gateway_clearing', amount: inflow.toFixed(2) }
@@ -726,7 +745,7 @@ export class PaymentsService {
             ownerId: order.event.promoterId,
             amount: net.negated().toFixed(2),
           },
-          { type: 'platform_revenue', amount: platformFee.negated().toFixed(2) },
+          { type: 'platform_revenue', amount: platformFee.add(fixedFees).negated().toFixed(2) },
           { type: 'tax_payable', amount: iva.negated().toFixed(2) },
           destination,
         ] as never,

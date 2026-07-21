@@ -5,8 +5,10 @@ import {
   IsArray,
   IsInt,
   IsOptional,
+  IsString,
   IsUUID,
   Max,
+  MaxLength,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -70,16 +72,25 @@ export class CreateReservationDto {
 
 /** Datos de facturación FEL al pagar una reserva (opcionales; sin NIT → CF). */
 export class CheckoutReservationDto {
+  // Endpoint PÚBLICO (checkout por token de reserva): validar tipo+longitud como en
+  // CheckoutDto. Sin @IsString un `{billingName:{...}}` provocaba TypeError 500 al
+  // hacer .trim(), y una cadena enorme se persistía sin cota (QA).
   @ApiPropertyOptional({ description: 'NIT para facturación FEL; vacío = CF (consumidor final)' })
   @IsOptional()
+  @IsString()
+  @MaxLength(20)
   billingNit?: string;
 
   @ApiPropertyOptional({ description: 'Nombre de facturación FEL' })
   @IsOptional()
+  @IsString()
+  @MaxLength(160)
   billingName?: string;
 
   @ApiPropertyOptional({ description: 'Dirección de facturación FEL' })
   @IsOptional()
+  @IsString()
+  @MaxLength(240)
   billingAddress?: string;
 }
 

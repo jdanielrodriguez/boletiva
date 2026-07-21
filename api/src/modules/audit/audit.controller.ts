@@ -12,7 +12,6 @@ import { AuditPageDto, AuditVerifyDto, ConfirmAuditDto } from './dto/audit.dto';
 
 @ApiTags('audit')
 @ApiBearerAuth()
-@AdminOnly()
 @Controller('audit')
 export class AuditController {
   constructor(private readonly audit: AuditService) {}
@@ -48,6 +47,7 @@ export class AuditController {
 
   @Get()
   @Roles(Role.admin)
+  @AdminOnly()
   @ApiOperation({ summary: 'Lista la bitácora de auditoría (admin, keyset)' })
   @ApiOkResponse({ type: AuditPageDto })
   list(@Query() query: PageQueryDto): Promise<AuditPageDto> {
@@ -56,6 +56,7 @@ export class AuditController {
 
   @Get('verify')
   @Roles(Role.admin)
+  @AdminOnly()
   @ApiOperation({ summary: 'Verifica la integridad de la cadena de auditoría (admin)' })
   @ApiOkResponse({ type: AuditVerifyDto })
   verify(): Promise<AuditVerifyDto> {

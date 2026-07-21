@@ -110,6 +110,31 @@ describe('Header', () => {
     expect(el.querySelector('[data-testid="config-link"]')).not.toBeNull();
   });
 
+  it('admin ve TODO el menú de gobernanza (soporte + notificaciones + asesores + invitaciones)', async () => {
+    await setup({ roles: ['admin'] });
+    comp.toggleMenu();
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="support-link"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="admin-notif-link"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="admin-advisors-link"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="admin-invitations-link"]')).not.toBeNull();
+  });
+
+  it('advisor (asesor) ve Configuración + Soporte, pero NO Notificaciones/Asesores/Invitaciones (Fix 1)', async () => {
+    // Separación de privilegios de Fix 1: soporte lo ven admin+asesor; el resto de la
+    // gobernanza (enviar notificaciones, gestionar asesores, invitaciones) es solo admin.
+    await setup({ roles: ['advisor'] });
+    comp.toggleMenu();
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="config-link"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="support-link"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="admin-notif-link"]')).toBeNull();
+    expect(el.querySelector('[data-testid="admin-advisors-link"]')).toBeNull();
+    expect(el.querySelector('[data-testid="admin-invitations-link"]')).toBeNull();
+  });
+
   const cta = () => (fixture.nativeElement as HTMLElement).querySelector('[data-testid="become-promoter-link"]');
 
   it('CTA "Conviértete en promotor": visible para visitante', async () => {

@@ -45,10 +45,13 @@ export class HallsController {
   }
 
   @Get(':id')
-  @Roles(Role.promoter, Role.admin)
-  @ApiOperation({ summary: 'Detalle de un salón' })
+  @Roles(Role.admin)
+  @ApiOperation({ summary: 'Detalle de un salón (gestión admin; incluye estado y notas internas)' })
   @ApiOkResponse({ type: HallResponseDto })
   get(@Param('id', ParseUUIDPipe) id: string) {
+    // Admin-only: devuelve CUALQUIER estado (draft/hidden) + `notes` internas. El
+    // promotor elige salones publicados desde el listado `GET /halls` (listPublished),
+    // no debe leer un salón en borrador ni sus notas por id (QA fuga de visibilidad).
     return this.halls.get(id);
   }
 

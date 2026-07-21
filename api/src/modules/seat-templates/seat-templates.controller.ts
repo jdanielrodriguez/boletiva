@@ -51,10 +51,12 @@ export class SeatTemplatesController {
   }
 
   @Get(':id')
-  @Roles(Role.promoter, Role.admin)
-  @ApiOperation({ summary: 'Detalle de una plantilla' })
+  @Roles(Role.admin)
+  @ApiOperation({ summary: 'Detalle de una plantilla (gestión admin; incluye estado y notas)' })
   @ApiOkResponse({ type: SeatTemplateResponseDto })
   get(@Param('id', ParseUUIDPipe) id: string) {
+    // Admin-only: el promotor usa el listado publicado `GET /seat-templates`; no debe
+    // leer una plantilla en borrador ni sus notas por id (QA fuga de visibilidad).
     return this.templates.get(id);
   }
 

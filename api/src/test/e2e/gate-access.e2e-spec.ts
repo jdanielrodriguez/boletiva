@@ -150,8 +150,9 @@ describe('SafeTix: acceso de operadores de puerta (e2e)', () => {
     expect(res.body.signature).toBeTruthy();
     expect(res.body.expiresAt).toBeTruthy();
     expect(new Date(res.body.expiresAt).getTime()).toBeGreaterThan(Date.now());
-    // Y por query param (como lo haría EventSource/descarga offline).
-    await http().get(`/api/v1/events/${eventId}/manifest?access_token=${gt}`).expect(200);
+    // Endurecimiento QA (M4): el token en la QUERY ya NO autentica (se filtra por logs);
+    // el validador manda el gate-token por header Authorization. Sin header → 401.
+    await http().get(`/api/v1/events/${eventId}/manifest?access_token=${gt}`).expect(401);
   });
 
   it('con token de acceso NORMAL (sin gateEventId) → 403', async () => {

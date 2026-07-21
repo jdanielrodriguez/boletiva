@@ -71,11 +71,18 @@ export class RabbitService implements OnModuleDestroy {
     ch.sendToQueue(queue, Buffer.from(JSON.stringify(message)), { persistent: true });
   }
 
+  /** Reintentos acotados de un mensaje ante fallo TRANSITORIO (paridad con BullMQ). */
+  private static readonly MAX_ATTEMPTS = 5;
+
   /**
-   * Consume una cola durable en un CANAL DEDICADO (así el `prefetch` es por-consumidor:
-   * p.ej. la liquidación usa prefetch=1 para procesar una a una, sin afectar a otras
-   * colas). El handler recibe el mensaje ya parseado; si resuelve → ack, si lanza →
-   * nack sin requeue (a dead-letter/log). `prefetch` default 16 (paralelo razonable).
+   * Consume una cola durable en un CANAL DEDICADO (así el `prefetch` es por-consumidor,
+   * sin afectar a otras colas). El handler recibe el mensaje ya parseado.
+   *
+   * RESILIENCIA (QA): un fallo del handler NO descarta el mensaje al instante (eso perdía
+   * boletos/correos ante un fallo transitorio de SMTP/DB, a diferencia de BullMQ que
+   * reintentaba). Se REENCOLA con un contador `x-attempts` hasta MAX_ATTEMPTS; agotados,
+   * se registra fuerte y se descarta (evita bucle infinito). Un mensaje MALFORMADO
+   * (JSON inválido) se ackea y loguea (no puede reprocesarse; no debe colgar el canal).
    */
   async consume<T>(queue: string, handler: (message: T) => Promise<void>, prefetch = 16): Promise<void> {
     const conn = await this.getConnection();
@@ -85,12 +92,33 @@ export class RabbitService implements OnModuleDestroy {
     await ch.prefetch(prefetch);
     await ch.consume(queue, (msg) => {
       if (!msg) return;
-      const payload = JSON.parse(msg.content.toString()) as T;
+      let payload: T;
+      try {
+        payload = JSON.parse(msg.content.toString()) as T;
+      } catch {
+        this.logger.error(`Mensaje malformado en ${queue}; se descarta (no reprocesable)`);
+        ch.ack(msg);
+        return;
+      }
+      const attempts = Number(msg.properties.headers?.['x-attempts'] ?? 0);
       handler(payload)
         .then(() => ch.ack(msg))
         .catch((err) => {
-          this.logger.error(`Fallo procesando ${queue}: ${(err as Error).message}`);
-          ch.nack(msg, false, false);
+          this.logger.error(
+            `Fallo procesando ${queue} (intento ${attempts + 1}/${RabbitService.MAX_ATTEMPTS}): ${(err as Error).message}`,
+          );
+          if (attempts + 1 < RabbitService.MAX_ATTEMPTS) {
+            // Reencola con el contador incrementado (canal dedicado → sin afectar orden
+            // de otras colas). ack del original para no dejarlo unacked.
+            ch.sendToQueue(queue, msg.content, {
+              persistent: true,
+              headers: { ...msg.properties.headers, 'x-attempts': attempts + 1 },
+            });
+            ch.ack(msg);
+          } else {
+            this.logger.error(`${queue}: agotados ${RabbitService.MAX_ATTEMPTS} intentos; se descarta el mensaje`);
+            ch.ack(msg); // (futuro: dead-letter en vez de descartar)
+          }
         });
     });
     this.logger.log(`Consumidor RabbitMQ activo en ${queue} (prefetch ${prefetch})`);

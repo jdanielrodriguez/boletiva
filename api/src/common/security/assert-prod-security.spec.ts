@@ -14,6 +14,7 @@ const SECURE: Record<string, unknown> = {
   'tickets.signingSeed': 'bb'.repeat(32),
   'security.trustProxy': 1,
   'cors.origins': ['https://boletiva.com'],
+  'payment.provider': 'recurrente', // prod exige pasarela real (no simulador)
 };
 
 describe('assertProductionSecurity (guard de arranque)', () => {
@@ -49,5 +50,13 @@ describe('assertProductionSecurity (guard de arranque)', () => {
 
   it('M5: CORS con "*" en prod → aborta', () => {
     expect(() => assertProductionSecurity(cfg({ ...SECURE, 'cors.origins': ['*'] }))).toThrow();
+  });
+
+  it('QA: PAYMENT_PROVIDER simulador en prod → aborta (cobraría de mentira)', () => {
+    expect(() => assertProductionSecurity(cfg({ ...SECURE, 'payment.provider': 'simulator' }))).toThrow();
+    // sin proveedor configurado cae al default 'simulator' → también aborta
+    const { ['payment.provider']: _omit, ...noProvider } = SECURE;
+    void _omit;
+    expect(() => assertProductionSecurity(cfg(noProvider))).toThrow();
   });
 });

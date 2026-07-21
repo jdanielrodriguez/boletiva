@@ -21,13 +21,12 @@ export interface JwtPayload {
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(config: ConfigService) {
     super({
-      // Header Bearer (default) o, como fallback, ?access_token= en la query: los
-      // endpoints SSE se consumen con EventSource, que NO puede enviar headers. El
-      // token se valida igual (firma+expiración); los clientes normales usan el header.
-      jwtFromRequest: ExtractJwt.fromExtractors([
-        ExtractJwt.fromAuthHeaderAsBearerToken(),
-        ExtractJwt.fromUrlQueryParameter('access_token'),
-      ]),
+      // SOLO header Bearer. NO se acepta ?access_token= en la query de forma global
+      // (QA: un token en la URL se filtra por access logs / Referer / historial). Los
+      // endpoints SSE (que se consumen con EventSource, sin headers) son `@Public()` y
+      // resuelven su propia auth con un ticket de un solo uso (o token) que verifican
+      // manualmente — no dependen de este extractor.
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       secretOrKey: config.getOrThrow<string>('jwt.accessSecret'),
     });

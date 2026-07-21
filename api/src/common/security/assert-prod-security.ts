@@ -48,6 +48,18 @@ export function assertProductionSecurity(config: ConfigService): void {
     problems.push(`CORS_ORIGINS no puede contener '*' en prod (se envían credenciales).`);
   }
 
+  // QA · el SIMULADOR de pagos jamás debe ser el proveedor en producción: con
+  // auto-confirm marca órdenes como pagadas SIN cobro real (o las deja pending para
+  // siempre). Prod exige una pasarela real (recurrente/pagalo). El nº de pasarelas
+  // reales activas en BD se valida aparte (arranque async); aquí cortamos el default.
+  const provider = (config.get<string>('payment.provider') ?? 'simulator').toLowerCase();
+  if (provider === 'simulator') {
+    problems.push(
+      `PAYMENT_PROVIDER no puede ser 'simulator' en prod: cobraría de mentira. ` +
+        `Configura una pasarela real (recurrente/pagalo).`,
+    );
+  }
+
   if (problems.length > 0) {
     logger.error('Configuración de PRODUCCIÓN insegura — se aborta el arranque:');
     for (const p of problems) logger.error(`  • ${p}`);
