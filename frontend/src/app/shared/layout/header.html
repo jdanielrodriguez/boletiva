@@ -78,6 +78,9 @@
               <a class="dd-item" routerLink="/soporte" (click)="closeMenu()" data-testid="support-link">
                 <app-icon name="chat" [size]="16" /> {{ 'chat.title' | translate }}
               </a>
+              <a class="dd-item" routerLink="/admin/kb" (click)="closeMenu()" data-testid="admin-kb-link">
+                <app-icon name="default" [size]="16" /> {{ 'kb.title' | translate }}
+              </a>
             }
             @if (session.hasAnyRole(['admin'])) {
               <a class="dd-item" routerLink="/admin/notificaciones" (click)="closeMenu()" data-testid="admin-notif-link">

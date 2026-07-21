@@ -22,6 +22,7 @@ import { SessionStore } from '../../core/auth/session.store';
         <div class="footer-legal-block">
           <p class="footer-copy">{{ 'shell.copyright' | translate: { year: year } }}</p>
           <nav class="footer-legal" [attr.aria-label]="'shell.legal' | translate">
+            <a routerLink="/faq" data-testid="footer-faq">{{ 'faq.title' | translate }}</a>
             <a routerLink="/terminos">{{ 'shell.terms' | translate }}</a>
           </nav>
         </div>

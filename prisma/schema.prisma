@@ -153,6 +153,43 @@ model SupportCannedResponse {
   @@map("support_canned_responses")
 }
 
+/// Artículo de la Base de Conocimientos (T6). Fuente de verdad para el FAQ público
+/// (SSR + JSON-LD) y para el chat/bot vía KbAutoResponder. SEPARADO de las macros:
+/// las macros son textos que el agente inserta; el KB es contenido publicable con
+/// editor de formato. `answerHtml` = respuesta con formato (sanitizada); `answerText`
+/// = texto plano derivado (búsqueda + JSON-LD acceptedAnswer). `visibility` public =
+/// FAQ público; internal = solo para agentes/bot (no se expone en el FAQ).
+model KbArticle {
+  id          String        @id @default(uuid()) @db.Uuid
+  slug        String        @unique
+  question    String
+  answerHtml  String        @map("answer_html")
+  answerText  String        @map("answer_text")
+  category    SupportCategory?
+  locale      String        @default("es")
+  status      ContentStatus @default(draft)
+  visibility  KbVisibility  @default(public)
+  tags        String[]      @default([])
+  sortOrder   Int           @default(0) @map("sort_order")
+  viewCount   Int           @default(0) @map("view_count")
+  createdById String?       @map("created_by_id") @db.Uuid
+  publishedAt DateTime?     @map("published_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  createdBy User? @relation("kbArticleAuthor", fields: [createdById], references: [id])
+
+  @@index([status, visibility, locale])
+  @@index([category])
+  @@map("kb_articles")
+}
+
+/// Visibilidad de un artículo del KB: público (FAQ) o interno (solo agentes/bot).
+enum KbVisibility {
+  public
+  internal
+}
+
 /// Mensaje de un ticket de soporte (T1). `senderRole` audita quién habló.
 /// `internalNote` = nota del agente NO visible para el promotor.
 model SupportMessage {
@@ -526,6 +563,7 @@ model User {
   supportTicketsAssigned SupportTicket[]         @relation("supportAssigned")
   supportMessages        SupportMessage[]        @relation("supportSender")
   supportMacros          SupportCannedResponse[] @relation("supportMacroAuthor")
+  kbArticles             KbArticle[]             @relation("kbArticleAuthor")
   notifications          Notification[]          @relation("userNotifications")
   notificationPrefs      NotificationPreference[] @relation("userNotifPrefs")
 

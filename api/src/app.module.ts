@@ -52,6 +52,7 @@ import { FelModule } from './modules/fel/fel.module';
 import { AdvisorModule } from './modules/advisor/advisor.module';
 import { AdvisorUnlockGuard } from './modules/advisor/advisor-unlock.guard';
 import { SupportModule } from './modules/support/support.module';
+import { KbModule } from './modules/kb/kb.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AdvisorsModule } from './modules/advisors/advisors.module';
 
@@ -147,6 +148,7 @@ import { AdvisorsModule } from './modules/advisors/advisors.module';
     FelModule,
     AdvisorModule,
     SupportModule,
+    KbModule,
     NotificationsModule,
     AdvisorsModule,
   ],

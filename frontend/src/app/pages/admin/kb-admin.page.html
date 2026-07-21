@@ -1,0 +1,101 @@
+<section class="kb-admin">
+  <app-back-link link="/configuracion" [label]="'kb.back' | translate" testId="kb-back" />
+
+  <header class="kb-admin-head">
+    <h1>{{ 'kb.title' | translate }}</h1>
+    @if (!editing()) {
+      <button type="button" class="btn btn-primary" (click)="newArticle()" data-testid="kb-new">
+        {{ 'kb.new' | translate }}
+      </button>
+    }
+  </header>
+
+  @if (editing(); as m) {
+    <form class="kb-form" (ngSubmit)="save()" data-testid="kb-form">
+      <label>
+        <span>{{ 'kb.question' | translate }}</span>
+        <input type="text" [(ngModel)]="m.question" name="question" maxlength="300" required data-testid="kb-question" />
+      </label>
+
+      <label>
+        <span>{{ 'kb.answer' | translate }}</span>
+        <app-rich-text-editor [(value)]="m.answerHtml" />
+      </label>
+
+      <div class="kb-form-row">
+        <label>
+          <span>{{ 'kb.category' | translate }}</span>
+          <select [(ngModel)]="m.category" name="category" data-testid="kb-category">
+            <option value="">—</option>
+            @for (c of categories; track c) {
+              <option [value]="c">{{ 'faq.cat.' + c | translate }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          <span>{{ 'kb.visibility' | translate }}</span>
+          <select [(ngModel)]="m.visibility" name="visibility" data-testid="kb-visibility">
+            <option value="public">{{ 'kb.public' | translate }}</option>
+            <option value="internal">{{ 'kb.internal' | translate }}</option>
+          </select>
+        </label>
+        <label>
+          <span>{{ 'kb.locale' | translate }}</span>
+          <select [(ngModel)]="m.locale" name="locale">
+            <option value="es">ES</option>
+            <option value="en">EN</option>
+          </select>
+        </label>
+        <label>
+          <span>{{ 'kb.order' | translate }}</span>
+          <input type="number" [(ngModel)]="m.sortOrder" name="sortOrder" min="0" />
+        </label>
+      </div>
+
+      <label>
+        <span>{{ 'kb.tags' | translate }}</span>
+        <input type="text" [(ngModel)]="m.tags" name="tags" [placeholder]="'kb.tagsHint' | translate" />
+      </label>
+
+      @if (saveError()) {
+        <p class="kb-error" role="alert">{{ saveError() | translate }}</p>
+      }
+
+      <div class="kb-form-actions">
+        <button type="button" class="btn" (click)="cancel()" data-testid="kb-cancel">{{ 'common.cancel' | translate }}</button>
+        <button type="submit" class="btn btn-primary" [disabled]="saving()" data-testid="kb-save">
+          {{ (saving() ? 'kb.saving' : 'kb.save') | translate }}
+        </button>
+      </div>
+    </form>
+  } @else if (articles() === null) {
+    <app-loading variant="skeleton" data-testid="kb-loading" />
+  } @else if (errored()) {
+    <app-empty-state variant="generic" data-testid="kb-error" [title]="'kb.loadError' | translate" />
+  } @else if (articles()!.length === 0) {
+    <app-empty-state variant="generic" data-testid="kb-empty" [title]="'kb.empty' | translate" [subtitle]="'kb.emptyHint' | translate" />
+  } @else {
+    <ul class="kb-list" data-testid="kb-list">
+      @for (a of articles()!; track a.id) {
+        <li class="kb-row">
+          <div class="kb-row-main">
+            <span class="kb-status" [class.published]="a.status === 'published'">
+              {{ (a.status === 'published' ? 'kb.published' : 'kb.draft') | translate }}
+            </span>
+            @if (a.visibility === 'internal') {
+              <span class="kb-badge-internal">{{ 'kb.internal' | translate }}</span>
+            }
+            <span class="kb-q">{{ a.question }}</span>
+          </div>
+          <div class="kb-row-actions">
+            <button type="button" class="btn btn-sm" (click)="edit(a)" [attr.data-testid]="'kb-edit-' + a.id">{{ 'kb.edit' | translate }}</button>
+            <button type="button" class="btn btn-sm" (click)="togglePublish(a)">
+              {{ (a.status === 'published' ? 'kb.unpublish' : 'kb.publish') | translate }}
+            </button>
+            <button type="button" class="btn btn-sm btn-danger" (click)="remove(a)">{{ 'kb.delete' | translate }}</button>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</section>

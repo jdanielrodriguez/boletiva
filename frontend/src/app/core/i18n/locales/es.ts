@@ -22,6 +22,8 @@ import { advisor } from './es/advisor';
 import { chat } from './es/chat';
 import { notifications } from './es/notifications';
 import { pager } from './es/pager';
+import { faq } from './es/faq';
+import { kb, rte } from './es/kb';
 
 /** Diccionario ESPAÑOL (default, es-GT). Compuesto por namespaces. */
 export const es: TranslationObject = {
@@ -48,4 +50,7 @@ export const es: TranslationObject = {
   chat,
   notifications,
   pager,
+  faq,
+  kb,
+  rte,
 };

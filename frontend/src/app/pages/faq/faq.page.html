@@ -1,0 +1,59 @@
+<section class="faq-page">
+  <header class="faq-head">
+    <h1>{{ 'faq.title' | translate }}</h1>
+    <p class="faq-lead">{{ 'faq.lead' | translate }}</p>
+    <app-search-field
+      [value]="search()"
+      (searched)="submitSearch($event)"
+      name="q"
+      testId="faq-search"
+      [placeholder]="'faq.searchPlaceholder' | translate"
+      [ariaLabel]="'faq.searchPlaceholder' | translate"
+    />
+  </header>
+
+  <div class="faq-categories" role="group" [attr.aria-label]="'faq.filterByCategory' | translate">
+    <button type="button" [class.active]="activeCategory() === ''" [attr.aria-pressed]="activeCategory() === ''" (click)="selectCategory('')">
+      {{ 'faq.allCategories' | translate }}
+    </button>
+    @for (cat of categories; track cat.slug) {
+      <button
+        type="button"
+        [class.active]="activeCategory() === cat.slug"
+        [attr.aria-pressed]="activeCategory() === cat.slug"
+        (click)="selectCategory(cat.slug)"
+      >
+        {{ cat.key | translate }}
+      </button>
+    }
+  </div>
+
+  @if (loading()) {
+    <app-loading variant="skeleton" data-testid="faq-loading" />
+  } @else if (errored()) {
+    <app-empty-state
+      variant="generic"
+      data-testid="faq-error"
+      [title]="'faq.loadError' | translate"
+      [subtitle]="'faq.loadErrorHint' | translate"
+    />
+  } @else if (articles().length === 0) {
+    <app-empty-state
+      variant="generic"
+      data-testid="faq-empty"
+      [title]="hasFilter() ? ('faq.noResults' | translate) : ('faq.empty' | translate)"
+      [subtitle]="hasFilter() ? ('faq.noResultsHint' | translate) : ('faq.emptyHint' | translate)"
+    />
+  } @else {
+    <ul class="faq-list" data-testid="faq-list">
+      @for (a of articles(); track a.slug) {
+        <li class="faq-item">
+          <details>
+            <summary>{{ a.question }}</summary>
+            <div class="faq-answer" [innerHTML]="safe(a.answerHtml)"></div>
+          </details>
+        </li>
+      }
+    </ul>
+  }
+</section>

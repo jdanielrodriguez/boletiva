@@ -78,6 +78,12 @@ export const routes: Routes = [
     title: 'Términos y condiciones — Boletiva',
   },
   {
+    // T6: FAQ público (SSR + JSON-LD FAQPage), cacheable en el edge.
+    path: 'faq',
+    loadComponent: () => import('./pages/faq/faq.page').then((m) => m.FaqPage),
+    title: 'Preguntas frecuentes — Boletiva',
+  },
+  {
     // Sin guestGuard: con ?token= debe poder ACTIVAR el rol aunque haya sesión
     // (invitación a cuenta existente). El propio componente redirige a /cuenta si
     // entra un usuario logueado sin token.
@@ -181,6 +187,13 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/admin/admin-advisors.page').then((m) => m.AdminAdvisorsPage),
     canActivate: [roleGuard('admin')],
     title: 'Asesores — Boletiva',
+  },
+  {
+    // T6: gestión de la Base de Conocimientos (admin + asesor).
+    path: 'admin/kb',
+    loadComponent: () => import('./pages/admin/kb-admin.page').then((m) => m.KbAdminPage),
+    canActivate: [roleGuard('admin', 'advisor')],
+    title: 'Base de conocimientos — Boletiva',
   },
   {
     // T7e: onboarding de asesor por token (nuevo → fija contraseña; existente → confirma).

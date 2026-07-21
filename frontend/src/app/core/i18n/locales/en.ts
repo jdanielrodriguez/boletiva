@@ -22,6 +22,8 @@ import { advisor } from './en/advisor';
 import { chat } from './en/chat';
 import { notifications } from './en/notifications';
 import { pager } from './en/pager';
+import { faq } from './en/faq';
+import { kb, rte } from './en/kb';
 
 /** ENGLISH dictionary (en-US). Composed from namespaces. */
 export const en: TranslationObject = {
@@ -48,4 +50,7 @@ export const en: TranslationObject = {
   chat,
   notifications,
   pager,
+  faq,
+  kb,
+  rte,
 };

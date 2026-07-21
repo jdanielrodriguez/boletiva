@@ -5501,7 +5501,7 @@
             "bearer": []
           }
         ],
-        "summary": "Pasarelas activas (métodos disponibles para cobrar)",
+        "summary": "Pasarelas activas (métodos disponibles; el promotor elige la de su evento)",
         "tags": [
           "payment-gateways"
         ]
@@ -6755,7 +6755,7 @@
             "bearer": []
           }
         ],
-        "summary": "Detalle de un salón",
+        "summary": "Detalle de un salón (gestión admin; incluye estado y notas internas)",
         "tags": [
           "halls"
         ]
@@ -7348,7 +7348,7 @@
             "bearer": []
           }
         ],
-        "summary": "Detalle de una plantilla",
+        "summary": "Detalle de una plantilla (gestión admin; incluye estado y notas)",
         "tags": [
           "seat-templates"
         ]
@@ -9011,6 +9011,491 @@
         "summary": "Elimina una respuesta rápida",
         "tags": [
           "support"
+        ]
+      }
+    },
+    "/api/v1/kb": {
+      "get": {
+        "operationId": "KbController_list_v1",
+        "parameters": [
+          {
+            "name": "category",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "billing",
+                "payments_settlement",
+                "event",
+                "technical",
+                "account",
+                "other"
+              ]
+            }
+          },
+          {
+            "name": "locale",
+            "required": false,
+            "in": "query",
+            "description": "Idioma (es/en)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Búsqueda por texto (pregunta/respuesta/etiquetas)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KbPublicArticleDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "FAQ público: artículos publicados (filtro categoría/idioma/búsqueda)",
+        "tags": [
+          "kb"
+        ]
+      },
+      "post": {
+        "operationId": "KbController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateKbArticleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbArticleResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crea un artículo (draft) — admin/asesor",
+        "tags": [
+          "kb"
+        ]
+      }
+    },
+    "/api/v1/kb/search": {
+      "get": {
+        "operationId": "KbController_search_v1",
+        "parameters": [
+          {
+            "name": "q",
+            "required": true,
+            "in": "query",
+            "description": "Consulta del usuario",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "required": false,
+            "in": "query",
+            "description": "Idioma (es/en)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Máximo de resultados (1..10)",
+            "schema": {
+              "default": 5,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KbSuggestionDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Búsqueda del FAQ/bot: sugiere artículos públicos relevantes (autoresponder)",
+        "tags": [
+          "kb"
+        ]
+      }
+    },
+    "/api/v1/kb/admin": {
+      "get": {
+        "operationId": "KbController_adminList_v1",
+        "parameters": [
+          {
+            "name": "category",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "billing",
+                "payments_settlement",
+                "event",
+                "technical",
+                "account",
+                "other"
+              ]
+            }
+          },
+          {
+            "name": "locale",
+            "required": false,
+            "in": "query",
+            "description": "Idioma (es/en)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Búsqueda por texto (pregunta/respuesta/etiquetas)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KbArticleResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Listado de gestión (cualquier estado/visibilidad) — admin/asesor",
+        "tags": [
+          "kb"
+        ]
+      }
+    },
+    "/api/v1/kb/admin/suggest": {
+      "get": {
+        "operationId": "KbController_agentSuggest_v1",
+        "parameters": [
+          {
+            "name": "q",
+            "required": true,
+            "in": "query",
+            "description": "Consulta del usuario",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "required": false,
+            "in": "query",
+            "description": "Idioma (es/en)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Máximo de resultados (1..10)",
+            "schema": {
+              "default": 5,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KbSuggestionDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Asistente del agente: sugiere artículos (incluye INTERNOS) para responder",
+        "tags": [
+          "kb"
+        ]
+      }
+    },
+    "/api/v1/kb/admin/{id}": {
+      "get": {
+        "operationId": "KbController_adminGet_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbArticleResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Detalle de gestión por id — admin/asesor",
+        "tags": [
+          "kb"
+        ]
+      }
+    },
+    "/api/v1/kb/{id}": {
+      "patch": {
+        "operationId": "KbController_update_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateKbArticleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbArticleResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edita un artículo — admin/asesor",
+        "tags": [
+          "kb"
+        ]
+      },
+      "delete": {
+        "operationId": "KbController_delete_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Elimina un artículo — admin/asesor",
+        "tags": [
+          "kb"
+        ]
+      }
+    },
+    "/api/v1/kb/{id}/publish": {
+      "post": {
+        "operationId": "KbController_publish_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbArticleResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publica un artículo — admin/asesor",
+        "tags": [
+          "kb"
+        ]
+      }
+    },
+    "/api/v1/kb/{id}/unpublish": {
+      "post": {
+        "operationId": "KbController_unpublish_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbArticleResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Despublica un artículo (vuelve a draft) — admin/asesor",
+        "tags": [
+          "kb"
+        ]
+      }
+    },
+    "/api/v1/kb/{slug}": {
+      "get": {
+        "operationId": "KbController_getBySlug_v1",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbPublicArticleDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Detalle público de un artículo por slug (FAQ)",
+        "tags": [
+          "kb"
         ]
       }
     },
@@ -18625,6 +19110,257 @@
               "account",
               "other"
             ]
+          }
+        }
+      },
+      "KbPublicArticleDto": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "question": {
+            "type": "string"
+          },
+          "answerHtml": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "billing",
+              "payments_settlement",
+              "event",
+              "technical",
+              "account",
+              "other"
+            ],
+            "nullable": true
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "slug",
+          "question",
+          "answerHtml",
+          "category",
+          "tags"
+        ]
+      },
+      "KbSuggestionDto": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "question": {
+            "type": "string"
+          },
+          "answerText": {
+            "type": "string",
+            "description": "Respuesta en texto plano (para el bot/RAG)"
+          },
+          "score": {
+            "type": "number",
+            "description": "Relevancia 0..1"
+          }
+        },
+        "required": [
+          "slug",
+          "question",
+          "answerText",
+          "score"
+        ]
+      },
+      "KbArticleResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "question": {
+            "type": "string"
+          },
+          "answerHtml": {
+            "type": "string",
+            "description": "Respuesta con formato (HTML saneado)"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "billing",
+              "payments_settlement",
+              "event",
+              "technical",
+              "account",
+              "other"
+            ],
+            "nullable": true
+          },
+          "locale": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "published"
+            ]
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "public",
+              "internal"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sortOrder": {
+            "type": "number"
+          },
+          "viewCount": {
+            "type": "number"
+          },
+          "publishedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "question",
+          "answerHtml",
+          "category",
+          "locale",
+          "status",
+          "visibility",
+          "tags",
+          "sortOrder",
+          "viewCount",
+          "publishedAt",
+          "updatedAt"
+        ]
+      },
+      "CreateKbArticleDto": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "description": "Pregunta/título",
+            "maxLength": 300
+          },
+          "answerHtml": {
+            "type": "string",
+            "description": "Respuesta con formato (HTML enriquecido; se sanea en el servidor)"
+          },
+          "slug": {
+            "type": "string",
+            "description": "Slug único (se autogenera desde la pregunta si se omite)",
+            "maxLength": 160
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "billing",
+              "payments_settlement",
+              "event",
+              "technical",
+              "account",
+              "other"
+            ]
+          },
+          "locale": {
+            "type": "string",
+            "description": "Idioma (es/en)",
+            "default": "es"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "public",
+              "internal"
+            ],
+            "default": "public"
+          },
+          "tags": {
+            "description": "Etiquetas (máx 20)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sortOrder": {
+            "type": "number",
+            "description": "Orden dentro de su categoría (asc)",
+            "default": 0
+          }
+        },
+        "required": [
+          "question",
+          "answerHtml"
+        ]
+      },
+      "UpdateKbArticleDto": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "answerHtml": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "billing",
+              "payments_settlement",
+              "event",
+              "technical",
+              "account",
+              "other"
+            ],
+            "nullable": true
+          },
+          "locale": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "public",
+              "internal"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sortOrder": {
+            "type": "number"
           }
         }
       },
