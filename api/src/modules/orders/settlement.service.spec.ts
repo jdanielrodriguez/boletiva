@@ -26,7 +26,24 @@ describe('SettlementService (branches, unit)', () => {
     };
     const ledger = { post: jest.fn().mockResolvedValue({}) };
     const audit = { record: jest.fn().mockResolvedValue(undefined) };
-    const queue = { enqueue: jest.fn().mockResolvedValue(undefined) };
+    // Fix 3: la parte pesada de la liquidación va por la cola SETTLEMENT. El mock
+    // DESPACHA a los handlers registrados (simula modo inline) y `enqueue` TRAGA los
+    // errores del handler (como el QueueService real → nunca tumba el disparador) para
+    // probar fielmente que un fallo del ledger revierte la marca SIN romper el endpoint.
+    const handlers = new Map<string, (name: string, data: unknown) => Promise<void>>();
+    const queue = {
+      registerHandler: jest.fn((q: string, h: (n: string, d: unknown) => Promise<void>) => handlers.set(q, h)),
+      enqueue: jest.fn(async (q: string, name: string, data: unknown) => {
+        const h = handlers.get(q);
+        if (h) {
+          try {
+            await h(name, data);
+          } catch {
+            /* el QueueService real loguea y no relanza */
+          }
+        }
+      }),
+    };
     // T5: SettlementService notifica al promotor (liquidación/evento finalizado).
     const notifications = { emit: jest.fn().mockResolvedValue(undefined) };
     const service = new SettlementService(
@@ -36,6 +53,7 @@ describe('SettlementService (branches, unit)', () => {
       queue as never,
       notifications as never,
     );
+    service.onModuleInit(); // registra el handler de la cola SETTLEMENT
     return { prisma, ledger, audit, queue, notifications, service };
   };
 
@@ -260,15 +278,18 @@ describe('SettlementService (branches, unit)', () => {
     expect(ledger.post).not.toHaveBeenCalled();
   });
 
-  it('A4: si el asiento contable falla, revierte la marca (event.update a null) y relanza', async () => {
+  it('A4: si el asiento contable falla (en el worker), revierte la marca (event.update a null)', async () => {
     const { service, prisma, ledger } = build();
     prisma.event.findUnique.mockResolvedValue({
       id: 'e1', name: 'Show', promoterId: 'promo', status: 'suspended', endsAt: future, cashTransferredAt: null,
     });
     prisma.order.aggregate.mockResolvedValue({ _sum: { net: '150.00' } });
     ledger.post.mockRejectedValue(new Error('ledger caído'));
-    await expect(service.finalizeAndTransfer('e1', admin)).rejects.toThrow('ledger caído');
-    // Revierte la marca para permitir reintento (no queda "finished sin acreditar").
+    // Fix 3: el ledger corre en el worker de la cola SETTLEMENT; un fallo NO tumba el
+    // endpoint (async), pero SÍ revierte la marca para permitir reintento (no queda
+    // "finished sin acreditar"). El aviso al promotor no se emite (señal del fallo).
+    const res = await service.finalizeAndTransfer('e1', admin);
+    expect(res).toMatchObject({ eventId: 'e1', status: 'finished' });
     expect(prisma.event.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ cashTransferredAt: null }) }),
     );

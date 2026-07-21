@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { Queue, Worker } from 'bullmq';
 import type { JobsOptions } from 'bullmq';
 import type { RedisOptions } from 'ioredis';
+import { RabbitService } from '../messaging/rabbit.service';
+import { RABBIT_QUEUES } from './queue.constants';
 
 /** Un handler procesa todos los jobs de una cola, ramificando por `name`. */
 export type JobHandler = (name: string, data: unknown) => Promise<void>;
@@ -35,10 +37,18 @@ export class QueueService implements OnApplicationBootstrap, OnModuleDestroy {
   private readonly queues = new Map<string, Queue>();
   private readonly workers = new Map<string, Worker>();
 
-  constructor(config: ConfigService) {
+  constructor(
+    config: ConfigService,
+    private readonly rabbit: RabbitService,
+  ) {
     this.inline = config.get<boolean>('queue.inline') ?? false;
     this.prefix = config.get<string>('queue.prefix') ?? 'pe';
     this.connection = this.parseRedis(config.getOrThrow<string>('redis.url'));
+  }
+
+  /** ¿La cola viaja por RabbitMQ? (en inline todas corren síncronas, sin backend). */
+  private isRabbit(queue: string): boolean {
+    return !this.inline && queue in RABBIT_QUEUES;
   }
 
   private parseRedis(url: string): RedisOptions {
@@ -58,7 +68,8 @@ export class QueueService implements OnApplicationBootstrap, OnModuleDestroy {
     const list = this.handlers.get(queue) ?? [];
     list.push(handler);
     this.handlers.set(queue, list);
-    if (!this.inline && !this.queues.has(queue)) {
+    // Las colas de RabbitMQ no necesitan objeto Queue de BullMQ (se publican directo).
+    if (!this.inline && !this.isRabbit(queue) && !this.queues.has(queue)) {
       this.queues.set(
         queue,
         new Queue(queue, { connection: this.connection, prefix: this.prefix }),
@@ -66,12 +77,26 @@ export class QueueService implements OnApplicationBootstrap, OnModuleDestroy {
     }
   }
 
-  onApplicationBootstrap(): void {
+  async onApplicationBootstrap(): Promise<void> {
     if (this.inline) {
       this.logger.log('Colas en modo INLINE (ejecución síncrona; sin workers)');
       return;
     }
     for (const [queue, list] of this.handlers) {
+      if (this.isRabbit(queue)) {
+        // Consumidor RabbitMQ en canal dedicado (prefetch por cola: settlement=1).
+        const { prefetch } = RABBIT_QUEUES[queue];
+        await this.rabbit
+          .consume<{ name: string; data: unknown }>(
+            queue,
+            (msg) => this.dispatch(list, msg.name, msg.data),
+            prefetch,
+          )
+          .catch((err) =>
+            this.logger.error(`No se pudo activar el consumidor RabbitMQ ${queue}: ${(err as Error).message}`),
+          );
+        continue;
+      }
       const worker = new Worker(queue, (job) => this.dispatch(list, job.name, job.data), {
         connection: this.connection,
         prefix: this.prefix,
@@ -82,7 +107,9 @@ export class QueueService implements OnApplicationBootstrap, OnModuleDestroy {
       );
       this.workers.set(queue, worker);
     }
-    this.logger.log(`Colas BullMQ activas: ${[...this.workers.keys()].join(', ') || '(ninguna)'}`);
+    this.logger.log(
+      `Colas BullMQ: ${[...this.workers.keys()].join(', ') || '(ninguna)'} · RabbitMQ: ${Object.keys(RABBIT_QUEUES).filter((q) => this.handlers.has(q)).join(', ') || '(ninguna)'}`,
+    );
   }
 
   /** Encola un job (async) o lo ejecuta al instante (inline). Nunca lanza. */
@@ -99,6 +126,15 @@ export class QueueService implements OnApplicationBootstrap, OnModuleDestroy {
           return;
         }
         await this.dispatch(list, name, data);
+        return;
+      }
+      if (this.isRabbit(queue)) {
+        // RabbitMQ no soporta delay nativo; ninguna cola-Rabbit lo usa (solo SUPPORT,
+        // que sigue en BullMQ). Si llegara uno, se publica igual (best-effort) con aviso.
+        if (opts?.delay && opts.delay > 0) {
+          this.logger.warn(`Cola RabbitMQ ${queue} no soporta delay; ${name} se publica sin retardo`);
+        }
+        await this.rabbit.publish(queue, { name, data });
         return;
       }
       const q = this.queues.get(queue);
