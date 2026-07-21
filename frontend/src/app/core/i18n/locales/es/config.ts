@@ -434,6 +434,16 @@ export const config = {
   },
 
   /** Etiquetas amigables de cada setting (hoja = key con puntos → guion bajo). */
+  /** Grupos colapsables de la configuración (T7b). */
+  settingGroups: {
+    pagos: 'Pagos y precios',
+    promotores: 'Promotores y premium',
+    eventos: 'Eventos',
+    soporte: 'Soporte',
+    marca: 'General y marca',
+    otros: 'Otros',
+  },
+
   settingLabels: {
     pricing_platform_fee_pct: 'Comisión de plataforma',
     pricing_gateway_fee_pct: 'Comisión de pasarela',

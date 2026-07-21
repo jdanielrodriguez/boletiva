@@ -443,8 +443,18 @@
         <h3>{{ 'config.settings.heading' | translate }}</h3>
         <p class="muted">{{ 'config.settings.intro' | translate }}</p>
         @if (settings().length > 0) {
-          <div class="settings-grid" data-testid="settings-list">
-            @for (s of settings(); track s.key) {
+          <div data-testid="settings-list">
+          @for (grp of settingGroups(); track grp.id) {
+            <section class="settings-group" [attr.data-testid]="'settings-group-' + grp.id">
+              <button type="button" class="settings-group-head" (click)="toggleGroup(grp.id)"
+                [attr.aria-expanded]="!isGroupCollapsed(grp.id)" [attr.data-testid]="'settings-group-toggle-' + grp.id">
+                <span class="settings-group-chev" [class.open]="!isGroupCollapsed(grp.id)" aria-hidden="true">›</span>
+                <strong>{{ 'config.settingGroups.' + grp.id | translate }}</strong>
+                <span class="muted small settings-group-count">{{ grp.items.length }}</span>
+              </button>
+              @if (!isGroupCollapsed(grp.id)) {
+                <div class="settings-grid">
+                @for (s of grp.items; track s.key) {
               <div class="setting-card" data-testid="setting-row">
                 <div class="setting-head">
                   <strong>{{ settingLabel(s.key) }}</strong>
@@ -483,7 +493,11 @@
                   <span class="muted small setting-default">{{ 'config.settings.defaultLabel' | translate: { value: s.default } }}</span>
                 </div>
               </div>
-            }
+                }
+                </div>
+              }
+            </section>
+          }
           </div>
         } @else if (!settingsLoaded()) {
           <p class="muted" data-testid="settings-loading">{{ 'config.settings.loading' | translate }}</p>

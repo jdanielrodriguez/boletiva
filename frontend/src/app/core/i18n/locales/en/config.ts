@@ -434,6 +434,16 @@ export const config = {
   },
 
   /** Friendly labels per setting (leaf = key with dots → underscores). */
+  /** Collapsible settings groups (T7b). */
+  settingGroups: {
+    pagos: 'Payments & pricing',
+    promotores: 'Promoters & premium',
+    eventos: 'Events',
+    soporte: 'Support',
+    marca: 'General & branding',
+    otros: 'Other',
+  },
+
   settingLabels: {
     pricing_platform_fee_pct: 'Platform fee',
     pricing_gateway_fee_pct: 'Gateway fee',

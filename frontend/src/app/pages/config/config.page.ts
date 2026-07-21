@@ -178,6 +178,42 @@ export class ConfigPage {
     return this.translate.instant('config.settingDescriptions.' + key.split('.').join('_'));
   }
 
+  // --- Agrupación colapsable de configuraciones (T7b) ---
+  private static readonly SETTING_GROUP_ORDER = ['pagos', 'promotores', 'eventos', 'soporte', 'marca', 'otros'];
+  /** Clasifica un setting en su grupo por prefijo de key. */
+  private settingGroupOf(key: string): string {
+    if (/^(pricing|wallet|costshare|installments|transfer)\./.test(key)) return 'pagos';
+    if (/^(promoters|promoter|premium)\./.test(key)) return 'promotores';
+    if (key.startsWith('events.') || key === 'home.slider_enabled' || key.startsWith('seatmap.')) return 'eventos';
+    if (key === 'chat.enabled' || key.startsWith('advisor')) return 'soporte';
+    if (/^(i18n|theme|tour|reports|billing)\./.test(key) || key === 'home.show_categories') return 'marca';
+    return 'otros';
+  }
+  /** Settings agrupados y ordenados para el render por secciones. */
+  protected readonly settingGroups = computed(() => {
+    const by = new Map<string, SettingViewDto[]>();
+    for (const s of this.settings()) {
+      const g = this.settingGroupOf(s.key);
+      const list = by.get(g) ?? [];
+      list.push(s);
+      by.set(g, list);
+    }
+    return ConfigPage.SETTING_GROUP_ORDER.filter((g) => by.has(g)).map((g) => ({ id: g, items: by.get(g)! }));
+  });
+  /** Grupos colapsados (vacío = todos expandidos por defecto). */
+  protected readonly collapsedGroups = signal<Set<string>>(new Set());
+  protected isGroupCollapsed(id: string): boolean {
+    return this.collapsedGroups().has(id);
+  }
+  protected toggleGroup(id: string): void {
+    this.collapsedGroups.update((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  }
+
   // --- Eventos ---
   protected readonly events = signal<AdminEventListItemDto[]>([]);
   /** Evento cuyo destacado se está guardando (deshabilita su check mientras). */
