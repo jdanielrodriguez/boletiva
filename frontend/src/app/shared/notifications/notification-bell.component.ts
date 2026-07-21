@@ -64,6 +64,17 @@ import { NotificationsSocketService } from '../../core/notifications/notificatio
       /* Icono LIMPIO sin fondo (moderno). El header es superficie SIEMPRE oscura → el
          icono va claro fijo (usar --pe-text lo volvía invisible en el tema día). Bell
          RELLENA para que se vea nítida (el trazo fino se perdía como un puntito). */
+      /* El botón-ícono NO debe heredar el fondo/borde del botón temático global
+         (button base). Se anula con !important en TODOS los estados → sin caja, solo
+         el icono limpio. Hover = leve cambio de opacidad. */
+      .notif-trigger,
+      .notif-trigger:hover,
+      .notif-trigger:focus,
+      .notif-trigger:active {
+        background: none !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
       .notif-trigger {
         display: inline-flex;
         align-items: center;
@@ -71,16 +82,14 @@ import { NotificationsSocketService } from '../../core/notifications/notificatio
         width: 40px;
         height: 40px;
         padding: 0;
-        border: none;
-        background: none;
         color: #f5f6fa;
         cursor: pointer;
+        opacity: 0.9;
+        transition: opacity 0.15s ease;
       }
+      .notif-trigger:hover { opacity: 1; }
       .notif-trigger:focus-visible { outline: 2px solid var(--pe-accent); outline-offset: 3px; border-radius: 50%; }
-      /* Hover: SOLO una sombra sobre el contorno del icono (drop-shadow sigue la
-         silueta del SVG), sin fondo ni desplazamiento. */
-      .notif-icon { display: block; transition: filter 0.15s ease; }
-      .notif-trigger:hover .notif-icon { filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45)); }
+      .notif-icon { display: block; }
       .notif-badge { position: absolute; top: 2px; right: 2px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px; background: var(--pe-danger); color: #fff; font-size: 0.68rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
       /* El panel es una superficie propia: RESETEA el color al del tema (si no, hereda
          el texto claro del header y se mezcla con el fondo claro en el tema día). */
