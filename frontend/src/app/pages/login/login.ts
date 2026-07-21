@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../core/auth/auth.service';
+import { safeReturnUrl } from '../../core/auth/guards';
 import { OtpInputComponent } from '../../shared/ui/otp-input/otp-input.component';
 
 /**
@@ -69,7 +70,7 @@ export class Login {
   }
 
   private done(): void {
-    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/';
-    void this.router.navigateByUrl(returnUrl);
+    // Sanea el returnUrl (evita open-redirect) con la misma regla que el guestGuard.
+    void this.router.navigateByUrl(safeReturnUrl(this.route.snapshot.queryParamMap.get('returnUrl')));
   }
 }

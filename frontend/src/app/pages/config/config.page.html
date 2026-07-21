@@ -630,7 +630,7 @@
     }
     @case ('soporte') {
       <!-- Bandeja de tickets embebida (misma que /soporte): el agente atiende aquí. -->
-      <app-support-chat data-testid="config-support" />
+      <app-support-chat [embedded]="true" data-testid="config-support" />
     }
   }
 

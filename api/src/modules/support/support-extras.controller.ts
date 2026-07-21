@@ -4,6 +4,7 @@ import { IsEnum, IsObject, IsOptional, IsString, IsUUID, MaxLength, MinLength } 
 import { Role, SupportCategory, SupportPriority, SupportStatus } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AdminOnly } from '../../common/decorators/admin-only.decorator';
+import { SkipAdvisorUnlock } from '../../common/decorators/skip-advisor-unlock.decorator';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user.decorator';
 import { PageQueryDto } from '../../common/dto/page-query.dto';
 import { SupportService } from './support.service';
@@ -177,6 +178,7 @@ export class SupportExtrasController {
 
   @Post('macros')
   @Roles(Role.admin, Role.advisor)
+  @SkipAdvisorUnlock()
   @HttpCode(201)
   @ApiOperation({ summary: 'Crea una respuesta rápida' })
   createMacro(@CurrentUser() user: AuthUser, @Body() dto: MacroDto) {
@@ -185,6 +187,7 @@ export class SupportExtrasController {
 
   @Patch('macros/:id')
   @Roles(Role.admin, Role.advisor)
+  @SkipAdvisorUnlock()
   @ApiOperation({ summary: 'Edita una respuesta rápida' })
   updateMacro(@Param('id', ParseUUIDPipe) id: string, @Body() dto: MacroPatchDto) {
     return this.macros.update(id, dto);
@@ -192,6 +195,7 @@ export class SupportExtrasController {
 
   @Delete('macros/:id')
   @Roles(Role.admin, Role.advisor)
+  @SkipAdvisorUnlock()
   @ApiOperation({ summary: 'Elimina una respuesta rápida' })
   deleteMacro(@Param('id', ParseUUIDPipe) id: string) {
     return this.macros.remove(id);

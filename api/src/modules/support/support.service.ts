@@ -35,6 +35,7 @@ import { SUPPORT_AUTORESPONDER, SupportAutoResponder } from './support-autorespo
 import { canTransition, isFinal } from './support.states';
 import { initialDueDates, mergeSlaTargets, shiftDue, slaRunning, SlaTargets } from './support-sla';
 import { KeysetQuery, keysetResult, keysetTake } from '../../common/utils/pagination';
+import { escapeHtml } from '../../common/utils/html';
 
 /** Setting (json) con los objetivos SLA que edita el admin; ausente → defaults. */
 const SLA_SETTING_KEY = 'support.sla';
@@ -195,7 +196,7 @@ export class SupportService implements OnModuleInit, OnModuleDestroy {
       priority: ticket.priority,
     });
     // Aviso a los admins: nuevo ticket de soporte.
-    await this.notifications.emitToRole(Role.admin, {
+    await this.notifications.emitToRoles([Role.admin, Role.advisor], {
       type: NotificationType.SUPPORT_ACTIVITY,
       title: 'Nuevo ticket de soporte',
       body: ticket.subject,
@@ -289,10 +290,13 @@ export class SupportService implements OnModuleInit, OnModuleDestroy {
       data: { lastMessageAt: new Date() },
     });
     const withUrls = (await this.withAttachmentUrls([message]))[0];
+    // Nota interna: solo a agentes (nunca a la sala del ticket, donde está el promotor)
+    // y no cambia estado ni SLA.
+    if (internalNote) {
+      this.gateway.emitInternalNote(ticket.id, withUrls);
+      return withUrls;
+    }
     this.gateway.emitMessage(ticket.id, withUrls);
-
-    // Nota interna: no cambia estado ni SLA.
-    if (internalNote) return withUrls;
 
     if (agent) {
       // 1ª respuesta del agente: marca SLA de primera respuesta y espera al promotor.
@@ -319,7 +323,7 @@ export class SupportService implements OnModuleInit, OnModuleDestroy {
       // En cualquier caso, ahora espera al soporte (reloj corre) + limpia archivado.
       await this.transition(ticket.id, SupportStatus.awaiting_support, { archivedByPromoterAt: null });
       // Aviso a los admins: actividad del promotor en soporte.
-      await this.notifications.emitToRole(Role.admin, {
+      await this.notifications.emitToRoles([Role.admin, Role.advisor], {
         type: NotificationType.SUPPORT_ACTIVITY,
         title: 'Mensaje de soporte',
         body: ticket.subject,
@@ -669,10 +673,15 @@ export class SupportService implements OnModuleInit, OnModuleDestroy {
       where: { roles: { hasSome: [Role.admin, Role.advisor] }, status: 'active' },
       select: { email: true },
     });
+    // Escapar los valores controlados por el promotor (subject/nombre) antes de meterlos
+    // en el HTML del correo (evita inyección hacia admin/asesores).
+    const safeSubject = escapeHtml(ticket.subject);
+    const safeName = escapeHtml(ticket.promoter?.firstName ?? '');
+    const safeEmail = escapeHtml(ticket.promoter?.email ?? '');
     const subject = `SLA de ${slaLabel} vencido: ${ticket.subject}`;
     const html =
-      `<p>El ticket de <b>${ticket.promoter?.firstName ?? ''}</b> (${ticket.promoter?.email ?? ''}) ` +
-      `superó su SLA de <b>${slaLabel}</b> sin atención.</p><p>Asunto: <b>${ticket.subject}</b></p>`;
+      `<p>El ticket de <b>${safeName}</b> (${safeEmail}) ` +
+      `superó su SLA de <b>${slaLabel}</b> sin atención.</p><p>Asunto: <b>${safeSubject}</b></p>`;
     for (const a of agents) {
       await this.mail
         .send({ to: a.email, subject, html })

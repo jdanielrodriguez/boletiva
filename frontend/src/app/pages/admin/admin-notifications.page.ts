@@ -140,7 +140,7 @@ export class AdminNotificationsPage {
         message: this.translate.instant('notifications.confirmAllMsg'),
         confirmLabel: this.translate.instant('notifications.confirmAllOk'),
         confirmIcon: 'alert',
-        danger: false,
+        danger: true,
         onConfirm: () => this.doSend(),
       });
       return;

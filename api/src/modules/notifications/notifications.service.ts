@@ -4,19 +4,10 @@ import { PrismaService } from '../../infra/prisma/prisma.service';
 import { QueueService } from '../../infra/queue/queue.service';
 import { QUEUES } from '../../infra/queue/queue.constants';
 import { KeysetQuery, keysetResult, keysetTake } from '../../common/utils/pagination';
+import { escapeHtml } from '../../common/utils/html';
 import { AuditService } from '../audit/audit.service';
 import { NotificationsGateway } from './notifications.gateway';
 import { CHANNEL_DEFAULT, NotificationChannel, NotificationType } from './notification.types';
-
-/** Escapa texto para interpolarlo con seguridad en HTML (correos de notificación). */
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
 
 export interface EmitInput {
   type: string;
@@ -121,6 +112,18 @@ export class NotificationsService {
   async emitToRole(role: Role, input: EmitInput): Promise<void> {
     const users = await this.prisma.user.findMany({
       where: { roles: { has: role }, status: 'active' },
+      select: { id: true },
+    });
+    await this.emitToMany(
+      users.map((u) => u.id),
+      input,
+    );
+  }
+
+  /** Emite a los usuarios ACTIVOS con CUALQUIERA de los roles dados (dedup por usuario). */
+  async emitToRoles(roles: Role[], input: EmitInput): Promise<void> {
+    const users = await this.prisma.user.findMany({
+      where: { roles: { hasSome: roles }, status: 'active' },
       select: { id: true },
     });
     await this.emitToMany(

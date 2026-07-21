@@ -14,8 +14,14 @@ import { AuthUser } from '../../common/decorators/current-user.decorator';
 describe('SettlementService (branches, unit)', () => {
   const build = () => {
     const prisma = {
-      event: { findUnique: jest.fn(), update: jest.fn().mockResolvedValue({}) },
-      order: { aggregate: jest.fn() },
+      event: {
+        findUnique: jest.fn(),
+        update: jest.fn().mockResolvedValue({}),
+        // M1: claim atómico compare-and-set (por defecto reclama 1 fila).
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      // A3: por defecto 0 órdenes pagadas (no bloquea el cierre de un cancelado).
+      order: { aggregate: jest.fn(), count: jest.fn().mockResolvedValue(0) },
       orderItem: { count: jest.fn() },
     };
     const ledger = { post: jest.fn().mockResolvedValue({}) };
@@ -204,8 +210,12 @@ describe('SettlementService (branches, unit)', () => {
     prisma.order.aggregate.mockResolvedValue({ _sum: { net: '150.00' } });
     const res = await service.finalizeAndTransfer('e1', admin, '1.2.3.4', 'jest');
     expect(res).toMatchObject({ eventId: 'e1', promoterId: 'promo', transferred: '150.00', status: 'finished' });
-    expect(prisma.event.update).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ status: 'finished' }) }),
+    // M1: el cierre reclama con updateMany compare-and-set (where cashTransferredAt=null).
+    expect(prisma.event.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ id: 'e1', cashTransferredAt: null }),
+        data: expect.objectContaining({ status: 'finished' }),
+      }),
     );
     const posted = ledger.post.mock.calls[0][0];
     expect(posted.kind).toBe('event_cash_transfer');
@@ -225,6 +235,42 @@ describe('SettlementService (branches, unit)', () => {
       'mail',
       'event-settlement',
       expect.objectContaining({ eventId: 'e1', promoterId: 'promo', transferred: '150.00' }),
+    );
+  });
+
+  it('A3: finalize de evento CANCELADO con órdenes pagadas sin reembolsar → 409', async () => {
+    const { service, prisma, ledger } = build();
+    prisma.event.findUnique.mockResolvedValue({
+      id: 'e1', name: 'Show', promoterId: 'promo', status: 'cancelled', endsAt: future, cashTransferredAt: null,
+    });
+    prisma.order.count.mockResolvedValue(3); // 3 órdenes pagadas sin reembolsar
+    await expect(service.finalizeAndTransfer('e1', admin)).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.event.updateMany).not.toHaveBeenCalled();
+    expect(ledger.post).not.toHaveBeenCalled();
+  });
+
+  it('M1: si el claim atómico no reclama fila (ya transferido en carrera) → 409', async () => {
+    const { service, prisma, ledger } = build();
+    prisma.event.findUnique.mockResolvedValue({
+      id: 'e1', name: 'Show', promoterId: 'promo', status: 'finished', endsAt: past, cashTransferredAt: null,
+    });
+    prisma.order.aggregate.mockResolvedValue({ _sum: { net: '150.00' } });
+    prisma.event.updateMany.mockResolvedValue({ count: 0 }); // otra petición ganó la carrera
+    await expect(service.finalizeAndTransfer('e1', admin)).rejects.toBeInstanceOf(ConflictException);
+    expect(ledger.post).not.toHaveBeenCalled();
+  });
+
+  it('A4: si el asiento contable falla, revierte la marca (event.update a null) y relanza', async () => {
+    const { service, prisma, ledger } = build();
+    prisma.event.findUnique.mockResolvedValue({
+      id: 'e1', name: 'Show', promoterId: 'promo', status: 'suspended', endsAt: future, cashTransferredAt: null,
+    });
+    prisma.order.aggregate.mockResolvedValue({ _sum: { net: '150.00' } });
+    ledger.post.mockRejectedValue(new Error('ledger caído'));
+    await expect(service.finalizeAndTransfer('e1', admin)).rejects.toThrow('ledger caído');
+    // Revierte la marca para permitir reintento (no queda "finished sin acreditar").
+    expect(prisma.event.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ cashTransferredAt: null }) }),
     );
   });
 

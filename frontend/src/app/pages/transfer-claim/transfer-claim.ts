@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { TransfersApi } from '../../core/api/transfers.api';
+import { apiErrorMessage } from '../../core/http/api-error';
 
 /**
  * Reclamar un boleto transferido (regalo): el destinatario verificado ingresa el
@@ -37,9 +38,10 @@ export class TransferClaim {
         this.working.set(false);
         this.claimedSerial.set(res.serial);
       },
-      error: () => {
+      error: (err) => {
         this.working.set(false);
-        this.error.set(this.translate.instant('transfer.msgClaimFailed'));
+        // Muestra el motivo real del backend (código inválido/canjeado/expirado/propio…).
+        this.error.set(apiErrorMessage(err, this.translate.instant('transfer.msgClaimFailed')));
       },
     });
   }

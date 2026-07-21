@@ -190,6 +190,21 @@ describe('Rol asesor (e2e)', () => {
       .expect(403);
   });
 
+  it('ESCALADA: el asesor, aun DESBLOQUEADO, NO accede a tesorería/comisiones/enumeración (@AdminOnly) → 403', async () => {
+    await setLock(true);
+    await unlock(); // ventana aprobada vigente
+    const dummy = '00000000-0000-0000-0000-000000000000';
+    // Retiros de wallet (tesorería), liquidación, tabla de comisiones y enumeración de
+    // usuarios son admin-only REAL: el @AdminOnly corta ANTES del servicio → 403 (no 404).
+    await http().get('/api/v1/users').set(bearer(advisorToken)).expect(403);
+    await http().get(`/api/v1/users/${dummy}`).set(bearer(advisorToken)).expect(403);
+    await http().get('/api/v1/wallet/withdrawals/all').set(bearer(advisorToken)).expect(403);
+    await http().post(`/api/v1/wallet/withdrawals/${dummy}/approve`).set(bearer(advisorToken)).expect(403);
+    await http().post(`/api/v1/wallet/withdrawals/${dummy}/pay`).set(bearer(advisorToken)).send({}).expect(403);
+    await http().post(`/api/v1/events/${dummy}/settlement/finalize`).set(bearer(advisorToken)).expect(403);
+    await http().post('/api/v1/pricing/schedules').set(bearer(advisorToken)).send({ platformPct: 0.1 }).expect(403);
+  });
+
   it('A-1: el candado NO bloquea la bandeja de soporte del asesor (take pasa el guard → 404 por ticket inexistente, no 403)', async () => {
     await setLock(true);
     await prisma.advisorUnlock.deleteMany({ where: { advisorId } }); // sin ventana

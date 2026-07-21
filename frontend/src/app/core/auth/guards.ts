@@ -4,6 +4,14 @@ import { Observable, map } from 'rxjs';
 import { SessionStore } from './session.store';
 
 /**
+ * Sanea un `returnUrl` para evitar open-redirect: solo rutas internas absolutas
+ * (`/algo`), nunca `//host` ni URLs externas. Devuelve '/' si no es seguro.
+ */
+export function safeReturnUrl(ret: string | null | undefined): string {
+  return ret && ret.startsWith('/') && !ret.startsWith('//') ? ret : '/';
+}
+
+/**
  * Exige sesión iniciada. Resuelve /auth/me una vez (SSR y navegador) antes de
  * decidir, para no rebotar a /login mientras se hidrata. Sin sesión → /login
  * con returnUrl.
@@ -44,9 +52,7 @@ export const guestGuard: CanActivateFn = (route) => {
   return session.ensureLoaded().pipe(
     map((user) => {
       if (!user) return true;
-      const ret = route.queryParamMap.get('returnUrl');
-      const safe = ret && ret.startsWith('/') && !ret.startsWith('//');
-      return router.createUrlTree([safe ? ret : '/']);
+      return router.createUrlTree([safeReturnUrl(route.queryParamMap.get('returnUrl'))]);
     }),
   );
 };

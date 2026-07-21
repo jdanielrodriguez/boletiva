@@ -3380,6 +3380,8 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
   button,
   .btn,
   select,
+  input:not([type='radio']):not([type='checkbox']):not([type='range']),
+  textarea,
   .link-btn { min-height: 44px; }
   /* Controles cuadrados: además ancho ≥44px. */
   .btn.icon-only,
@@ -3391,7 +3393,12 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
   .qty-btn,
   .pager-arrow,
   .pager-page,
+  .modal-x,
+  .pass-toggle,
   .ci-remove { min-width: 44px; min-height: 44px; }
+  /* Radios/checkbox nativos: agrandar el control para un blanco táctil decente. */
+  input[type='radio'],
+  input[type='checkbox'] { width: 22px; height: 22px; }
   .link-btn { display: inline-flex; align-items: center; }
   .pe-switch .pe-switch-track { margin: 0.6rem 0; }
 }

@@ -347,6 +347,12 @@ export class EventsService {
     return s ? s.value === true : true;
   }
 
+  /** ¿Los promotores pueden destacar en el slider? (setting `promoter.can_feature_events`, default false). */
+  private async canFeatureEventsEnabled(): Promise<boolean> {
+    const s = await this.prisma.setting.findUnique({ where: { key: 'promoter.can_feature_events' } });
+    return s ? s.value === true : false;
+  }
+
   async create(dto: CreateEventDto, user: AuthUser) {
     // El evento SIEMPRE pertenece a un PROMOTOR. Un ADMIN puede crearlo a nombre de
     // otro promotor (aprobado) enviando `promoterId`; queda auditado en
@@ -415,9 +421,15 @@ export class EventsService {
    */
   async setPromoted(id: string, featured: boolean, user: AuthUser) {
     await this.getManaged(id, user); // 404/403 si no existe o no lo gestiona
+    const isAdmin = user.roles.includes(Role.admin);
+    // Gobernanza (no-admin): el flag global `promoter.can_feature_events` debe estar
+    // ENCENDIDO (enforcement server-side, no solo ocultar el toggle en la UI).
+    if (!isAdmin && featured && !(await this.canFeatureEventsEnabled())) {
+      throw new ForbiddenException('Destacar eventos está deshabilitado por la plataforma');
+    }
     // Beneficio PREMIUM (B1): un promotor puede destacar SU evento solo si sus beneficios
     // premium están activos (con premium apagado, aplica a todos). El admin destaca cualquiera.
-    if (!user.roles.includes(Role.admin) && !(await this.premium.benefitsActive(user.userId))) {
+    if (!isAdmin && !(await this.premium.benefitsActive(user.userId))) {
       throw new ForbiddenException('Destacar eventos es un beneficio premium');
     }
     await this.prisma.event.update({

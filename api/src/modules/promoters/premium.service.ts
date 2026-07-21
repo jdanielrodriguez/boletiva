@@ -114,11 +114,17 @@ export class PremiumService implements OnModuleInit, OnModuleDestroy {
       select: { id: true, promoterTier: true },
     });
     if (!user) throw new NotFoundException('Usuario no encontrado');
+    // M-5 (QA): notificar en TODA transición a premium (trial/pago/admin), no solo admin.
+    const wasNotPremium = user.promoterTier !== PromoterTier.premium;
 
     if (tier === PromoterTier.free) {
+      // ALTA-2 (QA): NO se borra `premiumSince` al bajar a free — queda como marca
+      // permanente de "ya usó premium/prueba" para que `maybeStartTrialOnApply` no
+      // conceda una NUEVA prueba gratis reciclando el ciclo apply→free→apply. Los
+      // beneficios se apagan igual porque `benefitsActive` exige tier premium.
       const updated = await this.prisma.user.update({
         where: { id: userId },
-        data: { promoterTier: PromoterTier.free, premiumTrialEndsAt: null, premiumSince: null },
+        data: { promoterTier: PromoterTier.free, premiumTrialEndsAt: null },
       });
       // M-3 (QA): al perder premium se DES-destacan sus eventos (si no, el evento
       // destacado durante el trial quedaría en el slider para siempre = bypass).
@@ -141,7 +147,7 @@ export class PremiumService implements OnModuleInit, OnModuleDestroy {
         where: { id: userId },
         data: { promoterTier: PromoterTier.premium, premiumTrialEndsAt: endsAt, premiumSince: new Date() },
       });
-      if (opts.byAdmin) await this.notifyPremiumActivated(userId);
+      if (wasNotPremium) await this.notifyPremiumActivated(userId);
       return this.summarize(updated);
     }
 
@@ -156,7 +162,7 @@ export class PremiumService implements OnModuleInit, OnModuleDestroy {
       where: { id: userId },
       data: { promoterTier: PromoterTier.premium, premiumTrialEndsAt: null, premiumSince: new Date() },
     });
-    if (opts.byAdmin) await this.notifyPremiumActivated(userId);
+    if (wasNotPremium) await this.notifyPremiumActivated(userId);
     return this.summarize(paid);
   }
 
@@ -169,7 +175,9 @@ export class PremiumService implements OnModuleInit, OnModuleDestroy {
     await this.notifications.emit(userId, {
       type: NotificationType.PREMIUM_ACTIVATED,
       title: 'Ahora eres Premium',
-      body: 'Tu comisión de cobro se ha reducido por beneficios premium. ¡Gracias por confiar en Boletiva!',
+      // Copy en condicional: la reducción de comisión la aplica el admin a mano (T8);
+      // no afirmar aquí que ya ocurrió para no prometer algo que aún no se cumple.
+      body: 'Se activaron tus beneficios premium (destacar eventos, chat de soporte y dashboards). ¡Gracias por confiar en Boletiva!',
     });
   }
 

@@ -125,6 +125,15 @@ export class SupportGateway implements OnGatewayInit, OnGatewayConnection, OnGat
     this.server?.to('agents').emit('ticket-activity', { ticketId });
   }
 
+  /**
+   * Emite una NOTA INTERNA solo a los agentes (nunca a la sala del ticket, donde el
+   * promotor dueño está unido). Evita la fuga en vivo de notas internas al promotor.
+   */
+  emitInternalNote(ticketId: string, message: unknown): void {
+    this.server?.to('agents').emit('message', message);
+    this.server?.to('agents').emit('ticket-activity', { ticketId });
+  }
+
   /** Emite un cambio de estado/asignación del ticket. */
   emitTicket(ticketId: string, ticket: unknown): void {
     this.server?.to(`ticket:${ticketId}`).emit('ticket', ticket);

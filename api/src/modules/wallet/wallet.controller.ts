@@ -19,6 +19,7 @@ import {
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { AdminOnly } from '../../common/decorators/admin-only.decorator';
 import { RequireVerifiedEmail } from '../../common/decorators/verified-email.decorator';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user.decorator';
 import { PageQueryDto } from '../../common/dto/page-query.dto';
@@ -78,6 +79,7 @@ export class WalletController {
 
   @Get('withdrawals/all')
   @Roles(Role.admin)
+  @AdminOnly()
   @ApiOperation({ summary: 'Todos los retiros (admin), ?status y keyset ?cursor&limit' })
   @ApiOkResponse({ type: WithdrawalPageResponseDto })
   all(@Query() q: WithdrawalsQueryDto) {
@@ -86,6 +88,7 @@ export class WalletController {
 
   @Post('withdrawals/:id/approve')
   @Roles(Role.admin)
+  @AdminOnly()
   @HttpCode(200)
   @ApiOperation({ summary: 'Aprueba un retiro (admin)' })
   @ApiOkResponse({ type: WithdrawalActionResponseDto })
@@ -95,6 +98,7 @@ export class WalletController {
 
   @Post('withdrawals/:id/pay')
   @Roles(Role.admin)
+  @AdminOnly()
   @HttpCode(200)
   @ApiOperation({ summary: 'Marca un retiro como pagado (admin)' })
   @ApiOkResponse({ type: WithdrawalActionResponseDto })
@@ -108,6 +112,7 @@ export class WalletController {
 
   @Post('withdrawals/:id/reject')
   @Roles(Role.admin)
+  @AdminOnly()
   @HttpCode(200)
   @ApiOperation({ summary: 'Rechaza un retiro y reintegra el saldo (admin)' })
   @ApiOkResponse({ type: WithdrawalActionResponseDto })

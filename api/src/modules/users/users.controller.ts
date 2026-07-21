@@ -59,7 +59,8 @@ export class UsersController {
 
   @Get()
   @Roles(Role.admin)
-  @ApiOperation({ summary: 'Lista usuarios (admin; keyset ?cursor&limit + ?search)' })
+  @AdminOnly()
+  @ApiOperation({ summary: 'Lista usuarios (admin real; keyset ?cursor&limit + ?search)' })
   @ApiOkResponse({ type: UserPageResponseDto })
   list(@Query() q: UserListQueryDto) {
     return this.users.list(q);
@@ -67,7 +68,8 @@ export class UsersController {
 
   @Get(':id')
   @Roles(Role.admin)
-  @ApiOperation({ summary: 'Detalle de usuario (admin)' })
+  @AdminOnly()
+  @ApiOperation({ summary: 'Detalle de usuario (admin real)' })
   @ApiOkResponse({ type: UserResponseDto })
   get(@Param('id', ParseUUIDPipe) id: string) {
     return this.users.get(id);

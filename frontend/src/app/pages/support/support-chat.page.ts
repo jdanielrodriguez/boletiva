@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnDestroy, computed, effect, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnDestroy, computed, effect, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -56,6 +56,8 @@ export class SupportChatPage implements OnDestroy {
   protected readonly priorities = PRIORITIES;
   protected readonly agentStatuses = AGENT_STATUS;
 
+  /** Embebido en otra página con su propio <h1> (consola admin) → título como <h2>. */
+  readonly embedded = input(false);
   protected readonly chatEnabled = computed(() => this.config.chatEnabled());
   protected readonly isAgent = computed(() => this.session.hasAnyRole(['admin', 'advisor']));
   /** Solo el admin reasigna tickets entre asesores (T7f; backend assign es admin-only). */
@@ -112,6 +114,9 @@ export class SupportChatPage implements OnDestroy {
     }
     void this.socket.acquire();
     this.socket.message$.subscribe((m) => {
+      // Defensa en profundidad: un no-agente NUNCA muestra notas internas (el backend ya
+      // no se las emite, pero por si acaso llegara una).
+      if (m.internalNote && !this.isAgent()) return;
       if (this.active()?.id === m.ticketId && !this.messages().some((x) => x.id === m.id)) {
         this.messages.update((list) => [...list, m]);
       }

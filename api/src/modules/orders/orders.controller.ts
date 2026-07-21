@@ -24,6 +24,7 @@ import { RequireVerifiedEmail } from '../../common/decorators/verified-email.dec
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user.decorator';
 import { PageQueryDto } from '../../common/dto/page-query.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { AdminOnly } from '../../common/decorators/admin-only.decorator';
 import { RateLimit } from '../../common/rate-limit/rate-limit.decorator';
 import { Role } from '@prisma/client';
 import { CheckoutService } from './checkout.service';
@@ -117,6 +118,7 @@ export class OrdersController {
 
   @Post('events/:eventId/settlement/finalize')
   @Roles(Role.admin)
+  @AdminOnly()
   @HttpCode(200)
   @ApiOperation({
     summary:

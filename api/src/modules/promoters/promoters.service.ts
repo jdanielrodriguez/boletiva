@@ -325,8 +325,8 @@ export class PromotersService implements OnApplicationBootstrap {
   }
 
   /** Rechaza/suspende: quita el rol promoter para que el RBAC lo bloquee. */
-  private revoke(user: User, status: PromoterStatus, note?: string) {
-    return this.prisma.user.update({
+  private async revoke(user: User, status: PromoterStatus, note?: string) {
+    const updated = await this.prisma.user.update({
       where: { id: user.id },
       data: {
         promoterStatus: status,
@@ -335,6 +335,14 @@ export class PromotersService implements OnApplicationBootstrap {
         roles: user.roles.filter((r) => r !== Role.promoter),
       },
     });
+    // M-6 (QA): un promotor suspendido/rechazado NO debe conservar eventos destacados en
+    // el slider público. (Despublicar sus eventos es una decisión aparte; aquí solo se
+    // quitan del destacado, análogo a perder premium.)
+    await this.prisma.event.updateMany({
+      where: { promoterId: user.id, promotedPriority: { not: null } },
+      data: { promotedPriority: null },
+    });
+    return updated;
   }
 
   private async getUser(id: string): Promise<User> {

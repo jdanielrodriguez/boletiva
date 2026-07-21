@@ -179,6 +179,19 @@ export class SettlementService {
       );
     }
 
+    // A3: un evento CANCELADO no se liquida al promotor mientras existan órdenes pagadas
+    // sin reembolsar — ese dinero es de los compradores (el evento no ocurrirá). Hay que
+    // reembolsar primero (mueve el dinero a los wallets de los compradores y las saca del
+    // neto); luego el cierre queda en 0. Un evento CONCLUIDO por fecha sí se liquida.
+    if (event.status === 'cancelled') {
+      const paidCount = await this.prisma.order.count({ where: { eventId, status: 'paid' } });
+      if (paidCount > 0) {
+        throw new ConflictException(
+          `Reembolsa las ${paidCount} órdenes pagadas antes de cerrar la caja de un evento cancelado`,
+        );
+      }
+    }
+
     // Neto a liquidar = suma de `net` de las órdenes pagadas del evento.
     const agg = await this.prisma.order.aggregate({
       where: { eventId, status: 'paid' },
@@ -186,26 +199,40 @@ export class SettlementService {
     });
     const net = new Decimal(agg._sum.net ?? 0).toDecimalPlaces(2, Decimal.ROUND_HALF_EVEN);
 
-    // Marca de cierre (idempotencia) + estado finalizado, en una tx.
+    // M1 (TOCTOU): claim ATÓMICO compare-and-set — solo UN finalize procede aunque haya
+    // doble clic/pestañas concurrentes (evita doble asiento `event_cash_transfer`).
     const transferredAt = new Date();
-    await this.prisma.event.update({
-      where: { id: eventId },
+    const claim = await this.prisma.event.updateMany({
+      where: { id: eventId, cashTransferredAt: null },
       data: { cashTransferredAt: transferredAt, status: 'finished' },
     });
+    if (claim.count === 0) {
+      throw new ConflictException('La caja de este evento ya fue transferida al promotor');
+    }
 
     // Asienta el traslado promoter_payable → user_wallet SOLO si hay neto (>0);
     // un neto 0 igual cierra la caja (idempotente) sin asiento vacío.
+    // A4: si el asiento contable falla, REVIERTE la marca para no dejar el evento
+    // "finished sin acreditar" (permitiendo reintento); `ledger.post` es atómico aparte.
     if (net.gt(0)) {
-      await this.ledger.post({
-        kind: 'event_cash_transfer',
-        refType: 'event',
-        refId: eventId,
-        memo: `Cierre de caja evento ${event.name}`,
-        entries: [
-          { type: 'promoter_payable', ownerId: event.promoterId, amount: net.negated().toFixed(2) },
-          { type: 'user_wallet', ownerId: event.promoterId, amount: net.toFixed(2) },
-        ],
-      });
+      try {
+        await this.ledger.post({
+          kind: 'event_cash_transfer',
+          refType: 'event',
+          refId: eventId,
+          memo: `Cierre de caja evento ${event.name}`,
+          entries: [
+            { type: 'promoter_payable', ownerId: event.promoterId, amount: net.negated().toFixed(2) },
+            { type: 'user_wallet', ownerId: event.promoterId, amount: net.toFixed(2) },
+          ],
+        });
+      } catch (e) {
+        await this.prisma.event.update({
+          where: { id: eventId },
+          data: { cashTransferredAt: null, status: event.status },
+        });
+        throw e;
+      }
     }
 
     await this.audit.record({
