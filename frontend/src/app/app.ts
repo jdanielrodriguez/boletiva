@@ -166,15 +166,18 @@ export class App {
         this.theme.stopAuto(); // por si venía de modo automático (admin lo apagó)
         if (!this.themeDecided) {
           this.themeDecided = true;
-          // Switch apagado → SOLO el admin manda: se ignora cualquier preferencia
-          // (de perfil o cookie) y todos ven la franja por defecto de la plataforma.
-          if (!themeCfg.allowVisitorSwitch) {
-            this.theme.hydrate(null);
-            return;
-          }
+          // PRIORIDAD: la preferencia de PERFIL del usuario logueado (día/noche) SIEMPRE
+          // manda, aunque el admin tenga el switch de visitantes apagado. El switch solo
+          // gobierna a VISITANTES / usuarios sin preferencia guardada.
           const pref = this.session.user()?.themePref;
           if (pref === 'dia' || pref === 'noche') {
             this.theme.hydrate(pref as Franja);
+            return;
+          }
+          // Sin preferencia de perfil: switch apagado → franja del admin; permitido →
+          // preferencia guardada (cookie) del visitante.
+          if (!themeCfg.allowVisitorSwitch) {
+            this.theme.hydrate(null);
           } else {
             this.theme.hydratePreference();
           }
