@@ -41,6 +41,7 @@ describe('PromoterPanel (v3 grid)', () => {
             tourEnabled: () => false,
             chatEnabled: () => false,
             canFeatureEvents: () => true,
+            eventsCreationEnabled: () => true,
           },
         },
         provideZonelessChangeDetection(),

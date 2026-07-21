@@ -107,6 +107,8 @@ export const account = {
     yearInvalid: 'Año inválido o vencido.',
   },
   billing: {
+    maintenanceTitle: 'Facturación en mantenimiento',
+    maintenanceBody: 'Estamos revisando la facturación. Vuelve a intentarlo más tarde.',
     filterPill: 'Mostrando una compra específica.',
     viewAll: 'Ver todas',
     event: 'Evento',

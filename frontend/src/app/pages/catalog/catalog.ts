@@ -102,7 +102,9 @@ export class Catalog {
   protected readonly page = computed(() => Math.max(1, Number(this.params().get('page')) || 1));
 
   /** El hero solo se muestra en el inicio (sin filtros de categoría/búsqueda). */
-  protected readonly showHero = computed(() => !this.activeCategory() && !this.search());
+  protected readonly showHero = computed(
+    () => this.publicConfig.homeSliderEnabled() && !this.activeCategory() && !this.search(),
+  );
 
   private readonly result = toSignal(
     this.route.queryParamMap.pipe(

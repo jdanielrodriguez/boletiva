@@ -33,6 +33,7 @@ import type { CardBrand } from '../../core/payments/card-tokenizer.stub';
 import { AuthService } from '../../core/auth/auth.service';
 import { AuthApi } from '../../core/api/auth.api';
 import { SessionStore } from '../../core/auth/session.store';
+import { PublicConfigStore } from '../../core/config/public-config.store';
 import { ToastService } from '../../core/ui/toast.service';
 import { ConfirmController } from '../../shared/confirm-dialog/confirm-controller';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
@@ -115,6 +116,9 @@ export class Account {
     { title: 'tour.account.walletTitle', body: 'tour.account.walletBody' },
   ];
   protected readonly session = inject(SessionStore);
+  private readonly publicConfig = inject(PublicConfigStore);
+  /** T7: facturación en mantenimiento (admin lo activa por descuadres). */
+  protected readonly billingMaintenance = computed(() => this.publicConfig.billingMaintenance());
   private readonly walletApi = inject(WalletApi);
   private readonly ticketsApi = inject(TicketsApi);
   private readonly ordersApi = inject(OrdersApi);

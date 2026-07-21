@@ -18,6 +18,9 @@
 @if (showMaintenancePage()) {
   <app-maintenance-page [message]="maintMessage()" />
 }
+@if (showAdvisorMaintenance()) {
+  <app-maintenance-page [message]="'shell.advisorMaintenance' | translate" data-testid="advisor-maintenance" />
+}
 @if (booting()) {
   <app-loading [fullscreen]="true" [label]="'common.loading' | translate" data-testid="hydration-loader" />
 }

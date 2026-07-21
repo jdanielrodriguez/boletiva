@@ -107,6 +107,8 @@ export const account = {
     yearInvalid: 'Invalid or expired year.',
   },
   billing: {
+    maintenanceTitle: 'Billing under maintenance',
+    maintenanceBody: 'We are reviewing billing. Please try again later.',
     filterPill: 'Showing a specific purchase.',
     viewAll: 'View all',
     event: 'Event',

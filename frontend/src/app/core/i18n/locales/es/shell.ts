@@ -28,6 +28,7 @@ export const shell = {
   themeToDay: 'Cambiar a tema de día',
   themeToNight: 'Cambiar a tema de noche',
   testModeBanner: "🧪 Modo prueba: pagos en SANDBOX (sin cargos reales). Usa tarjetas de prueba como 4242 4242 4242 4242.",
+  advisorMaintenance: 'El acceso de asesores está temporalmente deshabilitado. Vuelve más tarde.',
   verifyTitle: 'Verifica tu correo',
   verifyBody: 'Te enviamos un enlace de confirmación. Necesitas verificar tu correo para comprar, crear o transferir boletos.',
   verifyRedirecting: 'Te llevamos al inicio…',

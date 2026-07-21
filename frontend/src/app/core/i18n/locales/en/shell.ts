@@ -28,6 +28,7 @@ export const shell = {
   themeToDay: 'Switch to day theme',
   themeToNight: 'Switch to night theme',
   testModeBanner: "🧪 Test mode: payments run in SANDBOX (no real charges). Use test cards like 4242 4242 4242 4242.",
+  advisorMaintenance: 'Advisor access is temporarily disabled. Please check back later.',
   verifyTitle: 'Verify your email',
   verifyBody: 'We sent you a confirmation link. You need to verify your email to buy, create or transfer tickets.',
   verifyRedirecting: 'Taking you home…',

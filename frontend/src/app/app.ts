@@ -100,6 +100,17 @@ export class App {
     () => this.isBrowser && !this.booting() && this.maintenance.active() && this.isAdmin(),
   );
 
+  /** Mantenimiento SOLO para asesores (T7): el admin lo activa; el asesor ve una
+   *  pantalla de acceso deshabilitado. No aplica a admins ni a otros roles. */
+  protected readonly showAdvisorMaintenance = computed(
+    () =>
+      this.isBrowser &&
+      !this.booting() &&
+      this.publicConfig.advisorsMaintenance() &&
+      this.session.hasAnyRole(['advisor']) &&
+      !this.isAdmin(),
+  );
+
   constructor() {
     // Hidrata sesión y consulta el mantenimiento SOLO en el navegador: en SSR no
     // hay tokens (localStorage) y no queremos pegar al API en el servidor (rompería

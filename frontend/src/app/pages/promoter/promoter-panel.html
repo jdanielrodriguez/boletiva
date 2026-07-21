@@ -30,9 +30,11 @@
       <a class="btn btn-outline" routerLink="/promotor/dashboard" data-testid="go-dashboard" [title]="'promoter.dash.title' | translate">
         <app-icon name="accounts" /> {{ 'promoter.dash.title' | translate }}
       </a>
-      <button type="button" class="btn primary" (click)="newEvent()" data-testid="toggle-create" [title]="'promoter.panel.newEvent' | translate">
-        <app-icon name="add" /> {{ 'promoter.panel.newEvent' | translate }}
-      </button>
+      @if (eventsCreationEnabled()) {
+        <button type="button" class="btn primary" (click)="newEvent()" data-testid="toggle-create" [title]="'promoter.panel.newEvent' | translate">
+          <app-icon name="add" /> {{ 'promoter.panel.newEvent' | translate }}
+        </button>
+      }
     </div>
   </div>
 

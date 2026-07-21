@@ -341,12 +341,23 @@ export class EventsService {
     });
   }
 
+  /** ¿Está habilitada la creación de eventos? (setting `events.creation_enabled`, default true). */
+  private async eventCreationEnabled(): Promise<boolean> {
+    const s = await this.prisma.setting.findUnique({ where: { key: 'events.creation_enabled' } });
+    return s ? s.value === true : true;
+  }
+
   async create(dto: CreateEventDto, user: AuthUser) {
     // El evento SIEMPRE pertenece a un PROMOTOR. Un ADMIN puede crearlo a nombre de
     // otro promotor (aprobado) enviando `promoterId`; queda auditado en
     // `createdByAdminId`. Un promotor no-admin ignora cualquier `promoterId` ajeno
     // y crea el evento a su propio nombre.
     const isAdmin = user.roles.includes(Role.admin);
+    // Kill-switch de gobernanza (T7): si la creación de eventos está deshabilitada,
+    // ningún promotor puede crear (el admin sí, para no bloquearse a sí mismo).
+    if (!isAdmin && !(await this.eventCreationEnabled())) {
+      throw new ForbiddenException('La creación de eventos está deshabilitada temporalmente');
+    }
     let ownerId = user.userId;
     let createdByAdminId: string | undefined;
     if (isAdmin && dto.promoterId && dto.promoterId !== user.userId) {

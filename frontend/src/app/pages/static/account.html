@@ -327,6 +327,14 @@
         @case ('facturacion') {
           <h2>{{ 'account.nav.billing' | translate }}</h2>
 
+          @if (billingMaintenance()) {
+            <app-empty-state
+              variant="billing"
+              data-testid="billing-maintenance"
+              [title]="'account.billing.maintenanceTitle' | translate"
+              [subtitle]="'account.billing.maintenanceBody' | translate"
+            />
+          } @else {
           @if (orderFilter(); as of) {
             <p class="filter-pill" data-testid="order-filter-pill">
               {{ 'account.billing.filterPill' | translate }}
@@ -484,6 +492,7 @@
               }
             </div>
             <app-pager [page]="billingPage()" [totalPages]="billingTotalPages()" (pageChange)="goToBillingPage($event)" data-testid="billing-pager" />
+          }
           }
         }
 

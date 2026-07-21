@@ -67,6 +67,8 @@ export class PromoterPanel {
   protected readonly canFeature = computed(() => this.premiumBenefitsActive() && this.config.canFeatureEvents());
   /** ¿Chat de soporte habilitado? (beneficio premium → gated por canFeature). */
   protected readonly chatEnabled = computed(() => this.config.chatEnabled());
+  /** ¿La creación de eventos está habilitada globalmente? (T7 kill-switch). */
+  protected readonly eventsCreationEnabled = computed(() => this.config.eventsCreationEnabled());
   /** Evento cuyo destacado se está guardando (deshabilita su switch mientras). */
   protected readonly promotingId = signal<string | null>(null);
 
