@@ -219,6 +219,43 @@ export const SETTINGS_CATALOG: SettingDef[] = [
       'Permite a los promotores DESTACAR su evento en el inicio (switch en su panel). ' +
       'false (default) = el promotor NO ve la opción de destacar. Lo habilita el admin.',
   },
+  // --- T7: flags de funcionalidad (feature flags) ---
+  {
+    key: 'events.creation_enabled',
+    type: 'bool',
+    default: true,
+    description: 'Habilita la creación de eventos por promotores. false = nadie puede crear eventos.',
+  },
+  {
+    key: 'home.slider_enabled',
+    type: 'bool',
+    default: true,
+    description: 'Muestra el slider del inicio (armado con los eventos destacados). false = slider SIEMPRE oculto.',
+  },
+  {
+    key: 'seatmap.enabled',
+    type: 'bool',
+    default: true,
+    description: 'Habilita el uso del mapa de asientos (editor y compra por asiento). false = solo aforo general.',
+  },
+  {
+    key: 'advisors.enabled',
+    type: 'bool',
+    default: true,
+    description: 'Habilita el rol ASESOR (soporte). false = no se usan asesores.',
+  },
+  {
+    key: 'advisors.maintenance',
+    type: 'bool',
+    default: false,
+    description: 'Mantenimiento SOLO para asesores: ven una pantalla de "acceso temporalmente deshabilitado".',
+  },
+  {
+    key: 'billing.maintenance',
+    type: 'bool',
+    default: false,
+    description: 'Mantenimiento de FACTURACIÓN (para descuadres): oculta la facturación con una vista de mantenimiento.',
+  },
   {
     key: 'advisor.lock_enabled',
     type: 'bool',
@@ -247,6 +284,11 @@ export const PUBLIC_CONFIG_KEYS = {
   premiumTrialDays: 'premium.trial_days',
   chatEnabled: 'chat.enabled',
   canFeatureEvents: 'promoter.can_feature_events',
+  homeSliderEnabled: 'home.slider_enabled',
+  seatmapEnabled: 'seatmap.enabled',
+  eventsCreationEnabled: 'events.creation_enabled',
+  advisorsMaintenance: 'advisors.maintenance',
+  billingMaintenance: 'billing.maintenance',
 } as const;
 
 export const SETTINGS_BY_KEY: Map<string, SettingDef> = new Map(

@@ -38,6 +38,16 @@ export interface PublicConfig {
   chatEnabled?: boolean;
   /** ¿Los promotores pueden destacar sus eventos en el inicio? */
   canFeatureEvents?: boolean;
+  /** ¿El slider del inicio está habilitado? (false = siempre oculto). */
+  homeSliderEnabled?: boolean;
+  /** ¿El mapa de asientos está habilitado? */
+  seatmapEnabled?: boolean;
+  /** ¿La creación de eventos está habilitada? */
+  eventsCreationEnabled?: boolean;
+  /** Mantenimiento solo para asesores. */
+  advisorsMaintenance?: boolean;
+  /** Mantenimiento de facturación. */
+  billingMaintenance?: boolean;
 }
 
 /**

@@ -131,6 +131,12 @@ async function seedSettings(): Promise<void> {
       value: false,
       description: 'Permite a los promotores destacar su evento en el inicio (default false = oculto).',
     },
+    { key: 'events.creation_enabled', value: true, description: 'Habilita la creación de eventos por promotores.' },
+    { key: 'home.slider_enabled', value: true, description: 'Muestra el slider del inicio (false = siempre oculto).' },
+    { key: 'seatmap.enabled', value: true, description: 'Habilita el uso del mapa de asientos.' },
+    { key: 'advisors.enabled', value: true, description: 'Habilita el rol asesor (soporte).' },
+    { key: 'advisors.maintenance', value: false, description: 'Mantenimiento solo para asesores (pantalla de acceso deshabilitado).' },
+    { key: 'billing.maintenance', value: false, description: 'Mantenimiento de facturación (oculta la facturación por descuadres).' },
     {
       key: 'advisor.lock_enabled',
       value: true,

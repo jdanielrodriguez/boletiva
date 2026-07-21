@@ -88,6 +88,21 @@ export class PublicConfigDto {
 
   @ApiProperty({ description: 'Si los promotores pueden destacar sus eventos en el inicio.', example: false })
   canFeatureEvents!: boolean;
+
+  @ApiProperty({ description: 'Si el slider del inicio está habilitado.', example: true })
+  homeSliderEnabled!: boolean;
+
+  @ApiProperty({ description: 'Si el mapa de asientos está habilitado.', example: true })
+  seatmapEnabled!: boolean;
+
+  @ApiProperty({ description: 'Si la creación de eventos está habilitada.', example: true })
+  eventsCreationEnabled!: boolean;
+
+  @ApiProperty({ description: 'Mantenimiento solo para asesores.', example: false })
+  advisorsMaintenance!: boolean;
+
+  @ApiProperty({ description: 'Mantenimiento de facturación.', example: false })
+  billingMaintenance!: boolean;
 }
 
 export class SettingViewDto {

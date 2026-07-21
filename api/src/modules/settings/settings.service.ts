@@ -41,6 +41,11 @@ export interface PublicConfig {
   premium: { enabled: boolean; trialEnabled: boolean; trialDays: number };
   chatEnabled: boolean;
   canFeatureEvents: boolean;
+  homeSliderEnabled: boolean;
+  seatmapEnabled: boolean;
+  eventsCreationEnabled: boolean;
+  advisorsMaintenance: boolean;
+  billingMaintenance: boolean;
 }
 
 export interface SettingView {
@@ -130,6 +135,11 @@ export class SettingsService {
       },
       chatEnabled: resolveBool(PUBLIC_CONFIG_KEYS.chatEnabled),
       canFeatureEvents: resolveBool(PUBLIC_CONFIG_KEYS.canFeatureEvents),
+      homeSliderEnabled: resolveBool(PUBLIC_CONFIG_KEYS.homeSliderEnabled),
+      seatmapEnabled: resolveBool(PUBLIC_CONFIG_KEYS.seatmapEnabled),
+      eventsCreationEnabled: resolveBool(PUBLIC_CONFIG_KEYS.eventsCreationEnabled),
+      advisorsMaintenance: resolveBool(PUBLIC_CONFIG_KEYS.advisorsMaintenance),
+      billingMaintenance: resolveBool(PUBLIC_CONFIG_KEYS.billingMaintenance),
     };
   }
 
