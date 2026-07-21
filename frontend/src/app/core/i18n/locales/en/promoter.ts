@@ -291,6 +291,7 @@ export const promoter = {
   // --- Seat editor (Konva) ---
   seat: {
     readonlyNote: 'The seat map is in read-only mode.',
+    mobileHint: 'Tip: the map editor works best on a large screen (desktop or a tablet in landscape).',
     rows: 'Rows',
     seatsPerRow: 'Seats per row',
     section: 'Section',

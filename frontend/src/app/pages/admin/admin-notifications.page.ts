@@ -5,6 +5,8 @@ import { AdminApi } from '../../core/api/admin.api';
 import { NotificationsApi } from '../../core/api/notifications.api';
 import { ToastService } from '../../core/ui/toast.service';
 import { BackLinkComponent } from '../../shared/ui/back-link.component';
+import { ConfirmController } from '../../shared/confirm-dialog/confirm-controller';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import type { PromoterListItemDto } from '../../core/api/types';
 
 /**
@@ -14,7 +16,7 @@ import type { PromoterListItemDto } from '../../core/api/types';
 @Component({
   selector: 'app-admin-notifications',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, TranslatePipe, BackLinkComponent],
+  imports: [FormsModule, TranslatePipe, BackLinkComponent, ConfirmDialogComponent],
   template: `
     <section class="admin-notif">
       <app-back-link link="/configuracion" [label]="'notifications.back' | translate" testId="notif-back" />
@@ -30,10 +32,21 @@ import type { PromoterListItemDto } from '../../core/api/types';
         @if (!all()) {
           <label class="field">
             <span>{{ 'notifications.promoter' | translate }}</span>
-            <select [(ngModel)]="promoterId" name="promoter" data-testid="notif-promoter" required>
+            <!-- Typeahead: filtra el listado (escala a cientos/miles de promotores sin
+                 recorrer un <select> gigante — QA Lote B). -->
+            <input
+              type="search"
+              [ngModel]="promoterFilter()"
+              (ngModelChange)="promoterFilter.set($event)"
+              name="promoterFilter"
+              [placeholder]="'notifications.searchPromoter' | translate"
+              data-testid="notif-promoter-search" />
+            <select [(ngModel)]="promoterId" name="promoter" data-testid="notif-promoter" required size="6">
               <option value="" disabled>{{ 'notifications.pickPromoter' | translate }}</option>
-              @for (p of promoters(); track p.id) {
+              @for (p of filteredPromoters(); track p.id) {
                 <option [value]="p.id">{{ p.firstName }} {{ p.lastName }} — {{ p.email }}</option>
+              } @empty {
+                <option value="" disabled>{{ 'notifications.noPromoterMatch' | translate }}</option>
               }
             </select>
           </label>
@@ -61,6 +74,18 @@ import type { PromoterListItemDto } from '../../core/api/types';
         </button>
       </form>
     </section>
+
+    @if (confirm.request(); as cf) {
+      <app-confirm-dialog
+        [title]="cf.title"
+        [message]="cf.message"
+        [confirmLabel]="cf.confirmLabel ?? ('notifications.send' | translate)"
+        [confirmIcon]="cf.confirmIcon ?? 'alert'"
+        [danger]="cf.danger ?? false"
+        [titleIcon]="cf.titleIcon"
+        (accept)="confirm.accept()"
+        (cancelled)="confirm.cancel()" />
+    }
   `,
   styles: [
     `
@@ -82,11 +107,21 @@ export class AdminNotificationsPage {
   private readonly translate = inject(TranslateService);
 
   protected readonly promoters = signal<PromoterListItemDto[]>([]);
+  protected readonly promoterFilter = signal('');
+  protected readonly filteredPromoters = computed(() => {
+    const q = this.promoterFilter().trim().toLowerCase();
+    const all = this.promoters();
+    if (!q) return all;
+    return all.filter((p) =>
+      `${p.firstName ?? ''} ${p.lastName ?? ''} ${p.email}`.toLowerCase().includes(q),
+    );
+  });
   protected readonly all = signal(false);
   protected readonly promoterId = signal('');
   protected readonly title = signal('');
   protected readonly body = signal('');
   protected readonly working = signal(false);
+  protected readonly confirm = new ConfirmController();
 
   protected readonly canSend = computed(
     () => this.title().trim().length >= 2 && this.body().trim().length >= 1 && (this.all() || !!this.promoterId()),
@@ -97,6 +132,23 @@ export class AdminNotificationsPage {
   }
 
   protected send(): void {
+    if (!this.canSend() || this.working()) return;
+    // Broadcast a TODOS los promotores: fan-out masivo e irreversible → confirmar antes.
+    if (this.all()) {
+      this.confirm.ask({
+        title: this.translate.instant('notifications.confirmAllTitle'),
+        message: this.translate.instant('notifications.confirmAllMsg'),
+        confirmLabel: this.translate.instant('notifications.confirmAllOk'),
+        confirmIcon: 'alert',
+        danger: false,
+        onConfirm: () => this.doSend(),
+      });
+      return;
+    }
+    this.doSend();
+  }
+
+  private doSend(): void {
     if (!this.canSend() || this.working()) return;
     this.working.set(true);
     const payload = this.all()

@@ -112,23 +112,31 @@
             <!-- AGENTE: acciones de ciclo de vida -->
             @if (isAgent()) {
               <div class="chat-actions" data-testid="chat-agent-actions">
+                <!-- Acción PRIMARIA destacada (tomar si sin asignar; si no, resolver). -->
                 @if (t.status === 'new' || !t.assignedToId) {
-                  <button type="button" class="btn small" [disabled]="working()" (click)="take()" data-testid="chat-take">{{ 'chat.take' | translate }}</button>
+                  <button type="button" class="btn small primary" [disabled]="working()" (click)="take()" data-testid="chat-take">{{ 'chat.take' | translate }}</button>
                 }
                 @if (t.status !== 'resolved' && t.status !== 'closed') {
-                  <button type="button" class="btn small" [disabled]="working()" (click)="resolve()" data-testid="chat-resolve">{{ 'chat.resolve' | translate }}</button>
+                  <button type="button" class="btn small primary" [disabled]="working()" (click)="resolve()" data-testid="chat-resolve">{{ 'chat.resolve' | translate }}</button>
                 }
-                @if (t.status === 'suspended') {
-                  <button type="button" class="btn small" [disabled]="working()" (click)="resume()" data-testid="chat-resume">{{ 'chat.resume' | translate }}</button>
-                } @else if (t.status !== 'closed') {
-                  <button type="button" class="btn small" [disabled]="working()" (click)="suspend()" data-testid="chat-suspend">{{ 'chat.suspend' | translate }}</button>
-                }
-                @if (t.status === 'resolved' || t.status === 'closed') {
-                  <button type="button" class="btn small" [disabled]="working()" (click)="reopen()" data-testid="chat-reopen">{{ 'chat.reopen' | translate }}</button>
-                }
-                @if (t.status !== 'closed') {
-                  <button type="button" class="btn small" [disabled]="working()" (click)="close()" data-testid="chat-close">{{ 'chat.close' | translate }}</button>
-                }
+                <!-- Acciones SECUNDARIAS en un menú overflow (kebab). <details> las mantiene
+                     en el DOM aunque esté cerrado (accesibles y testeables). -->
+                <details class="chat-actions-more">
+                  <summary class="btn small icon-only" [attr.aria-label]="'chat.moreActions' | translate" data-testid="chat-more">⋯</summary>
+                  <div class="chat-actions-more-list">
+                    @if (t.status === 'suspended') {
+                      <button type="button" class="btn small" [disabled]="working()" (click)="resume()" data-testid="chat-resume">{{ 'chat.resume' | translate }}</button>
+                    } @else if (t.status !== 'closed') {
+                      <button type="button" class="btn small" [disabled]="working()" (click)="suspend()" data-testid="chat-suspend">{{ 'chat.suspend' | translate }}</button>
+                    }
+                    @if (t.status === 'resolved' || t.status === 'closed') {
+                      <button type="button" class="btn small" [disabled]="working()" (click)="reopen()" data-testid="chat-reopen">{{ 'chat.reopen' | translate }}</button>
+                    }
+                    @if (t.status !== 'closed') {
+                      <button type="button" class="btn small" [disabled]="working()" (click)="close()" data-testid="chat-close">{{ 'chat.close' | translate }}</button>
+                    }
+                  </div>
+                </details>
                 <select class="chat-prio-select" [ngModel]="t.priority" (ngModelChange)="changePriority($event)" data-testid="chat-set-priority" [attr.aria-label]="'chat.priorityLabel' | translate">
                   @for (p of priorities; track p) { <option [ngValue]="p">{{ 'chat.priority.' + p | translate }}</option> }
                 </select>

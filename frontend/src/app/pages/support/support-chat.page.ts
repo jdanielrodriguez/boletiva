@@ -1,4 +1,4 @@
-import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnDestroy, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -42,6 +42,7 @@ const AGENT_STATUS: (SupportStatus | '')[] = ['', 'new', 'open', 'awaiting_suppo
   templateUrl: './support-chat.page.html',
 })
 export class SupportChatPage implements OnDestroy {
+  private readonly host = inject(ElementRef<HTMLElement>);
   private readonly api = inject(ChatApi);
   private readonly socket = inject(ChatSocketService);
   private readonly session = inject(SessionStore);
@@ -66,6 +67,8 @@ export class SupportChatPage implements OnDestroy {
   /** Estado de carga/error de la bandeja (evita el falso "sin tickets" y errores silenciados). */
   protected readonly loading = signal(false);
   protected readonly listError = signal(false);
+  /** ¿El agente ya cargó más allá de la 1ª página? (para no resetear la cola con cada actividad). */
+  private readonly pagedBeyond = signal(false);
   protected readonly active = signal<ChatThread | null>(null);
   protected readonly messages = signal<ChatMessage[]>([]);
   protected readonly composingNew = signal(false);
@@ -110,7 +113,16 @@ export class SupportChatPage implements OnDestroy {
         this.messages.update((list) => [...list, m]);
       }
     });
-    this.socket.activity$.subscribe(() => this.reloadList());
+    this.socket.activity$.subscribe((a) => this.applyActivity(a.ticketId));
+    // Auto-scroll al fondo de la conversación cuando cambia el nº de mensajes (envío/recepción).
+    effect(() => {
+      const n = this.messages().length;
+      if (n === 0) return;
+      setTimeout(() => {
+        const box = this.host.nativeElement.querySelector('[data-testid="chat-messages"]');
+        if (box) box.scrollTop = box.scrollHeight;
+      }, 0);
+    });
   }
 
   ngOnDestroy(): void {
@@ -121,6 +133,28 @@ export class SupportChatPage implements OnDestroy {
   private reloadList(): void {
     if (this.isAgent()) this.loadQueue(true);
     else this.reloadOwn();
+  }
+
+  /**
+   * Actividad en vivo de un ticket (socket). Preserva la paginación/scroll del agente:
+   *  - si el ticket está abierto, los mensajes ya llegan por message$ (no toca la lista);
+   *  - si está visible en la cola, lo sube al frente SIN refetch;
+   *  - si no está visible pero seguimos en la 1ª página, refetch barato de la 1ª página;
+   *  - si el agente ya paginó ("cargar más"), NO resetea la cola (evita perder páginas).
+   */
+  private applyActivity(ticketId: string): void {
+    if (this.active()?.id === ticketId) return;
+    if (!this.isAgent()) {
+      this.reloadOwn();
+      return;
+    }
+    const list = this.threads();
+    const idx = list.findIndex((t) => t.id === ticketId);
+    if (idx > 0) {
+      this.threads.set([list[idx], ...list.slice(0, idx), ...list.slice(idx + 1)]);
+    } else if (idx === -1 && !this.pagedBeyond()) {
+      this.loadQueue(true);
+    }
   }
 
   private reloadOwn(): void {
@@ -147,6 +181,9 @@ export class SupportChatPage implements OnDestroy {
     if (reset) {
       this.loading.set(true);
       this.listError.set(false);
+      this.pagedBeyond.set(false);
+    } else {
+      this.pagedBeyond.set(true);
     }
     this.api.queue(filters, reset ? undefined : (this.nextCursor() ?? undefined)).subscribe({
       next: (page) => {

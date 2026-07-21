@@ -73,6 +73,10 @@
               <a routerLink="/admin/notificaciones" (click)="closeMenu()" data-testid="admin-notif-link">{{ 'notifications.adminSendTitle' | translate }}</a>
               <a routerLink="/admin/asesores" (click)="closeMenu()" data-testid="admin-advisors-link">{{ 'advisor.admin.title' | translate }}</a>
             }
+            @if (session.hasAnyRole(['advisor']) && !session.hasAnyRole(['admin'])) {
+              <a routerLink="/configuracion" (click)="closeMenu()" data-testid="advisor-config-link">{{ 'shell.configuration' | translate }}</a>
+              <a routerLink="/soporte" (click)="closeMenu()" data-testid="advisor-support-link">{{ 'chat.title' | translate }}</a>
+            }
             <button type="button" data-testid="logout-btn" (click)="logout()">{{ 'shell.logout' | translate }}</button>
           </div>
         }

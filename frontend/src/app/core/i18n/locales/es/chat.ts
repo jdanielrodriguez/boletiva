@@ -6,6 +6,7 @@ export const chat = {
   newThread: 'Nuevo ticket',
   noThreads: 'Sin tickets todavía.',
   loadError: 'No se pudieron cargar los tickets. Reintenta en un momento.',
+  moreActions: 'Más acciones',
   subject: 'Asunto',
   firstMessage: 'Escribe tu consulta…',
   typeMessage: 'Escribe un mensaje…',

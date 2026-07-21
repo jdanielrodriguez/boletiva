@@ -290,6 +290,7 @@ export const promoter = {
   // --- Editor de asientos (Konva) ---
   seat: {
     readonlyNote: 'El mapa de asientos está en modo solo lectura.',
+    mobileHint: 'Consejo: el editor del mapa se usa mejor en una pantalla grande (computadora o tablet en horizontal).',
     rows: 'Filas',
     seatsPerRow: 'Asientos por fila',
     section: 'Sección',

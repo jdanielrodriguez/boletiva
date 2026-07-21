@@ -279,6 +279,14 @@ textarea:focus {
   color: #6b7180;
 }
 
+/* Franja superior fija (banners + header). Pinada arriba durante todo el scroll para
+   que el aviso de impersonación nunca se pierda de vista (QA Lote B). */
+.topbar-stack {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
 /* --- Header --- */
 .site-header {
   position: sticky;
@@ -3271,6 +3279,18 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
 .chat-head-title { display: flex; flex-direction: column; gap: 0.35rem; }
 .chat-head-badges { display: flex; flex-wrap: wrap; gap: 0.35rem; }
 .chat-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+/* Menú overflow (kebab) de acciones secundarias del ticket. <details> mantiene la lista
+   en el DOM cuando está cerrado (accesible/testeable); al abrir cae como dropdown. */
+.chat-actions-more { position: relative; }
+.chat-actions-more > summary { list-style: none; cursor: pointer; }
+.chat-actions-more > summary::-webkit-details-marker { display: none; }
+.chat-actions-more-list {
+  position: absolute; right: 0; top: calc(100% + 0.25rem); z-index: 6;
+  display: flex; flex-direction: column; gap: 0.3rem; padding: 0.35rem;
+  background: var(--pe-surface); border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius-sm); box-shadow: var(--pe-shadow); min-width: 150px;
+}
+.chat-actions-more-list .btn { width: 100%; justify-content: flex-start; }
 .chat-prio-select, .chat-new-meta select { min-height: 2.2rem; }
 .chat-new-meta { display: flex; gap: 0.75rem; flex-wrap: wrap; }
 .chat-new-meta label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.85rem; }
@@ -3351,6 +3371,19 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
   .chat-star { min-width: 44px; min-height: 44px; }
   .imp-exit { min-height: 44px; }
   select { min-height: 44px; }
+}
+
+/* Aviso móvil del editor de asientos (oculto en pantallas grandes). */
+.seat-mobile-hint { display: none; }
+@media (max-width: 720px) {
+  .seat-mobile-hint {
+    display: block;
+    margin: 0 0 0.6rem;
+    padding: 0.5rem 0.7rem;
+    border-radius: var(--pe-radius-sm);
+    background: var(--pe-warning-soft);
+    color: var(--pe-warning-strong);
+  }
 }
 
 /* Edición de evento */
