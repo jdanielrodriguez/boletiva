@@ -21,13 +21,16 @@ describe('SettlementService (branches, unit)', () => {
     const ledger = { post: jest.fn().mockResolvedValue({}) };
     const audit = { record: jest.fn().mockResolvedValue(undefined) };
     const queue = { enqueue: jest.fn().mockResolvedValue(undefined) };
+    // T5: SettlementService notifica al promotor (liquidación/evento finalizado).
+    const notifications = { emit: jest.fn().mockResolvedValue(undefined) };
     const service = new SettlementService(
       prisma as never,
       ledger as never,
       audit as never,
       queue as never,
+      notifications as never,
     );
-    return { prisma, ledger, audit, queue, service };
+    return { prisma, ledger, audit, queue, notifications, service };
   };
 
   const owner: AuthUser = { userId: 'promo', email: 'p@x.com', roles: [Role.promoter] };
