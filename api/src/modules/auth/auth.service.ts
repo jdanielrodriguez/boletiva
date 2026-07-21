@@ -46,6 +46,7 @@ export interface PublicUser {
   twoFactorMethod: User['twoFactorMethod'];
   language: string;
   themePref: string | null;
+  emailNotificationsEnabled: boolean;
   /** Usuario de PRUEBA (invitado en modo test): sus eventos usan Sandbox, sin cargos reales. */
   isTestUser: boolean;
   /** Facturación (FEL): NIT, nombre fiscal y DPI (opcional). */
@@ -106,6 +107,7 @@ export class AuthService {
       twoFactorMethod: user.twoFactorMethod,
       language: user.language,
       themePref: user.themePref,
+      emailNotificationsEnabled: user.emailNotificationsEnabled,
       isTestUser: user.isTestUser,
       nit: user.nit,
       billingName: user.billingName,

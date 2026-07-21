@@ -157,6 +157,17 @@
           </div>
 
           <div class="card-block">
+            <h3>{{ 'account.notifs.title' | translate }}</h3>
+            <p class="muted">{{ 'account.notifs.hint' | translate }}</p>
+            <app-switch
+              [checked]="emailNotifs()"
+              (checkedChange)="toggleEmailNotifs($event)"
+              [label]="(emailNotifs() ? 'account.notifs.on' : 'account.notifs.off') | translate"
+              testId="account-email-notifs"
+            />
+          </div>
+
+          <div class="card-block">
             <h3>{{ 'account.password.title' | translate }}</h3>
             <p class="muted">{{ 'account.password.hint' | translate }}</p>
             <form class="stacked-form" (ngSubmit)="changePassword()">

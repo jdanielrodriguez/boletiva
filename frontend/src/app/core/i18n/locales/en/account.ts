@@ -47,6 +47,14 @@ export const account = {
     saved: 'Theme updated.',
     saveError: 'Could not save the theme.',
   },
+  notifs: {
+    title: 'Email notifications',
+    hint: 'Receive support and event notifications by email. Does not affect security emails (codes, sign-in).',
+    on: 'On',
+    off: 'Off',
+    saved: 'Preference updated.',
+    saveError: 'Could not save the preference.',
+  },
   twofa: {
     title: 'Two-factor authentication (2FA)',
     hint: 'Choose how to receive your second factor when signing in on a new device.',

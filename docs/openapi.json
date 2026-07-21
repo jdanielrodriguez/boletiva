@@ -8101,16 +8101,16 @@
         ]
       }
     },
-    "/api/v1/chat/threads": {
+    "/api/v1/support/tickets": {
       "post": {
-        "operationId": "ChatController_createThread_v1",
+        "operationId": "SupportController_create_v1",
         "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateThreadDto"
+                "$ref": "#/components/schemas/CreateTicketDto"
               }
             }
           }
@@ -8125,14 +8125,23 @@
             "bearer": []
           }
         ],
-        "summary": "Abre un hilo de soporte (promotor premium)",
+        "summary": "Abre un ticket de soporte (promotor premium)",
         "tags": [
-          "chat"
+          "support"
         ]
       },
       "get": {
-        "operationId": "ChatController_listThreads_v1",
-        "parameters": [],
+        "operationId": "SupportController_list_v1",
+        "parameters": [
+          {
+            "name": "archived",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -8143,15 +8152,15 @@
             "bearer": []
           }
         ],
-        "summary": "Lista de hilos (promotor: los suyos; agente: todos)",
+        "summary": "Lista de tickets (promotor: los suyos; agente: todos)",
         "tags": [
-          "chat"
+          "support"
         ]
       }
     },
-    "/api/v1/chat/threads/{id}/messages": {
+    "/api/v1/support/tickets/{id}/messages": {
       "get": {
-        "operationId": "ChatController_messages_v1",
+        "operationId": "SupportController_messages_v1",
         "parameters": [
           {
             "name": "id",
@@ -8172,13 +8181,13 @@
             "bearer": []
           }
         ],
-        "summary": "Historial de mensajes de un hilo",
+        "summary": "Historial de mensajes de un ticket",
         "tags": [
-          "chat"
+          "support"
         ]
       },
       "post": {
-        "operationId": "ChatController_post_v1",
+        "operationId": "SupportController_post_v1",
         "parameters": [
           {
             "name": "id",
@@ -8209,73 +8218,15 @@
             "bearer": []
           }
         ],
-        "summary": "Publica un mensaje en un hilo",
+        "summary": "Publica un mensaje (o nota interna del agente), con adjuntos opcionales",
         "tags": [
-          "chat"
+          "support"
         ]
       }
     },
-    "/api/v1/chat/threads/{id}/close": {
+    "/api/v1/support/tickets/{id}/attachments/presign": {
       "post": {
-        "operationId": "ChatController_close_v1",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Cierra un hilo",
-        "tags": [
-          "chat"
-        ]
-      }
-    },
-    "/api/v1/chat/threads/{id}/reopen": {
-      "post": {
-        "operationId": "ChatController_reopen_v1",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Reabre un hilo",
-        "tags": [
-          "chat"
-        ]
-      }
-    },
-    "/api/v1/chat/threads/{id}/assign": {
-      "post": {
-        "operationId": "ChatController_assign_v1",
+        "operationId": "SupportController_presign_v1",
         "parameters": [
           {
             "name": "id",
@@ -8291,7 +8242,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AssignThreadDto"
+                "$ref": "#/components/schemas/PresignAttachmentDto"
               }
             }
           }
@@ -8306,9 +8257,873 @@
             "bearer": []
           }
         ],
-        "summary": "Reasigna un hilo a un asesor/admin (handoff, admin)",
+        "summary": "URL firmada para subir un adjunto (el cliente hace PUT directo)",
         "tags": [
-          "chat"
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/tickets/{id}/take": {
+      "post": {
+        "operationId": "SupportController_take_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "El agente toma el ticket (auto-asignación)",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/tickets/{id}/assign": {
+      "post": {
+        "operationId": "SupportController_assign_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignTicketDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reasigna a un asesor/admin (handoff, admin)",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/tickets/{id}/resolve": {
+      "post": {
+        "operationId": "SupportController_resolve_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Marca el ticket como resuelto (agente)",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/tickets/{id}/close": {
+      "post": {
+        "operationId": "SupportController_close_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cierra el ticket (agente o promotor dueño)",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/tickets/{id}/reopen": {
+      "post": {
+        "operationId": "SupportController_reopen_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reabre un ticket resuelto/cerrado (agente)",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/tickets/{id}/suspend": {
+      "post": {
+        "operationId": "SupportController_suspend_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Suspende el ticket (congela SLA, agente)",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/tickets/{id}/resume": {
+      "post": {
+        "operationId": "SupportController_resume_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reanuda un ticket suspendido (agente)",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/tickets/{id}/priority": {
+      "post": {
+        "operationId": "SupportController_priority_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPriorityDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cambia la prioridad (recalcula SLA, agente)",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/tickets/{id}/category": {
+      "post": {
+        "operationId": "SupportController_category_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetCategoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cambia la categoría (agente)",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/tickets/{id}/archive": {
+      "post": {
+        "operationId": "SupportController_archive_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Archiva el ticket (oculta la vista del promotor dueño)",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/tickets/{id}/rate": {
+      "post": {
+        "operationId": "SupportController_rate_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RateTicketDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Califica la atención 1..5 (promotor dueño)",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/queue": {
+      "get": {
+        "operationId": "SupportExtrasController_queue_v1",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Cursor: id de la última fila de la página previa",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Tamaño de página (1–100, default 20)",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "new",
+                "open",
+                "awaiting_promoter",
+                "awaiting_support",
+                "resolved",
+                "closed",
+                "suspended",
+                "reopened"
+              ]
+            }
+          },
+          {
+            "name": "priority",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "low",
+                "medium",
+                "high",
+                "urgent"
+              ]
+            }
+          },
+          {
+            "name": "category",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "billing",
+                "payments_settlement",
+                "event",
+                "technical",
+                "account",
+                "other"
+              ]
+            }
+          },
+          {
+            "name": "assigneeId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "unassigned",
+            "required": false,
+            "in": "query",
+            "description": "'true' = solo sin asignar",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mine",
+            "required": false,
+            "in": "query",
+            "description": "'true' = solo los asignados a mí",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cola de tickets con filtros + keyset pagination (agente)",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/metrics": {
+      "get": {
+        "operationId": "SupportExtrasController_metrics_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Resumen operativo del soporte (volumen, SLA, CSAT)",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/sla": {
+      "get": {
+        "operationId": "SupportExtrasController_getSla_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Objetivos SLA efectivos por prioridad",
+        "tags": [
+          "support"
+        ]
+      },
+      "patch": {
+        "operationId": "SupportExtrasController_setSla_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SlaConfigDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Ajusta los objetivos SLA (admin)",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/macros": {
+      "get": {
+        "operationId": "SupportExtrasController_listMacros_v1",
+        "parameters": [
+          {
+            "name": "lang",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lista de respuestas rápidas (filtrable por idioma/categoría)",
+        "tags": [
+          "support"
+        ]
+      },
+      "post": {
+        "operationId": "SupportExtrasController_createMacro_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MacroDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crea una respuesta rápida",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/macros/{id}": {
+      "patch": {
+        "operationId": "SupportExtrasController_updateMacro_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MacroPatchDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edita una respuesta rápida",
+        "tags": [
+          "support"
+        ]
+      },
+      "delete": {
+        "operationId": "SupportExtrasController_deleteMacro_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Elimina una respuesta rápida",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/notifications": {
+      "get": {
+        "operationId": "NotificationsController_list_v1",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Cursor: id de la última fila de la página previa",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Tamaño de página (1–100, default 20)",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mis notificaciones (keyset)",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/unread-count": {
+      "get": {
+        "operationId": "NotificationsController_unread_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Contador de no-leídas",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/read/{id}": {
+      "post": {
+        "operationId": "NotificationsController_read_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Marca una notificación como leída",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/read-all": {
+      "post": {
+        "operationId": "NotificationsController_readAll_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Marca todas como leídas",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/preferences": {
+      "get": {
+        "operationId": "NotificationsController_prefs_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mis preferencias de notificación",
+        "tags": [
+          "notifications"
+        ]
+      },
+      "patch": {
+        "operationId": "NotificationsController_setPref_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPreferenceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Activa/desactiva un tipo por canal",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/admin/send": {
+      "post": {
+        "operationId": "NotificationsController_adminSend_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminSendDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Envía una notificación manual a un promotor o a todos (admin)",
+        "tags": [
+          "notifications"
         ]
       }
     }
@@ -8466,6 +9281,11 @@
             ],
             "example": "noche",
             "nullable": true
+          },
+          "emailNotificationsEnabled": {
+            "type": "boolean",
+            "description": "Recibir notificaciones por correo (negocio/soporte).",
+            "example": true
           },
           "isTestUser": {
             "type": "boolean",
@@ -9042,6 +9862,11 @@
             ],
             "example": "noche"
           },
+          "emailNotificationsEnabled": {
+            "type": "boolean",
+            "description": "Recibir notificaciones por correo (negocio/soporte). No afecta a los correos de seguridad.",
+            "example": true
+          },
           "nit": {
             "type": "string",
             "description": "NIT para facturación (FEL). Vacío = sin NIT (se factura como CF). Necesario para facturar a nombre.",
@@ -9148,6 +9973,11 @@
             ],
             "example": "noche",
             "nullable": true
+          },
+          "emailNotificationsEnabled": {
+            "type": "boolean",
+            "description": "Recibir notificaciones por correo (negocio/soporte).",
+            "example": true
           },
           "lastLoginAt": {
             "type": "string",
@@ -16980,6 +17810,36 @@
             "type": "boolean",
             "description": "Si el chat de soporte está habilitado.",
             "example": false
+          },
+          "canFeatureEvents": {
+            "type": "boolean",
+            "description": "Si los promotores pueden destacar sus eventos en el inicio.",
+            "example": false
+          },
+          "homeSliderEnabled": {
+            "type": "boolean",
+            "description": "Si el slider del inicio está habilitado.",
+            "example": true
+          },
+          "seatmapEnabled": {
+            "type": "boolean",
+            "description": "Si el mapa de asientos está habilitado.",
+            "example": true
+          },
+          "eventsCreationEnabled": {
+            "type": "boolean",
+            "description": "Si la creación de eventos está habilitada.",
+            "example": true
+          },
+          "advisorsMaintenance": {
+            "type": "boolean",
+            "description": "Mantenimiento solo para asesores.",
+            "example": false
+          },
+          "billingMaintenance": {
+            "type": "boolean",
+            "description": "Mantenimiento de facturación.",
+            "example": false
           }
         },
         "required": [
@@ -16991,7 +17851,13 @@
           "recaptchaSiteKey",
           "theme",
           "premium",
-          "chatEnabled"
+          "chatEnabled",
+          "canFeatureEvents",
+          "homeSliderEnabled",
+          "seatmapEnabled",
+          "eventsCreationEnabled",
+          "advisorsMaintenance",
+          "billingMaintenance"
         ]
       },
       "MaintenanceStatusDto": {
@@ -17272,21 +18138,77 @@
           "token"
         ]
       },
-      "CreateThreadDto": {
+      "CreateTicketDto": {
         "type": "object",
         "properties": {
           "subject": {
             "type": "string",
-            "example": "Duda con mi evento"
+            "example": "Duda con la liquidación de mi evento"
           },
           "message": {
             "type": "string",
-            "example": "Hola, tengo una duda sobre las comisiones."
+            "example": "Hola, no me cuadra el neto liquidado."
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "billing",
+              "payments_settlement",
+              "event",
+              "technical",
+              "account",
+              "other"
+            ]
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "urgent"
+            ]
+          },
+          "contextType": {
+            "type": "string",
+            "enum": [
+              "event",
+              "order",
+              "settlement"
+            ]
+          },
+          "contextId": {
+            "type": "string",
+            "format": "uuid"
           }
         },
         "required": [
           "subject",
           "message"
+        ]
+      },
+      "AttachmentDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Key devuelta por el presign"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "mime": {
+            "type": "string"
+          },
+          "size": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "key",
+          "filename",
+          "mime",
+          "size"
         ]
       },
       "PostMessageDto": {
@@ -17295,23 +18217,225 @@
           "body": {
             "type": "string",
             "example": "Gracias, ya lo revisé."
+          },
+          "internalNote": {
+            "type": "boolean",
+            "description": "Nota interna del agente (no visible al promotor)"
+          },
+          "attachments": {
+            "description": "Adjuntos ya subidos vía presign",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AttachmentDto"
+            }
           }
         },
         "required": [
           "body"
         ]
       },
-      "AssignThreadDto": {
+      "PresignAttachmentDto": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string",
+            "example": "captura.png"
+          },
+          "mime": {
+            "type": "string",
+            "example": "image/png"
+          }
+        },
+        "required": [
+          "filename",
+          "mime"
+        ]
+      },
+      "AssignTicketDto": {
         "type": "object",
         "properties": {
           "assignedToId": {
             "type": "string",
             "format": "uuid",
-            "description": "Asesor/admin al que se reasigna el hilo"
+            "description": "Asesor/admin al que se reasigna"
           }
         },
         "required": [
           "assignedToId"
+        ]
+      },
+      "SetPriorityDto": {
+        "type": "object",
+        "properties": {
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "urgent"
+            ]
+          }
+        },
+        "required": [
+          "priority"
+        ]
+      },
+      "SetCategoryDto": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": [
+              "billing",
+              "payments_settlement",
+              "event",
+              "technical",
+              "account",
+              "other"
+            ]
+          }
+        },
+        "required": [
+          "category"
+        ]
+      },
+      "RateTicketDto": {
+        "type": "object",
+        "properties": {
+          "score": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 5,
+            "example": 5
+          }
+        },
+        "required": [
+          "score"
+        ]
+      },
+      "SlaConfigDto": {
+        "type": "object",
+        "properties": {
+          "targets": {
+            "type": "object",
+            "description": "Mapa { prioridad: { firstResponseMins, resolutionHours } }. Parcial permitido.",
+            "example": {
+              "urgent": {
+                "firstResponseMins": 10,
+                "resolutionHours": 2
+              }
+            }
+          }
+        },
+        "required": [
+          "targets"
+        ]
+      },
+      "MacroDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Saludo inicial"
+          },
+          "body": {
+            "type": "string",
+            "example": "Hola, gracias por escribir a soporte. Estoy revisando tu caso."
+          },
+          "lang": {
+            "type": "string",
+            "example": "es"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "billing",
+              "payments_settlement",
+              "event",
+              "technical",
+              "account",
+              "other"
+            ]
+          }
+        },
+        "required": [
+          "title",
+          "body"
+        ]
+      },
+      "MacroPatchDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "lang": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "billing",
+              "payments_settlement",
+              "event",
+              "technical",
+              "account",
+              "other"
+            ]
+          }
+        }
+      },
+      "SetPreferenceDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "inapp",
+              "email"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "type",
+          "channel",
+          "enabled"
+        ]
+      },
+      "AdminSendDto": {
+        "type": "object",
+        "properties": {
+          "promoterId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Promotor destino (si no es \"a todos\")"
+          },
+          "all": {
+            "type": "boolean",
+            "description": "true = a todos los promotores"
+          },
+          "title": {
+            "type": "string",
+            "example": "Mantenimiento programado"
+          },
+          "body": {
+            "type": "string",
+            "example": "El sábado habrá mantenimiento de 2 a 4 am."
+          }
+        },
+        "required": [
+          "title",
+          "body"
         ]
       }
     }

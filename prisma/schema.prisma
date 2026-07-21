@@ -438,6 +438,11 @@ model User {
   // resuelve la asignación admin franja→tema. Solo aplica si el admin permite el switch.
   themePref    String?    @map("theme_pref")
 
+  // T7: preferencia de PERFIL para recibir notificaciones por correo. NO afecta a los
+  // correos de SEGURIDAD (OTP/verificación/login), que van por otra vía; solo a las
+  // notificaciones de negocio/soporte (NotificationsService canal email).
+  emailNotificationsEnabled Boolean @default(true) @map("email_notifications_enabled")
+
   // Foto de perfil (opcional). Se guarda la KEY del objeto en storage (patrón
   // event-media: firmar al leer); `avatarUrl` de las respuestas se firma en caliente
   // con `StorageService.signedGetUrl`. `avatarUrl` (columna) queda para URLs externas

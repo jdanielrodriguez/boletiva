@@ -47,6 +47,14 @@ export const account = {
     saved: 'Tema actualizado.',
     saveError: 'No se pudo guardar el tema.',
   },
+  notifs: {
+    title: 'Notificaciones por correo',
+    hint: 'Recibe por correo las notificaciones de soporte y de tus eventos. No afecta a los correos de seguridad (códigos, inicio de sesión).',
+    on: 'Activadas',
+    off: 'Desactivadas',
+    saved: 'Preferencia actualizada.',
+    saveError: 'No se pudo guardar la preferencia.',
+  },
   twofa: {
     title: 'Verificación en dos pasos (2FA)',
     hint: 'Elige cómo recibir tu segundo factor al iniciar sesión en un dispositivo nuevo.',

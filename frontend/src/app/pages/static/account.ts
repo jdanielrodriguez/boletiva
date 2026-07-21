@@ -41,6 +41,7 @@ import { IconComponent } from '../../shared/icon/icon.component';
 import { TourComponent, type TourStep } from '../../shared/tour/tour.component';
 import { TicketTransferModal } from '../../shared/ticket-transfer-modal/ticket-transfer-modal.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
+import { SwitchComponent } from '../../shared/ui/switch.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
 import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
 
@@ -105,7 +106,7 @@ function groupByEventOrder(tickets: TicketResponseDto[]): EventGroup[] {
  */
 @Component({
   selector: 'app-account',
-  imports: [FormsModule, TranslatePipe, LocalizedDatePipe, UpperCasePipe, MoneyPipe, RouterLink, IconComponent, ConfirmDialogComponent, PagerComponent, EmptyStateComponent, StatusLabelPipe, TicketTransferModal, TourComponent],
+  imports: [FormsModule, TranslatePipe, LocalizedDatePipe, UpperCasePipe, MoneyPipe, RouterLink, IconComponent, ConfirmDialogComponent, PagerComponent, EmptyStateComponent, StatusLabelPipe, TicketTransferModal, TourComponent, SwitchComponent],
   templateUrl: './account.html',
 })
 export class Account {
@@ -232,6 +233,22 @@ export class Account {
       error: () => {
         this.savingTheme.set(false);
         this.toasts.error(this.translate.instant('account.theme.saveError'));
+      },
+    });
+  }
+
+  // --- Preferencia de notificaciones por correo (T7) ---
+  protected readonly emailNotifs = signal(this.session.user()?.emailNotificationsEnabled ?? true);
+  protected toggleEmailNotifs(v: boolean): void {
+    this.emailNotifs.set(v);
+    this.usersApi.updateMe({ emailNotificationsEnabled: v }).subscribe({
+      next: (user) => {
+        this.session.setUser(user);
+        this.toasts.success(this.translate.instant('account.notifs.saved'));
+      },
+      error: () => {
+        this.emailNotifs.set(!v); // revertir en fallo
+        this.toasts.error(this.translate.instant('account.notifs.saveError'));
       },
     });
   }

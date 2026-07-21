@@ -91,6 +91,9 @@ export class PublicUserResponseDto {
   })
   themePref?: string | null;
 
+  @ApiPropertyOptional({ description: 'Recibir notificaciones por correo (negocio/soporte).', example: true })
+  emailNotificationsEnabled?: boolean;
+
   @ApiProperty({
     description: 'Usuario de PRUEBA (invitado en modo test): eventos anclados a Sandbox, sin cargos reales',
     example: false,

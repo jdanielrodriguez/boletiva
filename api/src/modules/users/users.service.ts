@@ -26,6 +26,7 @@ const publicSelect = {
   twoFactorMethod: true,
   language: true,
   themePref: true,
+  emailNotificationsEnabled: true,
   isTestUser: true,
   nit: true,
   billingName: true,

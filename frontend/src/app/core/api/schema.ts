@@ -3234,43 +3234,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/chat/threads": {
+    "/api/v1/support/tickets": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Lista de hilos (promotor: los suyos; agente: todos) */
-        get: operations["ChatController_listThreads_v1"];
+        /** Lista de tickets (promotor: los suyos; agente: todos) */
+        get: operations["SupportController_list_v1"];
         put?: never;
-        /** Abre un hilo de soporte (promotor premium) */
-        post: operations["ChatController_createThread_v1"];
+        /** Abre un ticket de soporte (promotor premium) */
+        post: operations["SupportController_create_v1"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/chat/threads/{id}/messages": {
+    "/api/v1/support/tickets/{id}/messages": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Historial de mensajes de un hilo */
-        get: operations["ChatController_messages_v1"];
+        /** Historial de mensajes de un ticket */
+        get: operations["SupportController_messages_v1"];
         put?: never;
-        /** Publica un mensaje en un hilo */
-        post: operations["ChatController_post_v1"];
+        /** Publica un mensaje (o nota interna del agente), con adjuntos opcionales */
+        post: operations["SupportController_post_v1"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/chat/threads/{id}/close": {
+    "/api/v1/support/tickets/{id}/attachments/presign": {
         parameters: {
             query?: never;
             header?: never;
@@ -3279,15 +3279,15 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Cierra un hilo */
-        post: operations["ChatController_close_v1"];
+        /** URL firmada para subir un adjunto (el cliente hace PUT directo) */
+        post: operations["SupportController_presign_v1"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/chat/threads/{id}/reopen": {
+    "/api/v1/support/tickets/{id}/take": {
         parameters: {
             query?: never;
             header?: never;
@@ -3296,15 +3296,15 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Reabre un hilo */
-        post: operations["ChatController_reopen_v1"];
+        /** El agente toma el ticket (auto-asignación) */
+        post: operations["SupportController_take_v1"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/chat/threads/{id}/assign": {
+    "/api/v1/support/tickets/{id}/assign": {
         parameters: {
             query?: never;
             header?: never;
@@ -3313,8 +3313,352 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Reasigna un hilo a un asesor/admin (handoff, admin) */
-        post: operations["ChatController_assign_v1"];
+        /** Reasigna a un asesor/admin (handoff, admin) */
+        post: operations["SupportController_assign_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/tickets/{id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Marca el ticket como resuelto (agente) */
+        post: operations["SupportController_resolve_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/tickets/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cierra el ticket (agente o promotor dueño) */
+        post: operations["SupportController_close_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/tickets/{id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reabre un ticket resuelto/cerrado (agente) */
+        post: operations["SupportController_reopen_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/tickets/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suspende el ticket (congela SLA, agente) */
+        post: operations["SupportController_suspend_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/tickets/{id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reanuda un ticket suspendido (agente) */
+        post: operations["SupportController_resume_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/tickets/{id}/priority": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cambia la prioridad (recalcula SLA, agente) */
+        post: operations["SupportController_priority_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/tickets/{id}/category": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cambia la categoría (agente) */
+        post: operations["SupportController_category_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/tickets/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archiva el ticket (oculta la vista del promotor dueño) */
+        post: operations["SupportController_archive_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/tickets/{id}/rate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Califica la atención 1..5 (promotor dueño) */
+        post: operations["SupportController_rate_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Cola de tickets con filtros + keyset pagination (agente) */
+        get: operations["SupportExtrasController_queue_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Resumen operativo del soporte (volumen, SLA, CSAT) */
+        get: operations["SupportExtrasController_metrics_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/sla": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Objetivos SLA efectivos por prioridad */
+        get: operations["SupportExtrasController_getSla_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Ajusta los objetivos SLA (admin) */
+        patch: operations["SupportExtrasController_setSla_v1"];
+        trace?: never;
+    };
+    "/api/v1/support/macros": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lista de respuestas rápidas (filtrable por idioma/categoría) */
+        get: operations["SupportExtrasController_listMacros_v1"];
+        put?: never;
+        /** Crea una respuesta rápida */
+        post: operations["SupportExtrasController_createMacro_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/macros/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Elimina una respuesta rápida */
+        delete: operations["SupportExtrasController_deleteMacro_v1"];
+        options?: never;
+        head?: never;
+        /** Edita una respuesta rápida */
+        patch: operations["SupportExtrasController_updateMacro_v1"];
+        trace?: never;
+    };
+    "/api/v1/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Mis notificaciones (keyset) */
+        get: operations["NotificationsController_list_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/unread-count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Contador de no-leídas */
+        get: operations["NotificationsController_unread_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/read/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Marca una notificación como leída */
+        post: operations["NotificationsController_read_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/read-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Marca todas como leídas */
+        post: operations["NotificationsController_readAll_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Mis preferencias de notificación */
+        get: operations["NotificationsController_prefs_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Activa/desactiva un tipo por canal */
+        patch: operations["NotificationsController_setPref_v1"];
+        trace?: never;
+    };
+    "/api/v1/notifications/admin/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Envía una notificación manual a un promotor o a todos (admin) */
+        post: operations["NotificationsController_adminSend_v1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3420,6 +3764,11 @@ export interface components {
              * @enum {string|null}
              */
             themePref?: "dia" | "noche" | null;
+            /**
+             * @description Recibir notificaciones por correo (negocio/soporte).
+             * @example true
+             */
+            emailNotificationsEnabled?: boolean;
             /**
              * @description Usuario de PRUEBA (invitado en modo test): eventos anclados a Sandbox, sin cargos reales
              * @example false
@@ -3759,6 +4108,11 @@ export interface components {
              */
             themePref?: "dia" | "noche";
             /**
+             * @description Recibir notificaciones por correo (negocio/soporte). No afecta a los correos de seguridad.
+             * @example true
+             */
+            emailNotificationsEnabled?: boolean;
+            /**
              * @description NIT para facturación (FEL). Vacío = sin NIT (se factura como CF). Necesario para facturar a nombre.
              * @example 1234567-8
              */
@@ -3831,6 +4185,11 @@ export interface components {
              * @enum {string|null}
              */
             themePref?: "dia" | "noche" | null;
+            /**
+             * @description Recibir notificaciones por correo (negocio/soporte).
+             * @example true
+             */
+            emailNotificationsEnabled?: boolean;
             /**
              * Format: date-time
              * @description Fecha del último inicio de sesión
@@ -8118,6 +8477,36 @@ export interface components {
              * @example false
              */
             chatEnabled: boolean;
+            /**
+             * @description Si los promotores pueden destacar sus eventos en el inicio.
+             * @example false
+             */
+            canFeatureEvents: boolean;
+            /**
+             * @description Si el slider del inicio está habilitado.
+             * @example true
+             */
+            homeSliderEnabled: boolean;
+            /**
+             * @description Si el mapa de asientos está habilitado.
+             * @example true
+             */
+            seatmapEnabled: boolean;
+            /**
+             * @description Si la creación de eventos está habilitada.
+             * @example true
+             */
+            eventsCreationEnabled: boolean;
+            /**
+             * @description Mantenimiento solo para asesores.
+             * @example false
+             */
+            advisorsMaintenance: boolean;
+            /**
+             * @description Mantenimiento de facturación.
+             * @example false
+             */
+            billingMaintenance: boolean;
         };
         MaintenanceStatusDto: {
             /** @description true si la plataforma está en mantenimiento */
@@ -8225,22 +8614,107 @@ export interface components {
             /** @description Token del enlace de desbloqueo recibido por el admin */
             token: string;
         };
-        CreateThreadDto: {
-            /** @example Duda con mi evento */
+        CreateTicketDto: {
+            /** @example Duda con la liquidación de mi evento */
             subject: string;
-            /** @example Hola, tengo una duda sobre las comisiones. */
+            /** @example Hola, no me cuadra el neto liquidado. */
             message: string;
+            /** @enum {string} */
+            category?: "billing" | "payments_settlement" | "event" | "technical" | "account" | "other";
+            /** @enum {string} */
+            priority?: "low" | "medium" | "high" | "urgent";
+            /** @enum {string} */
+            contextType?: "event" | "order" | "settlement";
+            /** Format: uuid */
+            contextId?: string;
+        };
+        AttachmentDto: {
+            /** @description Key devuelta por el presign */
+            key: string;
+            filename: string;
+            mime: string;
+            size: number;
         };
         PostMessageDto: {
             /** @example Gracias, ya lo revisé. */
             body: string;
+            /** @description Nota interna del agente (no visible al promotor) */
+            internalNote?: boolean;
+            /** @description Adjuntos ya subidos vía presign */
+            attachments?: components["schemas"]["AttachmentDto"][];
         };
-        AssignThreadDto: {
+        PresignAttachmentDto: {
+            /** @example captura.png */
+            filename: string;
+            /** @example image/png */
+            mime: string;
+        };
+        AssignTicketDto: {
             /**
              * Format: uuid
-             * @description Asesor/admin al que se reasigna el hilo
+             * @description Asesor/admin al que se reasigna
              */
             assignedToId: string;
+        };
+        SetPriorityDto: {
+            /** @enum {string} */
+            priority: "low" | "medium" | "high" | "urgent";
+        };
+        SetCategoryDto: {
+            /** @enum {string} */
+            category: "billing" | "payments_settlement" | "event" | "technical" | "account" | "other";
+        };
+        RateTicketDto: {
+            /** @example 5 */
+            score: number;
+        };
+        SlaConfigDto: {
+            /**
+             * @description Mapa { prioridad: { firstResponseMins, resolutionHours } }. Parcial permitido.
+             * @example {
+             *       "urgent": {
+             *         "firstResponseMins": 10,
+             *         "resolutionHours": 2
+             *       }
+             *     }
+             */
+            targets: Record<string, never>;
+        };
+        MacroDto: {
+            /** @example Saludo inicial */
+            title: string;
+            /** @example Hola, gracias por escribir a soporte. Estoy revisando tu caso. */
+            body: string;
+            /** @example es */
+            lang?: string;
+            /** @enum {string} */
+            category?: "billing" | "payments_settlement" | "event" | "technical" | "account" | "other";
+        };
+        MacroPatchDto: {
+            title?: string;
+            body?: string;
+            lang?: string;
+            /** @enum {string} */
+            category?: "billing" | "payments_settlement" | "event" | "technical" | "account" | "other";
+        };
+        SetPreferenceDto: {
+            type: string;
+            /** @enum {string} */
+            channel: "inapp" | "email";
+            enabled: boolean;
+        };
+        AdminSendDto: {
+            /**
+             * Format: uuid
+             * @description Promotor destino (si no es "a todos")
+             */
+            promoterId?: string;
+            /** @description true = a todos los promotores */
+            all?: boolean;
+            /** @example Mantenimiento programado */
+            title: string;
+            /** @example El sábado habrá mantenimiento de 2 a 4 am. */
+            body: string;
         };
     };
     responses: never;
@@ -13127,9 +13601,11 @@ export interface operations {
             };
         };
     };
-    ChatController_listThreads_v1: {
+    SupportController_list_v1: {
         parameters: {
-            query?: never;
+            query: {
+                archived: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -13144,7 +13620,7 @@ export interface operations {
             };
         };
     };
-    ChatController_createThread_v1: {
+    SupportController_create_v1: {
         parameters: {
             query?: never;
             header?: never;
@@ -13153,7 +13629,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateThreadDto"];
+                "application/json": components["schemas"]["CreateTicketDto"];
             };
         };
         responses: {
@@ -13165,7 +13641,7 @@ export interface operations {
             };
         };
     };
-    ChatController_messages_v1: {
+    SupportController_messages_v1: {
         parameters: {
             query?: never;
             header?: never;
@@ -13184,7 +13660,7 @@ export interface operations {
             };
         };
     };
-    ChatController_post_v1: {
+    SupportController_post_v1: {
         parameters: {
             query?: never;
             header?: never;
@@ -13207,45 +13683,7 @@ export interface operations {
             };
         };
     };
-    ChatController_close_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    ChatController_reopen_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    ChatController_assign_v1: {
+    SupportController_presign_v1: {
         parameters: {
             query?: never;
             header?: never;
@@ -13256,11 +13694,538 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AssignThreadDto"];
+                "application/json": components["schemas"]["PresignAttachmentDto"];
             };
         };
         responses: {
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SupportController_take_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SupportController_assign_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignTicketDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SupportController_resolve_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SupportController_close_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SupportController_reopen_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SupportController_suspend_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SupportController_resume_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SupportController_priority_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetPriorityDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SupportController_category_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetCategoryDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SupportController_archive_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SupportController_rate_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RateTicketDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SupportExtrasController_queue_v1: {
+        parameters: {
+            query?: {
+                /** @description Cursor: id de la última fila de la página previa */
+                cursor?: string;
+                /** @description Tamaño de página (1–100, default 20) */
+                limit?: number;
+                status?: "new" | "open" | "awaiting_promoter" | "awaiting_support" | "resolved" | "closed" | "suspended" | "reopened";
+                priority?: "low" | "medium" | "high" | "urgent";
+                category?: "billing" | "payments_settlement" | "event" | "technical" | "account" | "other";
+                assigneeId?: string;
+                /** @description 'true' = solo sin asignar */
+                unassigned?: string;
+                /** @description 'true' = solo los asignados a mí */
+                mine?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SupportExtrasController_metrics_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SupportExtrasController_getSla_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SupportExtrasController_setSla_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SlaConfigDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SupportExtrasController_listMacros_v1: {
+        parameters: {
+            query: {
+                lang: string;
+                category: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SupportExtrasController_createMacro_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MacroDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SupportExtrasController_deleteMacro_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SupportExtrasController_updateMacro_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MacroPatchDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NotificationsController_list_v1: {
+        parameters: {
+            query?: {
+                /** @description Cursor: id de la última fila de la página previa */
+                cursor?: string;
+                /** @description Tamaño de página (1–100, default 20) */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NotificationsController_unread_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NotificationsController_read_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NotificationsController_readAll_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NotificationsController_prefs_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NotificationsController_setPref_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetPreferenceDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NotificationsController_adminSend_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminSendDto"];
+            };
+        };
+        responses: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };

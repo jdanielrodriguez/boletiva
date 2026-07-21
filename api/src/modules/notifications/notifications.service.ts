@@ -171,6 +171,16 @@ export class NotificationsService {
   }
 
   private async channelEnabled(userId: string, type: string, channel: NotificationChannel): Promise<boolean> {
+    // Interruptor MAESTRO de perfil para el correo (T7): si el usuario apagó las
+    // notificaciones por correo, ninguna de negocio/soporte se envía por email (los
+    // correos de SEGURIDAD no pasan por aquí, así que no se ven afectados).
+    if (channel === 'email') {
+      const u = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { emailNotificationsEnabled: true },
+      });
+      if (u && !u.emailNotificationsEnabled) return false;
+    }
     const pref = await this.prisma.notificationPreference.findUnique({
       where: { userId_type_channel: { userId, type, channel } },
     });

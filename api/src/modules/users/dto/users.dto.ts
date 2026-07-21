@@ -3,6 +3,7 @@ import { Role, UserStatus } from '@prisma/client';
 import {
   ArrayNotEmpty,
   IsArray,
+  IsBoolean,
   IsEnum,
   IsIn,
   IsOptional,
@@ -77,6 +78,14 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsIn(THEME_FRANJAS)
   themePref?: ThemeFranja;
+
+  @ApiPropertyOptional({
+    description: 'Recibir notificaciones por correo (negocio/soporte). No afecta a los correos de seguridad.',
+    example: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  emailNotificationsEnabled?: boolean;
 
   @ApiPropertyOptional({
     description: 'NIT para facturación (FEL). Vacío = sin NIT (se factura como CF). Necesario para facturar a nombre.',
