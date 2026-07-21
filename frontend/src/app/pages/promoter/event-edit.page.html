@@ -259,7 +259,11 @@
                     <label class="field"><span>{{ 'promoter.edit.fieldKind' | translate }}</span>
                       <select [ngModel]="locForm.kind()" (ngModelChange)="locForm.kind.set($event)" name="lk">
                         <option value="general">{{ 'promoter.edit.kindGeneralOption' | translate }}</option>
-                        <option value="seated">{{ 'promoter.edit.kindSeatedOption' | translate }}</option>
+                        <!-- El mapa de asientos se puede deshabilitar globalmente (T7):
+                             sin él, solo aforo general para localidades nuevas. -->
+                        @if (seatmapEnabled()) {
+                          <option value="seated">{{ 'promoter.edit.kindSeatedOption' | translate }}</option>
+                        }
                       </select>
                     </label>
                     @if (locForm.kind() === 'general') {
