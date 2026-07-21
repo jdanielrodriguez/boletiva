@@ -152,6 +152,38 @@
         ]
       }
     },
+    "/api/v1/auth/2fa/resend": {
+      "post": {
+        "operationId": "AuthController_resend2fa_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TwoFactorResendDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TwoFactorResendResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Reenvía el código del segundo factor por correo (solo método email)",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/v1/auth/verify-email": {
       "post": {
         "operationId": "AuthController_verifyEmail_v1",
@@ -973,7 +1005,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lista usuarios (admin; keyset ?cursor&limit + ?search)",
+        "summary": "Lista usuarios (admin real; keyset ?cursor&limit + ?search)",
         "tags": [
           "users"
         ]
@@ -1009,7 +1041,7 @@
             "bearer": []
           }
         ],
-        "summary": "Detalle de usuario (admin)",
+        "summary": "Detalle de usuario (admin real)",
         "tags": [
           "users"
         ]
@@ -1055,7 +1087,7 @@
             "bearer": []
           }
         ],
-        "summary": "Asigna roles a un usuario (admin)",
+        "summary": "Asigna roles a un usuario (SOLO admin real; ni un asesor desbloqueado)",
         "tags": [
           "users"
         ]
@@ -1101,7 +1133,7 @@
             "bearer": []
           }
         ],
-        "summary": "Activa/desactiva un usuario (admin)",
+        "summary": "Activa/desactiva un usuario (SOLO admin real)",
         "tags": [
           "users"
         ]
@@ -2723,7 +2755,7 @@
             "bearer": []
           }
         ],
-        "summary": "Crea y activa una nueva versión de comisiones (admin)",
+        "summary": "Crea y activa una nueva versión de comisiones (admin real)",
         "tags": [
           "pricing"
         ]
@@ -6528,6 +6560,30 @@
         ]
       }
     },
+    "/api/v1/events/{id}/seats/stream": {
+      "get": {
+        "operationId": "StreamController_seatsStream_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Flujo SSE: abre con `ready` y empuja deltas `seat` ({sold|released}) del evento."
+          }
+        },
+        "summary": "Stream SSE público de disponibilidad de asientos del evento (FU11)",
+        "tags": [
+          "stream"
+        ]
+      }
+    },
     "/api/v1/events/{id}/banner": {
       "post": {
         "operationId": "BannerController_generate_v1",
@@ -8739,6 +8795,26 @@
         ]
       }
     },
+    "/api/v1/support/agents": {
+      "get": {
+        "operationId": "SupportExtrasController_agents_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lista de agentes (asesor/admin) para reasignar tickets",
+        "tags": [
+          "support"
+        ]
+      }
+    },
     "/api/v1/support/metrics": {
       "get": {
         "operationId": "SupportExtrasController_metrics_v1",
@@ -9124,6 +9200,133 @@
         "summary": "Envía una notificación manual a un promotor o a todos (admin)",
         "tags": [
           "notifications"
+        ]
+      }
+    },
+    "/api/v1/advisors/invitations": {
+      "post": {
+        "operationId": "AdvisorInvitationsController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAdvisorInvitesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Invita asesores por correo (admin)",
+        "tags": [
+          "advisors"
+        ]
+      },
+      "get": {
+        "operationId": "AdvisorInvitationsController_list_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lista de invitaciones de asesor (admin)",
+        "tags": [
+          "advisors"
+        ]
+      }
+    },
+    "/api/v1/advisors/invitations/peek": {
+      "get": {
+        "operationId": "AdvisorInvitationsController_peek_v1",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Valida un token de invitación (público): correo + si requiere contraseña",
+        "tags": [
+          "advisors"
+        ]
+      }
+    },
+    "/api/v1/advisors/invitations/accept": {
+      "post": {
+        "operationId": "AdvisorInvitationsController_accept_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptAdvisorDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Confirma el rol asesor (usuario existente autenticado)",
+        "tags": [
+          "advisors"
+        ]
+      }
+    },
+    "/api/v1/advisors/invitations/set-password": {
+      "post": {
+        "operationId": "AdvisorInvitationsController_setPassword_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetAdvisorPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Fija la contraseña y activa la cuenta de asesor (usuario nuevo, por token)",
+        "tags": [
+          "advisors"
         ]
       }
     }
@@ -9529,6 +9732,42 @@
           "status",
           "user",
           "tokens"
+        ]
+      },
+      "TwoFactorResendDto": {
+        "type": "object",
+        "properties": {
+          "preauthToken": {
+            "type": "string",
+            "description": "Token de pre-autenticación devuelto por el login (status = 2fa_required)",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          }
+        },
+        "required": [
+          "preauthToken"
+        ]
+      },
+      "TwoFactorResendResponseDto": {
+        "type": "object",
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "email",
+              "totp"
+            ],
+            "example": "email",
+            "description": "Método de segundo factor del usuario"
+          },
+          "resent": {
+            "type": "boolean",
+            "example": true,
+            "description": "true si se reenvió un código (solo método email); false para TOTP"
+          }
+        },
+        "required": [
+          "method",
+          "resent"
         ]
       },
       "VerifyEmailCodeDto": {
@@ -18436,6 +18675,53 @@
         "required": [
           "title",
           "body"
+        ]
+      },
+      "CreateAdvisorInvitesDto": {
+        "type": "object",
+        "properties": {
+          "emails": {
+            "example": [
+              "asesor@correo.com"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "emails"
+        ]
+      },
+      "AcceptAdvisorDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token de la invitación"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "SetAdvisorPasswordDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 72,
+            "example": "Password123"
+          }
+        },
+        "required": [
+          "token",
+          "password"
         ]
       }
     }

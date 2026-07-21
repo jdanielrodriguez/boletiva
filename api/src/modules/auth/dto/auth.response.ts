@@ -257,3 +257,12 @@ export class DeviceResponseDto {
   })
   createdAt!: Date;
 }
+
+/** Respuesta de `POST /auth/2fa/resend` (FU9): método y si se reenvió un código. */
+export class TwoFactorResendResponseDto {
+  @ApiProperty({ enum: ['email', 'totp'], example: 'email', description: 'Método de segundo factor del usuario' })
+  method!: 'email' | 'totp';
+
+  @ApiProperty({ example: true, description: 'true si se reenvió un código (solo método email); false para TOTP' })
+  resent!: boolean;
+}

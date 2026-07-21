@@ -18,6 +18,11 @@ export const auth = {
   twofaEmailShort: 'We sent a 6-digit code to your email.',
   verifying: 'Verifying…',
   verify: 'Verify',
+  resendCode: 'Resend code',
+  resendIn: 'Resend in {{s}}s',
+  useAnotherAccount: 'Use another account',
+  msg2faResent: 'We sent you a new code by email.',
+  msg2faResendError: 'Could not resend the code. Try again in a few seconds.',
   // Login modal (during purchase)
   modalTitle: 'Sign in to pay',
   modalSubtitle: 'Your reservation is still saved. Just sign in to complete the payment.',

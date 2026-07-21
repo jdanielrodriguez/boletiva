@@ -182,6 +182,16 @@ export class TwoFactorVerifyDto {
   code!: string;
 }
 
+export class TwoFactorResendDto {
+  @ApiProperty({
+    description: 'Token de pre-autenticación devuelto por el login (status = 2fa_required)',
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+  })
+  @IsString()
+  @MinLength(1)
+  preauthToken!: string;
+}
+
 export class EnableTotpDto {
   @ApiProperty({ description: 'Código de 6 dígitos generado por la app autenticadora', minLength: 6, maxLength: 6, example: '482913' })
   @IsString()

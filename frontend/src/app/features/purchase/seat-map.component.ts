@@ -7,6 +7,7 @@ import {
   inject,
   input,
   output,
+  signal,
   viewChild,
 } from '@angular/core';
 import type Konva from 'konva';
@@ -30,14 +31,24 @@ const PAD = 40;
  */
 @Component({
   selector: 'app-seat-map',
-  template: '<div #host class="seat-map-host"></div>',
+  template: `
+    <div class="seat-map-zoom" role="group" aria-label="Zoom del mapa">
+      <button type="button" class="btn small icon-only" [disabled]="zoom() <= MIN_ZOOM" (click)="zoomOut()" data-testid="seat-zoom-out" aria-label="Alejar">−</button>
+      <span class="seat-zoom-lvl" data-testid="seat-zoom-lvl">{{ zoom() * 100 }}%</span>
+      <button type="button" class="btn small icon-only" [disabled]="zoom() >= MAX_ZOOM" (click)="zoomIn()" data-testid="seat-zoom-in" aria-label="Acercar">+</button>
+      <button type="button" class="btn small" (click)="resetZoom()" data-testid="seat-zoom-reset">100%</button>
+    </div>
+    <div #host class="seat-map-host"></div>
+  `,
   styles: [
     // El CANVAS ocupa el 100% del ancho del contenedor; el CONTENIDO (los asientos)
     // se centra dentro del stage vía offset del layer (no con CSS del canvas).
     ':host { display: block; width: 100%; }',
     // overflow-x:auto → si el mapa es más ancho que el viewport (evento grande en móvil)
     // se scrollea DENTRO en vez de desbordar la página. touch-action permite el pan.
-    '.seat-map-host { display: block; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }',
+    '.seat-map-host { display: block; width: 100%; overflow: auto; -webkit-overflow-scrolling: touch; max-height: 70vh; }',
+    '.seat-map-zoom { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.4rem; }',
+    '.seat-zoom-lvl { min-width: 3.2rem; text-align: center; font-variant-numeric: tabular-nums; color: var(--pe-text-muted, #6b6b76); }',
   ],
 })
 export class SeatMapComponent {
@@ -47,12 +58,27 @@ export class SeatMapComponent {
 
   private readonly host = viewChild.required<ElementRef<HTMLDivElement>>('host');
 
+  protected readonly MIN_ZOOM = 1;
+  protected readonly MAX_ZOOM = 3;
+  /** Zoom del mapa (FU11): en móvil permite acercar para tocar asientos densos. */
+  protected readonly zoom = signal(1);
+
   private konva: typeof Konva | null = null;
   private stage: Konva.Stage | null = null;
   private layer: Konva.Layer | null = null;
   private offsetX = 0;
   private offsetY = 0;
   private resizeObserver: ResizeObserver | null = null;
+
+  protected zoomIn(): void {
+    this.zoom.set(Math.min(this.MAX_ZOOM, Math.round((this.zoom() + 0.25) * 100) / 100));
+  }
+  protected zoomOut(): void {
+    this.zoom.set(Math.max(this.MIN_ZOOM, Math.round((this.zoom() - 0.25) * 100) / 100));
+  }
+  protected resetZoom(): void {
+    this.zoom.set(1);
+  }
 
   constructor() {
     afterNextRender(async () => {
@@ -68,6 +94,7 @@ export class SeatMapComponent {
     effect(() => {
       this.seats();
       this.selected();
+      this.zoom(); // repinta al cambiar el zoom
       if (this.stage) this.rebuild();
     });
   }
@@ -77,7 +104,9 @@ export class SeatMapComponent {
     const { width, height, offsetX, offsetY } = this.extents();
     this.offsetX = offsetX;
     this.offsetY = offsetY;
-    this.stage = new this.konva.Stage({ container: this.host().nativeElement, width, height });
+    const z = this.zoom();
+    this.stage = new this.konva.Stage({ container: this.host().nativeElement, width: width * z, height: height * z });
+    this.stage.scale({ x: z, y: z });
     this.layer = new this.konva.Layer();
     this.stage.add(this.layer);
     this.drawSeats();
@@ -88,7 +117,9 @@ export class SeatMapComponent {
     const { width, height, offsetX, offsetY } = this.extents();
     this.offsetX = offsetX;
     this.offsetY = offsetY;
-    this.stage.size({ width, height });
+    const z = this.zoom();
+    this.stage.scale({ x: z, y: z });
+    this.stage.size({ width: width * z, height: height * z });
     this.layer?.destroyChildren();
     this.drawSeats();
   }

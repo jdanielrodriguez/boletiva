@@ -87,6 +87,7 @@ export class AuthService {
   private static readonly LOGIN_MAX_FAILS = 10;
   private static readonly TWOFA_LOCK_WINDOW_SEC = 300; // 5 min
   private static readonly TWOFA_MAX_FAILS = 5;
+  private static readonly TWOFA_RESEND_COOLDOWN_SEC = 30; // reenvío de OTP 2FA
 
   private async toPublic(user: User): Promise<PublicUser> {
     // La foto de perfil se firma al leer (patrón event-media): si hay `avatarKey`
@@ -196,6 +197,30 @@ export class AuthService {
 
     const tokens = await this.tokens.issuePair(user, ctx);
     return { status: 'ok', user: await this.toPublic(user), tokens };
+  }
+
+  /**
+   * Reenvía el código del segundo factor (FU9). Solo aplica al método EMAIL (TOTP no
+   * "reenvía": el código lo genera la app). Cooldown por usuario para evitar spam de
+   * correos. Devuelve el método para que el frontend ajuste el mensaje.
+   */
+  async resendTwoFactor(preauthToken: string): Promise<{ method: User['twoFactorMethod']; resent: boolean }> {
+    const userId = this.verifyPreauth(preauthToken);
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException();
+    if (user.twoFactorMethod !== 'email') {
+      return { method: user.twoFactorMethod, resent: false }; // TOTP: nada que reenviar
+    }
+    const key = `2fa-resend:${user.id}`;
+    if ((await this.rateLimit.count(key)) >= 1) {
+      throw new HttpException(
+        'Espera unos segundos antes de pedir otro código.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+    await this.rateLimit.register(key, AuthService.TWOFA_RESEND_COOLDOWN_SEC);
+    await this.twofactor.startChallenge(user);
+    return { method: user.twoFactorMethod, resent: true };
   }
 
   async verifyTwoFactor(preauthToken: string, code: string, ctx: DeviceContext) {

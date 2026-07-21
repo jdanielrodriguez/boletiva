@@ -68,6 +68,23 @@
         <button type="submit" class="primary btn-block" [disabled]="submitting()">
           {{ submitting() ? ('auth.verifying' | translate) : ('auth.verify' | translate) }}
         </button>
+
+        @if (info(); as i) {
+          <p class="info" role="status" data-testid="twofa-info">{{ i }}</p>
+        }
+
+        <div class="twofa-actions">
+          @if (method() === 'email') {
+            <button type="button" class="link-btn" [disabled]="resending() || resendCooldown() > 0" (click)="resendCode()" data-testid="twofa-resend">
+              @if (resendCooldown() > 0) {
+                {{ 'auth.resendIn' | translate: { s: resendCooldown() } }}
+              } @else {
+                {{ 'auth.resendCode' | translate }}
+              }
+            </button>
+          }
+          <button type="button" class="link-btn" (click)="backToCredentials()" data-testid="twofa-back">{{ 'auth.useAnotherAccount' | translate }}</button>
+        </div>
       </form>
     }
   </section>

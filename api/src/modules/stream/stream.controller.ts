@@ -135,6 +135,18 @@ export class StreamController {
     );
   }
 
+  @Public()
+  @SkipRateLimit()
+  @Sse('events/:id/seats/stream')
+  @ApiOperation({ summary: 'Stream SSE público de disponibilidad de asientos del evento (FU11)' })
+  @ApiProduces('text/event-stream')
+  @ApiOkResponse({
+    description: 'Flujo SSE: abre con `ready` y empuja deltas `seat` ({sold|released}) del evento.',
+  })
+  seatsStream(@Param('id', ParseUUIDPipe) id: string): Observable<MessageEvent> {
+    return this.stream.streamSeats(id);
+  }
+
   /** Resuelve el userId desde el ticket de un solo uso o, como fallback, un JWT válido. */
   private async resolveUserId(
     orderId: string,

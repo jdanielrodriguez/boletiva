@@ -53,6 +53,11 @@ export class AuthService {
     return this.authApi.verify2fa(dto).pipe(tap((res) => this.applyLogin(res)));
   }
 
+  /** Reenvía el código del segundo factor (solo método email). */
+  resend2fa(preauthToken: string): Observable<{ method: 'email' | 'totp'; resent: boolean }> {
+    return this.authApi.resend2fa(preauthToken);
+  }
+
   /**
    * Registro. Correo NUEVO → el backend devuelve usuario + tokens (auto-login, correo aún
    * sin verificar). Correo YA EXISTENTE → responde 202 genérico SIN tokens (anti-enumeración,
