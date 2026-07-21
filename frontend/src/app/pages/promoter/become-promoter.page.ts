@@ -50,7 +50,8 @@ const PLANS: Plan[] = [
       'becomePromoter.planPremiumF1',
       'becomePromoter.planPremiumF2',
       'becomePromoter.planPremiumF3',
-      'becomePromoter.planPremiumF4',
+      // F4 (dashboards) retirado del marketing: hoy los dashboards son para todos los
+      // promotores; no se anuncia como beneficio premium hasta que se decida gatearlos.
       'becomePromoter.planPremiumF5',
     ],
     recommended: true,

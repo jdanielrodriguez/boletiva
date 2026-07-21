@@ -226,6 +226,13 @@ export class ConfigPage {
 
   // --- Eventos ---
   protected readonly events = signal<AdminEventListItemDto[]>([]);
+  // Estados de carga/error por listado (distinguen "cargando"/"error" de "vacío" — QA).
+  protected readonly eventsLoading = signal(false);
+  protected readonly eventsError = signal(false);
+  protected readonly promotersLoading = signal(false);
+  protected readonly promotersError = signal(false);
+  protected readonly invitationsLoading = signal(false);
+  protected readonly invitationsError = signal(false);
   /** Evento cuyo destacado se está guardando (deshabilita su check mientras). */
   protected readonly promotingId = signal<string | null>(null);
   protected readonly eventsPage = signal(1);
@@ -477,12 +484,19 @@ export class ConfigPage {
 
   // --- Eventos ---
   private loadEvents(): void {
+    this.eventsLoading.set(true);
+    this.eventsError.set(false);
     this.admin.listAllEvents().subscribe({
       next: (e) => {
         this.events.set(e);
         this.eventsPage.set(1);
+        this.eventsLoading.set(false);
       },
-      error: () => this.toasts.error(this.translate.instant('config.events.loadError')),
+      error: () => {
+        this.eventsLoading.set(false);
+        this.eventsError.set(true);
+        this.toasts.error(this.translate.instant('config.events.loadError'));
+      },
     });
   }
 
@@ -542,14 +556,21 @@ export class ConfigPage {
   protected readonly pctEdits = signal<Record<string, string>>({});
 
   protected loadPromoters(): void {
+    this.promotersLoading.set(true);
+    this.promotersError.set(false);
     this.admin.listPromoters(this.promoterStatus() || undefined).subscribe({
       next: (p) => {
         this.promoters.set(p);
         // Prefija las notas internas persistidas (v3.8 · G2-9).
         this.notes.set(Object.fromEntries(p.map((x) => [x.id, x.promoterInternalNote ?? ''])));
         this.loadCostShares(p);
+        this.promotersLoading.set(false);
       },
-      error: () => this.toasts.error(this.translate.instant('config.promoters.loadError')),
+      error: () => {
+        this.promotersLoading.set(false);
+        this.promotersError.set(true);
+        this.toasts.error(this.translate.instant('config.promoters.loadError'));
+      },
     });
   }
   /** Carga el reparto efectivo de cada promotor listado (para prefijar el input). */
@@ -820,6 +841,18 @@ export class ConfigPage {
       error: () => this.toasts.error(this.translate.instant('config.system.gatewayStatusError')),
     });
   }
+  /** Cambiar la pasarela default enruta TODOS los pagos → confirma antes (QA). */
+  protected askMakeDefault(g: GatewayResponseDto): void {
+    if (g.isPlatformDefault) return;
+    this.confirm.ask({
+      title: this.translate.instant('config.system.gatewayDefaultConfirmTitle', { name: g.name }),
+      message: this.translate.instant('config.system.gatewayDefaultConfirmMsg'),
+      confirmLabel: this.translate.instant('config.system.makeDefault'),
+      confirmIcon: 'save',
+      danger: false,
+      onConfirm: () => this.makeDefault(g),
+    });
+  }
   protected makeDefault(g: GatewayResponseDto): void {
     this.admin.makeGatewayDefault(g.id).subscribe({
       next: () => {
@@ -944,9 +977,18 @@ export class ConfigPage {
 
   // --- Invitaciones ---
   private loadInvitations(): void {
+    this.invitationsLoading.set(true);
+    this.invitationsError.set(false);
     this.invitationsApi.list().subscribe({
-      next: (i) => this.invitations.set(i),
-      error: () => this.invitations.set([]),
+      next: (i) => {
+        this.invitations.set(i);
+        this.invitationsLoading.set(false);
+      },
+      error: () => {
+        this.invitationsLoading.set(false);
+        this.invitationsError.set(true);
+        this.invitations.set([]);
+      },
     });
   }
   protected readonly parsedEmails = computed(() =>

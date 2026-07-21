@@ -1,4 +1,4 @@
-import { Component, PLATFORM_ID, computed, effect, inject } from '@angular/core';
+import { Component, PLATFORM_ID, afterNextRender, computed, effect, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -112,6 +112,18 @@ export class App {
   );
 
   constructor() {
+    // Publica la altura REAL de la franja superior fija (banners + header) como
+    // `--pe-topbar-h` para que los elementos sticky (resumen de compra/checkout) se
+    // anclen debajo de ella aunque crezca con banners (impersonación/test/mantenimiento).
+    afterNextRender(() => {
+      const bar = document.querySelector('.topbar-stack');
+      if (!bar) return;
+      const setVar = () =>
+        document.documentElement.style.setProperty('--pe-topbar-h', `${Math.round(bar.getBoundingClientRect().height)}px`);
+      setVar();
+      new ResizeObserver(setVar).observe(bar);
+    });
+
     // Hidrata sesión y consulta el mantenimiento SOLO en el navegador: en SSR no
     // hay tokens (localStorage) y no queremos pegar al API en el servidor (rompería
     // el cache público de las páginas anónimas).

@@ -52,9 +52,22 @@ export class ReservationPage implements OnDestroy {
   protected readonly notFound = computed(() => this.data() === null);
   protected readonly mm = computed(() => Math.floor(this.secondsLeft() / 60));
   protected readonly ss = computed(() => this.secondsLeft() % 60);
+  /**
+   * Expirada en el CLIENTE: inválida según el backend, o el contador ya llegó a 0.
+   * Lee `secondsLeft()` (tick cada segundo) para reevaluar en vivo → al llegar a 00:00
+   * el botón "Continuar al pago" se oculta sin depender de un nuevo fetch (QA).
+   */
+  protected readonly expired = computed(() => {
+    const r = this.reservation();
+    if (!r) return false;
+    if (!r.valid) return true;
+    const exp = r.expiresAt ? new Date(r.expiresAt).getTime() : 0;
+    return this.secondsLeft() === 0 && exp > 0 && exp <= Date.now();
+  });
 
   constructor() {
     afterNextRender(() => {
+      this.tick(); // inicializa el contador de inmediato (evita el parpadeo 00:00)
       this.ticker = setInterval(() => this.tick(), 1000);
     });
   }

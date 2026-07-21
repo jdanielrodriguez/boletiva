@@ -45,6 +45,7 @@ export const auth = {
   lastName: 'Last name',
   creating: 'Creating…',
   createAccount: 'Create account',
+  acceptTerms: 'I accept the <a href="/terminos" target="_blank" rel="noopener">Terms & Conditions</a> and privacy notice.',
   haveAccountQ: 'Already have an account?',
   loginLink: 'Sign in',
   // Promoter invitation
@@ -64,6 +65,7 @@ export const auth = {
   // Messages (toasts / errors)
   msgInvitationInvalid: 'The invitation is not valid or has expired.',
   msgCompleteFields: 'Complete name, email and password.',
+  msgAcceptTerms: 'You must accept the Terms & Conditions to create your account.',
   msgCreateFailed: 'Could not create the account. Check your details and try again.',
   msgSignupCheckEmail:
     'Done. If the email is valid, we sent you instructions to continue. Please check your inbox.',

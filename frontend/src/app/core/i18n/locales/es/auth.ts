@@ -45,6 +45,7 @@ export const auth = {
   lastName: 'Apellido',
   creating: 'Creando…',
   createAccount: 'Crear cuenta',
+  acceptTerms: 'Acepto los <a href="/terminos" target="_blank" rel="noopener">Términos y Condiciones</a> y el aviso de privacidad.',
   haveAccountQ: '¿Ya tienes cuenta?',
   loginLink: 'Inicia sesión',
   // Invitación de promotor
@@ -65,6 +66,7 @@ export const auth = {
   // Mensajes (toasts / errores)
   msgInvitationInvalid: 'La invitación no es válida o venció.',
   msgCompleteFields: 'Completa nombre, correo y contraseña.',
+  msgAcceptTerms: 'Debes aceptar los Términos y Condiciones para crear tu cuenta.',
   msgCreateFailed: 'No se pudo crear la cuenta. Revisa los datos e inténtalo de nuevo.',
   msgSignupCheckEmail:
     'Listo. Si el correo es válido, te enviamos instrucciones para continuar. Revisa tu bandeja de entrada.',

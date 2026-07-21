@@ -2354,7 +2354,8 @@ app-root {
   border-radius: var(--pe-radius);
   padding: 1.5rem;
   position: sticky;
-  top: 90px;
+  /* Ancla bajo la franja superior real (crece con banners); fallback 90px. */
+  top: calc(var(--pe-topbar-h, 72px) + 16px);
 }
 
 .checkout-summary h2 {
@@ -2670,7 +2671,8 @@ app-root {
 /* --- Carrito arriba (compra) --- */
 .cart-top {
   position: sticky;
-  top: 72px;
+  /* Ancla bajo la franja superior real (crece con banners); fallback 72px. */
+  top: calc(var(--pe-topbar-h, 64px) + 8px);
   z-index: 10;
   display: flex;
   align-items: center;

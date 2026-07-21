@@ -27,7 +27,7 @@ export const checkout = {
   walletPartial: 'Tu saldo no cubre el total: el resto se cobrará por la pasarela seleccionada.',
   useAnotherCard: 'Usar otra tarjeta',
   enterCvv: 'Código de seguridad (CVV)',
-  cvvHint: 'Por tu seguridad, confirma el CVV de la tarjeta para autorizar el pago.',
+  cvvHint: 'Confirma el CVV de tu tarjeta para continuar.',
   cvvRequired: 'Ingresa el CVV (3 o 4 dígitos) para continuar.',
   noMethodsHint: 'Aún no tienes métodos guardados. Ingresa una tarjeta para pagar.',
   saveCardHint: 'Tus datos de pago se procesan de forma segura y cifrada.',

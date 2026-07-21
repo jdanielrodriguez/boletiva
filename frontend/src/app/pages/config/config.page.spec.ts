@@ -336,6 +336,9 @@ describe('ConfigPage (v3, admin console)', () => {
     await setup({ makeGatewayDefault });
     await selectTab('tab-sistema');
     click('gw-make-default'); // el primero visible es el de g2 (no-default)
+    // Ahora pasa por un modal de confirmación (cambia el enrutado de todos los pagos).
+    expect(el.querySelector('[data-testid="confirm-dialog"]')).not.toBeNull();
+    click('confirm-accept');
     expect(makeGatewayDefault).toHaveBeenCalledWith('g2');
   });
 

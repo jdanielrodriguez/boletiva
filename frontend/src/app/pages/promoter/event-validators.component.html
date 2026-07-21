@@ -73,7 +73,7 @@
           </div>
           <div class="validators-item-actions">
             @if (v.status === 'active') {
-              <button type="button" class="link-btn" (click)="resend(v)" [attr.data-testid]="'validators-resend-' + v.id"
+              <button type="button" class="link-btn" [disabled]="working()" (click)="resend(v)" [attr.data-testid]="'validators-resend-' + v.id"
                 [title]="'promoter.validators.resendHint' | translate">
                 {{ 'promoter.validators.resend' | translate }}
               </button>
@@ -81,7 +81,7 @@
                 {{ 'promoter.validators.disable' | translate }}
               </button>
             } @else {
-              <button type="button" class="link-btn" (click)="enable(v)" [attr.data-testid]="'validators-enable-' + v.id">
+              <button type="button" class="link-btn" [disabled]="working()" (click)="enable(v)" [attr.data-testid]="'validators-enable-' + v.id">
                 {{ 'promoter.validators.reenable' | translate }}
               </button>
               <button type="button" class="link-btn danger" (click)="remove(v)" [attr.data-testid]="'validators-remove-' + v.id"

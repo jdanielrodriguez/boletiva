@@ -77,7 +77,12 @@
             }
           </div>
 
-          <button type="submit" class="primary btn-block" [disabled]="working()" data-testid="rg-submit">
+          <label class="terms-accept" data-testid="rg-terms-label">
+            <input type="checkbox" [ngModel]="acceptedTerms()" (ngModelChange)="acceptedTerms.set($event)" name="acceptedTerms" data-testid="rg-terms" />
+            <span [innerHTML]="'auth.acceptTerms' | translate"></span>
+          </label>
+
+          <button type="submit" class="primary btn-block" [disabled]="working() || !acceptedTerms()" data-testid="rg-submit">
             {{ working() ? ('auth.creating' | translate) : ('auth.createAccount' | translate) }}
           </button>
 

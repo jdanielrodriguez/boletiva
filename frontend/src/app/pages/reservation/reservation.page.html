@@ -3,7 +3,7 @@
     <h1>{{ 'reservation.title' | translate }}</h1>
     <p class="reservation-event">{{ r.eventName }} · {{ r.startsAt | localizedDate: 'medium' }}</p>
 
-    @if (r.valid) {
+    @if (!expired()) {
       <p class="countdown" data-testid="countdown">{{ 'reservation.expiresIn' | translate: { mm: mm(), ss: (ss() | number: '2.0-0') } }}</p>
     } @else {
       <p class="warn" data-testid="reservation-expired">{{ 'reservation.expired' | translate }}</p>
@@ -16,10 +16,12 @@
       <p class="error" data-testid="reservation-error">{{ error() }}</p>
     }
 
-    @if (r.valid) {
+    @if (!expired()) {
       <button type="button" class="primary" data-testid="pay-btn" [disabled]="working()" (click)="continueToPay()">
         {{ working() ? ('reservation.processing' | translate) : ('reservation.continueToPay' | translate) }}
       </button>
+    } @else {
+      <a class="btn" routerLink="/" data-testid="reservation-see-events">{{ 'reservation.seeEvents' | translate }}</a>
     }
   } @else if (loading()) {
     <p data-testid="reservation-loading">{{ 'reservation.loading' | translate }}</p>

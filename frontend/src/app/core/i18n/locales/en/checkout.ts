@@ -27,7 +27,7 @@ export const checkout = {
   walletPartial: 'Your balance doesn’t cover the total: the rest will be charged to the selected gateway.',
   useAnotherCard: 'Use another card',
   enterCvv: 'Security code (CVV)',
-  cvvHint: 'For your security, confirm the card CVV to authorize the payment.',
+  cvvHint: 'Confirm your card CVV to continue.',
   cvvRequired: 'Enter the CVV (3 or 4 digits) to continue.',
   noMethodsHint: 'You don’t have saved methods yet. Enter a card to pay.',
   saveCardHint: 'Your payment details are processed securely and encrypted.',

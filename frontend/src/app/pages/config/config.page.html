@@ -79,7 +79,13 @@
           </select>
         </label>
       </div>
-      @if (filteredEvents().length > 0) {
+      @if (eventsLoading()) {
+        <p class="muted" data-testid="events-loading">{{ 'config.events.loading' | translate }}</p>
+      } @else if (eventsError()) {
+        <app-empty-state variant="generic" data-testid="events-error"
+          [title]="'config.events.loadErrorTitle' | translate"
+          [subtitle]="'config.events.loadError' | translate" />
+      } @else if (filteredEvents().length > 0) {
         <div class="admin-events-grid" data-testid="admin-events">
           @for (e of pageEvents(); track e.id) {
             <article class="ev-card" [class.ev-card-featured]="e.promotedPriority != null" data-testid="ev-card">
@@ -143,7 +149,13 @@
         </label>
       </div>
 
-      @if (filteredPromoters().length > 0) {
+      @if (promotersLoading()) {
+        <p class="muted" data-testid="promoters-loading">{{ 'config.promoters.loading' | translate }}</p>
+      } @else if (promotersError()) {
+        <app-empty-state variant="generic" data-testid="promoters-error"
+          [title]="'config.promoters.loadErrorTitle' | translate"
+          [subtitle]="'config.promoters.loadError' | translate" />
+      } @else if (filteredPromoters().length > 0) {
         <div class="promoters-grid" data-testid="promoters-list">
           @for (p of filteredPromoters(); track p.id) {
             <article class="promoter-card">
@@ -350,7 +362,7 @@
                   <span class="muted small">{{ g.provider }} · {{ +g.feePct * 100 | number: '1.0-2' }}% + Q{{ g.transactionFixedFee }}</span>
                   <span class="gateway-edit-actions" style="margin-left:auto; display:flex; gap:0.4rem;">
                     @if (!g.isPlatformDefault) {
-                      <button type="button" class="btn small" (click)="makeDefault(g)" data-testid="gw-make-default" [title]="'config.system.makeDefaultTitle' | translate">
+                      <button type="button" class="btn small" (click)="askMakeDefault(g)" data-testid="gw-make-default" [title]="'config.system.makeDefaultTitle' | translate">
                         <app-icon name="default" /> {{ 'config.system.makeDefault' | translate }}
                       </button>
                     }
@@ -589,7 +601,13 @@
       }
 
       <h3>{{ 'config.invitations.listHeading' | translate }}</h3>
-      @if (invitations().length > 0) {
+      @if (invitationsLoading()) {
+        <p class="muted" data-testid="invitations-loading">{{ 'config.invitations.loading' | translate }}</p>
+      } @else if (invitationsError()) {
+        <app-empty-state variant="generic" data-testid="invitations-error"
+          [title]="'config.invitations.loadErrorTitle' | translate"
+          [subtitle]="'config.invitations.loadError' | translate" />
+      } @else if (invitations().length > 0) {
         <div class="list-filters">
           <app-search-field [value]="invSearch()" (valueChange)="setInvSearch($event)" (searched)="setInvSearch($event)"
             [placeholder]="'config.invitations.searchPlaceholder' | translate" name="invq" testId="inv-search" />
