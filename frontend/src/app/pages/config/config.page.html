@@ -33,6 +33,7 @@
       <button type="button" [class.active]="tab() === 'sistema'" [attr.aria-current]="tab() === 'sistema' ? 'page' : null" (click)="selectTab('sistema')" data-testid="tab-sistema">{{ 'config.tabs.system' | translate }}</button>
     }
     <button type="button" [class.active]="tab() === 'invitaciones'" [attr.aria-current]="tab() === 'invitaciones' ? 'page' : null" (click)="selectTab('invitaciones')" data-testid="tab-invitaciones">{{ 'config.tabs.invitations' | translate }}</button>
+    <button type="button" [class.active]="tab() === 'soporte'" [attr.aria-current]="tab() === 'soporte' ? 'page' : null" (click)="selectTab('soporte')" data-testid="tab-soporte">{{ 'config.tabs.support' | translate }}</button>
   </nav>
 
   @switch (tab()) {
@@ -604,6 +605,10 @@
           [title]="'config.invitations.emptyTitle' | translate"
           [subtitle]="'config.invitations.emptySubtitle' | translate" />
       }
+    }
+    @case ('soporte') {
+      <!-- Bandeja de tickets embebida (misma que /soporte): el agente atiende aquí. -->
+      <app-support-chat data-testid="config-support" />
     }
   }
 

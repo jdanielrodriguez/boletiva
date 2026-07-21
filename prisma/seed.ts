@@ -123,8 +123,13 @@ async function seedSettings(): Promise<void> {
     },
     {
       key: 'chat.enabled',
+      value: true,
+      description: 'Habilita el soporte/chat (promotor ↔ asesor/admin). Activo por defecto.',
+    },
+    {
+      key: 'promoter.can_feature_events',
       value: false,
-      description: 'Habilita el chat de soporte (promotor premium ↔ asesor/admin)',
+      description: 'Permite a los promotores destacar su evento en el inicio (default false = oculto).',
     },
     {
       key: 'advisor.lock_enabled',

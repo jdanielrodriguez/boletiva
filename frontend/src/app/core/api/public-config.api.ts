@@ -36,6 +36,8 @@ export interface PublicConfig {
   premium?: { enabled: boolean; trialEnabled: boolean; trialDays: number };
   /** ¿El chat de soporte está habilitado? */
   chatEnabled?: boolean;
+  /** ¿Los promotores pueden destacar sus eventos en el inicio? */
+  canFeatureEvents?: boolean;
 }
 
 /**

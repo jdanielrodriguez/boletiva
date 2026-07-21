@@ -3040,8 +3040,11 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
 .tpl-title-row > strong { min-width: 0; }
 /* margin-top:auto fija las acciones al FONDO de la card (el grid estira todas a la
    misma altura) → los botones quedan alineados aunque una card tenga menos/deshabilitados. */
-.ev-card-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: auto; padding-top: 0.6rem; }
-.ev-card-actions .btn.small { flex: 1 1 auto; justify-content: center; min-width: 96px; }
+/* Acciones de la tarjeta de evento: botones a TAMAÑO-CONTENIDO (no estirados) para
+   que el icon-only (borrar) no quede ancho y vacío; fila que envuelve limpia. */
+.ev-card-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: auto; padding-top: 0.6rem; align-items: center; }
+.ev-card-actions .btn.small { flex: 0 0 auto; justify-content: center; }
+.ev-card-actions .btn.small.icon-only { min-width: 0; padding: 0.42rem; }
 
 /* --- Destacar evento (solo admin, en la lista) --- */
 /* Card destacada: realce con el acento del proyecto + estrella arriba. */

@@ -85,6 +85,9 @@ export class PublicConfigDto {
 
   @ApiProperty({ description: 'Si el chat de soporte está habilitado.', example: false })
   chatEnabled!: boolean;
+
+  @ApiProperty({ description: 'Si los promotores pueden destacar sus eventos en el inicio.', example: false })
+  canFeatureEvents!: boolean;
 }
 
 export class SettingViewDto {

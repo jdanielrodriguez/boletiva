@@ -40,6 +40,7 @@ export interface PublicConfig {
   /** Perfil premium / chat (para gating de UI: tarjeta de plan, CTA de chat). */
   premium: { enabled: boolean; trialEnabled: boolean; trialDays: number };
   chatEnabled: boolean;
+  canFeatureEvents: boolean;
 }
 
 export interface SettingView {
@@ -128,6 +129,7 @@ export class SettingsService {
         trialDays: resolveInt(PUBLIC_CONFIG_KEYS.premiumTrialDays),
       },
       chatEnabled: resolveBool(PUBLIC_CONFIG_KEYS.chatEnabled),
+      canFeatureEvents: resolveBool(PUBLIC_CONFIG_KEYS.canFeatureEvents),
     };
   }
 

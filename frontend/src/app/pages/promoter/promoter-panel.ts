@@ -62,7 +62,9 @@ export class PromoterPanel {
   /** ¿Muestro el chip premium? (solo si la distinción está activa). */
   protected readonly showPremiumChip = computed(() => this.premiumConfig().enabled);
   /** ¿Puede el promotor destacar SU evento? (beneficio premium; con premium off = todos). */
-  protected readonly canFeature = computed(() => this.premiumBenefitsActive());
+  // Destacar en el inicio: requiere beneficios premium Y que el admin lo habilite
+  // globalmente (setting `promoter.can_feature_events`, default false → oculto).
+  protected readonly canFeature = computed(() => this.premiumBenefitsActive() && this.config.canFeatureEvents());
   /** ¿Chat de soporte habilitado? (beneficio premium → gated por canFeature). */
   protected readonly chatEnabled = computed(() => this.config.chatEnabled());
   /** Evento cuyo destacado se está guardando (deshabilita su switch mientras). */

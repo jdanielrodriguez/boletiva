@@ -208,8 +208,16 @@ export const SETTINGS_CATALOG: SettingDef[] = [
   {
     key: 'chat.enabled',
     type: 'bool',
+    default: true,
+    description: 'Habilita el soporte/chat (promotor ↔ asesor/admin). false = soporte deshabilitado.',
+  },
+  {
+    key: 'promoter.can_feature_events',
+    type: 'bool',
     default: false,
-    description: 'Habilita el chat de soporte (promotor premium ↔ asesor/admin). false = chat deshabilitado.',
+    description:
+      'Permite a los promotores DESTACAR su evento en el inicio (switch en su panel). ' +
+      'false (default) = el promotor NO ve la opción de destacar. Lo habilita el admin.',
   },
   {
     key: 'advisor.lock_enabled',
@@ -238,6 +246,7 @@ export const PUBLIC_CONFIG_KEYS = {
   premiumTrialEnabled: 'premium.trial_enabled',
   premiumTrialDays: 'premium.trial_days',
   chatEnabled: 'chat.enabled',
+  canFeatureEvents: 'promoter.can_feature_events',
 } as const;
 
 export const SETTINGS_BY_KEY: Map<string, SettingDef> = new Map(

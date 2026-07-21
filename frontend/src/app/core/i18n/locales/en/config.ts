@@ -40,6 +40,7 @@ export const config = {
     system: 'System',
     settings: 'Settings',
     invitations: 'Invitations',
+    support: 'Support',
   },
 
   events: {

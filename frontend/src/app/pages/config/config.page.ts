@@ -25,6 +25,7 @@ import { ConfirmController } from '../../shared/confirm-dialog/confirm-controlle
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { TourComponent, type TourStep } from '../../shared/tour/tour.component';
+import { SupportChatPage } from '../support/support-chat.page';
 import { PagerComponent } from '../../shared/ui/pager.component';
 import { SearchFieldComponent } from '../../shared/ui/search-field.component';
 import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
@@ -41,7 +42,7 @@ import type {
   SettingViewDto,
 } from '../../core/api/types';
 
-type AdminTab = 'eventos' | 'promotores' | 'sistema' | 'invitaciones' | 'salones' | 'plantillas';
+type AdminTab = 'eventos' | 'promotores' | 'sistema' | 'invitaciones' | 'salones' | 'plantillas' | 'soporte';
 
 /** Grupos de la lista de eventos del admin por tiempo (default = futuros). */
 type EventTimeGroup = 'upcoming' | 'ongoing' | 'past' | 'all';
@@ -98,6 +99,7 @@ const INV_PAGE = 9;
     SearchFieldComponent,
     RouterLink,
     TourComponent,
+    SupportChatPage,
   ],
   templateUrl: './config.page.html',
   // Escape cierra el modal abierto (suspender o candado), como en confirm-dialog.
@@ -164,6 +166,7 @@ export class ConfigPage {
     'plantillas',
     'sistema',
     'invitaciones',
+    'soporte',
   ];
 
   /** Etiqueta amigable de un setting (key con puntos → guion bajo). */

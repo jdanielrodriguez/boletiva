@@ -40,6 +40,7 @@ export class PublicConfigStore {
     trialDays: 7,
   });
   private readonly _chatEnabled = signal(false);
+  private readonly _canFeatureEvents = signal(false);
   private readonly _loaded = signal(false);
 
   readonly allowVisitorLangSwitch = this._allowVisitorLangSwitch.asReadonly();
@@ -56,6 +57,8 @@ export class PublicConfigStore {
   readonly premium = this._premium.asReadonly();
   /** ¿El chat de soporte está habilitado globalmente? */
   readonly chatEnabled = this._chatEnabled.asReadonly();
+  /** ¿Los promotores pueden destacar sus eventos en el inicio? (default false). */
+  readonly canFeatureEvents = this._canFeatureEvents.asReadonly();
   /** true una vez resuelta (o fallida) la consulta inicial. */
   readonly loaded = this._loaded.asReadonly();
 
@@ -85,6 +88,7 @@ export class PublicConfigStore {
         this._recaptchaSiteKey.set(c.recaptchaSiteKey ?? '');
         if (c.premium) this._premium.set(c.premium);
         this._chatEnabled.set(c.chatEnabled ?? false);
+        this._canFeatureEvents.set(c.canFeatureEvents ?? false);
         this._loaded.set(true);
       },
       error: () => this._loaded.set(true),
