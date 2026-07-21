@@ -48,21 +48,29 @@
           </label>
         }
 
-        @for (t of threads(); track t.id) {
-          <button type="button" class="chat-thread-item" [class.active]="active()?.id === t.id" (click)="open(t)" [attr.data-testid]="'chat-thread-' + t.id">
-            <strong>{{ t.subject }}</strong>
-            <span class="chat-thread-badges">
-              <span class="badge badge-{{ t.status }}">{{ t.status | statusLabel }}</span>
-              @if (t.priority) { <span class="badge prio-{{ t.priority }}">{{ 'chat.priority.' + t.priority | translate }}</span> }
-            </span>
-            @if (slaHint(t); as sla) {
-              <span class="chat-sla" [class.breached]="sla.breached">{{ sla.text }}</span>
+        <div class="chat-thread-list">
+          @for (t of threads(); track t.id) {
+            <button type="button" class="chat-thread-item" [class.active]="active()?.id === t.id" (click)="open(t)" [attr.data-testid]="'chat-thread-' + t.id">
+              <strong>{{ t.subject }}</strong>
+              <span class="chat-thread-badges">
+                <span class="badge badge-{{ t.status }}">{{ t.status | statusLabel }}</span>
+                @if (t.priority) { <span class="badge prio-{{ t.priority }}">{{ 'chat.priority.' + t.priority | translate }}</span> }
+              </span>
+              @if (slaHint(t); as sla) {
+                <span class="chat-sla" [class.breached]="sla.breached">{{ sla.text }}</span>
+              }
+              @if (isAgent() && t.promoter) { <span class="muted small">{{ t.promoter.firstName }}</span> }
+            </button>
+          } @empty {
+            @if (listError()) {
+              <p class="muted small" data-testid="chat-list-error">{{ 'chat.loadError' | translate }}</p>
+            } @else if (loading()) {
+              <p class="muted small" data-testid="chat-list-loading">{{ 'common.loading' | translate }}</p>
+            } @else {
+              <p class="muted small" data-testid="chat-empty">{{ 'chat.noThreads' | translate }}</p>
             }
-            @if (isAgent() && t.promoter) { <span class="muted small">{{ t.promoter.firstName }}</span> }
-          </button>
-        } @empty {
-          <p class="muted small" data-testid="chat-empty">{{ 'chat.noThreads' | translate }}</p>
-        }
+          }
+        </div>
 
         @if (isAgent() && nextCursor()) {
           <button type="button" class="btn small btn-block" (click)="loadQueue(false)" data-testid="chat-load-more">{{ 'chat.loadMore' | translate }}</button>

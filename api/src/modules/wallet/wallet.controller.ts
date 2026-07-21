@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   Param,
@@ -19,7 +20,7 @@ import {
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RequireVerifiedEmail } from '../../common/decorators/verified-email.decorator';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { CurrentUser, AuthUser } from '../../common/decorators/current-user.decorator';
 import { PageQueryDto } from '../../common/dto/page-query.dto';
 import { WalletService } from './wallet.service';
 import { WalletWithdrawalService } from './wallet-withdrawal.service';
@@ -56,8 +57,15 @@ export class WalletController {
     summary: 'Solicita un retiro de saldo (reserva en el ledger). Solo promotor/admin.',
   })
   @ApiCreatedResponse({ type: WithdrawalActionResponseDto })
-  request(@Body() dto: RequestWithdrawalDto, @CurrentUser('userId') userId: string) {
-    return this.withdrawals.request(userId, dto.amount);
+  request(@Body() dto: RequestWithdrawalDto, @CurrentUser() user: AuthUser) {
+    // Acción financiera: nunca en una sesión de impersonación. Un admin suplantando a
+    // un promotor no puede mover el saldo ajeno (mismo criterio que el cierre de caja).
+    if (user.impersonatedBy || user.impersonation) {
+      throw new ForbiddenException(
+        'No se puede solicitar un retiro en una sesión de impersonación; usa tu sesión real',
+      );
+    }
+    return this.withdrawals.request(user.userId, dto.amount);
   }
 
   @Get('withdrawals')

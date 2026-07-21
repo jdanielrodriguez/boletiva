@@ -42,6 +42,10 @@ import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
             </li>
           }
         </ul>
+      } @else if (loading()) {
+        <p class="muted" data-testid="adv-loading">{{ 'common.loading' | translate }}</p>
+      } @else if (loadError()) {
+        <p class="muted" data-testid="adv-error">{{ 'advisor.admin.loadError' | translate }}</p>
       } @else {
         <app-empty-state variant="generic" data-testid="adv-empty"
           [title]="'advisor.admin.emptyTitle' | translate"
@@ -69,6 +73,8 @@ export class AdminAdvisorsPage {
   protected readonly emails = signal('');
   protected readonly rows = signal<AdvisorInvitationRow[]>([]);
   protected readonly working = signal(false);
+  protected readonly loading = signal(false);
+  protected readonly loadError = signal(false);
   protected readonly canInvite = computed(() => this.emails().trim().length > 3);
 
   constructor() {
@@ -76,7 +82,18 @@ export class AdminAdvisorsPage {
   }
 
   private reload(): void {
-    this.api.list().subscribe({ next: (r) => this.rows.set(r), error: () => undefined });
+    this.loading.set(true);
+    this.loadError.set(false);
+    this.api.list().subscribe({
+      next: (r) => {
+        this.rows.set(r);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.loading.set(false);
+        this.loadError.set(true);
+      },
+    });
   }
 
   protected invite(): void {

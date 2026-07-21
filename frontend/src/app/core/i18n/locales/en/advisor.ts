@@ -1,6 +1,7 @@
 /** Advisor role (B2): unlock banner in the console + admin approval page. */
 export const advisor = {
   bannerLocked: 'As an advisor you need an admin-approved unlock to edit.',
+  lockedAction: 'Action blocked: request an admin-approved unlock first.',
   bannerPending: 'Unlock request sent. Wait for an administrator to approve it.',
   bannerUnlocked: 'Unlock active: you can edit during the granted window.',
   activeUntil: 'active until {{time}}',
@@ -25,6 +26,7 @@ export const advisor = {
     error: 'Could not send the invitations.',
     emptyTitle: 'No invitations',
     emptyBody: 'You have not invited advisors yet.',
+    loadError: 'Could not load invitations. Please try again shortly.',
   },
   onboarding: {
     title: 'Advisor account',

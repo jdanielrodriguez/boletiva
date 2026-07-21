@@ -63,6 +63,9 @@ export class SupportChatPage implements OnDestroy {
 
   protected readonly threads = signal<ChatThread[]>([]);
   protected readonly nextCursor = signal<string | null>(null);
+  /** Estado de carga/error de la bandeja (evita el falso "sin tickets" y errores silenciados). */
+  protected readonly loading = signal(false);
+  protected readonly listError = signal(false);
   protected readonly active = signal<ChatThread | null>(null);
   protected readonly messages = signal<ChatMessage[]>([]);
   protected readonly composingNew = signal(false);
@@ -121,9 +124,17 @@ export class SupportChatPage implements OnDestroy {
   }
 
   private reloadOwn(): void {
+    this.loading.set(true);
+    this.listError.set(false);
     this.api.listThreads(this.showArchived()).subscribe({
-      next: (t) => this.threads.set(t),
-      error: () => undefined,
+      next: (t) => {
+        this.threads.set(t);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.loading.set(false);
+        this.listError.set(true);
+      },
     });
   }
 
@@ -133,12 +144,20 @@ export class SupportChatPage implements OnDestroy {
       unassigned: this.quick() === 'unassigned',
       mine: this.quick() === 'mine',
     };
+    if (reset) {
+      this.loading.set(true);
+      this.listError.set(false);
+    }
     this.api.queue(filters, reset ? undefined : (this.nextCursor() ?? undefined)).subscribe({
       next: (page) => {
         this.threads.set(reset ? page.items : [...this.threads(), ...page.items]);
         this.nextCursor.set(page.nextCursor);
+        this.loading.set(false);
       },
-      error: () => undefined,
+      error: () => {
+        this.loading.set(false);
+        if (reset) this.listError.set(true);
+      },
     });
   }
 

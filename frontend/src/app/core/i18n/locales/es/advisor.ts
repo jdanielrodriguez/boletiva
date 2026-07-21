@@ -1,6 +1,7 @@
 /** Rol asesor (B2): banner de desbloqueo en la consola + página de aprobación del admin. */
 export const advisor = {
   bannerLocked: 'Como asesor necesitas un desbloqueo aprobado por un administrador para editar.',
+  lockedAction: 'Acción bloqueada: pide un desbloqueo aprobado por un administrador.',
   bannerPending: 'Solicitud de desbloqueo enviada. Espera la aprobación de un administrador.',
   bannerUnlocked: 'Desbloqueo activo: puedes editar durante la ventana concedida.',
   activeUntil: 'activo hasta las {{time}}',
@@ -25,6 +26,7 @@ export const advisor = {
     error: 'No se pudieron enviar las invitaciones.',
     emptyTitle: 'Sin invitaciones',
     emptyBody: 'Aún no has invitado asesores.',
+    loadError: 'No se pudieron cargar las invitaciones. Reintenta en un momento.',
   },
   onboarding: {
     title: 'Cuenta de asesor',

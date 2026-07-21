@@ -22,7 +22,7 @@
       }
     </div>
     <div class="panel-header-actions">
-      @if (chatEnabled() && canFeature()) {
+      @if (chatEnabled() && premiumBenefitsActive()) {
         <a class="btn btn-outline" routerLink="/soporte" data-testid="go-support" [title]="'chat.title' | translate">
           {{ 'chat.title' | translate }}
         </a>

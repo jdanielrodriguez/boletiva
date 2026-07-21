@@ -65,7 +65,11 @@ export class PromoterPanel {
   // Destacar en el inicio: requiere beneficios premium Y que el admin lo habilite
   // globalmente (setting `promoter.can_feature_events`, default false → oculto).
   protected readonly canFeature = computed(() => this.premiumBenefitsActive() && this.config.canFeatureEvents());
-  /** ¿Chat de soporte habilitado? (beneficio premium → gated por canFeature). */
+  /**
+   * ¿Chat de soporte disponible? Es un beneficio premium INDEPENDIENTE de destacar:
+   * el enlace se pinta con `chatEnabled() && premiumBenefitsActive()` (no con
+   * `canFeature()`, que además exige el toggle de slider → apagarlo no debe quitar el chat).
+   */
   protected readonly chatEnabled = computed(() => this.config.chatEnabled());
   /** ¿La creación de eventos está habilitada globalmente? (T7 kill-switch). */
   protected readonly eventsCreationEnabled = computed(() => this.config.eventsCreationEnabled());

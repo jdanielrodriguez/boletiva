@@ -130,6 +130,16 @@ export class ConfigPage {
   /** Estado de desbloqueo del asesor (banner en la consola). */
   protected readonly advisorUnlock = signal<{ lockEnabled: boolean; unlocked: boolean; pending: boolean; expiresAt: string | null } | null>(null);
   protected readonly requestingUnlock = signal(false);
+  /**
+   * S1 (QA): el asesor está BLOQUEADO para mutar mientras el candado esté activo y sin
+   * ventana aprobada. El backend ya lo hace cumplir (AdvisorUnlockGuard global); aquí lo
+   * reflejamos en la UI para deshabilitar acciones y dar feedback honesto (no clic-a-ciegas).
+   */
+  protected readonly advisorLocked = computed(() => {
+    if (!this.isAdvisor()) return false;
+    const u = this.advisorUnlock();
+    return !!u && u.lockEnabled && !u.unlocked;
+  });
   private readonly theme = inject(ThemeService);
   private readonly toasts = inject(ToastService);
 
@@ -393,6 +403,19 @@ export class ConfigPage {
     });
   }
 
+  /**
+   * Guard de acción del asesor: si está bloqueado, avisa (feedback honesto) y corta ANTES
+   * de llamar al backend. Devuelve true si la acción quedó bloqueada. El backend igual la
+   * rechaza (AdvisorUnlockGuard), pero así no se hace clic a ciegas.
+   */
+  private blockedByLock(): boolean {
+    if (this.advisorLocked()) {
+      this.toasts.warning(this.translate.instant('advisor.lockedAction'));
+      return true;
+    }
+    return false;
+  }
+
   /** El asesor solicita desbloqueo (correo con enlace al admin). */
   protected requestAdvisorUnlock(): void {
     if (this.requestingUnlock()) return;
@@ -469,6 +492,7 @@ export class ConfigPage {
    * destacados y se oculta si no hay ninguno.
    */
   protected togglePromoted(e: AdminEventListItemDto, featured: boolean): void {
+    if (this.blockedByLock()) return;
     this.promotingId.set(e.id);
     this.promoterEvents.promote(e.id, featured).subscribe({
       next: () => {
@@ -548,6 +572,7 @@ export class ConfigPage {
   }
   /** Guarda la nota interna del promotor (persiste en BD, v3.8 · G2-9). */
   protected saveNote(p: PromoterListItemDto): void {
+    if (this.blockedByLock()) return;
     this.admin.setPromoterNote(p.id, this.notes()[p.id]?.trim() ?? '').subscribe({
       next: () => this.toasts.success(this.translate.instant('config.promoters.noteSaved')),
       error: () => this.toasts.error(this.translate.instant('config.promoters.noteError')),
@@ -565,6 +590,7 @@ export class ConfigPage {
 
   // --- Aprobar / reactivar / rechazar con confirmación (v3.8 · G2-5) ---
   protected askApprove(p: PromoterListItemDto): void {
+    if (this.blockedByLock()) return;
     const reactivate = p.promoterStatus === 'suspended';
     this.confirm.ask({
       title: this.translate.instant(reactivate ? 'config.promoters.reactivateConfirmTitle' : 'config.promoters.approveConfirmTitle', { name: p.firstName }),
@@ -588,6 +614,7 @@ export class ConfigPage {
     });
   }
   protected askReject(p: PromoterListItemDto): void {
+    if (this.blockedByLock()) return;
     this.confirm.ask({
       title: this.translate.instant('config.promoters.rejectConfirmTitle', { name: p.firstName }),
       message: this.translate.instant('config.promoters.rejectConfirmMsg', { name: p.firstName }),
@@ -611,6 +638,7 @@ export class ConfigPage {
 
   // --- Impersonación de soporte (v3.8 · G2-4) ---
   protected askImpersonate(p: PromoterListItemDto): void {
+    if (this.blockedByLock()) return;
     if (p.promoterStatus !== 'approved') {
       this.toasts.warning(this.translate.instant('config.promoters.impersonateOnlyApproved'));
       return;
@@ -647,6 +675,7 @@ export class ConfigPage {
   protected readonly suspendTarget = signal<PromoterListItemDto | null>(null);
   protected readonly suspendReason = signal('');
   protected openSuspend(p: PromoterListItemDto): void {
+    if (this.blockedByLock()) return;
     this.suspendTarget.set(p);
     this.suspendReason.set('');
   }
@@ -676,6 +705,7 @@ export class ConfigPage {
     });
   }
   protected setPromoterPct(p: PromoterListItemDto): void {
+    if (this.blockedByLock()) return;
     const raw = String(this.pctEdits()[p.id] ?? '').trim();
     const pct = Number(raw);
     if (raw === '' || Number.isNaN(pct) || pct < 0 || pct > 1) {
@@ -692,6 +722,7 @@ export class ConfigPage {
   }
   /** Restablece el reparto del promotor al default global (DELETE del override). */
   protected resetPromoterPct(p: PromoterListItemDto): void {
+    if (this.blockedByLock()) return;
     this.admin.resetPromoterCostShare(p.id).subscribe({
       next: () => {
         this.toasts.info(this.translate.instant('config.promoters.shareResetDone'));

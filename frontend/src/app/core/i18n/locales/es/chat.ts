@@ -5,6 +5,7 @@ export const chat = {
   disabledSubtitle: 'El soporte no está habilitado en este momento.',
   newThread: 'Nuevo ticket',
   noThreads: 'Sin tickets todavía.',
+  loadError: 'No se pudieron cargar los tickets. Reintenta en un momento.',
   subject: 'Asunto',
   firstMessage: 'Escribe tu consulta…',
   typeMessage: 'Escribe un mensaje…',

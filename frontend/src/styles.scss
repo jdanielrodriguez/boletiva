@@ -3154,6 +3154,7 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
   max-height: 70vh;
   overflow-y: auto;
 }
+.chat-thread-list { display: flex; flex-direction: column; gap: 0.5rem; }
 .chat-thread-item {
   display: flex;
   flex-direction: column;
@@ -3230,7 +3231,11 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
 /* Móvil: el chat colapsa a una sola columna (hilos arriba, conversación abajo). */
 @media (max-width: 720px) {
   .chat-layout { grid-template-columns: 1fr; min-height: 0; }
-  .chat-threads { max-height: 32vh; flex-direction: row; overflow-x: auto; }
+  /* La bandeja sigue en columna: los FILTROS (archivar/segmentado/estado) quedan
+     apilados arriba como cabecera; SOLO la lista de tickets scrollea en horizontal
+     (antes los filtros caían dentro de la tira y se perdían — QA móvil T3). */
+  .chat-threads { max-height: 40vh; flex-direction: column; }
+  .chat-thread-list { display: flex; flex-direction: row; gap: 0.5rem; overflow-x: auto; max-height: 24vh; }
   .chat-thread-item { min-width: 160px; flex: 0 0 auto; }
   .chat-main { min-height: 50vh; }
   .chat-msg { max-width: 90%; }
@@ -3326,13 +3331,26 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
 
 /* Móvil: agranda los blancos táctiles a ≥44px (accesibilidad WCAG 2.5.5). */
 @media (max-width: 480px) {
-  .btn.small { min-height: 44px; }
-  .btn.icon-only { width: 44px; height: 44px; }
+  /* Cualquier botón de acción llega a 44px (incluye .primary/.outline/.small base). */
+  .btn { min-height: 44px; }
+  .btn.icon-only { width: 44px; height: 44px; min-height: 44px; }
   .pe-switch .pe-switch-track { margin: 0.6rem 0; }
   /* Acciones tipo enlace (validadores, cuenta): blanco táctil vertical decente. */
-  .link-btn { min-height: 40px; display: inline-flex; align-items: center; }
+  .link-btn { min-height: 44px; display: inline-flex; align-items: center; }
   /* Steppers de cantidad (compra GA): 44px táctiles. */
   .qty-btn { min-width: 44px; min-height: 44px; }
+  /* Controles señalados por la auditoría QA móvil que quedaban por debajo de 44px:
+     campanita, menú de usuario, iconos, tabs, filtros segmentados, adjuntar, estrellas
+     CSAT, salir de impersonación y los <select> nativos de formularios/soporte. */
+  .notif-trigger { width: 44px; height: 44px; }
+  .user-trigger { min-width: 44px; min-height: 44px; }
+  .icon-btn { width: 44px; height: 44px; }
+  .config-tabs button { min-height: 44px; }
+  .seg button { min-height: 44px; }
+  .chat-attach-btn { width: 44px; min-height: 44px; }
+  .chat-star { min-width: 44px; min-height: 44px; }
+  .imp-exit { min-height: 44px; }
+  select { min-height: 44px; }
 }
 
 /* Edición de evento */
