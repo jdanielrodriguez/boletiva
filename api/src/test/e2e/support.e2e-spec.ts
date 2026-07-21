@@ -351,6 +351,15 @@ describe('Tickets de soporte (e2e)', () => {
     expect(withAtt.attachments[0].filename).toBe('captura.png');
   });
 
+  it('agentes: solo agentes; lista incluye al admin con isAdmin=true (T7f)', async () => {
+    await http().get('/api/v1/support/agents').set(bearer(promoterToken)).expect(403);
+    const res = await http().get('/api/v1/support/agents').set(bearer(adminToken)).expect(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    const adminRow = res.body.find((a: { id: string }) => a.id === adminId);
+    expect(adminRow).toBeTruthy();
+    expect(adminRow.isAdmin).toBe(true);
+  });
+
   it('métricas: solo agentes; devuelve volumen por estado + SLA + CSAT', async () => {
     await http().get('/api/v1/support/metrics').set(bearer(promoterToken)).expect(403);
     const m = await http().get('/api/v1/support/metrics').set(bearer(adminToken)).expect(200);

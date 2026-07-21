@@ -66,6 +66,14 @@ export interface UploadedAttachment {
   size: number;
 }
 
+export interface SupportAgent {
+  id: string;
+  firstName: string;
+  lastName: string | null;
+  email: string;
+  isAdmin: boolean;
+}
+
 export interface SupportMetrics {
   byStatus: Record<string, number>;
   byCategory: Record<string, number>;
@@ -133,6 +141,9 @@ export class ChatApi {
   }
   metrics(): Observable<SupportMetrics> {
     return this.api.get<SupportMetrics>('/support/metrics');
+  }
+  listAgents(): Observable<SupportAgent[]> {
+    return this.api.get<SupportAgent[]>('/support/agents');
   }
   close(ticketId: string): Observable<ChatThread> {
     return this.api.post<ChatThread>(`/support/tickets/${ticketId}/close`, {});

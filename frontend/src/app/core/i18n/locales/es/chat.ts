@@ -27,6 +27,7 @@ export const chat = {
   allStatuses: 'Todos los estados',
   loadMore: 'Cargar más',
   take: 'Tomar',
+  assignTo: 'Asignar a…',
   resolve: 'Resolver',
   suspend: 'Suspender',
   resume: 'Reanudar',

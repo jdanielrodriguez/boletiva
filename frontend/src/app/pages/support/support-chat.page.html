@@ -124,6 +124,14 @@
                 <select class="chat-prio-select" [ngModel]="t.priority" (ngModelChange)="changePriority($event)" data-testid="chat-set-priority" [attr.aria-label]="'chat.priorityLabel' | translate">
                   @for (p of priorities; track p) { <option [ngValue]="p">{{ 'chat.priority.' + p | translate }}</option> }
                 </select>
+                @if (isAdmin() && agents().length > 0) {
+                  <select class="chat-assignee-select" [ngModel]="t.assignedToId" (ngModelChange)="reassign($event)" data-testid="chat-assignee" [attr.aria-label]="'chat.assignTo' | translate">
+                    <option [ngValue]="null" disabled>{{ 'chat.assignTo' | translate }}</option>
+                    @for (a of agents(); track a.id) {
+                      <option [ngValue]="a.id">{{ a.firstName }}{{ a.isAdmin ? ' (admin)' : '' }}</option>
+                    }
+                  </select>
+                }
               </div>
             } @else {
               <!-- PROMOTOR: cerrar / archivar -->

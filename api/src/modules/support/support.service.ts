@@ -510,6 +510,23 @@ export class SupportService implements OnModuleInit, OnModuleDestroy {
   // Cola del agente (T2): filtros + keyset pagination (alto volumen)
   // ---------------------------------------------------------------------------
 
+  /** (Agente) Lista de AGENTES activos (asesor/admin) para el selector de reasignación (T7f). */
+  async listAgents(user: AuthUser) {
+    if (!this.isAgent(user)) throw new ForbiddenException('Solo agentes ven la lista de agentes');
+    const rows = await this.prisma.user.findMany({
+      where: { roles: { hasSome: [Role.admin, Role.advisor] }, status: 'active' },
+      select: { id: true, firstName: true, lastName: true, email: true, roles: true },
+      orderBy: { firstName: 'asc' },
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      firstName: r.firstName,
+      lastName: r.lastName,
+      email: r.email,
+      isAdmin: r.roles.includes(Role.admin),
+    }));
+  }
+
   /** (Agente) Cola de tickets con filtros y paginación por cursor. */
   async listQueue(user: AuthUser, filters: QueueFilters, page: KeysetQuery) {
     if (!this.isAgent(user)) throw new ForbiddenException('Solo agentes acceden a la cola');

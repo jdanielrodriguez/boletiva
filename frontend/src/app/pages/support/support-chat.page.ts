@@ -9,6 +9,7 @@ import {
   type ChatThread,
   type QueueFilters,
   type SupportCategory,
+  type SupportAgent,
   type SupportMacro,
   type SupportMetrics,
   type SupportPriority,
@@ -55,6 +56,8 @@ export class SupportChatPage implements OnDestroy {
 
   protected readonly chatEnabled = computed(() => this.config.chatEnabled());
   protected readonly isAgent = computed(() => this.session.hasAnyRole(['admin', 'advisor']));
+  /** Solo el admin reasigna tickets entre asesores (T7f; backend assign es admin-only). */
+  protected readonly isAdmin = computed(() => this.session.hasRole('admin'));
   protected readonly canOpen = computed(() => this.session.hasRole('promoter') && !this.isAgent());
   protected readonly myId = computed(() => this.session.user()?.id ?? '');
 
@@ -79,6 +82,8 @@ export class SupportChatPage implements OnDestroy {
   protected readonly statusFilter = signal<SupportStatus | ''>('');
   protected readonly macros = signal<SupportMacro[]>([]);
   protected readonly showMacros = signal(false);
+  /** Agentes para el selector de reasignación (admin). */
+  protected readonly agents = signal<SupportAgent[]>([]);
 
   // Adjuntos pendientes de enviar + métricas del agente
   protected readonly pendingFiles = signal<File[]>([]);
@@ -92,6 +97,7 @@ export class SupportChatPage implements OnDestroy {
       this.loadQueue(true);
       this.loadMacros();
       this.loadMetrics();
+      if (this.isAdmin()) this.api.listAgents().subscribe({ next: (a) => this.agents.set(a), error: () => undefined });
     } else {
       this.reloadOwn();
     }
@@ -320,6 +326,11 @@ export class SupportChatPage implements OnDestroy {
   }
   protected changeCategory(c: SupportCategory): void {
     this.act((id) => this.api.setCategory(id, c));
+  }
+  /** (Admin) Reasigna el ticket a otro agente. */
+  protected reassign(agentId: string): void {
+    if (!agentId) return;
+    this.act((id) => this.api.assign(id, agentId));
   }
 
   protected archive(): void {

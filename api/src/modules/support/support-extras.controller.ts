@@ -135,6 +135,14 @@ export class SupportExtrasController {
     );
   }
 
+  // --- Agentes (para reasignar tickets) ---
+  @Get('agents')
+  @Roles(Role.admin, Role.advisor)
+  @ApiOperation({ summary: 'Lista de agentes (asesor/admin) para reasignar tickets' })
+  agents(@CurrentUser() user: AuthUser) {
+    return this.support.listAgents(user);
+  }
+
   // --- Métricas / dashboard ---
   @Get('metrics')
   @Roles(Role.admin, Role.advisor)

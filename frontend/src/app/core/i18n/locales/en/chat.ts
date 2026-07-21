@@ -27,6 +27,7 @@ export const chat = {
   allStatuses: 'All statuses',
   loadMore: 'Load more',
   take: 'Take',
+  assignTo: 'Assign to…',
   resolve: 'Resolve',
   suspend: 'Suspend',
   resume: 'Resume',
