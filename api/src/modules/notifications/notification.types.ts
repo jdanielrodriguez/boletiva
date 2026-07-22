@@ -15,6 +15,7 @@ export const NotificationType = {
   EVENT_STARTING: 'event_starting',
   EVENT_FINISHED: 'event_finished',
   TICKET_UPDATE: 'ticket_update',
+  ORDER_REFUNDED: 'order_refunded',
   // Admin
   SUPPORT_ACTIVITY: 'support_activity',
 } as const;

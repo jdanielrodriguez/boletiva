@@ -20,6 +20,8 @@ import { hmacSha256, randomToken, safeEqual } from '../../common/utils/crypto';
 import { QueueService } from '../../infra/queue/queue.service';
 import { QUEUES } from '../../infra/queue/queue.constants';
 import { TicketsService } from '../tickets/tickets.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../notifications/notification.types';
 import { StreamService } from '../stream/stream.service';
 import { PAYMENT_PROVIDER, PaymentProvider } from './payment.provider';
 
@@ -44,6 +46,7 @@ export class PaymentsService {
     private readonly queue: QueueService,
     private readonly tickets: TicketsService,
     private readonly stream: StreamService,
+    private readonly notifications: NotificationsService,
     @Inject(PAYMENT_PROVIDER) private readonly provider: PaymentProvider,
   ) {}
 
@@ -772,6 +775,24 @@ export class PaymentsService {
     this.stream.emitOrder(order.id, { status: 'refunded' });
     if (seatIds.length) this.stream.emitSeat(order.eventId, { released: seatIds });
     if (mode === 'refund') await this.pushWallet(order.buyerId);
+
+    // Aviso al comprador (in-app + correo): su compra fue reembolsada/anulada.
+    const isRefund = mode === 'refund';
+    const title = isRefund ? 'Tu compra fue reembolsada 💵' : 'Tu compra fue anulada';
+    const bodyText = isRefund
+      ? 'Reembolsamos tu compra: el monto quedó acreditado en tu saldo de Boletiva (billetera), listo para usar o retirar. Tus boletos quedaron anulados.'
+      : 'Tu compra fue anulada por un contracargo y tus boletos quedaron sin validez. Si crees que es un error, escríbenos desde Soporte.';
+    await this.notifications.emit(order.buyerId, {
+      type: NotificationType.ORDER_REFUNDED,
+      title,
+      body: bodyText,
+      resourceType: 'order',
+      resourceId: order.id,
+      email: {
+        subject: `${title} — Boletiva`,
+        html: `<p style="margin:0 0 12px 0;">${bodyText}</p>${isRefund ? '<p class="pe-muted" style="margin:0;font-size:14px;color:#6b6b76;">Puedes ver tu saldo en tu cuenta.</p>' : ''}`,
+      },
+    });
   }
 
   /**

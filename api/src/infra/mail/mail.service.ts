@@ -47,15 +47,48 @@ export class MailService implements OnModuleInit {
   private async resolvePalette(): Promise<EmailPalette> {
     try {
       const rows = await this.prisma.setting.findMany({
-        where: { key: { in: ['theme.default_franja', 'theme.slot.dia', 'theme.slot.noche'] } },
+        where: {
+          key: {
+            in: [
+              'theme.default_franja',
+              'theme.slot.dia',
+              'theme.slot.noche',
+              'theme.auto_by_hour',
+              'theme.day_start_hour',
+              'theme.day_end_hour',
+            ],
+          },
+        },
       });
       const byKey = new Map(rows.map((r) => [r.key, r.value]));
-      const franja = byKey.get('theme.default_franja') === 'dia' ? 'dia' : 'noche';
+      // El correo resuelve la franja IGUAL que el sitio: si el admin activó el tema
+      // AUTOMÁTICO por horario, se usa la franja de la hora actual (zona America/
+      // Guatemala); si no, la franja por defecto configurada.
+      let franja: 'dia' | 'noche';
+      if (byKey.get('theme.auto_by_hour') === true) {
+        const start = Number(byKey.get('theme.day_start_hour') ?? 6);
+        const end = Number(byKey.get('theme.day_end_hour') ?? 18);
+        const hour = MailService.hourInGuatemala();
+        franja = hour >= start && hour < end ? 'dia' : 'noche';
+      } else {
+        franja = byKey.get('theme.default_franja') === 'dia' ? 'dia' : 'noche';
+      }
       const themeKey = byKey.get(`theme.slot.${franja}`);
       return (typeof themeKey === 'string' && EMAIL_THEMES[themeKey]) || DEFAULT_EMAIL_PALETTE;
     } catch {
       return DEFAULT_EMAIL_PALETTE;
     }
+  }
+
+  /** Hora actual (0–23) en la zona horaria America/Guatemala. */
+  private static hourInGuatemala(): number {
+    return Number(
+      new Intl.DateTimeFormat('en-US', {
+        hour: 'numeric',
+        hour12: false,
+        timeZone: 'America/Guatemala',
+      }).format(new Date()),
+    );
   }
 
   onModuleInit(): void {

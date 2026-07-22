@@ -69,6 +69,7 @@ describe('PaymentsService (ramas de borde, unit)', () => {
       createPayment: jest.fn().mockResolvedValue({ paymentUrl: 'http://pay' }),
       scheduleAutoConfirm: jest.fn(),
     };
+    const notifications = { emit: jest.fn().mockResolvedValue(undefined), emitToRoles: jest.fn().mockResolvedValue(undefined) };
     const service = new PaymentsService(
       prisma as never,
       ledger as never,
@@ -79,9 +80,10 @@ describe('PaymentsService (ramas de borde, unit)', () => {
       queue as never,
       tickets as never,
       stream as never,
+      notifications as never,
       provider as never,
     );
-    return { prisma, ledger, pricing, gateways, costShare, stream, provider, service };
+    return { prisma, ledger, pricing, gateways, costShare, stream, provider, notifications, service };
   };
 
   const gwActive = (over: Record<string, unknown> = {}) => ({
