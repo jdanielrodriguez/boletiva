@@ -177,6 +177,10 @@ PROD_REGION ?= us-central1
 PROD_SQL_INSTANCE ?= pasaeventos-pg
 PROD_REDIS_INSTANCE ?= pasaeventos-redis
 PROD_REDIS_SECRET ?= pasaeventos-redis-url
+# Rango /29 reservado del Memorystore original → recrea IDÉNTICO (mismo host, alcanzable
+# por el VPC egress de Cloud Run). Si alguna vez ese rango está ocupado, quita el flag
+# --reserved-ip-range del recipe para que GCP auto-asigne uno (el secreto se actualiza igual).
+PROD_REDIS_IP_RANGE ?= 10.237.125.88/29
 PROD_API_SERVICE ?= pasaeventos-api
 PROD_FRONTEND_SERVICE ?= pasaeventos-frontend
 
@@ -288,9 +292,10 @@ gcp-redis-create:
 	@if gcloud redis instances describe $(PROD_REDIS_INSTANCE) --region=$(PROD_REGION) --project=$(PROD_PROJECT) >/dev/null 2>&1; then \
 	  echo "ℹ️  Memorystore '$(PROD_REDIS_INSTANCE)' ya existe; solo refresco el secreto."; \
 	else \
-	  echo "🆕 Creando Memorystore '$(PROD_REDIS_INSTANCE)' (Basic 1GB, red default)…"; \
+	  echo "🆕 Creando Memorystore '$(PROD_REDIS_INSTANCE)' (Basic 1GB, REDIS_7_0, red default)…"; \
 	  gcloud redis instances create $(PROD_REDIS_INSTANCE) --size=1 --region=$(PROD_REGION) \
-	    --tier=basic --network=default --project=$(PROD_PROJECT) --quiet; \
+	    --tier=basic --redis-version=redis_7_0 --connect-mode=DIRECT_PEERING \
+	    --reserved-ip-range=$(PROD_REDIS_IP_RANGE) --network=default --project=$(PROD_PROJECT) --quiet; \
 	fi
 	@HOST=$$(gcloud redis instances describe $(PROD_REDIS_INSTANCE) --region=$(PROD_REGION) --project=$(PROD_PROJECT) --format='value(host)'); \
 	 PORT=$$(gcloud redis instances describe $(PROD_REDIS_INSTANCE) --region=$(PROD_REGION) --project=$(PROD_PROJECT) --format='value(port)'); \
