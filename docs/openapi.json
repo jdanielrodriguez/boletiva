@@ -18841,6 +18841,11 @@
             "description": "Habilita el tour de onboarding guiado (una vez por usuario/página).",
             "example": true
           },
+          "tourResetDays": {
+            "type": "number",
+            "description": "Días para reofrecer un tour ya visto/saltado/rechazado (reinicio).",
+            "example": 30
+          },
           "capabilities": {
             "type": "object",
             "description": "Integraciones externas configuradas y disponibles (gating de UI).",
@@ -18926,6 +18931,7 @@
           "showHomeCategories",
           "reportsMaintenance",
           "tourEnabled",
+          "tourResetDays",
           "capabilities",
           "recaptchaSiteKey",
           "theme",

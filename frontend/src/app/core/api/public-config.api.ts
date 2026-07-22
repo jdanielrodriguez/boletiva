@@ -28,6 +28,8 @@ export interface PublicConfig {
   reportsMaintenance?: boolean;
   /** ¿El tour de onboarding guiado está habilitado globalmente? (default true) */
   tourEnabled?: boolean;
+  /** Días para reofrecer un tour ya visto/rechazado (reinicio; default 30). */
+  tourResetDays?: number;
   /** Asignación de tema por franja + switch (para resolver el tema en el cliente). */
   theme?: ThemeConfig;
   /** Site key pública de reCAPTCHA v3 (vacía = deshabilitado, no se carga). */

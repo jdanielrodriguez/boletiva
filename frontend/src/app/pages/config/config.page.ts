@@ -111,10 +111,15 @@ const INV_PAGE = 9;
 })
 export class ConfigPage {
   /** Tour de onboarding de la consola admin (solo admins que no lo han visto). */
+  /** Tour SUPERINVASIVO que recorre cada TAB de la consola (spotlight anclado al botón). */
   protected readonly tourSteps: TourStep[] = [
     { title: 'tour.admin.welcomeTitle', body: 'tour.admin.welcomeBody' },
-    { title: 'tour.admin.eventsTitle', body: 'tour.admin.eventsBody' },
-    { title: 'tour.admin.configTitle', body: 'tour.admin.configBody' },
+    { title: 'tour.admin.eventsTitle', body: 'tour.admin.eventsBody', target: '[data-testid="tab-eventos"]' },
+    { title: 'tour.admin.promotersTitle', body: 'tour.admin.promotersBody', target: '[data-testid="tab-promotores"]' },
+    { title: 'tour.admin.hallsTitle', body: 'tour.admin.hallsBody', target: '[data-testid="tab-salones"]' },
+    { title: 'tour.admin.templatesTitle', body: 'tour.admin.templatesBody', target: '[data-testid="tab-plantillas"]' },
+    { title: 'tour.admin.kbTitle', body: 'tour.admin.kbBody', target: '[data-testid="tab-kb"]' },
+    { title: 'tour.admin.configTitle', body: 'tour.admin.configBody', target: '[data-testid="tab-sistema"]' },
   ];
   private readonly admin = inject(AdminApi);
   private readonly advisorApi = inject(AdvisorApi);

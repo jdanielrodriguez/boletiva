@@ -32,6 +32,7 @@ export class PublicConfigStore {
   private readonly _showHomeCategories = signal(false); // categorías ocultas en inicio por defecto
   private readonly _reportsMaintenance = signal(false); // reportes activos por defecto
   private readonly _tourEnabled = signal(true); // tour de onboarding activo por defecto
+  private readonly _tourResetDays = signal(30); // reofrecer el tour tras N días
   private readonly _theme = signal<ThemeConfig>(DEFAULT_THEME);
   private readonly _recaptchaSiteKey = signal('');
   private readonly _premium = signal<{ enabled: boolean; trialEnabled: boolean; trialDays: number }>({
@@ -54,6 +55,8 @@ export class PublicConfigStore {
   readonly reportsMaintenance = this._reportsMaintenance.asReadonly();
   /** ¿El tour de onboarding está habilitado? (admin puede apagarlo.) */
   readonly tourEnabled = this._tourEnabled.asReadonly();
+  /** Días para reofrecer un tour ya visto/rechazado (config admin). */
+  readonly tourResetDays = this._tourResetDays.asReadonly();
   /** Asignación de tema por franja + switch (rebranding Boletiva). */
   readonly theme = this._theme.asReadonly();
   /** Site key pública de reCAPTCHA v3 ('' = deshabilitado; RecaptchaService la lee). */
@@ -95,6 +98,7 @@ export class PublicConfigStore {
         this._showHomeCategories.set(c.showHomeCategories);
         this._reportsMaintenance.set(c.reportsMaintenance ?? false);
         this._tourEnabled.set(c.tourEnabled ?? true);
+        this._tourResetDays.set(c.tourResetDays ?? 30);
         if (c.theme) this._theme.set(c.theme);
         this._recaptchaSiteKey.set(c.recaptchaSiteKey ?? '');
         if (c.premium) this._premium.set(c.premium);

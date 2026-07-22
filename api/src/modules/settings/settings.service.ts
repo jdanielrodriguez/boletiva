@@ -31,6 +31,7 @@ export interface PublicConfig {
   showHomeCategories: boolean;
   reportsMaintenance: boolean;
   tourEnabled: boolean;
+  tourResetDays: number;
   /** Temas por franja + switch, para resolver el tema en SSR sin parpadeo. */
   theme: ThemeConfig;
   /** Qué integraciones externas están configuradas (para gating de UI). */
@@ -112,6 +113,7 @@ export class SettingsService {
       showHomeCategories: resolveBool(PUBLIC_CONFIG_KEYS.showHomeCategories),
       reportsMaintenance: resolveBool(PUBLIC_CONFIG_KEYS.reportsMaintenance),
       tourEnabled: resolveBool(PUBLIC_CONFIG_KEYS.tourEnabled),
+      tourResetDays: resolveInt(PUBLIC_CONFIG_KEYS.tourResetDays),
       theme: {
         slots: {
           dia: resolveEnum(PUBLIC_CONFIG_KEYS.themeSlotDia),

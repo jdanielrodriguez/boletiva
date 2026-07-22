@@ -8,15 +8,15 @@ import { initI18nTesting, provideI18nTesting } from '../../core/i18n/testing';
 import { TourComponent } from './tour.component';
 
 /**
- * Cubre las reglas de aparición del tour: flag global, logueado (una vez por perfil)
- * y anónimo (activación aleatoria estable + "visto" en localStorage), validando que
- * NUNCA aparece con el flag apagado ni antes de que la config real cargue.
+ * Rework del tour: PROMPT (¿sí/no?) → SPOTLIGHT invasivo, con persistencia por navegador
+ * (status/at/views) → se reofrece tras `tourResetDays` y se calla tras 3 ofertas.
  */
 describe('TourComponent', () => {
   let fixture: ComponentFixture<TourComponent>;
   const user = signal<{ toursSeen?: string[] } | null>(null);
   const tourEnabled = signal(true);
-  const configLoaded = signal(false);
+  const tourResetDays = signal(30);
+  const configLoaded = signal(true);
   const sessionLoaded = signal(true);
   const markTourSeen = jasmine.createSpy('markTourSeen').and.returnValue(of({}));
 
@@ -29,7 +29,11 @@ describe('TourComponent', () => {
         { provide: UsersApi, useValue: { markTourSeen } },
         {
           provide: PublicConfigStore,
-          useValue: { tourEnabled: tourEnabled.asReadonly(), loaded: configLoaded.asReadonly() },
+          useValue: {
+            tourEnabled: tourEnabled.asReadonly(),
+            tourResetDays: tourResetDays.asReadonly(),
+            loaded: configLoaded.asReadonly(),
+          },
         },
       ],
     });
@@ -38,89 +42,97 @@ describe('TourComponent', () => {
     fixture.componentRef.setInput('tourKey', 'home');
     fixture.componentRef.setInput('steps', [
       { title: 'tour.home.welcomeTitle', body: 'tour.home.welcomeBody' },
+      { title: 'tour.home.buyTitle', body: 'tour.home.buyBody' },
     ]);
     fixture.detectChanges();
-    await fixture.whenStable(); // deja correr afterNextRender (tirada anónima)
+    await fixture.whenStable(); // afterNextRender
     fixture.detectChanges();
   }
 
-  const shown = () => !!(fixture.nativeElement as HTMLElement).querySelector('[data-testid="tour"]');
+  const el = () => fixture.nativeElement as HTMLElement;
+  const shown = () => !!el().querySelector('[data-testid="tour"]');
+  const click = (id: string) => el().querySelector<HTMLButtonElement>(`[data-testid="${id}"]`)!.click();
 
   beforeEach(() => {
     localStorage.clear();
-    user.set(null);
+    user.set({ toursSeen: [] });
     tourEnabled.set(true);
-    configLoaded.set(false);
+    tourResetDays.set(30);
+    configLoaded.set(true);
     sessionLoaded.set(true);
     markTourSeen.calls.reset();
   });
   afterEach(() => localStorage.clear());
 
-  it('flag apagado → nunca se muestra (ni a logueado sin verlo)', async () => {
+  it('flag apagado → nunca ofrece el tour', async () => {
     tourEnabled.set(false);
-    user.set({ toursSeen: [] });
     await render();
     expect(shown()).toBe(false);
   });
 
-  it('logueado que NO lo ha visto → se muestra', async () => {
-    user.set({ toursSeen: [] });
+  it('logueado sin registro → OFRECE el prompt (¿sí/no?)', async () => {
     await render();
     expect(shown()).toBe(true);
+    expect(el().querySelector('[data-testid="tour-yes"]')).not.toBeNull();
+    expect(el().querySelector('[data-testid="tour-no"]')).not.toBeNull();
   });
 
-  it('logueado que YA lo vio → no se muestra', async () => {
-    user.set({ toursSeen: ['home'] });
+  it('aceptar → entra al modo guiado (tarjeta con pasos: next/finish)', async () => {
     await render();
-    expect(shown()).toBe(false);
-  });
-
-  it('NO INVASIVO: recuadro flotante (.tour-pop) sin backdrop modal ni aria-modal, con botón cerrar', async () => {
-    user.set({ toursSeen: [] });
-    await render();
-    const el = fixture.nativeElement as HTMLElement;
-    const pop = el.querySelector('[data-testid="tour"]');
-    expect(pop?.classList.contains('tour-pop')).toBe(true);
-    // No es un diálogo modal: no bloquea el fondo.
-    expect(el.querySelector('.tour-backdrop')).toBeNull();
-    expect(pop?.getAttribute('aria-modal')).toBeNull();
-    // Tiene botón de cerrar (×).
-    expect(el.querySelector('[data-testid="tour-close"]')).not.toBeNull();
-  });
-
-  it('anónimo con la config REAL sin cargar → no se muestra (default seguro / tests)', async () => {
-    configLoaded.set(false);
-    spyOn(Math, 'random').and.returnValue(0.1); // saldría elegido, pero config no cargó
-    await render();
-    expect(shown()).toBe(false);
-  });
-
-  it('anónimo elegido en la tirada (<50%) con config cargada → se muestra y persiste "visto"', async () => {
-    configLoaded.set(true);
-    spyOn(Math, 'random').and.returnValue(0.2); // roll 20 < 50 → elegido
-    await render();
-    expect(shown()).toBe(true);
-    (fixture.nativeElement as HTMLElement)
-      .querySelector<HTMLButtonElement>('[data-testid="tour-finish"]')!
-      .click();
+    click('tour-yes');
+    fixture.detectChanges();
+    expect(el().querySelector('[data-testid="tour-next"]')).not.toBeNull();
+    // Avanza al último paso y termina → persiste "done".
+    click('tour-next');
+    fixture.detectChanges();
+    click('tour-finish');
     fixture.detectChanges();
     expect(shown()).toBe(false);
-    expect(localStorage.getItem('pe.tour.seen.home')).toBe('1'); // anónimo → localStorage
-    expect(markTourSeen).not.toHaveBeenCalled(); // sin perfil, no pega al backend
+    const rec = JSON.parse(localStorage.getItem('pe.tour.v2.home')!);
+    expect(rec.status).toBe('done');
+    expect(markTourSeen).toHaveBeenCalled();
   });
 
-  it('anónimo NO elegido (>=50%) → no se muestra', async () => {
-    configLoaded.set(true);
-    spyOn(Math, 'random').and.returnValue(0.8); // roll 80 >= 50 → no elegido
+  it('rechazar (No, gracias) → se guarda "dismissed" y no reaparece dentro de la ventana', async () => {
+    await render();
+    click('tour-no');
+    fixture.detectChanges();
+    expect(shown()).toBe(false);
+    const rec = JSON.parse(localStorage.getItem('pe.tour.v2.home')!);
+    expect(rec.status).toBe('dismissed');
+  });
+
+  it('registro reciente (dentro de tourResetDays) → no se ofrece', async () => {
+    localStorage.setItem('pe.tour.v2.home', JSON.stringify({ status: 'done', at: Date.now(), views: 1 }));
     await render();
     expect(shown()).toBe(false);
   });
 
-  it('anónimo que ya lo vio (localStorage) → no se muestra aunque saldría elegido', async () => {
-    configLoaded.set(true);
-    localStorage.setItem('pe.tour.seen.home', '1');
-    spyOn(Math, 'random').and.returnValue(0.1);
+  it('registro VIEJO (más allá de la ventana) → se reofrece', async () => {
+    const old = Date.now() - 40 * 24 * 60 * 60 * 1000; // 40 días > 30
+    localStorage.setItem('pe.tour.v2.home', JSON.stringify({ status: 'done', at: old, views: 1 }));
+    await render();
+    expect(shown()).toBe(true);
+  });
+
+  it('ofrecido 3 veces sin interactuar → se calla', async () => {
+    localStorage.setItem('pe.tour.v2.home', JSON.stringify({ views: 3 }));
     await render();
     expect(shown()).toBe(false);
+  });
+
+  it('anónimo NO elegido en la tirada → no se ofrece', async () => {
+    user.set(null);
+    spyOn(Math, 'random').and.returnValue(0.8); // roll 80 >= 50
+    await render();
+    expect(shown()).toBe(false);
+  });
+
+  it('anónimo elegido (<50%) con config cargada → ofrece el prompt', async () => {
+    user.set(null);
+    spyOn(Math, 'random').and.returnValue(0.2); // roll 20 < 50
+    await render();
+    expect(shown()).toBe(true);
+    expect(markTourSeen).not.toHaveBeenCalled(); // sin sesión no pega al backend
   });
 });

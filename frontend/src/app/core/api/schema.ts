@@ -8834,6 +8834,11 @@ export interface components {
              */
             tourEnabled: boolean;
             /**
+             * @description Días para reofrecer un tour ya visto/saltado/rechazado (reinicio).
+             * @example 30
+             */
+            tourResetDays: number;
+            /**
              * @description Integraciones externas configuradas y disponibles (gating de UI).
              * @example {
              *       "recurrente": false,

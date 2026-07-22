@@ -126,6 +126,16 @@ export const SETTINGS_CATALOG: SettingDef[] = [
       'Desactívalo para que no aparezca a nadie.',
   },
   {
+    key: 'tour.reset_days',
+    type: 'int',
+    default: 30,
+    min: 1,
+    max: 365,
+    description:
+      'Días que se recuerda que un usuario ya vio/saltó/rechazó un tour antes de volver a ' +
+      'ofrecerlo (reinicio). También deja de ofrecerse tras verlo 3 veces sin interactuar.',
+  },
+  {
     key: 'theme.slot.noche',
     type: 'enum',
     default: 'pulso',
@@ -272,6 +282,7 @@ export const PUBLIC_CONFIG_KEYS = {
   showHomeCategories: 'home.show_categories',
   reportsMaintenance: 'reports.maintenance',
   tourEnabled: 'tour.enabled',
+  tourResetDays: 'tour.reset_days',
   themeSlotNoche: 'theme.slot.noche',
   themeSlotDia: 'theme.slot.dia',
   themeDefaultFranja: 'theme.default_franja',
