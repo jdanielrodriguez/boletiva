@@ -20,7 +20,7 @@ export class MediaService {
 
   /** Devuelve una URL firmada de subida directa navegador→storage. */
   async presignUpload(eventId: string, dto: PresignUploadDto, user: AuthUser) {
-    await this.events.getManaged(eventId, user);
+    await this.events.getManagedMutable(eventId, user); // ownership + evento NO concluido
     // El tipo (image/* | video/*) ya lo valida el DTO; aquí la `key` va SIEMPRE bajo
     // el prefijo del evento para que `register` pueda validarla (6.3).
     const safeName = slugify(dto.filename.replace(/\.[^.]+$/, ''));
@@ -32,7 +32,7 @@ export class MediaService {
   }
 
   async register(eventId: string, dto: RegisterMediaDto, user: AuthUser) {
-    await this.events.getManaged(eventId, user);
+    await this.events.getManagedMutable(eventId, user); // ownership + evento NO concluido
     // 6.3: la key debe pertenecer al prefijo del evento (la que devolvió presignUpload).
     // Impide registrar objetos arbitrarios del bucket o de OTRO evento.
     if (!dto.key.startsWith(`events/${eventId}/`)) {
@@ -55,6 +55,13 @@ export class MediaService {
 
   /** Media pública del evento con URLs firmadas de descarga (expiración corta). */
   async listPublic(eventId: string) {
+    // Endpoint PÚBLICO: solo expone media de eventos PUBLICADOS. Antes filtraba solo por
+    // eventId → la media de un evento en BORRADOR quedaba accesible por id (QA promotores-H7).
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      select: { status: true },
+    });
+    if (!event || event.status !== 'published') return [];
     const media = await this.prisma.eventMedia.findMany({
       where: { eventId },
       orderBy: [{ kind: 'asc' }, { position: 'asc' }],
@@ -72,7 +79,7 @@ export class MediaService {
   async remove(mediaId: string, user: AuthUser) {
     const media = await this.prisma.eventMedia.findUnique({ where: { id: mediaId } });
     if (!media) throw new NotFoundException('Media no encontrada');
-    await this.events.getManaged(media.eventId, user);
+    await this.events.getManagedMutable(media.eventId, user); // ownership + evento NO concluido
     await this.prisma.eventMedia.delete({ where: { id: mediaId } });
   }
 }

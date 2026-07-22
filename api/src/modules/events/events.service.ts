@@ -341,6 +341,17 @@ export class EventsService {
     return { ...signed, soldTicketsCount };
   }
 
+  /**
+   * Como {@link getManaged} pero además exige que el evento NO haya concluido, para
+   * operaciones que lo MUTAN (p.ej. media). Antes las mutaciones de media solo validaban
+   * ownership (getManaged) y podían tocar un evento finalizado/cancelado (QA promotores-H5).
+   */
+  async getManagedMutable(id: string, user: AuthUser) {
+    const event = await this.getManaged(id, user);
+    this.assertNotConcluded(event);
+    return event;
+  }
+
   /** Boletos vendidos de un evento: ítems ACTIVOS de órdenes PAGADAS (== ticketsSold). */
   private soldTicketsCount(eventId: string): Promise<number> {
     return this.prisma.orderItem.count({

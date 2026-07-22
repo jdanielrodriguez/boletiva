@@ -141,6 +141,9 @@ describe('Venues: seat-maps versionados + localities/seats (e2e)', () => {
     expect(v2.body).toMatchObject({ version: 2, active: true });
     expect(await activeCount()).toBe(1); // invariante: uno solo activo
 
+    // Publica el evento: el endpoint público de mapa solo sirve eventos PUBLICADOS
+    // (QA promotores-H7). Persiste para el siguiente test (activar versión previa).
+    await prisma.event.update({ where: { id: eventId }, data: { status: 'published' } });
     // El público ve el activo (v2).
     const pub = await http().get(`/api/v1/events/${eventId}/seat-map`).expect(200);
     expect(pub.body.version).toBe(2);
@@ -162,6 +165,7 @@ describe('Venues: seat-maps versionados + localities/seats (e2e)', () => {
         promoterId: (await prisma.user.findUniqueOrThrow({ where: { email: SEED.promoter } })).id,
         name: 'Sin mapa',
         slug: `venue-nomap-${stamp}`,
+        status: 'published', // publicado pero SIN mapa → 404 por falta de mapa (no por borrador)
         startsAt: new Date('2027-11-16T20:00:00-06:00'),
         endsAt: new Date('2027-11-16T23:00:00-06:00'),
       },

@@ -328,6 +328,16 @@ export class SupportService implements OnModuleInit, OnModuleDestroy {
         resourceType: 'ticket',
         resourceId: ticket.id,
       });
+    } else if (ticket.status === SupportStatus.suspended) {
+      // Ticket SUSPENDIDO por un admin: la respuesta del promotor NO lo reactiva (QA soporte-1).
+      // El mensaje queda guardado y se avisa a los admins, pero solo un admin puede reabrirlo.
+      await this.notifications.emitToRoles([Role.admin, Role.advisor], {
+        type: NotificationType.SUPPORT_ACTIVITY,
+        title: 'Mensaje en ticket suspendido',
+        body: ticket.subject,
+        resourceType: 'ticket',
+        resourceId: ticket.id,
+      });
     } else {
       // El promotor responde a un ticket resuelto → se REACTIVA. Dentro de la ventana se
       // marca `reopened`; fuera, va directo a `awaiting_support`. En AMBOS casos se limpia
@@ -388,8 +398,13 @@ export class SupportService implements OnModuleInit, OnModuleDestroy {
 
   /** (Agente) Toma un ticket sin asignar → open + assignee = él. */
   async take(ticketId: string, user: AuthUser) {
-    await this.getAccessible(ticketId, user); // valida acceso (404 si no aplica)
+    const ticket = await this.getAccessible(ticketId, user); // valida acceso (404 si no aplica)
     if (!this.isAgent(user)) throw new ForbiddenException('Solo un agente puede tomar el ticket');
+    // No ROBAR un ticket ya asignado a OTRO agente (QA soporte-2): solo un admin reasigna
+    // (vía assign). Sin esto, cualquier agente se apropiaba de un ticket de un compañero.
+    if (ticket.assignedToId && ticket.assignedToId !== user.userId && !user.roles.includes(Role.admin)) {
+      throw new ConflictException('El ticket ya está asignado a otro agente; pide a un admin que lo reasigne');
+    }
     const updated = await this.transition(ticketId, SupportStatus.open, {
       assignedTo: { connect: { id: user.userId } },
     });

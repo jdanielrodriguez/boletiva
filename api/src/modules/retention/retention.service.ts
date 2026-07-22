@@ -7,7 +7,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Role } from '@prisma/client';
+import { LedgerAccountType, Role } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { RedisService } from '../../infra/redis/redis.service';
 
@@ -69,6 +69,9 @@ export class RetentionService implements OnModuleInit, OnModuleDestroy {
     }
     if (user.anonymizedAt) return { id: userId, anonymized: true }; // ya anonimizado
 
+    // Nota: el admin PUEDE anonimizar manualmente aunque haya saldo (acción deliberada;
+    // el ledger se preserva bajo el user.id). El job AUTOMÁTICO sí excluye saldo>0 para no
+    // arrastrar dinero recuperable sin supervisión (ver eligibleUserIds, QA admin-H5).
     await this.prisma.$transaction([
       this.prisma.user.update({
         where: { id: userId },
@@ -115,7 +118,15 @@ export class RetentionService implements OnModuleInit, OnModuleDestroy {
       },
       select: { id: true },
     });
-    return users.map((u) => u.id);
+    const ids = users.map((u) => u.id);
+    if (!ids.length) return [];
+    // Excluye a los que tengan saldo en billetera (dinero recuperable) — no elegibles.
+    const funded = await this.prisma.ledgerAccount.findMany({
+      where: { type: LedgerAccountType.user_wallet, ownerId: { in: ids }, balance: { gt: 0 } },
+      select: { ownerId: true },
+    });
+    const fundedSet = new Set(funded.map((f) => f.ownerId));
+    return ids.filter((id) => !fundedSet.has(id));
   }
 
   /** Ejecuta la retención: anonimiza a todos los elegibles. */
