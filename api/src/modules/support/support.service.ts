@@ -394,6 +394,14 @@ export class SupportService implements OnModuleInit, OnModuleDestroy {
       assignedTo: { connect: { id: user.userId } },
     });
     await this.record('support.ticket.taken', user.userId, ticketId, {});
+    // Aviso a los admins: un agente tomó el ticket (seguimiento del equipo).
+    await this.notifications.emitToRoles([Role.admin], {
+      type: NotificationType.SUPPORT_ACTIVITY,
+      title: 'Ticket tomado por un agente',
+      body: updated.subject,
+      resourceType: 'ticket',
+      resourceId: ticketId,
+    });
     return updated;
   }
 
@@ -428,6 +436,14 @@ export class SupportService implements OnModuleInit, OnModuleDestroy {
     await this.getAccessible(ticketId, user);
     const updated = await this.transition(ticketId, SupportStatus.closed, { closedAt: new Date() });
     await this.record('support.ticket.closed', user.userId, ticketId, {});
+    // Aviso a los admins: el ticket se cerró.
+    await this.notifications.emitToRoles([Role.admin], {
+      type: NotificationType.SUPPORT_ACTIVITY,
+      title: 'Ticket de soporte cerrado',
+      body: updated.subject,
+      resourceType: 'ticket',
+      resourceId: ticketId,
+    });
     return updated;
   }
 

@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, HostListener, PLATFORM_ID, computed, effect, inject, signal } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+import { Router } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { SessionStore } from '../../core/auth/session.store';
@@ -102,10 +103,12 @@ import { NotificationsSocketService } from '../../core/notifications/notificatio
          el texto claro del header y se mezcla con el fondo claro en el tema día). */
       .notif-panel { position: absolute; top: 110%; right: 0; z-index: 950; width: min(360px, 92vw); max-height: 70vh; overflow-y: auto; background: var(--pe-surface); color: var(--pe-text); border: 1px solid var(--pe-border); border-radius: var(--pe-radius-sm); box-shadow: var(--pe-shadow); }
       .notif-panel-head { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.8rem; border-bottom: 1px solid var(--pe-border); position: sticky; top: 0; background: var(--pe-surface); }
-      .notif-item { display: flex; flex-direction: column; gap: 0.15rem; width: 100%; text-align: left; padding: 0.6rem 0.8rem; border: none; border-bottom: 1px solid var(--pe-border); background: none; color: var(--pe-text); cursor: pointer; }
+      .notif-item { display: flex; flex-direction: column; gap: 0.2rem; width: 100%; text-align: left; padding: 0.65rem 0.85rem; border: none; border-left: 3px solid transparent; border-bottom: 1px solid var(--pe-border); background: none; color: var(--pe-text); cursor: pointer; transition: background 0.12s ease; }
       .notif-item:hover { background: var(--pe-surface-2); }
-      .notif-item.unread { background: var(--pe-accent-soft); }
-      .notif-item-title { font-weight: 600; }
+      /* No-leída: barra de acento + fondo suave (deja de verse "plana"). */
+      .notif-item.unread { background: var(--pe-accent-soft); border-left-color: var(--pe-accent); }
+      .notif-item-title { font-weight: 600; display: flex; align-items: center; gap: 0.4rem; }
+      .notif-item.unread .notif-item-title::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--pe-accent); flex: none; }
       .notif-item-body { font-size: 0.85rem; color: var(--pe-text-muted, #6b6b76); }
       .notif-empty { padding: 1rem 0.8rem; text-align: center; }
     `,
@@ -116,6 +119,7 @@ export class NotificationBellComponent {
   private readonly session = inject(SessionStore);
   private readonly api = inject(NotificationsApi);
   private readonly socket = inject(NotificationsSocketService);
+  private readonly router = inject(Router);
 
   private readonly isBrowser = isPlatformBrowser(this.platformId);
   protected readonly unread = signal(0);
@@ -160,6 +164,30 @@ export class NotificationBellComponent {
         },
         error: () => undefined,
       });
+    }
+    // CALL-TO-ACTION: navega al recurso de la notificación (ticket → conversación,
+    // orden → compra, evento → editor). Cierra el panel al navegar.
+    const target = this.targetFor(n);
+    if (target) {
+      this.open.set(false);
+      void this.router.navigateByUrl(target);
+    }
+  }
+
+  /** Ruta destino según el recurso de la notificación (null = sin navegación). */
+  private targetFor(n: AppNotification): string | null {
+    const rt = n.resourceType;
+    const rid = n.resourceId;
+    if (!rt) return null;
+    switch (rt) {
+      case 'ticket':
+        return rid ? `/soporte?t=${rid}` : '/soporte';
+      case 'event':
+        return rid ? `/promotor/eventos/${rid}/editar` : '/promotor';
+      case 'order':
+        return rid ? `/cuenta/transaccion/${rid}` : '/cuenta';
+      default:
+        return null;
     }
   }
 
