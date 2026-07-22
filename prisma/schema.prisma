@@ -1484,3 +1484,30 @@ model AuditEvent {
   @@index([createdAt, id])
   @@map("audit_events")
 }
+
+/// Registro de correos ENVIADOS (email log). Observabilidad de deliverability +
+/// base de la cola (reintentar los que quedaron pendientes). EXCLUYE por diseño los
+/// correos sensibles (OTP/verificación/nuevo dispositivo/magic-link): no se registran.
+enum EmailStatus {
+  queued // encolado (esperando envío por el worker)
+  sent // entregado al SMTP
+  failed // dirección inválida o error de envío
+}
+
+model EmailLog {
+  id            String      @id @default(uuid()) @db.Uuid
+  recipient     String // correo destino
+  type          String // tipo/plantilla (invitación, confirmación, notificación, …)
+  subject       String
+  status        EmailStatus @default(queued)
+  error         String? // motivo del fallo (dirección inválida, error SMTP)
+  correlationId String?     @map("correlation_id")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  sentAt        DateTime?   @map("sent_at")
+
+  @@index([recipient])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt, id])
+  @@map("email_logs")
+}

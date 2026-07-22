@@ -39,6 +39,7 @@ export const config = {
     templates: 'Plantillas',
     system: 'Sistema',
     kb: 'Base de conocimientos',
+    emailLog: 'Correos',
     settings: 'Configuraciones',
     invitations: 'Invitaciones',
     support: 'Soporte',

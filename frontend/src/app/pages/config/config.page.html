@@ -40,6 +40,10 @@
       }
       <!-- Base de conocimientos (T6) — gestión admin+asesor, movida aquí desde el menú de perfil. -->
       <button type="button" [class.active]="tab() === 'kb'" [attr.aria-current]="tab() === 'kb' ? 'page' : null" (click)="selectTab('kb')" data-testid="tab-kb"><app-icon name="book" [size]="15" /> {{ 'config.tabs.kb' | translate }}</button>
+      <!-- Correos enviados (email log) — solo admin (como Sistema). -->
+      @if (!hideSystemTab()) {
+        <button type="button" [class.active]="tab() === 'correos'" [attr.aria-current]="tab() === 'correos' ? 'page' : null" (click)="selectTab('correos')" data-testid="tab-correos"><app-icon name="bell" [size]="15" /> {{ 'config.tabs.emailLog' | translate }}</button>
+      }
       <!-- Invitaciones y Soporte se movieron al menú superior de admin (páginas individuales). -->
     </nav>
   }
@@ -271,6 +275,9 @@
 
     @case ('kb') {
       <app-kb-admin [embedded]="true" />
+    }
+    @case ('correos') {
+      <app-email-log [embedded]="true" />
     }
     @case ('plantillas') {
       <h2>{{ 'config.tabs.templates' | translate }}</h2>

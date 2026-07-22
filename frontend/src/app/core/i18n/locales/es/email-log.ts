@@ -1,0 +1,21 @@
+/** Registro de correos enviados (admin). Español. */
+export const emailLog = {
+  title: 'Correos enviados',
+  hint: 'Registro de los correos que envía la plataforma (excluye códigos de seguridad y avisos de dispositivo).',
+  searchPlaceholder: 'Buscar por destinatario…',
+  typePlaceholder: 'Tipo (p. ej. invite)',
+  allStatuses: 'Todos los estados',
+  from: 'Desde',
+  to: 'Hasta',
+  status_sent: 'Enviado',
+  status_queued: 'En cola',
+  status_failed: 'Fallido',
+  colDate: 'Fecha',
+  colRecipient: 'Destinatario',
+  colType: 'Tipo',
+  colSubject: 'Asunto',
+  colStatus: 'Estado',
+  emptyTitle: 'Sin correos',
+  emptyBody: 'Aún no hay correos registrados con estos filtros.',
+  error: 'No se pudo cargar el registro de correos.',
+};

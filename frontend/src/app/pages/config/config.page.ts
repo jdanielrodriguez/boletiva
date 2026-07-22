@@ -36,6 +36,7 @@ import { OtpInputComponent } from '../../shared/ui/otp-input/otp-input.component
 import { HallsListComponent } from './halls-list.component';
 import { TemplatesListComponent } from './templates-list.component';
 import { KbAdminPage } from '../admin/kb-admin.page';
+import { EmailLogPage } from '../admin/email-log.page';
 import { BackLinkComponent } from '../../shared/ui/back-link.component';
 import type {
   CreatedInvitationDto,
@@ -43,7 +44,7 @@ import type {
   SettingViewDto,
 } from '../../core/api/types';
 
-type AdminTab = 'eventos' | 'promotores' | 'sistema' | 'invitaciones' | 'salones' | 'plantillas' | 'kb';
+type AdminTab = 'eventos' | 'promotores' | 'sistema' | 'invitaciones' | 'salones' | 'plantillas' | 'kb' | 'correos';
 
 /** Grupos de la lista de eventos del admin por tiempo (default = futuros). */
 type EventTimeGroup = 'upcoming' | 'ongoing' | 'past' | 'all';
@@ -98,6 +99,7 @@ const INV_PAGE = 9;
     HallsListComponent,
     TemplatesListComponent,
     KbAdminPage,
+    EmailLogPage,
     BackLinkComponent,
     SearchFieldComponent,
     RouterLink,
@@ -187,6 +189,7 @@ export class ConfigPage {
     'sistema',
     'invitaciones',
     'kb',
+    'correos',
   ];
 
   /** Etiqueta amigable de un setting (key con puntos → guion bajo). */

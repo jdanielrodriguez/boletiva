@@ -95,7 +95,7 @@ export class AdvisorInvitationsService {
           ? `<p style="margin:0 0 12px 0;">Te invitamos a ser <strong>asesor de soporte</strong> en Boletiva. Haz clic para <strong>crear tu contraseña</strong> y activar tu cuenta.</p>`
           : `<p style="margin:0 0 12px 0;">Te invitamos a ser <strong>asesor de soporte</strong> en Boletiva. Haz clic para <strong>confirmar</strong> tu nuevo rol.</p>`,
         cta: { url, label: isNew ? 'Crear contraseña' : 'Confirmar rol de asesor' },
-      });
+      }, { type: 'advisor_invite' });
     } catch (err) {
       this.logger.warn(`No se pudo enviar la invitación de asesor a ${email}: ${(err as Error).message}`);
     }

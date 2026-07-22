@@ -23,6 +23,7 @@ import { chat } from './es/chat';
 import { notifications } from './es/notifications';
 import { pager } from './es/pager';
 import { faq } from './es/faq';
+import { emailLog } from './es/email-log';
 import { kb, rte } from './es/kb';
 
 /** Diccionario ESPAÑOL (default, es-GT). Compuesto por namespaces. */
@@ -51,6 +52,7 @@ export const es: TranslationObject = {
   notifications,
   pager,
   faq,
+  emailLog,
   kb,
   rte,
 };

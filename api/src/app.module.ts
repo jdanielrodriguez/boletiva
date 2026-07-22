@@ -47,6 +47,7 @@ import { SettingsModule } from './modules/settings/settings.module';
 import { MaintenanceModule } from './modules/maintenance/maintenance.module';
 import { MaintenanceGuard } from './modules/maintenance/maintenance.guard';
 import { AuditModule } from './modules/audit/audit.module';
+import { EmailLogModule } from './modules/email-log/email-log.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { FelModule } from './modules/fel/fel.module';
 import { AdvisorModule } from './modules/advisor/advisor.module';
@@ -144,6 +145,7 @@ import { AdvisorsModule } from './modules/advisors/advisors.module';
     SettingsModule,
     MaintenanceModule,
     AuditModule,
+    EmailLogModule,
     AdminModule,
     FelModule,
     AdvisorModule,

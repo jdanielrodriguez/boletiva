@@ -103,7 +103,7 @@ export class NotificationsService {
           await this.mail.enqueueTemplated(u.email, input.email.subject, {
             title: input.title,
             bodyHtml: input.email.html,
-          });
+          }, { type: `notification:${input.type}` });
         }
       }
     } catch (e) {

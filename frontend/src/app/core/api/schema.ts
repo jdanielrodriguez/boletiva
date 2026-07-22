@@ -3166,6 +3166,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/email-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Registro de correos enviados (admin): filtros + búsqueda + keyset */
+        get: operations["EmailLogController_list_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/impersonate/stop": {
         parameters: {
             query?: never;
@@ -8862,6 +8879,21 @@ export interface components {
             /** @description seq del primer registro corrupto (si ok=false) */
             brokenAt?: string;
         };
+        EmailLogItemDto: {
+            id: string;
+            recipient: string;
+            type: string;
+            subject: string;
+            /** @enum {string} */
+            status: "queued" | "sent" | "failed";
+            error: string | null;
+            createdAt: string;
+            sentAt: string | null;
+        };
+        EmailLogPageDto: {
+            items: components["schemas"]["EmailLogItemDto"][];
+            nextCursor: string | null;
+        };
         ImpersonationUserDto: {
             /** Format: uuid */
             id: string;
@@ -13929,6 +13961,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuditVerifyDto"];
+                };
+            };
+        };
+    };
+    EmailLogController_list_v1: {
+        parameters: {
+            query?: {
+                /** @description Cursor: id de la última fila de la página previa */
+                cursor?: string;
+                /** @description Tamaño de página (1–100, default 20) */
+                limit?: number;
+                /** @description Busca por destinatario (contains, insensitive) */
+                search?: string;
+                /** @description Filtra por tipo/plantilla (contains) */
+                type?: string;
+                status?: "queued" | "sent" | "failed";
+                /** @description Desde (ISO YYYY-MM-DD) */
+                from?: string;
+                /** @description Hasta inclusive (ISO YYYY-MM-DD) */
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailLogPageDto"];
                 };
             };
         };
