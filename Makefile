@@ -172,6 +172,13 @@ deploy:
 # ============================================================================
 PROD_PROJECT ?= boletera-502405
 PROD_DB_SECRET ?= pasaeventos-database-url
+# Infra de PROD (valores reales; ver docs/GUIA-GCP.md). Se usan en gcp-down/gcp-up.
+PROD_REGION ?= us-central1
+PROD_SQL_INSTANCE ?= pasaeventos-pg
+PROD_REDIS_INSTANCE ?= pasaeventos-redis
+PROD_REDIS_SECRET ?= pasaeventos-redis-url
+PROD_API_SERVICE ?= pasaeventos-api
+PROD_FRONTEND_SERVICE ?= pasaeventos-frontend
 
 # Lee el DATABASE_URL de prod desde Secret Manager (falla si no hay acceso).
 define _prod_db_url
@@ -265,3 +272,56 @@ gcp-prod-wake:
 	@[ -n "$(PROD_SQL_INSTANCE)" ] || { echo '❌ Define PROD_SQL_INSTANCE=<instancia Cloud SQL>'; exit 1; }
 	gcloud sql instances patch $(PROD_SQL_INSTANCE) --activation-policy ALWAYS --project=$(PROD_PROJECT)
 	@echo "☀️  Cloud SQL PROD '$(PROD_SQL_INSTANCE)' encendida."
+
+# ── Memorystore Redis: NO se puede pausar → para no pagarlo hay que BORRARLO y
+# recrearlo. Al recrear cambia el HOST → estos targets actualizan el secreto
+# `pasaeventos-redis-url` automáticamente. Tier Basic 1GB (sin persistencia: en alpha
+# los holds/colas son efímeros, no importa perderlos). Requiere gcloud autenticado.
+.PHONY: gcp-redis-delete
+gcp-redis-delete:
+	@echo "🗑️  Borrando Memorystore '$(PROD_REDIS_INSTANCE)' ($(PROD_REGION))…"
+	-gcloud redis instances delete $(PROD_REDIS_INSTANCE) --region=$(PROD_REGION) --project=$(PROD_PROJECT) --quiet
+	@echo "✅ Redis borrado (deja de facturar). Recréalo con 'make gcp-redis-create'."
+
+.PHONY: gcp-redis-create
+gcp-redis-create:
+	@if gcloud redis instances describe $(PROD_REDIS_INSTANCE) --region=$(PROD_REGION) --project=$(PROD_PROJECT) >/dev/null 2>&1; then \
+	  echo "ℹ️  Memorystore '$(PROD_REDIS_INSTANCE)' ya existe; solo refresco el secreto."; \
+	else \
+	  echo "🆕 Creando Memorystore '$(PROD_REDIS_INSTANCE)' (Basic 1GB, red default)…"; \
+	  gcloud redis instances create $(PROD_REDIS_INSTANCE) --size=1 --region=$(PROD_REGION) \
+	    --tier=basic --network=default --project=$(PROD_PROJECT) --quiet; \
+	fi
+	@HOST=$$(gcloud redis instances describe $(PROD_REDIS_INSTANCE) --region=$(PROD_REGION) --project=$(PROD_PROJECT) --format='value(host)'); \
+	 PORT=$$(gcloud redis instances describe $(PROD_REDIS_INSTANCE) --region=$(PROD_REGION) --project=$(PROD_PROJECT) --format='value(port)'); \
+	 [ -n "$$HOST" ] || { echo '❌ No pude leer el host de Redis'; exit 1; }; \
+	 echo "→ Redis en $$HOST:$$PORT → actualizo el secreto '$(PROD_REDIS_SECRET)'"; \
+	 printf 'redis://%s:%s' "$$HOST" "$$PORT" | gcloud secrets versions add $(PROD_REDIS_SECRET) --data-file=- --project=$(PROD_PROJECT)
+	@echo "✅ Redis creado y secreto actualizado. Redeploy del backend para que tome el host nuevo (gcp-up lo hace)."
+
+# ── BAJAR/LEVANTAR toda la infra de PROD (ciclo de alpha para no pagar en reposo) ──
+# gcp-down: Run→0 (sin cobro en reposo) + Cloud SQL detenida (solo disco) + Redis BORRADO.
+#   Residuo: disco de SQL (centavos) + storage Artifact/GCS (centavos). CloudAMQP es
+#   EXTERNO (se gestiona en CloudAMQP, no en la factura de GCP). Para $0 LITERAL habría que
+#   BORRAR también Cloud SQL (pierde datos + re-provisión/re-seed al subir); NO recomendado
+#   en el ciclo de alpha → mejor dejarla DETENIDA (centavos de disco) y conservar los datos.
+.PHONY: gcp-down
+gcp-down:
+	@echo "⏬ Bajando infra de PROD ($(PROD_PROJECT)) a ~cero…"
+	-gcloud run services update $(PROD_API_SERVICE) --min-instances=0 --region=$(PROD_REGION) --project=$(PROD_PROJECT) --quiet
+	-gcloud run services update $(PROD_FRONTEND_SERVICE) --min-instances=0 --region=$(PROD_REGION) --project=$(PROD_PROJECT) --quiet
+	gcloud sql instances patch $(PROD_SQL_INSTANCE) --activation-policy=NEVER --project=$(PROD_PROJECT) --quiet
+	$(MAKE) gcp-redis-delete
+	@echo "✅ Infra ABAJO. Factura ≈ centavos (disco SQL + storage). Recuerda CloudAMQP aparte."
+
+# gcp-up: Cloud SQL encendida + Redis recreado (+secreto) + Run→1 (nueva revisión toma el
+# secreto de Redis nuevo). Verifica /health al terminar. Si BORRASTE SQL, corre antes
+# 'make prod-db-seed' (aplica schema + baseline).
+.PHONY: gcp-up
+gcp-up:
+	@echo "⏫ Levantando infra de PROD ($(PROD_PROJECT))…"
+	gcloud sql instances patch $(PROD_SQL_INSTANCE) --activation-policy=ALWAYS --project=$(PROD_PROJECT) --quiet
+	$(MAKE) gcp-redis-create
+	gcloud run services update $(PROD_API_SERVICE) --min-instances=1 --region=$(PROD_REGION) --project=$(PROD_PROJECT) --quiet
+	gcloud run services update $(PROD_FRONTEND_SERVICE) --min-instances=1 --region=$(PROD_REGION) --project=$(PROD_PROJECT) --quiet
+	@echo "✅ Infra ARRIBA. Verifica: curl https://api.boletiva.com/api/v1/health"
