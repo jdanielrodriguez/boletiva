@@ -394,6 +394,16 @@ async function seedUsers() {
       password: process.env.SEED_ADMIN_PASSWORD || 'Password123',
     },
     {
+      // Asesor de soporte (rol advisor): hereda al admin MENOS la tab "Sistema";
+      // muta con desbloqueo por link del admin (B2). Para probar el flujo de asesores.
+      email: 'asesor@boletiva.com',
+      firstName: 'Asesor',
+      roles: [Role.advisor],
+      // En PROD se inyecta fuerte por env (SEED_ASESOR_PASSWORD, ver db-seed.yml); `||`
+      // (no `??`) cae a Password123 cuando la env llega vacía (CI/GH Actions).
+      password: process.env.SEED_ASESOR_PASSWORD || 'Password123',
+    },
+    {
       email: 'promotor@boletiva.com',
       firstName: 'Promotor',
       roles: [Role.promoter],
