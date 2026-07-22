@@ -19,7 +19,7 @@
 
       <label>
         <span>{{ 'kb.answer' | translate }}</span>
-        <app-rich-text-editor [(value)]="m.answerHtml" />
+        <app-rich-text-editor [(value)]="m.answerHtml" [ariaLabel]="'kb.answer' | translate" />
       </label>
 
       <div class="kb-form-row">
@@ -75,6 +75,9 @@
   } @else if (articles()!.length === 0) {
     <app-empty-state variant="generic" data-testid="kb-empty" [title]="'kb.empty' | translate" [subtitle]="'kb.emptyHint' | translate" />
   } @else {
+    @if (actionError()) {
+      <p class="kb-error" role="alert" data-testid="kb-action-error">{{ actionError() | translate }}</p>
+    }
     <ul class="kb-list" data-testid="kb-list">
       @for (a of articles()!; track a.id) {
         <li class="kb-row">

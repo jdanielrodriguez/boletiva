@@ -23,6 +23,7 @@ export const kb = {
   draft: 'Borrador',
   validation: 'La pregunta y la respuesta son obligatorias.',
   saveError: 'No se pudo guardar. Intenta de nuevo.',
+  actionError: 'No se pudo completar la acción. Intenta de nuevo.',
   loadError: 'No se pudo cargar la lista.',
   empty: 'Aún no hay artículos',
   emptyHint: 'Crea el primero con “Nuevo artículo”.',

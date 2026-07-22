@@ -1,4 +1,5 @@
 import { Component, ElementRef, OnDestroy, computed, effect, inject, input, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -113,7 +114,9 @@ export class SupportChatPage implements OnDestroy {
       this.reloadOwn();
     }
     void this.socket.acquire();
-    this.socket.message$.subscribe((m) => {
+    // takeUntilDestroyed: los Subjects del socket son singletons root; sin cancelar, cada
+    // visita a /soporte acumulaba un handler más → tormenta de loadQueue (QA support-A1).
+    this.socket.message$.pipe(takeUntilDestroyed()).subscribe((m) => {
       // Defensa en profundidad: un no-agente NUNCA muestra notas internas (el backend ya
       // no se las emite, pero por si acaso llegara una).
       if (m.internalNote && !this.isAgent()) return;
@@ -121,7 +124,7 @@ export class SupportChatPage implements OnDestroy {
         this.messages.update((list) => [...list, m]);
       }
     });
-    this.socket.activity$.subscribe((a) => this.applyActivity(a.ticketId));
+    this.socket.activity$.pipe(takeUntilDestroyed()).subscribe((a) => this.applyActivity(a.ticketId));
     // Auto-scroll al fondo SOLO cuando conviene (QA final): al abrir/cargar un ticket,
     // cuando el último mensaje es MÍO (acabo de enviar), o si el usuario YA estaba cerca
     // del fondo. Un mensaje entrante mientras leo historial arriba NO arrebata la vista.

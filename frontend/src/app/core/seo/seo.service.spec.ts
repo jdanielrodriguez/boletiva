@@ -45,6 +45,19 @@ describe('SeoService', () => {
     expect(scripts[0].textContent).toContain('"B"');
   });
 
+  it('escapa `<`/`>`/`&` en el JSON-LD → un valor con </script> no rompe el bloque (anti-XSS)', () => {
+    seo.apply({
+      title: 'A', description: 'd', path: '/a',
+      jsonLd: { '@type': 'FAQPage', name: 'Envíos</script><img src=x onerror=alert(1)>' },
+    });
+    const raw = doc.querySelector('#pe-jsonld')?.textContent ?? '';
+    expect(raw).not.toContain('</script>');
+    expect(raw).not.toContain('<img');
+    expect(raw).toContain('\\u003c'); // el `<` quedó como escape unicode (JSON válido)
+    // Sigue siendo JSON parseable y conserva el dato.
+    expect(JSON.parse(raw).name).toBe('Envíos</script><img src=x onerror=alert(1)>');
+  });
+
   it('quita el JSON-LD si la página siguiente no lo trae', () => {
     seo.apply({ title: 'A', description: 'd', path: '/a', jsonLd: { x: 1 } });
     seo.apply({ title: 'B', description: 'd', path: '/b' });

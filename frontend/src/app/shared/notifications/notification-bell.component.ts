@@ -35,6 +35,13 @@ import { NotificationsSocketService } from '../../core/notifications/notificatio
             <span class="notif-badge" data-testid="notif-badge" aria-hidden="true">{{ unread() > 9 ? '9+' : unread() }}</span>
           }
         </button>
+        <!-- Anuncio para lectores de pantalla: cambiar un aria-label NO se anuncia; una
+             región aria-live sí (QA notif-A1). -->
+        <span class="sr-only" role="status" aria-live="polite">
+          @if (unread() > 0) {
+            {{ 'notifications.bellAria' | translate: { n: unread() } }}
+          }
+        </span>
 
         @if (open()) {
           <div class="notif-panel" role="menu" data-testid="notif-panel">

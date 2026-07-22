@@ -81,6 +81,22 @@ describe('Base de Conocimientos (kb) e2e', () => {
     expect(a.answerHtml).not.toMatch(/javascript:/i);
   });
 
+  it('SANEA etiquetas SIN CERRAR y `<a>` con handler (bypass de tag abierto)', async () => {
+    const a = await createArticle({
+      // Sin `>` final: el saneo por-tag antiguo las dejaba pasar y el navegador las
+      // autocompletaba en un manejador vivo. Ahora sus `<` quedan escapados.
+      answerHtml: '<p>ok</p><img src=x onerror=alert(1)<a onmouseover=alert(2)',
+    });
+    expect(a.answerHtml).toContain('<p>ok</p>');
+    // La propiedad de seguridad: NO quedan etiquetas VIVAS `<img`/`<a` (sus `<` se
+    // escaparon → texto inerte). Los strings "onerror"/"onmouseover" pueden sobrevivir
+    // como TEXTO plano (inofensivo); lo que importa es que no sean atributos de un tag.
+    expect(a.answerHtml).not.toMatch(/<img/i);
+    expect(a.answerHtml).not.toMatch(/<a[\s>]/i);
+    expect(a.answerHtml).toContain('&lt;img'); // el `<` quedó escapado
+    expect(a.answerHtml).toContain('&lt;a'); // idem para el `<a onmouseover`
+  });
+
   // ---- Slug autogenerado + único ----
   it('slug: se autogenera desde la pregunta y se hace único ante colisión', async () => {
     const q = `${PFX}Cómo Reservar un Lugar`;

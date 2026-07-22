@@ -5,6 +5,7 @@ import { OnGatewayConnection, OnGatewayInit, WebSocketGateway, WebSocketServer }
 import { createAdapter } from '@socket.io/redis-adapter';
 import type { Server, Socket } from 'socket.io';
 import { RedisService } from '../../infra/redis/redis.service';
+import { verifyAccessToken } from '../../common/auth/access-token';
 
 /**
  * Gateway de notificaciones in-app (T5, namespace `/notifications`). Autentica el
@@ -57,12 +58,7 @@ export class NotificationsGateway implements OnGatewayInit, OnGatewayConnection 
   }
 
   private verify(token?: string): string | null {
-    if (!token) return null;
-    try {
-      const payload = this.jwt.verify(token, { secret: this.config.getOrThrow<string>('jwt.accessSecret') });
-      return payload.sub ?? null;
-    } catch {
-      return null;
-    }
+    // Validación ÚNICA de access token (rechaza preauth 2FA, etc.) — helper compartido.
+    return verifyAccessToken(this.jwt, this.config.getOrThrow<string>('jwt.accessSecret'), token)?.sub ?? null;
   }
 }

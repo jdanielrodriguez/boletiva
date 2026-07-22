@@ -1,11 +1,10 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma, PromoterStatus, Role } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
-import { QueueService } from '../../infra/queue/queue.service';
-import { QUEUES } from '../../infra/queue/queue.constants';
 import { KeysetQuery, keysetResult, keysetTake } from '../../common/utils/pagination';
 import { escapeHtml } from '../../common/utils/html';
 import { AuditService } from '../audit/audit.service';
+import { MailService } from '../../infra/mail/mail.service';
 import { NotificationsGateway } from './notifications.gateway';
 import { CHANNEL_DEFAULT, NotificationChannel, NotificationType } from './notification.types';
 
@@ -33,8 +32,8 @@ export class NotificationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly gateway: NotificationsGateway,
-    private readonly queue: QueueService,
     private readonly audit: AuditService,
+    private readonly mail: MailService,
   ) {}
 
   /**
@@ -96,7 +95,16 @@ export class NotificationsService {
         this.gateway.emitUnread(userId, await this.unreadCount(userId));
       }
       if (input.email && (await this.channelEnabled(userId, input.type, 'email'))) {
-        await this.queue.enqueue(QUEUES.MAIL, 'notification', { userId, ...input.email });
+        // El correo sale por el pipeline templado de MailService (marca + cola MAIL).
+        // Antes se encolaba un job 'notification' que NINGÚN handler procesaba → nunca
+        // se entregaba (QA T5-H2). Resolvemos el email del destinatario aquí.
+        const u = await this.prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+        if (u?.email) {
+          await this.mail.enqueueTemplated(u.email, input.email.subject, {
+            title: input.title,
+            bodyHtml: input.email.html,
+          });
+        }
       }
     } catch (e) {
       this.logger.warn(`emit ${input.type} → ${userId}: ${(e as Error).message}`);

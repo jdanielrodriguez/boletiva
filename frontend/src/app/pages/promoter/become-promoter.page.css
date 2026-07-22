@@ -25,7 +25,11 @@
 /* Grid de planes */
 .bp-plans {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  /* Ancho ACOTADO por card (no `1fr`) + centrado: con dos planes se ven lado a lado y,
+     cuando premium está desactivado, el único card conserva su ancho y solo se centra
+     (antes `auto-fit` + `1fr` lo estiraba a todo el ancho). */
+  grid-template-columns: repeat(auto-fit, minmax(260px, 340px));
+  justify-content: center;
   gap: 1.25rem;
   align-items: stretch;
 }

@@ -563,6 +563,10 @@ app-root {
   display: flex;
   flex-direction: column;
   z-index: 30;
+  /* El menú del admin tiene ~12 ítems; en viewports cortos rebasaba la pantalla y
+     dejaba "Salir" inalcanzable (QA shell-A1). Se acota con scroll interno. */
+  max-height: min(75vh, 460px);
+  overflow-y: auto;
 }
 
 .user-dropdown a,

@@ -4,6 +4,7 @@ import {
   PLATFORM_ID,
   afterNextRender,
   inject,
+  input,
   model,
   viewChild,
 } from '@angular/core';
@@ -58,6 +59,7 @@ interface ToolbarButton {
         contenteditable="true"
         role="textbox"
         aria-multiline="true"
+        [attr.aria-label]="ariaLabel() || ('rte.placeholder' | translate)"
         [attr.data-placeholder]="'rte.placeholder' | translate"
         (input)="onInput()"
         (blur)="onInput()"
@@ -69,6 +71,8 @@ interface ToolbarButton {
 export class RichTextEditorComponent {
   private readonly platformId = inject(PLATFORM_ID);
   readonly value = model<string>('');
+  /** Nombre accesible del área editable (el `<label>` no se asocia a un contenteditable). */
+  readonly ariaLabel = input('');
   private readonly editorRef = viewChild<ElementRef<HTMLElement>>('editor');
   private lastSet = '';
 

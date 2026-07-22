@@ -312,16 +312,22 @@ export class SupportService implements OnModuleInit, OnModuleDestroy {
         resourceId: ticket.id,
       });
     } else {
-      // El promotor responde. Si el ticket estaba resuelto dentro de la ventana → reabre.
-      const resolvedRecently =
-        ticket.status === SupportStatus.resolved &&
-        ticket.resolvedAt != null &&
-        Date.now() - ticket.resolvedAt.getTime() <= REOPEN_WINDOW_MS;
+      // El promotor responde a un ticket resuelto → se REACTIVA. Dentro de la ventana se
+      // marca `reopened`; fuera, va directo a `awaiting_support`. En AMBOS casos se limpia
+      // `resolvedAt` (QA T1-M1: si no, quedaba `awaiting_support` con `resolvedAt` puesto —
+      // estado incoherente— y `transition` NO reprogramaba el SLA de resolución).
+      const resolvedAt = ticket.status === SupportStatus.resolved ? ticket.resolvedAt : null;
+      const wasResolved = resolvedAt != null;
+      const resolvedRecently = resolvedAt != null && Date.now() - resolvedAt.getTime() <= REOPEN_WINDOW_MS;
       if (resolvedRecently) {
         await this.transition(ticket.id, SupportStatus.reopened, { resolvedAt: null });
       }
-      // En cualquier caso, ahora espera al soporte (reloj corre) + limpia archivado.
-      await this.transition(ticket.id, SupportStatus.awaiting_support, { archivedByPromoterAt: null });
+      // Ahora espera al soporte (reloj corre) + limpia archivado; si venía de resolved
+      // limpia `resolvedAt` para dejar estado coherente y reprogramar el SLA.
+      await this.transition(ticket.id, SupportStatus.awaiting_support, {
+        archivedByPromoterAt: null,
+        ...(wasResolved ? { resolvedAt: null } : {}),
+      });
       // Aviso a los admins: actividad del promotor en soporte.
       await this.notifications.emitToRoles([Role.admin, Role.advisor], {
         type: NotificationType.SUPPORT_ACTIVITY,

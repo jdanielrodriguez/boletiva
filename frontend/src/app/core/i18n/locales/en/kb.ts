@@ -23,6 +23,7 @@ export const kb = {
   draft: 'Draft',
   validation: 'Question and answer are required.',
   saveError: 'Could not save. Try again.',
+  actionError: 'Could not complete the action. Try again.',
   loadError: 'Could not load the list.',
   empty: 'No articles yet',
   emptyHint: 'Create the first one with “New article”.',

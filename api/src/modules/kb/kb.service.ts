@@ -107,7 +107,8 @@ export class KbService {
 
   async create(dto: CreateKbArticleDto, actorId: string) {
     const answerHtml = sanitizeRichHtml(dto.answerHtml);
-    const slug = await this.uniqueSlug(dto.slug?.trim() || slugify(dto.question));
+    // Normaliza SIEMPRE (también el slug provisto por el admin) → sin espacios/`/`/unicode.
+    const slug = await this.uniqueSlug(slugify(dto.slug?.trim() || dto.question));
     return this.prisma.kbArticle.create({
       data: {
         slug,
@@ -133,7 +134,7 @@ export class KbService {
       data.answerHtml = clean;
       data.answerText = stripHtml(clean);
     }
-    if (dto.slug !== undefined) data.slug = await this.uniqueSlug(dto.slug.trim() || slugify(''), id);
+    if (dto.slug !== undefined) data.slug = await this.uniqueSlug(slugify(dto.slug), id);
     if (dto.category !== undefined) data.category = dto.category;
     if (dto.locale !== undefined) data.locale = dto.locale;
     if (dto.visibility !== undefined) data.visibility = dto.visibility;

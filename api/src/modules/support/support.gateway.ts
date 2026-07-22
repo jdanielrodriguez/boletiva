@@ -16,6 +16,7 @@ import { createAdapter } from '@socket.io/redis-adapter';
 import type { Server, Socket } from 'socket.io';
 import { RedisService } from '../../infra/redis/redis.service';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { verifyAccessToken } from '../../common/auth/access-token';
 
 interface SocketUser {
   userId: string;
@@ -141,12 +142,8 @@ export class SupportGateway implements OnGatewayInit, OnGatewayConnection, OnGat
   }
 
   private verify(token?: string): SocketUser | null {
-    if (!token) return null;
-    try {
-      const payload = this.jwt.verify(token, { secret: this.config.getOrThrow<string>('jwt.accessSecret') });
-      return { userId: payload.sub, roles: payload.roles ?? [] };
-    } catch {
-      return null;
-    }
+    // Validación ÚNICA de access token (rechaza preauth 2FA, etc.) — helper compartido.
+    const claims = verifyAccessToken(this.jwt, this.config.getOrThrow<string>('jwt.accessSecret'), token);
+    return claims ? { userId: claims.sub, roles: claims.roles } : null;
   }
 }

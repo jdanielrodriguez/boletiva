@@ -58,6 +58,7 @@ export class KbAdminPage {
   protected readonly editing = signal<EditModel | null>(null);
   protected readonly saving = signal(false);
   protected readonly saveError = signal('');
+  protected readonly actionError = signal('');
 
   constructor() {
     if (isPlatformBrowser(this.platformId)) this.load();
@@ -130,12 +131,14 @@ export class KbAdminPage {
   }
 
   protected togglePublish(a: KbArticle): void {
+    this.actionError.set('');
     const req = a.status === 'published' ? this.kb.unpublish(a.id) : this.kb.publish(a.id);
-    req.subscribe({ next: () => this.load(), error: () => this.load() });
+    req.subscribe({ next: () => this.load(), error: () => this.actionError.set('kb.actionError') });
   }
 
   protected remove(a: KbArticle): void {
     if (isPlatformBrowser(this.platformId) && !window.confirm(a.question)) return;
-    this.kb.remove(a.id).subscribe({ next: () => this.load(), error: () => this.load() });
+    this.actionError.set('');
+    this.kb.remove(a.id).subscribe({ next: () => this.load(), error: () => this.actionError.set('kb.actionError') });
   }
 }
