@@ -414,7 +414,7 @@ export class AuthService {
       title: 'Recupera tu contraseña',
       preheader: 'Restablece la contraseña de tu cuenta en Boletiva.',
       bodyHtml: `<p style="margin:0 0 12px 0;">Recibimos una solicitud para restablecer tu contraseña. El enlace es válido por 1 hora.</p>
-        <p class="pe-muted" style="margin:0;font-size:14px;color:#6b6b76;">Si no fuiste tú, ignora este correo: tu contraseña no cambiará.</p>`,
+        <p class="pe-muted" style="margin:0;font-size:14px;color:{{muted}};">Si no fuiste tú, ignora este correo: tu contraseña no cambiará.</p>`,
       cta: { url: `${origin}/reset-password?token=${raw}`, label: 'Restablecer contraseña' },
     });
   }
@@ -432,7 +432,7 @@ export class AuthService {
       preheader: 'Intentaron registrar este correo, pero ya tiene una cuenta en Boletiva.',
       bodyHtml: `<p style="margin:0 0 12px 0;">Recibimos un intento de registro con este correo, pero <strong>ya tienes una cuenta</strong> en Boletiva. No creamos una nueva.</p>
         <p style="margin:0 0 12px 0;">Si fuiste tú, inicia sesión normalmente. Si no recuerdas tu contraseña, puedes restablecerla.</p>
-        <p class="pe-muted" style="margin:0;font-size:14px;color:#6b6b76;">Si no fuiste tú, puedes ignorar este correo: tu cuenta sigue protegida.</p>`,
+        <p class="pe-muted" style="margin:0;font-size:14px;color:{{muted}};">Si no fuiste tú, puedes ignorar este correo: tu cuenta sigue protegida.</p>`,
       cta: { url: `${origin}/login`, label: 'Iniciar sesión' },
     });
   }
@@ -495,7 +495,7 @@ export class AuthService {
       bodyHtml: `<p style="margin:0 0 12px 0;">Hola ${escapeHtml(user.firstName)}, detectamos un inicio de sesión desde un nuevo dispositivo.</p>
         <p style="margin:0 0 4px 0;"><strong>IP:</strong> ${ip}</p>
         <p style="margin:0 0 12px 0;"><strong>Dispositivo:</strong> ${ua}</p>
-        <p class="pe-muted" style="margin:0;font-size:14px;color:#6b6b76;">Si no fuiste tú, cambia tu contraseña de inmediato.</p>`,
+        <p class="pe-muted" style="margin:0;font-size:14px;color:{{muted}};">Si no fuiste tú, cambia tu contraseña de inmediato.</p>`,
     });
   }
 

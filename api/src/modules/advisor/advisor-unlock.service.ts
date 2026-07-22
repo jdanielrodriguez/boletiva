@@ -62,7 +62,7 @@ export class AdvisorUnlockService implements OnModuleInit {
             `<p style="margin:0 0 12px 0;">El asesor <strong>${who}</strong> (${escapeHtml(job.advisorEmail)}) ` +
             `solicitó una <strong>ventana de desbloqueo</strong> para editar áreas de administración.</p>` +
             `<p style="margin:0 0 12px 0;">Si reconoces la solicitud, autorízala: abrirá una ventana de tiempo limitada.</p>` +
-            `<p style="margin:0;font-size:14px;color:#8a8a94;">Si no la reconoces, ignora este correo (no se abre ninguna ventana).</p>`,
+            `<p style="margin:0;font-size:14px;color:{{muted}};">Si no la reconoces, ignora este correo (no se abre ninguna ventana).</p>`,
           cta: { url: job.link, label: '🔓 Autorizar edición' },
         })
         .catch((e) => this.logger.warn(`No se pudo avisar a ${a.email}: ${(e as Error).message}`));

@@ -480,7 +480,7 @@ export class ValidatorsService {
         title: 'Acceso de validación',
         preheader: `Te habilitaron para validar boletos de ${eventName}.`,
         bodyHtml: `<p style="margin:0 0 12px 0;">Te habilitaron como <strong>validador</strong> de boletos de <strong>${escapeHtml(eventName)}</strong> en Boletiva. Abre el enlace para entrar directo al validador (usa la cámara para escanear los boletos).</p>
-          <p class="pe-muted" style="margin:14px 0 0 0;font-size:14px;color:#6b6b76;">El acceso vale mientras el organizador te mantenga habilitado. Si no esperabas esto, ignora este correo.</p>`,
+          <p class="pe-muted" style="margin:14px 0 0 0;font-size:14px;color:{{muted}};">El acceso vale mientras el organizador te mantenga habilitado. Si no esperabas esto, ignora este correo.</p>`,
         cta: { url, label: 'Abrir el validador' },
       }, { type: 'validator_invite' });
     } catch (err) {
