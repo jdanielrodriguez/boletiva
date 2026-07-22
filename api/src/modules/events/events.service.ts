@@ -428,7 +428,10 @@ export class EventsService {
    */
   async setPromoted(id: string, featured: boolean, user: AuthUser) {
     await this.getManaged(id, user); // 404/403 si no existe o no lo gestiona
-    const isAdmin = user.roles.includes(Role.admin);
+    // El ASESOR gestiona los destacados con autoridad de admin (la mutación ya la gatea
+    // el AdvisorUnlockGuard con ventana de desbloqueo) → no aplica la gobernanza de
+    // promotor (can_feature_events / premium). Así puede ACTIVAR y desactivar destacados.
+    const isAdmin = user.roles.includes(Role.admin) || user.roles.includes(Role.advisor);
     // Gobernanza (no-admin): el flag global `promoter.can_feature_events` debe estar
     // ENCENDIDO (enforcement server-side, no solo ocultar el toggle en la UI).
     if (!isAdmin && featured && !(await this.canFeatureEventsEnabled())) {

@@ -92,6 +92,26 @@ describe('Rol asesor (e2e)', () => {
     await http().get(`/api/v1/events/${event.id}/manage`).set(bearer(advisorToken)).expect(200);
   });
 
+  it('BUG destacar: el asesor (con desbloqueo) puede ACTIVAR y desactivar el destacado de un evento', async () => {
+    await setLock(true);
+    await unlock(); // ventana aprobada vigente
+    const event = await prisma.event.findFirstOrThrow({ where: { promoterId } });
+    // Activar destacado (antes fallaba por la gobernanza de promotor can_feature_events/premium).
+    await http()
+      .patch(`/api/v1/events/${event.id}/promote`)
+      .set(bearer(advisorToken))
+      .send({ featured: true })
+      .expect(200);
+    // Desactivar.
+    await http()
+      .patch(`/api/v1/events/${event.id}/promote`)
+      .set(bearer(advisorToken))
+      .send({ featured: false })
+      .expect(200);
+    // Limpieza: cierra la ventana de desbloqueo para no filtrar estado a otros tests.
+    await prisma.advisorUnlock.deleteMany({ where: { advisorId } });
+  });
+
   it('tab SISTEMA excluida: GET /settings, GET /payment-gateways y PATCH /maintenance → 403 para el asesor', async () => {
     await http().get('/api/v1/settings').set(bearer(advisorToken)).expect(403);
     await http().get('/api/v1/payment-gateways').set(bearer(advisorToken)).expect(403);
