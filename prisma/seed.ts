@@ -1,5 +1,8 @@
 import { PromoterStatus, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import * as QRCode from 'qrcode';
+import PDFDocument from 'pdfkit';
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import {
   BASE_FIXED_FEES,
   GATEWAY_FEE_PCT,
@@ -639,7 +642,7 @@ async function seedPastSoldEvent(
   );
 
   // Un boleto emitido por línea (aparecen en "Boletos pasados" del cliente).
-  await Promise.all(
+  const tickets = await Promise.all(
     items.map((it, i) =>
       prisma.ticket.create({
         data: {
@@ -657,6 +660,84 @@ async function seedPastSoldEvent(
       }),
     ),
   );
+
+  // Genera la MEDIA (QR PNG + PDF) de los boletos demo para que la cuenta muestre el
+  // QR de verdad (una compra real la genera async por la cola MEDIA; el seed los inserta
+  // directo, así que replicamos aquí el objeto en storage). Best-effort: si el storage
+  // no está disponible, el seed no falla.
+  for (const t of tickets) {
+    await generateSeedTicketMedia({
+      ticketId: t.id,
+      eventId: event.id,
+      serial: t.serial,
+      eventName: event.name,
+      startsAt: event.startsAt,
+    });
+  }
+}
+
+/**
+ * Genera y sube la media (QR PNG + PDF sencillo) de un boleto demo a storage, y marca
+ * el boleto como listo. Solo aplica a LocalStack (dev): en GCS/prod se omite para no
+ * subir objetos de prueba. Nunca lanza (el seed no debe caerse por el storage).
+ */
+async function generateSeedTicketMedia(t: {
+  ticketId: string;
+  eventId: string;
+  serial: string;
+  eventName: string;
+  startsAt: Date;
+}): Promise<void> {
+  const endpoint = process.env.S3_ENDPOINT ?? '';
+  const publicEndpoint = process.env.S3_PUBLIC_ENDPOINT ?? '';
+  // Solo LocalStack/dev (endpoint local): evita subir demo a un bucket real.
+  const isLocal = /localstack|localhost|127\.0\.0\.1/.test(endpoint) || /localhost|127\.0\.0\.1/.test(publicEndpoint);
+  if (process.env.STORAGE_PROVIDER !== 's3' || !isLocal) return;
+
+  try {
+    const bucket = process.env.S3_BUCKET as string;
+    const s3 = new S3Client({
+      endpoint,
+      region: process.env.S3_REGION ?? 'us-east-1',
+      forcePathStyle: true,
+      credentials: {
+        accessKeyId: process.env.S3_ACCESS_KEY_ID as string,
+        secretAccessKey: process.env.S3_SECRET_ACCESS_KEY as string,
+      },
+    });
+
+    // QR estático (instantánea): `PE1.<serial>.<code>` — igual formato que producción.
+    const payload = `PE1.${t.serial}.000000`;
+    const qrPng = await QRCode.toBuffer(payload, { type: 'png', width: 420, margin: 1 });
+
+    // PDF mínimo con marca + QR embebido (para el botón de descarga).
+    const pdf = await new Promise<Buffer>((resolve, reject) => {
+      const doc = new PDFDocument({ size: 'A4', margin: 48 });
+      const chunks: Buffer[] = [];
+      doc.on('data', (c: Buffer) => chunks.push(c));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+      doc.fontSize(22).fillColor('#7c3aed').text('Boletiva', { align: 'left' });
+      doc.moveDown(0.5).fontSize(16).fillColor('#1a1a2e').text(t.eventName);
+      doc.moveDown(0.2).fontSize(11).fillColor('#6b6b76').text(t.startsAt.toISOString());
+      doc.moveDown(0.2).text(`Serial: ${t.serial}`);
+      doc.image(qrPng, { fit: [220, 220] });
+      doc.end();
+    });
+
+    const base = `tickets/${t.eventId}/${t.ticketId}`;
+    const qrKey = `${base}/qr.png`;
+    const pdfKey = `${base}/ticket.pdf`;
+    await s3.send(new PutObjectCommand({ Bucket: bucket, Key: qrKey, Body: qrPng, ContentType: 'image/png' }));
+    await s3.send(new PutObjectCommand({ Bucket: bucket, Key: pdfKey, Body: pdf, ContentType: 'application/pdf' }));
+    await prisma.ticket.update({
+      where: { id: t.ticketId },
+      data: { qrKey, pdfKey, mediaReadyAt: new Date() },
+    });
+  } catch (e) {
+    // best-effort: el seed no debe fallar por el storage.
+    console.warn(`[seed] no se pudo generar media del boleto ${t.serial}: ${(e as Error).message}`);
+  }
 }
 
 /** Tarjeta de prueba (Visa •4242) para el cliente semilla → probar checkout sin tener

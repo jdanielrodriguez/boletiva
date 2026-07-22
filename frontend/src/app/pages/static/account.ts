@@ -754,11 +754,13 @@ export class Account {
       if (this.section() === 'metodos') this.loadCards();
     });
 
-    // El QR se muestra por defecto: al abrir "activos", precargamos la media de los
-    // boletos cuya media ya esté lista (una sola vez por boleto).
+    // El QR se muestra por defecto: al abrir "activos" o "pasados", precargamos la
+    // media de los boletos cuya media ya esté lista (una sola vez por boleto).
     effect(() => {
-      if (this.section() !== 'activos') return;
-      for (const t of this.activos()) {
+      const sec = this.section();
+      if (sec !== 'activos' && sec !== 'pasados') return;
+      const list = sec === 'activos' ? this.activos() : this.pasados();
+      for (const t of list) {
         if (t.mediaReady && !this.mediaRequested.has(t.id)) {
           this.mediaRequested.add(t.id);
           this.loadMedia(t.id);
