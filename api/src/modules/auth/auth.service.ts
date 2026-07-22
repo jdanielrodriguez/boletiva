@@ -268,14 +268,14 @@ export class AuthService {
 
   // ---- Verificación de correo ---------------------------------------------
 
-  async verifyEmailByCode(email: string, code: string) {
+  async verifyEmailByCode(email: string, code: string, ctx: DeviceContext) {
     const userId = await this.challenges.verifyCode(email, 'email_verify', code);
-    return this.markEmailVerified(userId);
+    return this.markEmailVerified(userId, ctx);
   }
 
-  async verifyEmailByToken(token: string) {
+  async verifyEmailByToken(token: string, ctx: DeviceContext) {
     const userId = await this.challenges.verifyToken('email_verify', token);
-    return this.markEmailVerified(userId);
+    return this.markEmailVerified(userId, ctx);
   }
 
   async resendVerification(email: string): Promise<void> {
@@ -286,11 +286,19 @@ export class AuthService {
     await this.challenges.issue(user.id, user.email, 'email_verify', { withMagicLink: true });
   }
 
-  private async markEmailVerified(userId: string): Promise<PublicUser> {
+  private async markEmailVerified(userId: string, ctx: DeviceContext): Promise<PublicUser> {
+    // ¿Ya era confiable este dispositivo? (para decidir si avisamos de "nuevo dispositivo").
+    const wasTrusted = await this.devices.isKnownTrusted(userId, ctx);
     const user = await this.prisma.user.update({
       where: { id: userId },
       data: { emailVerifiedAt: new Date() },
     });
+    // Validar el correo con el código/enlace prueba la POSESIÓN del buzón → factor
+    // suficiente para CONFIAR este dispositivo. Así, tras verificar, un logout+login
+    // desde el MISMO navegador ya no vuelve a pedir el 2FA (identidad estable por
+    // `X-Device-Id`). Se avisa del nuevo dispositivo la primera vez (como en 2FA).
+    await this.devices.trust(user.id, ctx);
+    if (!wasTrusted) await this.sendNewDeviceAlert(user, ctx);
     return await this.toPublic(user);
   }
 

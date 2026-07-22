@@ -7,6 +7,7 @@ import { SessionStore } from '../../core/auth/session.store';
 import { ToastService } from '../../core/ui/toast.service';
 import { apiErrorMessage } from '../../core/http/api-error';
 import { OtpInputComponent } from '../ui/otp-input/otp-input.component';
+import { IconComponent } from '../icon/icon.component';
 
 /**
  * Modal GLOBAL de verificación de correo. Se muestra ENCIMA DE TODO (backdrop no
@@ -20,7 +21,7 @@ import { OtpInputComponent } from '../ui/otp-input/otp-input.component';
  */
 @Component({
   selector: 'app-email-verification-modal',
-  imports: [FormsModule, TranslatePipe, OtpInputComponent],
+  imports: [FormsModule, TranslatePipe, OtpInputComponent, IconComponent],
   templateUrl: './email-verification-modal.component.html',
 })
 export class EmailVerificationModal {
