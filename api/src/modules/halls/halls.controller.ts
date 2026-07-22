@@ -18,6 +18,7 @@ import {
 } from '@nestjs/swagger';
 import { ContentStatus, Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { SkipAdvisorUnlock } from '../../common/decorators/skip-advisor-unlock.decorator';
 import { HallsService } from './halls.service';
 import { CreateHallDto, HallResponseDto, UpdateHallDto } from './dto/halls.dto';
 import { ScopeDashboardDto } from '../analytics/dto/scope-dashboard.dto';
@@ -65,7 +66,8 @@ export class HallsController {
 
   @Post()
   @Roles(Role.admin)
-  @ApiOperation({ summary: 'Crea un salón (admin)' })
+  @SkipAdvisorUnlock() // Crear salones es LIBRE para el asesor (su labor); publicar sí exige desbloqueo.
+  @ApiOperation({ summary: 'Crea un salón (admin/asesor)' })
   @ApiCreatedResponse({ type: HallResponseDto })
   create(@Body() dto: CreateHallDto) {
     return this.halls.create(dto);
@@ -73,7 +75,8 @@ export class HallsController {
 
   @Patch(':id')
   @Roles(Role.admin)
-  @ApiOperation({ summary: 'Actualiza un salón (admin)' })
+  @SkipAdvisorUnlock() // Editar salones es LIBRE para el asesor.
+  @ApiOperation({ summary: 'Actualiza un salón (admin/asesor)' })
   @ApiOkResponse({ type: HallResponseDto })
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateHallDto) {
     return this.halls.update(id, dto);

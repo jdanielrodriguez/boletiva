@@ -14,6 +14,7 @@ import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swa
 import { ContentStatus, Role } from '@prisma/client';
 import { Public } from '../../common/decorators/public.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { SkipAdvisorUnlock } from '../../common/decorators/skip-advisor-unlock.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { KbService } from './kb.service';
 import { KbAutoResponderService } from './kb-auto-responder.service';
@@ -93,6 +94,7 @@ export class KbController {
 
   @Post()
   @Roles(Role.admin)
+  @SkipAdvisorUnlock() // Crear artículos es LIBRE para el asesor; publicar sí exige desbloqueo.
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Crea un artículo (draft) — admin/asesor' })
   @ApiOkResponse({ type: KbArticleResponseDto })
@@ -102,6 +104,7 @@ export class KbController {
 
   @Patch(':id')
   @Roles(Role.admin)
+  @SkipAdvisorUnlock() // Editar artículos es LIBRE para el asesor.
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Edita un artículo — admin/asesor' })
   @ApiOkResponse({ type: KbArticleResponseDto })

@@ -111,6 +111,39 @@ describe('Rol asesor (e2e)', () => {
       .expect(200);
   });
 
+  it('LIBRE sin desbloqueo: el asesor CREA/EDITA salones, plantillas y KB; PUBLICAR sí exige desbloqueo', async () => {
+    await setLock(true);
+    await prisma.advisorUnlock.deleteMany({ where: { advisorId } }); // sin ventana
+
+    // Crear KB (draft) SIN desbloqueo → permitido (labor del asesor).
+    const kb = await http()
+      .post('/api/v1/kb')
+      .set(bearer(advisorToken))
+      .send({ question: `Asesor libre ${stamp}?`, answerHtml: '<p>Contenido</p>' })
+      .expect((r) => {
+        if (![200, 201].includes(r.status)) throw new Error(`KB create → ${r.status}`);
+      });
+    const kbId = kb.body.id as string;
+    // Editar KB SIN desbloqueo → permitido.
+    await http().patch(`/api/v1/kb/${kbId}`).set(bearer(advisorToken)).send({ question: `Editado ${stamp}?` }).expect(200);
+    // PUBLICAR KB SIN desbloqueo → bloqueado (publicación gobernada por el candado).
+    await http().post(`/api/v1/kb/${kbId}/publish`).set(bearer(advisorToken)).expect(403);
+
+    // Crear salón SIN desbloqueo → permitido; publicarlo → bloqueado.
+    const hall = await http()
+      .post('/api/v1/halls')
+      .set(bearer(advisorToken))
+      .send({ name: `Salón asesor ${stamp}` })
+      .expect((r) => {
+        if (![200, 201].includes(r.status)) throw new Error(`Hall create → ${r.status}`);
+      });
+    await http().post(`/api/v1/halls/${hall.body.id}/publish`).set(bearer(advisorToken)).expect(403);
+
+    // Limpieza.
+    await prisma.kbArticle.deleteMany({ where: { id: kbId } });
+    await prisma.hall.deleteMany({ where: { id: hall.body.id } });
+  });
+
   it('con advisor.lock_enabled=false el asesor MUTA sin desbloqueo', async () => {
     await prisma.advisorUnlock.deleteMany({ where: { advisorId } }); // sin ventana
     await setLock(false);
