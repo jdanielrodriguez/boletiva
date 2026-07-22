@@ -144,7 +144,14 @@ export class EventsService {
   }
 
   private canManage(event: Event, user: AuthUser): boolean {
-    return user.roles.includes(Role.admin) || event.promoterId === user.userId;
+    // El ASESOR (soporte) VE cualquier evento (lectura); sus MUTACIONES ya las gobierna
+    // el AdvisorUnlockGuard a nivel de controller (requiere ventana de desbloqueo). Así
+    // deja de dar 403 al abrir un evento en modo solo-lectura.
+    return (
+      user.roles.includes(Role.admin) ||
+      user.roles.includes(Role.advisor) ||
+      event.promoterId === user.userId
+    );
   }
 
   private async uniqueSlug(name: string): Promise<string> {

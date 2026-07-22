@@ -120,7 +120,10 @@ export const routes: Routes = [
   {
     path: 'promotor/eventos/:id/editar',
     loadComponent: () => import('./pages/promoter/event-edit.page').then((m) => m.EventEditPage),
-    canActivate: [roleGuard('promoter', 'admin')],
+    // 'advisor' incluido: el asesor abre el evento en SOLO-LECTURA (el editor lo trata
+    // como no-dueño/no-admin → campos y acciones deshabilitados). Sus mutaciones, si
+    // llegara a intentarlas, las corta el backend (AdvisorUnlockGuard).
+    canActivate: [roleGuard('promoter', 'admin', 'advisor')],
     canDeactivate: [unsavedChangesGuard],
     title: 'Editar evento — Boletiva',
   },

@@ -86,6 +86,12 @@ describe('Rol asesor (e2e)', () => {
     await http().get('/api/v1/events/all').set(bearer(advisorToken)).expect(200);
   });
 
+  it('B1: el asesor VE el detalle de gestión de un evento de OTRO promotor (read-only, no 403)', async () => {
+    // Evento sembrado propiedad del promotor semilla (no del asesor).
+    const event = await prisma.event.findFirstOrThrow({ where: { promoterId } });
+    await http().get(`/api/v1/events/${event.id}/manage`).set(bearer(advisorToken)).expect(200);
+  });
+
   it('tab SISTEMA excluida: GET /settings, GET /payment-gateways y PATCH /maintenance → 403 para el asesor', async () => {
     await http().get('/api/v1/settings').set(bearer(advisorToken)).expect(403);
     await http().get('/api/v1/payment-gateways').set(bearer(advisorToken)).expect(403);
