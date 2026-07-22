@@ -197,7 +197,7 @@ export const promoter = {
     promoterRequired: 'Elige el promotor a nombre de quien se crea el evento.',
     createdBySupport: 'Creado por soporte',
     // Navegación
-    backToConsole: 'Volver a la consola',
+    backToConsole: 'Volver a configuración',
     backToMyEvents: 'Volver a mis eventos',
     thisEvent: 'este evento',
     // Gate de publicación (mensajes)

@@ -198,7 +198,7 @@ export const promoter = {
     promoterRequired: 'Choose the promoter on whose behalf the event is created.',
     createdBySupport: 'Created by support',
     // Navigation
-    backToConsole: 'Back to console',
+    backToConsole: 'Back to settings',
     backToMyEvents: 'Back to my events',
     thisEvent: 'this event',
     // Publication gate (messages)
