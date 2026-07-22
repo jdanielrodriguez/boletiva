@@ -329,8 +329,26 @@ gcp-down:
 .PHONY: gcp-up
 gcp-up:
 	@echo "⏫ Levantando infra de PROD ($(PROD_PROJECT))…"
-	gcloud sql instances patch $(PROD_SQL_INSTANCE) --activation-policy=ALWAYS --project=$(PROD_PROJECT) --quiet
+	@echo "→ Arrancando Cloud SQL (ALWAYS). Prender la instancia tarda varios minutos;"
+	@echo "  el patch se lanza SIN bloquear y luego se sondea el estado (a prueba de timeouts)."
+	-@gcloud sql instances patch $(PROD_SQL_INSTANCE) --activation-policy=ALWAYS --project=$(PROD_PROJECT) --quiet --async >/dev/null 2>&1 || true
+	@printf "→ Esperando a que Cloud SQL quede RUNNABLE"; \
+	 i=0; \
+	 until [ "$$(gcloud sql instances describe $(PROD_SQL_INSTANCE) --project=$(PROD_PROJECT) --format='value(state)' 2>/dev/null)" = "RUNNABLE" ]; do \
+	   i=$$((i+1)); \
+	   if [ $$i -gt 90 ]; then echo " ❌ no llegó a RUNNABLE tras ~15 min"; exit 1; fi; \
+	   printf "."; sleep 10; \
+	 done; \
+	 echo " ✓ RUNNABLE"
 	$(MAKE) gcp-redis-create
 	gcloud run services update $(PROD_API_SERVICE) --min-instances=1 --region=$(PROD_REGION) --project=$(PROD_PROJECT) --quiet
 	gcloud run services update $(PROD_FRONTEND_SERVICE) --min-instances=1 --region=$(PROD_REGION) --project=$(PROD_PROJECT) --quiet
-	@echo "✅ Infra ARRIBA. Verifica: curl https://api.boletiva.com/api/v1/health"
+	@printf "→ Verificando salud del backend"; \
+	 code=""; \
+	 for i in 1 2 3 4 5 6 7 8 9 10 11 12; do \
+	   code=$$(curl -s -o /dev/null -w '%{http_code}' https://api.boletiva.com/api/v1/health 2>/dev/null || true); \
+	   [ "$$code" = "200" ] && break; \
+	   printf "."; sleep 10; \
+	 done; \
+	 if [ "$$code" = "200" ]; then echo " ✓ /health=200"; else echo " ⚠️ /health=$$code (revisa logs: make prod-logs)"; fi
+	@echo "✅ Infra ARRIBA y lista para desplegar desde el Action (develop→master)."
