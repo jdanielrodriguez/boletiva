@@ -1,8 +1,16 @@
 import { Injectable, Logger, MessageEvent, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { Redis } from 'ioredis';
-import { Observable, Subject, filter, map, merge, of } from 'rxjs';
+import { Observable, Subject, filter, interval, map, merge, of } from 'rxjs';
 import { RedisService } from '../../infra/redis/redis.service';
+
+/**
+ * Latido del SSE. El balanceador de Cloud Run (GFE) mata conexiones inactivas, así que
+ * empujamos un `ping` periódico para mantenerlas vivas y detectar antes las muertas. Es
+ * un timer por conexión creado con `interval`, que RxJS desmonta solo cuando NestJS
+ * desuscribe al desconectar el cliente (sin fuga).
+ */
+const HEARTBEAT_MS = 30_000;
 
 type StreamKind = 'order' | 'seat' | 'wallet' | 'checkin';
 
@@ -68,6 +76,14 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
     await this.subscriber?.quit().catch(() => undefined);
   }
 
+  /** Añade el latido periódico a un stream (mantiene viva la conexión tras el proxy). */
+  private withHeartbeat(obs: Observable<MessageEvent>): Observable<MessageEvent> {
+    const ping = interval(HEARTBEAT_MS).pipe(
+      map((): MessageEvent => ({ type: 'ping', data: { ok: true } })),
+    );
+    return merge(obs, ping);
+  }
+
   private emit(event: StreamEvent): void {
     this.subject.next(event); // entrega local inmediata (clientes de esta instancia)
     // Fan-out a las otras instancias (best-effort). No re-entrega aquí (origin propio).
@@ -101,7 +117,7 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
       filter((e) => e.kind === 'seat' && e.eventId === eventId),
       map((e): MessageEvent => ({ type: 'seat', data: e.data as object })),
     );
-    return merge(of<MessageEvent>({ type: 'ready', data: { ok: true } }), live);
+    return this.withHeartbeat(merge(of<MessageEvent>({ type: 'ready', data: { ok: true } }), live));
   }
 
   /**
@@ -115,7 +131,7 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
       map((e): MessageEvent => ({ type: 'checkin', data: e.data as object })),
     );
     const initial: MessageEvent = { type: 'ready', data: { ok: true } };
-    return merge(of(initial), live);
+    return this.withHeartbeat(merge(of(initial), live));
   }
 
   /**
@@ -134,6 +150,6 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
       map((e): MessageEvent => ({ type: e.kind, data: e.data as object })),
     );
     const initial: MessageEvent = { type: 'snapshot', data: snapshot as object };
-    return merge(of(initial), live);
+    return this.withHeartbeat(merge(of(initial), live));
   }
 }
