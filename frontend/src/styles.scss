@@ -2055,14 +2055,16 @@ app-root {
   white-space: nowrap;
   padding: 0.28rem 0.6rem;
   border-radius: 999px;
-  background: var(--pe-accent-soft);
+  /* Fondo OPACO (como .ec-datechip): el tinte translúcido dejaba el contraste del texto
+     a merced del brillo del cover (naranja-oscuro sobre cover oscuro / rosa-claro sobre
+     cover claro fallaban). Superficie elevada + texto de acento = legible siempre. */
+  background: var(--pe-bg-elev);
   border: 1px solid var(--pe-accent-border, var(--pe-accent));
   color: var(--pe-accent-strong, var(--pe-accent));
   font-size: 0.68rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  backdrop-filter: blur(6px);
 }
 
 /* Cuerpo */

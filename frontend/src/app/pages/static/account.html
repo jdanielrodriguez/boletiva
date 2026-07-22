@@ -457,7 +457,7 @@
                         {{ 'account.billing.settlement.viewAccounts' | translate }}
                       </button>
                       <button type="button" class="btn small subtle" (click)="loadChain(chainKey(m), m.eventId, 'event')" data-testid="toggle-chain">
-                        <app-icon name="history" [size]="15" />
+                        <app-icon name="book" [size]="15" />
                         {{ (chains()[chainKey(m)] ? 'account.billing.hideChain' : 'account.billing.showChain') | translate }}
                       </button>
                     } @else if (m.orderId) {
@@ -471,7 +471,7 @@
                         {{ 'account.billing.viewFullDetail' | translate }}
                       </button>
                       <button type="button" class="btn small subtle" (click)="loadChain(m.orderId)" data-testid="toggle-chain">
-                        <app-icon name="history" [size]="15" />
+                        <app-icon name="book" [size]="15" />
                         {{ (chains()[chainKey(m)] ? 'account.billing.hideChain' : 'account.billing.showChain') | translate }}
                       </button>
                     }
