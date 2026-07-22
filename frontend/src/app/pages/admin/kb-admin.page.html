@@ -97,11 +97,11 @@
             <span class="kb-q">{{ a.question }}</span>
           </div>
           <div class="kb-row-actions">
-            <button type="button" class="btn small" (click)="edit(a)" [attr.data-testid]="'kb-edit-' + a.id">
+            <button type="button" class="btn small subtle" (click)="edit(a)" [attr.data-testid]="'kb-edit-' + a.id">
               <app-icon name="edit" [size]="15" /> {{ 'kb.edit' | translate }}
             </button>
             @if (a.status === 'published') {
-              <button type="button" class="btn small" (click)="togglePublish(a)" [attr.data-testid]="'kb-unpublish-' + a.id">
+              <button type="button" class="btn small subtle" (click)="togglePublish(a)" [attr.data-testid]="'kb-unpublish-' + a.id">
                 <app-icon name="hide" [size]="15" /> {{ 'kb.unpublish' | translate }}
               </button>
             } @else {

@@ -5193,9 +5193,16 @@ textarea.invalid {
 .kb-form input, .kb-form select {
   padding: .55rem .7rem; border: 1px solid var(--pe-border); border-radius: 8px;
   background: var(--pe-surface); color: var(--pe-text);
+  transition: border-color .12s ease, box-shadow .12s ease;
+}
+.kb-form input:focus, .kb-form select:focus {
+  outline: none; border-color: var(--pe-accent-border, var(--pe-accent));
+  box-shadow: 0 0 0 3px var(--pe-accent-soft);
 }
 .kb-form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .75rem; }
-.kb-form-actions { display: flex; gap: .6rem; justify-content: flex-end; }
+/* Acciones del form: cancelar a la izquierda, guardar (primaria) a la derecha. */
+.kb-form-actions { display: flex; gap: .6rem; justify-content: flex-end; align-items: center; margin-top: .35rem; padding-top: .85rem; border-top: 1px solid var(--pe-border); }
+.kb-form-actions .btn { min-width: 120px; justify-content: center; }
 .kb-error { color: var(--pe-danger, #e14e6a); }
 .kb-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
 .kb-row {
@@ -5209,13 +5216,21 @@ textarea.invalid {
 .kb-badge-internal { font-size: .72rem; padding: .1rem .5rem; border-radius: 999px; background: var(--pe-accent-soft); color: var(--pe-accent-strong); }
 .kb-row-actions { display: flex; gap: .4rem; flex-wrap: wrap; }
 
-.rte { border: 1px solid var(--pe-border); border-radius: 10px; overflow: hidden; background: var(--pe-surface); }
-.rte-toolbar { display: flex; flex-wrap: wrap; gap: .2rem; padding: .4rem; border-bottom: 1px solid var(--pe-border); background: var(--pe-surface-2); }
+.rte { border: 1px solid var(--pe-border); border-radius: 12px; overflow: hidden; background: var(--pe-surface); box-shadow: var(--pe-shadow, 0 1px 3px rgba(0,0,0,.06)); }
+.rte:focus-within { border-color: var(--pe-accent-border, var(--pe-accent)); }
+.rte-toolbar { display: flex; flex-wrap: wrap; gap: .3rem; padding: .5rem .55rem; border-bottom: 1px solid var(--pe-border); background: var(--pe-surface-2); }
+/* Botones de formato: pastillas nítidas (superficie + borde), hover/active de acento. */
 .rte-btn {
-  min-width: 32px; height: 30px; border: 1px solid transparent; border-radius: 6px;
-  background: transparent; color: var(--pe-text); cursor: pointer; font-size: .85rem;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 34px; height: 34px; padding: 0 .5rem;
+  border: 1px solid var(--pe-border); border-radius: 8px;
+  background: var(--pe-surface); color: var(--pe-text); cursor: pointer;
+  font-size: .9rem; line-height: 1; transition: background .12s ease, border-color .12s ease, color .12s ease;
 }
-.rte-btn:hover { background: var(--pe-accent-soft); }
-.rte-body { min-height: 180px; padding: .8rem 1rem; line-height: 1.6; outline: none; }
+.rte-btn:hover { background: var(--pe-accent-soft); border-color: var(--pe-accent-border, var(--pe-accent)); color: var(--pe-accent-strong, var(--pe-accent)); }
+.rte-btn:active { transform: translateY(1px); }
+.rte-btn:focus-visible { outline: 2px solid var(--pe-accent); outline-offset: 1px; }
+.rte-btn b, .rte-btn i, .rte-btn u { font-size: .95rem; }
+.rte-body { min-height: 200px; padding: .9rem 1.1rem; line-height: 1.6; outline: none; }
 .rte-body:empty::before { content: attr(data-placeholder); color: var(--pe-text-muted); }
 .rte-body a { color: var(--pe-accent-strong); }
