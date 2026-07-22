@@ -69,12 +69,18 @@ export class Login implements OnDestroy {
         this.resending.set(false);
         if (res.resent) {
           this.info.set(this.translate.instant('auth.msg2faResent'));
-          this.startResendCooldown(30);
+          this.startResendCooldown(60); // servidor: 1 reenvío por minuto
         }
       },
-      error: () => {
+      error: (err: { status?: number }) => {
         this.resending.set(false);
-        this.error.set(this.translate.instant('auth.msg2faResendError'));
+        // 429: cooldown activo o tope de reenvíos alcanzado (mensaje del backend).
+        if (err?.status === 429) {
+          this.error.set(this.translate.instant('auth.msg2faResendLimit'));
+          this.startResendCooldown(60);
+        } else {
+          this.error.set(this.translate.instant('auth.msg2faResendError'));
+        }
       },
     });
   }

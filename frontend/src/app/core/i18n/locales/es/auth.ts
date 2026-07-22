@@ -23,6 +23,7 @@ export const auth = {
   useAnotherAccount: 'Usar otra cuenta',
   msg2faResent: 'Te reenviamos un código nuevo a tu correo.',
   msg2faResendError: 'No se pudo reenviar el código. Intenta en unos segundos.',
+  msg2faResendLimit: 'Espera un minuto entre reenvíos (máximo 5). Si se agotan, vuelve a iniciar sesión.',
   // Modal de login (en compra)
   modalTitle: 'Inicia sesión para pagar',
   modalSubtitle: 'Tu reserva sigue guardada. Solo necesitas identificarte para completar el pago.',

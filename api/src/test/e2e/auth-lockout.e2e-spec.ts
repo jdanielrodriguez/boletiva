@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { RedisService } from '../../infra/redis/redis.service';
-import { createTestApp, restoreEnv } from './utils';
+import { createTestApp, restoreEnv, SEED } from './utils';
 
 /**
  * Lockout de login por CUENTA (hallazgo 3.1): defensa contra fuerza bruta DISTRIBUIDA
@@ -46,5 +46,20 @@ describe('Lockout de login por cuenta (e2e)', () => {
     }
     // Umbral superado: aunque la IP sea nueva, la CUENTA está bloqueada.
     await attempt('198.51.100.200').expect(429);
+  });
+
+  it('reenviar código 2FA: cooldown de 1 minuto → 2º reenvío inmediato responde 429', async () => {
+    // Login del cliente semilla en un dispositivo NUEVO → exige 2FA (email).
+    const login = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .set('X-Device-Id', `resend-dev-${Date.now()}`)
+      .set('X-Forwarded-For', '203.0.113.7')
+      .send({ email: SEED.buyer, password: 'Password123' })
+      .expect(200);
+    expect(login.body.status).toBe('2fa_required');
+    const token = login.body.preauthToken;
+    // 1er reenvío OK; el 2º inmediato cae en el cooldown de 1 minuto.
+    await request(app.getHttpServer()).post('/api/v1/auth/2fa/resend').send({ preauthToken: token }).expect(200);
+    await request(app.getHttpServer()).post('/api/v1/auth/2fa/resend').send({ preauthToken: token }).expect(429);
   });
 });

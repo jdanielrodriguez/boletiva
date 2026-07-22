@@ -87,7 +87,9 @@ export class AuthService {
   private static readonly LOGIN_MAX_FAILS = 10;
   private static readonly TWOFA_LOCK_WINDOW_SEC = 300; // 5 min
   private static readonly TWOFA_MAX_FAILS = 5;
-  private static readonly TWOFA_RESEND_COOLDOWN_SEC = 30; // reenvío de OTP 2FA
+  private static readonly TWOFA_RESEND_COOLDOWN_SEC = 60; // 1 reenvío por MINUTO
+  private static readonly TWOFA_MAX_RESENDS = 5; // tope de reenvíos por ventana
+  private static readonly TWOFA_RESEND_WINDOW_SEC = 900; // ventana del tope (15 min)
 
   private async toPublic(user: User): Promise<PublicUser> {
     // La foto de perfil se firma al leer (patrón event-media): si hay `avatarKey`
@@ -211,14 +213,25 @@ export class AuthService {
     if (user.twoFactorMethod !== 'email') {
       return { method: user.twoFactorMethod, resent: false }; // TOTP: nada que reenviar
     }
+    // Tope TOTAL de reenvíos por ventana (evita spam de OTP): máximo 5; superado →
+    // se bloquea y hay que reiniciar el login.
+    const totalKey = `2fa-resend-total:${user.id}`;
+    if ((await this.rateLimit.count(totalKey)) >= AuthService.TWOFA_MAX_RESENDS) {
+      throw new HttpException(
+        'Alcanzaste el máximo de reenvíos. Vuelve a iniciar sesión para pedir un código nuevo.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+    // Cooldown: 1 reenvío por MINUTO.
     const key = `2fa-resend:${user.id}`;
     if ((await this.rateLimit.count(key)) >= 1) {
       throw new HttpException(
-        'Espera unos segundos antes de pedir otro código.',
+        'Espera un minuto antes de pedir otro código.',
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
     await this.rateLimit.register(key, AuthService.TWOFA_RESEND_COOLDOWN_SEC);
+    await this.rateLimit.register(totalKey, AuthService.TWOFA_RESEND_WINDOW_SEC);
     await this.twofactor.startChallenge(user);
     return { method: user.twoFactorMethod, resent: true };
   }

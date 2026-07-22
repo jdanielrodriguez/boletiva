@@ -23,6 +23,7 @@ export const auth = {
   useAnotherAccount: 'Use another account',
   msg2faResent: 'We sent you a new code by email.',
   msg2faResendError: 'Could not resend the code. Try again in a few seconds.',
+  msg2faResendLimit: 'Wait a minute between resends (max 5). If you run out, sign in again.',
   // Login modal (during purchase)
   modalTitle: 'Sign in to pay',
   modalSubtitle: 'Your reservation is still saved. Just sign in to complete the payment.',
