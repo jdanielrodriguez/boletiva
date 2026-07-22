@@ -653,6 +653,46 @@ async function seedPastSoldEvent(
   );
 }
 
+/** Tarjeta de prueba (Visa •4242) para el cliente semilla → probar checkout sin tener
+ *  que registrar tarjeta. `token` es un placeholder (el PAN real nunca toca el backend). */
+async function seedDemoCard(buyerId: string): Promise<void> {
+  const existing = await prisma.savedCard.findFirst({ where: { userId: buyerId } });
+  if (existing) return;
+  await prisma.savedCard.create({
+    data: { userId: buyerId, brand: 'visa', last4: '4242', token: 'seed-tok-visa-4242', isDefault: true },
+  });
+}
+
+/** Notificaciones de muestra (campanita) para cliente y promotor: una leída y una sin leer. */
+async function seedDemoNotifications(buyerId: string, promoterId: string): Promise<void> {
+  if ((await prisma.notification.count()) > 0) return;
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: buyerId,
+        type: 'ticket',
+        title: '¡Tus boletos están listos!',
+        body: 'Tu compra de "Concierto de Prueba" fue confirmada. Ya puedes verlos en Mi cuenta.',
+        resourceType: 'order',
+      },
+      {
+        userId: buyerId,
+        type: 'system',
+        title: 'Bienvenido a Boletiva',
+        body: 'Explora eventos y compra tus boletos con QR dinámico.',
+        readAt: new Date(),
+      },
+      {
+        userId: promoterId,
+        type: 'promoter',
+        title: 'Tu evento recibió ventas',
+        body: 'Revisa el dashboard para ver tu recaudación en vivo.',
+        resourceType: 'event',
+      },
+    ],
+  });
+}
+
 async function seedKbArticles(authorId?: string): Promise<void> {
   // Base de Conocimientos (T6): artículos publicados iniciales del FAQ (≥5 por categoría),
   // en `prisma/kb-seed-data.ts`. Idempotente por slug.
@@ -695,6 +735,8 @@ async function main(): Promise<void> {
     users['cliente@boletiva.com'],
   );
   await seedKbArticles(users['admin@boletiva.com']);
+  await seedDemoCard(users['cliente@boletiva.com']);
+  await seedDemoNotifications(users['cliente@boletiva.com'], users['promotor@boletiva.com']);
 
   const [settings, userCount, catCount, eventCount, hallCount, tplCount] = await Promise.all([
     prisma.setting.count(),
