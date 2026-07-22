@@ -56,13 +56,14 @@ import type { PromoterListItemDto } from '../../core/api/types';
                   autocomplete="off"
                   role="combobox"
                   [attr.aria-expanded]="open()"
+                  aria-controls="notif-promoter-list"
                   [placeholder]="'notifications.searchPromoter' | translate"
                   data-testid="notif-promoter-search" />
                 @if (open()) {
-                  <ul class="combobox-list" role="listbox" data-testid="notif-promoter-list">
+                  <ul class="combobox-list" role="listbox" id="notif-promoter-list" data-testid="notif-promoter-list">
                     @for (p of filteredPromoters(); track p.id) {
                       <li>
-                        <button type="button" role="option" (click)="pickPromoter(p)" [attr.data-testid]="'notif-promoter-opt-' + p.id">
+                        <button type="button" role="option" [attr.aria-selected]="promoterFilter() === (p.firstName + ' ' + p.lastName)" (click)="pickPromoter(p)" [attr.data-testid]="'notif-promoter-opt-' + p.id">
                           <strong>{{ p.firstName }} {{ p.lastName }}</strong>
                           <span class="muted small">{{ p.email }}</span>
                         </button>

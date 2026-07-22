@@ -96,7 +96,7 @@
             </button>
           } @empty {
             @if (listError()) {
-              <p class="muted small" data-testid="chat-list-error">{{ 'chat.loadError' | translate }}</p>
+              <p class="error small" role="alert" data-testid="chat-list-error">{{ 'chat.loadError' | translate }}</p>
             } @else if (loading()) {
               <p class="muted small" data-testid="chat-list-loading">{{ 'common.loading' | translate }}</p>
             } @else {

@@ -52,7 +52,7 @@
               <p class="muted" data-testid="methods-loading">{{ 'checkout.loadingMethods' | translate }}</p>
             } @else {
               @if (methodsError()) {
-                <p class="hint" data-testid="methods-error">{{ 'checkout.methodsError' | translate }}</p>
+                <p class="error" role="alert" data-testid="methods-error">{{ 'checkout.methodsError' | translate }}</p>
               }
 
               <div class="pay-options" role="radiogroup" [attr.aria-label]="'checkout.paymentMethod' | translate">

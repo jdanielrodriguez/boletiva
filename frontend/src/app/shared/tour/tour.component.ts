@@ -66,7 +66,8 @@ interface TourRecord {
       </div>
     } @else if (phase() === 'running') {
       <!-- Backdrop invasivo con "agujero" sobre el elemento resaltado (o sólido si no hay target). -->
-      <div class="tour-overlay" data-testid="tour-overlay" (click)="skip()">
+      <div class="tour-overlay" data-testid="tour-overlay" role="button" tabindex="0"
+           [attr.aria-label]="'tour.skip' | translate" (click)="skip()" (keyup.enter)="skip()" (keyup.escape)="skip()">
         @if (rect(); as r) {
           <div class="tour-spotlight" [style.top.px]="r.top" [style.left.px]="r.left" [style.width.px]="r.width" [style.height.px]="r.height"></div>
         }
