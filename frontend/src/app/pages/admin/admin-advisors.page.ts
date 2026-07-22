@@ -70,7 +70,7 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dial
               }
               <div class="adv-actions">
                 @if (a.disabled) {
-                  <button type="button" class="btn small primary" (click)="enable(a)" [attr.data-testid]="'adv-enable-' + a.id"><app-icon name="reactivate" [size]="15" /> {{ 'advisor.admin.enable' | translate }}</button>
+                  <button type="button" class="btn small success" (click)="enable(a)" [attr.data-testid]="'adv-enable-' + a.id"><app-icon name="reactivate" [size]="15" /> {{ 'advisor.admin.enable' | translate }}</button>
                   <button type="button" class="btn small danger" (click)="askRemove(a)" [attr.data-testid]="'adv-remove-' + a.id"><app-icon name="delete" [size]="15" /> {{ 'advisor.admin.remove' | translate }}</button>
                 } @else {
                   <button type="button" class="btn small subtle" (click)="askNotify(a)" [attr.data-testid]="'adv-notify-' + a.id"><app-icon name="bell" [size]="15" /> {{ 'advisor.admin.notify' | translate }}</button>

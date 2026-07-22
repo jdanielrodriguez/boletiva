@@ -206,7 +206,7 @@
               </div>
               <div class="ev-card-actions">
                 @if (p.promoterStatus !== 'approved') {
-                  <button type="button" class="btn small primary" (click)="askApprove(p)" data-testid="promoter-approve"
+                  <button type="button" class="btn small success" (click)="askApprove(p)" data-testid="promoter-approve"
                     [title]="(p.promoterStatus === 'suspended' ? 'config.promoters.reactivateTitle' : 'config.promoters.approveTitle') | translate">
                     <app-icon [name]="p.promoterStatus === 'suspended' ? 'reactivate' : 'save'" />
                     {{ (p.promoterStatus === 'suspended' ? 'config.promoters.reactivate' : 'config.promoters.approve') | translate }}

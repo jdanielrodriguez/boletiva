@@ -444,17 +444,20 @@
                       <span class="badge badge-{{ m.status }}" data-testid="movement-status">{{ m.status | statusLabel }}</span>
                     }
                     @if (m.kind === 'event_settlement' && m.eventId) {
-                      <button type="button" class="link-btn" (click)="downloadSettlement(m.eventId)" [disabled]="downloadingSettlement() === m.eventId" data-testid="settlement-download">
-                        <app-icon name="download" />
+                      <button type="button" class="btn small subtle" (click)="downloadSettlement(m.eventId)" [disabled]="downloadingSettlement() === m.eventId" data-testid="settlement-download">
+                        <app-icon name="download" [size]="15" />
                         {{ (downloadingSettlement() === m.eventId ? 'account.billing.settlement.downloading' : 'account.billing.settlement.download') | translate }}
                       </button>
-                      <button type="button" class="link-btn" (click)="toggleTxnDetail(m)" data-testid="settlement-view-transaction">
+                      <button type="button" class="btn small subtle" (click)="toggleTxnDetail(m)" data-testid="settlement-view-transaction">
+                        <app-icon name="view" [size]="15" />
                         {{ (expandedTxn() === m.id ? 'account.billing.settlement.hideTransaction' : 'account.billing.settlement.viewTransaction') | translate }}
                       </button>
-                      <button type="button" class="link-btn" (click)="verEventAccounts(m.eventId)" data-testid="settlement-view-accounts">
+                      <button type="button" class="btn small subtle" (click)="verEventAccounts(m.eventId)" data-testid="settlement-view-accounts">
+                        <app-icon name="accounts" [size]="15" />
                         {{ 'account.billing.settlement.viewAccounts' | translate }}
                       </button>
-                      <button type="button" class="link-btn" (click)="loadChain(chainKey(m), m.eventId, 'event')" data-testid="toggle-chain">
+                      <button type="button" class="btn small subtle" (click)="loadChain(chainKey(m), m.eventId, 'event')" data-testid="toggle-chain">
+                        <app-icon name="history" [size]="15" />
                         {{ (chains()[chainKey(m)] ? 'account.billing.hideChain' : 'account.billing.showChain') | translate }}
                       </button>
                     } @else if (m.orderId) {
@@ -463,10 +466,12 @@
                           <app-icon name="save" /> {{ 'account.billing.payPending' | translate }}
                         </button>
                       }
-                      <button type="button" class="link-btn" (click)="verCompra(m.orderId)" data-testid="ver-detalle">
+                      <button type="button" class="btn small subtle" (click)="verCompra(m.orderId)" data-testid="ver-detalle">
+                        <app-icon name="view" [size]="15" />
                         {{ 'account.billing.viewFullDetail' | translate }}
                       </button>
-                      <button type="button" class="link-btn" (click)="loadChain(m.orderId)" data-testid="toggle-chain">
+                      <button type="button" class="btn small subtle" (click)="loadChain(m.orderId)" data-testid="toggle-chain">
+                        <app-icon name="history" [size]="15" />
                         {{ (chains()[chainKey(m)] ? 'account.billing.hideChain' : 'account.billing.showChain') | translate }}
                       </button>
                     }
@@ -553,7 +558,7 @@
                     <span>{{ o.createdAt | localizedDate: 'dd/MM/yyyy' }}</span>
                     <span class="badge badge-{{ o.status }}">{{ o.status | statusLabel }}</span>
                     <span>{{ o.total | money }}</span>
-                    <button type="button" class="link-btn" (click)="verCompra(o.id)" data-testid="wallet-ver-transaccion">{{ 'account.wallet.viewTransaction' | translate }}</button>
+                    <button type="button" class="btn small subtle" (click)="verCompra(o.id)" data-testid="wallet-ver-transaccion"><app-icon name="view" [size]="15" /> {{ 'account.wallet.viewTransaction' | translate }}</button>
                   </li>
                 }
               </ul>

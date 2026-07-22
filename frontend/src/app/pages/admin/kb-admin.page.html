@@ -107,7 +107,7 @@
               <button type="button" class="btn small subtle" (click)="edit(a)" [attr.data-testid]="'kb-edit-' + a.id">
                 <app-icon name="edit" [size]="15" /> {{ 'kb.edit' | translate }}
               </button>
-              <button type="button" class="btn small primary" (click)="togglePublish(a)" [attr.data-testid]="'kb-publish-' + a.id">
+              <button type="button" class="btn small success" (click)="togglePublish(a)" [attr.data-testid]="'kb-publish-' + a.id">
                 <app-icon name="publish" [size]="15" /> {{ 'kb.publish' | translate }}
               </button>
               <button type="button" class="btn small danger" (click)="remove(a)" [attr.data-testid]="'kb-delete-' + a.id">

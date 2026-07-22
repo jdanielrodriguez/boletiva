@@ -49,7 +49,7 @@ import { NotificationsSocketService } from '../../core/notifications/notificatio
             <header class="notif-panel-head">
               <strong>{{ 'notifications.title' | translate }}</strong>
               @if (unread() > 0) {
-                <button type="button" class="link-btn small" (click)="markAll()" data-testid="notif-read-all">{{ 'notifications.markAll' | translate }}</button>
+                <button type="button" class="btn small subtle notif-read-all" (click)="markAll()" data-testid="notif-read-all">{{ 'notifications.markAll' | translate }}</button>
               }
             </header>
             @for (n of items(); track n.id) {
@@ -103,6 +103,7 @@ import { NotificationsSocketService } from '../../core/notifications/notificatio
          el texto claro del header y se mezcla con el fondo claro en el tema día). */
       .notif-panel { position: absolute; top: 110%; right: 0; z-index: 950; width: min(360px, 92vw); max-height: 70vh; overflow-y: auto; background: var(--pe-surface); color: var(--pe-text); border: 1px solid var(--pe-border); border-radius: var(--pe-radius-sm); box-shadow: var(--pe-shadow); }
       .notif-panel-head { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.8rem; border-bottom: 1px solid var(--pe-border); position: sticky; top: 0; background: var(--pe-surface); }
+      .notif-read-all { padding: 0.25rem 0.6rem; font-size: 0.78rem; }
       .notif-item { display: flex; flex-direction: column; gap: 0.2rem; width: 100%; text-align: left; padding: 0.65rem 0.85rem; border: none; border-left: 3px solid transparent; border-bottom: 1px solid var(--pe-border); background: none; color: var(--pe-text); cursor: pointer; transition: background 0.12s ease; }
       .notif-item:hover { background: var(--pe-surface-2); }
       /* No-leída: barra de acento + fondo suave (deja de verse "plana"). */
