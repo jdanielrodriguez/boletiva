@@ -72,6 +72,13 @@
         @if (info(); as i) {
           <p class="info" role="status" data-testid="twofa-info">{{ i }}</p>
         }
+        <!-- Cronómetro regresivo: mientras corre, dice cuánto falta; al llegar a 0
+             desaparece y el botón de reenviar se habilita. -->
+        @if (resendCooldown() > 0) {
+          <p class="resend-countdown" role="status" data-testid="twofa-countdown">
+            {{ 'auth.resendCountdown' | translate: { s: resendCooldown() } }}
+          </p>
+        }
 
         <div class="twofa-actions">
           @if (method() === 'email') {

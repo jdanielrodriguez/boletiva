@@ -91,7 +91,13 @@ export class Login implements OnDestroy {
     this.resendTimer = setInterval(() => {
       const n = this.resendCooldown() - 1;
       this.resendCooldown.set(Math.max(0, n));
-      if (n <= 0 && this.resendTimer) clearInterval(this.resendTimer);
+      if (n <= 0 && this.resendTimer) {
+        clearInterval(this.resendTimer);
+        this.resendTimer = null;
+        // A 0: desaparece el cronómetro y se limpia el aviso → el botón queda habilitado.
+        this.info.set(null);
+        this.error.set(null);
+      }
     }, 1000);
   }
 

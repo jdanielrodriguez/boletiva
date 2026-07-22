@@ -20,6 +20,7 @@ export const auth = {
   verify: 'Verify',
   resendCode: 'Resend code',
   resendIn: 'Resend in {{s}}s',
+  resendCountdown: 'You can request another code in {{s}}s…',
   useAnotherAccount: 'Use another account',
   msg2faResent: 'We sent you a new code by email.',
   msg2faResendError: 'Could not resend the code. Try again in a few seconds.',

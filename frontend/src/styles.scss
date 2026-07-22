@@ -5167,6 +5167,8 @@ textarea.invalid {
 }
 .twofa-btn.btn:disabled { opacity: 0.55; }
 .twofa-btn .app-icon { flex: none; opacity: 0.85; }
+/* Cronómetro regresivo del reenvío de código (desaparece al llegar a 0). */
+.resend-countdown { margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--pe-text-muted, var(--pe-muted)); text-align: center; }
 
 /* ── T6 · FAQ público + gestión KB + editor de formato ─────────────────────── */
 .faq-page { max-width: 860px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
