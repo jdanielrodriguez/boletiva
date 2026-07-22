@@ -42,6 +42,13 @@ export const routes: Routes = [
     title: 'Verifica tu correo — Boletiva',
   },
   {
+    // Acceso passwordless por enlace mágico del correo (?token=). Consume el token y
+    // arranca la sesión. Público (auth-H2: antes esta ruta no existía → el enlace era 404).
+    path: 'passwordless',
+    loadComponent: () => import('./pages/passwordless/passwordless').then((m) => m.Passwordless),
+    title: 'Acceso — Boletiva',
+  },
+  {
     // PWA de validación en puerta (magic-link del validador). Público: se autentica
     // con el gate-token que devuelve el canje, no con sesión.
     path: 'validar/:token',

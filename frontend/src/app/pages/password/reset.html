@@ -4,7 +4,7 @@
     <p class="auth-sub">{{ 'auth.resetSubtitle' | translate }}</p>
 
     @if (!token()) {
-      <p class="form-error" data-testid="reset-no-token">
+      <p class="form-error" role="alert" data-testid="reset-no-token">
         {{ 'auth.resetNoToken1' | translate }}
         <a routerLink="/recuperar">{{ 'auth.resetNoTokenLink' | translate }}</a>.
       </p>

@@ -49,7 +49,7 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dial
       } @else if (loading()) {
         <p class="muted" data-testid="adv-loading">{{ 'common.loading' | translate }}</p>
       } @else if (loadError()) {
-        <p class="muted" data-testid="adv-error">{{ 'advisor.admin.loadError' | translate }}</p>
+        <p class="muted" role="alert" data-testid="adv-error">{{ 'advisor.admin.loadError' | translate }}</p>
       } @else {
         <app-empty-state variant="generic" data-testid="adv-empty"
           [title]="'advisor.admin.emptyTitle' | translate"

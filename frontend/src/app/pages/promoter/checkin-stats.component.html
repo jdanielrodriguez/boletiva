@@ -2,7 +2,7 @@
   @if (loading()) {
     <p class="auth-sub">{{ 'common.loading' | translate }}</p>
   } @else if (error()) {
-    <p class="error" data-testid="checkin-stats-error">{{ 'promoter.checkin.error' | translate }}</p>
+    <p class="error" role="alert" data-testid="checkin-stats-error">{{ 'promoter.checkin.error' | translate }}</p>
   } @else if (stats(); as s) {
     <header class="checkin-head">
       <h3>{{ 'promoter.checkin.title' | translate }}</h3>

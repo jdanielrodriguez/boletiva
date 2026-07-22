@@ -41,7 +41,7 @@
   --pe-accent-border: color-mix(in srgb, var(--pe-accent) 45%, transparent);
 
   --pe-text-muted: var(--pe-muted);
-  --pe-focus-ring: color-mix(in srgb, var(--pe-primary) 40%, transparent);
+  --pe-focus-ring: var(--pe-primary); /* SÓLIDO (a11y/WCAG): un anillo translúcido al 40% no alcanza 3:1 */
 
   --pe-danger: #ff6b81;
   --pe-danger-strong: #e14b63;
@@ -89,7 +89,7 @@
   --pe-accent-border: color-mix(in srgb, var(--pe-accent) 40%, transparent);
 
   --pe-text-muted: var(--pe-muted);
-  --pe-focus-ring: color-mix(in srgb, var(--pe-primary) 40%, transparent);
+  --pe-focus-ring: var(--pe-primary); /* SÓLIDO (a11y/WCAG): un anillo translúcido al 40% no alcanza 3:1 */
 
   --pe-danger: #d83a4e;
   --pe-danger-strong: #c02338;
@@ -3309,15 +3309,17 @@ button.danger:hover:not(:disabled) { background: var(--pe-danger); border-color:
 .gateway-edit-actions > .btn.small,
 .adv-actions > .btn.small { min-height: 34px; }
 
+/* Texto con la variante -strong (más oscura) para pasar AA en el tema DÍA (claro):
+   el tono base no alcanza 4.5:1 sobre el fondo crema. En NOCHE -strong sigue ≥AA. */
 .btn.success,
-button.success { border-color: var(--pe-success-border); color: var(--pe-success); background: transparent; }
+button.success { border-color: var(--pe-success-border); color: var(--pe-success-strong); background: transparent; }
 .btn.success:hover:not(:disabled),
-button.success:hover:not(:disabled) { background: var(--pe-success-soft); border-color: var(--pe-success); color: var(--pe-success); }
+button.success:hover:not(:disabled) { background: var(--pe-success-soft); border-color: var(--pe-success); color: var(--pe-success-strong); }
 
 .btn.warning,
-button.warning { border-color: var(--pe-warning-border); color: var(--pe-warning); background: transparent; }
+button.warning { border-color: var(--pe-warning-border); color: var(--pe-warning-strong); background: transparent; }
 .btn.warning:hover:not(:disabled),
-button.warning:hover:not(:disabled) { background: var(--pe-warning-soft); border-color: var(--pe-warning); color: var(--pe-warning); }
+button.warning:hover:not(:disabled) { background: var(--pe-warning-soft); border-color: var(--pe-warning); color: var(--pe-warning-strong); }
 
 .btn.outline,
 .btn-outline,

@@ -27,7 +27,7 @@ import { AdvisorApi } from '../../core/api/advisor.api';
           </p>
         }
         @case ('error') {
-          <p class="error" data-testid="adv-error">{{ 'advisor.approveError' | translate }}</p>
+          <p class="error" role="alert" data-testid="adv-error">{{ 'advisor.approveError' | translate }}</p>
         }
       }
       <a class="btn btn-outline" routerLink="/configuracion">{{ 'advisor.backToConsole' | translate }}</a>

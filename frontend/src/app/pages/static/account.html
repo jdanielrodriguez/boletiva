@@ -308,7 +308,7 @@
                     @if (cardBrandRecognized()) {
                       <span class="card-brand-badge" data-testid="card-brand">{{ ('account.methods.brand.' + cardBrand()) | translate }}</span>
                     } @else {
-                      <span class="field-error" data-testid="card-brand-invalid">{{ 'account.methods.brandUnknown' | translate }}</span>
+                      <span class="field-error" role="alert" data-testid="card-brand-invalid">{{ 'account.methods.brandUnknown' | translate }}</span>
                     }
                   }
                 </div>
@@ -317,14 +317,14 @@
                     <label for="card-exp-m">{{ 'account.methods.monthMM' | translate }}</label>
                     <input id="card-exp-m" type="text" inputmode="numeric" maxlength="2" placeholder="12" [ngModel]="cardExpMonth()" (ngModelChange)="onCardExpMonthInput($event)" name="ccexpm" data-testid="card-exp-m" [attr.aria-invalid]="cardExpMonth().length > 0 && !expMonthValid()" />
                     @if (cardExpMonth().length > 0 && !expMonthValid()) {
-                      <span class="field-error" data-testid="card-exp-m-error">{{ 'account.methods.monthInvalid' | translate }}</span>
+                      <span class="field-error" role="alert" data-testid="card-exp-m-error">{{ 'account.methods.monthInvalid' | translate }}</span>
                     }
                   </div>
                   <div class="field">
                     <label for="card-exp-y">{{ 'account.methods.yearYY' | translate }}</label>
                     <input #expYearInput id="card-exp-y" type="text" inputmode="numeric" maxlength="2" placeholder="28" [ngModel]="cardExpYear()" (ngModelChange)="onCardExpYearInput($event)" name="ccexpy" data-testid="card-exp-y" [attr.aria-invalid]="cardExpYear().length > 0 && !expYearValid()" />
                     @if (cardExpYear().length > 0 && !expYearValid()) {
-                      <span class="field-error" data-testid="card-exp-y-error">{{ 'account.methods.yearInvalid' | translate }}</span>
+                      <span class="field-error" role="alert" data-testid="card-exp-y-error">{{ 'account.methods.yearInvalid' | translate }}</span>
                     }
                   </div>
                   <div class="field">

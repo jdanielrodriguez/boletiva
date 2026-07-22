@@ -5,7 +5,7 @@
     <p class="auth-sub">{{ 'auth.modalSubtitle' | translate }}</p>
 
     @if (error()) {
-      <p class="form-error" data-testid="modal-error">{{ error() }}</p>
+      <p class="form-error" role="alert" data-testid="modal-error">{{ error() }}</p>
     }
 
     @if (!needs2fa()) {

@@ -13,7 +13,7 @@
     <p class="total">{{ 'reservation.total' | translate: { total: (r.total | money) } }}</p>
 
     @if (error()) {
-      <p class="error" data-testid="reservation-error">{{ error() }}</p>
+      <p class="error" role="alert" data-testid="reservation-error">{{ error() }}</p>
     }
 
     @if (!expired()) {

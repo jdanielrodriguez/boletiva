@@ -5,7 +5,7 @@
       <p class="auth-sub" [innerHTML]="'auth.verifyModalBody' | translate: { email: email() }"></p>
 
       @if (error()) {
-        <p class="form-error" data-testid="verify-modal-error">{{ error() }}</p>
+        <p class="form-error" role="alert" data-testid="verify-modal-error">{{ error() }}</p>
       }
 
       <form (ngSubmit)="verify()">

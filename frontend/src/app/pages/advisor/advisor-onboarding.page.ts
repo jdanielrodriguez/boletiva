@@ -44,7 +44,7 @@ import { LoadingComponent } from '../../shared/ui/loading.component';
             <label for="adv-pw2">{{ 'advisor.onboarding.repeat' | translate }}</label>
             <input id="adv-pw2" type="password" [ngModel]="pw2()" (ngModelChange)="pw2.set($event)" name="pw2" autocomplete="new-password" data-testid="adv-pw2" />
           </div>
-          @if (pwError(); as e) { <p class="error" data-testid="adv-pw-error">{{ e | translate }}</p> }
+          @if (pwError(); as e) { <p class="error" role="alert" data-testid="adv-pw-error">{{ e | translate }}</p> }
           <button type="submit" class="btn primary" [disabled]="!canSubmit() || working()" data-testid="adv-set-password">
             {{ working() ? ('common.sending' | translate) : ('advisor.onboarding.activate' | translate) }}
           </button>

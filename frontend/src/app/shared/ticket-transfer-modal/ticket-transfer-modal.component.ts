@@ -45,7 +45,7 @@ type Step = 'info' | 'share';
             <li>{{ 'transfer.modal.point4' | translate }}</li>
           </ul>
           @if (error()) {
-            <p class="error" data-testid="transfer-error">{{ error() }}</p>
+            <p class="error" role="alert" data-testid="transfer-error">{{ error() }}</p>
           }
           <div class="ev-card-actions confirm-actions">
             <button type="button" class="btn primary" data-testid="transfer-confirm" [disabled]="working()" (click)="confirm()">

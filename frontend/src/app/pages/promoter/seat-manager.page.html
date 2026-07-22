@@ -4,7 +4,7 @@
   @if (loading()) {
     <p class="muted">{{ 'common.loading' | translate }}</p>
   } @else if (notFound()) {
-    <p class="error" data-testid="seat-notfound">{{ 'promoter.seatMgr.notFound' | translate }}</p>
+    <p class="error" role="alert" data-testid="seat-notfound">{{ 'promoter.seatMgr.notFound' | translate }}</p>
   } @else {
     <div class="panel-header">
       <div>

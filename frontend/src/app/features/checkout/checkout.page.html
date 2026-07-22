@@ -262,7 +262,7 @@
           </div>
 
           @if (error()) {
-            <p class="error" data-testid="checkout-error">{{ error() }}</p>
+            <p class="error" role="alert" data-testid="checkout-error">{{ error() }}</p>
           }
           @if (status() === 'pending' && paying()) {
             <p class="awaiting" data-testid="awaiting">{{ 'checkout.awaiting' | translate }}</p>

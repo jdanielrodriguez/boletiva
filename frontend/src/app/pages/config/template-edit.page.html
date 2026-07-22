@@ -26,7 +26,7 @@
         <label class="field full"><span>{{ 'config.templates.paramsJson' | translate }}</span>
           <input type="text" placeholder='{"rows":5,"cols":10}' [ngModel]="d.paramsJson" (ngModelChange)="patch('paramsJson', $event)" name="tp" [disabled]="builtIn()" [class.invalid]="paramsInvalid()" data-testid="tpl-params" />
           @if (paramsInvalid()) {
-            <small class="form-error" data-testid="tpl-params-error">{{ 'config.templates.paramsJsonInvalid' | translate }}</small>
+            <small class="form-error" role="alert" data-testid="tpl-params-error">{{ 'config.templates.paramsJsonInvalid' | translate }}</small>
           } @else {
             <small class="field-hint">{{ 'config.templates.paramsJsonHint' | translate }}</small>
           }

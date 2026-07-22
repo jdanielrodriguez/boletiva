@@ -83,6 +83,22 @@ export class AuthService {
     return this.authApi.verifyEmail({ email, code }).pipe(tap((user) => this.session.setUser(user)));
   }
 
+  /**
+   * Verifica el correo con el TOKEN del enlace mágico (?token= del correo). No requiere
+   * sesión (se puede abrir el enlace en otro dispositivo); si hay sesión activa, refresca
+   * el usuario para reflejar emailVerified=true al instante.
+   */
+  verifyEmailToken(token: string): Observable<PublicUserResponseDto> {
+    return this.authApi
+      .verifyEmailToken(token)
+      .pipe(tap((user) => { if (this.session.user()) this.session.setUser(user); }));
+  }
+
+  /** Acceso passwordless con el TOKEN del enlace mágico → arranca la sesión (applyLogin). */
+  passwordlessToken(token: string): Observable<AuthSessionResponseDto> {
+    return this.authApi.passwordlessToken(token).pipe(tap((res) => this.applyLogin(res)));
+  }
+
   /** Reenvía el código de verificación al correo de la sesión actual (captcha 'resend'). */
   resendVerification(): Observable<MessageResponseDto> {
     const email = this.session.user()?.email ?? '';

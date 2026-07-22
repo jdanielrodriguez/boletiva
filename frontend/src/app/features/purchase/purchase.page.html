@@ -39,7 +39,7 @@
       <app-share-box [url]="shareUrl()" />
 
       @if (error()) {
-        <p class="error" data-testid="purchase-error">{{ error() }}</p>
+        <p class="error" role="alert" data-testid="purchase-error">{{ error() }}</p>
       }
 
       <div class="actions">
@@ -99,7 +99,7 @@
       </div>
     }
     @if (error()) {
-      <p class="error" data-testid="purchase-error">{{ error() }}</p>
+      <p class="error" role="alert" data-testid="purchase-error">{{ error() }}</p>
     }
 
     <!-- Botones de localidad: se elige UNA a la vez (la que venga del detalle o la 1ª) -->

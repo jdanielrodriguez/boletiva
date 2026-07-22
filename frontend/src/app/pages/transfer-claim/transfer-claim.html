@@ -23,7 +23,7 @@
         {{ working() ? ('transfer.claiming' | translate) : ('transfer.claimSubmit' | translate) }}
       </button>
       @if (error(); as e) {
-        <p class="error" data-testid="claim-error">{{ e }}</p>
+        <p class="error" role="alert" data-testid="claim-error">{{ e }}</p>
       }
     </form>
   }

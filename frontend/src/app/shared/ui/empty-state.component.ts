@@ -70,7 +70,7 @@ export type EmptyVariant = 'tickets' | 'billing' | 'wallet' | 'card' | 'generic'
       }
 
       @if (ctaLabel() && ctaLink()) {
-        <a class="primary empty-cta" [routerLink]="ctaLink()" data-testid="empty-cta">{{ ctaLabel() }}</a>
+        <a class="btn primary empty-cta" [routerLink]="ctaLink()" data-testid="empty-cta">{{ ctaLabel() }}</a>
       }
     </div>
   `,

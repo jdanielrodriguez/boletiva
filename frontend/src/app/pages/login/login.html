@@ -4,7 +4,7 @@
     <p class="auth-sub">{{ 'auth.loginSubtitle' | translate }}</p>
 
     @if (error()) {
-      <p class="form-error" data-testid="login-error">{{ error() }}</p>
+      <p class="form-error" role="alert" data-testid="login-error">{{ error() }}</p>
     }
 
     @if (!needs2fa()) {
