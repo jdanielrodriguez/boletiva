@@ -23,10 +23,10 @@
         </button>
         @if (showMetrics() && metrics(); as mx) {
           <div class="chat-metrics" data-testid="chat-metrics">
-            <div class="metric"><span class="metric-n">{{ mx.unassigned }}</span><span class="metric-l">{{ 'chat.mUnassigned' | translate }}</span></div>
-            <div class="metric"><span class="metric-n">{{ mx.slaBreach.firstResponse + mx.slaBreach.resolution }}</span><span class="metric-l">{{ 'chat.mSlaBreach' | translate }}</span></div>
-            <div class="metric"><span class="metric-n">{{ mx.csat.avg ?? '—' }}</span><span class="metric-l">{{ 'chat.mCsat' | translate }}</span></div>
-            <div class="metric"><span class="metric-n">{{ mx.resolvedTotal }}</span><span class="metric-l">{{ 'chat.mResolved' | translate }}</span></div>
+            <div class="metric"><span class="metric-n">{{ mx.unassigned }}</span><span class="metric-l">{{ 'chat.mUnassigned' | translate }} <span class="metric-help" [title]="'chat.mUnassignedHelp' | translate" tabindex="0" role="img" [attr.aria-label]="'chat.mUnassignedHelp' | translate">?</span></span></div>
+            <div class="metric"><span class="metric-n">{{ mx.slaBreach.firstResponse + mx.slaBreach.resolution }}</span><span class="metric-l">{{ 'chat.mSlaBreach' | translate }} <span class="metric-help" [title]="'chat.mSlaBreachHelp' | translate" tabindex="0" role="img" [attr.aria-label]="'chat.mSlaBreachHelp' | translate">?</span></span></div>
+            <div class="metric"><span class="metric-n">{{ mx.csat.avg ?? '—' }}</span><span class="metric-l">{{ 'chat.mCsat' | translate }} <span class="metric-help" [title]="'chat.mCsatHelp' | translate" tabindex="0" role="img" [attr.aria-label]="'chat.mCsatHelp' | translate">?</span></span></div>
+            <div class="metric"><span class="metric-n">{{ mx.resolvedTotal }}</span><span class="metric-l">{{ 'chat.mResolved' | translate }} <span class="metric-help" [title]="'chat.mResolvedHelp' | translate" tabindex="0" role="img" [attr.aria-label]="'chat.mResolvedHelp' | translate">?</span></span></div>
           </div>
         }
       </div>
@@ -100,7 +100,10 @@
             } @else if (loading()) {
               <p class="muted small" data-testid="chat-list-loading">{{ 'common.loading' | translate }}</p>
             } @else {
-              <p class="muted small" data-testid="chat-empty">{{ 'chat.noThreads' | translate }}</p>
+              <div class="chat-threads-empty" data-testid="chat-empty">
+                <app-icon name="chat" [size]="26" />
+                <span>{{ 'chat.noThreads' | translate }}</span>
+              </div>
             }
           }
         </div>

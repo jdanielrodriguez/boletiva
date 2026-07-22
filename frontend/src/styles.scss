@@ -442,13 +442,16 @@ app-root {
 }
 
 .footer-menu a,
-.footer-legal a {
+.footer-legal a,
+.footer-help a {
   color: var(--pe-muted);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  text-decoration: none;
 }
 
 .footer-menu a:hover,
-.footer-legal a:hover {
+.footer-legal a:hover,
+.footer-help a:hover {
   color: var(--pe-text);
 }
 
@@ -3434,7 +3437,35 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
 .chat-metrics { display: grid; grid-template-columns: repeat(4, minmax(90px, 1fr)); gap: 0.6rem; margin-top: 0.5rem; }
 .chat-metrics .metric { display: flex; flex-direction: column; align-items: center; gap: 0.15rem; padding: 0.7rem 0.4rem; border: 1px solid var(--pe-border); border-radius: var(--pe-radius-sm); background: var(--pe-surface); }
 .chat-metrics .metric-n { font-size: 1.5rem; font-weight: 800; color: var(--pe-accent); }
-.chat-metrics .metric-l { font-size: 0.75rem; color: var(--pe-text-muted, #6b6b76); text-align: center; }
+.chat-metrics .metric-l { font-size: 0.75rem; color: var(--pe-text-muted, #6b6b76); text-align: center; display: inline-flex; align-items: center; gap: 0.25rem; justify-content: center; }
+/* "?" que explica cada métrica (tooltip nativo por title). */
+.metric-help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 1px solid var(--pe-border);
+  color: var(--pe-text-muted, #6b6b76);
+  font-size: 0.62rem;
+  font-weight: 700;
+  cursor: help;
+  line-height: 1;
+}
+.metric-help:hover, .metric-help:focus { border-color: var(--pe-accent); color: var(--pe-accent-strong, var(--pe-accent)); outline: none; }
+/* Panel izquierdo "sin tickets": vacío amable centrado (no texto minúsculo). */
+.chat-threads-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.6rem 1rem;
+  color: var(--pe-text-muted, #6b6b76);
+  text-align: center;
+  font-size: 0.9rem;
+}
+.chat-threads-empty .app-icon { opacity: 0.45; }
 @media (max-width: 560px) { .chat-metrics { grid-template-columns: repeat(2, 1fr); } }
 
 .chat-attachments { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.35rem; }
@@ -4691,6 +4722,27 @@ p.warn,
   background: var(--pe-warning-soft);
   border: 1px solid var(--pe-warning-border, var(--pe-warning));
 }
+/* Aviso informativo (no de error) del NIT en el perfil: callout suave con icono,
+   legible en día y noche (usa tokens de acento, no warning). */
+.nit-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin: 0.6rem 0;
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  background: var(--pe-accent-soft);
+  border: 1px solid var(--pe-accent-border, var(--pe-border));
+  color: var(--pe-text);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+.nit-hint .app-icon {
+  flex: none;
+  margin-top: 1px;
+  color: var(--pe-accent-strong, var(--pe-accent));
+}
+
 .ok { color: var(--pe-success); font-weight: 600; }
 p.ok,
 .ok.box {
@@ -5004,13 +5056,30 @@ textarea.invalid {
   align-items: center;
   gap: 0.6rem;
   flex-wrap: wrap;
-  margin-top: 1rem;
+  margin-top: 1.1rem;
 }
-.twofa-btn {
+/* Píldoras discretas: acompañan el flujo 2FA sin competir con el CTA principal.
+   Borde suave, fondo transparente, hover con acento. Legibles en día y noche. */
+.twofa-btn.btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1px solid var(--pe-border);
+  background: var(--pe-surface);
+  color: var(--pe-text-muted, var(--pe-text));
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
+.twofa-btn.btn:hover:not(:disabled) {
+  color: var(--pe-accent-strong, var(--pe-accent));
+  border-color: var(--pe-accent-border, var(--pe-accent));
+  background: var(--pe-accent-soft);
+}
+.twofa-btn.btn:disabled { opacity: 0.55; }
+.twofa-btn .app-icon { flex: none; opacity: 0.85; }
 
 /* ── T6 · FAQ público + gestión KB + editor de formato ─────────────────────── */
 .faq-page { max-width: 860px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }

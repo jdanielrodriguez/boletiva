@@ -93,7 +93,10 @@
                 <input id="pf-bname" type="text" [ngModel]="billingName()" (ngModelChange)="billingName.set($event)" name="billingName" maxlength="150" data-testid="pf-bname" />
               </div>
               @if (nitMissing()) {
-                <p class="warn" data-testid="pf-nit-missing">{{ 'account.profile.nitMissing' | translate }}</p>
+                <p class="nit-hint" data-testid="pf-nit-missing">
+                  <app-icon name="help" [size]="18" />
+                  <span>{{ 'account.profile.nitMissing' | translate }}</span>
+                </p>
               }
               <button type="submit" class="primary" [disabled]="savingProfile()" data-testid="save-profile" [title]="'account.profile.saveChanges' | translate">
                 <app-icon name="save" /> {{ (savingProfile() ? 'account.profile.saving' : 'account.profile.saveChanges') | translate }}
@@ -143,10 +146,10 @@
             <p class="muted">{{ 'account.theme.hint' | translate }}</p>
             <div class="lang-choice" role="group" [attr.aria-label]="'account.theme.title' | translate" data-testid="account-theme-switcher">
               <button type="button" class="lang-opt" [class.active]="profileTheme() === 'dia'" [attr.aria-pressed]="profileTheme() === 'dia'" (click)="setProfileTheme('dia')" data-testid="account-theme-dia">
-                <span class="theme-emoji" aria-hidden="true">☀️</span> {{ 'account.theme.day' | translate }}
+                <app-icon name="sun" [size]="18" /> {{ 'account.theme.day' | translate }}
               </button>
               <button type="button" class="lang-opt" [class.active]="profileTheme() === 'noche'" [attr.aria-pressed]="profileTheme() === 'noche'" (click)="setProfileTheme('noche')" data-testid="account-theme-noche">
-                <span class="theme-emoji" aria-hidden="true">🌙</span> {{ 'account.theme.night' | translate }}
+                <app-icon name="moon" [size]="18" /> {{ 'account.theme.night' | translate }}
               </button>
             </div>
             @if (themeDirty()) {

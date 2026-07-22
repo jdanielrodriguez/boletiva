@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, PLATFORM_ID, computed, effect, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { isPlatformBrowser } from '@angular/common';
-import { Router } from '@angular/router';
+import { NavigationEnd, Router } from '@angular/router';
+import { filter } from 'rxjs';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { SessionStore } from '../../core/auth/session.store';
 import { PublicConfigStore } from '../../core/config/public-config.store';
@@ -117,12 +119,25 @@ export class SupportBubbleComponent {
   private readonly activeTickets = new Set<string>();
   private connected = false;
 
+  /** Ruta actual empieza en /soporte → dentro de la vista de soporte NO se muestra la burbuja. */
+  private readonly onSupportRoute = signal(false);
+
   protected readonly visible = computed(
-    () => this.isBrowser && this.config.chatEnabled() && this.session.hasAnyRole(['admin', 'advisor']),
+    () =>
+      this.isBrowser &&
+      this.config.chatEnabled() &&
+      this.session.hasAnyRole(['admin', 'advisor']) &&
+      !this.onSupportRoute(),
   );
 
   constructor() {
-    if (this.isBrowser) this.config.load();
+    if (this.isBrowser) {
+      this.config.load();
+      this.onSupportRoute.set(this.router.url.startsWith('/soporte'));
+      this.router.events
+        .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd), takeUntilDestroyed())
+        .subscribe((e) => this.onSupportRoute.set(e.urlAfterRedirects.startsWith('/soporte')));
+    }
     // Cuando el agente es visible, conecta una sola vez y escucha la actividad.
     effect(() => {
       if (this.visible() && !this.connected) {

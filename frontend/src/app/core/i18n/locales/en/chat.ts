@@ -55,9 +55,13 @@ export const chat = {
   showMetrics: 'Show metrics',
   hideMetrics: 'Hide metrics',
   mUnassigned: 'Unassigned',
+  mUnassignedHelp: 'Open tickets not yet picked up by any agent.',
   mSlaBreach: 'SLA breached',
+  mSlaBreachHelp: 'Tickets that exceeded the target time for first response or resolution.',
   mCsat: 'Avg CSAT',
+  mCsatHelp: 'Average customer satisfaction (1–5) from received ratings.',
   mResolved: 'Resolved',
+  mResolvedHelp: 'Total tickets marked as resolved.',
   priority: {
     low: 'Low',
     medium: 'Medium',

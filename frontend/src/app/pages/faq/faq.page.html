@@ -4,6 +4,7 @@
     <p class="faq-lead">{{ 'faq.lead' | translate }}</p>
     <app-search-field
       [value]="search()"
+      (valueChange)="onSearchInput($event)"
       (searched)="submitSearch($event)"
       name="q"
       testId="faq-search"

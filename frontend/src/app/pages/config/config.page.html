@@ -28,20 +28,21 @@
     }
   }
 
-  <nav class="config-tabs" [attr.aria-label]="'config.tabsAria' | translate">
-    <button type="button" [class.active]="tab() === 'eventos'" [attr.aria-current]="tab() === 'eventos' ? 'page' : null" (click)="selectTab('eventos')" data-testid="tab-eventos"><app-icon name="ticket" [size]="15" /> {{ 'config.tabs.events' | translate }}</button>
-    <button type="button" [class.active]="tab() === 'promotores'" [attr.aria-current]="tab() === 'promotores' ? 'page' : null" (click)="selectTab('promotores')" data-testid="tab-promotores"><app-icon name="accounts" [size]="15" /> {{ 'config.tabs.promoters' | translate }}</button>
-    <button type="button" [class.active]="tab() === 'salones'" [attr.aria-current]="tab() === 'salones' ? 'page' : null" (click)="selectTab('salones')" data-testid="tab-salones"><app-icon name="seats" [size]="15" /> {{ 'config.tabs.halls' | translate }}</button>
-    <button type="button" [class.active]="tab() === 'plantillas'" [attr.aria-current]="tab() === 'plantillas' ? 'page' : null" (click)="selectTab('plantillas')" data-testid="tab-plantillas"><app-icon name="draft" [size]="15" /> {{ 'config.tabs.templates' | translate }}</button>
-    @if (!hideSystemTab()) {
-      <button type="button" [class.active]="tab() === 'sistema'" [attr.aria-current]="tab() === 'sistema' ? 'page' : null" (click)="selectTab('sistema')" data-testid="tab-sistema"><app-icon name="gear" [size]="15" /> {{ 'config.tabs.system' | translate }}</button>
-    }
-    <!-- Base de conocimientos (T6) — gestión admin+asesor, movida aquí desde el menú de perfil. -->
-    <button type="button" [class.active]="tab() === 'kb'" [attr.aria-current]="tab() === 'kb' ? 'page' : null" (click)="selectTab('kb')" data-testid="tab-kb"><app-icon name="book" [size]="15" /> {{ 'config.tabs.kb' | translate }}</button>
-    <!-- Invitaciones se MOVIÓ al menú superior de admin (deep-link ?tab=invitaciones); el
-         contenido sigue aquí pero sin botón de tab. Soporte también se movió al menú (a la
-         página /soporte, admin+asesor) → ya no es tab embebido. -->
-  </nav>
+  <!-- Invitaciones es página INDIVIDUAL: sin la barra de tabs (solo su back-link). -->
+  @if (tab() !== 'invitaciones') {
+    <nav class="config-tabs" [attr.aria-label]="'config.tabsAria' | translate">
+      <button type="button" [class.active]="tab() === 'eventos'" [attr.aria-current]="tab() === 'eventos' ? 'page' : null" (click)="selectTab('eventos')" data-testid="tab-eventos"><app-icon name="ticket" [size]="15" /> {{ 'config.tabs.events' | translate }}</button>
+      <button type="button" [class.active]="tab() === 'promotores'" [attr.aria-current]="tab() === 'promotores' ? 'page' : null" (click)="selectTab('promotores')" data-testid="tab-promotores"><app-icon name="accounts" [size]="15" /> {{ 'config.tabs.promoters' | translate }}</button>
+      <button type="button" [class.active]="tab() === 'salones'" [attr.aria-current]="tab() === 'salones' ? 'page' : null" (click)="selectTab('salones')" data-testid="tab-salones"><app-icon name="seats" [size]="15" /> {{ 'config.tabs.halls' | translate }}</button>
+      <button type="button" [class.active]="tab() === 'plantillas'" [attr.aria-current]="tab() === 'plantillas' ? 'page' : null" (click)="selectTab('plantillas')" data-testid="tab-plantillas"><app-icon name="draft" [size]="15" /> {{ 'config.tabs.templates' | translate }}</button>
+      @if (!hideSystemTab()) {
+        <button type="button" [class.active]="tab() === 'sistema'" [attr.aria-current]="tab() === 'sistema' ? 'page' : null" (click)="selectTab('sistema')" data-testid="tab-sistema"><app-icon name="gear" [size]="15" /> {{ 'config.tabs.system' | translate }}</button>
+      }
+      <!-- Base de conocimientos (T6) — gestión admin+asesor, movida aquí desde el menú de perfil. -->
+      <button type="button" [class.active]="tab() === 'kb'" [attr.aria-current]="tab() === 'kb' ? 'page' : null" (click)="selectTab('kb')" data-testid="tab-kb"><app-icon name="book" [size]="15" /> {{ 'config.tabs.kb' | translate }}</button>
+      <!-- Invitaciones y Soporte se movieron al menú superior de admin (páginas individuales). -->
+    </nav>
+  }
 
   @switch (tab()) {
     @case ('eventos') {

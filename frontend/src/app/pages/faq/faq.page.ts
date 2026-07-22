@@ -1,9 +1,9 @@
 import { Component, SecurityContext, computed, inject } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { TranslatePipe } from '@ngx-translate/core';
-import { catchError, map, of, startWith, switchMap, tap } from 'rxjs';
+import { Subject, catchError, debounceTime, distinctUntilChanged, map, of, startWith, switchMap, tap } from 'rxjs';
 import { KbApi, KbCategory, KbPublicArticle } from '../../core/api/kb.api';
 import { SeoService } from '../../core/seo/seo.service';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
@@ -55,6 +55,16 @@ export class FaqPage {
 
   protected readonly categories = CATEGORIES;
 
+  /** Búsqueda EN VIVO: cada tecla (con debounce) actualiza `?q=` sin ensuciar el historial
+   *  → el stream reactivo re-consulta. Enter dispara inmediato (submitSearch). */
+  private readonly liveSearch$ = new Subject<string>();
+
+  constructor() {
+    this.liveSearch$
+      .pipe(debounceTime(250), distinctUntilChanged(), takeUntilDestroyed())
+      .subscribe((term) => this.submitSearch(term, true));
+  }
+
   private readonly params = toSignal(this.route.queryParamMap, {
     initialValue: this.route.snapshot.queryParamMap,
   });
@@ -101,11 +111,17 @@ export class FaqPage {
     });
   }
 
-  protected submitSearch(term: string): void {
+  /** Cada tecla del campo → búsqueda en vivo con debounce. */
+  protected onSearchInput(term: string): void {
+    this.liveSearch$.next(term);
+  }
+
+  protected submitSearch(term: string, replaceUrl = false): void {
     void this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { q: term.trim() || null },
       queryParamsHandling: 'merge',
+      replaceUrl,
     });
   }
 

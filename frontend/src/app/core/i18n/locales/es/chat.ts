@@ -55,9 +55,13 @@ export const chat = {
   showMetrics: 'Ver métricas',
   hideMetrics: 'Ocultar métricas',
   mUnassigned: 'Sin asignar',
+  mUnassignedHelp: 'Tickets abiertos que todavía no tiene tomado ningún agente.',
   mSlaBreach: 'SLA vencidos',
+  mSlaBreachHelp: 'Tickets que superaron el tiempo objetivo de primera respuesta o de resolución.',
   mCsat: 'CSAT prom.',
+  mCsatHelp: 'Satisfacción promedio del cliente (1 a 5) según las calificaciones recibidas.',
   mResolved: 'Resueltos',
+  mResolvedHelp: 'Total de tickets marcados como resueltos.',
   priority: {
     low: 'Baja',
     medium: 'Media',
