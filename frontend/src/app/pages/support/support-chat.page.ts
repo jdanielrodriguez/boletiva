@@ -1,7 +1,7 @@
 import { Component, ElementRef, OnDestroy, computed, effect, inject, input, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
@@ -49,6 +49,8 @@ const OWN_STATUS: (SupportStatus | '')[] = ['', 'open', 'awaiting_support', 'awa
 })
 export class SupportChatPage implements OnDestroy {
   private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly api = inject(ChatApi);
   private readonly socket = inject(ChatSocketService);
   private readonly session = inject(SessionStore);
@@ -113,13 +115,27 @@ export class SupportChatPage implements OnDestroy {
   constructor() {
     this.config.load();
     if (!this.chatEnabled()) return;
+    // Restaura filtros y ticket abierto desde la URL → sobreviven al F5 (no vuelve a
+    // "sin asignar" ni pierde el ticket). Solo fuera de modo embebido (no choca con ?tab=).
+    const qp = this.route.snapshot.queryParamMap;
+    if (!this.embedded()) {
+      const f = qp.get('f');
+      if (f === 'unassigned' || f === 'mine' || f === 'all') this.quick.set(f);
+      const st = qp.get('st') as SupportStatus | null;
+      if (st) this.statusFilter.set(st);
+      const ost = qp.get('ost') as SupportStatus | null;
+      if (ost) this.ownStatus.set(ost);
+      const q = qp.get('q');
+      if (q) this.ownSearch.set(q);
+    }
+    const openTicketId = this.embedded() ? null : qp.get('t');
     if (this.isAgent()) {
-      this.loadQueue(true);
+      this.loadQueue(true, openTicketId);
       this.loadMacros();
       this.loadMetrics();
       if (this.isAdmin()) this.api.listAgents().subscribe({ next: (a) => this.agents.set(a), error: () => undefined });
     } else {
-      this.reloadOwn();
+      this.reloadOwn(openTicketId);
     }
     void this.socket.acquire();
     // takeUntilDestroyed: los Subjects del socket son singletons root; sin cancelar, cada
@@ -187,7 +203,7 @@ export class SupportChatPage implements OnDestroy {
     }
   }
 
-  private reloadOwn(): void {
+  private reloadOwn(openTicketId: string | null = null): void {
     this.loading.set(true);
     this.listError.set(false);
     this.api
@@ -199,6 +215,7 @@ export class SupportChatPage implements OnDestroy {
       next: (t) => {
         this.threads.set(t);
         this.loading.set(false);
+        this.openFromList(openTicketId);
       },
       error: (err: { status?: number }) => {
         this.loading.set(false);
@@ -209,7 +226,7 @@ export class SupportChatPage implements OnDestroy {
     });
   }
 
-  protected loadQueue(reset: boolean): void {
+  protected loadQueue(reset: boolean, openTicketId: string | null = null): void {
     const filters: QueueFilters = {
       status: this.statusFilter() || undefined,
       unassigned: this.quick() === 'unassigned',
@@ -227,6 +244,7 @@ export class SupportChatPage implements OnDestroy {
         this.threads.set(reset ? page.items : [...this.threads(), ...page.items]);
         this.nextCursor.set(page.nextCursor);
         this.loading.set(false);
+        this.openFromList(openTicketId);
       },
       error: () => {
         this.loading.set(false);
@@ -237,10 +255,12 @@ export class SupportChatPage implements OnDestroy {
 
   protected setQuick(q: 'unassigned' | 'mine' | 'all'): void {
     this.quick.set(q);
+    this.patchUrl({ f: q });
     this.loadQueue(true);
   }
   protected setStatus(s: SupportStatus | ''): void {
     this.statusFilter.set(s);
+    this.patchUrl({ st: s || null });
     this.loadQueue(true);
   }
   protected toggleArchived(): void {
@@ -250,12 +270,32 @@ export class SupportChatPage implements OnDestroy {
   /** Promotor: filtra sus tickets por estado (server-side). */
   protected setOwnStatus(s: SupportStatus | ''): void {
     this.ownStatus.set(s);
+    this.patchUrl({ ost: s || null });
     this.reloadOwn();
   }
   /** Promotor: busca en el asunto de sus tickets (server-side; al Enter o botón). */
   protected submitOwnSearch(term: string): void {
     this.ownSearch.set(term.trim());
+    this.patchUrl({ q: term.trim() || null });
     this.reloadOwn();
+  }
+
+  /** Abre el ticket indicado (F5/deep-link) si está en la lista cargada. */
+  private openFromList(id: string | null): void {
+    if (!id || this.active()?.id === id) return;
+    const t = this.threads().find((x) => x.id === id);
+    if (t) this.open(t);
+  }
+
+  /** Sincroniza filtros/ticket con la query string (sobrevive al F5) sin ensuciar historial. */
+  private patchUrl(params: Record<string, string | null>): void {
+    if (this.embedded()) return;
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: params,
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
   private loadMacros(): void {
@@ -332,6 +372,7 @@ export class SupportChatPage implements OnDestroy {
     this.composingNew.set(false);
     this.active.set(t);
     this.showMacros.set(false);
+    this.patchUrl({ t: t.id }); // F5 mantiene el ticket abierto
     this.api.getMessages(t.id).subscribe({
       next: (res) => {
         this.messages.set(res.messages);

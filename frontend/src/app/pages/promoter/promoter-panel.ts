@@ -1,7 +1,8 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, PLATFORM_ID, computed, effect, inject, signal } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
 import { PromotersApi } from '../../core/api/promoters.api';
@@ -49,7 +50,9 @@ export class PromoterPanel {
   private readonly session = inject(SessionStore);
   private readonly toasts = inject(ToastService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly translate = inject(TranslateService);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   /** Promotor de PRUEBA → sus eventos van por Sandbox; se marcan con un chip TEST. */
   protected readonly isTestUser = computed(() => this.session.user()?.isTestUser === true);
@@ -159,6 +162,23 @@ export class PromoterPanel {
 
   constructor() {
     this.config.load();
+    // Restaura el filtro desde la URL (sobrevive al F5) e IMPACTA la persistencia al cambiar.
+    const qp = this.route.snapshot.queryParamMap;
+    const g = qp.get('g') as EventFilterGroup | null;
+    if (g && this.filterOptions.some((o) => o.value === g)) this.filterGroup.set(g);
+    const cat = qp.get('cat');
+    if (cat) this.filterCategory.set(cat);
+    effect(() => {
+      const group = this.filterGroup();
+      const c = this.filterCategory();
+      if (!this.isBrowser) return;
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { g: group, cat: c === 'all' ? null : c },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    });
     this.loadEvents();
     this.categoriesApi.list().subscribe({
       next: (cs) => this.categories.set(cs.map((c) => ({ id: c.id, name: c.name }))),

@@ -4,6 +4,7 @@ import { Component, computed, inject, PLATFORM_ID, signal } from '@angular/core'
 import { DOCUMENT } from '@angular/common';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { PromoterDashboardApi } from '../../core/api/promoter-dashboard.api';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { AdminApi } from '../../core/api/admin.api';
@@ -65,6 +66,8 @@ export class PromoterDashboardPage {
   private readonly toasts = inject(ToastService);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly document = inject(DOCUMENT);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly data = signal<PromoterDashboardDto | null>(null);
   protected readonly loading = signal(true);
@@ -86,8 +89,32 @@ export class PromoterDashboardPage {
   protected readonly promoters = signal<{ id: string; name: string }[]>([]);
 
   constructor() {
+    // Restaura filtros desde la URL → sobreviven al F5.
+    const qp = this.route.snapshot.queryParamMap;
+    this.selectedEvent.set(qp.get('ev') ?? '');
+    this.selectedStatus.set(qp.get('st') ?? '');
+    this.dateFrom.set(qp.get('from') ?? '');
+    this.dateTo.set(qp.get('to') ?? '');
+    this.selectedPromoter.set(qp.get('prom') ?? '');
     this.load();
     if (this.session.hasRole('admin')) this.loadPromoters();
+  }
+
+  /** Persiste los filtros vigentes en la query string (sin ensuciar el historial). */
+  private syncUrl(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        ev: this.selectedEvent() || null,
+        st: this.selectedStatus() || null,
+        from: this.dateFrom() || null,
+        to: this.dateTo() || null,
+        prom: this.selectedPromoter() || null,
+      },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
   private loadPromoters(): void {
@@ -130,29 +157,34 @@ export class PromoterDashboardPage {
   protected onPromoterChange(id: string): void {
     this.selectedPromoter.set(id);
     this.selectedEvent.set('');
+    this.syncUrl();
     this.load();
   }
 
   /** Filtra el dashboard a un evento (o a todos). */
   protected onEventChange(id: string): void {
     this.selectedEvent.set(id);
+    this.syncUrl();
     this.load();
   }
 
   /** Filtra por estado de evento (o todos). */
   protected onStatusChange(status: string): void {
     this.selectedStatus.set(status);
+    this.syncUrl();
     this.load();
   }
 
   /** Rango por fecha del evento (desde/hasta, inclusive). */
   protected onFromChange(v: string): void {
     this.dateFrom.set(v);
+    this.syncUrl();
     this.load();
   }
 
   protected onToChange(v: string): void {
     this.dateTo.set(v);
+    this.syncUrl();
     this.load();
   }
 
