@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsIn,
@@ -6,10 +7,44 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
   Max,
   MaxLength,
   Min,
+  ValidateNested,
 } from 'class-validator';
+
+/**
+ * Tarjeta capturada en NUESTRO formulario (pasarelas sin SDK de tokenización, p.ej. Pagalo).
+ * Viaja por TLS; el backend la cifra en reposo (vault reversible) para cobrar. El CVV NUNCA
+ * se persiste (PCI): se exige fresco en cada cobro.
+ */
+export class CardDto {
+  @ApiProperty({ description: 'Número de tarjeta (PAN), sólo dígitos', example: '4242424242424242' })
+  @IsString()
+  @Matches(/^\d{13,19}$/, { message: 'number debe tener 13-19 dígitos' })
+  number!: string;
+
+  @ApiProperty({ description: 'Mes de expiración MM', example: '12' })
+  @IsString()
+  @Matches(/^(0[1-9]|1[0-2])$/, { message: 'expMonth debe ser MM (01-12)' })
+  expMonth!: string;
+
+  @ApiProperty({ description: 'Año de expiración YYYY', example: '2030' })
+  @IsString()
+  @Matches(/^20\d{2}$/, { message: 'expYear debe ser YYYY' })
+  expYear!: string;
+
+  @ApiProperty({ description: 'CVV (3-4 dígitos). No se almacena.', example: '123' })
+  @IsString()
+  @Matches(/^\d{3,4}$/, { message: 'cvv debe tener 3-4 dígitos' })
+  cvv!: string;
+
+  @ApiProperty({ description: 'Nombre en la tarjeta', example: 'JUAN PEREZ' })
+  @IsString()
+  @MaxLength(150)
+  name!: string;
+}
 
 /** Cuerpo (opcional) para iniciar el pago de una orden. */
 export class PayOrderDto {
@@ -58,6 +93,17 @@ export class PayOrderDto {
   @IsString()
   @MaxLength(150)
   billingName?: string;
+
+  @ApiPropertyOptional({
+    type: CardDto,
+    description:
+      'Tarjeta capturada en nuestro formulario. Requerida SOLO para pasarelas sin SDK de ' +
+      'tokenización (Pagalo) cuando no se paga todo con wallet. Simulador/Recurrente la ignoran.',
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CardDto)
+  card?: CardDto;
 }
 
 /** Payload de webhook de la pasarela. */

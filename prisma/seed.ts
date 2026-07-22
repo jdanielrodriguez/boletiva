@@ -193,51 +193,90 @@ async function seedFeeSchedule(): Promise<void> {
  * edge 5). PayPal (a futuro) llevará 0.50.
  */
 async function seedGateway(): Promise<void> {
+  // Config de gateways POR ENTORNO. `SEED_REAL_GATEWAYS=true` (prod/alpha, lo fija el
+  // deploy/db-seed) activa las pasarelas REALES; sin él (TEST + local por defecto) todo
+  // corre con provider 'simulator' al 5% sin fijo → el precio CANÓNICO 129.68 y toda la
+  // suite e2e siguen en verde. Los tests SIEMPRE usan simulador (jest.env fuerza el env).
+  const realGw = ['1', 'true', 'yes', 'on'].includes(
+    (process.env.SEED_REAL_GATEWAYS ?? '').toLowerCase(),
+  );
   const gateways: Array<{
     name: string;
     provider: string;
     feePct: string;
     transactionFixedFee?: string;
     installmentRates?: Record<string, number>;
+    installmentFixedFee?: string;
     installmentsEnabled?: boolean;
     sandbox: boolean;
     status?: 'active' | 'inactive';
-  }> = [
-    {
-      // RECURRENTE = pasarela por DEFAULT (fase alpha, en SANDBOX). Mientras el cobro es
-      // simulado (provider 'simulator', llaves TEST), usa la economía CANÓNICA de sandbox
-      // (5% sin fijo) → el precio canónico 129.68 se mantiene y toda la suite e2e sigue en
-      // verde. CUOTAS CONFIGURADAS PERO DESACTIVADAS (installmentsEnabled:false): el
-      // tarifario queda listo pero el comprador no ve plazos aún.
-      // ⚠️ PROD (al conectar las llaves reales de Recurrente, plan EMPRESA verificado
-      // recurrente.com/precios jul 2026): cambiar a provider 'recurrente', feePct 0.04500,
-      // transactionFixedFee 2.00 (Q2), e installmentsEnabled:true para habilitar cuotas
-      // (3→8% · 6→9% · 12→10% · 18→14% + Q2). Recurrente muestra aviso de prueba con
-      // live_mode=false y no crea actividad real (docs.recurrente.com).
-      name: 'Recurrente',
-      provider: 'simulator',
-      feePct: '0.05000',
-      installmentRates: { '3': 0.08, '6': 0.09, '12': 0.1, '18': 0.14 },
-      installmentsEnabled: false,
-      sandbox: true,
-    },
-    // Pagalo INACTIVA por decisión de negocio (deuda pendiente con Pagalo): no debe
-    // ofrecerse hasta nuevo aviso. Sigue seleccionable solo si el admin la reactiva.
-    { name: 'Pagalo', provider: 'simulator', feePct: '0.05000', sandbox: true, status: 'inactive' },
-    // Sandbox: pasarela de simulación secundaria (5%), disponible para pruebas/e2e que la fijan.
-    { name: 'Sandbox', provider: 'simulator', feePct: '0.05000', sandbox: true },
-  ];
+    isPlatformDefault?: boolean;
+  }> = realGw
+    ? [
+        // ── ALPHA/PROD: 3 pasarelas ACTIVAS + dLocal deshabilitada ──
+        // PAGALO = default de plataforma (plan Premium del usuario: 4.25% + Q1.50, tarjeta de
+        // PRUEBA en alpha; tokenización de NUESTRO lado). Provider real 'pagalo'.
+        {
+          name: 'Pagalo',
+          provider: 'pagalo',
+          feePct: '0.04250',
+          transactionFixedFee: '1.50',
+          sandbox: true, // PAGALO_ESTADO=sandbox en alpha
+          status: 'active',
+          isPlatformDefault: true,
+        },
+        // RECURRENTE = externa (checkout hospedado + webhook Svix). Tarifario plan empresa.
+        {
+          name: 'Recurrente',
+          provider: 'recurrente',
+          feePct: '0.04500',
+          transactionFixedFee: '2.00',
+          installmentRates: { '3': 0.08, '6': 0.09, '12': 0.1, '18': 0.14 },
+          installmentFixedFee: '2.00',
+          installmentsEnabled: true,
+          sandbox: true,
+          status: 'active',
+        },
+        // SIMULADOR (Sandbox): sigue disponible para pruebas internas.
+        { name: 'Sandbox', provider: 'simulator', feePct: '0.05000', sandbox: true, status: 'active' },
+        // dLocal DESHABILITADA (placeholder; ruta PCI-safe para el lanzamiento público).
+        { name: 'dLocal', provider: 'dlocal', feePct: '0.03500', sandbox: true, status: 'inactive' },
+      ]
+    : [
+        // ── TEST/LOCAL (canon): todo simulador 5%; default = Recurrente → 129.68 intacto ──
+        {
+          name: 'Recurrente',
+          provider: 'simulator',
+          feePct: '0.05000',
+          installmentRates: { '3': 0.08, '6': 0.09, '12': 0.1, '18': 0.14 },
+          installmentsEnabled: false,
+          sandbox: true,
+          isPlatformDefault: true,
+        },
+        // Pagalo/Sandbox activas y seleccionables, pero cobran por el SIMULADOR (canon 5%).
+        { name: 'Pagalo', provider: 'simulator', feePct: '0.05000', sandbox: true, status: 'active' },
+        { name: 'Sandbox', provider: 'simulator', feePct: '0.05000', sandbox: true },
+        // dLocal deshabilitada también en local (placeholder).
+        { name: 'dLocal', provider: 'dlocal', feePct: '0.03500', sandbox: true, status: 'inactive' },
+      ];
+  // La pasarela default depende del entorno (Pagalo en alpha, Recurrente en test-canon).
+  const defaultName = realGw ? 'Pagalo' : 'Recurrente';
   for (const g of gateways) {
     await prisma.paymentGateway.upsert({
       where: { name: g.name },
       // El update resetea feePct/fijo/estado → reseed deja un estado PRISTINO (evita
       // arrastrar mutaciones de tarifa entre corridas de e2e).
       update: {
+        // Incluye `provider`/`sandbox`/`installmentFixedFee` para que un reseed CAMBIE de
+        // modo (simulador↔real) de forma limpia, no solo la tarifa.
+        provider: g.provider,
         feePct: g.feePct,
         installmentRates: g.installmentRates ?? undefined,
+        installmentFixedFee: g.installmentFixedFee ?? null,
         installmentsEnabled: g.installmentsEnabled ?? true,
         transactionFixedFee: g.transactionFixedFee ?? '0.00',
         minCostSharePct: '0.00000',
+        sandbox: g.sandbox,
         status: g.status ?? 'active',
       },
       create: {
@@ -246,22 +285,22 @@ async function seedGateway(): Promise<void> {
         feePct: g.feePct,
         transactionFixedFee: g.transactionFixedFee ?? '0.00',
         installmentRates: g.installmentRates,
+        installmentFixedFee: g.installmentFixedFee ?? null,
         installmentsEnabled: g.installmentsEnabled ?? true,
         sandbox: g.sandbox,
         status: g.status ?? 'active',
       },
     });
   }
-  // Default de plataforma = RECURRENTE (en sandbox). En alpha su economía es la canónica
-  // (5% sin fijo) → precio 129.68 intacto y suite e2e en verde; al conectar llaves reales
-  // se ajusta el tarifario (ver comentario arriba). Una sola default (índice parcial).
+  // Default de plataforma dinámico: PAGALO en alpha/prod (SEED_REAL_GATEWAYS), RECURRENTE en
+  // test/local (5% simulador → precio canónico 129.68 intacto). Una sola default (índice parcial).
   await prisma.$transaction([
     prisma.paymentGateway.updateMany({
-      where: { isPlatformDefault: true, name: { not: 'Recurrente' } },
+      where: { isPlatformDefault: true, name: { not: defaultName } },
       data: { isPlatformDefault: false },
     }),
     prisma.paymentGateway.updateMany({
-      where: { name: 'Recurrente' },
+      where: { name: defaultName },
       data: { isPlatformDefault: true, status: 'active' },
     }),
   ]);

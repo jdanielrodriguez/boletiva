@@ -1,4 +1,4 @@
-import { ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { IntegrationsService } from '../../../infra/integrations/integrations.service';
 import { hmacSha256 } from '../../../common/utils/crypto';
@@ -36,7 +36,14 @@ function makeIntegrations(available: boolean): IntegrationsService {
   } as unknown as IntegrationsService;
 }
 
-const INPUT = { providerRef: 'pagalo_ref1', orderId: 'ord-1', amount: '129.68', currency: 'GTQ' };
+const CARD = {
+  number: '4242424242424242',
+  expMonth: '12',
+  expYear: '2030',
+  cvv: '123',
+  name: 'JUAN PEREZ',
+};
+const INPUT = { providerRef: 'pagalo_ref1', orderId: 'ord-1', amount: '129.68', currency: 'GTQ', card: CARD };
 
 describe('PagaloPaymentProvider (value-ready, contrato real)', () => {
   afterEach(() => jest.restoreAllMocks());
@@ -71,9 +78,27 @@ describe('PagaloPaymentProvider (value-ready, contrato real)', () => {
     expect(cliente).toMatchObject({ codigo: 'ord-1', country: 'GT', currency: 'GTQ', Total: '129.68' });
     const detalle = JSON.parse(form.get('detalle') as string);
     expect(detalle).toMatchObject({ id_producto: 'ord-1', tipo: 'producto', precio: '129.68', Subtotal: '129.68' });
-    expect(form.has('tarjetaPagalo')).toBe(true);
+    // tarjetaPagalo lleva el shape exacto del contrato pagalocard, con la tarjeta del checkout.
+    const tarjeta = JSON.parse(form.get('tarjetaPagalo') as string);
+    expect(tarjeta).toEqual({
+      nameCard: 'JUAN PEREZ',
+      accountNumber: '4242424242424242',
+      expirationMonth: '12',
+      expirationYear: '2030',
+      CVVCard: '123',
+    });
+    // el nombre en la tarjeta identifica al comprador en el objeto cliente
+    expect(cliente).toMatchObject({ firstName: 'JUAN PEREZ' });
 
     expect(res.providerRef).toBe('pagalo_ref1');
+  });
+
+  it('sin tarjeta → createPayment lanza 400 y NO llama a fetch (Pagalo requiere la tarjeta)', async () => {
+    const fetchSpy = jest.spyOn(global, 'fetch');
+    const p = new PagaloPaymentProvider(makeConfig(), makeIntegrations(true));
+    const noCard = { providerRef: 'pagalo_ref1', orderId: 'ord-1', amount: '129.68', currency: 'GTQ' };
+    await expect(p.createPayment(noCard)).rejects.toBeInstanceOf(BadRequestException);
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it('aprobación sincrónica → scheduleAutoConfirm entrega un payment.succeeded FIRMADO', async () => {

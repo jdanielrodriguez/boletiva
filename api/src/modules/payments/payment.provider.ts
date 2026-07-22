@@ -1,6 +1,19 @@
 /** Token de inyección del proveedor de pago activo. */
 export const PAYMENT_PROVIDER = 'PAYMENT_PROVIDER';
 
+/**
+ * Datos de tarjeta para pasarelas SIN SDK de tokenización (Pagalo): el comprador los captura
+ * en NUESTRO formulario y viajan por TLS. Solo los consume el provider que los necesita
+ * (Pagalo); simulador/Recurrente los ignoran. El CVV NUNCA se persiste (PCI).
+ */
+export interface CardData {
+  number: string; // PAN sin espacios
+  expMonth: string; // 'MM'
+  expYear: string; // 'YYYY'
+  cvv: string;
+  name: string; // nombre en la tarjeta
+}
+
 export interface CreatePaymentInput {
   providerRef: string;
   orderId: string;
@@ -8,6 +21,8 @@ export interface CreatePaymentInput {
   currency: string;
   /** Número de cuotas (1 = pago único). Recurrente/Visacuotas: 3/6/12/18. */
   installments?: number;
+  /** Tarjeta (solo pasarelas sin SDK, p.ej. Pagalo). Opcional. */
+  card?: CardData;
 }
 
 export interface CreatePaymentResult {

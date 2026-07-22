@@ -202,12 +202,20 @@ describe('CheckoutPage', () => {
     expect(selected?.textContent).toContain('Pagalo');
     fillNewCard();
     (el.querySelector('[data-testid="pay-confirm"]') as HTMLButtonElement).click();
+    // Pagalo (sin SDK) → se envía la tarjeta del formulario junto al pago.
     expect(orders.pay).toHaveBeenCalledWith('o1', {
       gatewayId: 'gw2',
       installments: 1,
       useWallet: false,
       billingNit: undefined,
       billingName: undefined,
+      card: {
+        number: '4242424242424242',
+        expMonth: '12',
+        expYear: '2030',
+        cvv: '123',
+        name: 'Test User',
+      },
     });
   });
 

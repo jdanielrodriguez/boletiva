@@ -1,4 +1,17 @@
-import { Body, Controller, Get, Headers, HttpCode, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  RawBodyRequest,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { Request } from 'express';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -54,6 +67,7 @@ export class PaymentsController {
       installments: dto.installments,
       billingNit: dto.billingNit,
       billingName: dto.billingName,
+      card: dto.card,
     });
   }
 
@@ -66,5 +80,23 @@ export class PaymentsController {
   @ApiOkResponse({ type: WebhookResponseDto })
   webhook(@Body() dto: WebhookDto, @Headers('x-webhook-signature') signature?: string) {
     return this.payments.handleWebhook(dto, signature);
+  }
+
+  @Post('payments/recurrente/webhook')
+  @Public()
+  @SkipRateLimit()
+  @AllowDuringMaintenance()
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Webhook de Recurrente (firma SVIX sobre el cuerpo CRUDO)' })
+  @ApiOkResponse({ type: WebhookResponseDto })
+  recurrenteWebhook(
+    @Req() req: RawBodyRequest<Request>,
+    @Headers('svix-id') svixId?: string,
+    @Headers('svix-timestamp') svixTimestamp?: string,
+    @Headers('svix-signature') svixSignature?: string,
+  ) {
+    // Svix firma el cuerpo CRUDO → usamos req.rawBody (habilitado en main.ts), no el DTO parseado.
+    const rawBody = req.rawBody?.toString('utf8') ?? '';
+    return this.payments.handleRecurrenteWebhook({ svixId, svixTimestamp, svixSignature }, rawBody);
   }
 }
