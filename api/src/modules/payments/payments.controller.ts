@@ -67,6 +67,7 @@ export class PaymentsController {
       installments: dto.installments,
       billingNit: dto.billingNit,
       billingName: dto.billingName,
+      card: dto.card,
     });
   }
 

@@ -23,6 +23,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType } from '../notifications/notification.types';
 import { StreamService } from '../stream/stream.service';
 import { PaymentProviderRegistry } from './payment-provider.registry';
+import { CardData } from './payment.provider';
 
 export interface WebhookPayload {
   id: string; // id del evento en la pasarela (idempotencia)
@@ -88,6 +89,7 @@ export class PaymentsService {
       installments?: number;
       billingNit?: string;
       billingName?: string;
+      card?: CardData;
     } = {},
   ) {
     const useWallet = opts.useWallet ?? false;
@@ -212,6 +214,7 @@ export class PaymentsService {
       amount: gatewayCharge.toFixed(2),
       currency: order.currency,
       installments,
+      card: opts.card, // sólo lo consume el provider que lo necesita (Pagalo)
     });
     // Simulador (dev/staging): auto-confirma tras un jitter, reproduciendo el
     // webhook del gateway real. No-op si está desactivado (default y en test).
