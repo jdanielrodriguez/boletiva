@@ -30,7 +30,7 @@ function setup(slug: string, getBySlug: () => Observable<unknown>): ComponentFix
   TestBed.configureTestingModule({
     providers: [
       { provide: UsersApi, useValue: { markTourSeen: () => of({}) } },
-      { provide: SessionStore, useValue: { user: () => null } },
+      { provide: SessionStore, useValue: { user: () => null, hasRole: () => false } },
         ...provideI18nTesting(),
         ...provideI18nTesting(),
       provideZonelessChangeDetection(),

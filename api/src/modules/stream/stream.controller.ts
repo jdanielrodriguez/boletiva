@@ -27,6 +27,7 @@ import { Observable } from 'rxjs';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { RedisService } from '../../infra/redis/redis.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { verifyAccessToken } from '../../common/auth/access-token';
 import { Public } from '../../common/decorators/public.decorator';
 import { SkipRateLimit } from '../../common/rate-limit/rate-limit.decorator';
 import { StreamService } from './stream.service';
@@ -135,6 +136,18 @@ export class StreamController {
     );
   }
 
+  @Public()
+  @SkipRateLimit()
+  @Sse('events/:id/seats/stream')
+  @ApiOperation({ summary: 'Stream SSE público de disponibilidad de asientos del evento (FU11)' })
+  @ApiProduces('text/event-stream')
+  @ApiOkResponse({
+    description: 'Flujo SSE: abre con `ready` y empuja deltas `seat` ({sold|released}) del evento.',
+  })
+  seatsStream(@Param('id', ParseUUIDPipe) id: string): Observable<MessageEvent> {
+    return this.stream.streamSeats(id);
+  }
+
   /** Resuelve el userId desde el ticket de un solo uso o, como fallback, un JWT válido. */
   private async resolveUserId(
     orderId: string,
@@ -150,11 +163,7 @@ export class StreamController {
       return ordId === orderId && uid ? uid : null;
     }
     const jwt = accessToken || (authorization?.startsWith('Bearer ') ? authorization.slice(7) : '');
-    if (!jwt) return null;
-    try {
-      return this.jwt.verify<{ sub?: string }>(jwt, { secret: this.jwtSecret }).sub ?? null;
-    } catch {
-      return null;
-    }
+    // Validación ÚNICA de access token (rechaza preauth 2FA, etc.) — helper compartido.
+    return verifyAccessToken(this.jwt, this.jwtSecret, jwt || undefined)?.sub ?? null;
   }
 }

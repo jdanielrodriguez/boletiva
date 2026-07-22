@@ -31,6 +31,7 @@ export interface PublicConfig {
   showHomeCategories: boolean;
   reportsMaintenance: boolean;
   tourEnabled: boolean;
+  tourResetDays: number;
   /** Temas por franja + switch, para resolver el tema en SSR sin parpadeo. */
   theme: ThemeConfig;
   /** Qué integraciones externas están configuradas (para gating de UI). */
@@ -40,6 +41,12 @@ export interface PublicConfig {
   /** Perfil premium / chat (para gating de UI: tarjeta de plan, CTA de chat). */
   premium: { enabled: boolean; trialEnabled: boolean; trialDays: number };
   chatEnabled: boolean;
+  canFeatureEvents: boolean;
+  homeSliderEnabled: boolean;
+  seatmapEnabled: boolean;
+  eventsCreationEnabled: boolean;
+  advisorsMaintenance: boolean;
+  billingMaintenance: boolean;
 }
 
 export interface SettingView {
@@ -106,6 +113,7 @@ export class SettingsService {
       showHomeCategories: resolveBool(PUBLIC_CONFIG_KEYS.showHomeCategories),
       reportsMaintenance: resolveBool(PUBLIC_CONFIG_KEYS.reportsMaintenance),
       tourEnabled: resolveBool(PUBLIC_CONFIG_KEYS.tourEnabled),
+      tourResetDays: resolveInt(PUBLIC_CONFIG_KEYS.tourResetDays),
       theme: {
         slots: {
           dia: resolveEnum(PUBLIC_CONFIG_KEYS.themeSlotDia),
@@ -128,6 +136,12 @@ export class SettingsService {
         trialDays: resolveInt(PUBLIC_CONFIG_KEYS.premiumTrialDays),
       },
       chatEnabled: resolveBool(PUBLIC_CONFIG_KEYS.chatEnabled),
+      canFeatureEvents: resolveBool(PUBLIC_CONFIG_KEYS.canFeatureEvents),
+      homeSliderEnabled: resolveBool(PUBLIC_CONFIG_KEYS.homeSliderEnabled),
+      seatmapEnabled: resolveBool(PUBLIC_CONFIG_KEYS.seatmapEnabled),
+      eventsCreationEnabled: resolveBool(PUBLIC_CONFIG_KEYS.eventsCreationEnabled),
+      advisorsMaintenance: resolveBool(PUBLIC_CONFIG_KEYS.advisorsMaintenance),
+      billingMaintenance: resolveBool(PUBLIC_CONFIG_KEYS.billingMaintenance),
     };
   }
 

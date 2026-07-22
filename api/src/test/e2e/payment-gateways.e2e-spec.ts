@@ -79,12 +79,32 @@ describe('Pasarelas de pago configurables (e2e)', () => {
     expect(res.body.some((g: { name: string }) => g.name === 'Sandbox')).toBe(true);
   });
 
-  it('GET /active lista pasarelas activas', async () => {
+  it('Recurrente = pasarela DEFAULT (sandbox alpha: economía canónica 5%, cuotas configuradas pero DESACTIVADAS)', async () => {
+    const res = await http().get('/api/v1/payment-gateways').set(bearer(adminToken)).expect(200);
+    const rec = res.body.find((g: { name: string }) => g.name === 'Recurrente');
+    expect(rec).toBeDefined();
+    // En alpha (cobro simulado) usa la economía canónica de sandbox (5% sin fijo) → 129.68
+    // intacto. El tarifario real (4.5%+Q2) se activa al conectar las llaves reales en prod.
+    expect(Number(rec.feePct)).toBeCloseTo(0.05, 5);
+    // Cuotas CONFIGURADAS (tarifario listo) pero DESACTIVADAS por ahora.
+    expect(rec.installmentRates).toMatchObject({ '3': 0.08, '6': 0.09, '12': 0.1, '18': 0.14 });
+    expect(rec.installmentsEnabled).toBe(false);
+    // NOTA: este it corre tras el beforeEach que fija Sandbox como default para aislar el
+    // resto del archivo; el default de PRODUCCIÓN/seed es Recurrente (ver seed.ts).
+  });
+
+  it('GET /active: admin/promotor 200 (sin credentialsRef); buyer 403 (QA M2)', async () => {
+    // Endurecimiento QA (M2): /active es para admin/promotor (elegir método); un buyer
+    // NO debe leer la config de pasarelas (feePct, credentialsRef). El comprador usa
+    // GET /orders/:id/payment-options en el checkout.
+    await http().get('/api/v1/payment-gateways/active').set(bearer(buyerToken)).expect(403);
     const res = await http()
       .get('/api/v1/payment-gateways/active')
-      .set(bearer(buyerToken))
+      .set(bearer(adminToken))
       .expect(200);
     expect(res.body.every((g: { status: string }) => g.status === 'active')).toBe(true);
+    // La referencia al secreto NO se expone en la vista pública.
+    expect(res.body.every((g: Record<string, unknown>) => g.credentialsRef === undefined)).toBe(true);
   });
 
   it('agregar pasarela exige desbloqueo por OTP: sin/ mal código → 400; con código → 201; buyer → 403', async () => {

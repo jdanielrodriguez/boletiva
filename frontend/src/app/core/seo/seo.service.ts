@@ -90,7 +90,14 @@ export class SeoService {
     const script = this.doc.createElement('script');
     script.id = JSONLD_ID;
     script.setAttribute('type', 'application/ld+json');
-    script.textContent = JSON.stringify(data);
+    // Seguridad (QA): dentro de un <script> el contenido es "raw text" — en SSR NO se
+    // escapa. Si un valor (p.ej. el nombre de un evento o la pregunta de un FAQ) contiene
+    // `</script>`, cerraría el bloque e inyectaría HTML/JS en TODOS los visitantes. Se
+    // escapan `<`,`>`,`&` como \uXXXX (JSON válido) para que ningún dato rompa el bloque.
+    script.textContent = JSON.stringify(data)
+      .replace(/</g, '\\u003c')
+      .replace(/>/g, '\\u003e')
+      .replace(/&/g, '\\u0026');
     head.appendChild(script);
   }
 }

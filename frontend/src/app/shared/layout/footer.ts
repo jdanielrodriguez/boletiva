@@ -18,8 +18,11 @@ import { SessionStore } from '../../core/auth/session.store';
   template: `
     <footer class="site-footer">
       <div class="footer-inner">
-        <div class="footer-brand" aria-hidden="true"></div>
-        <div class="footer-legal-block">
+        <!-- IZQUIERDA: Preguntas frecuentes. CENTRO: copyright + Términos debajo. DERECHA: menú. -->
+        <nav class="footer-help" [attr.aria-label]="'faq.title' | translate">
+          <a routerLink="/faq" data-testid="footer-faq">{{ 'faq.title' | translate }}</a>
+        </nav>
+        <div class="footer-center">
           <p class="footer-copy">{{ 'shell.copyright' | translate: { year: year } }}</p>
           <nav class="footer-legal" [attr.aria-label]="'shell.legal' | translate">
             <a routerLink="/terminos">{{ 'shell.terms' | translate }}</a>

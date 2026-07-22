@@ -7,7 +7,7 @@
   @if (loading()) {
     <p class="muted" data-testid="tpl-edit-loading">{{ 'common.loading' | translate }}</p>
   } @else if (loadError()) {
-    <p class="muted" data-testid="tpl-edit-error">{{ 'config.templates.loadError' | translate }}</p>
+    <p class="error" role="alert" data-testid="tpl-edit-error">{{ 'config.templates.loadError' | translate }}</p>
   } @else if (draft()) {
     @if (draft(); as d) {
     <div class="card-block" data-testid="tpl-form">

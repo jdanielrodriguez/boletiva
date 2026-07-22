@@ -88,7 +88,7 @@ describe('Perfil premium (e2e)', () => {
     const res = await http().get('/api/v1/public/config').expect(200);
     expect(res.body.premium).toMatchObject({ enabled: false, trialEnabled: false });
     expect(typeof res.body.premium.trialDays).toBe('number');
-    expect(res.body.chatEnabled).toBe(false);
+    expect(res.body.chatEnabled).toBe(true); // T7a: soporte activo por defecto
   });
 
   it('premium APAGADO: los beneficios aplican a todos → myStatus.premiumBenefitsActive=true aunque el tier sea free', async () => {

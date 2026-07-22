@@ -1,6 +1,10 @@
 /** Onboarding / tour guiado. Español. */
 export const tour = {
   aria: 'Guía rápida',
+  promptTitle: '¿Te damos un tour rápido?',
+  promptBody: 'Te mostramos en unos segundos para qué sirve cada parte de esta pantalla.',
+  yes: 'Sí, muéstrame',
+  no: 'No, gracias',
   skip: 'Saltar',
   back: 'Atrás',
   next: 'Siguiente',
@@ -56,7 +60,15 @@ export const tour = {
     welcomeBody: 'Desde aquí gestionas promotores, pasarelas, salones/plantillas y la configuración global.',
     eventsTitle: 'Eventos y cuentas',
     eventsBody: 'Ves los eventos de todos los promotores, entras a su detalle y gestionas la caja (finalizar/liquidar).',
-    configTitle: 'Configuración',
+    promotersTitle: 'Promotores',
+    promotersBody: 'Aprueba, rechaza o suspende promotores, ajusta su reparto y revisa su historial.',
+    hallsTitle: 'Salones',
+    hallsBody: 'Crea y publica salones reutilizables (ubicación y layout) que los promotores eligen al crear eventos.',
+    templatesTitle: 'Plantillas',
+    templatesBody: 'Diseña plantillas de asientos para el editor de eventos.',
+    kbTitle: 'Base de conocimiento',
+    kbBody: 'Redacta y publica las preguntas frecuentes que ven los usuarios y alimentan el soporte.',
+    configTitle: 'Sistema',
     configBody: 'Ajusta comisiones, temas, idioma, mantenimiento de reportes y más. Los cambios aplican al instante.',
   },
 };

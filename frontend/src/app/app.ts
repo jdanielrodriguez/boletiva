@@ -1,4 +1,4 @@
-import { Component, PLATFORM_ID, computed, effect, inject } from '@angular/core';
+import { Component, PLATFORM_ID, afterNextRender, computed, effect, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -10,6 +10,7 @@ import { MaintenancePageComponent } from './shared/maintenance/maintenance-page.
 import { MaintenanceBannerComponent } from './shared/maintenance/maintenance-banner.component';
 import { ImpersonationBannerComponent } from './shared/layout/impersonation-banner.component';
 import { EmailVerificationModal } from './shared/email-verification/email-verification-modal.component';
+import { SupportBubbleComponent } from './shared/support/support-bubble.component';
 import { SessionStore } from './core/auth/session.store';
 import { TokenStore } from './core/auth/token-store.service';
 import { ImpersonationService } from './core/auth/impersonation.service';
@@ -31,6 +32,7 @@ import { PublicConfigStore } from './core/config/public-config.store';
     MaintenanceBannerComponent,
     ImpersonationBannerComponent,
     EmailVerificationModal,
+    SupportBubbleComponent,
     TranslatePipe,
   ],
   templateUrl: './app.html',
@@ -98,7 +100,30 @@ export class App {
     () => this.isBrowser && !this.booting() && this.maintenance.active() && this.isAdmin(),
   );
 
+  /** Mantenimiento SOLO para asesores (T7): el admin lo activa; el asesor ve una
+   *  pantalla de acceso deshabilitado. No aplica a admins ni a otros roles. */
+  protected readonly showAdvisorMaintenance = computed(
+    () =>
+      this.isBrowser &&
+      !this.booting() &&
+      this.publicConfig.advisorsMaintenance() &&
+      this.session.hasAnyRole(['advisor']) &&
+      !this.isAdmin(),
+  );
+
   constructor() {
+    // Publica la altura REAL de la franja superior fija (banners + header) como
+    // `--pe-topbar-h` para que los elementos sticky (resumen de compra/checkout) se
+    // anclen debajo de ella aunque crezca con banners (impersonación/test/mantenimiento).
+    afterNextRender(() => {
+      const bar = document.querySelector('.topbar-stack');
+      if (!bar) return;
+      const setVar = () =>
+        document.documentElement.style.setProperty('--pe-topbar-h', `${Math.round(bar.getBoundingClientRect().height)}px`);
+      setVar();
+      new ResizeObserver(setVar).observe(bar);
+    });
+
     // Hidrata sesión y consulta el mantenimiento SOLO en el navegador: en SSR no
     // hay tokens (localStorage) y no queremos pegar al API en el servidor (rompería
     // el cache público de las páginas anónimas).
@@ -153,15 +178,18 @@ export class App {
         this.theme.stopAuto(); // por si venía de modo automático (admin lo apagó)
         if (!this.themeDecided) {
           this.themeDecided = true;
-          // Switch apagado → SOLO el admin manda: se ignora cualquier preferencia
-          // (de perfil o cookie) y todos ven la franja por defecto de la plataforma.
-          if (!themeCfg.allowVisitorSwitch) {
-            this.theme.hydrate(null);
-            return;
-          }
+          // PRIORIDAD: la preferencia de PERFIL del usuario logueado (día/noche) SIEMPRE
+          // manda, aunque el admin tenga el switch de visitantes apagado. El switch solo
+          // gobierna a VISITANTES / usuarios sin preferencia guardada.
           const pref = this.session.user()?.themePref;
           if (pref === 'dia' || pref === 'noche') {
             this.theme.hydrate(pref as Franja);
+            return;
+          }
+          // Sin preferencia de perfil: switch apagado → franja del admin; permitido →
+          // preferencia guardada (cookie) del visitante.
+          if (!themeCfg.allowVisitorSwitch) {
+            this.theme.hydrate(null);
           } else {
             this.theme.hydratePreference();
           }

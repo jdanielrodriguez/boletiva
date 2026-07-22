@@ -20,6 +20,7 @@ export const promoter = {
     empty: 'Aún no tienes eventos. Crea el primero con "+ Nuevo evento".',
     emptySubtitle: 'Crea tu primer evento con "+ Nuevo evento" para empezar a vender boletos.',
     localitiesCount: '{{n}} localidad(es)',
+    featuredFlag: 'Destacado',
     publish: 'Publicar evento',
     publishShort: 'Publicar',
     editTitle: 'Editar evento',
@@ -196,7 +197,7 @@ export const promoter = {
     promoterRequired: 'Elige el promotor a nombre de quien se crea el evento.',
     createdBySupport: 'Creado por soporte',
     // Navegación
-    backToConsole: 'Volver a la consola',
+    backToConsole: 'Volver a configuración',
     backToMyEvents: 'Volver a mis eventos',
     thisEvent: 'este evento',
     // Gate de publicación (mensajes)
@@ -290,6 +291,8 @@ export const promoter = {
   // --- Editor de asientos (Konva) ---
   seat: {
     readonlyNote: 'El mapa de asientos está en modo solo lectura.',
+    mobileHint: 'Consejo: el editor del mapa se usa mejor en una pantalla grande (computadora o tablet en horizontal).',
+    tooManySeats: 'Demasiados asientos (máx {{max}}). Reduce filas/columnas o divide la localidad.',
     rows: 'Filas',
     seatsPerRow: 'Asientos por fila',
     section: 'Sección',
@@ -430,6 +433,10 @@ export const promoter = {
     filterPromoterSelf: 'Mis eventos',
     filterEvent: 'Evento',
     filterEventAll: 'Todos los eventos',
+    filterStatus: 'Estado',
+    filterStatusAll: 'Todos los estados',
+    filterFrom: 'Desde',
+    filterTo: 'Hasta',
     loading: 'Cargando dashboard…',
     error: 'No se pudo cargar el dashboard.',
     // Dashboard GLOBAL del promotor (Fase 3)

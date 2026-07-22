@@ -84,9 +84,9 @@ export class PromoterInvitationsService {
         title: 'Te invitaron a ser promotor',
         preheader: 'Crea tu cuenta de promotor en Boletiva y empieza a vender.',
         bodyHtml: `<p style="margin:0 0 12px 0;">Te invitamos a unirte a <strong>Boletiva</strong> como promotor. Al registrarte con este enlace, tu cuenta quedará <strong>aprobada automáticamente</strong> para crear y publicar eventos.</p>
-          <p class="pe-muted" style="margin:0;font-size:14px;color:#6b6b76;">El enlace vence en ${TTL_DAYS} días. Si no esperabas esta invitación, puedes ignorar este correo.</p>`,
+          <p class="pe-muted" style="margin:0;font-size:14px;color:{{muted}};">El enlace vence en ${TTL_DAYS} días. Si no esperabas esta invitación, puedes ignorar este correo.</p>`,
         cta: { url, label: 'Crear mi cuenta de promotor' },
-      });
+      }, { type: 'promoter_invite' });
     } catch (err) {
       this.logger.warn(`No se pudo enviar la invitación a ${email}: ${(err as Error).message}`);
     }

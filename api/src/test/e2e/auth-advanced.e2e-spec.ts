@@ -68,6 +68,29 @@ describe('Auth avanzado (e2e)', () => {
     expect(done.body.tokens.accessToken).toBeDefined();
   });
 
+  it('FU9: 2fa/resend reenvía un código nuevo por correo y permite verificar con él', async () => {
+    await clearMail();
+    const login = await http()
+      .post('/api/v1/auth/login')
+      .set(dev('devResend'))
+      .send({ email, password })
+      .expect(200);
+    expect(login.body.status).toBe('2fa_required');
+    await clearMail(); // descarta el 1er código
+    const resent = await http()
+      .post('/api/v1/auth/2fa/resend')
+      .send({ preauthToken: login.body.preauthToken })
+      .expect(200);
+    expect(resent.body).toMatchObject({ method: 'email', resent: true });
+    const code = await lastEmailCode(email); // el código REENVIADO
+    const done = await http()
+      .post('/api/v1/auth/2fa/verify')
+      .set(dev('devResend'))
+      .send({ preauthToken: login.body.preauthToken, code })
+      .expect(200);
+    expect(done.body.status).toBe('ok');
+  });
+
   it('en un dispositivo ya confiable no se vuelve a pedir 2FA', async () => {
     const res = await http()
       .post('/api/v1/auth/login')

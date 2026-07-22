@@ -6,7 +6,7 @@ import {
   PromoterDashboardDto,
   PromoterDimensionRowDto,
 } from './dto/promoter-dashboard.dto';
-import { PromoterDashboardService } from './promoter-dashboard.service';
+import { DashboardFilters, PromoterDashboardService } from './promoter-dashboard.service';
 
 Decimal.set({ rounding: Decimal.ROUND_HALF_EVEN });
 
@@ -48,8 +48,12 @@ const STATUS_LABEL: Record<string, string> = {
 export class PromoterDashboardExportService {
   constructor(private readonly dashboard: PromoterDashboardService) {}
 
-  async exportForPromoter(user: AuthUser, promoterId?: string): Promise<DashboardExport> {
-    const data = await this.dashboard.forPromoter(user, promoterId);
+  async exportForPromoter(
+    user: AuthUser,
+    promoterId?: string,
+    filters: DashboardFilters = {},
+  ): Promise<DashboardExport> {
+    const data = await this.dashboard.forPromoter(user, promoterId, undefined, filters);
     const buffer = await this.buildWorkbook(data);
     return { filename: `dashboard-${this.slug(data.promoterName)}.xlsx`, buffer };
   }

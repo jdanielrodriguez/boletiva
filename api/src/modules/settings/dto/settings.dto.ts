@@ -38,6 +38,12 @@ export class PublicConfigDto {
   tourEnabled!: boolean;
 
   @ApiProperty({
+    description: 'Días para reofrecer un tour ya visto/saltado/rechazado (reinicio).',
+    example: 30,
+  })
+  tourResetDays!: number;
+
+  @ApiProperty({
     description: 'Integraciones externas configuradas y disponibles (gating de UI).',
     example: {
       recurrente: false,
@@ -85,6 +91,24 @@ export class PublicConfigDto {
 
   @ApiProperty({ description: 'Si el chat de soporte está habilitado.', example: false })
   chatEnabled!: boolean;
+
+  @ApiProperty({ description: 'Si los promotores pueden destacar sus eventos en el inicio.', example: false })
+  canFeatureEvents!: boolean;
+
+  @ApiProperty({ description: 'Si el slider del inicio está habilitado.', example: true })
+  homeSliderEnabled!: boolean;
+
+  @ApiProperty({ description: 'Si el mapa de asientos está habilitado.', example: true })
+  seatmapEnabled!: boolean;
+
+  @ApiProperty({ description: 'Si la creación de eventos está habilitada.', example: true })
+  eventsCreationEnabled!: boolean;
+
+  @ApiProperty({ description: 'Mantenimiento solo para asesores.', example: false })
+  advisorsMaintenance!: boolean;
+
+  @ApiProperty({ description: 'Mantenimiento de facturación.', example: false })
+  billingMaintenance!: boolean;
 }
 
 export class SettingViewDto {

@@ -11,6 +11,7 @@ export const common = {
   add: 'Add',
   create: 'Create',
   back: 'Back',
+  backToSettings: 'Back to settings',
   next: 'Next',
   prev: 'Previous',
   confirm: 'Confirm',
@@ -78,5 +79,10 @@ export const common = {
     open: 'Open',
     closed: 'Closed',
     settled: 'Settled',
+    new: 'New',
+    awaiting_promoter: 'Awaiting promoter',
+    awaiting_support: 'Awaiting support',
+    resolved: 'Resolved',
+    reopened: 'Reopened',
   },
 };

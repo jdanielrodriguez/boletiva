@@ -20,6 +20,8 @@ import { hmacSha256, randomToken, safeEqual } from '../../common/utils/crypto';
 import { QueueService } from '../../infra/queue/queue.service';
 import { QUEUES } from '../../infra/queue/queue.constants';
 import { TicketsService } from '../tickets/tickets.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../notifications/notification.types';
 import { StreamService } from '../stream/stream.service';
 import { PAYMENT_PROVIDER, PaymentProvider } from './payment.provider';
 
@@ -44,6 +46,7 @@ export class PaymentsService {
     private readonly queue: QueueService,
     private readonly tickets: TicketsService,
     private readonly stream: StreamService,
+    private readonly notifications: NotificationsService,
     @Inject(PAYMENT_PROVIDER) private readonly provider: PaymentProvider,
   ) {}
 
@@ -304,6 +307,7 @@ export class PaymentsService {
         name: gw.name,
         provider: gw.provider,
         isPlatformDefault: gw.isPlatformDefault,
+        sandbox: gw.sandbox, // modo prueba → el checkout muestra aviso (no hay cargo real)
         // Pasarela asignada al evento → recomendada/preseleccionada en el checkout.
         recommended: gw.id === eventGatewayId,
         total: base.total,
@@ -602,6 +606,7 @@ export class PaymentsService {
     if (!already) {
       const net = new Decimal(order.net.toString());
       const platformFee = new Decimal(order.platformFee.toString());
+      const fixedFees = new Decimal(order.fixedFees.toString());
       const iva = new Decimal(order.iva.toString());
       const gatewayFee = new Decimal(order.gatewayFee.toString());
       const total = new Decimal(order.total.toString());
@@ -633,7 +638,10 @@ export class PaymentsService {
 
       const entries: Array<{ type: string; ownerId?: string; amount: string }> = [
         { type: 'promoter_payable', ownerId: promoterId, amount: net.toFixed(2) },
-        { type: 'platform_revenue', amount: platformFee.add(savedFee).toFixed(2) },
+        // La plataforma retiene su comisión + el surplus de pasarela + los cargos FIJOS
+        // (fixedFees). Incluir fixedFees es OBLIGATORIO: forman parte del `total` del
+        // snapshot; omitirlos desbalancea el asiento en −fixedFees y tumba el fulfillment.
+        { type: 'platform_revenue', amount: platformFee.add(savedFee).add(fixedFees).toFixed(2) },
         { type: 'tax_payable', amount: iva.toFixed(2) },
       ];
       if (walletPortion.gt(0)) {
@@ -661,16 +669,27 @@ export class PaymentsService {
       });
     }
 
-    await this.prisma.$transaction([
+    // Marca pagada de forma CONDICIONAL (compare-and-set status='pending'): si el
+    // orders-sweeper expiró la orden entre la lectura y aquí (pago tardío tras
+    // expiración), NO la resucitamos a `paid` — el sweeper ya liberó sus asientos y
+    // reactivarla los revendería (doble-venta). El asiento contable ya quedó asentado
+    // (idempotente); este caso raro requiere reconciliación/refund, no reventa.
+    const [, claim] = await this.prisma.$transaction([
       this.prisma.payment.update({
         where: { id: paymentId },
         data: { status: 'succeeded', succeededAt: new Date() },
       }),
-      this.prisma.order.update({
-        where: { id: order.id },
+      this.prisma.order.updateMany({
+        where: { id: order.id, status: 'pending' },
         data: { status: 'paid', paidAt: new Date() },
       }),
     ]);
+    if (claim.count === 0) {
+      this.logger.warn(
+        `Orden ${order.id} ya no estaba pending al confirmar (sweeper/expiración); no se reactiva a paid`,
+      );
+      return;
+    }
 
     // Trabajo pesado FUERA del camino crítico: la emisión de boletos (y, en
     // cascada, QR/PDF y correos) se encola tras asentar el pago (condición del
@@ -709,8 +728,12 @@ export class PaymentsService {
     if (!already) {
       const net = new Decimal(order.net.toString());
       const platformFee = new Decimal(order.platformFee.toString());
+      const fixedFees = new Decimal(order.fixedFees.toString());
       const iva = new Decimal(order.iva.toString());
-      const inflow = net.add(platformFee).add(iva);
+      // Simétrico con fulfill: se revierte también el cargo FIJO (platform_revenue lo
+      // recibió al pagar). No se reembolsa el gatewayFee (COGS real que la pasarela
+      // retuvo). inflow = lo que se devuelve al comprador.
+      const inflow = net.add(platformFee).add(fixedFees).add(iva);
       const destination =
         mode === 'chargeback'
           ? { type: 'gateway_clearing', amount: inflow.toFixed(2) }
@@ -726,7 +749,7 @@ export class PaymentsService {
             ownerId: order.event.promoterId,
             amount: net.negated().toFixed(2),
           },
-          { type: 'platform_revenue', amount: platformFee.negated().toFixed(2) },
+          { type: 'platform_revenue', amount: platformFee.add(fixedFees).negated().toFixed(2) },
           { type: 'tax_payable', amount: iva.negated().toFixed(2) },
           destination,
         ] as never,
@@ -752,6 +775,24 @@ export class PaymentsService {
     this.stream.emitOrder(order.id, { status: 'refunded' });
     if (seatIds.length) this.stream.emitSeat(order.eventId, { released: seatIds });
     if (mode === 'refund') await this.pushWallet(order.buyerId);
+
+    // Aviso al comprador (in-app + correo): su compra fue reembolsada/anulada.
+    const isRefund = mode === 'refund';
+    const title = isRefund ? 'Tu compra fue reembolsada 💵' : 'Tu compra fue anulada';
+    const bodyText = isRefund
+      ? 'Reembolsamos tu compra: el monto quedó acreditado en tu saldo de Boletiva (billetera), listo para usar o retirar. Tus boletos quedaron anulados.'
+      : 'Tu compra fue anulada por un contracargo y tus boletos quedaron sin validez. Si crees que es un error, escríbenos desde Soporte.';
+    await this.notifications.emit(order.buyerId, {
+      type: NotificationType.ORDER_REFUNDED,
+      title,
+      body: bodyText,
+      resourceType: 'order',
+      resourceId: order.id,
+      email: {
+        subject: `${title} — Boletiva`,
+        html: `<p style="margin:0 0 12px 0;">${bodyText}</p>${isRefund ? '<p class="pe-muted" style="margin:0;font-size:14px;color:{{muted}};">Puedes ver tu saldo en tu cuenta.</p>' : ''}`,
+      },
+    });
   }
 
   /**

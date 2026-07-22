@@ -3,15 +3,22 @@
 
   <div class="account-grid">
     <nav class="account-menu" [attr.aria-label]="'account.sectionsAria' | translate">
-      <button type="button" [class.active]="section() === 'perfil'" [attr.aria-current]="section() === 'perfil' ? 'page' : null" (click)="select('perfil')">{{ 'account.nav.profile' | translate }}</button>
-      <button type="button" [class.active]="section() === 'metodos'" [attr.aria-current]="section() === 'metodos' ? 'page' : null" (click)="select('metodos')" data-testid="menu-metodos">{{ 'account.nav.methods' | translate }}</button>
-      <button type="button" [class.active]="section() === 'facturacion'" [attr.aria-current]="section() === 'facturacion' ? 'page' : null" (click)="select('facturacion')" data-testid="menu-facturacion">{{ 'account.nav.billing' | translate }}</button>
-      <button type="button" [class.active]="section() === 'wallet'" [attr.aria-current]="section() === 'wallet' ? 'page' : null" (click)="select('wallet')" data-testid="menu-wallet">{{ 'account.nav.wallet' | translate }}</button>
-      <button type="button" [class.active]="section() === 'activos'" [attr.aria-current]="section() === 'activos' ? 'page' : null" (click)="select('activos')" data-testid="menu-activos">{{ 'account.nav.activeTickets' | translate }}</button>
-      <button type="button" [class.active]="section() === 'pasados'" [attr.aria-current]="section() === 'pasados' ? 'page' : null" (click)="select('pasados')" data-testid="menu-pasados">{{ 'account.nav.pastTickets' | translate }}</button>
+      <button type="button" [class.active]="section() === 'perfil'" [attr.aria-current]="section() === 'perfil' ? 'page' : null" (click)="select('perfil')"><app-icon name="user" [size]="16" /> {{ 'account.nav.profile' | translate }}</button>
+      <button type="button" [class.active]="section() === 'metodos'" [attr.aria-current]="section() === 'metodos' ? 'page' : null" (click)="select('metodos')" data-testid="menu-metodos"><app-icon name="card" [size]="16" /> {{ 'account.nav.methods' | translate }}</button>
+      <button type="button" [class.active]="section() === 'facturacion'" [attr.aria-current]="section() === 'facturacion' ? 'page' : null" (click)="select('facturacion')" data-testid="menu-facturacion"><app-icon name="draft" [size]="16" /> {{ 'account.nav.billing' | translate }}</button>
+      <button type="button" [class.active]="section() === 'wallet'" [attr.aria-current]="section() === 'wallet' ? 'page' : null" (click)="select('wallet')" data-testid="menu-wallet"><app-icon name="wallet" [size]="16" /> {{ 'account.nav.wallet' | translate }}</button>
+      <button type="button" [class.active]="section() === 'activos'" [attr.aria-current]="section() === 'activos' ? 'page' : null" (click)="select('activos')" data-testid="menu-activos"><app-icon name="ticket" [size]="16" /> {{ 'account.nav.activeTickets' | translate }}</button>
+      <button type="button" [class.active]="section() === 'pasados'" [attr.aria-current]="section() === 'pasados' ? 'page' : null" (click)="select('pasados')" data-testid="menu-pasados"><app-icon name="history" [size]="16" /> {{ 'account.nav.pastTickets' | translate }}</button>
     </nav>
 
     <div class="account-content">
+      @if (adminModuleBlocked()) {
+        <div class="admin-module-notice" data-testid="admin-module-notice">
+          <app-icon name="lock" [size]="26" />
+          <h2>{{ 'account.adminModule.title' | translate }}</h2>
+          <p class="muted">{{ 'account.adminModule.body' | translate }}</p>
+        </div>
+      } @else {
       @switch (section()) {
         @case ('perfil') {
           <h2>{{ 'account.nav.profile' | translate }}</h2>
@@ -93,7 +100,10 @@
                 <input id="pf-bname" type="text" [ngModel]="billingName()" (ngModelChange)="billingName.set($event)" name="billingName" maxlength="150" data-testid="pf-bname" />
               </div>
               @if (nitMissing()) {
-                <p class="warn" data-testid="pf-nit-missing">{{ 'account.profile.nitMissing' | translate }}</p>
+                <p class="nit-hint" data-testid="pf-nit-missing">
+                  <app-icon name="help" [size]="18" />
+                  <span>{{ 'account.profile.nitMissing' | translate }}</span>
+                </p>
               }
               <button type="submit" class="primary" [disabled]="savingProfile()" data-testid="save-profile" [title]="'account.profile.saveChanges' | translate">
                 <app-icon name="save" /> {{ (savingProfile() ? 'account.profile.saving' : 'account.profile.saveChanges') | translate }}
@@ -143,10 +153,10 @@
             <p class="muted">{{ 'account.theme.hint' | translate }}</p>
             <div class="lang-choice" role="group" [attr.aria-label]="'account.theme.title' | translate" data-testid="account-theme-switcher">
               <button type="button" class="lang-opt" [class.active]="profileTheme() === 'dia'" [attr.aria-pressed]="profileTheme() === 'dia'" (click)="setProfileTheme('dia')" data-testid="account-theme-dia">
-                <span class="theme-emoji" aria-hidden="true">☀️</span> {{ 'account.theme.day' | translate }}
+                <app-icon name="sun" [size]="18" /> {{ 'account.theme.day' | translate }}
               </button>
               <button type="button" class="lang-opt" [class.active]="profileTheme() === 'noche'" [attr.aria-pressed]="profileTheme() === 'noche'" (click)="setProfileTheme('noche')" data-testid="account-theme-noche">
-                <span class="theme-emoji" aria-hidden="true">🌙</span> {{ 'account.theme.night' | translate }}
+                <app-icon name="moon" [size]="18" /> {{ 'account.theme.night' | translate }}
               </button>
             </div>
             @if (themeDirty()) {
@@ -154,6 +164,17 @@
                 <app-icon name="save" /> {{ (savingTheme() ? 'account.profile.saving' : 'common.save') | translate }}
               </button>
             }
+          </div>
+
+          <div class="card-block">
+            <h3>{{ 'account.notifs.title' | translate }}</h3>
+            <p class="muted">{{ 'account.notifs.hint' | translate }}</p>
+            <app-switch
+              [checked]="emailNotifs()"
+              (checkedChange)="toggleEmailNotifs($event)"
+              [label]="(emailNotifs() ? 'account.notifs.on' : 'account.notifs.off') | translate"
+              testId="account-email-notifs"
+            />
           </div>
 
           <div class="card-block">
@@ -245,7 +266,7 @@
               </svg>
             </span>
             {{ 'account.methods.infoLead' | translate }}
-            <a routerLink="/terminos">{{ 'account.methods.securityDetails' | translate }}</a>.
+            <a class="security-details-link" routerLink="/terminos">{{ 'account.methods.securityDetails' | translate }} <app-icon name="chevron-right" [size]="13" /></a>
           </p>
 
           @if (cards().length > 0) {
@@ -273,7 +294,7 @@
           }
 
           @if (!showCardForm()) {
-            <button type="button" class="primary" (click)="showCardForm.set(true)" data-testid="add-method" [title]="'account.methods.addCard' | translate">
+            <button type="button" class="btn primary add-method" (click)="showCardForm.set(true)" data-testid="add-method" [title]="'account.methods.addCard' | translate">
               <app-icon name="add" /> {{ 'account.methods.addCard' | translate }}
             </button>
           } @else {
@@ -327,6 +348,14 @@
         @case ('facturacion') {
           <h2>{{ 'account.nav.billing' | translate }}</h2>
 
+          @if (billingMaintenance()) {
+            <app-empty-state
+              variant="billing"
+              data-testid="billing-maintenance"
+              [title]="'account.billing.maintenanceTitle' | translate"
+              [subtitle]="'account.billing.maintenanceBody' | translate"
+            />
+          } @else {
           @if (orderFilter(); as of) {
             <p class="filter-pill" data-testid="order-filter-pill">
               {{ 'account.billing.filterPill' | translate }}
@@ -415,16 +444,20 @@
                       <span class="badge badge-{{ m.status }}" data-testid="movement-status">{{ m.status | statusLabel }}</span>
                     }
                     @if (m.kind === 'event_settlement' && m.eventId) {
-                      <button type="button" class="link-btn" (click)="downloadSettlement(m.eventId)" [disabled]="downloadingSettlement() === m.eventId" data-testid="settlement-download">
+                      <button type="button" class="btn small subtle" (click)="downloadSettlement(m.eventId)" [disabled]="downloadingSettlement() === m.eventId" data-testid="settlement-download">
+                        <app-icon name="download" [size]="15" />
                         {{ (downloadingSettlement() === m.eventId ? 'account.billing.settlement.downloading' : 'account.billing.settlement.download') | translate }}
                       </button>
-                      <button type="button" class="link-btn" (click)="toggleTxnDetail(m)" data-testid="settlement-view-transaction">
+                      <button type="button" class="btn small subtle" (click)="toggleTxnDetail(m)" data-testid="settlement-view-transaction">
+                        <app-icon name="view" [size]="15" />
                         {{ (expandedTxn() === m.id ? 'account.billing.settlement.hideTransaction' : 'account.billing.settlement.viewTransaction') | translate }}
                       </button>
-                      <button type="button" class="link-btn" (click)="verEventAccounts(m.eventId)" data-testid="settlement-view-accounts">
+                      <button type="button" class="btn small subtle" (click)="verEventAccounts(m.eventId)" data-testid="settlement-view-accounts">
+                        <app-icon name="accounts" [size]="15" />
                         {{ 'account.billing.settlement.viewAccounts' | translate }}
                       </button>
-                      <button type="button" class="link-btn" (click)="loadChain(chainKey(m), m.eventId, 'event')" data-testid="toggle-chain">
+                      <button type="button" class="btn small subtle" (click)="loadChain(chainKey(m), m.eventId, 'event')" data-testid="toggle-chain">
+                        <app-icon name="book" [size]="15" />
                         {{ (chains()[chainKey(m)] ? 'account.billing.hideChain' : 'account.billing.showChain') | translate }}
                       </button>
                     } @else if (m.orderId) {
@@ -433,10 +466,12 @@
                           <app-icon name="save" /> {{ 'account.billing.payPending' | translate }}
                         </button>
                       }
-                      <button type="button" class="link-btn" (click)="verCompra(m.orderId)" data-testid="ver-detalle">
+                      <button type="button" class="btn small subtle" (click)="verCompra(m.orderId)" data-testid="ver-detalle">
+                        <app-icon name="view" [size]="15" />
                         {{ 'account.billing.viewFullDetail' | translate }}
                       </button>
-                      <button type="button" class="link-btn" (click)="loadChain(m.orderId)" data-testid="toggle-chain">
+                      <button type="button" class="btn small subtle" (click)="loadChain(m.orderId)" data-testid="toggle-chain">
+                        <app-icon name="book" [size]="15" />
                         {{ (chains()[chainKey(m)] ? 'account.billing.hideChain' : 'account.billing.showChain') | translate }}
                       </button>
                     }
@@ -485,6 +520,7 @@
             </div>
             <app-pager [page]="billingPage()" [totalPages]="billingTotalPages()" (pageChange)="goToBillingPage($event)" data-testid="billing-pager" />
           }
+          }
         }
 
         @case ('wallet') {
@@ -522,7 +558,7 @@
                     <span>{{ o.createdAt | localizedDate: 'dd/MM/yyyy' }}</span>
                     <span class="badge badge-{{ o.status }}">{{ o.status | statusLabel }}</span>
                     <span>{{ o.total | money }}</span>
-                    <button type="button" class="link-btn" (click)="verCompra(o.id)" data-testid="wallet-ver-transaccion">{{ 'account.wallet.viewTransaction' | translate }}</button>
+                    <button type="button" class="btn small subtle" (click)="verCompra(o.id)" data-testid="wallet-ver-transaccion"><app-icon name="view" [size]="15" /> {{ 'account.wallet.viewTransaction' | translate }}</button>
                   </li>
                 }
               </ul>
@@ -681,9 +717,9 @@
                                   [attr.title]="(qrVisible(t.id) ? 'account.tickets.hideQr' : 'account.tickets.showQr') | translate"
                                 >
                                   @if (qrVisible(t.id)) {
-                                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7z"/><path d="M4 4l16 16" stroke-linecap="round"/></svg>
+                                    <app-icon name="hide" [size]="20" />
                                   } @else {
-                                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7z"/><circle cx="12" cy="12" r="2.6"/></svg>
+                                    <app-icon name="view" [size]="20" />
                                   }
                                 </button>
                                 @if (media()[t.id]; as m) {
@@ -696,7 +732,7 @@
                                     [attr.aria-label]="'account.tickets.downloadPdfAria' | translate"
                                     [title]="'account.tickets.downloadPdf' | translate"
                                   >
-                                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12" stroke-linecap="round"/><path d="M7 11l5 5 5-5" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 20h14" stroke-linecap="round"/></svg>
+                                    <app-icon name="download" [size]="20" />
                                   </a>
                                 }
                                 <button
@@ -788,6 +824,7 @@
             />
           }
         }
+      }
       }
     </div>
   </div>

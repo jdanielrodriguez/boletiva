@@ -49,6 +49,7 @@ import {
   TokenDto,
   TotpSetupDto,
   TwoFactorVerifyDto,
+  TwoFactorResendDto,
   VerifyEmailCodeDto,
 } from './dto/auth.dto';
 import {
@@ -60,6 +61,7 @@ import {
   SignupResponseDto,
   TokenPairResponseDto,
   TotpSetupResponseDto,
+  TwoFactorResendResponseDto,
 } from './dto/auth.response';
 
 @ApiTags('auth')
@@ -178,6 +180,16 @@ export class AuthController {
     );
   }
 
+  @Public()
+  @RateLimit({ limit: 3, windowSec: 60 })
+  @Post('2fa/resend')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Reenvía el código del segundo factor por correo (solo método email)' })
+  @ApiOkResponse({ type: TwoFactorResendResponseDto })
+  resend2fa(@Body() dto: TwoFactorResendDto) {
+    return this.auth.resendTwoFactor(dto.preauthToken);
+  }
+
   // ---- Verificación de correo ----
 
   @Public()
@@ -185,8 +197,8 @@ export class AuthController {
   @HttpCode(200)
   @ApiOperation({ summary: 'Verifica el correo con el código de 6 dígitos' })
   @ApiOkResponse({ type: PublicUserResponseDto })
-  verifyEmail(@Body() dto: VerifyEmailCodeDto) {
-    return this.auth.verifyEmailByCode(dto.email, dto.code);
+  verifyEmail(@Body() dto: VerifyEmailCodeDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    return this.auth.verifyEmailByCode(dto.email, dto.code, this.deviceCtx(req, res));
   }
 
   @Public()
@@ -194,8 +206,8 @@ export class AuthController {
   @HttpCode(200)
   @ApiOperation({ summary: 'Verifica el correo con el token del enlace mágico' })
   @ApiOkResponse({ type: PublicUserResponseDto })
-  verifyEmailToken(@Body() dto: TokenDto) {
-    return this.auth.verifyEmailByToken(dto.token);
+  verifyEmailToken(@Body() dto: TokenDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    return this.auth.verifyEmailByToken(dto.token, this.deviceCtx(req, res));
   }
 
   @Public()

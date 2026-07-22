@@ -17,6 +17,7 @@ export const purchase = {
   localities: 'Sections',
   perTicket: 'per ticket',
   seatPickerAria: 'Choose seat (accessible list)',
+  seatMapMobileHint: 'Scroll and tap to pick your seats. If the map is dense, rotate your phone to landscape.',
   legendAvailable: 'Available',
   legendSelected: 'Selected',
   legendTaken: 'Taken',

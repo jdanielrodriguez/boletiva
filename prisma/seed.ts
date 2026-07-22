@@ -1,5 +1,8 @@
 import { PromoterStatus, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import * as QRCode from 'qrcode';
+import PDFDocument from 'pdfkit';
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import {
   BASE_FIXED_FEES,
   GATEWAY_FEE_PCT,
@@ -8,6 +11,7 @@ import {
   toFeeString,
 } from '../api/src/config/pricing-defaults';
 import { makePrismaClient } from './prisma-client';
+import { KB_SEED_ARTICLES } from './kb-seed-data';
 
 const prisma = makePrismaClient();
 
@@ -123,9 +127,20 @@ async function seedSettings(): Promise<void> {
     },
     {
       key: 'chat.enabled',
-      value: false,
-      description: 'Habilita el chat de soporte (promotor premium ↔ asesor/admin)',
+      value: true,
+      description: 'Habilita el soporte/chat (promotor ↔ asesor/admin). Activo por defecto.',
     },
+    {
+      key: 'promoter.can_feature_events',
+      value: false,
+      description: 'Permite a los promotores destacar su evento en el inicio (default false = oculto).',
+    },
+    { key: 'events.creation_enabled', value: true, description: 'Habilita la creación de eventos por promotores.' },
+    { key: 'home.slider_enabled', value: true, description: 'Muestra el slider del inicio (false = siempre oculto).' },
+    { key: 'seatmap.enabled', value: true, description: 'Habilita el uso del mapa de asientos.' },
+    { key: 'advisors.enabled', value: true, description: 'Habilita el rol asesor (soporte).' },
+    { key: 'advisors.maintenance', value: false, description: 'Mantenimiento solo para asesores (pantalla de acceso deshabilitado).' },
+    { key: 'billing.maintenance', value: false, description: 'Mantenimiento de facturación (oculta la facturación por descuadres).' },
     {
       key: 'advisor.lock_enabled',
       value: true,
@@ -184,24 +199,32 @@ async function seedGateway(): Promise<void> {
     feePct: string;
     transactionFixedFee?: string;
     installmentRates?: Record<string, number>;
+    installmentsEnabled?: boolean;
     sandbox: boolean;
     status?: 'active' | 'inactive';
   }> = [
     {
+      // RECURRENTE = pasarela por DEFAULT (fase alpha, en SANDBOX). Mientras el cobro es
+      // simulado (provider 'simulator', llaves TEST), usa la economía CANÓNICA de sandbox
+      // (5% sin fijo) → el precio canónico 129.68 se mantiene y toda la suite e2e sigue en
+      // verde. CUOTAS CONFIGURADAS PERO DESACTIVADAS (installmentsEnabled:false): el
+      // tarifario queda listo pero el comprador no ve plazos aún.
+      // ⚠️ PROD (al conectar las llaves reales de Recurrente, plan EMPRESA verificado
+      // recurrente.com/precios jul 2026): cambiar a provider 'recurrente', feePct 0.04500,
+      // transactionFixedFee 2.00 (Q2), e installmentsEnabled:true para habilitar cuotas
+      // (3→8% · 6→9% · 12→10% · 18→14% + Q2). Recurrente muestra aviso de prueba con
+      // live_mode=false y no crea actividad real (docs.recurrente.com).
       name: 'Recurrente',
       provider: 'simulator',
       feePct: '0.05000',
-      // En producción Recurrente cobra Q2 fijo por transacción; en seed/demo se deja
-      // en 0 para preservar el precio canónico (129.68) que usan los e2e generales.
-      // El mecanismo del fijo + surplus se prueba con pasarelas dedicadas en los
-      // e2e de cuotas y de Ola 6.6.
-      transactionFixedFee: '0.00',
       installmentRates: { '3': 0.08, '6': 0.09, '12': 0.1, '18': 0.14 },
+      installmentsEnabled: false,
       sandbox: true,
     },
     // Pagalo INACTIVA por decisión de negocio (deuda pendiente con Pagalo): no debe
     // ofrecerse hasta nuevo aviso. Sigue seleccionable solo si el admin la reactiva.
     { name: 'Pagalo', provider: 'simulator', feePct: '0.05000', sandbox: true, status: 'inactive' },
+    // Sandbox: pasarela de simulación secundaria (5%), disponible para pruebas/e2e que la fijan.
     { name: 'Sandbox', provider: 'simulator', feePct: '0.05000', sandbox: true },
   ];
   for (const g of gateways) {
@@ -212,6 +235,7 @@ async function seedGateway(): Promise<void> {
       update: {
         feePct: g.feePct,
         installmentRates: g.installmentRates ?? undefined,
+        installmentsEnabled: g.installmentsEnabled ?? true,
         transactionFixedFee: g.transactionFixedFee ?? '0.00',
         minCostSharePct: '0.00000',
         status: g.status ?? 'active',
@@ -222,16 +246,15 @@ async function seedGateway(): Promise<void> {
         feePct: g.feePct,
         transactionFixedFee: g.transactionFixedFee ?? '0.00',
         installmentRates: g.installmentRates,
+        installmentsEnabled: g.installmentsEnabled ?? true,
         sandbox: g.sandbox,
         status: g.status ?? 'active',
       },
     });
   }
-  // Default de plataforma = RECURRENTE (5% sin fijo en seed → mismo precio canónico
-  // 129.68 que Sandbox): es la pasarela real por defecto fuera de modo test. Los
-  // usuarios de PRUEBA (isTestUser) quedan anclados a Sandbox por código
-  // (events/payments.resolveGateway), así que en modo test se cobra por Sandbox.
-  // Una sola default (índice parcial). Pagalo/Sandbox quedan seleccionables.
+  // Default de plataforma = RECURRENTE (en sandbox). En alpha su economía es la canónica
+  // (5% sin fijo) → precio 129.68 intacto y suite e2e en verde; al conectar llaves reales
+  // se ajusta el tarifario (ver comentario arriba). Una sola default (índice parcial).
   await prisma.$transaction([
     prisma.paymentGateway.updateMany({
       where: { isPlatformDefault: true, name: { not: 'Recurrente' } },
@@ -379,6 +402,16 @@ async function seedUsers() {
       // `||` (no `??`): en CI/GH Actions una env sin secreto llega como '' (cadena
       // vacía), que `??` NO atraparía → contraseña vacía. `||` cae a Password123.
       password: process.env.SEED_ADMIN_PASSWORD || 'Password123',
+    },
+    {
+      // Asesor de soporte (rol advisor): hereda al admin MENOS la tab "Sistema";
+      // muta con desbloqueo por link del admin (B2). Para probar el flujo de asesores.
+      email: 'asesor@boletiva.com',
+      firstName: 'Asesor',
+      roles: [Role.advisor],
+      // En PROD se inyecta fuerte por env (SEED_ASESOR_PASSWORD, ver db-seed.yml); `||`
+      // (no `??`) cae a Password123 cuando la env llega vacía (CI/GH Actions).
+      password: process.env.SEED_ASESOR_PASSWORD || 'Password123',
     },
     {
       email: 'promotor@boletiva.com',
@@ -609,7 +642,7 @@ async function seedPastSoldEvent(
   );
 
   // Un boleto emitido por línea (aparecen en "Boletos pasados" del cliente).
-  await Promise.all(
+  const tickets = await Promise.all(
     items.map((it, i) =>
       prisma.ticket.create({
         data: {
@@ -627,6 +660,173 @@ async function seedPastSoldEvent(
       }),
     ),
   );
+
+  // Genera la MEDIA (QR PNG + PDF) de los boletos demo para que la cuenta muestre el
+  // QR de verdad (una compra real la genera async por la cola MEDIA; el seed los inserta
+  // directo, así que replicamos aquí el objeto en storage). Best-effort: si el storage
+  // no está disponible, el seed no falla.
+  for (const t of tickets) {
+    await generateSeedTicketMedia({
+      ticketId: t.id,
+      eventId: event.id,
+      serial: t.serial,
+      eventName: event.name,
+      startsAt: event.startsAt,
+    });
+  }
+}
+
+/**
+ * Genera y sube la media (QR PNG + PDF sencillo) de un boleto demo a storage, y marca
+ * el boleto como listo. Solo aplica a LocalStack (dev): en GCS/prod se omite para no
+ * subir objetos de prueba. Nunca lanza (el seed no debe caerse por el storage).
+ */
+async function generateSeedTicketMedia(t: {
+  ticketId: string;
+  eventId: string;
+  serial: string;
+  eventName: string;
+  startsAt: Date;
+}): Promise<void> {
+  const endpoint = process.env.S3_ENDPOINT ?? '';
+  const publicEndpoint = process.env.S3_PUBLIC_ENDPOINT ?? '';
+  // Solo LocalStack/dev (endpoint local): evita subir demo a un bucket real.
+  const isLocal = /localstack|localhost|127\.0\.0\.1/.test(endpoint) || /localhost|127\.0\.0\.1/.test(publicEndpoint);
+  if (process.env.STORAGE_PROVIDER !== 's3' || !isLocal) return;
+
+  try {
+    const bucket = process.env.S3_BUCKET as string;
+    const s3 = new S3Client({
+      endpoint,
+      region: process.env.S3_REGION ?? 'us-east-1',
+      forcePathStyle: true,
+      credentials: {
+        accessKeyId: process.env.S3_ACCESS_KEY_ID as string,
+        secretAccessKey: process.env.S3_SECRET_ACCESS_KEY as string,
+      },
+    });
+
+    // QR estático (instantánea): `PE1.<serial>.<code>` — igual formato que producción.
+    const payload = `PE1.${t.serial}.000000`;
+    const qrPng = await QRCode.toBuffer(payload, { type: 'png', width: 420, margin: 1 });
+
+    // PDF mínimo con marca + QR embebido (para el botón de descarga).
+    const pdf = await new Promise<Buffer>((resolve, reject) => {
+      const doc = new PDFDocument({ size: 'A4', margin: 48 });
+      const chunks: Buffer[] = [];
+      doc.on('data', (c: Buffer) => chunks.push(c));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+      doc.fontSize(22).fillColor('#7c3aed').text('Boletiva', { align: 'left' });
+      doc.moveDown(0.5).fontSize(16).fillColor('#1a1a2e').text(t.eventName);
+      doc.moveDown(0.2).fontSize(11).fillColor('#6b6b76').text(t.startsAt.toISOString());
+      doc.moveDown(0.2).text(`Serial: ${t.serial}`);
+      doc.image(qrPng, { fit: [220, 220] });
+      doc.end();
+    });
+
+    const base = `tickets/${t.eventId}/${t.ticketId}`;
+    const qrKey = `${base}/qr.png`;
+    const pdfKey = `${base}/ticket.pdf`;
+    await s3.send(new PutObjectCommand({ Bucket: bucket, Key: qrKey, Body: qrPng, ContentType: 'image/png' }));
+    await s3.send(new PutObjectCommand({ Bucket: bucket, Key: pdfKey, Body: pdf, ContentType: 'application/pdf' }));
+    await prisma.ticket.update({
+      where: { id: t.ticketId },
+      data: { qrKey, pdfKey, mediaReadyAt: new Date() },
+    });
+  } catch (e) {
+    // best-effort: el seed no debe fallar por el storage.
+    console.warn(`[seed] no se pudo generar media del boleto ${t.serial}: ${(e as Error).message}`);
+  }
+}
+
+/** Tarjeta de prueba (Visa •4242) para el cliente semilla → probar checkout sin tener
+ *  que registrar tarjeta. `token` es un placeholder (el PAN real nunca toca el backend). */
+async function seedDemoCard(buyerId: string): Promise<void> {
+  const existing = await prisma.savedCard.findFirst({ where: { userId: buyerId } });
+  if (existing) return;
+  await prisma.savedCard.create({
+    data: { userId: buyerId, brand: 'visa', last4: '4242', token: 'seed-tok-visa-4242', isDefault: true },
+  });
+}
+
+/** Notificaciones de muestra (campanita) para cliente y promotor: una leída y una sin leer. */
+async function seedDemoNotifications(buyerId: string, promoterId: string): Promise<void> {
+  if ((await prisma.notification.count()) > 0) return;
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: buyerId,
+        type: 'ticket',
+        title: '¡Tus boletos están listos!',
+        body: 'Tu compra de "Concierto de Prueba" fue confirmada. Ya puedes verlos en Mi cuenta.',
+        resourceType: 'order',
+      },
+      {
+        userId: buyerId,
+        type: 'system',
+        title: 'Bienvenido a Boletiva',
+        body: 'Explora eventos y compra tus boletos con QR dinámico.',
+        readAt: new Date(),
+      },
+      {
+        userId: promoterId,
+        type: 'promoter',
+        title: 'Tu evento recibió ventas',
+        body: 'Revisa el dashboard para ver tu recaudación en vivo.',
+        resourceType: 'event',
+      },
+    ],
+  });
+}
+
+/** Tickets de soporte de muestra (para ver la bandeja del agente y la vista del promotor). */
+async function seedDemoSupport(promoterId: string, adminId: string): Promise<void> {
+  if ((await prisma.supportTicket.count()) > 0) return;
+  // Ticket 1: abierto, con mensaje del promotor (aparece en la cola sin-asignar).
+  const t1 = await prisma.supportTicket.create({
+    data: { promoterId, subject: 'No veo mi liquidación del evento', category: 'payments_settlement', priority: 'high', status: 'new' },
+  });
+  await prisma.supportMessage.create({
+    data: { ticketId: t1.id, senderId: promoterId, senderRole: Role.promoter, body: 'Hola, mi evento ya terminó pero no aparece la liquidación. ¿Me ayudan?' },
+  });
+  // Ticket 2: resuelto, con respuesta del admin (aparece en "resueltos").
+  const t2 = await prisma.supportTicket.create({
+    data: { promoterId, subject: '¿Cómo cambio la pasarela de un evento?', category: 'technical', priority: 'medium', status: 'resolved', assignedToId: adminId, resolvedAt: new Date() },
+  });
+  await prisma.supportMessage.createMany({
+    data: [
+      { ticketId: t2.id, senderId: promoterId, senderRole: Role.promoter, body: 'No encuentro dónde cambiar la pasarela.' },
+      { ticketId: t2.id, senderId: adminId, senderRole: Role.admin, body: 'En el editor del evento, pestaña Configuración, mientras esté en borrador o suspendido. ¡Saludos!' },
+    ],
+  });
+}
+
+async function seedKbArticles(authorId?: string): Promise<void> {
+  // Base de Conocimientos (T6): artículos publicados iniciales del FAQ (≥5 por categoría),
+  // en `prisma/kb-seed-data.ts`. Idempotente por slug.
+  const articles = KB_SEED_ARTICLES;
+  for (const a of articles) {
+    const answerText = a.answerHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    await prisma.kbArticle.upsert({
+      where: { slug: a.slug },
+      update: {},
+      create: {
+        slug: a.slug,
+        question: a.question,
+        answerHtml: a.answerHtml,
+        answerText,
+        category: a.category,
+        locale: 'es',
+        status: 'published',
+        visibility: a.visibility ?? 'public',
+        tags: a.tags,
+        sortOrder: a.sortOrder ?? 0,
+        publishedAt: new Date(),
+        createdById: authorId,
+      },
+    });
+  }
 }
 
 async function main(): Promise<void> {
@@ -643,6 +843,10 @@ async function main(): Promise<void> {
     categories['Concierto'],
     users['cliente@boletiva.com'],
   );
+  await seedKbArticles(users['admin@boletiva.com']);
+  await seedDemoCard(users['cliente@boletiva.com']);
+  await seedDemoNotifications(users['cliente@boletiva.com'], users['promotor@boletiva.com']);
+  await seedDemoSupport(users['promotor@boletiva.com'], users['admin@boletiva.com']);
 
   const [settings, userCount, catCount, eventCount, hallCount, tplCount] = await Promise.all([
     prisma.setting.count(),

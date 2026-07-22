@@ -2,6 +2,7 @@ import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@
 import { Reflector } from '@nestjs/core';
 import { Role } from '@prisma/client';
 import { ROLES_KEY } from '../../common/decorators/roles.decorator';
+import { SKIP_ADVISOR_UNLOCK_KEY } from '../../common/decorators/skip-advisor-unlock.decorator';
 import { AuthUser } from '../../common/decorators/current-user.decorator';
 import { AdvisorUnlockService } from './advisor-unlock.service';
 
@@ -30,6 +31,13 @@ export class AdvisorUnlockGuard implements CanActivate {
     if (!user) return true; // sin sesión → lo maneja el JwtAuthGuard
     if (user.roles?.includes(Role.admin) || !user.roles?.includes(Role.advisor)) return true;
     if (!MUTATION_METHODS.has(req.method)) return true;
+
+    // Dominio propio del asesor (p.ej. atender tickets de soporte): no exige desbloqueo.
+    const skip = this.reflector.getAllAndOverride<boolean>(SKIP_ADVISOR_UNLOCK_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (skip) return true;
 
     const required = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
       context.getHandler(),

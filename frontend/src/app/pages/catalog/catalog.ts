@@ -16,6 +16,7 @@ import { LoadingComponent } from '../../shared/ui/loading.component';
 import { SearchFieldComponent } from '../../shared/ui/search-field.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
 import { TourComponent, TourStep } from '../../shared/tour/tour.component';
+import { IconComponent } from '../../shared/icon/icon.component';
 
 const PAGE_SIZE = 12;
 
@@ -43,6 +44,7 @@ interface CatalogResult {
     LoadingComponent,
     SearchFieldComponent,
     TourComponent,
+    IconComponent,
   ],
   templateUrl: './catalog.html',
 })
@@ -102,7 +104,9 @@ export class Catalog {
   protected readonly page = computed(() => Math.max(1, Number(this.params().get('page')) || 1));
 
   /** El hero solo se muestra en el inicio (sin filtros de categoría/búsqueda). */
-  protected readonly showHero = computed(() => !this.activeCategory() && !this.search());
+  protected readonly showHero = computed(
+    () => this.publicConfig.homeSliderEnabled() && !this.activeCategory() && !this.search(),
+  );
 
   private readonly result = toSignal(
     this.route.queryParamMap.pipe(

@@ -45,11 +45,23 @@ export class PaymentGatewaysService {
     return this.prisma.paymentGateway.findMany({ orderBy: { createdAt: 'asc' } });
   }
 
-  /** Pasarelas disponibles para cobrar (activas). */
+  /** Pasarelas disponibles para cobrar (activas). Uso INTERNO (incluye credentialsRef). */
   listActive() {
     return this.prisma.paymentGateway.findMany({
       where: { status: GatewayStatus.active },
       orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  /**
+   * Pasarelas activas para exponer a promotores (elección de método de su evento):
+   * OMITE `credentialsRef` (referencia al secreto) — QA: no debe salir de admin.
+   */
+  listActivePublic() {
+    return this.prisma.paymentGateway.findMany({
+      where: { status: GatewayStatus.active },
+      orderBy: { createdAt: 'asc' },
+      omit: { credentialsRef: true },
     });
   }
 

@@ -152,6 +152,38 @@
         ]
       }
     },
+    "/api/v1/auth/2fa/resend": {
+      "post": {
+        "operationId": "AuthController_resend2fa_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TwoFactorResendDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TwoFactorResendResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Reenvía el código del segundo factor por correo (solo método email)",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/v1/auth/verify-email": {
       "post": {
         "operationId": "AuthController_verifyEmail_v1",
@@ -973,7 +1005,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lista usuarios (admin; keyset ?cursor&limit + ?search)",
+        "summary": "Lista usuarios (admin real; keyset ?cursor&limit + ?search)",
         "tags": [
           "users"
         ]
@@ -1009,7 +1041,7 @@
             "bearer": []
           }
         ],
-        "summary": "Detalle de usuario (admin)",
+        "summary": "Detalle de usuario (admin real)",
         "tags": [
           "users"
         ]
@@ -1055,7 +1087,7 @@
             "bearer": []
           }
         ],
-        "summary": "Asigna roles a un usuario (admin)",
+        "summary": "Asigna roles a un usuario (SOLO admin real; ni un asesor desbloqueado)",
         "tags": [
           "users"
         ]
@@ -1101,7 +1133,7 @@
             "bearer": []
           }
         ],
-        "summary": "Activa/desactiva un usuario (admin)",
+        "summary": "Activa/desactiva un usuario (SOLO admin real)",
         "tags": [
           "users"
         ]
@@ -2177,6 +2209,22 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "search",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -2723,7 +2771,7 @@
             "bearer": []
           }
         ],
-        "summary": "Crea y activa una nueva versión de comisiones (admin)",
+        "summary": "Crea y activa una nueva versión de comisiones (admin real)",
         "tags": [
           "pricing"
         ]
@@ -5469,7 +5517,7 @@
             "bearer": []
           }
         ],
-        "summary": "Pasarelas activas (métodos disponibles para cobrar)",
+        "summary": "Pasarelas activas (métodos disponibles; el promotor elige la de su evento)",
         "tags": [
           "payment-gateways"
         ]
@@ -6528,6 +6576,30 @@
         ]
       }
     },
+    "/api/v1/events/{id}/seats/stream": {
+      "get": {
+        "operationId": "StreamController_seatsStream_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Flujo SSE: abre con `ready` y empuja deltas `seat` ({sold|released}) del evento."
+          }
+        },
+        "summary": "Stream SSE público de disponibilidad de asientos del evento (FU11)",
+        "tags": [
+          "stream"
+        ]
+      }
+    },
     "/api/v1/events/{id}/banner": {
       "post": {
         "operationId": "BannerController_generate_v1",
@@ -6633,7 +6705,7 @@
             "bearer": []
           }
         ],
-        "summary": "Crea un salón (admin)",
+        "summary": "Crea un salón (admin/asesor)",
         "tags": [
           "halls"
         ]
@@ -6699,7 +6771,7 @@
             "bearer": []
           }
         ],
-        "summary": "Detalle de un salón",
+        "summary": "Detalle de un salón (gestión admin; incluye estado y notas internas)",
         "tags": [
           "halls"
         ]
@@ -6743,7 +6815,7 @@
             "bearer": []
           }
         ],
-        "summary": "Actualiza un salón (admin)",
+        "summary": "Actualiza un salón (admin/asesor)",
         "tags": [
           "halls"
         ]
@@ -7049,6 +7121,33 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filtra por estado de evento (draft/published/suspended/cancelled/finished)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Desde (fecha del evento, ISO YYYY-MM-DD)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Hasta inclusive (fecha del evento, ISO YYYY-MM-DD)",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -7083,6 +7182,33 @@
             "required": false,
             "in": "query",
             "description": "Solo admin: promotor a inspeccionar",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filtra por estado de evento",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Desde (fecha del evento, ISO YYYY-MM-DD)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Hasta inclusive (fecha del evento, ISO YYYY-MM-DD)",
             "schema": {
               "type": "string"
             }
@@ -7226,7 +7352,7 @@
             "bearer": []
           }
         ],
-        "summary": "Crea una plantilla de asientos (admin)",
+        "summary": "Crea una plantilla de asientos (admin/asesor)",
         "tags": [
           "seat-templates"
         ]
@@ -7292,7 +7418,7 @@
             "bearer": []
           }
         ],
-        "summary": "Detalle de una plantilla",
+        "summary": "Detalle de una plantilla (gestión admin; incluye estado y notas)",
         "tags": [
           "seat-templates"
         ]
@@ -7336,7 +7462,7 @@
             "bearer": []
           }
         ],
-        "summary": "Actualiza una plantilla (admin; built-in bloqueada)",
+        "summary": "Actualiza una plantilla (admin/asesor; built-in bloqueada)",
         "tags": [
           "seat-templates"
         ]
@@ -7925,6 +8051,104 @@
         ]
       }
     },
+    "/api/v1/admin/email-log": {
+      "get": {
+        "operationId": "EmailLogController_list_v1",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Cursor: id de la última fila de la página previa",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Tamaño de página (1–100, default 20)",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Busca por destinatario (contains, insensitive)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "required": false,
+            "in": "query",
+            "description": "Filtra por tipo/plantilla (contains)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "queued",
+                "sent",
+                "failed"
+              ]
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Desde (ISO YYYY-MM-DD)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Hasta inclusive (ISO YYYY-MM-DD)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailLogPageDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Registro de correos enviados (admin): filtros + búsqueda + keyset",
+        "tags": [
+          "email-log"
+        ]
+      }
+    },
     "/api/v1/admin/impersonate/stop": {
       "post": {
         "operationId": "AdminController_stop_v1",
@@ -8101,16 +8325,16 @@
         ]
       }
     },
-    "/api/v1/chat/threads": {
+    "/api/v1/support/tickets": {
       "post": {
-        "operationId": "ChatController_createThread_v1",
+        "operationId": "SupportController_create_v1",
         "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateThreadDto"
+                "$ref": "#/components/schemas/CreateTicketDto"
               }
             }
           }
@@ -8125,14 +8349,42 @@
             "bearer": []
           }
         ],
-        "summary": "Abre un hilo de soporte (promotor premium)",
+        "summary": "Abre un ticket de soporte (promotor premium)",
         "tags": [
-          "chat"
+          "support"
         ]
       },
       "get": {
-        "operationId": "ChatController_listThreads_v1",
-        "parameters": [],
+        "operationId": "SupportController_list_v1",
+        "parameters": [
+          {
+            "name": "archived",
+            "required": false,
+            "in": "query",
+            "description": "true = incluye archivados (promotor)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filtra por estado del ticket",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Busca en el asunto (case-insensitive)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -8143,15 +8395,15 @@
             "bearer": []
           }
         ],
-        "summary": "Lista de hilos (promotor: los suyos; agente: todos)",
+        "summary": "Lista de tickets (promotor: los suyos; agente: todos)",
         "tags": [
-          "chat"
+          "support"
         ]
       }
     },
-    "/api/v1/chat/threads/{id}/messages": {
+    "/api/v1/support/tickets/{id}/messages": {
       "get": {
-        "operationId": "ChatController_messages_v1",
+        "operationId": "SupportController_messages_v1",
         "parameters": [
           {
             "name": "id",
@@ -8172,13 +8424,13 @@
             "bearer": []
           }
         ],
-        "summary": "Historial de mensajes de un hilo",
+        "summary": "Historial de mensajes de un ticket",
         "tags": [
-          "chat"
+          "support"
         ]
       },
       "post": {
-        "operationId": "ChatController_post_v1",
+        "operationId": "SupportController_post_v1",
         "parameters": [
           {
             "name": "id",
@@ -8209,73 +8461,15 @@
             "bearer": []
           }
         ],
-        "summary": "Publica un mensaje en un hilo",
+        "summary": "Publica un mensaje (o nota interna del agente), con adjuntos opcionales",
         "tags": [
-          "chat"
+          "support"
         ]
       }
     },
-    "/api/v1/chat/threads/{id}/close": {
+    "/api/v1/support/tickets/{id}/attachments/presign": {
       "post": {
-        "operationId": "ChatController_close_v1",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Cierra un hilo",
-        "tags": [
-          "chat"
-        ]
-      }
-    },
-    "/api/v1/chat/threads/{id}/reopen": {
-      "post": {
-        "operationId": "ChatController_reopen_v1",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Reabre un hilo",
-        "tags": [
-          "chat"
-        ]
-      }
-    },
-    "/api/v1/chat/threads/{id}/assign": {
-      "post": {
-        "operationId": "ChatController_assign_v1",
+        "operationId": "SupportController_presign_v1",
         "parameters": [
           {
             "name": "id",
@@ -8291,7 +8485,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AssignThreadDto"
+                "$ref": "#/components/schemas/PresignAttachmentDto"
               }
             }
           }
@@ -8306,16 +8500,1668 @@
             "bearer": []
           }
         ],
-        "summary": "Reasigna un hilo a un asesor/admin (handoff, admin)",
+        "summary": "URL firmada para subir un adjunto (el cliente hace PUT directo)",
         "tags": [
-          "chat"
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/tickets/{id}/take": {
+      "post": {
+        "operationId": "SupportController_take_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "El agente toma el ticket (auto-asignación)",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/tickets/{id}/assign": {
+      "post": {
+        "operationId": "SupportController_assign_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignTicketDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reasigna a un asesor/admin (handoff, admin)",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/tickets/{id}/resolve": {
+      "post": {
+        "operationId": "SupportController_resolve_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Marca el ticket como resuelto (agente)",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/tickets/{id}/close": {
+      "post": {
+        "operationId": "SupportController_close_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cierra el ticket (agente o promotor dueño)",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/tickets/{id}/reopen": {
+      "post": {
+        "operationId": "SupportController_reopen_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reabre un ticket resuelto/cerrado (agente)",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/tickets/{id}/suspend": {
+      "post": {
+        "operationId": "SupportController_suspend_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Suspende el ticket (congela SLA, agente)",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/tickets/{id}/resume": {
+      "post": {
+        "operationId": "SupportController_resume_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reanuda un ticket suspendido (agente)",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/tickets/{id}/priority": {
+      "post": {
+        "operationId": "SupportController_priority_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPriorityDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cambia la prioridad (recalcula SLA, agente)",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/tickets/{id}/category": {
+      "post": {
+        "operationId": "SupportController_category_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetCategoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cambia la categoría (agente)",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/tickets/{id}/archive": {
+      "post": {
+        "operationId": "SupportController_archive_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Archiva el ticket (oculta la vista del promotor dueño)",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/tickets/{id}/rate": {
+      "post": {
+        "operationId": "SupportController_rate_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RateTicketDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Califica la atención 1..5 (promotor dueño)",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/queue": {
+      "get": {
+        "operationId": "SupportExtrasController_queue_v1",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Cursor: id de la última fila de la página previa",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Tamaño de página (1–100, default 20)",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "new",
+                "open",
+                "awaiting_promoter",
+                "awaiting_support",
+                "resolved",
+                "closed",
+                "suspended",
+                "reopened"
+              ]
+            }
+          },
+          {
+            "name": "priority",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "low",
+                "medium",
+                "high",
+                "urgent"
+              ]
+            }
+          },
+          {
+            "name": "category",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "billing",
+                "payments_settlement",
+                "event",
+                "technical",
+                "account",
+                "other"
+              ]
+            }
+          },
+          {
+            "name": "assigneeId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "unassigned",
+            "required": false,
+            "in": "query",
+            "description": "'true' = solo sin asignar",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mine",
+            "required": false,
+            "in": "query",
+            "description": "'true' = solo los asignados a mí",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cola de tickets con filtros + keyset pagination (agente)",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/agents": {
+      "get": {
+        "operationId": "SupportExtrasController_agents_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lista de agentes (asesor/admin) para reasignar tickets",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/metrics": {
+      "get": {
+        "operationId": "SupportExtrasController_metrics_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Resumen operativo del soporte (volumen, SLA, CSAT)",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/sla": {
+      "get": {
+        "operationId": "SupportExtrasController_getSla_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Objetivos SLA efectivos por prioridad",
+        "tags": [
+          "support"
+        ]
+      },
+      "patch": {
+        "operationId": "SupportExtrasController_setSla_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SlaConfigDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Ajusta los objetivos SLA (admin)",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/macros": {
+      "get": {
+        "operationId": "SupportExtrasController_listMacros_v1",
+        "parameters": [
+          {
+            "name": "lang",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lista de respuestas rápidas (filtrable por idioma/categoría)",
+        "tags": [
+          "support"
+        ]
+      },
+      "post": {
+        "operationId": "SupportExtrasController_createMacro_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MacroDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crea una respuesta rápida",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/macros/{id}": {
+      "patch": {
+        "operationId": "SupportExtrasController_updateMacro_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MacroPatchDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edita una respuesta rápida",
+        "tags": [
+          "support"
+        ]
+      },
+      "delete": {
+        "operationId": "SupportExtrasController_deleteMacro_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Elimina una respuesta rápida",
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/kb": {
+      "get": {
+        "operationId": "KbController_list_v1",
+        "parameters": [
+          {
+            "name": "category",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "billing",
+                "payments_settlement",
+                "event",
+                "technical",
+                "account",
+                "other"
+              ]
+            }
+          },
+          {
+            "name": "locale",
+            "required": false,
+            "in": "query",
+            "description": "Idioma (es/en)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Búsqueda por texto (pregunta/respuesta/etiquetas)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KbPublicArticleDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "FAQ público: artículos publicados (filtro categoría/idioma/búsqueda)",
+        "tags": [
+          "kb"
+        ]
+      },
+      "post": {
+        "operationId": "KbController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateKbArticleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbArticleResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crea un artículo (draft) — admin/asesor",
+        "tags": [
+          "kb"
+        ]
+      }
+    },
+    "/api/v1/kb/search": {
+      "get": {
+        "operationId": "KbController_search_v1",
+        "parameters": [
+          {
+            "name": "q",
+            "required": true,
+            "in": "query",
+            "description": "Consulta del usuario",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "required": false,
+            "in": "query",
+            "description": "Idioma (es/en)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Máximo de resultados (1..10)",
+            "schema": {
+              "default": 5,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KbSuggestionDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Búsqueda del FAQ/bot: sugiere artículos públicos relevantes (autoresponder)",
+        "tags": [
+          "kb"
+        ]
+      }
+    },
+    "/api/v1/kb/admin": {
+      "get": {
+        "operationId": "KbController_adminList_v1",
+        "parameters": [
+          {
+            "name": "category",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "billing",
+                "payments_settlement",
+                "event",
+                "technical",
+                "account",
+                "other"
+              ]
+            }
+          },
+          {
+            "name": "locale",
+            "required": false,
+            "in": "query",
+            "description": "Idioma (es/en)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Búsqueda por texto (pregunta/respuesta/etiquetas)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KbArticleResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Listado de gestión (cualquier estado/visibilidad) — admin/asesor",
+        "tags": [
+          "kb"
+        ]
+      }
+    },
+    "/api/v1/kb/admin/suggest": {
+      "get": {
+        "operationId": "KbController_agentSuggest_v1",
+        "parameters": [
+          {
+            "name": "q",
+            "required": true,
+            "in": "query",
+            "description": "Consulta del usuario",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "required": false,
+            "in": "query",
+            "description": "Idioma (es/en)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Máximo de resultados (1..10)",
+            "schema": {
+              "default": 5,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KbSuggestionDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Asistente del agente: sugiere artículos (incluye INTERNOS) para responder",
+        "tags": [
+          "kb"
+        ]
+      }
+    },
+    "/api/v1/kb/admin/{id}": {
+      "get": {
+        "operationId": "KbController_adminGet_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbArticleResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Detalle de gestión por id — admin/asesor",
+        "tags": [
+          "kb"
+        ]
+      }
+    },
+    "/api/v1/kb/{id}": {
+      "patch": {
+        "operationId": "KbController_update_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateKbArticleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbArticleResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edita un artículo — admin/asesor",
+        "tags": [
+          "kb"
+        ]
+      },
+      "delete": {
+        "operationId": "KbController_delete_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Elimina un artículo — admin/asesor",
+        "tags": [
+          "kb"
+        ]
+      }
+    },
+    "/api/v1/kb/{id}/publish": {
+      "post": {
+        "operationId": "KbController_publish_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbArticleResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publica un artículo — admin/asesor",
+        "tags": [
+          "kb"
+        ]
+      }
+    },
+    "/api/v1/kb/{id}/unpublish": {
+      "post": {
+        "operationId": "KbController_unpublish_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbArticleResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Despublica un artículo (vuelve a draft) — admin/asesor",
+        "tags": [
+          "kb"
+        ]
+      }
+    },
+    "/api/v1/kb/{slug}": {
+      "get": {
+        "operationId": "KbController_getBySlug_v1",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbPublicArticleDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Detalle público de un artículo por slug (FAQ)",
+        "tags": [
+          "kb"
+        ]
+      }
+    },
+    "/api/v1/notifications": {
+      "get": {
+        "operationId": "NotificationsController_list_v1",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Cursor: id de la última fila de la página previa",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Tamaño de página (1–100, default 20)",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mis notificaciones (keyset)",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/unread-count": {
+      "get": {
+        "operationId": "NotificationsController_unread_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Contador de no-leídas",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/read/{id}": {
+      "post": {
+        "operationId": "NotificationsController_read_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Marca una notificación como leída",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/read-all": {
+      "post": {
+        "operationId": "NotificationsController_readAll_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Marca todas como leídas",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/preferences": {
+      "get": {
+        "operationId": "NotificationsController_prefs_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mis preferencias de notificación",
+        "tags": [
+          "notifications"
+        ]
+      },
+      "patch": {
+        "operationId": "NotificationsController_setPref_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPreferenceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Activa/desactiva un tipo por canal",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/admin/send": {
+      "post": {
+        "operationId": "NotificationsController_adminSend_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminSendDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Envía una notificación manual a un promotor o a todos (admin)",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/advisors/invitations": {
+      "post": {
+        "operationId": "AdvisorInvitationsController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAdvisorInvitesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Invita asesores por correo (admin)",
+        "tags": [
+          "advisors"
+        ]
+      },
+      "get": {
+        "operationId": "AdvisorInvitationsController_list_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lista de invitaciones de asesor (admin)",
+        "tags": [
+          "advisors"
+        ]
+      }
+    },
+    "/api/v1/advisors/invitations/peek": {
+      "get": {
+        "operationId": "AdvisorInvitationsController_peek_v1",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Valida un token de invitación (público): correo + si requiere contraseña",
+        "tags": [
+          "advisors"
+        ]
+      }
+    },
+    "/api/v1/advisors/invitations/accept": {
+      "post": {
+        "operationId": "AdvisorInvitationsController_accept_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptAdvisorDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Confirma el rol asesor (usuario existente autenticado)",
+        "tags": [
+          "advisors"
+        ]
+      }
+    },
+    "/api/v1/advisors/invitations/set-password": {
+      "post": {
+        "operationId": "AdvisorInvitationsController_setPassword_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetAdvisorPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Fija la contraseña y activa la cuenta de asesor (usuario nuevo, por token)",
+        "tags": [
+          "advisors"
+        ]
+      }
+    },
+    "/api/v1/advisors": {
+      "get": {
+        "operationId": "AdvisorsController_list_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdvisorRowDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lista los asesores (usuarios con rol advisor)",
+        "tags": [
+          "advisors"
+        ]
+      }
+    },
+    "/api/v1/advisors/{id}/disable": {
+      "post": {
+        "operationId": "AdvisorsController_disable_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Deshabilita a un asesor (quita el rol; queda como cliente)",
+        "tags": [
+          "advisors"
+        ]
+      }
+    },
+    "/api/v1/advisors/{id}/enable": {
+      "post": {
+        "operationId": "AdvisorsController_enable_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Vuelve a habilitar a un asesor",
+        "tags": [
+          "advisors"
+        ]
+      }
+    },
+    "/api/v1/advisors/{id}/notify": {
+      "post": {
+        "operationId": "AdvisorsController_notify_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotifyAdvisorDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Envía una notificación in-app a un asesor",
+        "tags": [
+          "advisors"
+        ]
+      }
+    },
+    "/api/v1/advisors/{id}": {
+      "delete": {
+        "operationId": "AdvisorsController_remove_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Elimina (soft: inactivo) a un asesor ya deshabilitado",
+        "tags": [
+          "advisors"
         ]
       }
     }
   },
   "info": {
-    "title": "Pasa Eventos API",
-    "description": "API de la boletera Pasa Eventos",
+    "title": "Boletiva API",
+    "description": "API de la boletera Boletiva",
     "version": "1.0",
     "contact": {}
   },
@@ -8466,6 +10312,11 @@
             ],
             "example": "noche",
             "nullable": true
+          },
+          "emailNotificationsEnabled": {
+            "type": "boolean",
+            "description": "Recibir notificaciones por correo (negocio/soporte).",
+            "example": true
           },
           "isTestUser": {
             "type": "boolean",
@@ -8709,6 +10560,42 @@
           "status",
           "user",
           "tokens"
+        ]
+      },
+      "TwoFactorResendDto": {
+        "type": "object",
+        "properties": {
+          "preauthToken": {
+            "type": "string",
+            "description": "Token de pre-autenticación devuelto por el login (status = 2fa_required)",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          }
+        },
+        "required": [
+          "preauthToken"
+        ]
+      },
+      "TwoFactorResendResponseDto": {
+        "type": "object",
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "email",
+              "totp"
+            ],
+            "example": "email",
+            "description": "Método de segundo factor del usuario"
+          },
+          "resent": {
+            "type": "boolean",
+            "example": true,
+            "description": "true si se reenvió un código (solo método email); false para TOTP"
+          }
+        },
+        "required": [
+          "method",
+          "resent"
         ]
       },
       "VerifyEmailCodeDto": {
@@ -9042,6 +10929,11 @@
             ],
             "example": "noche"
           },
+          "emailNotificationsEnabled": {
+            "type": "boolean",
+            "description": "Recibir notificaciones por correo (negocio/soporte). No afecta a los correos de seguridad.",
+            "example": true
+          },
           "nit": {
             "type": "string",
             "description": "NIT para facturación (FEL). Vacío = sin NIT (se factura como CF). Necesario para facturar a nombre.",
@@ -9148,6 +11040,11 @@
             ],
             "example": "noche",
             "nullable": true
+          },
+          "emailNotificationsEnabled": {
+            "type": "boolean",
+            "description": "Recibir notificaciones por correo (negocio/soporte).",
+            "example": true
           },
           "lastLoginAt": {
             "type": "string",
@@ -14533,6 +16430,11 @@
             "description": "Si es la pasarela default de plataforma",
             "example": true
           },
+          "sandbox": {
+            "type": "boolean",
+            "description": "true = pasarela en MODO PRUEBA (sandbox): no genera cargos reales. El checkout muestra un aviso.",
+            "example": true
+          },
           "recommended": {
             "type": "boolean",
             "description": "true = pasarela EFECTIVA/asignada al evento para esta orden. El frontend debe preseleccionarla en el checkout.",
@@ -14561,6 +16463,7 @@
           "name",
           "provider",
           "isPlatformDefault",
+          "sandbox",
           "recommended",
           "total",
           "serviceFee",
@@ -16524,6 +18427,11 @@
             "type": "string",
             "nullable": true,
             "description": "Evento al que está filtrado el dashboard (null = todos)"
+          },
+          "selectedStatus": {
+            "type": "string",
+            "nullable": true,
+            "description": "Estado de evento al que está filtrado el dashboard (null = todos)"
           }
         },
         "required": [
@@ -16536,7 +18444,8 @@
           "salesOverTime",
           "dimensions",
           "availableEvents",
-          "selectedEventId"
+          "selectedEventId",
+          "selectedStatus"
         ]
       },
       "AdminProfitabilityRowDto": {
@@ -16932,6 +18841,11 @@
             "description": "Habilita el tour de onboarding guiado (una vez por usuario/página).",
             "example": true
           },
+          "tourResetDays": {
+            "type": "number",
+            "description": "Días para reofrecer un tour ya visto/saltado/rechazado (reinicio).",
+            "example": 30
+          },
           "capabilities": {
             "type": "object",
             "description": "Integraciones externas configuradas y disponibles (gating de UI).",
@@ -16980,6 +18894,36 @@
             "type": "boolean",
             "description": "Si el chat de soporte está habilitado.",
             "example": false
+          },
+          "canFeatureEvents": {
+            "type": "boolean",
+            "description": "Si los promotores pueden destacar sus eventos en el inicio.",
+            "example": false
+          },
+          "homeSliderEnabled": {
+            "type": "boolean",
+            "description": "Si el slider del inicio está habilitado.",
+            "example": true
+          },
+          "seatmapEnabled": {
+            "type": "boolean",
+            "description": "Si el mapa de asientos está habilitado.",
+            "example": true
+          },
+          "eventsCreationEnabled": {
+            "type": "boolean",
+            "description": "Si la creación de eventos está habilitada.",
+            "example": true
+          },
+          "advisorsMaintenance": {
+            "type": "boolean",
+            "description": "Mantenimiento solo para asesores.",
+            "example": false
+          },
+          "billingMaintenance": {
+            "type": "boolean",
+            "description": "Mantenimiento de facturación.",
+            "example": false
           }
         },
         "required": [
@@ -16987,11 +18931,18 @@
           "showHomeCategories",
           "reportsMaintenance",
           "tourEnabled",
+          "tourResetDays",
           "capabilities",
           "recaptchaSiteKey",
           "theme",
           "premium",
-          "chatEnabled"
+          "chatEnabled",
+          "canFeatureEvents",
+          "homeSliderEnabled",
+          "seatmapEnabled",
+          "eventsCreationEnabled",
+          "advisorsMaintenance",
+          "billingMaintenance"
         ]
       },
       "MaintenanceStatusDto": {
@@ -17150,6 +19101,71 @@
           "ok"
         ]
       },
+      "EmailLogItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "recipient": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "sent",
+              "failed"
+            ]
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "sentAt": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "recipient",
+          "type",
+          "subject",
+          "status",
+          "error",
+          "createdAt",
+          "sentAt"
+        ]
+      },
+      "EmailLogPageDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmailLogItemDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
       "ImpersonationUserDto": {
         "type": "object",
         "properties": {
@@ -17272,21 +19288,77 @@
           "token"
         ]
       },
-      "CreateThreadDto": {
+      "CreateTicketDto": {
         "type": "object",
         "properties": {
           "subject": {
             "type": "string",
-            "example": "Duda con mi evento"
+            "example": "Duda con la liquidación de mi evento"
           },
           "message": {
             "type": "string",
-            "example": "Hola, tengo una duda sobre las comisiones."
+            "example": "Hola, no me cuadra el neto liquidado."
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "billing",
+              "payments_settlement",
+              "event",
+              "technical",
+              "account",
+              "other"
+            ]
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "urgent"
+            ]
+          },
+          "contextType": {
+            "type": "string",
+            "enum": [
+              "event",
+              "order",
+              "settlement"
+            ]
+          },
+          "contextId": {
+            "type": "string",
+            "format": "uuid"
           }
         },
         "required": [
           "subject",
           "message"
+        ]
+      },
+      "AttachmentDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Key devuelta por el presign"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "mime": {
+            "type": "string"
+          },
+          "size": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "key",
+          "filename",
+          "mime",
+          "size"
         ]
       },
       "PostMessageDto": {
@@ -17295,23 +19367,588 @@
           "body": {
             "type": "string",
             "example": "Gracias, ya lo revisé."
+          },
+          "internalNote": {
+            "type": "boolean",
+            "description": "Nota interna del agente (no visible al promotor)"
+          },
+          "attachments": {
+            "description": "Adjuntos ya subidos vía presign",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AttachmentDto"
+            }
           }
         },
         "required": [
           "body"
         ]
       },
-      "AssignThreadDto": {
+      "PresignAttachmentDto": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string",
+            "example": "captura.png"
+          },
+          "mime": {
+            "type": "string",
+            "example": "image/png"
+          }
+        },
+        "required": [
+          "filename",
+          "mime"
+        ]
+      },
+      "AssignTicketDto": {
         "type": "object",
         "properties": {
           "assignedToId": {
             "type": "string",
             "format": "uuid",
-            "description": "Asesor/admin al que se reasigna el hilo"
+            "description": "Asesor/admin al que se reasigna"
           }
         },
         "required": [
           "assignedToId"
+        ]
+      },
+      "SetPriorityDto": {
+        "type": "object",
+        "properties": {
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "urgent"
+            ]
+          }
+        },
+        "required": [
+          "priority"
+        ]
+      },
+      "SetCategoryDto": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": [
+              "billing",
+              "payments_settlement",
+              "event",
+              "technical",
+              "account",
+              "other"
+            ]
+          }
+        },
+        "required": [
+          "category"
+        ]
+      },
+      "RateTicketDto": {
+        "type": "object",
+        "properties": {
+          "score": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 5,
+            "example": 5
+          }
+        },
+        "required": [
+          "score"
+        ]
+      },
+      "SlaConfigDto": {
+        "type": "object",
+        "properties": {
+          "targets": {
+            "type": "object",
+            "description": "Mapa { prioridad: { firstResponseMins, resolutionHours } }. Parcial permitido.",
+            "example": {
+              "urgent": {
+                "firstResponseMins": 10,
+                "resolutionHours": 2
+              }
+            }
+          }
+        },
+        "required": [
+          "targets"
+        ]
+      },
+      "MacroDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Saludo inicial"
+          },
+          "body": {
+            "type": "string",
+            "example": "Hola, gracias por escribir a soporte. Estoy revisando tu caso."
+          },
+          "lang": {
+            "type": "string",
+            "example": "es"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "billing",
+              "payments_settlement",
+              "event",
+              "technical",
+              "account",
+              "other"
+            ]
+          }
+        },
+        "required": [
+          "title",
+          "body"
+        ]
+      },
+      "MacroPatchDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "lang": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "billing",
+              "payments_settlement",
+              "event",
+              "technical",
+              "account",
+              "other"
+            ]
+          }
+        }
+      },
+      "KbPublicArticleDto": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "question": {
+            "type": "string"
+          },
+          "answerHtml": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "billing",
+              "payments_settlement",
+              "event",
+              "technical",
+              "account",
+              "other"
+            ],
+            "nullable": true
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "slug",
+          "question",
+          "answerHtml",
+          "category",
+          "tags"
+        ]
+      },
+      "KbSuggestionDto": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "question": {
+            "type": "string"
+          },
+          "answerText": {
+            "type": "string",
+            "description": "Respuesta en texto plano (para el bot/RAG)"
+          },
+          "score": {
+            "type": "number",
+            "description": "Relevancia 0..1"
+          }
+        },
+        "required": [
+          "slug",
+          "question",
+          "answerText",
+          "score"
+        ]
+      },
+      "KbArticleResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "question": {
+            "type": "string"
+          },
+          "answerHtml": {
+            "type": "string",
+            "description": "Respuesta con formato (HTML saneado)"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "billing",
+              "payments_settlement",
+              "event",
+              "technical",
+              "account",
+              "other"
+            ],
+            "nullable": true
+          },
+          "locale": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "published"
+            ]
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "public",
+              "internal"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sortOrder": {
+            "type": "number"
+          },
+          "viewCount": {
+            "type": "number"
+          },
+          "publishedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "question",
+          "answerHtml",
+          "category",
+          "locale",
+          "status",
+          "visibility",
+          "tags",
+          "sortOrder",
+          "viewCount",
+          "publishedAt",
+          "updatedAt"
+        ]
+      },
+      "CreateKbArticleDto": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "description": "Pregunta/título",
+            "maxLength": 300
+          },
+          "answerHtml": {
+            "type": "string",
+            "description": "Respuesta con formato (HTML enriquecido; se sanea en el servidor)"
+          },
+          "slug": {
+            "type": "string",
+            "description": "Slug único (se autogenera desde la pregunta si se omite)",
+            "maxLength": 160
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "billing",
+              "payments_settlement",
+              "event",
+              "technical",
+              "account",
+              "other"
+            ]
+          },
+          "locale": {
+            "type": "string",
+            "description": "Idioma (es/en)",
+            "default": "es"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "public",
+              "internal"
+            ],
+            "default": "public"
+          },
+          "tags": {
+            "description": "Etiquetas (máx 20)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sortOrder": {
+            "type": "number",
+            "description": "Orden dentro de su categoría (asc)",
+            "default": 0
+          }
+        },
+        "required": [
+          "question",
+          "answerHtml"
+        ]
+      },
+      "UpdateKbArticleDto": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "answerHtml": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "billing",
+              "payments_settlement",
+              "event",
+              "technical",
+              "account",
+              "other"
+            ],
+            "nullable": true
+          },
+          "locale": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "public",
+              "internal"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sortOrder": {
+            "type": "number"
+          }
+        }
+      },
+      "SetPreferenceDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "inapp",
+              "email"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "type",
+          "channel",
+          "enabled"
+        ]
+      },
+      "AdminSendDto": {
+        "type": "object",
+        "properties": {
+          "promoterId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Promotor destino (si no es \"a todos\")"
+          },
+          "all": {
+            "type": "boolean",
+            "description": "true = a todos los promotores"
+          },
+          "title": {
+            "type": "string",
+            "example": "Mantenimiento programado"
+          },
+          "body": {
+            "type": "string",
+            "example": "El sábado habrá mantenimiento de 2 a 4 am."
+          }
+        },
+        "required": [
+          "title",
+          "body"
+        ]
+      },
+      "CreateAdvisorInvitesDto": {
+        "type": "object",
+        "properties": {
+          "emails": {
+            "example": [
+              "asesor@correo.com"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "emails"
+        ]
+      },
+      "AcceptAdvisorDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token de la invitación"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "SetAdvisorPasswordDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 72,
+            "example": "Password123"
+          }
+        },
+        "required": [
+          "token",
+          "password"
+        ]
+      },
+      "AdvisorRowDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastName": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive",
+              "pending"
+            ]
+          },
+          "disabled": {
+            "type": "boolean",
+            "description": "true = deshabilitado (sin el rol advisor)"
+          },
+          "forced": {
+            "type": "boolean",
+            "description": "Cuenta creada al invitar (sin contraseña propia)"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "firstName",
+          "lastName",
+          "status",
+          "disabled",
+          "forced",
+          "createdAt"
+        ]
+      },
+      "NotifyAdvisorDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "title",
+          "body"
         ]
       }
     }

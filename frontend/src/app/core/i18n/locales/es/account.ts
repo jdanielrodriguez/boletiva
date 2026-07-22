@@ -3,6 +3,10 @@ export const account = {
   title: 'Mi cuenta',
   sectionsAria: 'Secciones de la cuenta',
   general: 'General',
+  adminModule: {
+    title: 'Módulo no aplicable para administradores',
+    body: 'Como administrador no compras boletos, así que este módulo (métodos de pago, facturación, wallet y boletos) no tiene uso en tu cuenta. Úsalo con una cuenta de cliente para probar el flujo de compra.',
+  },
   nav: {
     profile: 'Perfil',
     methods: 'Métodos de pago',
@@ -46,6 +50,14 @@ export const account = {
     night: 'Noche',
     saved: 'Tema actualizado.',
     saveError: 'No se pudo guardar el tema.',
+  },
+  notifs: {
+    title: 'Notificaciones por correo',
+    hint: 'Recibe por correo las notificaciones de soporte y de tus eventos. No afecta a los correos de seguridad (códigos, inicio de sesión).',
+    on: 'Activadas',
+    off: 'Desactivadas',
+    saved: 'Preferencia actualizada.',
+    saveError: 'No se pudo guardar la preferencia.',
   },
   twofa: {
     title: 'Verificación en dos pasos (2FA)',
@@ -107,6 +119,8 @@ export const account = {
     yearInvalid: 'Año inválido o vencido.',
   },
   billing: {
+    maintenanceTitle: 'Facturación en mantenimiento',
+    maintenanceBody: 'Estamos revisando la facturación. Vuelve a intentarlo más tarde.',
     filterPill: 'Mostrando una compra específica.',
     viewAll: 'Ver todas',
     event: 'Evento',

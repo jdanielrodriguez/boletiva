@@ -36,6 +36,11 @@ export class AuthApi {
     return this.api.post<AuthSessionResponseDto>('/auth/2fa/verify', dto);
   }
 
+  /** Reenvía el código del segundo factor por correo (solo método email). */
+  resend2fa(preauthToken: string): Observable<{ method: 'email' | 'totp'; resent: boolean }> {
+    return this.api.post<{ method: 'email' | 'totp'; resent: boolean }>('/auth/2fa/resend', { preauthToken });
+  }
+
   signup(dto: SignupDto, captchaToken?: string): Observable<SignupResponseDto> {
     return this.api.post<SignupResponseDto>('/auth/signup', dto, undefined, captchaOpts(captchaToken));
   }

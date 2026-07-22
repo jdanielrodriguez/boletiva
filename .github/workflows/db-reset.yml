@@ -76,6 +76,7 @@ jobs:
         # el seed cae a 'Password123' por el `|| ` del seed).
         env:
           SEED_ADMIN_PASSWORD: ${{ secrets.SEED_ADMIN_PASSWORD }}
+          SEED_ASESOR_PASSWORD: ${{ secrets.SEED_ASESOR_PASSWORD }}
           SEED_PROMOTER_PASSWORD: ${{ secrets.SEED_PROMOTER_PASSWORD }}
           SEED_BUYER_PASSWORD: ${{ secrets.SEED_BUYER_PASSWORD }}
         run: |

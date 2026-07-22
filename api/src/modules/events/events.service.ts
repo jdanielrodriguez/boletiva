@@ -144,7 +144,14 @@ export class EventsService {
   }
 
   private canManage(event: Event, user: AuthUser): boolean {
-    return user.roles.includes(Role.admin) || event.promoterId === user.userId;
+    // El ASESOR (soporte) VE cualquier evento (lectura); sus MUTACIONES ya las gobierna
+    // el AdvisorUnlockGuard a nivel de controller (requiere ventana de desbloqueo). Así
+    // deja de dar 403 al abrir un evento en modo solo-lectura.
+    return (
+      user.roles.includes(Role.admin) ||
+      user.roles.includes(Role.advisor) ||
+      event.promoterId === user.userId
+    );
   }
 
   private async uniqueSlug(name: string): Promise<string> {
@@ -341,12 +348,29 @@ export class EventsService {
     });
   }
 
+  /** ¿Está habilitada la creación de eventos? (setting `events.creation_enabled`, default true). */
+  private async eventCreationEnabled(): Promise<boolean> {
+    const s = await this.prisma.setting.findUnique({ where: { key: 'events.creation_enabled' } });
+    return s ? s.value === true : true;
+  }
+
+  /** ¿Los promotores pueden destacar en el slider? (setting `promoter.can_feature_events`, default false). */
+  private async canFeatureEventsEnabled(): Promise<boolean> {
+    const s = await this.prisma.setting.findUnique({ where: { key: 'promoter.can_feature_events' } });
+    return s ? s.value === true : false;
+  }
+
   async create(dto: CreateEventDto, user: AuthUser) {
     // El evento SIEMPRE pertenece a un PROMOTOR. Un ADMIN puede crearlo a nombre de
     // otro promotor (aprobado) enviando `promoterId`; queda auditado en
     // `createdByAdminId`. Un promotor no-admin ignora cualquier `promoterId` ajeno
     // y crea el evento a su propio nombre.
     const isAdmin = user.roles.includes(Role.admin);
+    // Kill-switch de gobernanza (T7): si la creación de eventos está deshabilitada,
+    // ningún promotor puede crear (el admin sí, para no bloquearse a sí mismo).
+    if (!isAdmin && !(await this.eventCreationEnabled())) {
+      throw new ForbiddenException('La creación de eventos está deshabilitada temporalmente');
+    }
     let ownerId = user.userId;
     let createdByAdminId: string | undefined;
     if (isAdmin && dto.promoterId && dto.promoterId !== user.userId) {
@@ -404,9 +428,18 @@ export class EventsService {
    */
   async setPromoted(id: string, featured: boolean, user: AuthUser) {
     await this.getManaged(id, user); // 404/403 si no existe o no lo gestiona
+    // El ASESOR gestiona los destacados con autoridad de admin (la mutación ya la gatea
+    // el AdvisorUnlockGuard con ventana de desbloqueo) → no aplica la gobernanza de
+    // promotor (can_feature_events / premium). Así puede ACTIVAR y desactivar destacados.
+    const isAdmin = user.roles.includes(Role.admin) || user.roles.includes(Role.advisor);
+    // Gobernanza (no-admin): el flag global `promoter.can_feature_events` debe estar
+    // ENCENDIDO (enforcement server-side, no solo ocultar el toggle en la UI).
+    if (!isAdmin && featured && !(await this.canFeatureEventsEnabled())) {
+      throw new ForbiddenException('Destacar eventos está deshabilitado por la plataforma');
+    }
     // Beneficio PREMIUM (B1): un promotor puede destacar SU evento solo si sus beneficios
     // premium están activos (con premium apagado, aplica a todos). El admin destaca cualquiera.
-    if (!user.roles.includes(Role.admin) && !(await this.premium.benefitsActive(user.userId))) {
+    if (!isAdmin && !(await this.premium.benefitsActive(user.userId))) {
       throw new ForbiddenException('Destacar eventos es un beneficio premium');
     }
     await this.prisma.event.update({

@@ -11,6 +11,7 @@
       X
     </a>
     <button type="button" class="share-btn copy" (click)="copy()" data-testid="share-copy">
+      <app-icon name="copy" />
       {{ copied() ? ('reservation.linkCopied' | translate) : ('reservation.copyLink' | translate) }}
     </button>
   </div>

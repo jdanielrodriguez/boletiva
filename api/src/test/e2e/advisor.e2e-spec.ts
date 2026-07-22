@@ -86,6 +86,32 @@ describe('Rol asesor (e2e)', () => {
     await http().get('/api/v1/events/all').set(bearer(advisorToken)).expect(200);
   });
 
+  it('B1: el asesor VE el detalle de gestión de un evento de OTRO promotor (read-only, no 403)', async () => {
+    // Evento sembrado propiedad del promotor semilla (no del asesor).
+    const event = await prisma.event.findFirstOrThrow({ where: { promoterId } });
+    await http().get(`/api/v1/events/${event.id}/manage`).set(bearer(advisorToken)).expect(200);
+  });
+
+  it('BUG destacar: el asesor (con desbloqueo) puede ACTIVAR y desactivar el destacado de un evento', async () => {
+    await setLock(true);
+    await unlock(); // ventana aprobada vigente
+    const event = await prisma.event.findFirstOrThrow({ where: { promoterId } });
+    // Activar destacado (antes fallaba por la gobernanza de promotor can_feature_events/premium).
+    await http()
+      .patch(`/api/v1/events/${event.id}/promote`)
+      .set(bearer(advisorToken))
+      .send({ featured: true })
+      .expect(200);
+    // Desactivar.
+    await http()
+      .patch(`/api/v1/events/${event.id}/promote`)
+      .set(bearer(advisorToken))
+      .send({ featured: false })
+      .expect(200);
+    // Limpieza: cierra la ventana de desbloqueo para no filtrar estado a otros tests.
+    await prisma.advisorUnlock.deleteMany({ where: { advisorId } });
+  });
+
   it('tab SISTEMA excluida: GET /settings, GET /payment-gateways y PATCH /maintenance → 403 para el asesor', async () => {
     await http().get('/api/v1/settings').set(bearer(advisorToken)).expect(403);
     await http().get('/api/v1/payment-gateways').set(bearer(advisorToken)).expect(403);
@@ -109,6 +135,39 @@ describe('Rol asesor (e2e)', () => {
       .set(bearer(advisorToken))
       .send({ note: 'nota del asesor' })
       .expect(200);
+  });
+
+  it('LIBRE sin desbloqueo: el asesor CREA/EDITA salones, plantillas y KB; PUBLICAR sí exige desbloqueo', async () => {
+    await setLock(true);
+    await prisma.advisorUnlock.deleteMany({ where: { advisorId } }); // sin ventana
+
+    // Crear KB (draft) SIN desbloqueo → permitido (labor del asesor).
+    const kb = await http()
+      .post('/api/v1/kb')
+      .set(bearer(advisorToken))
+      .send({ question: `Asesor libre ${stamp}?`, answerHtml: '<p>Contenido</p>' })
+      .expect((r) => {
+        if (![200, 201].includes(r.status)) throw new Error(`KB create → ${r.status}`);
+      });
+    const kbId = kb.body.id as string;
+    // Editar KB SIN desbloqueo → permitido.
+    await http().patch(`/api/v1/kb/${kbId}`).set(bearer(advisorToken)).send({ question: `Editado ${stamp}?` }).expect(200);
+    // PUBLICAR KB SIN desbloqueo → bloqueado (publicación gobernada por el candado).
+    await http().post(`/api/v1/kb/${kbId}/publish`).set(bearer(advisorToken)).expect(403);
+
+    // Crear salón SIN desbloqueo → permitido; publicarlo → bloqueado.
+    const hall = await http()
+      .post('/api/v1/halls')
+      .set(bearer(advisorToken))
+      .send({ name: `Salón asesor ${stamp}` })
+      .expect((r) => {
+        if (![200, 201].includes(r.status)) throw new Error(`Hall create → ${r.status}`);
+      });
+    await http().post(`/api/v1/halls/${hall.body.id}/publish`).set(bearer(advisorToken)).expect(403);
+
+    // Limpieza.
+    await prisma.kbArticle.deleteMany({ where: { id: kbId } });
+    await prisma.hall.deleteMany({ where: { id: hall.body.id } });
   });
 
   it('con advisor.lock_enabled=false el asesor MUTA sin desbloqueo', async () => {
@@ -151,5 +210,68 @@ describe('Rol asesor (e2e)', () => {
   it('RBAC: request exige rol asesor (admin 403); approve exige admin (asesor 403)', async () => {
     await http().post('/api/v1/advisor/unlock/request').set(bearer(adminToken)).expect(403);
     await http().post('/api/v1/advisor/unlock/approve').set(bearer(advisorToken)).send({ token: 'y'.repeat(20) }).expect(403);
+  });
+
+  // --- Seguridad QA (verificación final) ---
+
+  it('C-1: el asesor, AUN DESBLOQUEADO, NO puede asignar roles ni estado (@AdminOnly) → 403', async () => {
+    await setLock(true);
+    await unlock(); // ventana aprobada vigente
+    // Escalada de privilegios: intentar auto-ascenderse a admin o tocar roles/estado ajenos.
+    await http()
+      .patch(`/api/v1/users/${advisorId}/roles`)
+      .set(bearer(advisorToken))
+      .send({ roles: ['admin'] })
+      .expect(403);
+    await http()
+      .patch(`/api/v1/users/${promoterId}/roles`)
+      .set(bearer(advisorToken))
+      .send({ roles: ['admin'] })
+      .expect(403);
+    await http()
+      .patch(`/api/v1/users/${promoterId}/status`)
+      .set(bearer(advisorToken))
+      .send({ status: 'inactive' })
+      .expect(403);
+  });
+
+  it('C-1: ni el admin puede modificar SUS PROPIOS roles/estado (auto-bloqueo) → 403', async () => {
+    const adminId = (await prisma.user.findUniqueOrThrow({ where: { email: SEED.admin.toLowerCase().trim() } })).id;
+    await http()
+      .patch(`/api/v1/users/${adminId}/roles`)
+      .set(bearer(adminToken))
+      .send({ roles: ['admin', 'promoter'] })
+      .expect(403);
+    await http()
+      .patch(`/api/v1/users/${adminId}/status`)
+      .set(bearer(adminToken))
+      .send({ status: 'inactive' })
+      .expect(403);
+  });
+
+  it('ESCALADA: el asesor, aun DESBLOQUEADO, NO accede a tesorería/comisiones/enumeración (@AdminOnly) → 403', async () => {
+    await setLock(true);
+    await unlock(); // ventana aprobada vigente
+    const dummy = '00000000-0000-0000-0000-000000000000';
+    // Retiros de wallet (tesorería), liquidación, tabla de comisiones y enumeración de
+    // usuarios son admin-only REAL: el @AdminOnly corta ANTES del servicio → 403 (no 404).
+    await http().get('/api/v1/users').set(bearer(advisorToken)).expect(403);
+    await http().get(`/api/v1/users/${dummy}`).set(bearer(advisorToken)).expect(403);
+    await http().get('/api/v1/wallet/withdrawals/all').set(bearer(advisorToken)).expect(403);
+    await http().post(`/api/v1/wallet/withdrawals/${dummy}/approve`).set(bearer(advisorToken)).expect(403);
+    await http().post(`/api/v1/wallet/withdrawals/${dummy}/pay`).set(bearer(advisorToken)).send({}).expect(403);
+    await http().post(`/api/v1/events/${dummy}/settlement/finalize`).set(bearer(advisorToken)).expect(403);
+    await http().post('/api/v1/pricing/schedules').set(bearer(advisorToken)).send({ platformPct: 0.1 }).expect(403);
+  });
+
+  it('A-1: el candado NO bloquea la bandeja de soporte del asesor (take pasa el guard → 404 por ticket inexistente, no 403)', async () => {
+    await setLock(true);
+    await prisma.advisorUnlock.deleteMany({ where: { advisorId } }); // sin ventana
+    // Con el fix @SkipAdvisorUnlock, el guard deja pasar → el servicio responde 404
+    // (ticket inexistente), NO 403 de desbloqueo. Antes del fix era 403.
+    await http()
+      .post(`/api/v1/support/00000000-0000-0000-0000-000000000000/take`)
+      .set(bearer(advisorToken))
+      .expect(404);
   });
 });

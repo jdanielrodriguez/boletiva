@@ -107,27 +107,27 @@ export class ChallengesService {
     const origin = this.origin();
     const templates: Record<ChallengePurpose, { subject: string; intro: string; path: string }> = {
       email_verify: {
-        subject: 'Verifica tu correo — Boletiva',
-        intro: 'Verifica tu correo para activar tu cuenta.',
+        subject: '✅ Verifica tu correo — Boletiva',
+        intro: '¡Ya casi! Verifica tu correo y tu cuenta queda lista para la acción.',
         path: '/verify-email',
       },
       passwordless: {
-        subject: 'Tu enlace de acceso — Boletiva',
-        intro: 'Usa este enlace o código para iniciar sesión.',
+        subject: '🔑 Tu enlace de acceso — Boletiva',
+        intro: 'Aquí tienes tu llave: usa este enlace o el código para entrar.',
         path: '/passwordless',
       },
       twofa_email: {
-        subject: 'Tu código de verificación — Boletiva',
-        intro: 'Código de verificación en dos pasos.',
+        subject: '🔐 Tu código de verificación — Boletiva',
+        intro: 'Un paso más para mantener tu cuenta a salvo: tu código de verificación en dos pasos.',
         path: '/2fa',
       },
       gateway_unlock: {
-        subject: 'Código para agregar una pasarela — Boletiva',
+        subject: '💳 Código para agregar una pasarela — Boletiva',
         intro: 'Confirma que autorizas agregar una nueva pasarela de pago.',
         path: '/configuracion',
       },
       event_edit_unlock: {
-        subject: 'Código para editar un evento — Boletiva',
+        subject: '✏️ Código para editar un evento — Boletiva',
         intro: 'Confirma que autorizas editar este evento como administrador.',
         path: '/admin/eventos',
       },
@@ -137,8 +137,8 @@ export class ChallengesService {
     const bodyHtml = `
       <p style="margin:0 0 14px 0;">${t.intro}</p>
       <p style="margin:0 0 6px 0;">Tu código de verificación:</p>
-      <p style="margin:0;font-size:30px;font-weight:700;letter-spacing:8px;color:#7c3aed;">${code}</p>
-      <p class="pe-muted" style="margin:14px 0 0 0;font-size:14px;color:#6b6b76;">Válido por poco tiempo. Si no lo solicitaste, ignora este correo.</p>`;
+      <p style="margin:0;font-size:30px;font-weight:700;letter-spacing:8px;color:{{accent}};">${code}</p>
+      <p class="pe-muted" style="margin:14px 0 0 0;font-size:14px;color:{{muted}};">Válido por poco tiempo. Si no lo solicitaste, ignora este correo.</p>`;
     try {
       await this.mail.enqueueTemplated(email, t.subject, {
         title: t.subject.replace(' — Boletiva', ''),

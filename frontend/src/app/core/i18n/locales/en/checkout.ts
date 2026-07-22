@@ -19,6 +19,7 @@ export const checkout = {
   cancelled: 'cancelled',
   paymentMethod: 'Payment method',
   testCardHint: 'Test mode: use card 4242 4242 4242 4242, any future date and CVV 123. No real charge is made.',
+  sandboxNotice: 'Test mode (sandbox): the payment is simulated with Recurrente and creates no real charge.',
   loadingMethods: 'Loading your payment methods…',
   methodsError: 'We couldn’t load your saved methods. You can pay with a new card.',
   payWithWallet: 'Pay with my balance',
@@ -27,7 +28,7 @@ export const checkout = {
   walletPartial: 'Your balance doesn’t cover the total: the rest will be charged to the selected gateway.',
   useAnotherCard: 'Use another card',
   enterCvv: 'Security code (CVV)',
-  cvvHint: 'For your security, confirm the card CVV to authorize the payment.',
+  cvvHint: 'Confirm your card CVV to continue.',
   cvvRequired: 'Enter the CVV (3 or 4 digits) to continue.',
   noMethodsHint: 'You don’t have saved methods yet. Enter a card to pay.',
   saveCardHint: 'Your payment details are processed securely and encrypted.',
@@ -60,5 +61,9 @@ export const checkout = {
   secureNote:
     'Secure, encrypted payment. Your card details are processed safely; we never store the full number.',
   loading: 'Loading order…',
+  loadErrorTitle: 'Could not load the order',
+  loadErrorBody: 'The order does not exist, expired, or is unavailable. Check your tickets or go back to the catalog.',
+  goToAccount: 'Go to my account',
+  goToCatalog: 'Back to catalog',
   payError: 'We couldn’t start the payment. Please try again.',
 };

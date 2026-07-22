@@ -15,8 +15,8 @@ describe('mail-i18n (F3)', () => {
   });
 
   it('mailStrings devuelve el paquete del locale', () => {
-    expect(mailStrings('en').order.title).toBe('Purchase confirmed!');
-    expect(mailStrings('es').order.title).toBe('¡Compra confirmada!');
+    expect(mailStrings('en').order.title).toContain('Purchase confirmed!');
+    expect(mailStrings('es').order.title).toContain('¡Compra confirmada!');
   });
 
   it('formatEventDate usa America/Guatemala y el sufijo por locale', () => {

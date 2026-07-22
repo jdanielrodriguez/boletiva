@@ -4,7 +4,9 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { catchError, of, switchMap, tap } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { EventsApi } from '../../core/api/events.api';
+import { SeatStreamService } from '../../core/api/seat-stream.service';
 import { apiErrorMessage } from '../../core/http/api-error';
 import { ToastService } from '../../core/ui/toast.service';
 import { RecaptchaService } from '../../core/security/recaptcha.service';
@@ -68,6 +70,8 @@ export class PurchasePage implements OnDestroy {
   protected readonly store = inject(PurchaseService);
   private readonly recaptcha = inject(RecaptchaService);
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly seatStream = inject(SeatStreamService);
+  private seatSub?: Subscription;
   protected readonly confirm = new ConfirmController();
 
   /** Evita rehidratar la reserva más de una vez por visita. */
@@ -99,6 +103,10 @@ export class PurchasePage implements OnDestroy {
       tap((ev) => {
         this.eventName.set(ev.name);
         this.store.eventId.set(ev.id);
+        // Disponibilidad en vivo (FU11): repinta el mapa cuando otros compran/liberan.
+        if (isPlatformBrowser(this.platformId) && !this.seatSub) {
+          this.seatSub = this.seatStream.stream(ev.id).subscribe((delta) => this.store.applySeatDelta(delta));
+        }
       }),
       switchMap((ev) => this.eventsApi.availability(ev.id)),
       tap((av) => {
@@ -281,5 +289,6 @@ export class PurchasePage implements OnDestroy {
 
   ngOnDestroy(): void {
     if (this.ticker) clearInterval(this.ticker);
+    this.seatSub?.unsubscribe();
   }
 }

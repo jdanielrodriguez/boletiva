@@ -123,6 +123,9 @@
         <h2>{{ loc.name }} @if (loc.price) { · {{ loc.price.total | money }} {{ 'purchase.perTicket' | translate }} }</h2>
 
         @if (store.activeIsSeated()) {
+          <!-- Aviso móvil: en pantallas chicas el mapa es denso; se puede desplazar y
+               tocar, o usar la lista de asientos de abajo (QA final, cliente móvil). -->
+          <p class="seat-mobile-hint muted small" data-testid="purchase-seat-hint">{{ 'purchase.seatMapMobileHint' | translate }}</p>
           <app-seat-map
             [seats]="store.activeSeats()"
             [selected]="store.selectedSet()"

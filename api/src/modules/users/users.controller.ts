@@ -2,7 +2,8 @@ import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { AdminOnly } from '../../common/decorators/admin-only.decorator';
+import { CurrentUser, AuthUser } from '../../common/decorators/current-user.decorator';
 import { UsersService } from './users.service';
 import {
   AvatarPresignDto,
@@ -58,7 +59,8 @@ export class UsersController {
 
   @Get()
   @Roles(Role.admin)
-  @ApiOperation({ summary: 'Lista usuarios (admin; keyset ?cursor&limit + ?search)' })
+  @AdminOnly()
+  @ApiOperation({ summary: 'Lista usuarios (admin real; keyset ?cursor&limit + ?search)' })
   @ApiOkResponse({ type: UserPageResponseDto })
   list(@Query() q: UserListQueryDto) {
     return this.users.list(q);
@@ -66,7 +68,8 @@ export class UsersController {
 
   @Get(':id')
   @Roles(Role.admin)
-  @ApiOperation({ summary: 'Detalle de usuario (admin)' })
+  @AdminOnly()
+  @ApiOperation({ summary: 'Detalle de usuario (admin real)' })
   @ApiOkResponse({ type: UserResponseDto })
   get(@Param('id', ParseUUIDPipe) id: string) {
     return this.users.get(id);
@@ -74,17 +77,27 @@ export class UsersController {
 
   @Patch(':id/roles')
   @Roles(Role.admin)
-  @ApiOperation({ summary: 'Asigna roles a un usuario (admin)' })
+  @AdminOnly()
+  @ApiOperation({ summary: 'Asigna roles a un usuario (SOLO admin real; ni un asesor desbloqueado)' })
   @ApiOkResponse({ type: UserResponseDto })
-  setRoles(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateUserRolesDto) {
-    return this.users.setRoles(id, dto);
+  setRoles(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateUserRolesDto,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    return this.users.setRoles(id, dto, actor.userId);
   }
 
   @Patch(':id/status')
   @Roles(Role.admin)
-  @ApiOperation({ summary: 'Activa/desactiva un usuario (admin)' })
+  @AdminOnly()
+  @ApiOperation({ summary: 'Activa/desactiva un usuario (SOLO admin real)' })
   @ApiOkResponse({ type: UserResponseDto })
-  setStatus(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateUserStatusDto) {
-    return this.users.setStatus(id, dto);
+  setStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateUserStatusDto,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    return this.users.setStatus(id, dto, actor.userId);
   }
 }

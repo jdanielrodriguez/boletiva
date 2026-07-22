@@ -22,6 +22,8 @@ const PALETTE = ['#e14eca', '#22c55e', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899
 const PAD = 26;
 const CLUSTER_GAP = 60;
 const MAX_ROW_WIDTH = 1100;
+/** Tope de asientos a dibujar uno a uno en la vista previa combinada (evita freeze). */
+const MAX_PREVIEW_SEATS = 1500;
 
 /** Disposición de los cúmulos en el mapa combinado. */
 type MapLayout = 'horizontal' | 'vertical';
@@ -275,6 +277,10 @@ export class EventSeatMapComponent {
       this.layer?.destroyChildren();
     }
     if (!this.layer) return;
+    // Tope de nodos: por encima, dibujar cada asiento (2 rects) congelaría el navegador
+    // (sobre todo en móvil). Se muestran solo las etiquetas + un aviso (QA).
+    const totalSeats = clusters.reduce((n, c) => n + c.count, 0);
+    const tooMany = totalSeats > MAX_PREVIEW_SEATS;
     for (const c of clusters) {
       // Etiqueta de la localidad.
       this.layer.add(
@@ -287,6 +293,7 @@ export class EventSeatMapComponent {
           fill: c.color,
         }),
       );
+      if (tooMany) continue;
       const baseY = c.offsetY + 22;
       for (const s of c.seats) {
         const g = new K.Group({ x: c.offsetX + PAD + s.x, y: baseY + PAD + s.y });
@@ -294,6 +301,18 @@ export class EventSeatMapComponent {
         g.add(new K.Rect({ x: -13, y: -8, width: 26, height: 16, cornerRadius: 5, fill: c.color }));
         this.layer.add(g);
       }
+    }
+    if (tooMany) {
+      this.layer.add(
+        new K.Text({
+          x: 0,
+          y: height - 18,
+          text: `Vista previa simplificada (${totalSeats} asientos)`,
+          fontSize: 12,
+          fontStyle: 'italic',
+          fill: '#9aa0aa',
+        }),
+      );
     }
     this.layer.draw();
   }

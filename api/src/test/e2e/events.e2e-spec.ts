@@ -675,20 +675,27 @@ describe('Eventos: gestión (e2e)', () => {
         .set(bearer(promoterBToken))
         .send({ featured: true })
         .expect(403);
-      // El DUEÑO destaca su propio evento (premium.enabled=false → beneficios para todos).
-      await http().patch(`/api/v1/events/${ev.id}/promote`).set(bearer(promoterToken)).send({ featured: true }).expect(200);
-      let promoted = await http().get('/api/v1/events/promoted').expect(200);
-      expect(promoted.body.some((e: { id: string }) => e.id === ev.id)).toBe(true);
-      // Admin quita → sale del slider.
-      await http().patch(`/api/v1/events/${ev.id}/promote`).set(bearer(adminToken)).send({ featured: false }).expect(200);
-      promoted = await http().get('/api/v1/events/promoted').expect(200);
-      expect(promoted.body.some((e: { id: string }) => e.id === ev.id)).toBe(false);
+      // Gobernanza: el promotor solo destaca si el flag global está ENCENDIDO (default off).
+      await http().patch('/api/v1/settings/promoter.can_feature_events').set(bearer(adminToken)).send({ value: true }).expect(200);
+      try {
+        // El DUEÑO destaca su propio evento (premium.enabled=false → beneficios para todos).
+        await http().patch(`/api/v1/events/${ev.id}/promote`).set(bearer(promoterToken)).send({ featured: true }).expect(200);
+        let promoted = await http().get('/api/v1/events/promoted').expect(200);
+        expect(promoted.body.some((e: { id: string }) => e.id === ev.id)).toBe(true);
+        // Admin quita → sale del slider.
+        await http().patch(`/api/v1/events/${ev.id}/promote`).set(bearer(adminToken)).send({ featured: false }).expect(200);
+        promoted = await http().get('/api/v1/events/promoted').expect(200);
+        expect(promoted.body.some((e: { id: string }) => e.id === ev.id)).toBe(false);
+      } finally {
+        await http().patch('/api/v1/settings/promoter.can_feature_events').set(bearer(adminToken)).send({ value: false }).expect(200);
+      }
     });
 
     it('PATCH /events/:id/promote: con premium ENCENDIDO, un promotor free NO destaca (403) hasta ser premium', async () => {
       const ev = await mkPublished();
-      // Enciende la distinción premium y deja al dueño en free.
+      // Enciende la distinción premium + el flag de gobernanza; deja al dueño en free.
       await http().patch('/api/v1/settings/premium.enabled').set(bearer(adminToken)).send({ value: true }).expect(200);
+      await http().patch('/api/v1/settings/promoter.can_feature_events').set(bearer(adminToken)).send({ value: true }).expect(200);
       await prisma.user.update({ where: { id: promoterId }, data: { promoterTier: 'free', premiumSince: null, premiumTrialEndsAt: null } });
       try {
         // free + premium on → destacar es beneficio premium → 403.
@@ -697,8 +704,9 @@ describe('Eventos: gestión (e2e)', () => {
         await http().patch(`/api/v1/promoters/${promoterId}/tier`).set(bearer(adminToken)).send({ tier: 'premium' }).expect(200);
         await http().patch(`/api/v1/events/${ev.id}/promote`).set(bearer(promoterToken)).send({ featured: true }).expect(200);
       } finally {
-        // Restaura el estado global (suite serial): premium off + dueño free.
+        // Restaura el estado global (suite serial): premium off + flag off + dueño free.
         await http().patch('/api/v1/settings/premium.enabled').set(bearer(adminToken)).send({ value: false }).expect(200);
+        await http().patch('/api/v1/settings/promoter.can_feature_events').set(bearer(adminToken)).send({ value: false }).expect(200);
         await prisma.user.update({ where: { id: promoterId }, data: { promoterTier: 'free', premiumSince: null, premiumTrialEndsAt: null } });
         await prisma.event.update({ where: { id: ev.id }, data: { promotedPriority: null } });
       }

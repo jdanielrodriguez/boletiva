@@ -92,6 +92,9 @@ describe('Register (F4/v3.5)', () => {
     c[name].set(value);
   };
   const submit = () => {
+    // Acepta los T&C (obligatorio para habilitar el submit) antes de enviar.
+    (fixture.componentInstance as unknown as { acceptedTerms: { set: (v: boolean) => void } }).acceptedTerms.set(true);
+    fixture.detectChanges();
     (el.querySelector('[data-testid="rg-submit"]') as HTMLButtonElement).click();
     fixture.detectChanges();
   };

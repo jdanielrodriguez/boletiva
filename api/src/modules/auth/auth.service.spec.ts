@@ -277,13 +277,16 @@ describe('AuthService (ramas de borde, unit)', () => {
   });
 
   describe('verificación de correo', () => {
-    it('verifyEmailByToken marca el correo verificado', async () => {
-      const { prisma, challenges, service } = build();
+    it('verifyEmailByToken marca el correo verificado y confía el dispositivo', async () => {
+      const { prisma, challenges, service, devices } = build();
       challenges.verifyToken.mockResolvedValue('u1');
       prisma.user.update.mockResolvedValue(makeUser({ emailVerifiedAt: new Date() }));
-      const pub = await service.verifyEmailByToken('tok');
+      const ctx = { deviceId: 'd1', userAgent: 'ua', ip: '1.1.1.1' };
+      const pub = await service.verifyEmailByToken('tok', ctx);
       expect(pub.emailVerified).toBe(true);
       expect(prisma.user.update).toHaveBeenCalled();
+      // Validar el correo confía el dispositivo (evita 2FA en el siguiente login).
+      expect(devices.trust).toHaveBeenCalledWith('u1', ctx);
     });
 
     it('resendVerification: usuario inexistente no hace nada', async () => {

@@ -1,9 +1,11 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
-import { EMPTY, of } from 'rxjs';
+import { EMPTY, of, Subject } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { SessionStore } from '../../core/auth/session.store';
+import { NotificationsApi } from '../../core/api/notifications.api';
+import { NotificationsSocketService } from '../../core/notifications/notifications-socket.service';
 import { provideI18nTesting } from '../../core/i18n/testing';
 import { Header } from './header';
 
@@ -31,6 +33,9 @@ describe('Header', () => {
             hasAnyRole: (r: string[]) => (opts.roles ?? []).some((x) => r.includes(x)),
           },
         },
+        // La campanita (montada en el header) necesita sus deps stubbeadas.
+        { provide: NotificationsApi, useValue: { unreadCount: () => of({ count: 0 }), list: () => of({ items: [], nextCursor: null }) } },
+        { provide: NotificationsSocketService, useValue: { connect: () => Promise.resolve(), disconnect: () => undefined, notification$: new Subject(), unread$: new Subject() } },
       ],
     });
     fixture = TestBed.createComponent(Header);
@@ -105,6 +110,31 @@ describe('Header', () => {
     expect(el.querySelector('[data-testid="config-link"]')).not.toBeNull();
   });
 
+  it('admin ve TODO el menú de gobernanza (soporte + notificaciones + asesores + invitaciones)', async () => {
+    await setup({ roles: ['admin'] });
+    comp.toggleMenu();
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="support-link"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="admin-notif-link"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="admin-advisors-link"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="admin-invitations-link"]')).not.toBeNull();
+  });
+
+  it('advisor (asesor) ve Configuración + Soporte, pero NO Notificaciones/Asesores/Invitaciones (Fix 1)', async () => {
+    // Separación de privilegios de Fix 1: soporte lo ven admin+asesor; el resto de la
+    // gobernanza (enviar notificaciones, gestionar asesores, invitaciones) es solo admin.
+    await setup({ roles: ['advisor'] });
+    comp.toggleMenu();
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="config-link"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="support-link"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="admin-notif-link"]')).toBeNull();
+    expect(el.querySelector('[data-testid="admin-advisors-link"]')).toBeNull();
+    expect(el.querySelector('[data-testid="admin-invitations-link"]')).toBeNull();
+  });
+
   const cta = () => (fixture.nativeElement as HTMLElement).querySelector('[data-testid="become-promoter-link"]');
 
   it('CTA "Conviértete en promotor": visible para visitante', async () => {
@@ -160,18 +190,30 @@ describe('Header', () => {
     expect(el.querySelector('[data-testid="dd-facturacion"]')).not.toBeNull();
   });
 
-  it('logout navega al inicio', async () => {
+  it('logout navega al inicio tras la espera mínima de 3s', async () => {
     await setup({ logout: of(undefined) });
     const nav = spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
-    comp.logout();
-    expect(nav).toHaveBeenCalledWith('/');
+    jasmine.clock().install();
+    try {
+      comp.logout();
+      expect(nav).not.toHaveBeenCalled(); // aún no: espera los 3s
+      jasmine.clock().tick(3001);
+      expect(nav).toHaveBeenCalledWith('/');
+    } finally {
+      jasmine.clock().uninstall();
+    }
   });
 
-  it('logout con error también navega al inicio', async () => {
+  it('logout que completa sin emitir (204/EMPTY) igual navega al inicio', async () => {
     await setup({ logout: EMPTY });
     const nav = spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
-    comp.logout();
-    // EMPTY completa → complete handler navega.
-    expect(nav).toHaveBeenCalledWith('/');
+    jasmine.clock().install();
+    try {
+      comp.logout();
+      jasmine.clock().tick(3001);
+      expect(nav).toHaveBeenCalledWith('/');
+    } finally {
+      jasmine.clock().uninstall();
+    }
   });
 });

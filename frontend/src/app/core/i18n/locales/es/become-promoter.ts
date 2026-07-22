@@ -58,7 +58,7 @@ export const becomePromoter = {
   planPremiumF3: 'Eventos destacados con prioridad',
   planPremiumF4: 'Dashboards y reportes avanzados',
   planPremiumF5: 'Soporte prioritario',
-  premiumNote: 'Premium desbloquea chat de soporte, destacar tu propio evento y dashboards avanzados. Para activarlo por pago necesitas una tarjeta registrada.',
+  premiumNote: 'Premium desbloquea chat de soporte y destacar tu propio evento. Para activarlo por pago necesitas una tarjeta registrada.',
   trialHint: 'Incluye {{days}} días de prueba gratis.',
 
   // --- Registro de visitante (sin sesión) ---

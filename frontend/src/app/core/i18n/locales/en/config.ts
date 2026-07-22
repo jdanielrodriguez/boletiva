@@ -38,8 +38,11 @@ export const config = {
     halls: 'Venues',
     templates: 'Templates',
     system: 'System',
+    kb: 'Knowledge base',
+    emailLog: 'Emails',
     settings: 'Settings',
     invitations: 'Invitations',
+    support: 'Support',
   },
 
   events: {
@@ -68,7 +71,9 @@ export const config = {
     unfeatured: 'Event removed from home.',
     featureError: 'Could not change the featured state.',
     empty: 'No events match that filter.',
+    loading: 'Loading events…',
     loadError: 'Could not load the events.',
+    loadErrorTitle: 'Failed to load',
     emptyTitle: 'No events yet',
     emptySubtitle: 'Events created by promoters will appear here.',
     noResultsTitle: 'No matches',
@@ -115,7 +120,9 @@ export const config = {
     shareRange: 'The cost-share must be between 0 and 1 (e.g. 0.5 = 50%).',
     shareUpdated: 'Promoter cost-share updated.',
     shareError: 'Could not update the cost-share.',
+    loading: 'Loading promoters…',
     loadError: 'Could not load the promoters.',
+    loadErrorTitle: 'Failed to load',
     noteSaveTitle: 'Save internal note',
     noteSaved: 'Note saved.',
     noteError: 'Could not save the note.',
@@ -219,6 +226,8 @@ export const config = {
     gatewayStatusUpdated: 'Gateway status updated.',
     gatewayStatusError: 'Could not change the status (is it the default?).',
     gatewayDefaultSet: '"{{name}}" is the new default gateway.',
+    gatewayDefaultConfirmTitle: 'Make "{{name}}" the default?',
+    gatewayDefaultConfirmMsg: 'All payments for events without purchases will route through this gateway. This affects the whole platform.',
     gatewayDefaultError: 'Could not set as default.',
     unlockSentToast: 'We sent a code to your email to authorize adding the gateway.',
     unlockSendError: 'Could not send the unlock code.',
@@ -242,6 +251,8 @@ export const config = {
     submitHint: 'Press "Invite" again (or Enter) to send.',
     invite: 'Invite',
     createdHeading: 'Generated links (copy and share them)',
+    copy: 'Copy link',
+    copied: 'Link copied',
     listHeading: 'Invitations',
     searchPlaceholder: 'Search email…',
     allStatuses: 'All statuses',
@@ -263,6 +274,9 @@ export const config = {
     filterAuthorized: 'Authorized',
     filterRejected: 'Rejected',
     filterAll: 'All',
+    loading: 'Loading invitations…',
+    loadError: 'Could not load invitations.',
+    loadErrorTitle: 'Failed to load',
     emptyTitle: 'No invitations',
     emptySubtitle: 'You have not sent any promoter invitations yet.',
     noMatchTitle: 'No matches',
@@ -426,6 +440,7 @@ export const config = {
     emptyTitle: 'No settings',
     emptySubtitle: 'There are no settings available to display.',
     loadError: 'Could not load the settings.',
+    loadErrorTitle: 'Failed to load',
     saved: 'Setting "{{key}}" saved.',
     saveError: 'Could not save (check the value type/range).',
     typeLabel: 'Type: {{type}}',
@@ -433,6 +448,16 @@ export const config = {
   },
 
   /** Friendly labels per setting (leaf = key with dots → underscores). */
+  /** Collapsible settings groups (T7b). */
+  settingGroups: {
+    pagos: 'Payments & pricing',
+    promotores: 'Promoters & premium',
+    eventos: 'Events',
+    soporte: 'Support',
+    marca: 'General & branding',
+    otros: 'Other',
+  },
+
   settingLabels: {
     pricing_platform_fee_pct: 'Platform fee',
     pricing_gateway_fee_pct: 'Gateway fee',
@@ -458,8 +483,15 @@ export const config = {
     premium_enabled: 'Premium profile',
     premium_trial_enabled: 'Premium free trial',
     premium_trial_days: 'Premium trial days',
-    chat_enabled: 'Support chat',
+    chat_enabled: 'Support / chat',
     advisor_lock_enabled: 'Advisor unlock',
+    promoter_can_feature_events: 'Feature events (promoters)',
+    events_creation_enabled: 'Event creation',
+    home_slider_enabled: 'Home slider',
+    seatmap_enabled: 'Seat map',
+    advisors_enabled: 'Advisor role',
+    advisors_maintenance: 'Advisors maintenance',
+    billing_maintenance: 'Billing maintenance',
   },
 
   /** Enum setting options (themes and slots). */
@@ -515,9 +547,16 @@ export const config = {
     premium_trial_enabled:
       'Enables the premium free trial (only with the premium profile on). When on, choosing premium starts the trial automatically.',
     premium_trial_days: 'Number of days the premium free trial lasts.',
-    chat_enabled: 'Enables the support chat (premium promoter ↔ advisor/admin). When off, no one sees the chat.',
+    chat_enabled: 'Enables support/chat (promoter ↔ advisor/admin). When off, no one sees support.',
     advisor_lock_enabled:
       'Requires an advisor to get an admin-approved unlock (via link) before editing. When off, advisors edit like the admin with no unlock.',
+    promoter_can_feature_events: 'Lets promoters feature their event on the home page. Off = they do not see the option.',
+    events_creation_enabled: 'Enables event creation by promoters. Off = no one can create events.',
+    home_slider_enabled: 'Shows the home slider (built from featured events). Off = always hidden.',
+    seatmap_enabled: 'Enables the seat map. Off = general admission only.',
+    advisors_enabled: 'Enables the support advisor role.',
+    advisors_maintenance: 'Shows advisors an "access temporarily disabled" screen.',
+    billing_maintenance: 'Hides billing behind a maintenance view (for reconciliations).',
   },
 
   // --- Hall / template dashboards (separate page) ---

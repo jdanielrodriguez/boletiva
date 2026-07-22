@@ -92,6 +92,19 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Stream SSE PÚBLICO de disponibilidad de asientos de un evento (FU11). Abre con
+   * `ready` y luego empuja cada delta `seat` ({sold|released}) del evento → la página
+   * de compra repinta el mapa en vivo sin polling. La disponibilidad es info pública.
+   */
+  streamSeats(eventId: string): Observable<MessageEvent> {
+    const live = this.subject.pipe(
+      filter((e) => e.kind === 'seat' && e.eventId === eventId),
+      map((e): MessageEvent => ({ type: 'seat', data: e.data as object })),
+    );
+    return merge(of<MessageEvent>({ type: 'ready', data: { ok: true } }), live);
+  }
+
+  /**
    * Stream SSE del dashboard de check-ins de un evento (validadores). Abre con un
    * evento `ready` y luego empuja un `checkin` por cada validación (el cliente
    * recarga las stats). Sin polling agresivo.

@@ -33,7 +33,6 @@ import {
 
 @ApiTags('payment-gateways')
 @ApiBearerAuth()
-@AdminOnly()
 @Controller('payment-gateways')
 export class PaymentGatewaysController {
   constructor(
@@ -43,6 +42,7 @@ export class PaymentGatewaysController {
 
   @Post('unlock')
   @Roles(Role.admin)
+  @AdminOnly()
   @HttpCode(200)
   @ApiOperation({
     summary: 'Envía un código OTP al correo del admin para autorizar agregar una pasarela',
@@ -55,6 +55,7 @@ export class PaymentGatewaysController {
 
   @Get()
   @Roles(Role.admin)
+  @AdminOnly()
   @ApiOperation({ summary: 'Lista todas las pasarelas (admin)' })
   @ApiOkResponse({ type: GatewayResponseDto, isArray: true })
   list() {
@@ -62,14 +63,17 @@ export class PaymentGatewaysController {
   }
 
   @Get('active')
-  @ApiOperation({ summary: 'Pasarelas activas (métodos disponibles para cobrar)' })
+  @Roles(Role.admin, Role.promoter)
+  @ApiOperation({ summary: 'Pasarelas activas (métodos disponibles; el promotor elige la de su evento)' })
   @ApiOkResponse({ type: GatewayResponseDto, isArray: true })
   active() {
-    return this.gateways.listActive();
+    // Recortado: NO expone credentialsRef (referencia al secreto) al promotor.
+    return this.gateways.listActivePublic();
   }
 
   @Post()
   @Roles(Role.admin)
+  @AdminOnly()
   @ApiOperation({ summary: 'Crea una pasarela (admin) — exige código OTP de desbloqueo' })
   @ApiCreatedResponse({ type: GatewayResponseDto })
   async create(@Body() dto: CreateGatewayDto, @CurrentUser('userId') adminId: string) {
@@ -80,6 +84,7 @@ export class PaymentGatewaysController {
 
   @Patch(':id')
   @Roles(Role.admin)
+  @AdminOnly()
   @ApiOperation({ summary: 'Actualiza una pasarela (admin)' })
   @ApiOkResponse({ type: GatewayResponseDto })
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateGatewayDto) {
@@ -88,6 +93,7 @@ export class PaymentGatewaysController {
 
   @Patch(':id/status')
   @Roles(Role.admin)
+  @AdminOnly()
   @ApiOperation({ summary: 'Cambia el estado de una pasarela (admin)' })
   @ApiOkResponse({ type: GatewayResponseDto })
   setStatus(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateGatewayStatusDto) {
@@ -96,6 +102,7 @@ export class PaymentGatewaysController {
 
   @Post(':id/make-default')
   @Roles(Role.admin)
+  @AdminOnly()
   @ApiOperation({ summary: 'Designa la pasarela default de plataforma (admin)' })
   @ApiCreatedResponse({ type: GatewayResponseDto })
   makeDefault(@Param('id', ParseUUIDPipe) id: string) {
@@ -104,6 +111,7 @@ export class PaymentGatewaysController {
 
   @Delete(':id')
   @Roles(Role.admin)
+  @AdminOnly()
   @HttpCode(200)
   @ApiOperation({ summary: 'Elimina una pasarela y migra sus eventos a la default (admin)' })
   @ApiOkResponse({ type: GatewayDeleteResponseDto })

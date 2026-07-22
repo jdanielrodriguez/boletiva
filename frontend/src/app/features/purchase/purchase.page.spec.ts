@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { EventsApi } from '../../core/api/events.api';
+import { SeatStreamService } from '../../core/api/seat-stream.service';
 import { ReservationsApi } from '../../core/api/reservations.api';
 import { BillingApi } from '../../core/api/billing.api';
 import { RecaptchaService } from '../../core/security/recaptcha.service';
@@ -71,6 +72,8 @@ describe('PurchasePage', () => {
             snapshot: { queryParamMap: convertToParamMap({}) },
           },
         },
+        // FU11: stub del stream SSE de disponibilidad (evita abrir EventSource/DI de HTTP).
+        { provide: SeatStreamService, useValue: { stream: () => of() } },
       ],
     });
     initI18nTesting();

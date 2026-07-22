@@ -20,6 +20,7 @@ export const promoter = {
     empty: 'You have no events yet. Create the first one with "+ New event".',
     emptySubtitle: 'Create your first event with "+ New event" to start selling tickets.',
     localitiesCount: '{{n}} locality(ies)',
+    featuredFlag: 'Featured',
     publish: 'Publish event',
     publishShort: 'Publish',
     editTitle: 'Edit event',
@@ -197,7 +198,7 @@ export const promoter = {
     promoterRequired: 'Choose the promoter on whose behalf the event is created.',
     createdBySupport: 'Created by support',
     // Navigation
-    backToConsole: 'Back to console',
+    backToConsole: 'Back to settings',
     backToMyEvents: 'Back to my events',
     thisEvent: 'this event',
     // Publication gate (messages)
@@ -291,6 +292,8 @@ export const promoter = {
   // --- Seat editor (Konva) ---
   seat: {
     readonlyNote: 'The seat map is in read-only mode.',
+    mobileHint: 'Tip: the map editor works best on a large screen (desktop or a tablet in landscape).',
+    tooManySeats: 'Too many seats (max {{max}}). Reduce rows/columns or split the locality.',
     rows: 'Rows',
     seatsPerRow: 'Seats per row',
     section: 'Section',
@@ -431,6 +434,10 @@ export const promoter = {
     filterPromoterSelf: 'My events',
     filterEvent: 'Event',
     filterEventAll: 'All events',
+    filterStatus: 'Status',
+    filterStatusAll: 'All statuses',
+    filterFrom: 'From',
+    filterTo: 'To',
     loading: 'Loading dashboard…',
     error: 'Could not load the dashboard.',
     // Promoter GLOBAL dashboard (Phase 3)

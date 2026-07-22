@@ -58,7 +58,7 @@ export const becomePromoter = {
   planPremiumF3: 'Priority featured events',
   planPremiumF4: 'Advanced dashboards and reports',
   planPremiumF5: 'Priority support',
-  premiumNote: 'Premium unlocks support chat, featuring your own event, and advanced dashboards. To activate it via payment you need a saved card.',
+  premiumNote: 'Premium unlocks support chat and featuring your own event. To activate it via payment you need a saved card.',
   trialHint: 'Includes a {{days}}-day free trial.',
 
   // --- Guest registration (no session) ---

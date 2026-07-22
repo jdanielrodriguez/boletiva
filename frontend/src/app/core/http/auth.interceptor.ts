@@ -10,6 +10,7 @@ import { Observable, catchError, switchMap, throwError } from 'rxjs';
 import { API_BASE_URL } from '../config/api.tokens';
 import { AuthRefreshService } from '../auth/auth-refresh.service';
 import { TokenStore } from '../auth/token-store.service';
+import { DeviceIdService } from '../auth/device-id.service';
 import { EditUnlockStore } from '../events/edit-unlock.store';
 
 /** Adjunta el access token en el header Authorization. */
@@ -28,6 +29,7 @@ function withBearer(req: HttpRequest<unknown>, token: string): HttpRequest<unkno
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const baseUrl = inject(API_BASE_URL);
   const tokens = inject(TokenStore);
+  const deviceIdSvc = inject(DeviceIdService);
   const refresher = inject(AuthRefreshService);
   const editUnlock = inject(EditUnlockStore);
 
@@ -45,6 +47,12 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   const access = tokens.getAccessToken();
   let authed = access ? withBearer(req, access) : req;
+
+  // Identidad estable del navegador para la confianza de dispositivo del 2FA
+  // (localStorage → header `X-Device-Id`, que el backend prioriza). Persiste entre
+  // sesiones → tras validar el correo/2FA una vez, el re-login no vuelve a pedir código.
+  const deviceId = deviceIdSvc.get();
+  if (deviceId) authed = authed.clone({ setHeaders: { 'X-Device-Id': deviceId } });
 
   // Desbloqueo de edición (admin no-dueño): adjunta el token del evento activo en
   // las mutaciones. El promotor dueño nunca fija token → no se envía; backend lo

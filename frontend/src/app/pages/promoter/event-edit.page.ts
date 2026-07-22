@@ -11,6 +11,7 @@ import { HallsApi } from '../../core/api/halls.api';
 import { MediaApi } from '../../core/api/media.api';
 import { EditUnlockStore } from '../../core/events/edit-unlock.store';
 import { SessionStore } from '../../core/auth/session.store';
+import { PublicConfigStore } from '../../core/config/public-config.store';
 import { ToastService } from '../../core/ui/toast.service';
 import { ConfirmController } from '../../shared/confirm-dialog/confirm-controller';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
@@ -101,6 +102,9 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
   private readonly categoriesApi = inject(CategoriesApi);
   private readonly editUnlock = inject(EditUnlockStore);
   private readonly session = inject(SessionStore);
+  private readonly publicConfig = inject(PublicConfigStore);
+  /** T7: el mapa de asientos se puede deshabilitar globalmente (solo aforo general). */
+  protected readonly seatmapEnabled = computed(() => this.publicConfig.seatmapEnabled());
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toasts = inject(ToastService);
@@ -223,7 +227,9 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
    * el cierre de caja deben seguir funcionando).
    */
   protected readonly editLocked = computed(
-    () => this.locked() || (this.isConcluded() && this.isEditableTab()),
+    () =>
+      this.locked() ||
+      ((this.isConcluded() || this.isAdvisor()) && this.isEditableTab()),
   );
   /**
    * Aviso de "boletos vendidos": se OCULTA cuando el evento terminó por fecha sin
@@ -292,6 +298,10 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
   // --- Admin crea evento a nombre de un promotor (v3.8 · G2-7) ---
   /** El usuario actual es admin (habilita el selector de promotor en modo nuevo). */
   protected readonly isAdmin = computed(() => this.session.hasRole('admin'));
+  /** El ASESOR ve el evento en SOLO-LECTURA: no edita campos ni ve las acciones de
+   *  arriba (guardar/publicar/suspender/cancelar) ni el tab de validadores; sí ve
+   *  cuentas (con liquidaciones) y dashboard. */
+  protected readonly isAdvisor = computed(() => this.session.hasRole('advisor'));
   /** Lista de promotores APROBADOS (solo se carga si el creador es admin). */
   protected readonly promoters = signal<PromoterListItemDto[]>([]);
   /** Promotor elegido por el admin al crear (obligatorio en modo nuevo admin). */
@@ -419,7 +429,9 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
    * habilita el botón según el estado (`canFinalizeNow`). NUNCA se bloquea por el
    * candado de edición; el promotor y la impersonación no la ven.
    */
-  protected readonly canSeeFinalize = computed(() => this.isAdminReal() && !this.isNew());
+  protected readonly canSeeFinalize = computed(
+    () => (this.isAdminReal() || this.isAdvisor()) && !this.isNew(),
+  );
   /**
    * ¿El cierre de caja se puede EJECUTAR ahora? Solo si el evento está suspendido,
    * cancelado, ya finalizado, o COMPLETADO (concluido por fecha) — mismos criterios
@@ -430,7 +442,9 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
     () => this.isSuspended() || this.isCancelled() || this.isFinished() || this.hasEnded(),
   );
   /** El admin real ve el DETALLE de cuentas del evento (igual que el dueño). */
-  protected readonly canSeeAccounts = computed(() => this.isOwner() || this.isAdminReal());
+  protected readonly canSeeAccounts = computed(
+    () => this.isOwner() || this.isAdminReal() || this.isAdvisor(),
+  );
 
   // --- Devoluciones por cancelación/suspensión (OWNER, tab Cuentas) ---
   protected readonly refunding = signal(false);

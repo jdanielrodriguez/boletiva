@@ -17,6 +17,7 @@ export const purchase = {
   localities: 'Localidades',
   perTicket: 'por boleto',
   seatPickerAria: 'Elegir asiento (lista accesible)',
+  seatMapMobileHint: 'Desplaza y toca para elegir tus asientos. Si el mapa es muy denso, gira el teléfono a horizontal.',
   legendAvailable: 'Disponible',
   legendSelected: 'Seleccionada',
   legendTaken: 'Ocupada',

@@ -18,6 +18,7 @@ import {
 } from '@nestjs/swagger';
 import { ContentStatus, Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { SkipAdvisorUnlock } from '../../common/decorators/skip-advisor-unlock.decorator';
 import { SeatTemplatesService } from './seat-templates.service';
 import {
   CreateSeatTemplateDto,
@@ -51,10 +52,12 @@ export class SeatTemplatesController {
   }
 
   @Get(':id')
-  @Roles(Role.promoter, Role.admin)
-  @ApiOperation({ summary: 'Detalle de una plantilla' })
+  @Roles(Role.admin)
+  @ApiOperation({ summary: 'Detalle de una plantilla (gestión admin; incluye estado y notas)' })
   @ApiOkResponse({ type: SeatTemplateResponseDto })
   get(@Param('id', ParseUUIDPipe) id: string) {
+    // Admin-only: el promotor usa el listado publicado `GET /seat-templates`; no debe
+    // leer una plantilla en borrador ni sus notas por id (QA fuga de visibilidad).
     return this.templates.get(id);
   }
 
@@ -68,7 +71,8 @@ export class SeatTemplatesController {
 
   @Post()
   @Roles(Role.admin)
-  @ApiOperation({ summary: 'Crea una plantilla de asientos (admin)' })
+  @SkipAdvisorUnlock() // Crear plantillas es LIBRE para el asesor; publicar sí exige desbloqueo.
+  @ApiOperation({ summary: 'Crea una plantilla de asientos (admin/asesor)' })
   @ApiCreatedResponse({ type: SeatTemplateResponseDto })
   create(@Body() dto: CreateSeatTemplateDto) {
     return this.templates.create(dto);
@@ -76,7 +80,8 @@ export class SeatTemplatesController {
 
   @Patch(':id')
   @Roles(Role.admin)
-  @ApiOperation({ summary: 'Actualiza una plantilla (admin; built-in bloqueada)' })
+  @SkipAdvisorUnlock() // Editar plantillas es LIBRE para el asesor.
+  @ApiOperation({ summary: 'Actualiza una plantilla (admin/asesor; built-in bloqueada)' })
   @ApiOkResponse({ type: SeatTemplateResponseDto })
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateSeatTemplateDto) {
     return this.templates.update(id, dto);

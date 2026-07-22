@@ -33,6 +33,7 @@ import type { CardBrand } from '../../core/payments/card-tokenizer.stub';
 import { AuthService } from '../../core/auth/auth.service';
 import { AuthApi } from '../../core/api/auth.api';
 import { SessionStore } from '../../core/auth/session.store';
+import { PublicConfigStore } from '../../core/config/public-config.store';
 import { ToastService } from '../../core/ui/toast.service';
 import { ConfirmController } from '../../shared/confirm-dialog/confirm-controller';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
@@ -40,6 +41,7 @@ import { IconComponent } from '../../shared/icon/icon.component';
 import { TourComponent, type TourStep } from '../../shared/tour/tour.component';
 import { TicketTransferModal } from '../../shared/ticket-transfer-modal/ticket-transfer-modal.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
+import { SwitchComponent } from '../../shared/ui/switch.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
 import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
 
@@ -104,7 +106,7 @@ function groupByEventOrder(tickets: TicketResponseDto[]): EventGroup[] {
  */
 @Component({
   selector: 'app-account',
-  imports: [FormsModule, TranslatePipe, LocalizedDatePipe, UpperCasePipe, MoneyPipe, RouterLink, IconComponent, ConfirmDialogComponent, PagerComponent, EmptyStateComponent, StatusLabelPipe, TicketTransferModal, TourComponent],
+  imports: [FormsModule, TranslatePipe, LocalizedDatePipe, UpperCasePipe, MoneyPipe, RouterLink, IconComponent, ConfirmDialogComponent, PagerComponent, EmptyStateComponent, StatusLabelPipe, TicketTransferModal, TourComponent, SwitchComponent],
   templateUrl: './account.html',
 })
 export class Account {
@@ -115,6 +117,9 @@ export class Account {
     { title: 'tour.account.walletTitle', body: 'tour.account.walletBody' },
   ];
   protected readonly session = inject(SessionStore);
+  private readonly publicConfig = inject(PublicConfigStore);
+  /** T7: facturación en mantenimiento (admin lo activa por descuadres). */
+  protected readonly billingMaintenance = computed(() => this.publicConfig.billingMaintenance());
   private readonly walletApi = inject(WalletApi);
   private readonly ticketsApi = inject(TicketsApi);
   private readonly ordersApi = inject(OrdersApi);
@@ -135,6 +140,11 @@ export class Account {
 
   private readonly route = inject(ActivatedRoute);
   protected readonly section = signal<Section>('perfil');
+
+  /** El admin no compra como cliente → los módulos de comprador (todo menos "perfil")
+   *  no le aplican; se muestra un aviso especial en lugar del contenido. */
+  protected readonly isAdmin = computed(() => this.session.hasRole('admin'));
+  protected readonly adminModuleBlocked = computed(() => this.isAdmin() && this.section() !== 'perfil');
 
   /** Secciones válidas para el deep-link `?s=` (accesos rápidos del dropdown). */
   private static readonly SECTIONS: Section[] = [
@@ -228,6 +238,22 @@ export class Account {
       error: () => {
         this.savingTheme.set(false);
         this.toasts.error(this.translate.instant('account.theme.saveError'));
+      },
+    });
+  }
+
+  // --- Preferencia de notificaciones por correo (T7) ---
+  protected readonly emailNotifs = signal(this.session.user()?.emailNotificationsEnabled ?? true);
+  protected toggleEmailNotifs(v: boolean): void {
+    this.emailNotifs.set(v);
+    this.usersApi.updateMe({ emailNotificationsEnabled: v }).subscribe({
+      next: (user) => {
+        this.session.setUser(user);
+        this.toasts.success(this.translate.instant('account.notifs.saved'));
+      },
+      error: () => {
+        this.emailNotifs.set(!v); // revertir en fallo
+        this.toasts.error(this.translate.instant('account.notifs.saveError'));
       },
     });
   }
@@ -728,11 +754,13 @@ export class Account {
       if (this.section() === 'metodos') this.loadCards();
     });
 
-    // El QR se muestra por defecto: al abrir "activos", precargamos la media de los
-    // boletos cuya media ya esté lista (una sola vez por boleto).
+    // El QR se muestra por defecto: al abrir "activos" o "pasados", precargamos la
+    // media de los boletos cuya media ya esté lista (una sola vez por boleto).
     effect(() => {
-      if (this.section() !== 'activos') return;
-      for (const t of this.activos()) {
+      const sec = this.section();
+      if (sec !== 'activos' && sec !== 'pasados') return;
+      const list = sec === 'activos' ? this.activos() : this.pasados();
+      for (const t of list) {
         if (t.mediaReady && !this.mediaRequested.has(t.id)) {
           this.mediaRequested.add(t.id);
           this.loadMedia(t.id);

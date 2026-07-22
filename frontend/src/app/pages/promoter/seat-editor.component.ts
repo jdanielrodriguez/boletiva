@@ -35,6 +35,8 @@ import {
 } from './seat-generators';
 
 const PAD = 30;
+/** Tope de asientos por generación: por encima, el render Konva colapsa el navegador. */
+const MAX_GENERATED_SEATS = 5000;
 
 /** Asiento del borrador editable (aún sin persistir). */
 interface DraftSeat {
@@ -220,6 +222,15 @@ export class SeatEditorComponent {
         break;
       default:
         return;
+    }
+    // Tope de seguridad (QA final): una malla enorme (p.ej. 500×500 = 250k asientos)
+    // congela/crashea el navegador al renderizar cada nodo en Konva. Se rechaza por
+    // encima del límite en vez de intentar dibujarla.
+    if (seats.length > MAX_GENERATED_SEATS) {
+      this.toasts.error(
+        this.translate.instant('promoter.seat.tooManySeats', { max: MAX_GENERATED_SEATS }),
+      );
+      return;
     }
     this.draft.set(seats.map((s) => ({ label: s.label, section: s.section, row: s.row, x: s.x as number, y: s.y as number })));
     this.dirty.set(true);

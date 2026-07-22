@@ -11,7 +11,6 @@ import { ImpersonationResponseDto } from './dto/impersonation.dto';
 
 @ApiTags('admin')
 @ApiBearerAuth()
-@AdminOnly()
 @Controller('admin')
 export class AdminController {
   constructor(private readonly impersonation: ImpersonationService) {}
@@ -40,6 +39,7 @@ export class AdminController {
 
   @Post('impersonate/:userId')
   @Roles(Role.admin)
+  @AdminOnly()
   @HttpCode(200)
   @ApiOperation({
     summary:

@@ -45,6 +45,7 @@ function setup(
         useValue: {
           showHomeCategories: signal(true).asReadonly(),
           tourEnabled: signal(false).asReadonly(),
+          homeSliderEnabled: signal(true).asReadonly(),
           refresh: () => undefined,
         },
       },

@@ -13,9 +13,11 @@ import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { MoneyPipe } from '../../shared/money.pipe';
 import { BackLinkComponent } from '../../shared/ui/back-link.component';
 import { TourComponent, type TourStep } from '../../shared/tour/tour.component';
+import { IconComponent } from '../../shared/icon/icon.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { LoadingComponent } from '../../shared/ui/loading.component';
 import { SeoService } from '../../core/seo/seo.service';
+import { SessionStore } from '../../core/auth/session.store';
 
 interface DetailData {
   ev: PublicEventDetailDto;
@@ -40,6 +42,7 @@ const EMPTY_AV: EventAvailabilityDto = { seatMap: null, localities: [], seats: [
     EmptyStateComponent,
     LoadingComponent,
     TourComponent,
+    IconComponent,
   ],
   templateUrl: './event-detail.html',
 })
@@ -52,7 +55,11 @@ export class EventDetail {
   private readonly route = inject(ActivatedRoute);
   private readonly eventsApi = inject(EventsApi);
   private readonly seo = inject(SeoService);
+  private readonly session = inject(SessionStore);
   private readonly responseInit = inject(RESPONSE_INIT, { optional: true });
+
+  /** El admin no compra como cliente → en vez de las filas de compra ve un aviso. */
+  protected readonly isAdmin = computed(() => this.session.hasRole('admin'));
 
   private readonly data = toSignal(
     this.route.paramMap.pipe(

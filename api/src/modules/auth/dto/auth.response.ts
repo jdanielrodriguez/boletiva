@@ -91,6 +91,9 @@ export class PublicUserResponseDto {
   })
   themePref?: string | null;
 
+  @ApiPropertyOptional({ description: 'Recibir notificaciones por correo (negocio/soporte).', example: true })
+  emailNotificationsEnabled?: boolean;
+
   @ApiProperty({
     description: 'Usuario de PRUEBA (invitado en modo test): eventos anclados a Sandbox, sin cargos reales',
     example: false,
@@ -253,4 +256,13 @@ export class DeviceResponseDto {
     example: '2026-07-01T09:00:00.000Z',
   })
   createdAt!: Date;
+}
+
+/** Respuesta de `POST /auth/2fa/resend` (FU9): método y si se reenvió un código. */
+export class TwoFactorResendResponseDto {
+  @ApiProperty({ enum: ['email', 'totp'], example: 'email', description: 'Método de segundo factor del usuario' })
+  method!: 'email' | 'totp';
+
+  @ApiProperty({ example: true, description: 'true si se reenvió un código (solo método email); false para TOTP' })
+  resent!: boolean;
 }

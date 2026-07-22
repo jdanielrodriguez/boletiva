@@ -62,6 +62,10 @@ interface Testable {
   payMode: { set(m: 'saved' | 'wallet' | 'new'): void };
   installments: { set(n: number): void };
   cvv: { set(v: string): void };
+  cardNumber: { set(v: string): void };
+  cardExp: { set(v: string): void };
+  cardCvv: { set(v: string): void };
+  cardName: { set(v: string): void };
   selectedCardId: { set(v: string | null): void };
   gatewayId(): string | null;
   selectGateway(id: string): void;
@@ -76,6 +80,14 @@ interface Testable {
   breakdown(): { total: string; serviceFee: string } | null;
   error(): string | null;
   pay(): void;
+}
+
+/** Llena el formulario de tarjeta nueva con datos válidos (Luhn) para habilitar Pagar (M1). */
+function fillNewCard(c: Testable): void {
+  c.cardNumber.set('4242 4242 4242 4242');
+  c.cardExp.set('12/30');
+  c.cardCvv.set('123');
+  c.cardName.set('Test User');
 }
 
 describe('CheckoutPage — ramas de pago y selección', () => {
@@ -147,7 +159,10 @@ describe('CheckoutPage — ramas de pago y selección', () => {
     const c = await setup({ cards: null });
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('[data-testid="new-card-form"]')).not.toBeNull();
-    // Sin métodos → modo tarjeta nueva → canPay true.
+    // Tarjeta vacía → NO se puede pagar (M1 QA); con datos válidos → sí.
+    expect(c.canPay()).toBe(false);
+    fillNewCard(c);
+    fixture.detectChanges();
     expect(c.canPay()).toBe(true);
   });
 
@@ -206,6 +221,7 @@ describe('CheckoutPage — ramas de pago y selección', () => {
   it('un error del backend al pagar muestra el mensaje de error y deja reintentar', async () => {
     const c = await setup({ pay: () => throwError(() => new Error('409')) });
     c.setPayMode('new');
+    fillNewCard(c);
     c.pay();
     expect(orders.pay).toHaveBeenCalled();
     expect(c.error()).toBeTruthy();
