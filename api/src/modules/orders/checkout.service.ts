@@ -9,7 +9,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Prisma } from '@prisma/client';
+import { Prisma, PromoterStatus } from '@prisma/client';
 import { SpanStatusCode } from '@opentelemetry/api';
 import Decimal from 'decimal.js';
 import { checkoutTracer } from '../../infra/observability/tracing';
@@ -139,11 +139,27 @@ export class CheckoutService {
     // sostiene el lock de fila (evita un deadlock de pool bajo alta concurrencia).
     const event = await this.prisma.event.findUnique({
       where: { id: eventId },
-      select: { id: true, gatewayId: true, frozenGatewayId: true, ivaOnNet: true, status: true, startsAt: true },
+      select: {
+        id: true,
+        gatewayId: true,
+        frozenGatewayId: true,
+        ivaOnNet: true,
+        status: true,
+        startsAt: true,
+        promoter: { select: { promoterStatus: true } },
+      },
     });
     if (!event) throw new BadRequestException('El evento no existe');
     // Ventas cerradas si el evento ya inició o concluyó (o no está publicado).
     if (event.status !== 'published' || event.startsAt.getTime() <= Date.now()) {
+      throw new ConflictException('Las ventas de este evento están cerradas');
+    }
+    // Promotor suspendido/rechazado (p.ej. por fraude): NO se vende, aunque el evento siga
+    // publicado. `revoke` no despublica en cascada, así que el enforcement vive aquí también.
+    if (
+      event.promoter.promoterStatus === PromoterStatus.suspended ||
+      event.promoter.promoterStatus === PromoterStatus.rejected
+    ) {
       throw new ConflictException('Las ventas de este evento están cerradas');
     }
     const fees = await this.pricing.resolveFeesForEvent(event);
