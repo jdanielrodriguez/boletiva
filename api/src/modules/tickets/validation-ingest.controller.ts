@@ -36,7 +36,10 @@ export class ValidationIngestController {
   @Roles(Role.gate_operator, Role.admin)
   @ApiOperation({ summary: 'Conflictos de validación del evento (dobles check-in)' })
   @ApiOkResponse({ type: CheckinConflictDto, isArray: true })
-  conflicts(@Param('eventId', ParseUUIDPipe) eventId: string) {
+  async conflicts(@Param('eventId', ParseUUIDPipe) eventId: string, @CurrentUser() user: AuthUser) {
+    // Mismo control que el batch: solo un operador ASIGNADO al evento (o admin) ve sus
+    // conflictos → cierra el IDOR (un operador de otro evento leía seriales/timestamps ajenos).
+    await this.gateAccess.assertAssignedToEvent(eventId, user);
     return this.ingest.listConflicts(eventId);
   }
 }
