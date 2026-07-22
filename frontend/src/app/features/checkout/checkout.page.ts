@@ -377,6 +377,11 @@ export class CheckoutPage implements OnDestroy {
     const gw = this.selectedGateway();
     // Se necesita pasarela salvo que el saldo cubra todo.
     if (this.needsGateway() && !gw) return;
+    // Pagalo NO tiene SDK de tokenización → cobra con la tarjeta que el comprador
+    // capturó en nuestro formulario (misma UX que el simulador). Solo se envía a
+    // pasarelas que la necesitan (provider 'pagalo'); simulador/Recurrente la ignoran.
+    const card =
+      mode === 'new' && gw?.provider === 'pagalo' ? this.buildCard() : undefined;
     this.paying.set(true);
     // Marca el envío: el feedback de carga se mantiene hasta que el SSE confirme
     // o cancele (no solo mientras dura la petición HTTP).
@@ -389,9 +394,19 @@ export class CheckoutPage implements OnDestroy {
         useWallet: mode === 'wallet',
         billingNit: this.billingNit().trim() || undefined,
         billingName: this.billingName().trim() || undefined,
+        ...(card ? { card } : {}), // solo se envía a pasarelas sin SDK (Pagalo)
       })
       .subscribe({
-        next: () => this.paying.set(false),
+        next: (res) => {
+          this.paying.set(false);
+          // Recurrente = checkout HOSPEDADO: el backend devuelve una URL http(s) a la
+          // que hay que llevar al comprador. Pagalo/simulador devuelven un esquema
+          // interno (pagalo://…) → no se redirige (el pago se confirma por SSE aquí).
+          const url = res.paymentUrl;
+          if (url && /^https?:\/\//i.test(url) && this.isBrowser) {
+            this.navigateExternal(url);
+          }
+        },
         error: (err) => {
           this.paying.set(false);
           // Reintentable: libera el estado de envío para que el comprador pueda pagar de nuevo.
@@ -400,5 +415,27 @@ export class CheckoutPage implements OnDestroy {
           this.error.set(apiErrorMessage(err, this.translate.instant('checkout.payError')));
         },
       });
+  }
+
+  /** Navega a un checkout hospedado externo (Recurrente). Aislado para poder espiarlo. */
+  protected navigateExternal(url: string): void {
+    window.location.href = url;
+  }
+
+  /**
+   * Arma la tarjeta para el backend desde el formulario (payMode 'new'): PAN sin
+   * espacios, vencimiento MM/YY → expMonth 'MM' + expYear 'YYYY'. El CVV viaja solo
+   * en esta petición (no se guarda). Solo se usa con pasarelas sin SDK (Pagalo).
+   */
+  private buildCard() {
+    const number = this.cardNumber().replace(/\D/g, '');
+    const [mm = '', yy = ''] = this.cardExp().trim().split('/');
+    return {
+      number,
+      expMonth: mm.padStart(2, '0').slice(0, 2),
+      expYear: yy.length === 2 ? `20${yy}` : yy,
+      cvv: this.cardCvv().trim(),
+      name: this.cardName().trim(),
+    };
   }
 }

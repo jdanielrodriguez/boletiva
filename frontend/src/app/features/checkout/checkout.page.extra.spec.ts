@@ -80,6 +80,7 @@ interface Testable {
   breakdown(): { total: string; serviceFee: string } | null;
   error(): string | null;
   pay(): void;
+  navigateExternal(url: string): void;
 }
 
 /** Llena el formulario de tarjeta nueva con datos válidos (Luhn) para habilitar Pagar (M1). */
@@ -228,6 +229,39 @@ describe('CheckoutPage — ramas de pago y selección', () => {
     // El fallo libera el envío: no queda en "procesando" y se puede reintentar.
     expect(c.processing()).toBe(false);
     expect(c.canPay()).toBe(true);
+  });
+
+  it('Recurrente (checkout hospedado) redirige a la paymentUrl http(s) devuelta', async () => {
+    const c = await setup({
+      pay: () =>
+        of({
+          status: 'pending',
+          paymentUrl: 'https://app.recurrente.com/checkout/abc',
+        } as unknown as PayOrderResponseDto),
+    });
+    const nav = spyOn(c, 'navigateExternal');
+    c.setPayMode('new'); // gw1 = recurrente por defecto
+    fillNewCard(c);
+    c.pay();
+    expect(orders.pay).toHaveBeenCalled();
+    expect(nav).toHaveBeenCalledWith('https://app.recurrente.com/checkout/abc');
+  });
+
+  it('Pagalo (esquema interno pagalo://) NO redirige (se confirma por SSE aquí)', async () => {
+    const c = await setup({
+      pay: () =>
+        of({
+          status: 'pending',
+          paymentUrl: 'pagalo://transaccion/xyz',
+        } as unknown as PayOrderResponseDto),
+    });
+    const nav = spyOn(c, 'navigateExternal');
+    c.selectGateway('gw2'); // Pagalo
+    c.setPayMode('new');
+    fillNewCard(c);
+    c.pay();
+    expect(orders.pay).toHaveBeenCalled();
+    expect(nav).not.toHaveBeenCalled();
   });
 
   it('walletCoversAll es falso si el saldo no cubre el total', async () => {

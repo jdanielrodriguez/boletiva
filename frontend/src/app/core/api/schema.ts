@@ -2045,6 +2045,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/payments/recurrente/webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Webhook de Recurrente (firma SVIX sobre el cuerpo CRUDO) */
+        post: operations["PaymentsController_recurrenteWebhook_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/wallet": {
         parameters: {
             query?: never;
@@ -7660,6 +7677,33 @@ export interface components {
             eventGatewayId: string | null;
             gateways: components["schemas"]["GatewayPaymentOptionResponseDto"][];
         };
+        CardDto: {
+            /**
+             * @description Número de tarjeta (PAN), sólo dígitos
+             * @example 4242424242424242
+             */
+            number: string;
+            /**
+             * @description Mes de expiración MM
+             * @example 12
+             */
+            expMonth: string;
+            /**
+             * @description Año de expiración YYYY
+             * @example 2030
+             */
+            expYear: string;
+            /**
+             * @description CVV (3-4 dígitos). No se almacena.
+             * @example 123
+             */
+            cvv: string;
+            /**
+             * @description Nombre en la tarjeta
+             * @example JUAN PEREZ
+             */
+            name: string;
+        };
         PayOrderDto: {
             /** @description Método/pasarela elegida (recotiza el total con su comisión); omitir usa la del evento */
             gatewayId?: string;
@@ -7677,6 +7721,8 @@ export interface components {
             billingNit?: string;
             /** @description Nombre fiscal para la factura (FEL). */
             billingName?: string;
+            /** @description Tarjeta capturada en nuestro formulario. Requerida SOLO para pasarelas sin SDK de tokenización (Pagalo) cuando no se paga todo con wallet. Simulador/Recurrente la ignoran. */
+            card?: components["schemas"]["CardDto"];
         };
         PayOrderResponseDto: {
             /**
@@ -12302,6 +12348,29 @@ export interface operations {
                 "application/json": components["schemas"]["WebhookDto"];
             };
         };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookResponseDto"];
+                };
+            };
+        };
+    };
+    PaymentsController_recurrenteWebhook_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                "svix-id": string;
+                "svix-timestamp": string;
+                "svix-signature": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {
