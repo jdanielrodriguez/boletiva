@@ -197,10 +197,29 @@ jobs:
 
       # NOTA (auditoría C1/C2/M3): el arranque en prod ABORTA si faltan secretos
       # (APP_ENCRYPTION_KEY/PAYMENT_WEBHOOK_SECRET/TICKET_SIGNING_SEED) o TRUST_PROXY.
-      # NOTA (alpha): PAYMENT_PROVIDER=sandbox → el factory de pagos cae al SIMULADOR
-      # (payments.module: valor no reconocido = simulador) y el guard de prod NO aborta
-      # (solo prohíbe el literal 'simulator'). Pagos SIMULADOS a sabiendas mientras no haya
-      # pasarela real (Pagalo/Recurrente). Cuando se integre, cambiar a 'recurrente'/'pagalo'.
+      # NOTA (ola pre-2): PAYMENT_PROVIDER=auto → el cobro se ENRUTA por el `provider` del
+      # gateway EFECTIVO de la orden (Pagalo→Pagalo, Recurrente→Recurrente, Sandbox→simulador);
+      # el guard de prod NO aborta (solo prohíbe el literal 'simulator'). Sin pasarela real
+      # con credenciales, el gateway default sigue siendo Sandbox (simulador) → pagos simulados.
+      #
+      # ── ACTIVAR PASARELAS REALES (Pagalo default + Recurrente) — hacer ANTES de descomentar ──
+      #  1) Crear en Secret Manager (nombres pasaeventos-*):
+      #       pasaeventos-recurrente-api-secret     (sk_test_/sk_live_ de Recurrente, header X-SECRET-KEY)
+      #       pasaeventos-recurrente-webhook-secret  (whsec_… de Recurrente; YA creado por el usuario)
+      #       pasaeventos-pagalo-credencial          (PAGALO_CREDENCIAL)
+      #       pasaeventos-pagalo-key-public / -key-secret / -iden-empresa / -webhook-secret
+      #  2) Añadir a --set-env-vars:  SEED_REAL_GATEWAYS=true,PAGALO_DOMINIO=<host>,PAGALO_ESTADO=<sandbox|produccion>
+      #     (SEED_REAL_GATEWAYS=true pone a PAGALO como gateway DEFAULT → si le faltan credenciales,
+      #      el checkout devuelve 503; no lo actives hasta tener las 5 credenciales de Pagalo.)
+      #  3) Añadir a --set-secrets:
+      #       RECURRENTE_API_SECRET=pasaeventos-recurrente-api-secret:latest,
+      #       RECURRENTE_WEBHOOK_SECRET=pasaeventos-recurrente-webhook-secret:latest,
+      #       PAGALO_CREDENCIAL=pasaeventos-pagalo-credencial:latest,
+      #       PAGALO_KEY_PUBLIC=pasaeventos-pagalo-key-public:latest,
+      #       PAGALO_KEY_SECRET=pasaeventos-pagalo-key-secret:latest,
+      #       PAGALO_IDEN_EMPRESA=pasaeventos-pagalo-iden-empresa:latest,
+      #       PAGALO_WEBHOOK_SECRET=pasaeventos-pagalo-webhook-secret:latest
+      #  Los tests SIEMPRE usan el simulador (jest fuerza PAYMENT_PROVIDER=simulator) — no se tocan.
       # NOTA (captcha, ACTIVO): reCAPTCHA v3 encendido. La SITE KEY (pública) viene de la
       # repository variable RECAPTCHA_SITE_KEY; el SECRET (privado) por Secret Manager
       # (RECAPTCHA_SECRET_KEY=pasaeventos-recaptcha-secret). El frontend toma la site key
@@ -219,7 +238,7 @@ jobs:
             --memory=2Gi --cpu=2 --concurrency=200 --min-instances=1 --max-instances=20 \
             --add-cloudsql-instances="${CLOUDSQL}" \
             --network=default --subnet=default --vpc-egress=private-ranges-only \
-            --set-env-vars="NODE_ENV=production,TZ=America/Guatemala,TRUST_PROXY=1,STORAGE_PROVIDER=gcs,GCLOUD_PROJECT_ID=${GCP_PROJECT},GCS_BUCKET=pasaeventos-prod-media,GCP_REGION=${GCP_REGION},PAYMENT_PROVIDER=sandbox,CORS_ORIGINS=${PUBLIC_SITE_URL},MAIL_HOST=email-smtp.us-east-1.amazonaws.com,MAIL_PORT=587,MAIL_SECURE=false,MAIL_FROM=Boletiva <no-reply@boletiva.com>,WALLET_PROVIDER=auto,GOOGLE_WALLET_ISSUER_ID=BCR2DN6D7LQ73W3L,TICKET_SIGNING_KEY_ID=prod-ed25519-1,RECAPTCHA_SITE_KEY=${{ vars.RECAPTCHA_SITE_KEY }},RECAPTCHA_DISABLED=${{ vars.RECAPTCHA_DISABLED || 'false' }},QUEUE_INLINE=false,RABBIT_INLINE=false" \
+            --set-env-vars="NODE_ENV=production,TZ=America/Guatemala,TRUST_PROXY=1,STORAGE_PROVIDER=gcs,GCLOUD_PROJECT_ID=${GCP_PROJECT},GCS_BUCKET=pasaeventos-prod-media,GCP_REGION=${GCP_REGION},PAYMENT_PROVIDER=auto,CORS_ORIGINS=${PUBLIC_SITE_URL},MAIL_HOST=email-smtp.us-east-1.amazonaws.com,MAIL_PORT=587,MAIL_SECURE=false,MAIL_FROM=Boletiva <no-reply@boletiva.com>,WALLET_PROVIDER=auto,GOOGLE_WALLET_ISSUER_ID=BCR2DN6D7LQ73W3L,TICKET_SIGNING_KEY_ID=prod-ed25519-1,RECAPTCHA_SITE_KEY=${{ vars.RECAPTCHA_SITE_KEY }},RECAPTCHA_DISABLED=${{ vars.RECAPTCHA_DISABLED || 'false' }},QUEUE_INLINE=false,RABBIT_INLINE=false" \
             --set-secrets=DATABASE_URL=pasaeventos-database-url:latest,REDIS_URL=pasaeventos-redis-url:latest,AMQP_URL=pasaeventos-amqp-url:latest,MAIL_USER=pasaeventos-mail-user:latest,MAIL_PASS=pasaeventos-mail-pass:latest,JWT_ACCESS_SECRET=pasaeventos-jwt-access-secret:latest,JWT_REFRESH_SECRET=pasaeventos-jwt-refresh-secret:latest,APP_ENCRYPTION_KEY=pasaeventos-app-encryption-key:latest,PAYMENT_WEBHOOK_SECRET=pasaeventos-payment-webhook-secret:latest,TICKET_SIGNING_SEED=pasaeventos-ticket-signing-seed:latest,GCS_SERVICE_ACCOUNT_JSON=pasaeventos-gcs-sa-json:latest,GOOGLE_WALLET_SERVICE_ACCOUNT_JSON=pasaeventos-google-wallet-sa-json:latest,RECAPTCHA_SECRET_KEY=pasaeventos-recaptcha-secret:latest
 
       - name: Quitar mantenimiento (siempre)
