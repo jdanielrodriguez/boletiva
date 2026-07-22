@@ -125,10 +125,17 @@ export class WalletController {
   }
 
   @Delete('withdrawals/:id')
+  @Roles(Role.promoter, Role.admin)
   @HttpCode(200)
   @ApiOperation({ summary: 'Cancela un retiro propio pendiente (reintegra el saldo)' })
   @ApiOkResponse({ type: WithdrawalActionResponseDto })
-  cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('userId') userId: string) {
-    return this.withdrawals.cancel(id, userId);
+  cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
+    // Acción financiera: nunca en impersonación (reintegra saldo ajeno). Igual que `request`.
+    if (user.impersonatedBy || user.impersonation) {
+      throw new ForbiddenException(
+        'No se puede cancelar un retiro en una sesión de impersonación; usa tu sesión real',
+      );
+    }
+    return this.withdrawals.cancel(id, user.userId);
   }
 }

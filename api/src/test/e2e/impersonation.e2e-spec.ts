@@ -130,6 +130,32 @@ describe('Impersonación de promotores (e2e)', () => {
       .expect(403);
   });
 
+  it('Ola1-QA: en impersonación NO se puede comprar, registrar tarjeta ni cancelar retiro → 403', async () => {
+    const start = await http()
+      .post(`/api/v1/admin/impersonate/${promoterId}`)
+      .set(bearer(adminToken))
+      .expect(200);
+    const tok = start.body.accessToken;
+    // Compra (commit) como el promotor → bloqueada por NoAdminPurchaseGuard (impersonación).
+    // El guard corta ANTES del handler, así que el eventId ficticio no importa.
+    await http()
+      .post('/api/v1/events/00000000-0000-0000-0000-000000000000/orders')
+      .set(bearer(tok))
+      .send({ seatIds: ['00000000-0000-0000-0000-000000000000'] })
+      .expect(403);
+    // Registrar tarjeta en la cuenta ajena → 403.
+    await http()
+      .post('/api/v1/payment-methods')
+      .set(bearer(tok))
+      .send({ nonce: 'tok_test', brand: 'visa', last4: '4242' })
+      .expect(403);
+    // Cancelar un retiro (acción financiera) → 403 (id ficticio: el guard corta antes).
+    await http()
+      .delete('/api/v1/wallet/withdrawals/00000000-0000-0000-0000-000000000000')
+      .set(bearer(tok))
+      .expect(403);
+  });
+
   it('no-admin → 403; sin token → 401', async () => {
     await http().post(`/api/v1/admin/impersonate/${promoterId}`).set(bearer(buyerToken)).expect(403);
     await http().post(`/api/v1/admin/impersonate/${promoterId}`).expect(401);

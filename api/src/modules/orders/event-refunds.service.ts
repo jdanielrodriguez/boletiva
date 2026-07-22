@@ -132,6 +132,10 @@ export class EventRefundsService {
         mode: opts.orderId ? 'single' : 'all',
         refundedOrders: refunded.length,
         totalNetRefunded: totalNet.toFixed(2),
+        // Trazabilidad: si un admin tramitó esto IMPERSONANDO al promotor, deja constancia
+        // del actor REAL en la bitácora (el userId es el del dueño). El payload va firmado
+        // en la hash-chain, así que no se puede alterar sin romper la cadena.
+        ...(user.impersonatedBy ? { impersonatedBy: user.impersonatedBy } : {}),
       },
     });
 
