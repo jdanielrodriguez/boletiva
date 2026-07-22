@@ -667,15 +667,16 @@ describe('PaymentsService (ramas de borde, unit)', () => {
       expect(stream.emitWallet).toHaveBeenCalled(); // pushWallet por walletAmount > 0
     });
 
-    it('orden ya pagada → no re-asienta (idempotente)', async () => {
+    it('orden ya pagada (el CAS no reclama) → no re-asienta (idempotente)', async () => {
       const { prisma, ledger, service } = build();
       prisma.payment.findUniqueOrThrow.mockResolvedValue({ id: 'p3', orderId: 'o1' });
       prisma.order.findUniqueOrThrow.mockResolvedValue(baseOrder({ status: 'paid' }));
+      prisma.order.updateMany.mockResolvedValue({ count: 0 }); // el CAS pending→paid no reclama (ya paid)
       await service.fulfill('p3');
       expect(ledger.post).not.toHaveBeenCalled();
     });
 
-    it('asiento contable ya existente → no lo duplica pero confirma', async () => {
+    it('reclama pending→paid y asienta con idempotencia EN EL LEDGER (no findFirst externo)', async () => {
       const { prisma, ledger, service } = build();
       prisma.payment.findUniqueOrThrow.mockResolvedValue({
         id: 'p4',
@@ -685,10 +686,33 @@ describe('PaymentsService (ramas de borde, unit)', () => {
         walletAmount: dec(0),
       });
       prisma.order.findUniqueOrThrow.mockResolvedValue(baseOrder());
-      prisma.ledgerTransaction.findFirst.mockResolvedValue({ id: 'txPrev' }); // ya asentado
+      prisma.paymentGateway.findUnique.mockResolvedValue({ transactionFixedFee: dec(0) });
+      prisma.order.updateMany.mockResolvedValue({ count: 1 }); // gana el claim
       await service.fulfill('p4');
-      expect(ledger.post).not.toHaveBeenCalled();
+      // La idempotencia ya NO es un findFirst externo (TOCTOU) sino la del propio ledger:
+      // el asiento se envía SIEMPRE con idempotent:true (dedupe race-safe dentro del post).
+      expect(ledger.post).toHaveBeenCalledWith(
+        expect.objectContaining({
+          kind: 'order_payment',
+          refType: 'order',
+          refId: 'o1',
+          idempotent: true,
+        }),
+      );
       expect(prisma.$transaction).toHaveBeenCalled();
+    });
+
+    it('C1 · pago tardío: expira entre la lectura y el CAS → NO asienta (reconciliación)', async () => {
+      const { prisma, ledger, service } = build();
+      prisma.payment.findUniqueOrThrow.mockResolvedValue({ id: 'p5', orderId: 'o1' });
+      // 1ª lectura: pending; el CAS no reclama (sweeper expiró); relectura: expired.
+      prisma.order.findUniqueOrThrow
+        .mockResolvedValueOnce(baseOrder({ status: 'pending' }))
+        .mockResolvedValueOnce({ status: 'expired' });
+      prisma.order.updateMany.mockResolvedValue({ count: 0 });
+      await service.fulfill('p5');
+      // Un pago que llega tras la expiración NO mueve dinero (evita dinero sin boletos).
+      expect(ledger.post).not.toHaveBeenCalled();
     });
   });
 
