@@ -4962,6 +4962,22 @@ textarea.invalid {
   min-height: 40px;
 }
 
+/* Acciones del paso 2FA del login: los dos botones SEPARADOS (reenviar a la izquierda,
+   usar otra cuenta a la derecha), bonitos y responsive. */
+.twofa-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+.twofa-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
 /* ── T6 · FAQ público + gestión KB + editor de formato ─────────────────────── */
 .faq-page { max-width: 860px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
 .faq-head h1 { margin: 0 0 .35rem; }

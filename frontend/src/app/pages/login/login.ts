@@ -5,6 +5,7 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../core/auth/auth.service';
 import { safeReturnUrl } from '../../core/auth/guards';
 import { OtpInputComponent } from '../../shared/ui/otp-input/otp-input.component';
+import { IconComponent } from '../../shared/icon/icon.component';
 
 /**
  * Login: contraseña + segundo factor (email OTP o TOTP). En dispositivos nuevos
@@ -13,7 +14,7 @@ import { OtpInputComponent } from '../../shared/ui/otp-input/otp-input.component
  */
 @Component({
   selector: 'app-login',
-  imports: [FormsModule, RouterLink, TranslatePipe, OtpInputComponent],
+  imports: [FormsModule, RouterLink, TranslatePipe, OtpInputComponent, IconComponent],
   templateUrl: './login.html',
 })
 export class Login implements OnDestroy {

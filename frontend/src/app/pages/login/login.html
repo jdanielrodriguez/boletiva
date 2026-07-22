@@ -75,7 +75,8 @@
 
         <div class="twofa-actions">
           @if (method() === 'email') {
-            <button type="button" class="link-btn" [disabled]="resending() || resendCooldown() > 0" (click)="resendCode()" data-testid="twofa-resend">
+            <button type="button" class="btn small twofa-btn" [disabled]="resending() || resendCooldown() > 0" (click)="resendCode()" data-testid="twofa-resend">
+              <app-icon name="refresh" [size]="15" />
               @if (resendCooldown() > 0) {
                 {{ 'auth.resendIn' | translate: { s: resendCooldown() } }}
               } @else {
@@ -83,7 +84,9 @@
               }
             </button>
           }
-          <button type="button" class="link-btn" (click)="backToCredentials()" data-testid="twofa-back">{{ 'auth.useAnotherAccount' | translate }}</button>
+          <button type="button" class="btn small ghost twofa-btn" (click)="backToCredentials()" data-testid="twofa-back">
+            <app-icon name="user" [size]="15" /> {{ 'auth.useAnotherAccount' | translate }}
+          </button>
         </div>
       </form>
     }

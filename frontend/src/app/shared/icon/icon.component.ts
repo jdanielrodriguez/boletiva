@@ -40,7 +40,8 @@ export type IconName =
   | 'gear'
   | 'bell'
   | 'book'
-  | 'logout';
+  | 'logout'
+  | 'refresh';
 
 /**
  * Icono SVG inline reutilizable (trazo, hereda `currentColor`). Se usa dentro de
@@ -232,6 +233,10 @@ export type IconName =
         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
         <path d="M16 17l5-5-5-5" />
         <path d="M21 12H9" />
+      }
+      @case ('refresh') {
+        <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+        <path d="M21 4v5h-5" />
       }
     }
   </svg>`,
