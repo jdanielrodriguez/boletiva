@@ -1,6 +1,7 @@
 import {
   Component,
   ElementRef,
+  HostListener,
   OnDestroy,
   PLATFORM_ID,
   effect,
@@ -67,6 +68,20 @@ export class GateValidatePage implements OnDestroy {
   // vía es la entrada MANUAL del contenido del QR (respaldo).
   protected readonly manualSupported = signal(true);
   protected readonly manualCode = signal('');
+
+  /**
+   * Red de seguridad anti-pérdida de datos: si hay check-ins en la cola local (IndexedDB)
+   * sin sincronizar, el navegador muestra el diálogo nativo de confirmación antes de
+   * cerrar/recargar la pestaña. Evita que un portero pierda escaneos hechos offline por
+   * cerrar la app antes de recuperar conexión. Solo bloquea si `pending() > 0`.
+   */
+  @HostListener('window:beforeunload', ['$event'])
+  protected onBeforeUnload(e: BeforeUnloadEvent): void {
+    if (this.pending() > 0) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  }
 
   private token = '';
   private eventId = '';
