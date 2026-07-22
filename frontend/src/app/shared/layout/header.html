@@ -32,7 +32,7 @@
       }}</a>
     }
     @if (session.isAuthenticated()) {
-      <span class="greeting" data-testid="session-greeting">{{ 'shell.greeting' | translate: { name: session.user()?.firstName } }}</span>
+      <a class="greeting" routerLink="/cuenta" data-testid="session-greeting">{{ 'shell.greeting' | translate: { name: session.user()?.firstName } }}</a>
       <app-notification-bell />
       <div class="user-menu">
         <button
@@ -73,14 +73,18 @@
             <a class="dd-item" [routerLink]="['/cuenta']" [queryParams]="{ s: 'facturacion' }" (click)="closeMenu()" data-testid="dd-facturacion">
               <app-icon name="draft" [size]="16" /> {{ 'shell.billing' | translate }}
             </a>
+            <!-- Base de conocimientos PÚBLICA (FAQ) — visible a todos. -->
+            <a class="dd-item" routerLink="/faq" (click)="closeMenu()" data-testid="dd-faq">
+              <app-icon name="help" [size]="16" /> {{ 'faq.title' | translate }}
+            </a>
 
-            <!-- Separador entre las opciones del CLIENTE (arriba) y las de GESTIÓN
-                 (promotor/admin/asesor). Solo aparece si hay opciones de gestión. -->
+            <!-- Separador CLARO + etiqueta: las de abajo son configuraciones de GESTIÓN
+                 (promotor/admin/asesor), resaltadas en color de acento. -->
             @if (session.hasAnyRole(['promoter', 'admin', 'advisor'])) {
               <div class="dd-sep" role="separator"></div>
             }
             @if (session.hasAnyRole(['promoter']) && !session.hasAnyRole(['admin'])) {
-              <a class="dd-item" routerLink="/promotor" (click)="closeMenu()" data-testid="promoter-link">
+              <a class="dd-item dd-mgmt" routerLink="/promotor" (click)="closeMenu()" data-testid="promoter-link">
                 <app-icon name="gear" [size]="16" /> {{ 'shell.configuration' | translate }}
               </a>
             }
@@ -88,31 +92,26 @@
                  Enviar notificaciones · Base de conocimientos). Cada ítem se gatea por su
                  rol: admin ve los 6; el asesor solo Configuración/Soporte/KB. -->
             @if (session.hasAnyRole(['admin', 'advisor'])) {
-              <a class="dd-item" routerLink="/configuracion" (click)="closeMenu()" data-testid="config-link">
+              <a class="dd-item dd-mgmt" routerLink="/configuracion" (click)="closeMenu()" data-testid="config-link">
                 <app-icon name="gear" [size]="16" /> {{ 'shell.configuration' | translate }}
               </a>
             }
             @if (session.hasAnyRole(['admin'])) {
-              <a class="dd-item" routerLink="/admin/asesores" (click)="closeMenu()" data-testid="admin-advisors-link">
+              <a class="dd-item dd-mgmt" routerLink="/admin/asesores" (click)="closeMenu()" data-testid="admin-advisors-link">
                 <app-icon name="accounts" [size]="16" /> {{ 'advisor.admin.title' | translate }}
               </a>
             }
             @if (session.hasAnyRole(['admin', 'advisor'])) {
-              <a class="dd-item" routerLink="/soporte" (click)="closeMenu()" data-testid="support-link">
+              <a class="dd-item dd-mgmt" routerLink="/soporte" (click)="closeMenu()" data-testid="support-link">
                 <app-icon name="chat" [size]="16" /> {{ 'chat.title' | translate }}
               </a>
             }
             @if (session.hasAnyRole(['admin'])) {
-              <a class="dd-item" routerLink="/configuracion" [queryParams]="{ tab: 'invitaciones' }" (click)="closeMenu()" data-testid="admin-invitations-link">
+              <a class="dd-item dd-mgmt" routerLink="/configuracion" [queryParams]="{ tab: 'invitaciones' }" (click)="closeMenu()" data-testid="admin-invitations-link">
                 <app-icon name="invite" [size]="16" /> {{ 'config.tabs.invitations' | translate }}
               </a>
-              <a class="dd-item" routerLink="/admin/notificaciones" (click)="closeMenu()" data-testid="admin-notif-link">
+              <a class="dd-item dd-mgmt" routerLink="/admin/notificaciones" (click)="closeMenu()" data-testid="admin-notif-link">
                 <app-icon name="bell" [size]="16" /> {{ 'notifications.adminSendTitle' | translate }}
-              </a>
-            }
-            @if (session.hasAnyRole(['admin', 'advisor'])) {
-              <a class="dd-item" routerLink="/admin/kb" (click)="closeMenu()" data-testid="admin-kb-link">
-                <app-icon name="book" [size]="16" /> {{ 'kb.title' | translate }}
               </a>
             }
             <button type="button" class="dd-item dd-logout" data-testid="logout-btn" (click)="logout()">

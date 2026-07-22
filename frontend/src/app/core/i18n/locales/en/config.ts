@@ -38,6 +38,7 @@ export const config = {
     halls: 'Venues',
     templates: 'Templates',
     system: 'System',
+    kb: 'Knowledge base',
     settings: 'Settings',
     invitations: 'Invitations',
     support: 'Support',

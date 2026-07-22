@@ -1,4 +1,4 @@
-import { Component, PLATFORM_ID, inject, signal } from '@angular/core';
+import { Component, PLATFORM_ID, inject, input, signal } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -51,6 +51,9 @@ const CATEGORIES: KbCategory[] = ['account', 'payments_settlement', 'billing', '
 export class KbAdminPage {
   private readonly kb = inject(KbApi);
   private readonly platformId = inject(PLATFORM_ID);
+
+  /** Modo incrustado (dentro de un tab de Configuración): sin back-link ni h1 propios. */
+  readonly embedded = input(false);
 
   protected readonly categories = CATEGORIES;
   protected readonly articles = signal<KbArticle[] | null>(null);

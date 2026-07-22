@@ -1,8 +1,12 @@
-<section class="kb-admin">
-  <app-back-link link="/configuracion" [label]="'kb.back' | translate" testId="kb-back" />
+<section class="kb-admin" [class.kb-embedded]="embedded()">
+  @if (!embedded()) {
+    <app-back-link link="/configuracion" [label]="'kb.back' | translate" testId="kb-back" />
+  }
 
   <header class="kb-admin-head">
-    <h1>{{ 'kb.title' | translate }}</h1>
+    @if (!embedded()) {
+      <h1>{{ 'kb.title' | translate }}</h1>
+    }
     @if (!editing()) {
       <button type="button" class="btn btn-primary" (click)="newArticle()" data-testid="kb-new">
         {{ 'kb.new' | translate }}

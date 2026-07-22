@@ -32,6 +32,8 @@
     @if (!hideSystemTab()) {
       <button type="button" [class.active]="tab() === 'sistema'" [attr.aria-current]="tab() === 'sistema' ? 'page' : null" (click)="selectTab('sistema')" data-testid="tab-sistema">{{ 'config.tabs.system' | translate }}</button>
     }
+    <!-- Base de conocimientos (T6) — gestión admin+asesor, movida aquí desde el menú de perfil. -->
+    <button type="button" [class.active]="tab() === 'kb'" [attr.aria-current]="tab() === 'kb' ? 'page' : null" (click)="selectTab('kb')" data-testid="tab-kb">{{ 'config.tabs.kb' | translate }}</button>
     <!-- Invitaciones se MOVIÓ al menú superior de admin (deep-link ?tab=invitaciones); el
          contenido sigue aquí pero sin botón de tab. Soporte también se movió al menú (a la
          página /soporte, admin+asesor) → ya no es tab embebido. -->
@@ -262,6 +264,10 @@
       <app-halls-list />
     }
 
+    @case ('kb') {
+      <h2>{{ 'config.tabs.kb' | translate }}</h2>
+      <app-kb-admin [embedded]="true" />
+    }
     @case ('plantillas') {
       <h2>{{ 'config.tabs.templates' | translate }}</h2>
       <p class="muted">{{ 'config.templates.intro' | translate }}</p>

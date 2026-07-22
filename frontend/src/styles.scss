@@ -373,6 +373,12 @@ summary:focus-visible,
 
 .session-area .greeting {
   color: rgba(245, 246, 250, 0.75);
+  /* Es un enlace a /cuenta pero debe verse como TEXTO normal (solo cursor pointer). */
+  text-decoration: none;
+  cursor: pointer;
+}
+.session-area a.greeting:hover {
+  color: rgba(245, 246, 250, 0.95);
 }
 
 /* Layout sticky: el footer siempre al fondo, crezca lo que crezca la página. */
@@ -554,11 +560,10 @@ app-root {
   position: absolute;
   right: 0;
   top: calc(100% + 8px);
-  /* Más ancho y cómodo: crece con la etiqueta más larga (max-content) pero ACOTADO para
-     no desbordar en móvil (min(90vw, 320px)). Un piso de 236px evita que se vea apretado. */
-  min-width: 236px;
-  width: max-content;
-  max-width: min(90vw, 320px);
+  /* Ancho FIJO cómodo (un pelín más ancho); acotado en móvil. Fijo (no max-content) para
+     que la banda gris con bleed cuadre exacto y NO cause overflow horizontal. */
+  width: 264px;
+  max-width: 90vw;
   background: var(--pe-surface);
   border: 1px solid var(--pe-border);
   border-radius: var(--pe-radius-sm);
@@ -567,11 +572,6 @@ app-root {
   display: flex;
   flex-direction: column;
   z-index: 30;
-  /* El menú del admin tiene ~12 ítems; en viewports cortos rebasaba la pantalla y
-     dejaba "Salir" inalcanzable (QA shell-A1). Se acota con scroll interno. */
-  max-height: min(75vh, 460px);
-  overflow-y: auto;
-  overflow-x: hidden;
 }
 
 .user-dropdown a,
@@ -601,11 +601,16 @@ app-root {
   color: var(--pe-text-muted, #6b6b76);
   flex: 0 0 auto;
 }
-/* Separador entre las opciones del cliente y las de gestión (admin/promotor). */
+/* Separador entre las opciones del cliente y las de gestión. */
 .user-dropdown .dd-sep {
   height: 1px;
   background: var(--pe-border);
-  margin: 0.3rem 0.2rem;
+  margin: 0.35rem 0.2rem;
+}
+/* Ítems de GESTIÓN: solo en NEGRITA (se distinguen de las del cliente); la separación
+   la dan los divisores grises (arriba del grupo y sobre "Salir"). */
+.user-dropdown .dd-mgmt {
+  font-weight: 700;
 }
 /* "Salir" separado del resto con una línea sutil. */
 .user-dropdown .dd-logout {

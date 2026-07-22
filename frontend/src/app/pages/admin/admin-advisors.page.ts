@@ -58,6 +58,9 @@ import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
       .admin-advisors { max-width: 640px; margin: 0 auto; }
       .adv-invite-form { display: flex; gap: 0.6rem; align-items: flex-end; margin: 1rem 0; flex-wrap: wrap; }
       .adv-invite-form .field { flex: 1 1 240px; display: flex; flex-direction: column; gap: 0.3rem; }
+      /* Input y botón a la MISMA altura → el botón queda alineado con el input (no arriba). */
+      .adv-invite-form input { height: 42px; box-sizing: border-box; padding: 0 0.75rem; border: 1px solid var(--pe-border); border-radius: 8px; background: var(--pe-surface); color: var(--pe-text); }
+      .adv-invite-form .btn { height: 42px; }
       .adv-list { list-style: none; padding: 0; margin: 1rem 0 0; display: flex; flex-direction: column; gap: 0.4rem; }
       .adv-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.8rem; border: 1px solid var(--pe-border); border-radius: var(--pe-radius-sm); }
       .adv-email { font-weight: 600; }

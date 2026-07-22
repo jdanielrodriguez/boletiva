@@ -38,6 +38,7 @@ export const config = {
     halls: 'Salones',
     templates: 'Plantillas',
     system: 'Sistema',
+    kb: 'Base de conocimientos',
     settings: 'Configuraciones',
     invitations: 'Invitaciones',
     support: 'Soporte',

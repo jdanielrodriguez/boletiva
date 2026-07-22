@@ -11,6 +11,7 @@ export const shell = {
   billing: 'Billing',
   wallet: 'Wallet',
   configuration: 'Settings',
+  manageSection: 'Management',
   logout: 'Sign out',
   login: 'Sign in',
   createAccount: 'Create account',
