@@ -1,4 +1,4 @@
-import { PromoterStatus, Role, SupportCategory } from '@prisma/client';
+import { PromoterStatus, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import {
   BASE_FIXED_FEES,
@@ -8,6 +8,7 @@ import {
   toFeeString,
 } from '../api/src/config/pricing-defaults';
 import { makePrismaClient } from './prisma-client';
+import { KB_SEED_ARTICLES } from './kb-seed-data';
 
 const prisma = makePrismaClient();
 
@@ -653,57 +654,9 @@ async function seedPastSoldEvent(
 }
 
 async function seedKbArticles(authorId?: string): Promise<void> {
-  // Base de Conocimientos (T6): artículos publicados iniciales del FAQ. Idempotente por slug.
-  const articles: Array<{
-    slug: string;
-    question: string;
-    answerHtml: string;
-    category: SupportCategory;
-    tags: string[];
-    visibility?: 'public' | 'internal';
-    sortOrder?: number;
-  }> = [
-    {
-      slug: 'como-compro-boletos',
-      question: '¿Cómo compro boletos?',
-      answerHtml:
-        '<p>Elige tu evento, selecciona tus asientos o la cantidad y completa el pago. ' +
-        'Tus boletos con <strong>QR dinámico</strong> quedan en <em>Mi cuenta</em> y te llegan por correo.</p>',
-      category: 'account',
-      tags: ['compra', 'boletos', 'checkout'],
-      sortOrder: 1,
-    },
-    {
-      slug: 'medios-de-pago',
-      question: '¿Qué medios de pago aceptan?',
-      answerHtml:
-        '<p>Aceptamos tarjeta de crédito y débito, y <strong>pago en cuotas</strong> (Visacuotas/Mastercuotas) ' +
-        'sin recargo para ti. También puedes usar tu <em>saldo de billetera</em>.</p>',
-      category: 'payments_settlement',
-      tags: ['pago', 'cuotas', 'tarjeta', 'wallet'],
-      sortOrder: 2,
-    },
-    {
-      slug: 'transferir-un-boleto',
-      question: '¿Puedo transferir un boleto a otra persona?',
-      answerHtml:
-        '<p>Sí. Desde <em>Mis boletos</em> genera un código de transferencia y compártelo; ' +
-        'al reclamarlo, el boleto se <strong>re-emite</strong> a nombre del nuevo dueño y el QR anterior deja de servir.</p>',
-      category: 'account',
-      tags: ['transferencia', 'regalo', 'boleto'],
-      sortOrder: 3,
-    },
-    {
-      slug: 'reembolsos',
-      question: '¿Cómo funcionan los reembolsos?',
-      answerHtml:
-        '<p>Si un evento se cancela, el importe se acredita a tu <strong>billetera</strong> para usarlo o retirarlo. ' +
-        'Para otros casos, escríbenos desde <em>Soporte</em>.</p>',
-      category: 'billing',
-      tags: ['reembolso', 'cancelacion', 'billetera'],
-      sortOrder: 4,
-    },
-  ];
+  // Base de Conocimientos (T6): artículos publicados iniciales del FAQ (≥5 por categoría),
+  // en `prisma/kb-seed-data.ts`. Idempotente por slug.
+  const articles = KB_SEED_ARTICLES;
   for (const a of articles) {
     const answerText = a.answerHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     await prisma.kbArticle.upsert({
