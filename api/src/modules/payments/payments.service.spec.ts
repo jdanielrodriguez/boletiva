@@ -70,6 +70,9 @@ describe('PaymentsService (ramas de borde, unit)', () => {
       scheduleAutoConfirm: jest.fn(),
     };
     const notifications = { emit: jest.fn().mockResolvedValue(undefined), emitToRoles: jest.fn().mockResolvedValue(undefined) };
+    // Enrutamiento multi-pasarela: el servicio ahora usa un registro. El mock resuelve
+    // SIEMPRE al `provider` de la prueba (equivale al modo forzado del simulador en test).
+    const providers = { resolveFor: () => provider };
     const service = new PaymentsService(
       prisma as never,
       ledger as never,
@@ -81,7 +84,7 @@ describe('PaymentsService (ramas de borde, unit)', () => {
       tickets as never,
       stream as never,
       notifications as never,
-      provider as never,
+      providers as never,
     );
     return { prisma, ledger, pricing, gateways, costShare, stream, provider, notifications, service };
   };

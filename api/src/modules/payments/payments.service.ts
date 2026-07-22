@@ -1,7 +1,6 @@
 import {
   BadRequestException,
   ConflictException,
-  Inject,
   Injectable,
   Logger,
   NotFoundException,
@@ -23,7 +22,7 @@ import { TicketsService } from '../tickets/tickets.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType } from '../notifications/notification.types';
 import { StreamService } from '../stream/stream.service';
-import { PAYMENT_PROVIDER, PaymentProvider } from './payment.provider';
+import { PaymentProviderRegistry } from './payment-provider.registry';
 
 export interface WebhookPayload {
   id: string; // id del evento en la pasarela (idempotencia)
@@ -47,7 +46,7 @@ export class PaymentsService {
     private readonly tickets: TicketsService,
     private readonly stream: StreamService,
     private readonly notifications: NotificationsService,
-    @Inject(PAYMENT_PROVIDER) private readonly provider: PaymentProvider,
+    private readonly providers: PaymentProviderRegistry,
   ) {}
 
   /** Notifica el saldo de wallet del usuario por SSE (best-effort, nunca lanza). */
@@ -129,6 +128,11 @@ export class PaymentsService {
       order = await this.prisma.order.findUniqueOrThrow({ where: { id: orderId } });
     }
 
+    // Enrutamiento multi-pasarela: el cobro usa la CLASE provider del gateway efectivo
+    // (Pagalo→Pagalo, Recurrente→Recurrente, Sandbox→Simulador). En test se fuerza el
+    // simulador (env), así el cobro es simulado aunque el gateway sea real.
+    const provider = this.providers.resolveFor(gateway);
+
     const total = new Decimal(order.total.toString());
     const balance = useWallet ? await this.ledger.walletBalance(buyerId) : new Decimal(0);
     const walletPortion = Decimal.min(balance, total);
@@ -156,7 +160,7 @@ export class PaymentsService {
       const payment = await this.prisma.payment.create({
         data: {
           orderId,
-          provider: this.provider.name,
+          provider: provider.name,
           providerRef: `wallet_${randomToken(12)}`,
           method: 'wallet',
           amount: '0.00',
@@ -187,15 +191,15 @@ export class PaymentsService {
     const payment = await this.prisma.payment.create({
       data: {
         orderId,
-        provider: this.provider.name,
-        providerRef: `${this.provider.name}_${randomToken(12)}`,
+        provider: provider.name,
+        providerRef: `${provider.name}_${randomToken(12)}`,
         method: walletPortion.gt(0) ? 'mixed' : 'gateway',
         amount: gatewayCharge.toFixed(2),
         walletAmount: walletPortion.toFixed(2),
         currency: order.currency,
       },
     });
-    const res = await this.provider.createPayment({
+    const res = await provider.createPayment({
       providerRef: payment.providerRef,
       orderId,
       amount: gatewayCharge.toFixed(2),
@@ -204,7 +208,7 @@ export class PaymentsService {
     });
     // Simulador (dev/staging): auto-confirma tras un jitter, reproduciendo el
     // webhook del gateway real. No-op si está desactivado (default y en test).
-    this.provider.scheduleAutoConfirm?.(payment.providerRef, (p, sig) =>
+    provider.scheduleAutoConfirm?.(payment.providerRef, (p, sig) =>
       this.handleWebhook(p, sig),
     );
     return { ...this.summarize(payment), installments, paymentUrl: res.paymentUrl };
@@ -517,7 +521,11 @@ export class PaymentsService {
     if (!signature || !safeEqual(this.expectedSignature(payload), signature)) {
       throw new UnauthorizedException('Firma de webhook inválida');
     }
-    const provider = this.provider.name;
+    // Namespace de dedupe CONSTANTE para el webhook HMAC compartido (simulador + Pagalo).
+    // Debe ser estable entre reenvíos del MISMO eventId (aunque cambie el providerRef), o
+    // la idempotencia (provider,eventId) no reconocería el duplicado. (El webhook Svix de
+    // Recurrente usa su propio handler/namespace aparte.)
+    const provider = 'gateway';
 
     // Idempotencia: si ya se procesó este evento, no reprocesar.
     const prior = await this.prisma.webhookEvent.findUnique({
