@@ -15,7 +15,7 @@ import { PricingService } from '../pricing/pricing.service';
 import { FeeParams, InstallmentPlan, PricingEngine } from '../pricing/pricing.engine';
 import { PaymentGatewaysService } from '../payment-gateways/payment-gateways.service';
 import { CostShareService } from '../cost-share/cost-share.service';
-import { hmacSha256, randomToken, safeEqual } from '../../common/utils/crypto';
+import { hmacSha256, randomToken, safeEqual, verifySvixSignature } from '../../common/utils/crypto';
 import { QueueService } from '../../infra/queue/queue.service';
 import { QUEUES } from '../../infra/queue/queue.constants';
 import { TicketsService } from '../tickets/tickets.service';
@@ -29,6 +29,13 @@ export interface WebhookPayload {
   type: string; // 'payment.succeeded' | 'payment.failed'
   providerRef: string;
   occurredAt?: string;
+}
+
+/** Forma (parcial) del webhook SVIX de Recurrente. `metadata` la sembramos nosotros. */
+interface RecurrenteWebhookPayload {
+  event_type?: string;
+  metadata?: { orderId?: string; providerRef?: string };
+  checkout?: { id?: string; status?: string; metadata?: { orderId?: string; providerRef?: string } };
 }
 
 @Injectable()
@@ -522,11 +529,16 @@ export class PaymentsService {
       throw new UnauthorizedException('Firma de webhook inválida');
     }
     // Namespace de dedupe CONSTANTE para el webhook HMAC compartido (simulador + Pagalo).
-    // Debe ser estable entre reenvíos del MISMO eventId (aunque cambie el providerRef), o
-    // la idempotencia (provider,eventId) no reconocería el duplicado. (El webhook Svix de
-    // Recurrente usa su propio handler/namespace aparte.)
-    const provider = 'gateway';
+    // (El webhook Svix de Recurrente usa su propio handler + namespace 'recurrente'.)
+    return this.processVerifiedWebhook(payload, 'gateway');
+  }
 
+  /**
+   * Procesamiento COMÚN tras verificar la firma (HMAC del simulador/Pagalo o Svix de
+   * Recurrente): idempotente por (provider,eventId), busca el pago por providerRef y mapea
+   * el tipo → fulfill/fail/reverse. Debe ser estable entre reenvíos del mismo eventId.
+   */
+  private async processVerifiedWebhook(payload: WebhookPayload, provider: string) {
     // Idempotencia: si ya se procesó este evento, no reprocesar.
     const prior = await this.prisma.webhookEvent.findUnique({
       where: { provider_eventId: { provider, eventId: payload.id } },
@@ -577,6 +589,59 @@ export class PaymentsService {
 
     await this.markProcessed(provider, payload.id);
     return { received: true };
+  }
+
+  /**
+   * Webhook de RECURRENTE (estilo SVIX). Verifica la firma sobre el cuerpo CRUDO con el
+   * `whsec_...`, mapea el evento (`intent.succeeded`→pagado, `intent.failed/canceled`→fallo)
+   * y reutiliza el fulfillment vía `metadata.providerRef` que sembramos al crear el checkout.
+   * Idempotente por (recurrente, svix-id).
+   */
+  async handleRecurrenteWebhook(
+    headers: { svixId?: string; svixTimestamp?: string; svixSignature?: string },
+    rawBody: string,
+  ) {
+    const secret =
+      this.config.get<{ webhookSecret?: string }>('recurrente')?.webhookSecret ?? '';
+    const ok = verifySvixSignature(
+      secret,
+      headers.svixId ?? '',
+      headers.svixTimestamp ?? '',
+      rawBody,
+      headers.svixSignature ?? '',
+    );
+    if (!ok) throw new UnauthorizedException('Firma de webhook (Svix) inválida');
+
+    let evt: RecurrenteWebhookPayload;
+    try {
+      evt = JSON.parse(rawBody) as RecurrenteWebhookPayload;
+    } catch {
+      throw new BadRequestException('Cuerpo de webhook inválido');
+    }
+    // La metadata sembrada en createPayment vuelve en el webhook (top-level o bajo checkout).
+    const meta = evt.metadata ?? evt.checkout?.metadata ?? {};
+    const providerRef = meta.providerRef ?? '';
+    const type = this.mapRecurrenteEvent(evt.event_type);
+    if (!type) {
+      this.logger.warn(`Evento de Recurrente no manejado: ${evt.event_type}`);
+      return { received: true, ignored: true };
+    }
+    const payload: WebhookPayload = { id: headers.svixId ?? '', type, providerRef };
+    return this.processVerifiedWebhook(payload, 'recurrente');
+  }
+
+  /** Mapea el event_type de Recurrente a nuestro tipo interno (o null si se ignora). */
+  private mapRecurrenteEvent(eventType: string | undefined): string | null {
+    switch ((eventType ?? '').toLowerCase()) {
+      case 'intent.succeeded':
+      case 'intent.paid':
+        return 'payment.succeeded';
+      case 'intent.failed':
+      case 'intent.canceled':
+        return 'payment.failed';
+      default:
+        return null;
+    }
   }
 
   private async markProcessed(provider: string, eventId: string): Promise<void> {

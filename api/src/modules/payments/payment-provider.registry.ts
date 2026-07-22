@@ -20,6 +20,7 @@ export class PaymentProviderRegistry {
   private readonly logger = new Logger(PaymentProviderRegistry.name);
   private readonly byName: Map<string, PaymentProvider>;
   private readonly forced: string | null;
+  private readonly fallback: PaymentProvider; // simulador (fallback ante provider desconocido)
 
   constructor(
     config: ConfigService,
@@ -27,6 +28,7 @@ export class PaymentProviderRegistry {
     recurrente: RecurrentePaymentProvider,
     pagalo: PagaloPaymentProvider,
   ) {
+    this.fallback = simulator;
     this.byName = new Map<string, PaymentProvider>([
       ['simulator', simulator],
       ['recurrente', recurrente],
@@ -44,6 +46,6 @@ export class PaymentProviderRegistry {
   /** Proveedor a usar para el gateway efectivo (o el forzado). Fallback: simulador. */
   resolveFor(gateway?: { provider?: string | null } | null): PaymentProvider {
     const name = this.forced ?? gateway?.provider ?? 'simulator';
-    return this.byName.get(name) ?? this.byName.get('simulator')!;
+    return this.byName.get(name) ?? this.fallback;
   }
 }

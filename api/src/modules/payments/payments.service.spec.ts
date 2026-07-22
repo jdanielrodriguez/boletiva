@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PaymentsService } from './payments.service';
+import { createHmac } from 'crypto';
 import { hmacSha256 } from '../../common/utils/crypto';
 
 /**
@@ -15,6 +16,11 @@ import { hmacSha256 } from '../../common/utils/crypto';
  */
 describe('PaymentsService (ramas de borde, unit)', () => {
   const SECRET = 'wh-secret';
+  // Secreto whsec_ para el webhook SVIX de Recurrente (la porción tras el prefijo es base64).
+  const REC_KEY = Buffer.from('recurrente-webhook-key');
+  const REC_WHSEC = `whsec_${REC_KEY.toString('base64')}`;
+  const svixSign = (id: string, ts: string, body: string) =>
+    'v1,' + createHmac('sha256', REC_KEY).update(`${id}.${ts}.${body}`).digest('base64');
   const dec = (n: number | string) => new Prisma.Decimal(n);
 
   const build = (providerOverride?: Record<string, unknown>) => {
@@ -60,7 +66,15 @@ describe('PaymentsService (ramas de borde, unit)', () => {
       gatewayAllowed: jest.fn(),
       installmentsAllowed: jest.fn(),
     };
-    const config = { get: jest.fn((k: string) => (k === 'payment.webhookSecret' ? SECRET : undefined)) };
+    const config = {
+      get: jest.fn((k: string) =>
+        k === 'payment.webhookSecret'
+          ? SECRET
+          : k === 'recurrente'
+            ? { webhookSecret: REC_WHSEC }
+            : undefined,
+      ),
+    };
     const queue = { enqueue: jest.fn() };
     const tickets = { revokeByOrder: jest.fn() };
     const stream = { emitOrder: jest.fn(), emitSeat: jest.fn(), emitWallet: jest.fn() };
@@ -485,6 +499,42 @@ describe('PaymentsService (ramas de borde, unit)', () => {
         sign(payload.id, payload.type, payload.providerRef),
       );
       expect(res).toEqual({ received: true, duplicate: true });
+    });
+
+    // ── Webhook SVIX de Recurrente ──
+    it('Recurrente: firma Svix inválida → 401', async () => {
+      const { service } = build();
+      await expect(
+        service.handleRecurrenteWebhook(
+          { svixId: 'm1', svixTimestamp: '1700000000', svixSignature: 'v1,mala' },
+          '{"event_type":"intent.succeeded"}',
+        ),
+      ).rejects.toBeInstanceOf(Error);
+    });
+
+    it('Recurrente: intent.succeeded válido → mapea y procesa (por metadata.providerRef)', async () => {
+      const { prisma, service } = build();
+      const body = JSON.stringify({
+        event_type: 'intent.succeeded',
+        metadata: { orderId: 'o9', providerRef: 'recurrente_r9' },
+      });
+      // Ya procesado → cortocircuito duplicate (evita mockear todo el fulfillment).
+      prisma.webhookEvent.findUnique.mockResolvedValue({ processedAt: new Date() });
+      const res = await service.handleRecurrenteWebhook(
+        { svixId: 'm9', svixTimestamp: '1700000000', svixSignature: svixSign('m9', '1700000000', body) },
+        body,
+      );
+      expect(res).toEqual({ received: true, duplicate: true });
+    });
+
+    it('Recurrente: event_type desconocido (válido) → ignorado', async () => {
+      const { service } = build();
+      const body = JSON.stringify({ event_type: 'subscription.created' });
+      const res = await service.handleRecurrenteWebhook(
+        { svixId: 'm2', svixTimestamp: '1700000000', svixSignature: svixSign('m2', '1700000000', body) },
+        body,
+      );
+      expect(res).toEqual({ received: true, ignored: true });
     });
 
     it('un error no-P2002 al insertar el webhook se propaga', async () => {

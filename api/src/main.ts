@@ -23,7 +23,9 @@ async function bootstrap(): Promise<void> {
     if (v) process.env[key] = v.trim().replace(/%+$/, '');
   }
 
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  // rawBody: necesario para verificar el webhook SVIX de Recurrente (la firma es sobre el
+  // cuerpo CRUDO). No cambia el parseo normal; solo expone `req.rawBody` donde se pida.
+  const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
   const config = app.get(ConfigService);
   const isProd = config.get<boolean>('isProd');
 
