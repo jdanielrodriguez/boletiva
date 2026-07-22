@@ -25,6 +25,7 @@ import { I18nService } from '../../core/i18n/i18n.service';
 import { ToastService } from '../../core/ui/toast.service';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { StatusLabelPipe } from '../../shared/ui/status-label.pipe';
+import { IconComponent } from '../../shared/icon/icon.component';
 
 const CATEGORIES: SupportCategory[] = ['billing', 'payments_settlement', 'event', 'technical', 'account', 'other'];
 const PRIORITIES: SupportPriority[] = ['low', 'medium', 'high', 'urgent'];
@@ -40,7 +41,7 @@ const AGENT_STATUS: (SupportStatus | '')[] = ['', 'new', 'open', 'awaiting_suppo
  */
 @Component({
   selector: 'app-support-chat',
-  imports: [FormsModule, RouterLink, TranslatePipe, LocalizedDatePipe, StatusLabelPipe, EmptyStateComponent],
+  imports: [FormsModule, RouterLink, TranslatePipe, LocalizedDatePipe, StatusLabelPipe, EmptyStateComponent, IconComponent],
   templateUrl: './support-chat.page.html',
 })
 export class SupportChatPage implements OnDestroy {

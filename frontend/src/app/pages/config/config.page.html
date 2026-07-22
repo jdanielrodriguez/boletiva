@@ -25,15 +25,15 @@
   }
 
   <nav class="config-tabs" [attr.aria-label]="'config.tabsAria' | translate">
-    <button type="button" [class.active]="tab() === 'eventos'" [attr.aria-current]="tab() === 'eventos' ? 'page' : null" (click)="selectTab('eventos')" data-testid="tab-eventos">{{ 'config.tabs.events' | translate }}</button>
-    <button type="button" [class.active]="tab() === 'promotores'" [attr.aria-current]="tab() === 'promotores' ? 'page' : null" (click)="selectTab('promotores')" data-testid="tab-promotores">{{ 'config.tabs.promoters' | translate }}</button>
-    <button type="button" [class.active]="tab() === 'salones'" [attr.aria-current]="tab() === 'salones' ? 'page' : null" (click)="selectTab('salones')" data-testid="tab-salones">{{ 'config.tabs.halls' | translate }}</button>
-    <button type="button" [class.active]="tab() === 'plantillas'" [attr.aria-current]="tab() === 'plantillas' ? 'page' : null" (click)="selectTab('plantillas')" data-testid="tab-plantillas">{{ 'config.tabs.templates' | translate }}</button>
+    <button type="button" [class.active]="tab() === 'eventos'" [attr.aria-current]="tab() === 'eventos' ? 'page' : null" (click)="selectTab('eventos')" data-testid="tab-eventos"><app-icon name="ticket" [size]="15" /> {{ 'config.tabs.events' | translate }}</button>
+    <button type="button" [class.active]="tab() === 'promotores'" [attr.aria-current]="tab() === 'promotores' ? 'page' : null" (click)="selectTab('promotores')" data-testid="tab-promotores"><app-icon name="accounts" [size]="15" /> {{ 'config.tabs.promoters' | translate }}</button>
+    <button type="button" [class.active]="tab() === 'salones'" [attr.aria-current]="tab() === 'salones' ? 'page' : null" (click)="selectTab('salones')" data-testid="tab-salones"><app-icon name="seats" [size]="15" /> {{ 'config.tabs.halls' | translate }}</button>
+    <button type="button" [class.active]="tab() === 'plantillas'" [attr.aria-current]="tab() === 'plantillas' ? 'page' : null" (click)="selectTab('plantillas')" data-testid="tab-plantillas"><app-icon name="draft" [size]="15" /> {{ 'config.tabs.templates' | translate }}</button>
     @if (!hideSystemTab()) {
-      <button type="button" [class.active]="tab() === 'sistema'" [attr.aria-current]="tab() === 'sistema' ? 'page' : null" (click)="selectTab('sistema')" data-testid="tab-sistema">{{ 'config.tabs.system' | translate }}</button>
+      <button type="button" [class.active]="tab() === 'sistema'" [attr.aria-current]="tab() === 'sistema' ? 'page' : null" (click)="selectTab('sistema')" data-testid="tab-sistema"><app-icon name="gear" [size]="15" /> {{ 'config.tabs.system' | translate }}</button>
     }
     <!-- Base de conocimientos (T6) — gestión admin+asesor, movida aquí desde el menú de perfil. -->
-    <button type="button" [class.active]="tab() === 'kb'" [attr.aria-current]="tab() === 'kb' ? 'page' : null" (click)="selectTab('kb')" data-testid="tab-kb">{{ 'config.tabs.kb' | translate }}</button>
+    <button type="button" [class.active]="tab() === 'kb'" [attr.aria-current]="tab() === 'kb' ? 'page' : null" (click)="selectTab('kb')" data-testid="tab-kb"><app-icon name="book" [size]="15" /> {{ 'config.tabs.kb' | translate }}</button>
     <!-- Invitaciones se MOVIÓ al menú superior de admin (deep-link ?tab=invitaciones); el
          contenido sigue aquí pero sin botón de tab. Soporte también se movió al menú (a la
          página /soporte, admin+asesor) → ya no es tab embebido. -->
@@ -93,7 +93,7 @@
           @for (e of pageEvents(); track e.id) {
             <article class="ev-card" [class.ev-card-featured]="e.promotedPriority != null" data-testid="ev-card">
               @if (e.promotedPriority != null) {
-                <span class="ev-featured-flag"><span aria-hidden="true">★</span> {{ 'config.events.featuredFlag' | translate }}</span>
+                <span class="ev-featured-flag"><app-icon name="default" [size]="13" /> {{ 'config.events.featuredFlag' | translate }}</span>
               }
               <div class="ev-card-top">
                 <span class="badge badge-{{ e.status }}">{{ e.status | statusLabel }}</span>
@@ -112,7 +112,7 @@
                 <!-- Destacar en el slider del inicio (solo admin, aquí en la lista). Solo los
                      futuros publicados destacados salen en el slider; si no hay, se oculta. -->
                 <span class="ev-promote" [title]="'config.events.featureHint' | translate">
-                  <span class="ev-promote-star" aria-hidden="true">★</span>
+                  <span class="ev-promote-star" aria-hidden="true"><app-icon name="default" [size]="14" /></span>
                   <span class="ev-promote-label">{{ 'config.events.feature' | translate }}</span>
                   <app-switch [checked]="e.promotedPriority != null" [disabled]="promotingId() === e.id"
                     (checkedChange)="togglePromoted(e, $event)"

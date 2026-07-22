@@ -263,6 +263,7 @@
           }
 
           <button type="button" class="btn primary btn-block" data-testid="pay-confirm" [disabled]="!canPay()" (click)="pay()">
+            <app-icon name="card" [size]="18" />
             @if (paying()) { {{ 'checkout.processing' | translate }} } @else { {{ 'checkout.payButton' | translate: { amount: (breakdown()?.total | money) } }} }
           </button>
           <p class="secure-note">

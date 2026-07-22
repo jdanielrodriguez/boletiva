@@ -6,7 +6,7 @@ import {
   OnApplicationBootstrap,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PromoterStatus, PromoterTier, Role, User } from '@prisma/client';
+import { PromoterStatus, PromoterTier, Prisma, Role, User } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { QueueService } from '../../infra/queue/queue.service';
 import { QUEUES } from '../../infra/queue/queue.constants';
@@ -133,9 +133,21 @@ export class PromotersService implements OnApplicationBootstrap {
   }
 
   /** Lista de solicitudes (admin). Filtra por estado; excluye 'none' por defecto. */
-  async list(status?: PromoterStatus) {
+  async list(status?: PromoterStatus, search?: string, take?: number) {
+    const where: Prisma.UserWhereInput = status
+      ? { promoterStatus: status }
+      : { promoterStatus: { not: PromoterStatus.none } };
+    // Búsqueda SERVER-SIDE por nombre/apellido/email (mandato: no filtrar en el cliente).
+    if (search) {
+      where.OR = [
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ];
+    }
     return this.prisma.user.findMany({
-      where: status ? { promoterStatus: status } : { promoterStatus: { not: PromoterStatus.none } },
+      where,
+      ...(take ? { take } : {}),
       select: {
         id: true,
         email: true,

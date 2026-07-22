@@ -415,13 +415,13 @@ app-root {
   gap: 1rem 1.5rem;
 }
 
-.footer-brand {
+/* IZQUIERDA: Preguntas frecuentes. */
+.footer-help {
   grid-column: 1;
-  min-height: 1px;
+  justify-self: start;
 }
-
-/* Bloque legal: copyright arriba, términos centrado debajo. */
-.footer-legal-block {
+/* CENTRO: copyright + Términos (debajo). */
+.footer-center {
   grid-column: 2;
   display: flex;
   flex-direction: column;
@@ -429,6 +429,7 @@ app-root {
   gap: 0.35rem;
   text-align: center;
 }
+.footer-center .footer-copy { margin: 0; }
 
 /* Menú del lado con ítems APILADOS (uno bajo otro). */
 .footer-menu {
@@ -473,17 +474,20 @@ app-root {
     justify-items: center;
     text-align: center;
   }
-  .footer-brand {
-    display: none;
-  }
-  .footer-legal-block {
-    grid-column: 1;
-    order: 2;
-  }
+  /* Apilado y centrado en móvil: menú, luego copyright, luego legal. */
   .footer-menu {
     grid-column: 1;
     order: 1;
     justify-self: center;
+    align-items: center;
+  }
+  .footer-copy {
+    grid-column: 1;
+    order: 2;
+  }
+  .footer-legal {
+    grid-column: 1;
+    order: 3;
     align-items: center;
   }
 
@@ -2372,11 +2376,9 @@ app-root {
   gap: 0.75rem;
 }
 
+/* Botón ESTÁNDAR (btn primary); solo añadimos separación del cuadro de arriba + ancho. */
 .add-method {
-  margin-top: 0.5rem;
-  background: transparent;
-  border: 1px dashed var(--pe-border);
-  color: var(--pe-muted);
+  margin-top: 1.1rem;
   width: 100%;
 }
 
@@ -3251,6 +3253,33 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
   background: var(--pe-surface);
   min-height: 60vh;
 }
+/* Toggles de "ver/ocultar" (métricas del agente, archivados del promotor): botón
+   pequeño con icono, no un link suelto; estado activo resaltado. */
+.chat-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.chat-toggle-btn.active {
+  border-color: var(--pe-accent-border, var(--pe-accent));
+  color: var(--pe-accent-strong, var(--pe-accent));
+}
+.chat-archived-toggle { margin: 0.4rem 0; }
+
+/* Placeholder "elige un ticket": neutro (no un empty-state triste) y LLENA el panel. */
+.chat-pick-placeholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 2rem;
+  color: var(--pe-text-muted, #6b6b76);
+  text-align: center;
+}
+.chat-pick-placeholder app-icon { opacity: 0.5; }
+.chat-pick-placeholder p { margin: 0; font-size: 0.95rem; }
 .chat-thread-head {
   display: flex;
   align-items: center;

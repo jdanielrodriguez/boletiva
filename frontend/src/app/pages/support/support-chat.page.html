@@ -17,8 +17,8 @@
   } @else {
     @if (isAgent()) {
       <div class="chat-metrics-bar">
-        <button type="button" class="link-btn small" (click)="toggleMetrics()" data-testid="chat-metrics-toggle">
-          {{ (showMetrics() ? 'chat.hideMetrics' : 'chat.showMetrics') | translate }}
+        <button type="button" class="btn small chat-toggle-btn" [class.active]="showMetrics()" (click)="toggleMetrics()" data-testid="chat-metrics-toggle">
+          <app-icon name="chart" [size]="15" /> {{ (showMetrics() ? 'chat.hideMetrics' : 'chat.showMetrics') | translate }}
         </button>
         @if (showMetrics() && metrics(); as mx) {
           <div class="chat-metrics" data-testid="chat-metrics">
@@ -37,8 +37,8 @@
           <button type="button" class="btn primary btn-block" (click)="startNew()" data-testid="chat-new">
             {{ 'chat.newThread' | translate }}
           </button>
-          <button type="button" class="link-btn small chat-archived-toggle" (click)="toggleArchived()" data-testid="chat-archived-toggle">
-            {{ (showArchived() ? 'chat.hideArchived' : 'chat.showArchived') | translate }}
+          <button type="button" class="btn small chat-toggle-btn chat-archived-toggle" [class.active]="showArchived()" (click)="toggleArchived()" data-testid="chat-archived-toggle">
+            <app-icon name="history" [size]="15" /> {{ (showArchived() ? 'chat.hideArchived' : 'chat.showArchived') | translate }}
           </button>
         }
 
@@ -245,7 +245,10 @@
             </form>
           }
         } @else {
-          <app-empty-state variant="generic" [title]="'chat.pickThread' | translate" />
+          <div class="chat-pick-placeholder" data-testid="chat-pick">
+            <app-icon name="chat" [size]="40" />
+            <p>{{ 'chat.pickThread' | translate }}</p>
+          </div>
         }
       </div>
     </div>

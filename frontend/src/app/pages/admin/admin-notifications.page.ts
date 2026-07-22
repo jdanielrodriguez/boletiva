@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { catchError, debounceTime, of, startWith, switchMap } from 'rxjs';
 import { AdminApi } from '../../core/api/admin.api';
 import { NotificationsApi } from '../../core/api/notifications.api';
 import { ToastService } from '../../core/ui/toast.service';
@@ -91,8 +93,12 @@ import type { PromoterListItemDto } from '../../core/api/types';
     `
       .admin-notif { max-width: 640px; margin: 0 auto; }
       .notif-form { display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem; }
-      .notif-target { display: flex; gap: 1.2rem; border: none; padding: 0; }
-      .notif-target label { display: inline-flex; align-items: center; gap: 0.4rem; }
+      /* Control SEGMENTADO (dos opciones) en vez de radios sueltos. */
+      .notif-target { display: inline-flex; gap: 0; border: 1px solid var(--pe-border); border-radius: 10px; padding: 0; margin: 0; overflow: hidden; width: fit-content; }
+      .notif-target label { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.55rem 1rem; cursor: pointer; font-size: 0.92rem; }
+      .notif-target label + label { border-left: 1px solid var(--pe-border); }
+      .notif-target label:has(input:checked) { background: var(--pe-accent-soft); color: var(--pe-accent-strong, var(--pe-accent)); font-weight: 600; }
+      .notif-target input { accent-color: var(--pe-accent, #e14eca); }
       .field { display: flex; flex-direction: column; gap: 0.35rem; }
       .notif-preview { border: 1px dashed var(--pe-border); border-radius: var(--pe-radius-sm); padding: 0.8rem 1rem; background: var(--pe-accent-soft); }
       .notif-preview-label { font-size: 0.72rem; text-transform: uppercase; color: var(--pe-text-muted, #6b6b76); }
@@ -106,16 +112,20 @@ export class AdminNotificationsPage {
   private readonly toasts = inject(ToastService);
   private readonly translate = inject(TranslateService);
 
-  protected readonly promoters = signal<PromoterListItemDto[]>([]);
   protected readonly promoterFilter = signal('');
-  protected readonly filteredPromoters = computed(() => {
-    const q = this.promoterFilter().trim().toLowerCase();
-    const all = this.promoters();
-    if (!q) return all;
-    return all.filter((p) =>
-      `${p.firstName ?? ''} ${p.lastName ?? ''} ${p.email}`.toLowerCase().includes(q),
-    );
-  });
+  /** Búsqueda de promotores SERVER-SIDE (debounce): no carga todos en el cliente. */
+  protected readonly filteredPromoters = toSignal(
+    toObservable(this.promoterFilter).pipe(
+      debounceTime(250),
+      startWith(''),
+      switchMap((term) =>
+        this.admin
+          .listPromoters('approved', term.trim() || undefined, 20)
+          .pipe(catchError(() => of([] as PromoterListItemDto[]))),
+      ),
+    ),
+    { initialValue: [] as PromoterListItemDto[] },
+  );
   protected readonly all = signal(false);
   protected readonly promoterId = signal('');
   protected readonly title = signal('');
@@ -127,9 +137,6 @@ export class AdminNotificationsPage {
     () => this.title().trim().length >= 2 && this.body().trim().length >= 1 && (this.all() || !!this.promoterId()),
   );
 
-  constructor() {
-    this.admin.listPromoters('approved').subscribe({ next: (p) => this.promoters.set(p), error: () => undefined });
-  }
 
   protected send(): void {
     if (!this.canSend() || this.working()) return;

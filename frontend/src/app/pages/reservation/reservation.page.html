@@ -18,6 +18,7 @@
 
     @if (!expired()) {
       <button type="button" class="primary" data-testid="pay-btn" [disabled]="working()" (click)="continueToPay()">
+        <app-icon name="card" [size]="18" />
         {{ working() ? ('reservation.processing' | translate) : ('reservation.continueToPay' | translate) }}
       </button>
     } @else {

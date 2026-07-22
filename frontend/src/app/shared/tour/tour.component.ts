@@ -71,10 +71,13 @@ const ANON_SHOW_PCT = 50;
     `
       /* Recuadro flotante NO modal: abajo-izquierda, sin backdrop → el usuario puede
          seguir usando la página. z-index alto pero solo el recuadro captura clics. */
-      .tour-pop { position: fixed; left: 1rem; bottom: 1rem; z-index: 1200; width: min(340px, calc(100vw - 2rem)); background: var(--pe-surface, #14151c); color: var(--pe-text, #f5f6fa); border: 1px solid var(--pe-border, #2a2c36); border-radius: 14px; padding: .95rem 1rem .85rem; box-shadow: 0 16px 40px rgba(0,0,0,.35); animation: tour-in .25s ease-out; }
+      /* Más VISTOSO (sobre todo en tema noche): borde + franja superior de acento y un
+         glow suave, para que destaque sobre el fondo oscuro sin ser modal. */
+      .tour-pop { position: fixed; left: 1rem; bottom: 1rem; z-index: 1200; width: min(340px, calc(100vw - 2rem)); background: var(--pe-bg-elev, var(--pe-surface, #14151c)); color: var(--pe-text, #f5f6fa); border: 1px solid var(--pe-accent-border, var(--pe-border, #2a2c36)); border-top: 3px solid var(--pe-accent, #e14eca); border-radius: 14px; padding: .95rem 1rem .85rem; box-shadow: 0 18px 46px rgba(0,0,0,.5), 0 0 0 4px var(--pe-accent-soft, transparent); animation: tour-in .25s ease-out; }
       .tour-close { position: absolute; top: .35rem; right: .45rem; background: none; border: 0; color: var(--pe-muted); font-size: 1.3rem; line-height: 1; cursor: pointer; padding: .1rem .35rem; border-radius: 8px; }
       .tour-close:hover { color: var(--pe-text); background: var(--pe-border, #2a2c36); }
-      .tour-step-count { color: var(--pe-muted); font-size: .76rem; margin: 0 0 .2rem; }
+      /* Badge de paso en color de acento (resalta el "1 / 3"). */
+      .tour-step-count { display: inline-block; color: var(--pe-accent-strong, var(--pe-accent, #e14eca)); background: var(--pe-accent-soft, rgba(225,78,202,.15)); font-weight: 700; font-size: .72rem; letter-spacing: .03em; margin: 0 0 .45rem; padding: .12rem .5rem; border-radius: 999px; }
       .tour-title { margin: 0 0 .4rem; font-size: 1.02rem; padding-right: 1.3rem; }
       .tour-body { color: var(--pe-muted); margin: 0 0 .8rem; font-size: .9rem; line-height: 1.4; }
       .tour-actions { display: flex; align-items: center; gap: .4rem; }

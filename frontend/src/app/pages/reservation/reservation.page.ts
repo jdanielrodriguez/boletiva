@@ -9,6 +9,7 @@ import { SessionStore } from '../../core/auth/session.store';
 import type { ReservationResponseDto } from '../../core/api/types';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { LoginModal } from '../../shared/login-modal/login-modal.component';
+import { IconComponent } from '../../shared/icon/icon.component';
 import { ReservationItems } from '../../shared/reservation-items/reservation-items.component';
 import { MoneyPipe } from '../../shared/money.pipe';
 
@@ -19,7 +20,7 @@ import { MoneyPipe } from '../../shared/money.pipe';
  */
 @Component({
   selector: 'app-reservation',
-  imports: [DecimalPipe, LocalizedDatePipe, TranslatePipe, RouterLink, LoginModal, ReservationItems, MoneyPipe],
+  imports: [DecimalPipe, LocalizedDatePipe, TranslatePipe, RouterLink, LoginModal, ReservationItems, MoneyPipe, IconComponent],
   templateUrl: './reservation.page.html',
 })
 export class ReservationPage implements OnDestroy {

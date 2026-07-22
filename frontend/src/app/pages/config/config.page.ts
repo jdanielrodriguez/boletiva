@@ -181,7 +181,11 @@ export class ConfigPage {
 
   /** Etiqueta amigable de un setting (key con puntos → guion bajo). */
   protected settingLabel(key: string): string {
-    return this.translate.instant('config.settingLabels.' + key.split('.').join('_'));
+    const k = 'config.settingLabels.' + key.split('.').join('_');
+    const v = this.translate.instant(k);
+    // Fallback (audit config-M1): si falta la traducción, ngx-translate devuelve la
+    // propia clave; mostramos el key crudo del setting en vez del path técnico.
+    return v === k ? key : v;
   }
   /** Descripción amigable de un setting (key con puntos → guion bajo). */
   protected settingDescription(key: string): string {
@@ -1106,7 +1110,7 @@ export class ConfigPage {
         // instante en el store (switcher/categorías) sin recargar la página.
         const setter = ConfigPage.PUBLIC_CONFIG_SETTERS[updated.key];
         if (setter) setter(this.publicConfig, updated.value);
-        this.toasts.success(this.translate.instant('config.settings.saved', { key: s.key }));
+        this.toasts.success(this.translate.instant('config.settings.saved', { key: this.settingLabel(s.key) }));
       },
       error: () => this.toasts.error(this.translate.instant('config.settings.saveError')),
     });
