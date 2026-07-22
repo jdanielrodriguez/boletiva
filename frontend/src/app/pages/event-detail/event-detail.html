@@ -26,7 +26,14 @@
 
     <section class="event-localities">
       <h2>{{ 'eventDetail.localities' | translate }}</h2>
-      @if (!salesOpen()) {
+      @if (isAdmin()) {
+        <app-empty-state
+          variant="generic"
+          data-testid="event-admin-nobuy"
+          [title]="'eventDetail.adminNoBuyTitle' | translate"
+          [subtitle]="'eventDetail.adminNoBuyBody' | translate"
+        />
+      } @else if (!salesOpen()) {
         <app-empty-state
           variant="tickets"
           data-testid="event-sales-closed"

@@ -12,6 +12,8 @@ export const eventDetail = {
   noLocalities: 'Aún no hay localidades publicadas.',
   salesClosedTitle: 'Ventas cerradas',
   salesClosed: 'Las ventas de este evento ya cerraron.',
+  adminNoBuyTitle: 'Vista de administrador',
+  adminNoBuyBody: 'Como administrador no compras boletos. Usa una cuenta de cliente para probar el flujo de compra.',
   noLocalitiesHint: 'El organizador todavía no configuró las entradas de este evento.',
   loading: 'Cargando evento…',
   notFoundTitle: 'Evento no encontrado',
