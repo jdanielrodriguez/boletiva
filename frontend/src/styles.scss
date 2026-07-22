@@ -5370,7 +5370,43 @@ textarea.invalid {
 .twofa-btn.btn:disabled { opacity: 0.55; }
 .twofa-btn .app-icon { flex: none; opacity: 0.85; }
 /* Cronómetro regresivo del reenvío de código (desaparece al llegar a 0). */
-.resend-countdown { margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--pe-text-muted, var(--pe-muted)); text-align: center; }
+/* Estado del reenvío de código: confirmación (verde) + "reloj" = barra que se vacía. */
+.resend-status {
+  margin: 0.75rem 0 0;
+  padding: 0.7rem 0.85rem;
+  border-radius: 10px;
+  background: var(--pe-success-soft);
+  border: 1px solid var(--pe-success-border, var(--pe-success));
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+.resend-status-head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--pe-success);
+}
+.resend-status-head .app-icon { flex: none; }
+.resend-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pe-muted) 22%, transparent);
+  overflow: hidden;
+}
+.resend-progress-bar {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--pe-grad, var(--pe-accent));
+  /* Se vacía suave cada segundo (el % baja por señal) → sensación de cronómetro. */
+  transition: width 1s linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  .resend-progress-bar { transition: none; }
+}
 
 /* ── T6 · FAQ público + gestión KB + editor de formato ─────────────────────── */
 .faq-page { max-width: 860px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }

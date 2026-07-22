@@ -1,4 +1,4 @@
-import { Component, OnDestroy, inject, signal } from '@angular/core';
+import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -32,6 +32,12 @@ export class Login implements OnDestroy {
   protected readonly submitting = signal(false);
   protected readonly resending = signal(false);
   protected readonly resendCooldown = signal(0);
+  /** Duración total del cooldown vigente (para la barra de progreso del reloj). */
+  protected readonly resendTotal = signal(60);
+  /** % restante del cooldown → ancho de la barra que se vacía (100→0). */
+  protected readonly resendPct = computed(() =>
+    this.resendTotal() > 0 ? Math.round((this.resendCooldown() / this.resendTotal()) * 100) : 0,
+  );
   protected readonly info = signal<string | null>(null);
   private resendTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -86,6 +92,7 @@ export class Login implements OnDestroy {
   }
 
   private startResendCooldown(seconds: number): void {
+    this.resendTotal.set(seconds);
     this.resendCooldown.set(seconds);
     if (this.resendTimer) clearInterval(this.resendTimer);
     this.resendTimer = setInterval(() => {

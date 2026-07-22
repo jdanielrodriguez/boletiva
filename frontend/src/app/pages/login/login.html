@@ -69,15 +69,23 @@
           {{ submitting() ? ('auth.verifying' | translate) : ('auth.verify' | translate) }}
         </button>
 
-        @if (info(); as i) {
-          <p class="info" role="status" data-testid="twofa-info">{{ i }}</p>
-        }
-        <!-- Cronómetro regresivo: mientras corre, dice cuánto falta; al llegar a 0
-             desaparece y el botón de reenviar se habilita. -->
-        @if (resendCooldown() > 0) {
-          <p class="resend-countdown" role="status" data-testid="twofa-countdown">
-            {{ 'auth.resendCountdown' | translate: { s: resendCooldown() } }}
-          </p>
+        <!-- Estado del reenvío: confirmación + reloj visual (barra que se vacía).
+             Al llegar a 0 desaparece y el botón de reenviar se habilita. -->
+        @if (info() || resendCooldown() > 0) {
+          <div class="resend-status" role="status" data-testid="twofa-info">
+            @if (info(); as i) {
+              <span class="resend-status-head"><app-icon name="refresh" [size]="16" /> {{ i }}</span>
+            }
+            @if (resendCooldown() > 0) {
+              <div
+                class="resend-progress"
+                data-testid="twofa-countdown"
+                [attr.aria-label]="'auth.resendCountdown' | translate: { s: resendCooldown() }"
+              >
+                <span class="resend-progress-bar" [style.width.%]="resendPct()"></span>
+              </div>
+            }
+          </div>
         }
 
         <div class="twofa-actions">
