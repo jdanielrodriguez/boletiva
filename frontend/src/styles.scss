@@ -554,7 +554,11 @@ app-root {
   position: absolute;
   right: 0;
   top: calc(100% + 8px);
-  min-width: 190px;
+  /* Más ancho y cómodo: crece con la etiqueta más larga (max-content) pero ACOTADO para
+     no desbordar en móvil (min(90vw, 320px)). Un piso de 236px evita que se vea apretado. */
+  min-width: 236px;
+  width: max-content;
+  max-width: min(90vw, 320px);
   background: var(--pe-surface);
   border: 1px solid var(--pe-border);
   border-radius: var(--pe-radius-sm);
@@ -567,6 +571,7 @@ app-root {
      dejaba "Salir" inalcanzable (QA shell-A1). Se acota con scroll interno. */
   max-height: min(75vh, 460px);
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .user-dropdown a,
@@ -589,11 +594,24 @@ app-root {
 .user-dropdown .dd-item {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.6rem;
+  white-space: nowrap;
 }
 .user-dropdown .dd-item app-icon {
   color: var(--pe-text-muted, #6b6b76);
   flex: 0 0 auto;
+}
+/* Separador entre las opciones del cliente y las de gestión (admin/promotor). */
+.user-dropdown .dd-sep {
+  height: 1px;
+  background: var(--pe-border);
+  margin: 0.3rem 0.2rem;
+}
+/* "Salir" separado del resto con una línea sutil. */
+.user-dropdown .dd-logout {
+  margin-top: 0.15rem;
+  border-top: 1px solid var(--pe-border);
+  border-radius: 0 0 8px 8px;
 }
 
 /* Ítems reservados (detalle de boletos) */
