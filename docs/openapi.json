@@ -10001,6 +10001,162 @@
           "advisors"
         ]
       }
+    },
+    "/api/v1/advisors": {
+      "get": {
+        "operationId": "AdvisorsController_list_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdvisorRowDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lista los asesores (usuarios con rol advisor)",
+        "tags": [
+          "advisors"
+        ]
+      }
+    },
+    "/api/v1/advisors/{id}/disable": {
+      "post": {
+        "operationId": "AdvisorsController_disable_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Deshabilita a un asesor (quita el rol; queda como cliente)",
+        "tags": [
+          "advisors"
+        ]
+      }
+    },
+    "/api/v1/advisors/{id}/enable": {
+      "post": {
+        "operationId": "AdvisorsController_enable_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Vuelve a habilitar a un asesor",
+        "tags": [
+          "advisors"
+        ]
+      }
+    },
+    "/api/v1/advisors/{id}/notify": {
+      "post": {
+        "operationId": "AdvisorsController_notify_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotifyAdvisorDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Envía una notificación in-app a un asesor",
+        "tags": [
+          "advisors"
+        ]
+      }
+    },
+    "/api/v1/advisors/{id}": {
+      "delete": {
+        "operationId": "AdvisorsController_remove_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Elimina (soft: inactivo) a un asesor ya deshabilitado",
+        "tags": [
+          "advisors"
+        ]
+      }
     }
   },
   "info": {
@@ -19722,6 +19878,71 @@
         "required": [
           "token",
           "password"
+        ]
+      },
+      "AdvisorRowDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastName": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive",
+              "pending"
+            ]
+          },
+          "disabled": {
+            "type": "boolean",
+            "description": "true = deshabilitado (sin el rol advisor)"
+          },
+          "forced": {
+            "type": "boolean",
+            "description": "Cuenta creada al invitar (sin contraseña propia)"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "firstName",
+          "lastName",
+          "status",
+          "disabled",
+          "forced",
+          "createdAt"
+        ]
+      },
+      "NotifyAdvisorDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "title",
+          "body"
         ]
       }
     }

@@ -465,6 +465,9 @@ model User {
   avatarUrl    String?    @map("avatar_url")
   status       UserStatus @default(active)
   roles        Role[]     @default([buyer])
+  /// Marca que el usuario fue asesor alguna vez (se pone al deshabilitarlo) → el panel
+  /// de asesores sigue mostrándolo aunque ya no tenga el rol, para poder eliminarlo.
+  wasAdvisor   Boolean    @default(false) @map("was_advisor")
 
   // Preferencia de idioma del usuario (v3.7): 'es' | 'en'. Se persiste desde el
   // perfil y se aplica en el frontend por encima de la preferencia de localStorage.
