@@ -7,6 +7,7 @@ import { ToastService } from '../../core/ui/toast.service';
 import { apiErrorMessage } from '../../core/http/api-error';
 import { ConfirmController } from '../../shared/confirm-dialog/confirm-controller';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
+import { IconComponent } from '../../shared/icon/icon.component';
 
 /**
  * Gestión de validadores del evento (tab del editor). El promotor invita por email
@@ -17,7 +18,7 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dial
  */
 @Component({
   selector: 'app-event-validators',
-  imports: [FormsModule, TranslatePipe, ConfirmDialogComponent],
+  imports: [FormsModule, TranslatePipe, ConfirmDialogComponent, IconComponent],
   templateUrl: './event-validators.component.html',
 })
 export class EventValidatorsComponent {
@@ -92,13 +93,21 @@ export class EventValidatorsComponent {
   }
 
   protected enable(v: ValidatorListItemDto): void {
+    // Guard anti doble-submit: `enable` ROTA el token; un doble clic invalidaría el
+    // enlace recién emitido. Bloquea hasta que la petición vuelve.
+    if (this.working()) return;
+    this.working.set(true);
     this.api.enable(this.eventId(), v.id).subscribe({
       next: (res) => {
+        this.working.set(false);
         this.issued.set(res);
         this.toasts.success(this.translate.instant('promoter.validators.reenabled', { email: res.email }));
         this.load();
       },
-      error: (err) => this.toasts.error(apiErrorMessage(err, this.translate.instant('promoter.validators.actionError'))),
+      error: (err) => {
+        this.working.set(false);
+        this.toasts.error(apiErrorMessage(err, this.translate.instant('promoter.validators.actionError')));
+      },
     });
   }
 
@@ -108,13 +117,19 @@ export class EventValidatorsComponent {
    * mismo endpoint que rehabilitar (deja el acceso activo con un enlace nuevo).
    */
   protected resend(v: ValidatorListItemDto): void {
+    if (this.working()) return;
+    this.working.set(true);
     this.api.enable(this.eventId(), v.id).subscribe({
       next: (res) => {
+        this.working.set(false);
         this.issued.set(res);
         this.toasts.success(this.translate.instant('promoter.validators.resent', { email: res.email }));
         this.load();
       },
-      error: (err) => this.toasts.error(apiErrorMessage(err, this.translate.instant('promoter.validators.actionError'))),
+      error: (err) => {
+        this.working.set(false);
+        this.toasts.error(apiErrorMessage(err, this.translate.instant('promoter.validators.actionError')));
+      },
     });
   }
 

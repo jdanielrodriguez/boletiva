@@ -78,6 +78,12 @@ export const routes: Routes = [
     title: 'Términos y condiciones — Boletiva',
   },
   {
+    // T6: FAQ público (SSR + JSON-LD FAQPage), cacheable en el edge.
+    path: 'faq',
+    loadComponent: () => import('./pages/faq/faq.page').then((m) => m.FaqPage),
+    title: 'Preguntas frecuentes — Boletiva',
+  },
+  {
     // Sin guestGuard: con ?token= debe poder ACTIVAR el rol aunque haya sesión
     // (invitación a cuenta existente). El propio componente redirige a /cuenta si
     // entra un usuario logueado sin token.
@@ -114,7 +120,10 @@ export const routes: Routes = [
   {
     path: 'promotor/eventos/:id/editar',
     loadComponent: () => import('./pages/promoter/event-edit.page').then((m) => m.EventEditPage),
-    canActivate: [roleGuard('promoter', 'admin')],
+    // 'advisor' incluido: el asesor abre el evento en SOLO-LECTURA (el editor lo trata
+    // como no-dueño/no-admin → campos y acciones deshabilitados). Sus mutaciones, si
+    // llegara a intentarlas, las corta el backend (AdvisorUnlockGuard).
+    canActivate: [roleGuard('promoter', 'admin', 'advisor')],
     canDeactivate: [unsavedChangesGuard],
     title: 'Editar evento — Boletiva',
   },
@@ -167,6 +176,38 @@ export const routes: Routes = [
       import('./pages/config/advisor-unlock-approve.page').then((m) => m.AdvisorUnlockApprovePage),
     canActivate: [roleGuard('admin')],
     title: 'Desbloqueo de asesor — Boletiva',
+  },
+  {
+    // T5: tab de admin para enviar notificaciones a un promotor o a todos.
+    path: 'admin/notificaciones',
+    loadComponent: () => import('./pages/admin/admin-notifications.page').then((m) => m.AdminNotificationsPage),
+    canActivate: [roleGuard('admin')],
+    title: 'Enviar notificaciones — Boletiva',
+  },
+  {
+    // T7e: admin invita asesores.
+    path: 'admin/asesores',
+    loadComponent: () => import('./pages/admin/admin-advisors.page').then((m) => m.AdminAdvisorsPage),
+    canActivate: [roleGuard('admin')],
+    title: 'Asesores — Boletiva',
+  },
+  {
+    // T6: gestión de la Base de Conocimientos (admin + asesor).
+    path: 'admin/kb',
+    loadComponent: () => import('./pages/admin/kb-admin.page').then((m) => m.KbAdminPage),
+    canActivate: [roleGuard('admin', 'advisor')],
+    title: 'Base de conocimientos — Boletiva',
+  },
+  {
+    // T7e: onboarding de asesor por token (nuevo → fija contraseña; existente → confirma).
+    path: 'asesor/fijar-password',
+    loadComponent: () => import('./pages/advisor/advisor-onboarding.page').then((m) => m.AdvisorOnboardingPage),
+    title: 'Activar cuenta de asesor — Boletiva',
+  },
+  {
+    path: 'asesor/confirmar',
+    loadComponent: () => import('./pages/advisor/advisor-onboarding.page').then((m) => m.AdvisorOnboardingPage),
+    title: 'Confirmar rol de asesor — Boletiva',
   },
   {
     // La LISTA de salones vive en `/configuracion?tab=salones` (v3.9 · B1). Aquí

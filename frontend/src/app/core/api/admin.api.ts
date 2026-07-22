@@ -34,8 +34,8 @@ export class AdminApi {
   private readonly api = inject(ApiClient);
 
   // --- Promotores ---
-  listPromoters(status?: string): Observable<PromoterListItemDto[]> {
-    return this.api.get<PromoterListItemDto[]>('/promoters', status ? { status } : undefined);
+  listPromoters(status?: string, search?: string, limit?: number): Observable<PromoterListItemDto[]> {
+    return this.api.get<PromoterListItemDto[]>('/promoters', { status, search, limit });
   }
   approvePromoter(id: string): Observable<unknown> {
     return this.api.post(`/promoters/${id}/approve`);

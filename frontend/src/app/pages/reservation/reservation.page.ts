@@ -9,6 +9,7 @@ import { SessionStore } from '../../core/auth/session.store';
 import type { ReservationResponseDto } from '../../core/api/types';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { LoginModal } from '../../shared/login-modal/login-modal.component';
+import { IconComponent } from '../../shared/icon/icon.component';
 import { ReservationItems } from '../../shared/reservation-items/reservation-items.component';
 import { MoneyPipe } from '../../shared/money.pipe';
 
@@ -19,7 +20,7 @@ import { MoneyPipe } from '../../shared/money.pipe';
  */
 @Component({
   selector: 'app-reservation',
-  imports: [DecimalPipe, LocalizedDatePipe, TranslatePipe, RouterLink, LoginModal, ReservationItems, MoneyPipe],
+  imports: [DecimalPipe, LocalizedDatePipe, TranslatePipe, RouterLink, LoginModal, ReservationItems, MoneyPipe, IconComponent],
   templateUrl: './reservation.page.html',
 })
 export class ReservationPage implements OnDestroy {
@@ -52,9 +53,22 @@ export class ReservationPage implements OnDestroy {
   protected readonly notFound = computed(() => this.data() === null);
   protected readonly mm = computed(() => Math.floor(this.secondsLeft() / 60));
   protected readonly ss = computed(() => this.secondsLeft() % 60);
+  /**
+   * Expirada en el CLIENTE: inválida según el backend, o el contador ya llegó a 0.
+   * Lee `secondsLeft()` (tick cada segundo) para reevaluar en vivo → al llegar a 00:00
+   * el botón "Continuar al pago" se oculta sin depender de un nuevo fetch (QA).
+   */
+  protected readonly expired = computed(() => {
+    const r = this.reservation();
+    if (!r) return false;
+    if (!r.valid) return true;
+    const exp = r.expiresAt ? new Date(r.expiresAt).getTime() : 0;
+    return this.secondsLeft() === 0 && exp > 0 && exp <= Date.now();
+  });
 
   constructor() {
     afterNextRender(() => {
+      this.tick(); // inicializa el contador de inmediato (evita el parpadeo 00:00)
       this.ticker = setInterval(() => this.tick(), 1000);
     });
   }

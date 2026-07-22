@@ -46,6 +46,7 @@ export interface PublicUser {
   twoFactorMethod: User['twoFactorMethod'];
   language: string;
   themePref: string | null;
+  emailNotificationsEnabled: boolean;
   /** Usuario de PRUEBA (invitado en modo test): sus eventos usan Sandbox, sin cargos reales. */
   isTestUser: boolean;
   /** Facturación (FEL): NIT, nombre fiscal y DPI (opcional). */
@@ -86,6 +87,9 @@ export class AuthService {
   private static readonly LOGIN_MAX_FAILS = 10;
   private static readonly TWOFA_LOCK_WINDOW_SEC = 300; // 5 min
   private static readonly TWOFA_MAX_FAILS = 5;
+  private static readonly TWOFA_RESEND_COOLDOWN_SEC = 60; // 1 reenvío por MINUTO
+  private static readonly TWOFA_MAX_RESENDS = 5; // tope de reenvíos por ventana
+  private static readonly TWOFA_RESEND_WINDOW_SEC = 900; // ventana del tope (15 min)
 
   private async toPublic(user: User): Promise<PublicUser> {
     // La foto de perfil se firma al leer (patrón event-media): si hay `avatarKey`
@@ -106,6 +110,7 @@ export class AuthService {
       twoFactorMethod: user.twoFactorMethod,
       language: user.language,
       themePref: user.themePref,
+      emailNotificationsEnabled: user.emailNotificationsEnabled,
       isTestUser: user.isTestUser,
       nit: user.nit,
       billingName: user.billingName,
@@ -196,6 +201,41 @@ export class AuthService {
     return { status: 'ok', user: await this.toPublic(user), tokens };
   }
 
+  /**
+   * Reenvía el código del segundo factor (FU9). Solo aplica al método EMAIL (TOTP no
+   * "reenvía": el código lo genera la app). Cooldown por usuario para evitar spam de
+   * correos. Devuelve el método para que el frontend ajuste el mensaje.
+   */
+  async resendTwoFactor(preauthToken: string): Promise<{ method: User['twoFactorMethod']; resent: boolean }> {
+    const userId = this.verifyPreauth(preauthToken);
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException();
+    if (user.twoFactorMethod !== 'email') {
+      return { method: user.twoFactorMethod, resent: false }; // TOTP: nada que reenviar
+    }
+    // Tope TOTAL de reenvíos por ventana (evita spam de OTP): máximo 5; superado →
+    // se bloquea y hay que reiniciar el login.
+    const totalKey = `2fa-resend-total:${user.id}`;
+    if ((await this.rateLimit.count(totalKey)) >= AuthService.TWOFA_MAX_RESENDS) {
+      throw new HttpException(
+        'Alcanzaste el máximo de reenvíos. Vuelve a iniciar sesión para pedir un código nuevo.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+    // Cooldown: 1 reenvío por MINUTO.
+    const key = `2fa-resend:${user.id}`;
+    if ((await this.rateLimit.count(key)) >= 1) {
+      throw new HttpException(
+        'Espera un minuto antes de pedir otro código.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+    await this.rateLimit.register(key, AuthService.TWOFA_RESEND_COOLDOWN_SEC);
+    await this.rateLimit.register(totalKey, AuthService.TWOFA_RESEND_WINDOW_SEC);
+    await this.twofactor.startChallenge(user);
+    return { method: user.twoFactorMethod, resent: true };
+  }
+
   async verifyTwoFactor(preauthToken: string, code: string, ctx: DeviceContext) {
     const userId = this.verifyPreauth(preauthToken);
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
@@ -228,14 +268,14 @@ export class AuthService {
 
   // ---- Verificación de correo ---------------------------------------------
 
-  async verifyEmailByCode(email: string, code: string) {
+  async verifyEmailByCode(email: string, code: string, ctx: DeviceContext) {
     const userId = await this.challenges.verifyCode(email, 'email_verify', code);
-    return this.markEmailVerified(userId);
+    return this.markEmailVerified(userId, ctx);
   }
 
-  async verifyEmailByToken(token: string) {
+  async verifyEmailByToken(token: string, ctx: DeviceContext) {
     const userId = await this.challenges.verifyToken('email_verify', token);
-    return this.markEmailVerified(userId);
+    return this.markEmailVerified(userId, ctx);
   }
 
   async resendVerification(email: string): Promise<void> {
@@ -246,11 +286,19 @@ export class AuthService {
     await this.challenges.issue(user.id, user.email, 'email_verify', { withMagicLink: true });
   }
 
-  private async markEmailVerified(userId: string): Promise<PublicUser> {
+  private async markEmailVerified(userId: string, ctx: DeviceContext): Promise<PublicUser> {
+    // ¿Ya era confiable este dispositivo? (para decidir si avisamos de "nuevo dispositivo").
+    const wasTrusted = await this.devices.isKnownTrusted(userId, ctx);
     const user = await this.prisma.user.update({
       where: { id: userId },
       data: { emailVerifiedAt: new Date() },
     });
+    // Validar el correo con el código/enlace prueba la POSESIÓN del buzón → factor
+    // suficiente para CONFIAR este dispositivo. Así, tras verificar, un logout+login
+    // desde el MISMO navegador ya no vuelve a pedir el 2FA (identidad estable por
+    // `X-Device-Id`). Se avisa del nuevo dispositivo la primera vez (como en 2FA).
+    await this.devices.trust(user.id, ctx);
+    if (!wasTrusted) await this.sendNewDeviceAlert(user, ctx);
     return await this.toPublic(user);
   }
 
@@ -374,7 +422,7 @@ export class AuthService {
       title: 'Recupera tu contraseña',
       preheader: 'Restablece la contraseña de tu cuenta en Boletiva.',
       bodyHtml: `<p style="margin:0 0 12px 0;">Recibimos una solicitud para restablecer tu contraseña. El enlace es válido por 1 hora.</p>
-        <p class="pe-muted" style="margin:0;font-size:14px;color:#6b6b76;">Si no fuiste tú, ignora este correo: tu contraseña no cambiará.</p>`,
+        <p class="pe-muted" style="margin:0;font-size:14px;color:{{muted}};">Si no fuiste tú, ignora este correo: tu contraseña no cambiará.</p>`,
       cta: { url: `${origin}/reset-password?token=${raw}`, label: 'Restablecer contraseña' },
     });
   }
@@ -392,7 +440,7 @@ export class AuthService {
       preheader: 'Intentaron registrar este correo, pero ya tiene una cuenta en Boletiva.',
       bodyHtml: `<p style="margin:0 0 12px 0;">Recibimos un intento de registro con este correo, pero <strong>ya tienes una cuenta</strong> en Boletiva. No creamos una nueva.</p>
         <p style="margin:0 0 12px 0;">Si fuiste tú, inicia sesión normalmente. Si no recuerdas tu contraseña, puedes restablecerla.</p>
-        <p class="pe-muted" style="margin:0;font-size:14px;color:#6b6b76;">Si no fuiste tú, puedes ignorar este correo: tu cuenta sigue protegida.</p>`,
+        <p class="pe-muted" style="margin:0;font-size:14px;color:{{muted}};">Si no fuiste tú, puedes ignorar este correo: tu cuenta sigue protegida.</p>`,
       cta: { url: `${origin}/login`, label: 'Iniciar sesión' },
     });
   }
@@ -455,7 +503,7 @@ export class AuthService {
       bodyHtml: `<p style="margin:0 0 12px 0;">Hola ${escapeHtml(user.firstName)}, detectamos un inicio de sesión desde un nuevo dispositivo.</p>
         <p style="margin:0 0 4px 0;"><strong>IP:</strong> ${ip}</p>
         <p style="margin:0 0 12px 0;"><strong>Dispositivo:</strong> ${ua}</p>
-        <p class="pe-muted" style="margin:0;font-size:14px;color:#6b6b76;">Si no fuiste tú, cambia tu contraseña de inmediato.</p>`,
+        <p class="pe-muted" style="margin:0;font-size:14px;color:{{muted}};">Si no fuiste tú, cambia tu contraseña de inmediato.</p>`,
     });
   }
 

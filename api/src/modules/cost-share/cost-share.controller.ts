@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch } from '@nes
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { AdminOnly } from '../../common/decorators/admin-only.decorator';
 import { CostShareService } from './cost-share.service';
 import {
   DefaultPctResponseDto,
@@ -10,8 +11,11 @@ import {
   SetPromoterPctDto,
 } from './dto/cost-share.dto';
 
+// Reparto de ingresos = dinero: EXCLUSIVO admin (alineado con pricing/wallet/settlement);
+// un asesor NO lo altera ni dentro de una ventana de desbloqueo.
 @ApiTags('cost-share')
 @ApiBearerAuth()
+@AdminOnly()
 @Controller('cost-share')
 export class CostShareController {
   constructor(private readonly costShare: CostShareService) {}

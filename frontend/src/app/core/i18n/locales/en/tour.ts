@@ -1,6 +1,10 @@
 /** Onboarding / guided tour. English. */
 export const tour = {
   aria: 'Quick guide',
+  promptTitle: 'Want a quick tour?',
+  promptBody: 'We’ll show you in a few seconds what each part of this screen is for.',
+  yes: 'Yes, show me',
+  no: 'No, thanks',
   skip: 'Skip',
   back: 'Back',
   next: 'Next',
@@ -56,7 +60,15 @@ export const tour = {
     welcomeBody: 'From here you manage promoters, gateways, halls/templates and global settings.',
     eventsTitle: 'Events and accounts',
     eventsBody: 'You see events from all promoters, open their detail and manage the cash (finalize/settle).',
-    configTitle: 'Settings',
+    promotersTitle: 'Promoters',
+    promotersBody: 'Approve, reject or suspend promoters, tune their cost-share and review their history.',
+    hallsTitle: 'Venues',
+    hallsBody: 'Create and publish reusable venues (location and layout) that promoters pick when creating events.',
+    templatesTitle: 'Templates',
+    templatesBody: 'Design seat templates for the event editor.',
+    kbTitle: 'Knowledge base',
+    kbBody: 'Write and publish the FAQ users see and that feeds support.',
+    configTitle: 'System',
     configBody: 'Adjust fees, themes, language, reports maintenance and more. Changes apply instantly.',
   },
 };

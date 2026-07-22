@@ -176,6 +176,11 @@ button:hover:not(:disabled),
      gris oscuro fijo (antes #262a3a oscurecía el botón en el tema claro). */
   border-color: var(--pe-accent);
   background: color-mix(in srgb, var(--pe-accent) 10%, var(--pe-surface-2));
+  /* FIJA texto legible: el tinte de hover es CLARO → si el botón tenía texto blanco
+     (relleno de acento), al hover se mezclaba (invisible). Con el color de texto del
+     tema queda legible. Los botones con hover propio (.primary/.danger/.subtle/
+     .cta-promoter) lo sobreescriben más abajo con su color. */
+  color: var(--pe-text);
 }
 
 button:active:not(:disabled) {
@@ -188,10 +193,15 @@ button:disabled,
   cursor: not-allowed;
 }
 
+/* Estado ACTIVO base (chips de filtro): indicador de SELECCIÓN, no un CTA. Tinte suave
+   + borde de acento en vez del gradiente primario, para no competir con el botón de
+   acción real (jerarquía visual — QA final M4). Los tabs/menú/segmentados de navegación
+   conservan su propio estilo activo (reglas scoped más abajo). */
 button.active {
-  background: var(--pe-grad);
-  border-color: transparent;
-  color: #fff;
+  background: var(--pe-accent-soft);
+  border-color: var(--pe-accent-border, var(--pe-accent));
+  color: var(--pe-accent-strong, var(--pe-accent));
+  font-weight: 600;
 }
 
 button.primary,
@@ -263,6 +273,19 @@ textarea:focus {
   box-shadow: 0 0 0 3px var(--pe-focus-ring);
 }
 
+/* Anillo de foco de MARCA consistente para navegación por teclado (a11y, QA final):
+   botones, enlaces, tabs y controles custom. Solo :focus-visible (no molesta al ratón). */
+a:focus-visible,
+button:focus-visible,
+[role='button']:focus-visible,
+[role='tab']:focus-visible,
+summary:focus-visible,
+.btn:focus-visible {
+  outline: 2px solid var(--pe-focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--pe-radius-sm);
+}
+
 /* Formularios más prolijos: separación clara de labels y campos. */
 .card-block .form-grid,
 .card-block .loc-form-grid {
@@ -277,6 +300,14 @@ textarea:focus {
 
 ::placeholder {
   color: #6b7180;
+}
+
+/* Franja superior fija (banners + header). Pinada arriba durante todo el scroll para
+   que el aviso de impersonación nunca se pierda de vista (QA Lote B). */
+.topbar-stack {
+  position: sticky;
+  top: 0;
+  z-index: 30;
 }
 
 /* --- Header --- */
@@ -347,6 +378,12 @@ textarea:focus {
 
 .session-area .greeting {
   color: rgba(245, 246, 250, 0.75);
+  /* Es un enlace a /cuenta pero debe verse como TEXTO normal (solo cursor pointer). */
+  text-decoration: none;
+  cursor: pointer;
+}
+.session-area a.greeting:hover {
+  color: rgba(245, 246, 250, 0.95);
 }
 
 /* Layout sticky: el footer siempre al fondo, crezca lo que crezca la página. */
@@ -383,13 +420,13 @@ app-root {
   gap: 1rem 1.5rem;
 }
 
-.footer-brand {
+/* IZQUIERDA: Preguntas frecuentes. */
+.footer-help {
   grid-column: 1;
-  min-height: 1px;
+  justify-self: start;
 }
-
-/* Bloque legal: copyright arriba, términos centrado debajo. */
-.footer-legal-block {
+/* CENTRO: copyright + Términos (debajo). */
+.footer-center {
   grid-column: 2;
   display: flex;
   flex-direction: column;
@@ -397,6 +434,7 @@ app-root {
   gap: 0.35rem;
   text-align: center;
 }
+.footer-center .footer-copy { margin: 0; }
 
 /* Menú del lado con ítems APILADOS (uno bajo otro). */
 .footer-menu {
@@ -409,13 +447,16 @@ app-root {
 }
 
 .footer-menu a,
-.footer-legal a {
+.footer-legal a,
+.footer-help a {
   color: var(--pe-muted);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  text-decoration: none;
 }
 
 .footer-menu a:hover,
-.footer-legal a:hover {
+.footer-legal a:hover,
+.footer-help a:hover {
   color: var(--pe-text);
 }
 
@@ -441,17 +482,20 @@ app-root {
     justify-items: center;
     text-align: center;
   }
-  .footer-brand {
-    display: none;
-  }
-  .footer-legal-block {
-    grid-column: 1;
-    order: 2;
-  }
+  /* Apilado y centrado en móvil: menú, luego copyright, luego legal. */
   .footer-menu {
     grid-column: 1;
     order: 1;
     justify-self: center;
+    align-items: center;
+  }
+  .footer-copy {
+    grid-column: 1;
+    order: 2;
+  }
+  .footer-legal {
+    grid-column: 1;
+    order: 3;
     align-items: center;
   }
 
@@ -470,6 +514,11 @@ app-root {
     min-width: 0;
   }
   .session-area .greeting {
+    display: none;
+  }
+  /* La CTA "Conviértete en promotor" se oculta del header en móvil para no desbordar
+     la fila (nombre largo + campana + avatar); sigue disponible en el footer (QA final). */
+  .session-area .cta-promoter {
     display: none;
   }
   .brand {
@@ -523,7 +572,10 @@ app-root {
   position: absolute;
   right: 0;
   top: calc(100% + 8px);
-  min-width: 190px;
+  /* Ancho FIJO cómodo (un pelín más ancho); acotado en móvil. Fijo (no max-content) para
+     que la banda gris con bleed cuadre exacto y NO cause overflow horizontal. */
+  width: 264px;
+  max-width: 90vw;
   background: var(--pe-surface);
   border: 1px solid var(--pe-border);
   border-radius: var(--pe-radius-sm);
@@ -548,6 +600,35 @@ app-root {
 .user-dropdown a:hover,
 .user-dropdown button:hover {
   background: var(--pe-surface-2);
+}
+
+/* Ítems del menú con icono (Configuración/Soporte/Notificaciones/Asesores/Invitaciones). */
+.user-dropdown .dd-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  white-space: nowrap;
+}
+.user-dropdown .dd-item app-icon {
+  color: var(--pe-text-muted, #6b6b76);
+  flex: 0 0 auto;
+}
+/* Separador entre las opciones del cliente y las de gestión. */
+.user-dropdown .dd-sep {
+  height: 1px;
+  background: var(--pe-border);
+  margin: 0.35rem 0.2rem;
+}
+/* Ítems de GESTIÓN: solo en NEGRITA (se distinguen de las del cliente); la separación
+   la dan los divisores grises (arriba del grupo y sobre "Salir"). */
+.user-dropdown .dd-mgmt {
+  font-weight: 700;
+}
+/* "Salir" separado del resto con una línea sutil. */
+.user-dropdown .dd-logout {
+  margin-top: 0.15rem;
+  border-top: 1px solid var(--pe-border);
+  border-radius: 0 0 8px 8px;
 }
 
 /* Ítems reservados (detalle de boletos) */
@@ -905,33 +986,56 @@ app-root {
 }
 
 /* Configuración (F7) */
+/* Control SEGMENTADO moderno: un "track" tenue contiene los tabs como pastillas; el
+   activo es superficie elevada con acento sutil (no el gradiente pleno, que competía
+   con los CTAs primarios). Theme-aware por tokens. */
 .config-tabs {
-  display: flex;
-  gap: 0.5rem;
+  display: inline-flex;
+  gap: 0.25rem;
+  padding: 0.3rem;
   margin-bottom: 1.25rem;
   flex-wrap: wrap;
+  background: var(--pe-surface-2);
+  border: 1px solid var(--pe-border);
+  border-radius: 999px;
 }
-/* Móvil: tabs en una tira scrolleable en vez de 2-3 filas de pills que comen alto. */
+/* Móvil: tira scrolleable (radio menor para que no parezca cápsula recortada). */
 @media (max-width: 560px) {
   .config-tabs {
+    display: flex;
     flex-wrap: nowrap;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
+    border-radius: var(--pe-radius-sm);
   }
   .config-tabs::-webkit-scrollbar { display: none; }
   .config-tabs button { flex: 0 0 auto; white-space: nowrap; }
 }
 
 .config-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   background: transparent;
-  border: 1px solid var(--pe-border);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--pe-muted);
+  padding: 0.45rem 0.95rem;
+  font-weight: 600;
+}
+.config-tabs button:hover:not(.active) {
+  color: var(--pe-text);
+  background: color-mix(in srgb, var(--pe-accent) 8%, transparent);
 }
 
 .config-tabs button.active {
-  background: var(--pe-grad);
-  border-color: transparent;
-  color: #fff;
+  background: var(--pe-surface);
+  border-color: var(--pe-accent-border, var(--pe-border));
+  color: var(--pe-accent-strong, var(--pe-accent));
+  /* Sombra de PASTILLA (no de modal): --pe-shadow es enorme (0 10px 30px) y hacía
+     "flotar" el tab activo en noche. Sombra corta y contenida. */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
 }
 
 .events-by-date {
@@ -1555,6 +1659,15 @@ app-root {
   padding: 0;
   text-decoration: underline;
 }
+/* Un .link-btn es un ENLACE, no un botón: el hover genérico (tinte + caja + texto de
+   cuerpo) lo convertía en una cajita rellena y le quitaba su color. Lo mantenemos como
+   enlace: sin fondo, solo intensifica el color. El .danger conserva su rojo. */
+.link-btn:hover:not(:disabled) {
+  background: transparent;
+  border-color: transparent;
+  color: var(--pe-accent-strong, var(--pe-accent));
+}
+.link-btn.danger:hover:not(:disabled) { color: var(--pe-danger-strong, var(--pe-danger)); }
 
 .order-block {
   padding: 0.75rem 1.1rem 1rem;
@@ -1723,6 +1836,15 @@ app-root {
   font-weight: 600;
 }
 
+/* Verificación de correo: pregunta + acciones como botones subtle (no enlaces sueltos). */
+.verify-nocode { margin-top: 1.1rem; margin-bottom: 0.6rem; }
+.verify-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 /* --- Catálogo --- */
 .catalog h1 {
   margin: 1.5rem 0 1rem;
@@ -1818,6 +1940,185 @@ app-root {
 .event-card time {
   color: var(--pe-muted);
   font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+/* El icono de fecha/lugar acompaña al texto sin dominarlo (tono atenuado). */
+.event-card .event-place .app-icon,
+.event-card time .app-icon,
+.event-detail .event-meta .event-place .app-icon,
+.event-detail .event-meta time .app-icon {
+  flex: none;
+  opacity: 0.75;
+}
+.event-detail .event-meta .event-place,
+.event-detail .event-meta time {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* ── Tarjeta de evento (catálogo) — rediseño scopeado a .catalog-grid ──
+   No pisa las .event-card de account.html (pósters de boleto). Solo tokens
+   --pe-* → válido en tema día y noche. */
+.catalog-grid .event-card { height: 100%; }
+
+.catalog-grid .event-card .event-card-link {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;                      /* el padding vive en .ec-body */
+  height: 100%;
+  overflow: hidden;                /* recorta el zoom de la imagen al radio */
+  background: var(--pe-bg-elev);
+  border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.catalog-grid .event-card .event-card-link:hover,
+.catalog-grid .event-card .event-card-link:focus-visible {
+  transform: translateY(-4px);
+  border-color: var(--pe-accent-border, var(--pe-accent));
+  box-shadow: var(--pe-shadow);
+}
+.catalog-grid .event-card .event-card-link:focus-visible {
+  outline: 2px solid var(--pe-accent);
+  outline-offset: 2px;
+}
+
+/* Media / cover */
+.catalog-grid .event-card .ec-media {
+  position: relative;
+  aspect-ratio: 16 / 10;           /* alto consistente en toda la rejilla */
+  overflow: hidden;
+}
+.catalog-grid .event-card .event-thumb {
+  height: 100%;
+  width: 100%;
+  margin: 0;                       /* anula el margin-bottom global */
+  border-radius: 0;                /* el recorte lo da .event-card-link */
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s ease;
+}
+.catalog-grid .event-card .ec-thumb-fallback {
+  display: grid;
+  place-items: center;
+  background: var(--pe-grad);
+  font-size: 3.2rem;
+  font-weight: 800;
+  color: #fff;
+}
+.catalog-grid .event-card .event-card-link:hover .event-thumb:not(.ec-thumb-fallback) {
+  transform: scale(1.06);
+}
+/* Scrim inferior sutil para dar profundidad y sostener el chip */
+.catalog-grid .event-card .ec-media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent 55%, rgba(0, 0, 0, 0.28) 100%);
+}
+
+/* Chip de fecha (arriba-izquierda) */
+.catalog-grid .event-card .ec-datechip {
+  position: absolute;
+  top: 0.6rem;
+  left: 0.6rem;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  min-width: 3rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: var(--pe-radius-sm);
+  background: var(--pe-bg-elev);
+  border: 1px solid var(--pe-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  line-height: 1;
+}
+.catalog-grid .event-card .ec-datechip .ec-day {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--pe-text);
+}
+.catalog-grid .event-card .ec-datechip .ec-month {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--pe-accent);
+}
+
+/* Categoría como pill sobre el cover (abajo-izquierda, sobre el scrim) */
+.catalog-grid .event-card .event-cat {
+  position: absolute;
+  left: 0.6rem;
+  bottom: 0.6rem;
+  z-index: 1;
+  max-width: calc(100% - 1.2rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0.28rem 0.6rem;
+  border-radius: 999px;
+  /* Fondo OPACO (como .ec-datechip): el tinte translúcido dejaba el contraste del texto
+     a merced del brillo del cover (naranja-oscuro sobre cover oscuro / rosa-claro sobre
+     cover claro fallaban). Superficie elevada + texto de acento = legible siempre. */
+  background: var(--pe-bg-elev);
+  border: 1px solid var(--pe-accent-border, var(--pe-accent));
+  color: var(--pe-accent-strong, var(--pe-accent));
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Cuerpo */
+.catalog-grid .event-card .ec-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.85rem 0.95rem 1rem;
+  flex: 1;                         /* iguala alturas de tarjeta en la fila */
+}
+.catalog-grid .event-card h2 {
+  font-size: 1.05rem;
+  line-height: 1.3;
+  margin: 0;
+  color: var(--pe-text);
+  display: -webkit-box;            /* clamp a 2 líneas */
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.catalog-grid .event-card .event-when,
+.catalog-grid .event-card .event-place {
+  color: var(--pe-muted);
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.catalog-grid .event-card .event-place {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.catalog-grid .event-card .event-when .app-icon { flex: none; opacity: 0.75; color: var(--pe-accent); }
+.catalog-grid .event-card .event-place .app-icon { flex: none; color: var(--pe-muted); opacity: 0.7; }
+
+@media (max-width: 480px) {
+  .catalog-grid .event-card .ec-media { aspect-ratio: 16 / 9; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .catalog-grid .event-card .event-card-link,
+  .catalog-grid .event-card .event-thumb { transition: none; }
+  .catalog-grid .event-card .event-card-link:hover,
+  .catalog-grid .event-card .event-card-link:focus-visible { transform: none; }
+  .catalog-grid .event-card .event-card-link:hover .event-thumb { transform: none; }
 }
 
 .catalog-pager {
@@ -2303,11 +2604,9 @@ app-root {
   gap: 0.75rem;
 }
 
+/* Botón ESTÁNDAR (btn primary); solo añadimos separación del cuadro de arriba + ancho. */
 .add-method {
-  margin-top: 0.5rem;
-  background: transparent;
-  border: 1px dashed var(--pe-border);
-  color: var(--pe-muted);
+  margin-top: 1.1rem;
   width: 100%;
 }
 
@@ -2323,7 +2622,8 @@ app-root {
   border-radius: var(--pe-radius);
   padding: 1.5rem;
   position: sticky;
-  top: 90px;
+  /* Ancla bajo la franja superior real (crece con banners); fallback 90px. */
+  top: calc(var(--pe-topbar-h, 72px) + 16px);
 }
 
 .checkout-summary h2 {
@@ -2575,6 +2875,13 @@ app-root {
   margin: 0 0 0.35rem;
 }
 
+/* Verificación de correo: separa el campo del código (OTP) del botón "Verificar",
+   que quedaba pegado. */
+[data-testid='verify-email-modal'] app-otp-input {
+  display: block;
+  margin-bottom: 1.1rem;
+}
+
 .modal-close {
   position: absolute;
   top: 0.6rem;
@@ -2633,13 +2940,15 @@ app-root {
 .share-btn.x {
   background: #000;
   color: #fff;
-  border-color: #333;
+  /* Borde más claro: sobre el fondo casi-negro de noche, #333 no separaba la píldora. */
+  border-color: #4a4a4a;
 }
 
 /* --- Carrito arriba (compra) --- */
 .cart-top {
   position: sticky;
-  top: 72px;
+  /* Ancla bajo la franja superior real (crece con banners); fallback 72px. */
+  top: calc(var(--pe-topbar-h, 64px) + 8px);
   z-index: 10;
   display: flex;
   align-items: center;
@@ -2952,20 +3261,63 @@ button.sm { padding: 0.35rem 0.7rem; font-size: 0.85rem; border-radius: 8px; }
 .btn.lg,
 button.lg { padding: 0.8rem 1.4rem; font-size: 1.02rem; border-radius: var(--pe-radius); }
 
+/* Danger TONAL (relleno suave en reposo → se lee como destructivo a la primera; sólido
+   en hover). Antes era transparente y pesaba igual que un botón secundario. */
 .btn.danger,
-button.danger { border-color: var(--pe-danger-border); color: var(--pe-danger); background: transparent; }
+button.danger { border-color: var(--pe-danger-border); color: var(--pe-danger-strong); background: var(--pe-danger-soft); }
 .btn.danger:hover:not(:disabled),
-button.danger:hover:not(:disabled) { background: var(--pe-danger-soft); border-color: var(--pe-danger); }
+button.danger:hover:not(:disabled) { background: var(--pe-danger); border-color: var(--pe-danger); color: #fff; }
+/* Tier SECUNDARIO SUTIL (ghost tonal): acciones de fila que no deben competir con la
+   primaria ni verse como cajas macizas. Hover con leve acento. */
+.btn.subtle {
+  background: transparent;
+  border-color: transparent;
+  color: var(--pe-muted);
+  font-weight: 600;
+}
+.btn.subtle:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--pe-accent) 10%, transparent);
+  border-color: transparent;
+  color: var(--pe-text);
+}
+/* En los clusters de acción de tarjeta/fila, la destructiva se aparta a la derecha. */
+.ev-card-actions .btn.danger,
+.kb-row-actions .btn.danger { margin-left: auto; }
+
+/* --- Coherencia de clusters de acción (config admin + asesores) ---------------
+   Las acciones secundarias de fila/tarjeta no deben competir entre sí ni con la
+   primaria. Todo .btn NEUTRO (sin modificador de color) dentro de un cluster adopta
+   el tier SUTIL (ghost tonal) → unifica salones/plantillas/promotores/pasarelas con
+   KB/asesores. Solo estética; no toca estructura ni data-testid. Día y noche por tokens. */
+.ev-card-actions > .btn:not(.primary):not(.danger):not(.success):not(.warning):not(.subtle):not(.outline),
+.gateway-edit-actions > .btn:not(.primary):not(.danger):not(.success):not(.warning):not(.subtle):not(.outline),
+.adv-actions > .btn:not(.primary):not(.danger):not(.success):not(.warning):not(.subtle):not(.outline) {
+  background: transparent;
+  border-color: transparent;
+  color: var(--pe-muted);
+  font-weight: 600;
+}
+.ev-card-actions > .btn:not(.primary):not(.danger):not(.success):not(.warning):not(.subtle):not(.outline):hover:not(:disabled),
+.gateway-edit-actions > .btn:not(.primary):not(.danger):not(.success):not(.warning):not(.subtle):not(.outline):hover:not(:disabled),
+.adv-actions > .btn:not(.primary):not(.danger):not(.success):not(.warning):not(.subtle):not(.outline):hover:not(:disabled) {
+  background: color-mix(in srgb, var(--pe-accent) 10%, transparent);
+  border-color: transparent;
+  color: var(--pe-text);
+}
+/* Altura homogénea del cluster: labeled e icon-only a la misma caja. */
+.ev-card-actions > .btn.small,
+.gateway-edit-actions > .btn.small,
+.adv-actions > .btn.small { min-height: 34px; }
 
 .btn.success,
 button.success { border-color: var(--pe-success-border); color: var(--pe-success); background: transparent; }
 .btn.success:hover:not(:disabled),
-button.success:hover:not(:disabled) { background: var(--pe-success-soft); border-color: var(--pe-success); }
+button.success:hover:not(:disabled) { background: var(--pe-success-soft); border-color: var(--pe-success); color: var(--pe-success); }
 
 .btn.warning,
 button.warning { border-color: var(--pe-warning-border); color: var(--pe-warning); background: transparent; }
 .btn.warning:hover:not(:disabled),
-button.warning:hover:not(:disabled) { background: var(--pe-warning-soft); border-color: var(--pe-warning); }
+button.warning:hover:not(:disabled) { background: var(--pe-warning-soft); border-color: var(--pe-warning); color: var(--pe-warning); }
 
 .btn.outline,
 .btn-outline,
@@ -3035,13 +3387,19 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
   color: var(--pe-text);
   text-decoration: none;
 }
-.ev-card-name:hover { color: var(--pe-primary); }
+/* Cuando el nombre es un <button> (config), el hover genérico ganaba en especificidad
+   y le ponía caja + texto de cuerpo. Reforzamos para que el título siga en primary. */
+.ev-card-name:hover,
+button.ev-card-name:hover:not(:disabled) { color: var(--pe-primary); background: transparent; }
 .tpl-title-row { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
 .tpl-title-row > strong { min-width: 0; }
 /* margin-top:auto fija las acciones al FONDO de la card (el grid estira todas a la
    misma altura) → los botones quedan alineados aunque una card tenga menos/deshabilitados. */
-.ev-card-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: auto; padding-top: 0.6rem; }
-.ev-card-actions .btn.small { flex: 1 1 auto; justify-content: center; min-width: 96px; }
+/* Acciones de la tarjeta de evento: botones a TAMAÑO-CONTENIDO (no estirados) para
+   que el icon-only (borrar) no quede ancho y vacío; fila que envuelve limpia. */
+.ev-card-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: auto; padding-top: 0.6rem; align-items: center; }
+.ev-card-actions .btn.small { flex: 0 0 auto; justify-content: center; }
+.ev-card-actions .btn.small.icon-only { min-width: 0; padding: 0.42rem; }
 
 /* --- Destacar evento (solo admin, en la lista) --- */
 /* Card destacada: realce con el acento del proyecto + estrella arriba. */
@@ -3151,6 +3509,7 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
   max-height: 70vh;
   overflow-y: auto;
 }
+.chat-thread-list { display: flex; flex-direction: column; gap: 0.5rem; }
 .chat-thread-item {
   display: flex;
   flex-direction: column;
@@ -3176,6 +3535,33 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
   background: var(--pe-surface);
   min-height: 60vh;
 }
+/* Toggles de "ver/ocultar" (métricas del agente, archivados del promotor): botón
+   pequeño con icono, no un link suelto; estado activo resaltado. */
+.chat-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.chat-toggle-btn.active {
+  border-color: var(--pe-accent-border, var(--pe-accent));
+  color: var(--pe-accent-strong, var(--pe-accent));
+}
+.chat-archived-toggle { margin: 0.4rem 0; }
+
+/* Placeholder "elige un ticket": neutro (no un empty-state triste) y LLENA el panel. */
+.chat-pick-placeholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 2rem;
+  color: var(--pe-text-muted, #6b6b76);
+  text-align: center;
+}
+.chat-pick-placeholder app-icon { opacity: 0.5; }
+.chat-pick-placeholder p { margin: 0; font-size: 0.95rem; }
 .chat-thread-head {
   display: flex;
   align-items: center;
@@ -3227,7 +3613,11 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
 /* Móvil: el chat colapsa a una sola columna (hilos arriba, conversación abajo). */
 @media (max-width: 720px) {
   .chat-layout { grid-template-columns: 1fr; min-height: 0; }
-  .chat-threads { max-height: 32vh; flex-direction: row; overflow-x: auto; }
+  /* La bandeja sigue en columna: los FILTROS (archivar/segmentado/estado) quedan
+     apilados arriba como cabecera; SOLO la lista de tickets scrollea en horizontal
+     (antes los filtros caían dentro de la tira y se perdían — QA móvil T3). */
+  .chat-threads { max-height: 40vh; flex-direction: column; }
+  .chat-thread-list { display: flex; flex-direction: row; gap: 0.5rem; overflow-x: auto; max-height: 24vh; }
   .chat-thread-item { min-width: 160px; flex: 0 0 auto; }
   .chat-main { min-height: 50vh; }
   .chat-msg { max-width: 90%; }
@@ -3235,6 +3625,118 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
   .chat-composer,
   .chat-compose-new { position: sticky; bottom: 0; background: var(--pe-surface); }
 }
+
+/* --- Soporte T3: bandeja, acciones, SLA, macros, CSAT --- */
+.chat-thread-item { display: flex; flex-direction: column; gap: 0.3rem; align-items: flex-start; text-align: left; }
+.chat-thread-badges { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.chat-sla { font-size: 0.72rem; color: var(--pe-text-muted, #6b6b76); }
+.chat-sla.breached { color: var(--pe-danger-strong); font-weight: 700; }
+.chat-archived-toggle { align-self: flex-start; }
+.chat-quick { margin-bottom: 0.5rem; }
+.chat-status-filter { display: block; margin-bottom: 0.5rem; }
+.chat-status-filter select { width: 100%; }
+/* Promotor: filtros de sus propios tickets (estado + búsqueda). */
+.chat-own-filters { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.5rem; }
+.chat-own-filters select,
+.chat-own-search input { width: 100%; }
+
+/* Badges de estado de soporte que no existían */
+.badge-new { background: var(--pe-accent-soft); color: var(--pe-accent-strong); }
+.badge-awaiting_promoter { background: var(--pe-warning-soft); color: var(--pe-warning-strong); }
+.badge-awaiting_support { background: color-mix(in srgb, var(--pe-primary) 16%, transparent); color: var(--pe-primary); }
+.badge-resolved { background: var(--pe-success-soft); color: var(--pe-success-strong); }
+.badge-reopened { background: var(--pe-warning-soft); color: var(--pe-warning-strong); }
+
+/* Badges de prioridad */
+.badge.prio-low { background: var(--pe-surface-2); color: var(--pe-text-muted, #6b6b76); }
+.badge.prio-medium { background: color-mix(in srgb, var(--pe-primary) 15%, transparent); color: var(--pe-primary); }
+.badge.prio-high { background: var(--pe-warning-soft); color: var(--pe-warning-strong); }
+.badge.prio-urgent { background: var(--pe-danger-soft); color: var(--pe-danger-strong); }
+
+.chat-thread-head { flex-wrap: wrap; gap: 0.6rem; }
+.chat-head-title { display: flex; flex-direction: column; gap: 0.35rem; }
+.chat-head-badges { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.chat-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+/* Menú overflow (kebab) de acciones secundarias del ticket. <details> mantiene la lista
+   en el DOM cuando está cerrado (accesible/testeable); al abrir cae como dropdown. */
+.chat-actions-more { position: relative; }
+.chat-actions-more > summary { list-style: none; cursor: pointer; }
+.chat-actions-more > summary::-webkit-details-marker { display: none; }
+.chat-actions-more-list {
+  position: absolute; right: 0; top: calc(100% + 0.25rem); z-index: 6;
+  display: flex; flex-direction: column; gap: 0.3rem; padding: 0.35rem;
+  background: var(--pe-surface); border: 1px solid var(--pe-border);
+  border-radius: var(--pe-radius-sm); box-shadow: var(--pe-shadow); min-width: 150px;
+}
+.chat-actions-more-list .btn { width: 100%; justify-content: flex-start; }
+.chat-prio-select, .chat-new-meta select { min-height: 2.2rem; }
+.chat-new-meta { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+.chat-new-meta label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.85rem; }
+
+/* Nota interna (solo agentes la ven) */
+.chat-msg.note { align-self: stretch; background: var(--pe-warning-soft); border: 1px dashed var(--pe-warning-border, var(--pe-warning)); }
+.chat-note-tag { display: inline-block; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; color: var(--pe-warning-strong); margin-bottom: 0.2rem; }
+
+/* Composer: herramientas del agente + macros */
+.chat-composer-tools { display: flex; align-items: center; gap: 1rem; padding: 0.4rem 0; flex-wrap: wrap; }
+.chat-internal-toggle { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; }
+.chat-composer-row { display: flex; gap: 0.5rem; width: 100%; }
+.chat-composer-row input { flex: 1 1 auto; }
+.chat-composer { flex-direction: column; align-items: stretch; }
+.chat-macros { position: relative; }
+.chat-macros-list { position: absolute; bottom: 100%; left: 0; z-index: 5; margin: 0 0 0.3rem; padding: 0.3rem; list-style: none; background: var(--pe-surface); border: 1px solid var(--pe-border); border-radius: var(--pe-radius-sm); box-shadow: var(--pe-shadow); min-width: 220px; max-height: 40vh; overflow-y: auto; }
+.chat-macros-list li button { display: block; width: 100%; text-align: left; padding: 0.4rem 0.55rem; border: none; background: none; color: var(--pe-text); border-radius: 6px; cursor: pointer; }
+.chat-macros-list li button:hover { background: var(--pe-surface-2); }
+
+/* CSAT (estrellas) */
+.chat-csat { display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 1rem; border-top: 1px solid var(--pe-border); flex-wrap: wrap; }
+.chat-stars { display: inline-flex; gap: 0.15rem; }
+.chat-star { border: none; background: none; cursor: pointer; font-size: 1.35rem; line-height: 1; color: var(--pe-border); padding: 0 0.05rem; }
+.chat-star.on { color: var(--pe-warning); }
+
+/* --- Soporte T4: métricas + adjuntos --- */
+.chat-metrics-bar { margin: 0 0 0.6rem; }
+.chat-metrics { display: grid; grid-template-columns: repeat(4, minmax(90px, 1fr)); gap: 0.6rem; margin-top: 0.5rem; }
+.chat-metrics .metric { display: flex; flex-direction: column; align-items: center; gap: 0.15rem; padding: 0.7rem 0.4rem; border: 1px solid var(--pe-border); border-radius: var(--pe-radius-sm); background: var(--pe-surface); }
+.chat-metrics .metric-n { font-size: 1.5rem; font-weight: 800; color: var(--pe-accent); }
+.chat-metrics .metric-l { font-size: 0.75rem; color: var(--pe-text-muted, #6b6b76); text-align: center; display: inline-flex; align-items: center; gap: 0.25rem; justify-content: center; }
+/* "?" que explica cada métrica (tooltip nativo por title). */
+.metric-help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 1px solid var(--pe-border);
+  color: var(--pe-text-muted, #6b6b76);
+  font-size: 0.62rem;
+  font-weight: 700;
+  cursor: help;
+  line-height: 1;
+}
+.metric-help:hover, .metric-help:focus { border-color: var(--pe-accent); color: var(--pe-accent-strong, var(--pe-accent)); outline: none; }
+/* Panel izquierdo "sin tickets": vacío amable centrado (no texto minúsculo). */
+.chat-threads-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.6rem 1rem;
+  color: var(--pe-text-muted, #6b6b76);
+  text-align: center;
+  font-size: 0.9rem;
+}
+.chat-threads-empty .app-icon { opacity: 0.45; }
+@media (max-width: 560px) { .chat-metrics { grid-template-columns: repeat(2, 1fr); } }
+
+.chat-attachments { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.35rem; }
+.chat-attachment img { max-width: 160px; max-height: 120px; border-radius: 8px; display: block; }
+.chat-attachment-file { display: inline-block; padding: 0.3rem 0.55rem; border: 1px solid var(--pe-border); border-radius: 999px; font-size: 0.82rem; background: var(--pe-surface); }
+.chat-pending-files { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; padding: 0.3rem 0; }
+.chat-file-chip { font-size: 0.8rem; padding: 0.2rem 0.5rem; border-radius: 999px; background: var(--pe-surface-2); }
+.chat-attach-btn { display: inline-flex; align-items: center; justify-content: center; width: 2.4rem; min-height: 2.4rem; border: 1px solid var(--pe-border); border-radius: var(--pe-radius-sm); cursor: pointer; background: var(--pe-surface); flex: 0 0 auto; }
+.chat-attach-btn:hover { background: var(--pe-surface-2); }
 /* Barra superior del editor: acciones alineadas a la derecha y CENTRADAS
    verticalmente (W5) → el botón/chip de desbloqueo queda a la misma altura que
    Guardar/Publicar (antes se estiraban a distinta altura por el default stretch). */
@@ -3255,13 +3757,46 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
 
 /* Móvil: agranda los blancos táctiles a ≥44px (accesibilidad WCAG 2.5.5). */
 @media (max-width: 480px) {
-  .btn.small { min-height: 44px; }
-  .btn.icon-only { width: 44px; height: 44px; }
+  /* REGLA BASE robusta (QA verificación final): TODO control interactivo llega a 44px de
+     alto sin enumerar clase por clase — cubre .primary suelto, pager, chips, .dim-tab,
+     .gen-item-btn, .tpl-item, etc. que el enfoque por-clase dejaba fuera. */
+  button,
+  .btn,
+  select,
+  input:not([type='radio']):not([type='checkbox']):not([type='range']),
+  textarea,
+  .link-btn { min-height: 44px; }
+  /* Controles cuadrados: además ancho ≥44px. */
+  .btn.icon-only,
+  .notif-trigger,
+  .user-trigger,
+  .icon-btn,
+  .chat-attach-btn,
+  .chat-star,
+  .qty-btn,
+  .pager-arrow,
+  .pager-page,
+  .modal-x,
+  .pass-toggle,
+  .ci-remove { min-width: 44px; min-height: 44px; }
+  /* Radios/checkbox nativos: agrandar el control para un blanco táctil decente. */
+  input[type='radio'],
+  input[type='checkbox'] { width: 22px; height: 22px; }
+  .link-btn { display: inline-flex; align-items: center; }
   .pe-switch .pe-switch-track { margin: 0.6rem 0; }
-  /* Acciones tipo enlace (validadores, cuenta): blanco táctil vertical decente. */
-  .link-btn { min-height: 40px; display: inline-flex; align-items: center; }
-  /* Steppers de cantidad (compra GA): 44px táctiles. */
-  .qty-btn { min-width: 44px; min-height: 44px; }
+}
+
+/* Aviso móvil del editor de asientos (oculto en pantallas grandes). */
+.seat-mobile-hint { display: none; }
+@media (max-width: 720px) {
+  .seat-mobile-hint {
+    display: block;
+    margin: 0 0 0.6rem;
+    padding: 0.5rem 0.7rem;
+    border-radius: var(--pe-radius-sm);
+    background: var(--pe-warning-soft);
+    color: var(--pe-warning-strong);
+  }
 }
 
 /* Edición de evento */
@@ -3591,6 +4126,19 @@ button.danger {
   color: var(--pe-text);
 }
 .info-banner a { color: var(--pe-teal); text-decoration: underline; }
+/* "Más detalles de seguridad": chip-enlace con acento y chevron (se ve como acción). */
+.info-banner a.security-details-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  text-decoration: none;
+  font-weight: 600;
+  color: var(--pe-accent-strong, var(--pe-accent));
+  white-space: nowrap;
+}
+.info-banner a.security-details-link:hover { text-decoration: underline; }
+.info-banner a.security-details-link .app-icon { transition: transform 0.12s ease; }
+.info-banner a.security-details-link:hover .app-icon { transform: translateX(2px); }
 .info-icon {
   display: inline-flex;
   align-items: center;
@@ -3889,6 +4437,19 @@ button.danger {
   font-size: 0.8rem;
   color: var(--pe-muted);
 }
+/* Enlace de invitación + botón copiar en una fila. */
+.inv-url-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.inv-url-row .inv-url {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.inv-url-row .btn {
+  flex: none;
+}
 .badge-test {
   background: rgba(245, 158, 11, 0.18);
   color: var(--pe-warn, #f59e0b);
@@ -3973,6 +4534,20 @@ button.danger {
   gap: 0.85rem;
   align-items: stretch;
 }
+
+/* Grupos colapsables de configuración (T7b). */
+.settings-group { margin-bottom: 0.9rem; border: 1px solid var(--pe-border); border-radius: var(--pe-radius-sm); overflow: hidden; }
+.settings-group-head {
+  display: flex; align-items: center; gap: 0.6rem; width: 100%;
+  padding: 0.7rem 0.9rem; text-align: left;
+  background: var(--pe-surface-2) !important; border: none !important; border-radius: 0 !important;
+  color: var(--pe-text); font-weight: 700; cursor: pointer;
+}
+.settings-group-head:hover { background: color-mix(in srgb, var(--pe-accent) 8%, var(--pe-surface-2)) !important; }
+.settings-group-chev { display: inline-block; transition: transform 0.15s ease; font-size: 1.1rem; line-height: 1; color: var(--pe-text-muted, #6b6b76); }
+.settings-group-chev.open { transform: rotate(90deg); }
+.settings-group-count { margin-left: auto; }
+.settings-group .settings-grid { padding: 0.9rem; }
 .setting-card {
   display: flex;
   flex-direction: column;
@@ -4249,6 +4824,20 @@ button.danger {
   font-size: 0.85rem;
   margin-bottom: 0.75rem;
 }
+/* Aviso de MODO PRUEBA (sandbox) en el checkout: info suave con icono. */
+.sandbox-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  background: var(--pe-accent-soft);
+  border: 1px solid var(--pe-accent-border, var(--pe-border));
+  color: var(--pe-text);
+  border-radius: 10px;
+  padding: 0.55rem 0.8rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+.sandbox-note .app-icon { flex: none; margin-top: 1px; color: var(--pe-accent-strong, var(--pe-accent)); }
 /* Chip "TEST" en tarjetas de evento del promotor de prueba. */
 .test-chip {
   display: inline-block;
@@ -4422,6 +5011,43 @@ p.warn,
   background: var(--pe-warning-soft);
   border: 1px solid var(--pe-warning-border, var(--pe-warning));
 }
+/* Aviso informativo (no de error) del NIT en el perfil: callout suave con icono,
+   legible en día y noche (usa tokens de acento, no warning). */
+.nit-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin: 0.6rem 0;
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  background: var(--pe-accent-soft);
+  border: 1px solid var(--pe-accent-border, var(--pe-border));
+  color: var(--pe-text);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+.nit-hint .app-icon {
+  flex: none;
+  margin-top: 1px;
+  color: var(--pe-accent-strong, var(--pe-accent));
+}
+
+/* Aviso para el ADMIN en módulos de comprador (no aplican a su cuenta). */
+.admin-module-notice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.6rem;
+  padding: 2.5rem 1.5rem;
+  border: 1px dashed var(--pe-border);
+  border-radius: var(--pe-radius);
+  background: var(--pe-grad-soft);
+}
+.admin-module-notice .app-icon { color: var(--pe-accent-strong, var(--pe-accent)); opacity: 0.8; }
+.admin-module-notice h2 { margin: 0; font-size: 1.15rem; }
+.admin-module-notice p { margin: 0; max-width: 34rem; }
+
 .ok { color: var(--pe-success); font-weight: 600; }
 p.ok,
 .ok.box {
@@ -4726,3 +5352,146 @@ textarea.invalid {
   padding: 0.35rem 0.6rem;
   min-height: 40px;
 }
+
+/* Acciones del paso 2FA del login: los dos botones SEPARADOS (reenviar a la izquierda,
+   usar otra cuenta a la derecha), bonitos y responsive. */
+.twofa-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: 1.1rem;
+}
+/* Píldoras discretas: acompañan el flujo 2FA sin competir con el CTA principal.
+   Borde suave, fondo transparente, hover con acento. Legibles en día y noche. */
+.twofa-btn.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1px solid var(--pe-border);
+  background: var(--pe-surface);
+  color: var(--pe-text-muted, var(--pe-text));
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.twofa-btn.btn:hover:not(:disabled) {
+  color: var(--pe-accent-strong, var(--pe-accent));
+  border-color: var(--pe-accent-border, var(--pe-accent));
+  background: var(--pe-accent-soft);
+}
+.twofa-btn.btn:disabled { opacity: 0.55; }
+.twofa-btn .app-icon { flex: none; opacity: 0.85; }
+/* Cronómetro regresivo del reenvío de código (desaparece al llegar a 0). */
+/* Estado del reenvío de código: confirmación (verde) + "reloj" = barra que se vacía. */
+.resend-status {
+  margin: 0.75rem 0 0;
+  padding: 0.7rem 0.85rem;
+  border-radius: 10px;
+  background: var(--pe-success-soft);
+  border: 1px solid var(--pe-success-border, var(--pe-success));
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+.resend-status-head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--pe-success);
+}
+.resend-status-head .app-icon { flex: none; }
+.resend-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pe-muted) 22%, transparent);
+  overflow: hidden;
+}
+.resend-progress-bar {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--pe-grad, var(--pe-accent));
+  /* Se vacía suave cada segundo (el % baja por señal) → sensación de cronómetro. */
+  transition: width 1s linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  .resend-progress-bar { transition: none; }
+}
+
+/* ── T6 · FAQ público + gestión KB + editor de formato ─────────────────────── */
+.faq-page { max-width: 860px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+.faq-head h1 { margin: 0 0 .35rem; }
+.faq-lead { color: var(--pe-text-muted); margin: 0 0 1rem; }
+.faq-categories { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1rem 0 1.25rem; }
+.faq-categories button {
+  border: 1px solid var(--pe-border); background: var(--pe-surface); color: var(--pe-text);
+  border-radius: 999px; padding: .35rem .85rem; cursor: pointer; font-size: .9rem;
+}
+.faq-categories button.active { background: var(--pe-accent-soft); border-color: var(--pe-accent-border); color: var(--pe-accent-strong); }
+.faq-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .6rem; }
+.faq-item details {
+  border: 1px solid var(--pe-border); border-radius: 12px; background: var(--pe-surface); overflow: hidden;
+}
+.faq-item summary {
+  cursor: pointer; padding: .9rem 1.1rem; font-weight: 600; list-style: none;
+}
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary::after { content: '＋'; float: right; color: var(--pe-text-muted); }
+.faq-item details[open] summary::after { content: '−'; }
+.faq-answer { padding: 0 1.1rem 1rem; color: var(--pe-text); line-height: 1.6; }
+.faq-answer a { color: var(--pe-accent-strong); }
+
+.kb-admin { max-width: 940px; margin: 0 auto; padding: 1rem; }
+.kb-admin-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: .5rem 0 1rem; }
+.kb-form { display: flex; flex-direction: column; gap: .85rem; }
+.kb-form label { display: flex; flex-direction: column; gap: .3rem; font-size: .9rem; }
+.kb-form input, .kb-form select {
+  padding: .55rem .7rem; border: 1px solid var(--pe-border); border-radius: 8px;
+  background: var(--pe-surface); color: var(--pe-text);
+  transition: border-color .12s ease, box-shadow .12s ease;
+}
+.kb-form input:focus, .kb-form select:focus {
+  outline: none; border-color: var(--pe-accent-border, var(--pe-accent));
+  box-shadow: 0 0 0 3px var(--pe-accent-soft);
+}
+.kb-form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .75rem; }
+/* Acciones del form: cancelar a la izquierda, guardar (primaria) a la derecha. */
+.kb-form-actions { display: flex; gap: .6rem; justify-content: flex-end; align-items: center; margin-top: .35rem; padding-top: .85rem; border-top: 1px solid var(--pe-border); }
+.kb-form-actions .btn { min-width: 120px; justify-content: center; }
+.kb-error { color: var(--pe-danger, #e14e6a); }
+.kb-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
+.kb-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  border: 1px solid var(--pe-border); border-radius: 10px; padding: .7rem .9rem; background: var(--pe-surface);
+}
+.kb-row-main { display: flex; align-items: center; gap: .55rem; min-width: 0; }
+.kb-q { font-weight: 600; }
+.kb-status { font-size: .72rem; padding: .1rem .5rem; border-radius: 999px; background: var(--pe-surface-2); color: var(--pe-text-muted); }
+.kb-status.published { background: color-mix(in srgb, #29a745 20%, transparent); color: #29a745; }
+.kb-badge-internal { font-size: .72rem; padding: .1rem .5rem; border-radius: 999px; background: var(--pe-accent-soft); color: var(--pe-accent-strong); }
+.kb-row-actions { display: flex; gap: .4rem; flex-wrap: wrap; }
+
+.rte { border: 1px solid var(--pe-border); border-radius: 12px; overflow: hidden; background: var(--pe-surface); box-shadow: var(--pe-shadow, 0 1px 3px rgba(0,0,0,.06)); }
+.rte:focus-within { border-color: var(--pe-accent-border, var(--pe-accent)); }
+.rte-toolbar { display: flex; flex-wrap: wrap; gap: .3rem; padding: .5rem .55rem; border-bottom: 1px solid var(--pe-border); background: var(--pe-surface-2); }
+/* Botones de formato: pastillas nítidas (superficie + borde), hover/active de acento. */
+.rte-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 34px; height: 34px; padding: 0 .5rem;
+  border: 1px solid var(--pe-border); border-radius: 8px;
+  background: var(--pe-surface); color: var(--pe-text); cursor: pointer;
+  font-size: .9rem; line-height: 1; transition: background .12s ease, border-color .12s ease, color .12s ease;
+}
+.rte-btn:hover { background: var(--pe-accent-soft); border-color: var(--pe-accent-border, var(--pe-accent)); color: var(--pe-accent-strong, var(--pe-accent)); }
+.rte-btn:active { transform: translateY(1px); }
+.rte-btn:focus-visible { outline: 2px solid var(--pe-accent); outline-offset: 1px; }
+.rte-btn b, .rte-btn i, .rte-btn u { font-size: .95rem; }
+.rte-body { min-height: 200px; padding: .9rem 1.1rem; line-height: 1.6; outline: none; }
+.rte-body:empty::before { content: attr(data-placeholder); color: var(--pe-text-muted); }
+.rte-body a { color: var(--pe-accent-strong); }

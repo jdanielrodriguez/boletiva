@@ -6,12 +6,14 @@ import {
   OnApplicationBootstrap,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PromoterStatus, PromoterTier, Role, User } from '@prisma/client';
+import { PromoterStatus, PromoterTier, Prisma, Role, User } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { QueueService } from '../../infra/queue/queue.service';
 import { QUEUES } from '../../infra/queue/queue.constants';
 import { PremiumService } from './premium.service';
 import type { PromoterMailStatus } from './promoter-mail.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../notifications/notification.types';
 
 const REQUIRE_KEY = 'promoters.require_approval';
 
@@ -30,6 +32,7 @@ export class PromotersService implements OnApplicationBootstrap {
     private readonly queue: QueueService,
     private readonly config: ConfigService,
     private readonly premium: PremiumService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /**
@@ -54,6 +57,14 @@ export class PromotersService implements OnApplicationBootstrap {
   /** Encola (cola MAIL) el correo del estado de promotor. Nunca bloquea/lanza. */
   private async notify(userId: string, status: PromoterMailStatus, note?: string | null) {
     await this.queue.enqueue(QUEUES.MAIL, 'promoter-status', { userId, status, note: note ?? null });
+    // Notificación in-app (T5) para las transiciones relevantes al promotor.
+    const map: Partial<Record<PromoterMailStatus, { type: string; title: string; body: string }>> = {
+      approved: { type: NotificationType.PROMOTER_APPROVED, title: '¡Cuenta de promotor aprobada!', body: 'Ya puedes crear y publicar tus eventos.' },
+      rejected: { type: NotificationType.PROMOTER_REJECTED, title: 'Solicitud de promotor rechazada', body: note ?? 'Tu solicitud no fue aprobada.' },
+      suspended: { type: NotificationType.PROMOTER_SUSPENDED, title: 'Cuenta de promotor suspendida', body: note ?? 'Tu cuenta de promotor fue suspendida.' },
+    };
+    const n = map[status];
+    if (n) await this.notifications.emit(userId, { ...n, resourceType: 'promoter', resourceId: userId });
   }
 
   /** ¿Se exige autorización del admin? (true por defecto; false = modo pruebas). */
@@ -122,9 +133,21 @@ export class PromotersService implements OnApplicationBootstrap {
   }
 
   /** Lista de solicitudes (admin). Filtra por estado; excluye 'none' por defecto. */
-  async list(status?: PromoterStatus) {
+  async list(status?: PromoterStatus, search?: string, take?: number) {
+    const where: Prisma.UserWhereInput = status
+      ? { promoterStatus: status }
+      : { promoterStatus: { not: PromoterStatus.none } };
+    // Búsqueda SERVER-SIDE por nombre/apellido/email (mandato: no filtrar en el cliente).
+    if (search) {
+      where.OR = [
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ];
+    }
     return this.prisma.user.findMany({
-      where: status ? { promoterStatus: status } : { promoterStatus: { not: PromoterStatus.none } },
+      where,
+      ...(take ? { take } : {}),
       select: {
         id: true,
         email: true,
@@ -314,8 +337,8 @@ export class PromotersService implements OnApplicationBootstrap {
   }
 
   /** Rechaza/suspende: quita el rol promoter para que el RBAC lo bloquee. */
-  private revoke(user: User, status: PromoterStatus, note?: string) {
-    return this.prisma.user.update({
+  private async revoke(user: User, status: PromoterStatus, note?: string) {
+    const updated = await this.prisma.user.update({
       where: { id: user.id },
       data: {
         promoterStatus: status,
@@ -324,6 +347,14 @@ export class PromotersService implements OnApplicationBootstrap {
         roles: user.roles.filter((r) => r !== Role.promoter),
       },
     });
+    // M-6 (QA): un promotor suspendido/rechazado NO debe conservar eventos destacados en
+    // el slider público. (Despublicar sus eventos es una decisión aparte; aquí solo se
+    // quitan del destacado, análogo a perder premium.)
+    await this.prisma.event.updateMany({
+      where: { promoterId: user.id, promotedPriority: { not: null } },
+      data: { promotedPriority: null },
+    });
+    return updated;
   }
 
   private async getUser(id: string): Promise<User> {

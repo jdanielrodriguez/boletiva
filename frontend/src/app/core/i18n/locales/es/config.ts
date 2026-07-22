@@ -38,8 +38,11 @@ export const config = {
     halls: 'Salones',
     templates: 'Plantillas',
     system: 'Sistema',
+    kb: 'Base de conocimientos',
+    emailLog: 'Correos',
     settings: 'Configuraciones',
     invitations: 'Invitaciones',
+    support: 'Soporte',
   },
 
   events: {
@@ -68,7 +71,9 @@ export const config = {
     unfeatured: 'Evento quitado del inicio.',
     featureError: 'No se pudo cambiar el destacado.',
     empty: 'No hay eventos con ese filtro.',
+    loading: 'Cargando eventos…',
     loadError: 'No se pudieron cargar los eventos.',
+    loadErrorTitle: 'Error al cargar',
     emptyTitle: 'Sin eventos todavía',
     emptySubtitle: 'Los eventos que creen los promotores aparecerán aquí.',
     noResultsTitle: 'Sin coincidencias',
@@ -115,7 +120,9 @@ export const config = {
     shareRange: 'El reparto debe estar entre 0 y 1 (p.ej. 0.5 = 50%).',
     shareUpdated: 'Reparto del promotor actualizado.',
     shareError: 'No se pudo actualizar el reparto.',
+    loading: 'Cargando promotores…',
     loadError: 'No se pudieron cargar los promotores.',
+    loadErrorTitle: 'Error al cargar',
     noteSaveTitle: 'Guardar nota interna',
     noteSaved: 'Nota guardada.',
     noteError: 'No se pudo guardar la nota.',
@@ -219,6 +226,8 @@ export const config = {
     gatewayStatusUpdated: 'Estado de la pasarela actualizado.',
     gatewayStatusError: 'No se pudo cambiar el estado (¿es la default?).',
     gatewayDefaultSet: '"{{name}}" es la nueva pasarela default.',
+    gatewayDefaultConfirmTitle: '¿Hacer default a "{{name}}"?',
+    gatewayDefaultConfirmMsg: 'Todos los pagos de eventos sin compras se enrutarán por esta pasarela. Esta acción afecta a toda la plataforma.',
     gatewayDefaultError: 'No se pudo definir como default.',
     unlockSentToast: 'Te enviamos un código al correo para autorizar agregar la pasarela.',
     unlockSendError: 'No se pudo enviar el código de desbloqueo.',
@@ -242,6 +251,8 @@ export const config = {
     submitHint: 'Pulsa "Invitar" de nuevo (o Enter) para enviar.',
     invite: 'Invitar',
     createdHeading: 'Enlaces generados (cópialos y compártelos)',
+    copy: 'Copiar enlace',
+    copied: 'Enlace copiado',
     listHeading: 'Invitaciones',
     searchPlaceholder: 'Buscar correo…',
     allStatuses: 'Todos los estados',
@@ -263,6 +274,9 @@ export const config = {
     filterAuthorized: 'Autorizados',
     filterRejected: 'Rechazados',
     filterAll: 'Todos',
+    loading: 'Cargando invitaciones…',
+    loadError: 'No se pudieron cargar las invitaciones.',
+    loadErrorTitle: 'Error al cargar',
     emptyTitle: 'Sin invitaciones',
     emptySubtitle: 'Aún no has enviado invitaciones a promotores.',
     noMatchTitle: 'Sin coincidencias',
@@ -426,6 +440,7 @@ export const config = {
     emptyTitle: 'Sin configuraciones',
     emptySubtitle: 'No hay configuraciones disponibles para mostrar.',
     loadError: 'No se pudieron cargar las configuraciones.',
+    loadErrorTitle: 'Error al cargar',
     saved: 'Configuración "{{key}}" guardada.',
     saveError: 'No se pudo guardar (revisa el tipo/rango del valor).',
     typeLabel: 'Tipo: {{type}}',
@@ -433,6 +448,16 @@ export const config = {
   },
 
   /** Etiquetas amigables de cada setting (hoja = key con puntos → guion bajo). */
+  /** Grupos colapsables de la configuración (T7b). */
+  settingGroups: {
+    pagos: 'Pagos y precios',
+    promotores: 'Promotores y premium',
+    eventos: 'Eventos',
+    soporte: 'Soporte',
+    marca: 'General y marca',
+    otros: 'Otros',
+  },
+
   settingLabels: {
     pricing_platform_fee_pct: 'Comisión de plataforma',
     pricing_gateway_fee_pct: 'Comisión de pasarela',
@@ -458,8 +483,15 @@ export const config = {
     premium_enabled: 'Perfil premium',
     premium_trial_enabled: 'Prueba gratis de premium',
     premium_trial_days: 'Días de prueba premium',
-    chat_enabled: 'Chat de soporte',
+    chat_enabled: 'Soporte / chat',
     advisor_lock_enabled: 'Desbloqueo del asesor',
+    promoter_can_feature_events: 'Destacar eventos (promotores)',
+    events_creation_enabled: 'Creación de eventos',
+    home_slider_enabled: 'Slider del inicio',
+    seatmap_enabled: 'Mapa de asientos',
+    advisors_enabled: 'Rol asesor',
+    advisors_maintenance: 'Mantenimiento de asesores',
+    billing_maintenance: 'Mantenimiento de facturación',
   },
 
   /** Opciones de settings tipo enum (temas y franjas). */
@@ -518,9 +550,16 @@ export const config = {
     premium_trial_enabled:
       'Habilita la prueba gratis de premium (solo con el perfil premium encendido). Si está encendido, elegir premium arranca la prueba automáticamente.',
     premium_trial_days: 'Días que dura la prueba gratis de premium.',
-    chat_enabled: 'Habilita el chat de soporte (promotor premium ↔ asesor/admin). Si está apagado, nadie ve el chat.',
+    chat_enabled: 'Habilita el soporte/chat (promotor ↔ asesor/admin). Si está apagado, nadie ve el soporte.',
     advisor_lock_enabled:
       'Exige que un asesor obtenga un desbloqueo aprobado por el admin (vía enlace) para poder editar. Si está apagado, los asesores editan igual que el admin, sin pedir desbloqueo.',
+    promoter_can_feature_events: 'Permite a los promotores destacar su evento en el inicio. Apagado = no ven la opción.',
+    events_creation_enabled: 'Habilita la creación de eventos por promotores. Apagado = nadie puede crear eventos.',
+    home_slider_enabled: 'Muestra el slider del inicio (con los eventos destacados). Apagado = siempre oculto.',
+    seatmap_enabled: 'Habilita el uso del mapa de asientos. Apagado = solo aforo general.',
+    advisors_enabled: 'Habilita el rol asesor de soporte.',
+    advisors_maintenance: 'Muestra a los asesores una pantalla de acceso temporalmente deshabilitado.',
+    billing_maintenance: 'Oculta la facturación con una vista de mantenimiento (para descuadres).',
   },
 
   // --- Dashboards de salón / plantilla (página aparte) ---

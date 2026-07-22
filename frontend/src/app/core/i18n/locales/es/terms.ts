@@ -50,6 +50,7 @@ export const terms = {
         'El precio que pagas es siempre el precio de contado (un pago). Si eliges pagar en cuotas con tu tarjeta, no se te aplicará recargo alguno por ese financiamiento, conforme a la normativa guatemalteca vigente.',
         'La compra se confirma únicamente cuando el pago es aprobado por la pasarela. Mientras seleccionas asientos, estos quedan reservados temporalmente por un tiempo limitado; si no completas el pago dentro de ese plazo, la reserva se libera y los asientos vuelven a estar disponibles.',
         'Los medios de pago disponibles pueden incluir tarjetas de crédito y débito y el saldo interno (wallet). El precio y el desglose se calculan siempre del lado del servidor; ningún monto enviado por el navegador es aceptado como autoritativo.',
+        'Método de cobro: los pagos con tarjeta se procesan a través de nuestra pasarela de pago (Recurrente). Boletiva no almacena el número completo de tu tarjeta; la pasarela lo tokeniza de forma segura. Durante la fase de pruebas los cobros se realizan en modo de prueba (sandbox): verás un aviso de «modo prueba», no se genera ningún cargo real y puedes usar la tarjeta de prueba indicada.',
       ],
     },
     {

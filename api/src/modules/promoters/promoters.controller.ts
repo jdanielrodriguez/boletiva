@@ -157,11 +157,16 @@ export class PromotersController {
   @Roles(Role.admin)
   @ApiOperation({ summary: 'Lista de solicitudes de promotor (admin), filtrable por estado' })
   @ApiOkResponse({ type: PromoterListItemDto, isArray: true })
-  list(@Query('status') status?: string) {
+  list(
+    @Query('status') status?: string,
+    @Query('search') search?: string,
+    @Query('limit') limit?: string,
+  ) {
     if (status && !(status in PromoterStatus)) {
       throw new BadRequestException('Estado de promotor inválido');
     }
-    return this.promoters.list(status as PromoterStatus | undefined);
+    const take = limit ? Math.min(Math.max(parseInt(limit, 10) || 0, 1), 100) : undefined;
+    return this.promoters.list(status as PromoterStatus | undefined, search?.trim() || undefined, take);
   }
 
   @Post(':id/approve')

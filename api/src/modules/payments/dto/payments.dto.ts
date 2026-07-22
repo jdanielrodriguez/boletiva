@@ -160,6 +160,12 @@ export class GatewayPaymentOptionResponseDto {
   isPlatformDefault!: boolean;
 
   @ApiProperty({
+    description: 'true = pasarela en MODO PRUEBA (sandbox): no genera cargos reales. El checkout muestra un aviso.',
+    example: true,
+  })
+  sandbox!: boolean;
+
+  @ApiProperty({
     description:
       'true = pasarela EFECTIVA/asignada al evento para esta orden. El frontend debe preseleccionarla en el checkout.',
     example: true,

@@ -35,13 +35,16 @@ import { SwitchComponent } from '../../shared/ui/switch.component';
 import { OtpInputComponent } from '../../shared/ui/otp-input/otp-input.component';
 import { HallsListComponent } from './halls-list.component';
 import { TemplatesListComponent } from './templates-list.component';
+import { KbAdminPage } from '../admin/kb-admin.page';
+import { EmailLogPage } from '../admin/email-log.page';
+import { BackLinkComponent } from '../../shared/ui/back-link.component';
 import type {
   CreatedInvitationDto,
   InvitationListItemDto,
   SettingViewDto,
 } from '../../core/api/types';
 
-type AdminTab = 'eventos' | 'promotores' | 'sistema' | 'invitaciones' | 'salones' | 'plantillas';
+type AdminTab = 'eventos' | 'promotores' | 'sistema' | 'invitaciones' | 'salones' | 'plantillas' | 'kb' | 'correos';
 
 /** Grupos de la lista de eventos del admin por tiempo (default = futuros). */
 type EventTimeGroup = 'upcoming' | 'ongoing' | 'past' | 'all';
@@ -95,6 +98,9 @@ const INV_PAGE = 9;
     OtpInputComponent,
     HallsListComponent,
     TemplatesListComponent,
+    KbAdminPage,
+    EmailLogPage,
+    BackLinkComponent,
     SearchFieldComponent,
     RouterLink,
     TourComponent,
@@ -105,10 +111,15 @@ const INV_PAGE = 9;
 })
 export class ConfigPage {
   /** Tour de onboarding de la consola admin (solo admins que no lo han visto). */
+  /** Tour SUPERINVASIVO que recorre cada TAB de la consola (spotlight anclado al botón). */
   protected readonly tourSteps: TourStep[] = [
     { title: 'tour.admin.welcomeTitle', body: 'tour.admin.welcomeBody' },
-    { title: 'tour.admin.eventsTitle', body: 'tour.admin.eventsBody' },
-    { title: 'tour.admin.configTitle', body: 'tour.admin.configBody' },
+    { title: 'tour.admin.eventsTitle', body: 'tour.admin.eventsBody', target: '[data-testid="tab-eventos"]' },
+    { title: 'tour.admin.promotersTitle', body: 'tour.admin.promotersBody', target: '[data-testid="tab-promotores"]' },
+    { title: 'tour.admin.hallsTitle', body: 'tour.admin.hallsBody', target: '[data-testid="tab-salones"]' },
+    { title: 'tour.admin.templatesTitle', body: 'tour.admin.templatesBody', target: '[data-testid="tab-plantillas"]' },
+    { title: 'tour.admin.kbTitle', body: 'tour.admin.kbBody', target: '[data-testid="tab-kb"]' },
+    { title: 'tour.admin.configTitle', body: 'tour.admin.configBody', target: '[data-testid="tab-sistema"]' },
   ];
   private readonly admin = inject(AdminApi);
   private readonly advisorApi = inject(AdvisorApi);
@@ -128,6 +139,16 @@ export class ConfigPage {
   /** Estado de desbloqueo del asesor (banner en la consola). */
   protected readonly advisorUnlock = signal<{ lockEnabled: boolean; unlocked: boolean; pending: boolean; expiresAt: string | null } | null>(null);
   protected readonly requestingUnlock = signal(false);
+  /**
+   * S1 (QA): el asesor está BLOQUEADO para mutar mientras el candado esté activo y sin
+   * ventana aprobada. El backend ya lo hace cumplir (AdvisorUnlockGuard global); aquí lo
+   * reflejamos en la UI para deshabilitar acciones y dar feedback honesto (no clic-a-ciegas).
+   */
+  protected readonly advisorLocked = computed(() => {
+    if (!this.isAdvisor()) return false;
+    const u = this.advisorUnlock();
+    return !!u && u.lockEnabled && !u.unlocked;
+  });
   private readonly theme = inject(ThemeService);
   private readonly toasts = inject(ToastService);
 
@@ -154,6 +175,14 @@ export class ConfigPage {
   private readonly route = inject(ActivatedRoute);
   private readonly translate = inject(TranslateService);
 
+  /** Copia el enlace de invitación al portapapeles (una sola vez visible). */
+  protected copyInvite(url: string): void {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      void navigator.clipboard.writeText(url);
+      this.toasts.info(this.translate.instant('config.invitations.copied'));
+    }
+  }
+
   protected readonly tab = signal<AdminTab>('eventos');
 
   /** Tabs válidos para el deep-link `?tab=` (se restaura al recargar). */
@@ -164,19 +193,68 @@ export class ConfigPage {
     'plantillas',
     'sistema',
     'invitaciones',
+    'kb',
+    'correos',
   ];
 
   /** Etiqueta amigable de un setting (key con puntos → guion bajo). */
   protected settingLabel(key: string): string {
-    return this.translate.instant('config.settingLabels.' + key.split('.').join('_'));
+    const k = 'config.settingLabels.' + key.split('.').join('_');
+    const v = this.translate.instant(k);
+    // Fallback (audit config-M1): si falta la traducción, ngx-translate devuelve la
+    // propia clave; mostramos el key crudo del setting en vez del path técnico.
+    return v === k ? key : v;
   }
   /** Descripción amigable de un setting (key con puntos → guion bajo). */
   protected settingDescription(key: string): string {
     return this.translate.instant('config.settingDescriptions.' + key.split('.').join('_'));
   }
 
+  // --- Agrupación colapsable de configuraciones (T7b) ---
+  private static readonly SETTING_GROUP_ORDER = ['pagos', 'promotores', 'eventos', 'soporte', 'marca', 'otros'];
+  /** Clasifica un setting en su grupo por prefijo de key. */
+  private settingGroupOf(key: string): string {
+    if (/^(pricing|wallet|costshare|installments|transfer)\./.test(key)) return 'pagos';
+    if (/^(promoters|promoter|premium)\./.test(key)) return 'promotores';
+    if (key.startsWith('events.') || key === 'home.slider_enabled' || key.startsWith('seatmap.')) return 'eventos';
+    if (key === 'chat.enabled' || key.startsWith('advisor')) return 'soporte';
+    if (/^(i18n|theme|tour|reports|billing)\./.test(key) || key === 'home.show_categories') return 'marca';
+    return 'otros';
+  }
+  /** Settings agrupados y ordenados para el render por secciones. */
+  protected readonly settingGroups = computed(() => {
+    const by = new Map<string, SettingViewDto[]>();
+    for (const s of this.settings()) {
+      const g = this.settingGroupOf(s.key);
+      const list = by.get(g) ?? [];
+      list.push(s);
+      by.set(g, list);
+    }
+    return ConfigPage.SETTING_GROUP_ORDER.filter((g) => by.has(g)).map((g) => ({ id: g, items: by.get(g)! }));
+  });
+  /** Grupos colapsados (vacío = todos expandidos por defecto). */
+  protected readonly collapsedGroups = signal<Set<string>>(new Set());
+  protected isGroupCollapsed(id: string): boolean {
+    return this.collapsedGroups().has(id);
+  }
+  protected toggleGroup(id: string): void {
+    this.collapsedGroups.update((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  }
+
   // --- Eventos ---
   protected readonly events = signal<AdminEventListItemDto[]>([]);
+  // Estados de carga/error por listado (distinguen "cargando"/"error" de "vacío" — QA).
+  protected readonly eventsLoading = signal(false);
+  protected readonly eventsError = signal(false);
+  protected readonly promotersLoading = signal(false);
+  protected readonly promotersError = signal(false);
+  protected readonly invitationsLoading = signal(false);
+  protected readonly invitationsError = signal(false);
   /** Evento cuyo destacado se está guardando (deshabilita su check mientras). */
   protected readonly promotingId = signal<string | null>(null);
   protected readonly eventsPage = signal(1);
@@ -354,6 +432,19 @@ export class ConfigPage {
     });
   }
 
+  /**
+   * Guard de acción del asesor: si está bloqueado, avisa (feedback honesto) y corta ANTES
+   * de llamar al backend. Devuelve true si la acción quedó bloqueada. El backend igual la
+   * rechaza (AdvisorUnlockGuard), pero así no se hace clic a ciegas.
+   */
+  private blockedByLock(): boolean {
+    if (this.advisorLocked()) {
+      this.toasts.warning(this.translate.instant('advisor.lockedAction'));
+      return true;
+    }
+    return false;
+  }
+
   /** El asesor solicita desbloqueo (correo con enlace al admin). */
   protected requestAdvisorUnlock(): void {
     if (this.requestingUnlock()) return;
@@ -415,12 +506,19 @@ export class ConfigPage {
 
   // --- Eventos ---
   private loadEvents(): void {
+    this.eventsLoading.set(true);
+    this.eventsError.set(false);
     this.admin.listAllEvents().subscribe({
       next: (e) => {
         this.events.set(e);
         this.eventsPage.set(1);
+        this.eventsLoading.set(false);
       },
-      error: () => this.toasts.error(this.translate.instant('config.events.loadError')),
+      error: () => {
+        this.eventsLoading.set(false);
+        this.eventsError.set(true);
+        this.toasts.error(this.translate.instant('config.events.loadError'));
+      },
     });
   }
 
@@ -430,6 +528,7 @@ export class ConfigPage {
    * destacados y se oculta si no hay ninguno.
    */
   protected togglePromoted(e: AdminEventListItemDto, featured: boolean): void {
+    if (this.blockedByLock()) return;
     this.promotingId.set(e.id);
     this.promoterEvents.promote(e.id, featured).subscribe({
       next: () => {
@@ -479,14 +578,21 @@ export class ConfigPage {
   protected readonly pctEdits = signal<Record<string, string>>({});
 
   protected loadPromoters(): void {
+    this.promotersLoading.set(true);
+    this.promotersError.set(false);
     this.admin.listPromoters(this.promoterStatus() || undefined).subscribe({
       next: (p) => {
         this.promoters.set(p);
         // Prefija las notas internas persistidas (v3.8 · G2-9).
         this.notes.set(Object.fromEntries(p.map((x) => [x.id, x.promoterInternalNote ?? ''])));
         this.loadCostShares(p);
+        this.promotersLoading.set(false);
       },
-      error: () => this.toasts.error(this.translate.instant('config.promoters.loadError')),
+      error: () => {
+        this.promotersLoading.set(false);
+        this.promotersError.set(true);
+        this.toasts.error(this.translate.instant('config.promoters.loadError'));
+      },
     });
   }
   /** Carga el reparto efectivo de cada promotor listado (para prefijar el input). */
@@ -509,6 +615,7 @@ export class ConfigPage {
   }
   /** Guarda la nota interna del promotor (persiste en BD, v3.8 · G2-9). */
   protected saveNote(p: PromoterListItemDto): void {
+    if (this.blockedByLock()) return;
     this.admin.setPromoterNote(p.id, this.notes()[p.id]?.trim() ?? '').subscribe({
       next: () => this.toasts.success(this.translate.instant('config.promoters.noteSaved')),
       error: () => this.toasts.error(this.translate.instant('config.promoters.noteError')),
@@ -526,6 +633,7 @@ export class ConfigPage {
 
   // --- Aprobar / reactivar / rechazar con confirmación (v3.8 · G2-5) ---
   protected askApprove(p: PromoterListItemDto): void {
+    if (this.blockedByLock()) return;
     const reactivate = p.promoterStatus === 'suspended';
     this.confirm.ask({
       title: this.translate.instant(reactivate ? 'config.promoters.reactivateConfirmTitle' : 'config.promoters.approveConfirmTitle', { name: p.firstName }),
@@ -549,6 +657,7 @@ export class ConfigPage {
     });
   }
   protected askReject(p: PromoterListItemDto): void {
+    if (this.blockedByLock()) return;
     this.confirm.ask({
       title: this.translate.instant('config.promoters.rejectConfirmTitle', { name: p.firstName }),
       message: this.translate.instant('config.promoters.rejectConfirmMsg', { name: p.firstName }),
@@ -572,6 +681,7 @@ export class ConfigPage {
 
   // --- Impersonación de soporte (v3.8 · G2-4) ---
   protected askImpersonate(p: PromoterListItemDto): void {
+    if (this.blockedByLock()) return;
     if (p.promoterStatus !== 'approved') {
       this.toasts.warning(this.translate.instant('config.promoters.impersonateOnlyApproved'));
       return;
@@ -608,6 +718,7 @@ export class ConfigPage {
   protected readonly suspendTarget = signal<PromoterListItemDto | null>(null);
   protected readonly suspendReason = signal('');
   protected openSuspend(p: PromoterListItemDto): void {
+    if (this.blockedByLock()) return;
     this.suspendTarget.set(p);
     this.suspendReason.set('');
   }
@@ -637,6 +748,7 @@ export class ConfigPage {
     });
   }
   protected setPromoterPct(p: PromoterListItemDto): void {
+    if (this.blockedByLock()) return;
     const raw = String(this.pctEdits()[p.id] ?? '').trim();
     const pct = Number(raw);
     if (raw === '' || Number.isNaN(pct) || pct < 0 || pct > 1) {
@@ -653,6 +765,7 @@ export class ConfigPage {
   }
   /** Restablece el reparto del promotor al default global (DELETE del override). */
   protected resetPromoterPct(p: PromoterListItemDto): void {
+    if (this.blockedByLock()) return;
     this.admin.resetPromoterCostShare(p.id).subscribe({
       next: () => {
         this.toasts.info(this.translate.instant('config.promoters.shareResetDone'));
@@ -748,6 +861,18 @@ export class ConfigPage {
         this.loadGateways();
       },
       error: () => this.toasts.error(this.translate.instant('config.system.gatewayStatusError')),
+    });
+  }
+  /** Cambiar la pasarela default enruta TODOS los pagos → confirma antes (QA). */
+  protected askMakeDefault(g: GatewayResponseDto): void {
+    if (g.isPlatformDefault) return;
+    this.confirm.ask({
+      title: this.translate.instant('config.system.gatewayDefaultConfirmTitle', { name: g.name }),
+      message: this.translate.instant('config.system.gatewayDefaultConfirmMsg'),
+      confirmLabel: this.translate.instant('config.system.makeDefault'),
+      confirmIcon: 'save',
+      danger: false,
+      onConfirm: () => this.makeDefault(g),
     });
   }
   protected makeDefault(g: GatewayResponseDto): void {
@@ -874,9 +999,18 @@ export class ConfigPage {
 
   // --- Invitaciones ---
   private loadInvitations(): void {
+    this.invitationsLoading.set(true);
+    this.invitationsError.set(false);
     this.invitationsApi.list().subscribe({
-      next: (i) => this.invitations.set(i),
-      error: () => this.invitations.set([]),
+      next: (i) => {
+        this.invitations.set(i);
+        this.invitationsLoading.set(false);
+      },
+      error: () => {
+        this.invitationsLoading.set(false);
+        this.invitationsError.set(true);
+        this.invitations.set([]);
+      },
     });
   }
   protected readonly parsedEmails = computed(() =>
@@ -937,7 +1071,10 @@ export class ConfigPage {
   protected readonly settingEdits = signal<Record<string, number | boolean | string>>({});
   /** false hasta que la 1ª carga resuelve o falla → distingue "cargando" de "vacío". */
   protected readonly settingsLoaded = signal(false);
+  /** La carga de settings falló → estado de error (no confundir con "sin configuraciones"). */
+  protected readonly settingsError = signal(false);
   private loadSettings(): void {
+    this.settingsError.set(false);
     this.settingsApi.list().subscribe({
       next: (s) => {
         this.settings.set(s);
@@ -946,6 +1083,7 @@ export class ConfigPage {
       },
       error: () => {
         this.settingsLoaded.set(true);
+        this.settingsError.set(true);
         this.toasts.error(this.translate.instant('config.settings.loadError'));
       },
     });
@@ -990,7 +1128,7 @@ export class ConfigPage {
         // instante en el store (switcher/categorías) sin recargar la página.
         const setter = ConfigPage.PUBLIC_CONFIG_SETTERS[updated.key];
         if (setter) setter(this.publicConfig, updated.value);
-        this.toasts.success(this.translate.instant('config.settings.saved', { key: s.key }));
+        this.toasts.success(this.translate.instant('config.settings.saved', { key: this.settingLabel(s.key) }));
       },
       error: () => this.toasts.error(this.translate.instant('config.settings.saveError')),
     });

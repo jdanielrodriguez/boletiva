@@ -47,11 +47,15 @@ import { SettingsModule } from './modules/settings/settings.module';
 import { MaintenanceModule } from './modules/maintenance/maintenance.module';
 import { MaintenanceGuard } from './modules/maintenance/maintenance.guard';
 import { AuditModule } from './modules/audit/audit.module';
+import { EmailLogModule } from './modules/email-log/email-log.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { FelModule } from './modules/fel/fel.module';
 import { AdvisorModule } from './modules/advisor/advisor.module';
 import { AdvisorUnlockGuard } from './modules/advisor/advisor-unlock.guard';
-import { ChatModule } from './modules/chat/chat.module';
+import { SupportModule } from './modules/support/support.module';
+import { KbModule } from './modules/kb/kb.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { AdvisorsModule } from './modules/advisors/advisors.module';
 
 @Module({
   imports: [
@@ -141,10 +145,14 @@ import { ChatModule } from './modules/chat/chat.module';
     SettingsModule,
     MaintenanceModule,
     AuditModule,
+    EmailLogModule,
     AdminModule,
     FelModule,
     AdvisorModule,
-    ChatModule,
+    SupportModule,
+    KbModule,
+    NotificationsModule,
+    AdvisorsModule,
   ],
   providers: [
     // Orden importa: rate-limit por IP PRIMERO (frena floods antes de autenticar) →

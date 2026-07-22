@@ -12,6 +12,8 @@ import { AuditService } from '../audit/audit.service';
 import { QueueService } from '../../infra/queue/queue.service';
 import { QUEUES } from '../../infra/queue/queue.constants';
 import { AuthUser } from '../../common/decorators/current-user.decorator';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../notifications/notification.types';
 
 Decimal.set({ rounding: Decimal.ROUND_HALF_EVEN });
 
@@ -36,6 +38,7 @@ export class SettlementService {
     private readonly ledger: LedgerService,
     private readonly audit: AuditService,
     private readonly queue: QueueService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async forEvent(eventId: string, user: AuthUser) {
@@ -176,6 +179,19 @@ export class SettlementService {
       );
     }
 
+    // A3: un evento CANCELADO no se liquida al promotor mientras existan órdenes pagadas
+    // sin reembolsar — ese dinero es de los compradores (el evento no ocurrirá). Hay que
+    // reembolsar primero (mueve el dinero a los wallets de los compradores y las saca del
+    // neto); luego el cierre queda en 0. Un evento CONCLUIDO por fecha sí se liquida.
+    if (event.status === 'cancelled') {
+      const paidCount = await this.prisma.order.count({ where: { eventId, status: 'paid' } });
+      if (paidCount > 0) {
+        throw new ConflictException(
+          `Reembolsa las ${paidCount} órdenes pagadas antes de cerrar la caja de un evento cancelado`,
+        );
+      }
+    }
+
     // Neto a liquidar = suma de `net` de las órdenes pagadas del evento.
     const agg = await this.prisma.order.aggregate({
       where: { eventId, status: 'paid' },
@@ -183,26 +199,44 @@ export class SettlementService {
     });
     const net = new Decimal(agg._sum.net ?? 0).toDecimalPlaces(2, Decimal.ROUND_HALF_EVEN);
 
-    // Marca de cierre (idempotencia) + estado finalizado, en una tx.
+    // M1 (TOCTOU): claim ATÓMICO compare-and-set — solo UN finalize procede aunque haya
+    // doble clic/pestañas concurrentes (evita doble asiento `event_cash_transfer`).
     const transferredAt = new Date();
-    await this.prisma.event.update({
-      where: { id: eventId },
+    const claim = await this.prisma.event.updateMany({
+      where: { id: eventId, cashTransferredAt: null },
       data: { cashTransferredAt: transferredAt, status: 'finished' },
     });
+    if (claim.count === 0) {
+      throw new ConflictException('La caja de este evento ya fue transferida al promotor');
+    }
 
-    // Asienta el traslado promoter_payable → user_wallet SOLO si hay neto (>0);
-    // un neto 0 igual cierra la caja (idempotente) sin asiento vacío.
+    // El asiento contable es SÍNCRONO y atómico (el ledger ya SERIALIZA los cierres
+    // concurrentes por su advisory lock → "uno por uno" garantizado, sin la ventana de
+    // doble-pago/atasco de un worker at-least-once). Solo el CORREO se encola (async, por
+    // la cola MAIL/RabbitMQ); las notificaciones in-app son un insert rápido en línea.
+    // Asienta el traslado promoter_payable → user_wallet SOLO si hay neto (>0); un neto
+    // 0 igual cierra la caja (idempotente) sin asiento vacío.
+    // A4: si el asiento contable falla, REVIERTE la marca (no dejar "finished sin
+    // acreditar"; permite reintento); `ledger.post` es atómico aparte.
     if (net.gt(0)) {
-      await this.ledger.post({
-        kind: 'event_cash_transfer',
-        refType: 'event',
-        refId: eventId,
-        memo: `Cierre de caja evento ${event.name}`,
-        entries: [
-          { type: 'promoter_payable', ownerId: event.promoterId, amount: net.negated().toFixed(2) },
-          { type: 'user_wallet', ownerId: event.promoterId, amount: net.toFixed(2) },
-        ],
-      });
+      try {
+        await this.ledger.post({
+          kind: 'event_cash_transfer',
+          refType: 'event',
+          refId: eventId,
+          memo: `Cierre de caja evento ${event.name}`,
+          entries: [
+            { type: 'promoter_payable', ownerId: event.promoterId, amount: net.negated().toFixed(2) },
+            { type: 'user_wallet', ownerId: event.promoterId, amount: net.toFixed(2) },
+          ],
+        });
+      } catch (e) {
+        await this.prisma.event.update({
+          where: { id: eventId },
+          data: { cashTransferredAt: null, status: event.status },
+        });
+        throw e;
+      }
     }
 
     await this.audit.record({
@@ -214,14 +248,29 @@ export class SettlementService {
       payload: { promoterId: event.promoterId, net: net.toFixed(2) },
     });
 
-    // F4 (v3.11): al finalizar, enviar al promotor (en su idioma) el ESTADO DE
-    // CUENTAS del evento. Se ENCOLA (cola MAIL) para no bloquear la respuesta; el
-    // handler recalcula el settlement. enqueue nunca lanza (un fallo de correo no
-    // debe revertir un cierre de caja ya asentado en el ledger).
+    // F4 (v3.11): estado de cuentas al promotor (en su idioma). Se ENCOLA (cola MAIL →
+    // RabbitMQ) para no bloquear la respuesta; enqueue nunca lanza.
     await this.queue.enqueue(QUEUES.MAIL, 'event-settlement', {
       eventId,
       promoterId: event.promoterId,
       transferred: net.toFixed(2),
+    });
+
+    // Notificaciones in-app (T5): evento finalizado + liquidación acreditada = AVISO al terminar.
+    await this.notifications.emit(event.promoterId, {
+      type: NotificationType.EVENT_FINISHED,
+      title: 'Evento finalizado',
+      body: `"${event.name}" se cerró.`,
+      resourceType: 'event',
+      resourceId: eventId,
+    });
+    await this.notifications.emit(event.promoterId, {
+      type: NotificationType.SETTLEMENT_PAID,
+      title: 'Liquidación acreditada',
+      body: `Se acreditó Q${net.toFixed(2)} a tu saldo por "${event.name}".`,
+      payload: { net: net.toFixed(2) },
+      resourceType: 'event',
+      resourceId: eventId,
     });
 
     return {

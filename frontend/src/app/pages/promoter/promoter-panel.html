@@ -22,7 +22,7 @@
       }
     </div>
     <div class="panel-header-actions">
-      @if (chatEnabled() && canFeature()) {
+      @if (chatEnabled() && premiumBenefitsActive()) {
         <a class="btn btn-outline" routerLink="/soporte" data-testid="go-support" [title]="'chat.title' | translate">
           {{ 'chat.title' | translate }}
         </a>
@@ -30,9 +30,11 @@
       <a class="btn btn-outline" routerLink="/promotor/dashboard" data-testid="go-dashboard" [title]="'promoter.dash.title' | translate">
         <app-icon name="accounts" /> {{ 'promoter.dash.title' | translate }}
       </a>
-      <button type="button" class="btn primary" (click)="newEvent()" data-testid="toggle-create" [title]="'promoter.panel.newEvent' | translate">
-        <app-icon name="add" /> {{ 'promoter.panel.newEvent' | translate }}
-      </button>
+      @if (eventsCreationEnabled()) {
+        <button type="button" class="btn primary" (click)="newEvent()" data-testid="toggle-create" [title]="'promoter.panel.newEvent' | translate">
+          <app-icon name="add" /> {{ 'promoter.panel.newEvent' | translate }}
+        </button>
+      }
     </div>
   </div>
 
@@ -70,9 +72,12 @@
   } @else {
     <div class="events-grid" data-testid="events-grid">
       @for (ev of pageEvents(); track ev.id) {
-        <article class="ev-card" data-testid="ev-card">
+        <article class="ev-card" [class.ev-card-featured]="ev.promotedPriority != null" data-testid="ev-card">
           <div class="ev-card-top">
             <span class="badge badge-{{ ev.status }}">{{ ev.status | statusLabel }}</span>
+            @if (ev.promotedPriority != null) {
+              <span class="ev-featured-flag" data-testid="ev-featured-flag">★ {{ 'promoter.panel.featuredFlag' | translate }}</span>
+            }
             <span class="ev-card-loc muted small">{{ 'promoter.panel.localitiesCount' | translate: { n: ev._count.localities } }}</span>
             @if (!isPast(ev) && (ev.status === 'draft' || ev.status === 'suspended')) {
               <button type="button" class="btn icon-only primary" (click)="askPublish(ev)" data-testid="ev-publish"

@@ -19,6 +19,7 @@ export const checkout = {
   cancelled: 'cancelada',
   paymentMethod: 'Método de pago',
   testCardHint: 'Modo prueba: usa la tarjeta 4242 4242 4242 4242, cualquier fecha futura y CVV 123. No se hace ningún cargo real.',
+  sandboxNotice: 'Modo prueba (sandbox): el pago se simula con Recurrente y no genera ningún cargo real.',
   loadingMethods: 'Cargando tus métodos de pago…',
   methodsError: 'No pudimos cargar tus métodos guardados. Puedes pagar con una tarjeta nueva.',
   payWithWallet: 'Pagar con mi saldo',
@@ -27,7 +28,7 @@ export const checkout = {
   walletPartial: 'Tu saldo no cubre el total: el resto se cobrará por la pasarela seleccionada.',
   useAnotherCard: 'Usar otra tarjeta',
   enterCvv: 'Código de seguridad (CVV)',
-  cvvHint: 'Por tu seguridad, confirma el CVV de la tarjeta para autorizar el pago.',
+  cvvHint: 'Confirma el CVV de tu tarjeta para continuar.',
   cvvRequired: 'Ingresa el CVV (3 o 4 dígitos) para continuar.',
   noMethodsHint: 'Aún no tienes métodos guardados. Ingresa una tarjeta para pagar.',
   saveCardHint: 'Tus datos de pago se procesan de forma segura y cifrada.',
@@ -60,5 +61,9 @@ export const checkout = {
   secureNote:
     'Pago seguro y cifrado. Tus datos de tarjeta se procesan de forma protegida; nunca guardamos el número completo.',
   loading: 'Cargando orden…',
+  loadErrorTitle: 'No se pudo cargar la orden',
+  loadErrorBody: 'La orden no existe, expiró o no está disponible. Revisa tus boletos o vuelve al catálogo.',
+  goToAccount: 'Ir a mi cuenta',
+  goToCatalog: 'Volver al catálogo',
   payError: 'No se pudo iniciar el pago. Intenta de nuevo.',
 };

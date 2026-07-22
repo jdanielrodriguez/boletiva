@@ -110,7 +110,7 @@ describe('TicketMailService (bordes)', () => {
     await service.sendOrderConfirmation('o-en');
     const [, subject, input] = mail.sendTemplated.mock.calls[0];
     expect(subject).toContain('Tickets confirmed');
-    expect(input.title).toBe('Purchase confirmed!');
+    expect(input.title).toContain('Purchase confirmed!');
     expect(input.bodyHtml).toContain('General admission');
     expect(input.bodyText).toContain('Guatemala time');
     expect(input.bodyText).not.toContain('hora de Guatemala');

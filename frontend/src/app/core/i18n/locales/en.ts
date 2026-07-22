@@ -20,7 +20,11 @@ import { reportsMaintenance } from './en/reports-maintenance';
 import { gate } from './en/gate';
 import { advisor } from './en/advisor';
 import { chat } from './en/chat';
+import { notifications } from './en/notifications';
 import { pager } from './en/pager';
+import { faq } from './en/faq';
+import { emailLog } from './en/email-log';
+import { kb, rte } from './en/kb';
 
 /** ENGLISH dictionary (en-US). Composed from namespaces. */
 export const en: TranslationObject = {
@@ -45,5 +49,10 @@ export const en: TranslationObject = {
   gate,
   advisor,
   chat,
+  notifications,
   pager,
+  faq,
+  emailLog,
+  kb,
+  rte,
 };

@@ -65,15 +65,15 @@ export class EventSettlementMailService implements OnModuleInit {
 
     const row = (label: string, value: string, strong = false) => `
       <tr>
-        <td style="padding:8px 0;border-bottom:1px solid #e6e6ea;font-size:14px;color:#3a3a44;">${label}</td>
-        <td align="right" style="padding:8px 0;border-bottom:1px solid #e6e6ea;font-size:14px;color:#1a1a2e;${
+        <td style="padding:8px 0;border-bottom:1px solid {{border}};font-size:14px;color:{{text}};">${label}</td>
+        <td align="right" style="padding:8px 0;border-bottom:1px solid {{border}};font-size:14px;color:{{ink}};${
           strong ? 'font-weight:700;' : ''
         }">Q${escapeHtml(value)}</td>
       </tr>`;
 
     const bodyHtml = `
       <p style="margin:0 0 12px 0;">${t.greeting(escapeHtml(promoter.firstName), escapeHtml(eventName))}</p>
-      <p class="pe-muted" style="margin:0 0 8px 0;font-size:14px;color:#6b6b76;">${t.intro}</p>
+      <p class="pe-muted" style="margin:0 0 8px 0;font-size:14px;color:{{muted}};">${t.intro}</p>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 16px 0;">
         ${row(t.rows.gross, s.gross)}
         ${row(t.rows.platformFee, s.platformFee)}
@@ -83,7 +83,7 @@ export class EventSettlementMailService implements OnModuleInit {
         ${row(t.rows.net, s.net)}
         ${row(t.rows.transferred, job.transferred, true)}
       </table>
-      <p class="pe-muted" style="margin:0 0 12px 0;font-size:14px;color:#6b6b76;">${t.ticketsSold}: <strong>${s.ticketsSold}</strong></p>
+      <p class="pe-muted" style="margin:0 0 12px 0;font-size:14px;color:{{muted}};">${t.ticketsSold}: <strong>${s.ticketsSold}</strong></p>
       <p style="margin:0;">${t.nextStep}</p>`;
 
     await this.mail.sendTemplated(promoter.email, t.subject(eventName), {

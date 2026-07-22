@@ -125,30 +125,30 @@ export class TicketMailService implements OnModuleInit {
           ? `<img src="${escapeHtml(qrUrl)}" alt="Código QR del boleto ${serial}" width="150" height="150" style="width:150px;height:150px;display:block;margin:0 auto 8px auto;background:#ffffff;border-radius:8px;" />`
           : '';
         return `
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px 0;border:1px solid #e6e6ea;border-radius:10px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px 0;border:1px solid {{border}};border-radius:10px;">
         <tr><td style="padding:18px 20px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-          <div class="pe-text" style="font-size:13px;text-transform:uppercase;letter-spacing:0.5px;color:#7c3aed;margin:0 0 4px 0;">${seatLine}</div>
+          <div class="pe-text" style="font-size:13px;text-transform:uppercase;letter-spacing:0.5px;color:{{accent}};margin:0 0 4px 0;">${seatLine}</div>
           ${qrBlock}
-          <div class="pe-muted" style="font-size:13px;color:#6b6b76;text-align:center;margin:0;">${t.serialLabel}</div>
-          <div class="pe-text" style="font-size:16px;font-weight:700;color:#1a1a2e;text-align:center;letter-spacing:0.5px;margin:2px 0 0 0;word-break:break-all;">${serial}</div>
+          <div class="pe-muted" style="font-size:13px;color:{{muted}};text-align:center;margin:0;">${t.serialLabel}</div>
+          <div class="pe-text" style="font-size:16px;font-weight:700;color:{{ink}};text-align:center;letter-spacing:0.5px;margin:2px 0 0 0;word-break:break-all;">${serial}</div>
         </td></tr>
       </table>`;
       }),
     );
 
     const addressHtml = address
-      ? `<p class="pe-muted" style="margin:0 0 4px 0;font-size:14px;color:#6b6b76;">${address}</p>`
+      ? `<p class="pe-muted" style="margin:0 0 4px 0;font-size:14px;color:{{muted}};">${address}</p>`
       : '';
 
     const bodyHtml = `
       ${bannerHtml}
       <p style="margin:0 0 4px 0;">${t.greeting(escapeHtml(order.buyer.firstName), eventName)}</p>
-      <p class="pe-muted" style="margin:0 0 2px 0;font-size:14px;color:#6b6b76;">${dateGt}</p>
+      <p class="pe-muted" style="margin:0 0 2px 0;font-size:14px;color:{{muted}};">${dateGt}</p>
       ${addressHtml}
       <p style="margin:16px 0 12px 0;">${t.total}: <strong>Q${order.total.toFixed(2)}</strong></p>
       <p style="margin:0 0 12px 0;">${t.ticketsHeading(order.tickets.length)}</p>
       ${cards.join('')}
-      <p class="pe-muted" style="margin:8px 0 0 0;font-size:14px;color:#6b6b76;">${t.dynamicQrNote}</p>`;
+      <p class="pe-muted" style="margin:8px 0 0 0;font-size:14px;color:{{muted}};">${t.dynamicQrNote}</p>`;
 
     const seatSummary = order.tickets
       .map((tk) => {

@@ -47,15 +47,48 @@ export class MailService implements OnModuleInit {
   private async resolvePalette(): Promise<EmailPalette> {
     try {
       const rows = await this.prisma.setting.findMany({
-        where: { key: { in: ['theme.default_franja', 'theme.slot.dia', 'theme.slot.noche'] } },
+        where: {
+          key: {
+            in: [
+              'theme.default_franja',
+              'theme.slot.dia',
+              'theme.slot.noche',
+              'theme.auto_by_hour',
+              'theme.day_start_hour',
+              'theme.day_end_hour',
+            ],
+          },
+        },
       });
       const byKey = new Map(rows.map((r) => [r.key, r.value]));
-      const franja = byKey.get('theme.default_franja') === 'dia' ? 'dia' : 'noche';
+      // El correo resuelve la franja IGUAL que el sitio: si el admin activó el tema
+      // AUTOMÁTICO por horario, se usa la franja de la hora actual (zona America/
+      // Guatemala); si no, la franja por defecto configurada.
+      let franja: 'dia' | 'noche';
+      if (byKey.get('theme.auto_by_hour') === true) {
+        const start = Number(byKey.get('theme.day_start_hour') ?? 6);
+        const end = Number(byKey.get('theme.day_end_hour') ?? 18);
+        const hour = MailService.hourInGuatemala();
+        franja = hour >= start && hour < end ? 'dia' : 'noche';
+      } else {
+        franja = byKey.get('theme.default_franja') === 'dia' ? 'dia' : 'noche';
+      }
       const themeKey = byKey.get(`theme.slot.${franja}`);
       return (typeof themeKey === 'string' && EMAIL_THEMES[themeKey]) || DEFAULT_EMAIL_PALETTE;
     } catch {
       return DEFAULT_EMAIL_PALETTE;
     }
+  }
+
+  /** Hora actual (0–23) en la zona horaria America/Guatemala. */
+  private static hourInGuatemala(): number {
+    return Number(
+      new Intl.DateTimeFormat('en-US', {
+        hour: 'numeric',
+        hour12: false,
+        timeZone: 'America/Guatemala',
+      }).format(new Date()),
+    );
   }
 
   onModuleInit(): void {
@@ -82,18 +115,73 @@ export class MailService implements OnModuleInit {
 
   /**
    * Encola el envío de un correo plantillado (cola MAIL). Retorna al instante:
-   * el SMTP real corre en el worker. Es la vía por defecto desde cualquier request
-   * (signup, login, reset, 2FA, invitaciones…) para no bloquear ni saturar el SMTP.
+   * el SMTP real corre en el worker.
+   *
+   * `meta.type` = REGISTRO opt-in en `email_logs` (observabilidad). Los correos
+   * SENSIBLES (OTP, verificación, nuevo dispositivo, magic-link) NO pasan `type` →
+   * NO se registran (privacidad). Además, si la dirección es inválida se marca
+   * `failed` y NO se encola (base de la cola: no reintentar direcciones inválidas).
    */
-  async enqueueTemplated(to: string, subject: string, input: RenderInput): Promise<void> {
-    await this.queue.enqueue(QUEUES.MAIL, SEND_TEMPLATED_JOB, { to, subject, input });
+  async enqueueTemplated(
+    to: string,
+    subject: string,
+    input: RenderInput,
+    meta?: { type?: string; correlationId?: string },
+  ): Promise<void> {
+    let logId: string | undefined;
+    const type = meta?.type;
+    if (type) {
+      const correlationId = meta?.correlationId;
+      if (!MailService.isValidEmail(to)) {
+        await this.safeLog(() =>
+          this.prisma.emailLog.create({
+            data: { recipient: to, type, subject, status: 'failed', error: 'invalid_address', correlationId },
+          }),
+        );
+        this.logger.warn(`Correo NO encolado (dirección inválida): ${to}`);
+        return;
+      }
+      const log = await this.safeLog(() =>
+        this.prisma.emailLog.create({
+          data: { recipient: to, type, subject, status: 'queued', correlationId },
+        }),
+      );
+      logId = log?.id;
+    }
+    await this.queue.enqueue(QUEUES.MAIL, SEND_TEMPLATED_JOB, { to, subject, input, logId });
+  }
+
+  /** Validación básica de formato de correo (la real la hace el proveedor SMTP). */
+  private static isValidEmail(email: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  /** Envuelve una escritura de log para que un fallo NUNCA tumbe el envío del correo. */
+  private async safeLog<T>(fn: () => Promise<T>): Promise<T | null> {
+    try {
+      return await fn();
+    } catch (err) {
+      this.logger.warn(`No se pudo escribir email_log: ${(err as Error).message}`);
+      return null;
+    }
   }
 
   /** Handler de la cola MAIL: solo procesa el job genérico `send-templated`. */
   private async handleQueue(name: string, data: unknown): Promise<void> {
     if (name !== SEND_TEMPLATED_JOB) return; // ignora jobs de otros emisores
-    const { to, subject, input } = data as { to: string; subject: string; input: RenderInput };
-    await this.sendTemplated(to, subject, input);
+    const { to, subject, input, logId } = data as {
+      to: string;
+      subject: string;
+      input: RenderInput;
+      logId?: string;
+    };
+    try {
+      await this.sendTemplated(to, subject, input);
+      if (logId) await this.safeLog(() => this.prisma.emailLog.update({ where: { id: logId }, data: { status: 'sent', sentAt: new Date() } }));
+    } catch (err) {
+      if (logId) await this.safeLog(() => this.prisma.emailLog.update({ where: { id: logId }, data: { status: 'failed', error: (err as Error).message.slice(0, 300) } }));
+      throw err; // deja que la cola reintente
+    }
   }
 
   async send(options: { to: string; subject: string; html: string; text?: string }): Promise<void> {

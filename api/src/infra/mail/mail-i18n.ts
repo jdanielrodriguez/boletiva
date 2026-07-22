@@ -100,8 +100,8 @@ export interface MailStrings {
 const ES: MailStrings = {
   greeting: (name) => `Hola ${name},`,
   order: {
-    subject: (eventName) => `Boletos confirmados — ${eventName}`,
-    title: '¡Compra confirmada!',
+    subject: (eventName) => `🎟️ Boletos confirmados — ${eventName}`,
+    title: '🎉 ¡Compra confirmada!',
     preheader: (count, eventName) => `Tus ${count} boleto(s) para ${eventName} están listos.`,
     greeting: (name, eventName) =>
       `Hola ${name}, tu compra del evento <strong>${eventName}</strong> fue confirmada.`,
@@ -176,8 +176,8 @@ const ES: MailStrings = {
 const EN: MailStrings = {
   greeting: (name) => `Hi ${name},`,
   order: {
-    subject: (eventName) => `Tickets confirmed — ${eventName}`,
-    title: 'Purchase confirmed!',
+    subject: (eventName) => `🎟️ Tickets confirmed — ${eventName}`,
+    title: '🎉 Purchase confirmed!',
     preheader: (count, eventName) => `Your ${count} ticket(s) for ${eventName} are ready.`,
     greeting: (name, eventName) =>
       `Hi ${name}, your purchase for <strong>${eventName}</strong> has been confirmed.`,

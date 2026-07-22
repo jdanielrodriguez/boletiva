@@ -41,12 +41,18 @@
             @if (isTestUser()) {
               <p class="test-card-hint" data-testid="test-card-hint">🧪 {{ 'checkout.testCardHint' | translate }}</p>
             }
+            @if (sandboxMode()) {
+              <p class="sandbox-note" data-testid="checkout-sandbox-note">
+                <app-icon name="alert" [size]="16" />
+                <span>{{ 'checkout.sandboxNotice' | translate }}</span>
+              </p>
+            }
 
             @if (methodsLoading()) {
               <p class="muted" data-testid="methods-loading">{{ 'checkout.loadingMethods' | translate }}</p>
             } @else {
               @if (methodsError()) {
-                <p class="hint" data-testid="methods-error">{{ 'checkout.methodsError' | translate }}</p>
+                <p class="error" role="alert" data-testid="methods-error">{{ 'checkout.methodsError' | translate }}</p>
               }
 
               <div class="pay-options" role="radiogroup" [attr.aria-label]="'checkout.paymentMethod' | translate">
@@ -263,6 +269,7 @@
           }
 
           <button type="button" class="btn primary btn-block" data-testid="pay-confirm" [disabled]="!canPay()" (click)="pay()">
+            <app-icon name="card" [size]="18" />
             @if (paying()) { {{ 'checkout.processing' | translate }} } @else { {{ 'checkout.payButton' | translate: { amount: (breakdown()?.total | money) } }} }
           </button>
           <p class="secure-note">
@@ -277,8 +284,16 @@
         </aside>
       </div>
     }
+  } @else if (loadError()) {
+    <app-empty-state variant="generic" data-testid="checkout-load-error"
+      [title]="'checkout.loadErrorTitle' | translate"
+      [subtitle]="'checkout.loadErrorBody' | translate" />
+    <div class="checkout-error-actions">
+      <a class="btn primary" routerLink="/cuenta" [queryParams]="{ s: 'activos' }" data-testid="checkout-error-account">{{ 'checkout.goToAccount' | translate }}</a>
+      <a class="btn" routerLink="/" data-testid="checkout-error-home">{{ 'checkout.goToCatalog' | translate }}</a>
+    </div>
   } @else {
-    <p data-testid="checkout-loading">{{ 'checkout.loading' | translate }}</p>
+    <app-loading data-testid="checkout-loading" [label]="'checkout.loading' | translate" />
   }
 
   <app-tour tourKey="checkout" [steps]="tourSteps" />

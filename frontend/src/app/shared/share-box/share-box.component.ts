@@ -1,5 +1,6 @@
 import { Component, computed, input, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
+import { IconComponent } from '../icon/icon.component';
 
 /**
  * Compartir un link (reserva) por WhatsApp/Facebook/X + copiar. Pensado para que
@@ -7,7 +8,7 @@ import { TranslatePipe } from '@ngx-translate/core';
  */
 @Component({
   selector: 'app-share-box',
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, IconComponent],
   templateUrl: './share-box.component.html',
 })
 export class ShareBox {

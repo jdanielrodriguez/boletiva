@@ -14,6 +14,9 @@
         @if (createdByAdminId()) { <span class="badge" data-testid="created-by-support">{{ 'promoter.edit.createdBySupport' | translate }}</span> }
       </div>
       <div class="ev-card-actions header-actions">
+        <!-- El ASESOR ve el evento en solo-lectura: no puede guardar/publicar/suspender/
+             cancelar/eliminar → no se le muestran las acciones de arriba. -->
+        @if (!isAdvisor()) {
         @if (locked()) {
           <!-- Candado CERRADO: admin no-dueño sin desbloqueo vigente (mismo candado que Pasarelas). -->
           <app-lock-chip
@@ -57,6 +60,7 @@
             [title]="(hasEnded() ? 'promoter.edit.cancelPastAdminTitle' : 'promoter.edit.cancelEvent') | translate">
             <app-icon name="cancel" /> {{ 'promoter.edit.cancelEvent' | translate }}
           </button>
+        }
         }
       </div>
     </div>
@@ -113,7 +117,8 @@
         <button type="button" [class.active]="tab() === 'config'" (click)="selectTab('config')" data-testid="tab-config">{{ 'promoter.edit.tabConfig' | translate }}</button>
         <button type="button" [class.active]="tab() === 'cuentas'" (click)="selectTab('cuentas')" data-testid="tab-cuentas">{{ 'promoter.edit.tabAccounts' | translate }}</button>
         <button type="button" [class.active]="tab() === 'dashboard'" (click)="selectTab('dashboard')" data-testid="tab-dashboard">{{ 'promoter.edit.tabDashboard' | translate }}</button>
-        @if (!isNew()) {
+        <!-- Validadores: NO visible para el asesor (fuera de su alcance). -->
+        @if (!isNew() && !isAdvisor()) {
           <button type="button" [class.active]="tab() === 'validadores'" (click)="selectTab('validadores')" data-testid="tab-validadores">{{ 'promoter.edit.tabValidators' | translate }}</button>
         }
       </nav>
@@ -259,7 +264,11 @@
                     <label class="field"><span>{{ 'promoter.edit.fieldKind' | translate }}</span>
                       <select [ngModel]="locForm.kind()" (ngModelChange)="locForm.kind.set($event)" name="lk">
                         <option value="general">{{ 'promoter.edit.kindGeneralOption' | translate }}</option>
-                        <option value="seated">{{ 'promoter.edit.kindSeatedOption' | translate }}</option>
+                        <!-- El mapa de asientos se puede deshabilitar globalmente (T7):
+                             sin él, solo aforo general para localidades nuevas. -->
+                        @if (seatmapEnabled()) {
+                          <option value="seated">{{ 'promoter.edit.kindSeatedOption' | translate }}</option>
+                        }
                       </select>
                     </label>
                     @if (locForm.kind() === 'general') {
@@ -510,7 +519,7 @@
           <div class="card-block" data-testid="dashboard-panel">
             <h2>{{ 'promoter.edit.dashboardTitle' | translate }}</h2>
             @if (!isNew() && eventId()) {
-              <app-event-dashboard [eventId]="eventId()" [showSplit]="isAdmin()" />
+              <app-event-dashboard [eventId]="eventId()" [showSplit]="isAdmin() || isAdvisor()" />
             } @else {
               <p class="muted">{{ 'promoter.edit.dashboardSoon' | translate }}</p>
             }
@@ -519,7 +528,7 @@
 
         @case ('validadores') {
           <div class="card-block" data-testid="validators-panel">
-            @if (!isNew() && eventId()) {
+            @if (!isNew() && eventId() && !isAdvisor()) {
               <app-checkin-stats [eventId]="eventId()" />
               <app-event-validators [eventId]="eventId()" />
             }

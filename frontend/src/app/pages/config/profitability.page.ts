@@ -11,6 +11,7 @@ import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { ChartComponent, ChartOptions } from '../../shared/ui/chart.component';
 import { chartPalette } from '../../shared/ui/chart-palette';
 import { MoneyPipe } from '../../shared/money.pipe';
+import { IconComponent } from '../../shared/icon/icon.component';
 
 /**
  * Fase 4 — Rentabilidad de la plataforma por evento (admin). Muestra KPIs globales
@@ -28,6 +29,7 @@ import { MoneyPipe } from '../../shared/money.pipe';
     EmptyStateComponent,
     ChartComponent,
     MoneyPipe,
+    IconComponent,
   ],
   templateUrl: './profitability.page.html',
   styleUrl: './profitability.page.css',

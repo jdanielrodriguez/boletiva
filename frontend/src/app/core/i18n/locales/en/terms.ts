@@ -50,6 +50,7 @@ export const terms = {
         'The price you pay is always the single-payment (cash) price. If you choose to pay in installments with your card, no surcharge will be applied for that financing, in accordance with applicable Guatemalan regulations.',
         'A purchase is confirmed only when the payment is approved by the gateway. While you select seats, they are held temporarily for a limited time; if you do not complete payment within that window, the hold is released and the seats become available again.',
         'Available payment methods may include credit and debit cards and the internal balance (wallet). The price and its breakdown are always computed server-side; no amount sent by the browser is accepted as authoritative.',
+        'Payment processing: card payments are processed through our payment gateway (Recurrente). Boletiva does not store your full card number; the gateway tokenizes it securely. During the testing phase, charges run in test mode (sandbox): you will see a “test mode” notice, no real charge is created, and you may use the provided test card.',
       ],
     },
     {

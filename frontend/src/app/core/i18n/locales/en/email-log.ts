@@ -1,0 +1,21 @@
+/** Sent-email log (admin). English. */
+export const emailLog = {
+  title: 'Sent emails',
+  hint: 'Log of the emails the platform sends (excludes security codes and device alerts).',
+  searchPlaceholder: 'Search by recipient…',
+  typePlaceholder: 'Type (e.g. invite)',
+  allStatuses: 'All statuses',
+  from: 'From',
+  to: 'To',
+  status_sent: 'Sent',
+  status_queued: 'Queued',
+  status_failed: 'Failed',
+  colDate: 'Date',
+  colRecipient: 'Recipient',
+  colType: 'Type',
+  colSubject: 'Subject',
+  colStatus: 'Status',
+  emptyTitle: 'No emails',
+  emptyBody: 'No emails logged with these filters yet.',
+  error: 'Could not load the email log.',
+};

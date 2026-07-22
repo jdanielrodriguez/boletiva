@@ -117,6 +117,19 @@ describe('Impersonación de promotores (e2e)', () => {
     expect(rec?.userId).toBe(adminId); // el actor real es el admin que la inició
   });
 
+  it('S4 (QA): en sesión de impersonación NO se puede solicitar un retiro de wallet → 403', async () => {
+    const start = await http()
+      .post(`/api/v1/admin/impersonate/${promoterId}`)
+      .set(bearer(adminToken))
+      .expect(200);
+    // El chequeo del controller corta ANTES del servicio (saldo/etc.): acción financiera ajena.
+    await http()
+      .post('/api/v1/wallet/withdrawals')
+      .set(bearer(start.body.accessToken))
+      .send({ amount: 10 })
+      .expect(403);
+  });
+
   it('no-admin → 403; sin token → 401', async () => {
     await http().post(`/api/v1/admin/impersonate/${promoterId}`).set(bearer(buyerToken)).expect(403);
     await http().post(`/api/v1/admin/impersonate/${promoterId}`).expect(401);

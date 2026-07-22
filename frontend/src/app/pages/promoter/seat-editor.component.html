@@ -2,6 +2,9 @@
   @if (readonly()) {
     <p class="muted small">{{ 'promoter.seat.readonlyNote' | translate }}</p>
   } @else {
+    <!-- Aviso móvil: el editor de mapa (Konva, arrastrar/dibujar) rinde mejor en pantalla
+         grande; en móvil se puede ver/ajustar pero es incómodo (QA Lote B). -->
+    <p class="seat-mobile-hint muted small" data-testid="se-mobile-hint">{{ 'promoter.seat.mobileHint' | translate }}</p>
     <!-- Generación rápida por cuadrícula -->
     <div class="seat-editor-form">
       <label class="field inline">

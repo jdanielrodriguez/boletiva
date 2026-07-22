@@ -72,7 +72,7 @@ export class PromoterMailService implements OnModuleInit {
     const t = mailStrings(locale).promoter;
     const hi = `${mailStrings(locale).greeting(escapeHtml(firstName))}`;
     const noteHtml = note
-      ? `<p class="pe-muted" style="margin:12px 0 0 0;font-size:14px;color:#6b6b76;">${t.teamNote} ${escapeHtml(note)}</p>`
+      ? `<p class="pe-muted" style="margin:12px 0 0 0;font-size:14px;color:{{muted}};">${t.teamNote} ${escapeHtml(note)}</p>`
       : '';
     const copy = t[status] ?? t.suspended;
     return {

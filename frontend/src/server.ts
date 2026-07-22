@@ -119,22 +119,25 @@ app.use(
 );
 
 /**
- * Cache en el edge/CDN para páginas PÚBLICAS renderizadas por SSR. El contenido
- * público es anónimo (la sesión se hidrata en el cliente), así que es cacheable.
- * `s-maxage` aplica al CDN; `stale-while-revalidate` sirve una versión vieja
- * mientras revalida. Las rutas con estado de usuario van `no-store`.
+ * Cache en el edge/CDN. Regla SEGURA POR DEFECTO (QA): TODO va `no-store` salvo una
+ * ALLOWLIST explícita de rutas públicas y anónimas. Antes era al revés (una denylist de
+ * prefijos privados) y rutas autenticadas fuera de la lista (/checkout, /configuracion,
+ * /soporte, /reserva, /transferencias) recibían `public, s-maxage=60` — hoy inofensivo
+ * porque el SSR es anónimo, pero el día que se hidrate la sesión en el servidor filtraría
+ * HTML privado a la cache pública del CDN. Invertida, una ruta nueva es privada por
+ * defecto y solo se cachea si se agrega aquí a conciencia.
  */
-const PRIVATE_PREFIXES = ['/login', '/verificar-correo', '/403', '/mi', '/cuenta', '/admin', '/promotor'];
+const PUBLIC_CACHEABLE_PREFIXES = ['/eventos', '/terminos'];
+const isPublicCacheable = (path: string): boolean =>
+  path === '/' || PUBLIC_CACHEABLE_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`));
 
 app.use((req, res, next) => {
   if (req.method === 'GET') {
-    const path = req.path;
-    const isPrivate = PRIVATE_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`));
     res.setHeader(
       'Cache-Control',
-      isPrivate
-        ? 'no-store'
-        : 'public, s-maxage=60, stale-while-revalidate=300',
+      isPublicCacheable(req.path)
+        ? 'public, s-maxage=60, stale-while-revalidate=300'
+        : 'no-store',
     );
   }
   next();

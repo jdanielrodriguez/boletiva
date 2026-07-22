@@ -18,6 +18,13 @@ export const auth = {
   twofaEmailShort: 'Te enviamos un código de 6 dígitos a tu correo.',
   verifying: 'Verificando…',
   verify: 'Verificar',
+  resendCode: 'Reenviar código',
+  resendIn: 'Reenviar en {{s}}s',
+  resendCountdown: 'Podrás pedir otro código en {{s}}s…',
+  useAnotherAccount: 'Usar otra cuenta',
+  msg2faResent: 'Te reenviamos un código nuevo a tu correo.',
+  msg2faResendError: 'No se pudo reenviar el código. Intenta en unos segundos.',
+  msg2faResendLimit: 'Espera un minuto entre reenvíos (máximo 5). Si se agotan, vuelve a iniciar sesión.',
   // Modal de login (en compra)
   modalTitle: 'Inicia sesión para pagar',
   modalSubtitle: 'Tu reserva sigue guardada. Solo necesitas identificarte para completar el pago.',
@@ -45,6 +52,7 @@ export const auth = {
   lastName: 'Apellido',
   creating: 'Creando…',
   createAccount: 'Crear cuenta',
+  acceptTerms: 'Acepto los <a href="/terminos" target="_blank" rel="noopener">Términos y Condiciones</a> y el aviso de privacidad.',
   haveAccountQ: '¿Ya tienes cuenta?',
   loginLink: 'Inicia sesión',
   // Invitación de promotor
@@ -65,6 +73,7 @@ export const auth = {
   // Mensajes (toasts / errores)
   msgInvitationInvalid: 'La invitación no es válida o venció.',
   msgCompleteFields: 'Completa nombre, correo y contraseña.',
+  msgAcceptTerms: 'Debes aceptar los Términos y Condiciones para crear tu cuenta.',
   msgCreateFailed: 'No se pudo crear la cuenta. Revisa los datos e inténtalo de nuevo.',
   msgSignupCheckEmail:
     'Listo. Si el correo es válido, te enviamos instrucciones para continuar. Revisa tu bandeja de entrada.',

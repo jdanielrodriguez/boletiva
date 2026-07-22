@@ -163,4 +163,11 @@ export class PromoterDashboardDto {
     description: 'Evento al que está filtrado el dashboard (null = todos)',
   })
   selectedEventId!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Estado de evento al que está filtrado el dashboard (null = todos)',
+  })
+  selectedStatus!: string | null;
 }

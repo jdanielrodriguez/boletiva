@@ -12,6 +12,8 @@ export const eventDetail = {
   noLocalities: 'No sections published yet.',
   salesClosedTitle: 'Sales closed',
   salesClosed: 'Ticket sales for this event are closed.',
+  adminNoBuyTitle: 'Administrator view',
+  adminNoBuyBody: 'As an administrator you don’t buy tickets. Use a customer account to try the purchase flow.',
   noLocalitiesHint: 'The organizer has not set up tickets for this event yet.',
   loading: 'Loading event…',
   notFoundTitle: 'Event not found',

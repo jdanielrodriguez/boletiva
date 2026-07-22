@@ -57,6 +57,20 @@ describe('CheckoutPage', () => {
   let walletApi: jasmine.SpyObj<WalletApi>;
   let sse: Subject<OrderStreamEvent>;
 
+  /** Llena el form de tarjeta nueva con datos válidos (Luhn) para habilitar Pagar (M1). */
+  function fillNewCard(): void {
+    const set = (id: string, v: string) => {
+      const input = el.querySelector(id) as HTMLInputElement;
+      input.value = v;
+      input.dispatchEvent(new Event('input'));
+    };
+    set('#cc-number', '4242 4242 4242 4242');
+    set('#cc-exp', '12/30');
+    set('#cc-cvv', '123');
+    set('#cc-name', 'Test User');
+    fixture.detectChanges();
+  }
+
   async function setup(
     opts: { cards?: PaymentMethodResponseDto[]; balance?: string } = {},
   ) {
@@ -118,6 +132,7 @@ describe('CheckoutPage', () => {
 
   it('pagar invoca pay con pasarela y cuotas elegidas', async () => {
     await setup();
+    fillNewCard();
     const select = el.querySelector('.installments select') as HTMLSelectElement;
     select.value = '3';
     select.dispatchEvent(new Event('change'));
@@ -185,6 +200,7 @@ describe('CheckoutPage', () => {
     // La opción marcada como recomendada (gw2) queda seleccionada; su badge se muestra.
     const selected = el.querySelector('.gateway-option.selected .gateway-name');
     expect(selected?.textContent).toContain('Pagalo');
+    fillNewCard();
     (el.querySelector('[data-testid="pay-confirm"]') as HTMLButtonElement).click();
     expect(orders.pay).toHaveBeenCalledWith('o1', {
       gatewayId: 'gw2',
@@ -197,6 +213,7 @@ describe('CheckoutPage', () => {
 
   it('tras enviar el pago muestra el loading continuo mientras sigue pendiente', async () => {
     await setup();
+    fillNewCard();
     expect(el.querySelector('[data-testid="checkout-confirming"]')).toBeNull();
     (el.querySelector('[data-testid="pay-confirm"]') as HTMLButtonElement).click();
     fixture.detectChanges();

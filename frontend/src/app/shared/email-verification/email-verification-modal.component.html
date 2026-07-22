@@ -20,17 +20,17 @@
         </button>
       </form>
 
-      <p class="auth-alt">
-        {{ 'auth.verifyNoCode' | translate }}
-        <button type="button" class="link-btn" [disabled]="resending()" (click)="resend()" data-testid="verify-modal-resend">
+      <p class="auth-alt verify-nocode">{{ 'auth.verifyNoCode' | translate }}</p>
+      <div class="verify-actions">
+        <button type="button" class="btn small subtle" [disabled]="resending()" (click)="resend()" data-testid="verify-modal-resend">
+          <app-icon name="refresh" [size]="15" />
           {{ resending() ? ('auth.verifyResending' | translate) : ('auth.verifyResend' | translate) }}
         </button>
-      </p>
-      <p class="auth-alt">
-        <button type="button" class="link-btn" (click)="signOut()" data-testid="verify-modal-logout">
+        <button type="button" class="btn small subtle" (click)="signOut()" data-testid="verify-modal-logout">
+          <app-icon name="logout" [size]="15" />
           {{ 'auth.verifyLogout' | translate }}
         </button>
-      </p>
+      </div>
     </section>
   </div>
 }

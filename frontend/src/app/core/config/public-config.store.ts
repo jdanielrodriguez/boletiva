@@ -32,6 +32,7 @@ export class PublicConfigStore {
   private readonly _showHomeCategories = signal(false); // categorías ocultas en inicio por defecto
   private readonly _reportsMaintenance = signal(false); // reportes activos por defecto
   private readonly _tourEnabled = signal(true); // tour de onboarding activo por defecto
+  private readonly _tourResetDays = signal(30); // reofrecer el tour tras N días
   private readonly _theme = signal<ThemeConfig>(DEFAULT_THEME);
   private readonly _recaptchaSiteKey = signal('');
   private readonly _premium = signal<{ enabled: boolean; trialEnabled: boolean; trialDays: number }>({
@@ -40,6 +41,12 @@ export class PublicConfigStore {
     trialDays: 7,
   });
   private readonly _chatEnabled = signal(false);
+  private readonly _canFeatureEvents = signal(false);
+  private readonly _homeSliderEnabled = signal(true);
+  private readonly _seatmapEnabled = signal(true);
+  private readonly _eventsCreationEnabled = signal(true);
+  private readonly _advisorsMaintenance = signal(false);
+  private readonly _billingMaintenance = signal(false);
   private readonly _loaded = signal(false);
 
   readonly allowVisitorLangSwitch = this._allowVisitorLangSwitch.asReadonly();
@@ -48,6 +55,8 @@ export class PublicConfigStore {
   readonly reportsMaintenance = this._reportsMaintenance.asReadonly();
   /** ¿El tour de onboarding está habilitado? (admin puede apagarlo.) */
   readonly tourEnabled = this._tourEnabled.asReadonly();
+  /** Días para reofrecer un tour ya visto/rechazado (config admin). */
+  readonly tourResetDays = this._tourResetDays.asReadonly();
   /** Asignación de tema por franja + switch (rebranding Boletiva). */
   readonly theme = this._theme.asReadonly();
   /** Site key pública de reCAPTCHA v3 ('' = deshabilitado; RecaptchaService la lee). */
@@ -56,6 +65,14 @@ export class PublicConfigStore {
   readonly premium = this._premium.asReadonly();
   /** ¿El chat de soporte está habilitado globalmente? */
   readonly chatEnabled = this._chatEnabled.asReadonly();
+  /** ¿Los promotores pueden destacar sus eventos en el inicio? (default false). */
+  readonly canFeatureEvents = this._canFeatureEvents.asReadonly();
+  /** Flags de funcionalidad (T7): slider inicio / mapa asientos / creación eventos / mantenimientos. */
+  readonly homeSliderEnabled = this._homeSliderEnabled.asReadonly();
+  readonly seatmapEnabled = this._seatmapEnabled.asReadonly();
+  readonly eventsCreationEnabled = this._eventsCreationEnabled.asReadonly();
+  readonly advisorsMaintenance = this._advisorsMaintenance.asReadonly();
+  readonly billingMaintenance = this._billingMaintenance.asReadonly();
   /** true una vez resuelta (o fallida) la consulta inicial. */
   readonly loaded = this._loaded.asReadonly();
 
@@ -81,10 +98,17 @@ export class PublicConfigStore {
         this._showHomeCategories.set(c.showHomeCategories);
         this._reportsMaintenance.set(c.reportsMaintenance ?? false);
         this._tourEnabled.set(c.tourEnabled ?? true);
+        this._tourResetDays.set(c.tourResetDays ?? 30);
         if (c.theme) this._theme.set(c.theme);
         this._recaptchaSiteKey.set(c.recaptchaSiteKey ?? '');
         if (c.premium) this._premium.set(c.premium);
         this._chatEnabled.set(c.chatEnabled ?? false);
+        this._canFeatureEvents.set(c.canFeatureEvents ?? false);
+        this._homeSliderEnabled.set(c.homeSliderEnabled ?? true);
+        this._seatmapEnabled.set(c.seatmapEnabled ?? true);
+        this._eventsCreationEnabled.set(c.eventsCreationEnabled ?? true);
+        this._advisorsMaintenance.set(c.advisorsMaintenance ?? false);
+        this._billingMaintenance.set(c.billingMaintenance ?? false);
         this._loaded.set(true);
       },
       error: () => this._loaded.set(true),

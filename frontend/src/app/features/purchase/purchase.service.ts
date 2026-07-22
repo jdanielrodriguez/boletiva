@@ -77,6 +77,27 @@ export class PurchaseService {
     this.activeLocalityId.set(id);
   }
 
+  /**
+   * Aplica un delta de disponibilidad en vivo (SSE, FU11): marca `sold` como no
+   * disponibles y `released` como disponibles. Si un asiento seleccionado se vendió,
+   * lo quita de la selección (evita reservar algo ya tomado por otro comprador).
+   */
+  applySeatDelta(delta: { sold?: string[]; released?: string[] }): void {
+    const av = this.availability();
+    if (!av?.seats?.length) return;
+    const sold = new Set(delta.sold ?? []);
+    const released = new Set(delta.released ?? []);
+    if (sold.size === 0 && released.size === 0) return;
+    const seats = av.seats.map((s) =>
+      sold.has(s.id) ? { ...s, status: 'sold' } : released.has(s.id) ? { ...s, status: 'available' } : s,
+    );
+    this.availability.set({ ...av, seats } as typeof av);
+    if (sold.size > 0 && [...this.seatSel()].some((id) => sold.has(id))) {
+      const next = new Set([...this.seatSel()].filter((id) => !sold.has(id)));
+      this.seatSel.set(next);
+    }
+  }
+
   /** Reinicia la selección (p.ej. tras reservar o cambiar de vista). */
   clearSelection(): void {
     this.seatSel.set(new Set());

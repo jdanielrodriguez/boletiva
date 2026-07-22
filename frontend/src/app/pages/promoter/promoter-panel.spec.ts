@@ -40,6 +40,8 @@ describe('PromoterPanel (v3 grid)', () => {
             premium: () => ({ enabled: false, trialEnabled: false, trialDays: 7 }),
             tourEnabled: () => false,
             chatEnabled: () => false,
+            canFeatureEvents: () => true,
+            eventsCreationEnabled: () => true,
           },
         },
         provideZonelessChangeDetection(),

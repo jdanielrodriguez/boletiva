@@ -1,5 +1,9 @@
 <section class="config-page">
-  <h1>{{ 'config.title' | translate }}</h1>
+  <!-- Invitaciones se abre como página INDIVIDUAL (deep-link desde el menú admin): sin
+       título "Configuración" ni barra de tabs, solo su back-link (como Enviar notificaciones). -->
+  @if (tab() !== 'invitaciones') {
+    <h1>{{ 'config.title' | translate }}</h1>
+  }
 
   @if (isAdvisor() && advisorUnlock(); as au) {
     @if (au.lockEnabled && !au.unlocked) {
@@ -24,16 +28,25 @@
     }
   }
 
-  <nav class="config-tabs" [attr.aria-label]="'config.tabsAria' | translate">
-    <button type="button" [class.active]="tab() === 'eventos'" [attr.aria-current]="tab() === 'eventos' ? 'page' : null" (click)="selectTab('eventos')" data-testid="tab-eventos">{{ 'config.tabs.events' | translate }}</button>
-    <button type="button" [class.active]="tab() === 'promotores'" [attr.aria-current]="tab() === 'promotores' ? 'page' : null" (click)="selectTab('promotores')" data-testid="tab-promotores">{{ 'config.tabs.promoters' | translate }}</button>
-    <button type="button" [class.active]="tab() === 'salones'" [attr.aria-current]="tab() === 'salones' ? 'page' : null" (click)="selectTab('salones')" data-testid="tab-salones">{{ 'config.tabs.halls' | translate }}</button>
-    <button type="button" [class.active]="tab() === 'plantillas'" [attr.aria-current]="tab() === 'plantillas' ? 'page' : null" (click)="selectTab('plantillas')" data-testid="tab-plantillas">{{ 'config.tabs.templates' | translate }}</button>
-    @if (!hideSystemTab()) {
-      <button type="button" [class.active]="tab() === 'sistema'" [attr.aria-current]="tab() === 'sistema' ? 'page' : null" (click)="selectTab('sistema')" data-testid="tab-sistema">{{ 'config.tabs.system' | translate }}</button>
-    }
-    <button type="button" [class.active]="tab() === 'invitaciones'" [attr.aria-current]="tab() === 'invitaciones' ? 'page' : null" (click)="selectTab('invitaciones')" data-testid="tab-invitaciones">{{ 'config.tabs.invitations' | translate }}</button>
-  </nav>
+  <!-- Invitaciones es página INDIVIDUAL: sin la barra de tabs (solo su back-link). -->
+  @if (tab() !== 'invitaciones') {
+    <nav class="config-tabs" [attr.aria-label]="'config.tabsAria' | translate">
+      <button type="button" [class.active]="tab() === 'eventos'" [attr.aria-current]="tab() === 'eventos' ? 'page' : null" (click)="selectTab('eventos')" data-testid="tab-eventos"><app-icon name="ticket" [size]="15" /> {{ 'config.tabs.events' | translate }}</button>
+      <button type="button" [class.active]="tab() === 'promotores'" [attr.aria-current]="tab() === 'promotores' ? 'page' : null" (click)="selectTab('promotores')" data-testid="tab-promotores"><app-icon name="accounts" [size]="15" /> {{ 'config.tabs.promoters' | translate }}</button>
+      <button type="button" [class.active]="tab() === 'salones'" [attr.aria-current]="tab() === 'salones' ? 'page' : null" (click)="selectTab('salones')" data-testid="tab-salones"><app-icon name="seats" [size]="15" /> {{ 'config.tabs.halls' | translate }}</button>
+      <button type="button" [class.active]="tab() === 'plantillas'" [attr.aria-current]="tab() === 'plantillas' ? 'page' : null" (click)="selectTab('plantillas')" data-testid="tab-plantillas"><app-icon name="draft" [size]="15" /> {{ 'config.tabs.templates' | translate }}</button>
+      @if (!hideSystemTab()) {
+        <button type="button" [class.active]="tab() === 'sistema'" [attr.aria-current]="tab() === 'sistema' ? 'page' : null" (click)="selectTab('sistema')" data-testid="tab-sistema"><app-icon name="gear" [size]="15" /> {{ 'config.tabs.system' | translate }}</button>
+      }
+      <!-- Base de conocimientos (T6) — gestión admin+asesor, movida aquí desde el menú de perfil. -->
+      <button type="button" [class.active]="tab() === 'kb'" [attr.aria-current]="tab() === 'kb' ? 'page' : null" (click)="selectTab('kb')" data-testid="tab-kb"><app-icon name="book" [size]="15" /> {{ 'config.tabs.kb' | translate }}</button>
+      <!-- Correos enviados (email log) — solo admin (como Sistema). -->
+      @if (!hideSystemTab()) {
+        <button type="button" [class.active]="tab() === 'correos'" [attr.aria-current]="tab() === 'correos' ? 'page' : null" (click)="selectTab('correos')" data-testid="tab-correos"><app-icon name="bell" [size]="15" /> {{ 'config.tabs.emailLog' | translate }}</button>
+      }
+      <!-- Invitaciones y Soporte se movieron al menú superior de admin (páginas individuales). -->
+    </nav>
+  }
 
   @switch (tab()) {
     @case ('eventos') {
@@ -78,12 +91,18 @@
           </select>
         </label>
       </div>
-      @if (filteredEvents().length > 0) {
+      @if (eventsLoading()) {
+        <p class="muted" data-testid="events-loading">{{ 'config.events.loading' | translate }}</p>
+      } @else if (eventsError()) {
+        <app-empty-state variant="generic" data-testid="events-error"
+          [title]="'config.events.loadErrorTitle' | translate"
+          [subtitle]="'config.events.loadError' | translate" />
+      } @else if (filteredEvents().length > 0) {
         <div class="admin-events-grid" data-testid="admin-events">
           @for (e of pageEvents(); track e.id) {
             <article class="ev-card" [class.ev-card-featured]="e.promotedPriority != null" data-testid="ev-card">
               @if (e.promotedPriority != null) {
-                <span class="ev-featured-flag"><span aria-hidden="true">★</span> {{ 'config.events.featuredFlag' | translate }}</span>
+                <span class="ev-featured-flag"><app-icon name="default" [size]="13" /> {{ 'config.events.featuredFlag' | translate }}</span>
               }
               <div class="ev-card-top">
                 <span class="badge badge-{{ e.status }}">{{ e.status | statusLabel }}</span>
@@ -102,7 +121,7 @@
                 <!-- Destacar en el slider del inicio (solo admin, aquí en la lista). Solo los
                      futuros publicados destacados salen en el slider; si no hay, se oculta. -->
                 <span class="ev-promote" [title]="'config.events.featureHint' | translate">
-                  <span class="ev-promote-star" aria-hidden="true">★</span>
+                  <span class="ev-promote-star" aria-hidden="true"><app-icon name="default" [size]="14" /></span>
                   <span class="ev-promote-label">{{ 'config.events.feature' | translate }}</span>
                   <app-switch [checked]="e.promotedPriority != null" [disabled]="promotingId() === e.id"
                     (checkedChange)="togglePromoted(e, $event)"
@@ -142,7 +161,13 @@
         </label>
       </div>
 
-      @if (filteredPromoters().length > 0) {
+      @if (promotersLoading()) {
+        <p class="muted" data-testid="promoters-loading">{{ 'config.promoters.loading' | translate }}</p>
+      } @else if (promotersError()) {
+        <app-empty-state variant="generic" data-testid="promoters-error"
+          [title]="'config.promoters.loadErrorTitle' | translate"
+          [subtitle]="'config.promoters.loadError' | translate" />
+      } @else if (filteredPromoters().length > 0) {
         <div class="promoters-grid" data-testid="promoters-list">
           @for (p of filteredPromoters(); track p.id) {
             <article class="promoter-card">
@@ -181,7 +206,7 @@
               </div>
               <div class="ev-card-actions">
                 @if (p.promoterStatus !== 'approved') {
-                  <button type="button" class="btn small primary" (click)="askApprove(p)" data-testid="promoter-approve"
+                  <button type="button" class="btn small success" (click)="askApprove(p)" data-testid="promoter-approve"
                     [title]="(p.promoterStatus === 'suspended' ? 'config.promoters.reactivateTitle' : 'config.promoters.approveTitle') | translate">
                     <app-icon [name]="p.promoterStatus === 'suspended' ? 'reactivate' : 'save'" />
                     {{ (p.promoterStatus === 'suspended' ? 'config.promoters.reactivate' : 'config.promoters.approve') | translate }}
@@ -193,9 +218,13 @@
                   </button>
                 }
                 @if (p.promoterStatus === 'approved') {
-                  <button type="button" class="btn small" (click)="askImpersonate(p)" data-testid="promoter-impersonate" [title]="'config.promoters.impersonateTitle' | translate">
-                    <app-icon name="view" /> {{ 'config.promoters.impersonate' | translate }}
-                  </button>
+                  <!-- Impersonar es admin-only en backend (@AdminOnly): el asesor NUNCA puede,
+                       ni desbloqueado → se oculta para no dar feedback falso (A-2 QA). -->
+                  @if (!isAdvisor()) {
+                    <button type="button" class="btn small" (click)="askImpersonate(p)" data-testid="promoter-impersonate" [title]="'config.promoters.impersonateTitle' | translate">
+                      <app-icon name="view" /> {{ 'config.promoters.impersonate' | translate }}
+                    </button>
+                  }
                   <button type="button" class="btn small danger" (click)="openSuspend(p)" data-testid="promoter-suspend" [title]="'config.promoters.suspendTitle' | translate">
                     <app-icon name="suspend" /> {{ 'config.promoters.suspend' | translate }}
                   </button>
@@ -244,6 +273,12 @@
       <app-halls-list />
     }
 
+    @case ('kb') {
+      <app-kb-admin [embedded]="true" />
+    }
+    @case ('correos') {
+      <app-email-log [embedded]="true" />
+    }
     @case ('plantillas') {
       <h2>{{ 'config.tabs.templates' | translate }}</h2>
       <p class="muted">{{ 'config.templates.intro' | translate }}</p>
@@ -345,7 +380,7 @@
                   <span class="muted small">{{ g.provider }} · {{ +g.feePct * 100 | number: '1.0-2' }}% + Q{{ g.transactionFixedFee }}</span>
                   <span class="gateway-edit-actions" style="margin-left:auto; display:flex; gap:0.4rem;">
                     @if (!g.isPlatformDefault) {
-                      <button type="button" class="btn small" (click)="makeDefault(g)" data-testid="gw-make-default" [title]="'config.system.makeDefaultTitle' | translate">
+                      <button type="button" class="btn small" (click)="askMakeDefault(g)" data-testid="gw-make-default" [title]="'config.system.makeDefaultTitle' | translate">
                         <app-icon name="default" /> {{ 'config.system.makeDefault' | translate }}
                       </button>
                     }
@@ -442,8 +477,18 @@
         <h3>{{ 'config.settings.heading' | translate }}</h3>
         <p class="muted">{{ 'config.settings.intro' | translate }}</p>
         @if (settings().length > 0) {
-          <div class="settings-grid" data-testid="settings-list">
-            @for (s of settings(); track s.key) {
+          <div data-testid="settings-list">
+          @for (grp of settingGroups(); track grp.id) {
+            <section class="settings-group" [attr.data-testid]="'settings-group-' + grp.id">
+              <button type="button" class="settings-group-head" (click)="toggleGroup(grp.id)"
+                [attr.aria-expanded]="!isGroupCollapsed(grp.id)" [attr.data-testid]="'settings-group-toggle-' + grp.id">
+                <span class="settings-group-chev" [class.open]="!isGroupCollapsed(grp.id)" aria-hidden="true">›</span>
+                <strong>{{ 'config.settingGroups.' + grp.id | translate }}</strong>
+                <span class="muted small settings-group-count">{{ grp.items.length }}</span>
+              </button>
+              @if (!isGroupCollapsed(grp.id)) {
+                <div class="settings-grid">
+                @for (s of grp.items; track s.key) {
               <div class="setting-card" data-testid="setting-row">
                 <div class="setting-head">
                   <strong>{{ settingLabel(s.key) }}</strong>
@@ -482,10 +527,18 @@
                   <span class="muted small setting-default">{{ 'config.settings.defaultLabel' | translate: { value: s.default } }}</span>
                 </div>
               </div>
-            }
+                }
+                </div>
+              }
+            </section>
+          }
           </div>
         } @else if (!settingsLoaded()) {
           <p class="muted" data-testid="settings-loading">{{ 'config.settings.loading' | translate }}</p>
+        } @else if (settingsError()) {
+          <app-empty-state variant="generic" data-testid="settings-error"
+            [title]="'config.settings.loadErrorTitle' | translate"
+            [subtitle]="'config.settings.loadError' | translate" />
         } @else {
           <app-empty-state variant="generic" data-testid="settings-empty"
             [title]="'config.settings.emptyTitle' | translate"
@@ -521,6 +574,7 @@
     }
 
     @case ('invitaciones') {
+      <app-back-link link="/configuracion" [label]="'common.backToSettings' | translate" testId="inv-back" />
       <h2>{{ 'config.invitations.heading' | translate }}</h2>
       <p class="muted">{{ 'config.invitations.intro' | translate }}</p>
 
@@ -558,7 +612,12 @@
             @for (c of created(); track c.id) {
               <article class="inv-card">
                 <span class="inv-email">{{ c.email }}</span>
-                <input class="inv-url" type="text" readonly [value]="c.url" />
+                <div class="inv-url-row">
+                  <input class="inv-url" type="text" readonly [value]="c.url" />
+                  <button type="button" class="btn small" (click)="copyInvite(c.url)" [attr.aria-label]="'config.invitations.copy' | translate" [title]="'config.invitations.copy' | translate" data-testid="inv-copy">
+                    <app-icon name="copy" />
+                  </button>
+                </div>
               </article>
             }
           </div>
@@ -566,7 +625,13 @@
       }
 
       <h3>{{ 'config.invitations.listHeading' | translate }}</h3>
-      @if (invitations().length > 0) {
+      @if (invitationsLoading()) {
+        <p class="muted" data-testid="invitations-loading">{{ 'config.invitations.loading' | translate }}</p>
+      } @else if (invitationsError()) {
+        <app-empty-state variant="generic" data-testid="invitations-error"
+          [title]="'config.invitations.loadErrorTitle' | translate"
+          [subtitle]="'config.invitations.loadError' | translate" />
+      } @else if (invitations().length > 0) {
         <div class="list-filters">
           <app-search-field [value]="invSearch()" (valueChange)="setInvSearch($event)" (searched)="setInvSearch($event)"
             [placeholder]="'config.invitations.searchPlaceholder' | translate" name="invq" testId="inv-search" />

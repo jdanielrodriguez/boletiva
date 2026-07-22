@@ -64,20 +64,30 @@
     <ul class="catalog-grid">
       @for (ev of events(); track ev.id) {
         <li class="event-card">
-          <a [routerLink]="['/eventos', ev.slug]">
-            @if (ev.media.at(0)?.url; as img) {
-              <img class="event-thumb" [src]="img" [alt]="ev.name" loading="lazy" />
-            } @else {
-              <div class="event-thumb" aria-hidden="true">{{ ev.name.charAt(0) }}</div>
-            }
-            <h2>{{ ev.name }}</h2>
-            @if (ev.category) {
-              <span class="event-cat">{{ ev.category.name }}</span>
-            }
-            <time [attr.datetime]="ev.startsAt">{{ ev.startsAt | localizedDate: 'medium' }}</time>
-            @if (ev.address) {
-              <span class="event-place">{{ ev.address }}</span>
-            }
+          <a class="event-card-link" [routerLink]="['/eventos', ev.slug]">
+            <div class="ec-media">
+              @if (ev.media.at(0)?.url; as img) {
+                <img class="event-thumb" [src]="img" [alt]="ev.name" loading="lazy" />
+              } @else {
+                <div class="event-thumb ec-thumb-fallback" aria-hidden="true">{{ ev.name.charAt(0) }}</div>
+              }
+              <!-- chip de fecha (decorativo: la fecha accesible va completa en el cuerpo) -->
+              <time class="ec-datechip" [attr.datetime]="ev.startsAt" aria-hidden="true">
+                <span class="ec-day">{{ ev.startsAt | localizedDate: 'd' }}</span>
+                <span class="ec-month">{{ ev.startsAt | localizedDate: 'MMM' }}</span>
+              </time>
+              @if (ev.category) {
+                <span class="event-cat">{{ ev.category.name }}</span>
+              }
+            </div>
+
+            <div class="ec-body">
+              <h2>{{ ev.name }}</h2>
+              <time class="event-when" [attr.datetime]="ev.startsAt"><app-icon name="calendar" />{{ ev.startsAt | localizedDate: 'medium' }}</time>
+              @if (ev.address) {
+                <span class="event-place"><app-icon name="pin" />{{ ev.address }}</span>
+              }
+            </div>
           </a>
         </li>
       }

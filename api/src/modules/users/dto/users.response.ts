@@ -86,6 +86,9 @@ export class UserResponseDto {
   })
   themePref?: string | null;
 
+  @ApiPropertyOptional({ description: 'Recibir notificaciones por correo (negocio/soporte).', example: true })
+  emailNotificationsEnabled?: boolean;
+
   @ApiPropertyOptional({
     type: String,
     format: 'date-time',

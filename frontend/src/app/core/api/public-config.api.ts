@@ -28,6 +28,8 @@ export interface PublicConfig {
   reportsMaintenance?: boolean;
   /** ¿El tour de onboarding guiado está habilitado globalmente? (default true) */
   tourEnabled?: boolean;
+  /** Días para reofrecer un tour ya visto/rechazado (reinicio; default 30). */
+  tourResetDays?: number;
   /** Asignación de tema por franja + switch (para resolver el tema en el cliente). */
   theme?: ThemeConfig;
   /** Site key pública de reCAPTCHA v3 (vacía = deshabilitado, no se carga). */
@@ -36,6 +38,18 @@ export interface PublicConfig {
   premium?: { enabled: boolean; trialEnabled: boolean; trialDays: number };
   /** ¿El chat de soporte está habilitado? */
   chatEnabled?: boolean;
+  /** ¿Los promotores pueden destacar sus eventos en el inicio? */
+  canFeatureEvents?: boolean;
+  /** ¿El slider del inicio está habilitado? (false = siempre oculto). */
+  homeSliderEnabled?: boolean;
+  /** ¿El mapa de asientos está habilitado? */
+  seatmapEnabled?: boolean;
+  /** ¿La creación de eventos está habilitada? */
+  eventsCreationEnabled?: boolean;
+  /** Mantenimiento solo para asesores. */
+  advisorsMaintenance?: boolean;
+  /** Mantenimiento de facturación. */
+  billingMaintenance?: boolean;
 }
 
 /**

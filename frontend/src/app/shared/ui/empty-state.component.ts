@@ -47,9 +47,10 @@ export type EmptyVariant = 'tickets' | 'billing' | 'wallet' | 'card' | 'generic'
             </svg>
           }
           @default {
+            <!-- Bandeja vacía (neutro y amable) en vez de carita triste. -->
             <svg viewBox="0 0 64 64" width="72" height="72" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="32" cy="32" r="24" />
-              <path d="M22 40c2-4 6-6 10-6s8 2 10 6M24 26h.02M40 26h.02" />
+              <path d="M12 34l5-18a4 4 0 0 1 3.9-2.9h22.2A4 4 0 0 1 47 16l5 18" />
+              <path d="M12 34h11l3 5h12l3-5h11v12a4 4 0 0 1-4 4H16a4 4 0 0 1-4-4z" />
             </svg>
           }
         }
@@ -120,8 +121,24 @@ export type EmptyVariant = 'tickets' | 'billing' | 'wallet' | 'card' | 'generic'
         opacity: 0.7;
       }
       .empty-cta {
-        margin-top: 0.75rem;
+        margin-top: 0.9rem;
         text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.62rem 1.35rem;
+        border-radius: 999px;
+        font-weight: 600;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
+        transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+      }
+      .empty-cta:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 26px rgba(0, 0, 0, 0.2);
+        filter: brightness(1.03);
+      }
+      .empty-cta:active {
+        transform: translateY(0);
       }
     `,
   ],

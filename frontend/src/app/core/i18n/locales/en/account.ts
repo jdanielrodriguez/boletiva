@@ -3,6 +3,10 @@ export const account = {
   title: 'My account',
   sectionsAria: 'Account sections',
   general: 'General',
+  adminModule: {
+    title: 'Module not applicable to administrators',
+    body: 'As an administrator you don’t buy tickets, so this module (payment methods, billing, wallet and tickets) has no use in your account. Use a customer account to try the purchase flow.',
+  },
   nav: {
     profile: 'Profile',
     methods: 'Payment methods',
@@ -46,6 +50,14 @@ export const account = {
     night: 'Night',
     saved: 'Theme updated.',
     saveError: 'Could not save the theme.',
+  },
+  notifs: {
+    title: 'Email notifications',
+    hint: 'Receive support and event notifications by email. Does not affect security emails (codes, sign-in).',
+    on: 'On',
+    off: 'Off',
+    saved: 'Preference updated.',
+    saveError: 'Could not save the preference.',
   },
   twofa: {
     title: 'Two-factor authentication (2FA)',
@@ -107,6 +119,8 @@ export const account = {
     yearInvalid: 'Invalid or expired year.',
   },
   billing: {
+    maintenanceTitle: 'Billing under maintenance',
+    maintenanceBody: 'We are reviewing billing. Please try again later.',
     filterPill: 'Showing a specific purchase.',
     viewAll: 'View all',
     event: 'Event',

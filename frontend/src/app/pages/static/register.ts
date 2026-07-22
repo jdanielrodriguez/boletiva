@@ -43,6 +43,7 @@ export class Register {
   protected readonly email = signal('');
   protected readonly password = signal('');
   protected readonly confirmPassword = signal('');
+  protected readonly acceptedTerms = signal(false);
   protected readonly working = signal(false);
   protected readonly error = signal<string | null>(null);
   /** Aviso genérico (p.ej. correo ya existente → anti-enumeración): no revela nada. */
@@ -115,6 +116,10 @@ export class Register {
 
   /** Alta de cuenta nueva (invitada o normal) → verifica correo; si invitada, acepta. */
   protected submit(): void {
+    if (!this.acceptedTerms()) {
+      this.error.set(this.translate.instant('auth.msgAcceptTerms'));
+      return;
+    }
     if (!this.email() || !this.password() || !this.firstName()) {
       this.error.set(this.translate.instant('auth.msgCompleteFields'));
       return;

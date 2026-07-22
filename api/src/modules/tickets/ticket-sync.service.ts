@@ -77,12 +77,22 @@ export class TicketSyncService {
     const ttlSeconds = this.config.getOrThrow<number>('safetix.manifestTtl');
     const expiresAt = new Date(generatedAt.getTime() + ttlSeconds * 1000);
 
-    // Firma sobre un digest canónico (id|status|serial por boleto + expiración).
+    // Firma sobre un digest canónico. CUBRE el secreto TOTP (por hash) y el dueño, no
+    // solo id|status|serial: si no, un MITM podía SUSTITUIR el `totpSecret` en claro de
+    // un boleto dejando id/serial/status intactos y la firma seguía validando → generaba
+    // QRs válidos de un boleto ajeno offline. Al firmar `sha256(totpSecret)`+ownerId, el
+    // device recomputa el hash del secreto servido y detecta cualquier sustitución (QA).
     const canonical = JSON.stringify({
       eventId,
       maxSeq,
       expiresAt: expiresAt.toISOString(),
-      tickets: items.map((t) => ({ id: t.ticketId, st: t.status, s: t.serial })),
+      tickets: items.map((t) => ({
+        id: t.ticketId,
+        st: t.status,
+        s: t.serial,
+        o: t.ownerId,
+        sec: sha256(t.totpSecret),
+      })),
     });
     const contentHash = sha256(canonical);
     const signature = this.signing.sign(contentHash);

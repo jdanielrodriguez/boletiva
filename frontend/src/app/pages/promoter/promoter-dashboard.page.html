@@ -18,6 +18,7 @@
         [disabled]="downloading()"
         data-testid="pdash-export"
       >
+        <app-icon name="download" />
         {{ (downloading() ? 'promoter.dash.exporting' : 'promoter.dash.export') | translate }}
       </button>
     }
@@ -40,6 +41,21 @@
         <option value="">{{ 'promoter.dash.filterEventAll' | translate }}</option>
         @for (e of data()?.availableEvents ?? []; track e.id) { <option [value]="e.id">{{ e.name }}</option> }
       </select>
+    </label>
+    <label class="field">
+      <span>{{ 'promoter.dash.filterStatus' | translate }}</span>
+      <select [ngModel]="selectedStatus()" (ngModelChange)="onStatusChange($event)" name="dashStatus" data-testid="pdash-status">
+        <option value="">{{ 'promoter.dash.filterStatusAll' | translate }}</option>
+        @for (s of statusList; track s) { <option [value]="s">{{ statusLabelKey(s) | translate }}</option> }
+      </select>
+    </label>
+    <label class="field">
+      <span>{{ 'promoter.dash.filterFrom' | translate }}</span>
+      <input type="date" [ngModel]="dateFrom()" (ngModelChange)="onFromChange($event)" name="dashFrom" data-testid="pdash-from" />
+    </label>
+    <label class="field">
+      <span>{{ 'promoter.dash.filterTo' | translate }}</span>
+      <input type="date" [ngModel]="dateTo()" (ngModelChange)="onToChange($event)" name="dashTo" data-testid="pdash-to" />
     </label>
   </div>
 

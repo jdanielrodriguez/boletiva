@@ -1,21 +1,30 @@
-@if (showAdminBanner()) {
-  <app-maintenance-banner />
-}
-@if (showTestBanner()) {
-  <div class="test-mode-banner" role="status" data-testid="test-mode-banner">
-    {{ 'shell.testModeBanner' | translate }}
-  </div>
-}
-<app-impersonation-banner />
-<app-header />
+<!-- Franja superior FIJA: banners (mantenimiento/test/impersonación) + header se
+     mantienen pegados arriba al hacer scroll → el aviso de impersonación nunca se
+     pierde de vista (QA Lote B). -->
+<div class="topbar-stack">
+  @if (showAdminBanner()) {
+    <app-maintenance-banner />
+  }
+  @if (showTestBanner()) {
+    <div class="test-mode-banner" role="status" data-testid="test-mode-banner">
+      {{ 'shell.testModeBanner' | translate }}
+    </div>
+  }
+  <app-impersonation-banner />
+  <app-header />
+</div>
 <main class="site-main">
   <router-outlet />
 </main>
 <app-footer />
 <app-toast-container />
+<app-support-bubble />
 <app-email-verification-modal />
 @if (showMaintenancePage()) {
   <app-maintenance-page [message]="maintMessage()" />
+}
+@if (showAdvisorMaintenance()) {
+  <app-maintenance-page [message]="'shell.advisorMaintenance' | translate" data-testid="advisor-maintenance" />
 }
 @if (booting()) {
   <app-loading [fullscreen]="true" [label]="'common.loading' | translate" data-testid="hydration-loader" />

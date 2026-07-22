@@ -38,14 +38,15 @@ export interface EmailPalette {
   text: string; // cuerpo
   muted: string; // pie
   accent: string; // barra superior, CTA y enlaces
+  border: string; // separadores / bordes de cajas dentro del cuerpo
 }
 
 /** Paletas de correo por tema (equivalentes email-safe de los tokens --pe-*). */
 export const EMAIL_THEMES: Record<string, EmailPalette> = {
   // Pulso (noche): oscuro tech.
-  pulso: { bg: '#0a0d13', card: '#161b24', ink: '#eef2f7', text: '#c3ccd8', muted: '#8a94a6', accent: '#7c3aed' },
+  pulso: { bg: '#0a0d13', card: '#161b24', ink: '#eef2f7', text: '#c3ccd8', muted: '#8a94a6', accent: '#7c3aed', border: '#2a313d' },
   // Marquesina (día): claro cálido.
-  marquesina: { bg: '#f6f1e8', card: '#fffdf8', ink: '#241826', text: '#4a3f37', muted: '#7a6a5c', accent: '#d1521f' },
+  marquesina: { bg: '#f6f1e8', card: '#fffdf8', ink: '#241826', text: '#4a3f37', muted: '#7a6a5c', accent: '#d1521f', border: '#e6ddce' },
 };
 
 /** Paleta por defecto si no se resuelve el tema (Pulso/noche). */
@@ -58,7 +59,12 @@ export function escapeHtml(value: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/'/g, '&#39;')
+    // Neutraliza las llaves: un valor dinámico (nombre de evento/promotor, título) que
+    // contenga el literal `{{accent}}`/`{{muted}}`… no debe colarse hasta la sustitución
+    // de tokens de paleta de renderEmail (se insertan ANTES). Se renderiza igual.
+    .replace(/{/g, '&#123;')
+    .replace(/}/g, '&#125;');
 }
 
 /** Convierte HTML simple a texto plano legible (para el multipart). */
@@ -84,7 +90,9 @@ function ctaBlock(cta: { url: string; label: string }, accent: string): string {
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0 8px 0;"><tr><td align="left">
   <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${url}" style="height:48px;v-text-anchor:middle;width:240px;" arcsize="12%" strokecolor="${accent}" fillcolor="${accent}"><w:anchorlock/><center style="color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:bold;">${label}</center></v:roundrect><![endif]-->
   <!--[if !mso]><!-- --><a href="${url}" style="display:inline-block;background:${accent};color:#ffffff;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;font-weight:700;line-height:48px;text-align:center;text-decoration:none;padding:0 28px;border-radius:8px;">${label}</a><!--<![endif]-->
-</td></tr></table>`;
+</td></tr></table>
+  <!-- Fallback: si el botón no se ve, el enlace queda copiable/clicable debajo. -->
+  <p style="margin:4px 0 0 0;font-size:13px;line-height:1.5;color:{{muted}};">¿No ves el botón? Copia y pega este enlace:<br/><a href="${url}" style="color:${accent};word-break:break-all;">${url}</a></p>`;
 }
 
 const BASE = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -150,6 +158,7 @@ export function renderEmail(
     .replace(/{{ink}}/g, palette.ink)
     .replace(/{{text}}/g, palette.text)
     .replace(/{{muted}}/g, palette.muted)
+    .replace(/{{border}}/g, palette.border)
     .replace(/{{accent}}/g, palette.accent);
 
   const bodyText = input.bodyText ?? htmlToText(input.bodyHtml);

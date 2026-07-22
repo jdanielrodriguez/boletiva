@@ -8,6 +8,7 @@ import {
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { AdminOnly } from '../../common/decorators/admin-only.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { PricingService } from './pricing.service';
 import {
@@ -41,7 +42,8 @@ export class PricingController {
   @Post('schedules')
   @HttpCode(201)
   @Roles(Role.admin)
-  @ApiOperation({ summary: 'Crea y activa una nueva versión de comisiones (admin)' })
+  @AdminOnly()
+  @ApiOperation({ summary: 'Crea y activa una nueva versión de comisiones (admin real)' })
   @ApiCreatedResponse({ type: FeeScheduleResponseDto })
   create(@Body() dto: CreateFeeScheduleDto, @CurrentUser('userId') userId: string) {
     return this.pricing.createSchedule(dto, userId);

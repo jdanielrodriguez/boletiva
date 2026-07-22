@@ -24,14 +24,16 @@
   <div class="session-area" data-testid="session-area">
     <app-theme-switcher />
     <app-lang-switcher />
-    <!-- CTA "Conviértete en promotor": visitante Y cliente logueado; oculto a promotor/admin. -->
-    @if (!session.hasAnyRole(['promoter', 'admin'])) {
+    <!-- CTA "Conviértete en promotor": visitante Y cliente logueado; oculto a promotor/admin/asesor.
+         En móvil se oculta del header (evita overflow horizontal); sigue disponible en el footer. -->
+    @if (!session.hasAnyRole(['promoter', 'admin', 'advisor'])) {
       <a class="btn cta-promoter" routerLink="/conviertete-en-promotor" data-testid="become-promoter-link">{{
         'shell.becomePromoter' | translate
       }}</a>
     }
     @if (session.isAuthenticated()) {
-      <span class="greeting" data-testid="session-greeting">{{ 'shell.greeting' | translate: { name: session.user()?.firstName } }}</span>
+      <a class="greeting" routerLink="/cuenta" data-testid="session-greeting">{{ 'shell.greeting' | translate: { name: session.user()?.firstName } }}</a>
+      <app-notification-bell />
       <div class="user-menu">
         <button
           type="button"
@@ -55,22 +57,66 @@
         </button>
         @if (menuOpen()) {
           <div class="user-dropdown" data-testid="user-dropdown" role="menu">
-            <a routerLink="/cuenta" (click)="closeMenu()" data-testid="dd-perfil">{{ 'shell.profile' | translate }}</a>
+            <!-- Opciones del usuario (todas con icono, fila uniforme .dd-item). -->
+            <a class="dd-item" routerLink="/cuenta" (click)="closeMenu()" data-testid="dd-perfil">
+              <app-icon name="user" [size]="16" /> {{ 'shell.profile' | translate }}
+            </a>
+            <a class="dd-item" [routerLink]="['/cuenta']" [queryParams]="{ s: 'activos' }" (click)="closeMenu()" data-testid="dd-boletos">
+              <app-icon name="ticket" [size]="16" /> {{ 'shell.tickets' | translate }}
+            </a>
+            <a class="dd-item" [routerLink]="['/cuenta']" [queryParams]="{ s: 'metodos' }" (click)="closeMenu()" data-testid="dd-metodos">
+              <app-icon name="card" [size]="16" /> {{ 'shell.paymentMethods' | translate }}
+            </a>
+            <a class="dd-item" [routerLink]="['/cuenta']" [queryParams]="{ s: 'wallet' }" (click)="closeMenu()" data-testid="dd-wallet">
+              <app-icon name="wallet" [size]="16" /> {{ 'shell.wallet' | translate }}
+            </a>
+            <a class="dd-item" [routerLink]="['/cuenta']" [queryParams]="{ s: 'facturacion' }" (click)="closeMenu()" data-testid="dd-facturacion">
+              <app-icon name="draft" [size]="16" /> {{ 'shell.billing' | translate }}
+            </a>
+            <!-- Base de conocimientos PÚBLICA (FAQ) — visible a todos. -->
+            <a class="dd-item" routerLink="/faq" (click)="closeMenu()" data-testid="dd-faq">
+              <app-icon name="help" [size]="16" /> {{ 'faq.title' | translate }}
+            </a>
 
-            <div class="dd-quick" [attr.aria-label]="'shell.quickAccess' | translate">
-              <a [routerLink]="['/cuenta']" [queryParams]="{ s: 'metodos' }" (click)="closeMenu()" data-testid="dd-metodos">{{ 'shell.paymentMethods' | translate }}</a>
-              <a [routerLink]="['/cuenta']" [queryParams]="{ s: 'activos' }" (click)="closeMenu()" data-testid="dd-boletos">{{ 'shell.tickets' | translate }}</a>
-              <a [routerLink]="['/cuenta']" [queryParams]="{ s: 'facturacion' }" (click)="closeMenu()" data-testid="dd-facturacion">{{ 'shell.billing' | translate }}</a>
-              <a [routerLink]="['/cuenta']" [queryParams]="{ s: 'wallet' }" (click)="closeMenu()" data-testid="dd-wallet">{{ 'shell.wallet' | translate }}</a>
-            </div>
-
+            <!-- Separador CLARO + etiqueta: las de abajo son configuraciones de GESTIÓN
+                 (promotor/admin/asesor), resaltadas en color de acento. -->
+            @if (session.hasAnyRole(['promoter', 'admin', 'advisor'])) {
+              <div class="dd-sep" role="separator"></div>
+            }
             @if (session.hasAnyRole(['promoter']) && !session.hasAnyRole(['admin'])) {
-              <a routerLink="/promotor" (click)="closeMenu()" data-testid="promoter-link">{{ 'shell.configuration' | translate }}</a>
+              <a class="dd-item dd-mgmt" routerLink="/promotor" (click)="closeMenu()" data-testid="promoter-link">
+                <app-icon name="gear" [size]="16" /> {{ 'shell.configuration' | translate }}
+              </a>
+            }
+            <!-- Gobernanza (orden fijo: Configuración · Asesores · Soporte · Invitaciones ·
+                 Enviar notificaciones · Base de conocimientos). Cada ítem se gatea por su
+                 rol: admin ve los 6; el asesor solo Configuración/Soporte/KB. -->
+            @if (session.hasAnyRole(['admin', 'advisor'])) {
+              <a class="dd-item dd-mgmt" routerLink="/configuracion" (click)="closeMenu()" data-testid="config-link">
+                <app-icon name="gear" [size]="16" /> {{ 'shell.configuration' | translate }}
+              </a>
             }
             @if (session.hasAnyRole(['admin'])) {
-              <a routerLink="/configuracion" (click)="closeMenu()" data-testid="config-link">{{ 'shell.configuration' | translate }}</a>
+              <a class="dd-item dd-mgmt" routerLink="/admin/asesores" (click)="closeMenu()" data-testid="admin-advisors-link">
+                <app-icon name="accounts" [size]="16" /> {{ 'advisor.admin.title' | translate }}
+              </a>
             }
-            <button type="button" data-testid="logout-btn" (click)="logout()">{{ 'shell.logout' | translate }}</button>
+            @if (session.hasAnyRole(['admin', 'advisor'])) {
+              <a class="dd-item dd-mgmt" routerLink="/soporte" (click)="closeMenu()" data-testid="support-link">
+                <app-icon name="chat" [size]="16" /> {{ 'chat.title' | translate }}
+              </a>
+            }
+            @if (session.hasAnyRole(['admin'])) {
+              <a class="dd-item dd-mgmt" routerLink="/configuracion" [queryParams]="{ tab: 'invitaciones' }" (click)="closeMenu()" data-testid="admin-invitations-link">
+                <app-icon name="invite" [size]="16" /> {{ 'config.tabs.invitations' | translate }}
+              </a>
+              <a class="dd-item dd-mgmt" routerLink="/admin/notificaciones" (click)="closeMenu()" data-testid="admin-notif-link">
+                <app-icon name="bell" [size]="16" /> {{ 'notifications.adminSendTitle' | translate }}
+              </a>
+            }
+            <button type="button" class="dd-item dd-logout" data-testid="logout-btn" (click)="logout()">
+              <app-icon name="logout" [size]="16" /> {{ 'shell.logout' | translate }}
+            </button>
           </div>
         }
       </div>
