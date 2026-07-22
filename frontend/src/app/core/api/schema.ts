@@ -2625,7 +2625,7 @@ export interface paths {
         /** Salones publicados (para seleccionar al crear evento) */
         get: operations["HallsController_list_v1"];
         put?: never;
-        /** Crea un salón (admin) */
+        /** Crea un salón (admin/asesor) */
         post: operations["HallsController_create_v1"];
         delete?: never;
         options?: never;
@@ -2665,7 +2665,7 @@ export interface paths {
         delete: operations["HallsController_remove_v1"];
         options?: never;
         head?: never;
-        /** Actualiza un salón (admin) */
+        /** Actualiza un salón (admin/asesor) */
         patch: operations["HallsController_update_v1"];
         trace?: never;
     };
@@ -2866,7 +2866,7 @@ export interface paths {
         /** Plantillas de asientos (para el desplegable del editor; solo publicadas) */
         get: operations["SeatTemplatesController_list_v1"];
         put?: never;
-        /** Crea una plantilla de asientos (admin) */
+        /** Crea una plantilla de asientos (admin/asesor) */
         post: operations["SeatTemplatesController_create_v1"];
         delete?: never;
         options?: never;
@@ -2906,7 +2906,7 @@ export interface paths {
         delete: operations["SeatTemplatesController_remove_v1"];
         options?: never;
         head?: never;
-        /** Actualiza una plantilla (admin; built-in bloqueada) */
+        /** Actualiza una plantilla (admin/asesor; built-in bloqueada) */
         patch: operations["SeatTemplatesController_update_v1"];
         trace?: never;
     };
@@ -7517,6 +7517,11 @@ export interface components {
              * @example true
              */
             isPlatformDefault: boolean;
+            /**
+             * @description true = pasarela en MODO PRUEBA (sandbox): no genera cargos reales. El checkout muestra un aviso.
+             * @example true
+             */
+            sandbox: boolean;
             /**
              * @description true = pasarela EFECTIVA/asignada al evento para esta orden. El frontend debe preseleccionarla en el checkout.
              * @example true

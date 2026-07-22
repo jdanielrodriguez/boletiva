@@ -304,6 +304,7 @@ export class PaymentsService {
         name: gw.name,
         provider: gw.provider,
         isPlatformDefault: gw.isPlatformDefault,
+        sandbox: gw.sandbox, // modo prueba → el checkout muestra aviso (no hay cargo real)
         // Pasarela asignada al evento → recomendada/preseleccionada en el checkout.
         recommended: gw.id === eventGatewayId,
         total: base.total,

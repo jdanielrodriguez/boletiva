@@ -4583,6 +4583,20 @@ button.danger {
   font-size: 0.85rem;
   margin-bottom: 0.75rem;
 }
+/* Aviso de MODO PRUEBA (sandbox) en el checkout: info suave con icono. */
+.sandbox-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  background: var(--pe-accent-soft);
+  border: 1px solid var(--pe-accent-border, var(--pe-border));
+  color: var(--pe-text);
+  border-radius: 10px;
+  padding: 0.55rem 0.8rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+.sandbox-note .app-icon { flex: none; margin-top: 1px; color: var(--pe-accent-strong, var(--pe-accent)); }
 /* Chip "TEST" en tarjetas de evento del promotor de prueba. */
 .test-chip {
   display: inline-block;

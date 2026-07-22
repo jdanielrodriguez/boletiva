@@ -156,6 +156,9 @@ export class CheckoutPage implements OnDestroy {
     return gws.find((g) => g.gatewayId === this.gatewayId()) ?? gws[0] ?? null;
   });
 
+  /** Pasarela en MODO PRUEBA (sandbox) → mostramos aviso: no hay cargo real. */
+  protected readonly sandboxMode = computed(() => this.selectedGateway()?.sandbox ?? false);
+
   /** Opción del plazo elegido dentro de la pasarela seleccionada. */
   protected readonly selectedOption = computed(() => {
     const gw = this.selectedGateway();

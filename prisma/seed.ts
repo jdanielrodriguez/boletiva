@@ -196,26 +196,32 @@ async function seedGateway(): Promise<void> {
     feePct: string;
     transactionFixedFee?: string;
     installmentRates?: Record<string, number>;
+    installmentsEnabled?: boolean;
     sandbox: boolean;
     status?: 'active' | 'inactive';
   }> = [
     {
-      // Tarifas REALES de Recurrente (plan EMPRESA, verificadas en recurrente.com/precios,
-      // jul 2026): 4.5% + Q2 fijo por transacción exitosa con tarjeta. Cuotas (cada una
-      // + el mismo Q2): 3→8% · 6→9% · 12→10% · 18→14%. Así, al integrar el key de test de
-      // Recurrente, el precio que calculamos coincide con lo que Recurrente cobra.
-      // NOTA: Recurrente NO es la default en alpha (lo es Sandbox) → los e2e generales
-      // siguen cobrando por Sandbox (129.68 canónico); Recurrente se prueba aparte.
+      // RECURRENTE = pasarela por DEFAULT (fase alpha, en SANDBOX). Mientras el cobro es
+      // simulado (provider 'simulator', llaves TEST), usa la economía CANÓNICA de sandbox
+      // (5% sin fijo) → el precio canónico 129.68 se mantiene y toda la suite e2e sigue en
+      // verde. CUOTAS CONFIGURADAS PERO DESACTIVADAS (installmentsEnabled:false): el
+      // tarifario queda listo pero el comprador no ve plazos aún.
+      // ⚠️ PROD (al conectar las llaves reales de Recurrente, plan EMPRESA verificado
+      // recurrente.com/precios jul 2026): cambiar a provider 'recurrente', feePct 0.04500,
+      // transactionFixedFee 2.00 (Q2), e installmentsEnabled:true para habilitar cuotas
+      // (3→8% · 6→9% · 12→10% · 18→14% + Q2). Recurrente muestra aviso de prueba con
+      // live_mode=false y no crea actividad real (docs.recurrente.com).
       name: 'Recurrente',
       provider: 'simulator',
-      feePct: '0.04500',
-      transactionFixedFee: '2.00',
+      feePct: '0.05000',
       installmentRates: { '3': 0.08, '6': 0.09, '12': 0.1, '18': 0.14 },
+      installmentsEnabled: false,
       sandbox: true,
     },
     // Pagalo INACTIVA por decisión de negocio (deuda pendiente con Pagalo): no debe
     // ofrecerse hasta nuevo aviso. Sigue seleccionable solo si el admin la reactiva.
     { name: 'Pagalo', provider: 'simulator', feePct: '0.05000', sandbox: true, status: 'inactive' },
+    // Sandbox: pasarela de simulación secundaria (5%), disponible para pruebas/e2e que la fijan.
     { name: 'Sandbox', provider: 'simulator', feePct: '0.05000', sandbox: true },
   ];
   for (const g of gateways) {
@@ -226,6 +232,7 @@ async function seedGateway(): Promise<void> {
       update: {
         feePct: g.feePct,
         installmentRates: g.installmentRates ?? undefined,
+        installmentsEnabled: g.installmentsEnabled ?? true,
         transactionFixedFee: g.transactionFixedFee ?? '0.00',
         minCostSharePct: '0.00000',
         status: g.status ?? 'active',
@@ -236,23 +243,22 @@ async function seedGateway(): Promise<void> {
         feePct: g.feePct,
         transactionFixedFee: g.transactionFixedFee ?? '0.00',
         installmentRates: g.installmentRates,
+        installmentsEnabled: g.installmentsEnabled ?? true,
         sandbox: g.sandbox,
         status: g.status ?? 'active',
       },
     });
   }
-  // Default de plataforma = SANDBOX en FASE ALPHA (diseño original: "sandbox es la
-  // default para alpha/beta; prod exige ≥1 pasarela real"). Sandbox = 5% sin fijo →
-  // precio canónico 129.68 que usan TODOS los e2e generales. Recurrente lleva sus
-  // tarifas REALES (4.5%+Q2) y queda SELECCIONABLE / para sus e2e dedicados; al ir a
-  // prod, flipear el default a Recurrente es 1 línea. Una sola default (índice parcial).
+  // Default de plataforma = RECURRENTE (en sandbox). En alpha su economía es la canónica
+  // (5% sin fijo) → precio 129.68 intacto y suite e2e en verde; al conectar llaves reales
+  // se ajusta el tarifario (ver comentario arriba). Una sola default (índice parcial).
   await prisma.$transaction([
     prisma.paymentGateway.updateMany({
-      where: { isPlatformDefault: true, name: { not: 'Sandbox' } },
+      where: { isPlatformDefault: true, name: { not: 'Recurrente' } },
       data: { isPlatformDefault: false },
     }),
     prisma.paymentGateway.updateMany({
-      where: { name: 'Sandbox' },
+      where: { name: 'Recurrente' },
       data: { isPlatformDefault: true, status: 'active' },
     }),
   ]);

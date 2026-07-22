@@ -41,6 +41,12 @@
             @if (isTestUser()) {
               <p class="test-card-hint" data-testid="test-card-hint">🧪 {{ 'checkout.testCardHint' | translate }}</p>
             }
+            @if (sandboxMode()) {
+              <p class="sandbox-note" data-testid="checkout-sandbox-note">
+                <app-icon name="alert" [size]="16" />
+                <span>{{ 'checkout.sandboxNotice' | translate }}</span>
+              </p>
+            }
 
             @if (methodsLoading()) {
               <p class="muted" data-testid="methods-loading">{{ 'checkout.loadingMethods' | translate }}</p>

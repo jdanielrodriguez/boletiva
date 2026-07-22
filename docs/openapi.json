@@ -6705,7 +6705,7 @@
             "bearer": []
           }
         ],
-        "summary": "Crea un salón (admin)",
+        "summary": "Crea un salón (admin/asesor)",
         "tags": [
           "halls"
         ]
@@ -6815,7 +6815,7 @@
             "bearer": []
           }
         ],
-        "summary": "Actualiza un salón (admin)",
+        "summary": "Actualiza un salón (admin/asesor)",
         "tags": [
           "halls"
         ]
@@ -7352,7 +7352,7 @@
             "bearer": []
           }
         ],
-        "summary": "Crea una plantilla de asientos (admin)",
+        "summary": "Crea una plantilla de asientos (admin/asesor)",
         "tags": [
           "seat-templates"
         ]
@@ -7462,7 +7462,7 @@
             "bearer": []
           }
         ],
-        "summary": "Actualiza una plantilla (admin; built-in bloqueada)",
+        "summary": "Actualiza una plantilla (admin/asesor; built-in bloqueada)",
         "tags": [
           "seat-templates"
         ]
@@ -16176,6 +16176,11 @@
             "description": "Si es la pasarela default de plataforma",
             "example": true
           },
+          "sandbox": {
+            "type": "boolean",
+            "description": "true = pasarela en MODO PRUEBA (sandbox): no genera cargos reales. El checkout muestra un aviso.",
+            "example": true
+          },
           "recommended": {
             "type": "boolean",
             "description": "true = pasarela EFECTIVA/asignada al evento para esta orden. El frontend debe preseleccionarla en el checkout.",
@@ -16204,6 +16209,7 @@
           "name",
           "provider",
           "isPlatformDefault",
+          "sandbox",
           "recommended",
           "total",
           "serviceFee",

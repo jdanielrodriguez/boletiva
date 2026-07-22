@@ -19,6 +19,7 @@ export const checkout = {
   cancelled: 'cancelled',
   paymentMethod: 'Payment method',
   testCardHint: 'Test mode: use card 4242 4242 4242 4242, any future date and CVV 123. No real charge is made.',
+  sandboxNotice: 'Test mode (sandbox): the payment is simulated with Recurrente and creates no real charge.',
   loadingMethods: 'Loading your payment methods…',
   methodsError: 'We couldn’t load your saved methods. You can pay with a new card.',
   payWithWallet: 'Pay with my balance',
