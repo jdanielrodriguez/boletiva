@@ -1,7 +1,8 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequireVerifiedEmail } from '../../common/decorators/verified-email.decorator';
+import { NoAdminPurchaseGuard } from '../../common/guards/no-admin-purchase.guard';
 import { PaymentMethodsService } from './payment-methods.service';
 import { AddPaymentMethodDto, PaymentMethodResponseDto } from './dto/payment-methods.dto';
 
@@ -24,6 +25,7 @@ export class PaymentMethodsController {
 
   @Post()
   @RequireVerifiedEmail()
+  @UseGuards(NoAdminPurchaseGuard) // el admin no registra tarjetas (no compra como cliente)
   @ApiOperation({ summary: 'Guarda una tarjeta (tokeniza el nonce; nunca recibe el PAN)' })
   @ApiOkResponse({ type: PaymentMethodResponseDto })
   add(@CurrentUser('userId') userId: string, @Body() dto: AddPaymentMethodDto) {

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, HttpCode, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpCode, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -11,6 +11,7 @@ import { RequireVerifiedEmail } from '../../common/decorators/verified-email.dec
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { SkipRateLimit } from '../../common/rate-limit/rate-limit.decorator';
 import { AllowDuringMaintenance } from '../../common/decorators/maintenance.decorator';
+import { NoAdminPurchaseGuard } from '../../common/guards/no-admin-purchase.guard';
 import { PaymentsService } from './payments.service';
 import {
   PaymentOptionsResponseDto,
@@ -39,6 +40,7 @@ export class PaymentsController {
   @HttpCode(201)
   @ApiBearerAuth()
   @RequireVerifiedEmail()
+  @UseGuards(NoAdminPurchaseGuard) // el admin no paga como comprador real
   @ApiOperation({ summary: 'Inicia el pago de una orden (webhook-first; wallet/mixto)' })
   @ApiCreatedResponse({ type: PayOrderResponseDto })
   pay(

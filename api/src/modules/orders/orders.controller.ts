@@ -10,6 +10,7 @@ import {
   Post,
   Query,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { Response } from 'express';
 import {
@@ -25,6 +26,7 @@ import { CurrentUser, AuthUser } from '../../common/decorators/current-user.deco
 import { PageQueryDto } from '../../common/dto/page-query.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AdminOnly } from '../../common/decorators/admin-only.decorator';
+import { NoAdminPurchaseGuard } from '../../common/guards/no-admin-purchase.guard';
 import { RateLimit } from '../../common/rate-limit/rate-limit.decorator';
 import { Role } from '@prisma/client';
 import { CheckoutService } from './checkout.service';
@@ -173,6 +175,7 @@ export class OrdersController {
   @Post('events/:eventId/orders')
   @HttpCode(201)
   @RequireVerifiedEmail()
+  @UseGuards(NoAdminPurchaseGuard) // el admin no actúa como comprador real
   @ApiOperation({ summary: 'Compra (commit): convierte los asientos reservados en una orden' })
   @ApiCreatedResponse({ type: OrderResponseDto })
   create(
