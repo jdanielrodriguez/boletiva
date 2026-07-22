@@ -188,7 +188,10 @@ export class AuthService {
     // Email verificado: 2FA obligatorio en dispositivos no confiables.
     // El aviso de "nuevo dispositivo" se envía DESPUÉS de validar el 2FA (en
     // verifyTwoFactor), no aquí: no queremos alertar de un intento aún sin autenticar.
-    if (!this.devices.isTrusted(device)) {
+    // Confiamos SOLO si hay id estable (header/cookie) Y el dispositivo está marcado. Un
+    // login SIN X-Device-Id (o legacy confiado por UA) exige 2FA siempre → cierra el salto
+    // de 2FA por User-Agent reproducible.
+    if (!this.devices.hasStableId(ctx) || !this.devices.isTrusted(device)) {
       await this.twofactor.startChallenge(user);
       return {
         status: '2fa_required',
