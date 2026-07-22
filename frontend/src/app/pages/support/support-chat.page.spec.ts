@@ -1,5 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { of, Subject } from 'rxjs';
 import { ChatApi } from '../../core/api/chat.api';
 import { ChatSocketService } from '../../core/chat/chat-socket.service';
@@ -23,6 +24,7 @@ describe('SupportChatPage (T3)', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
+        provideRouter([]),
         ...provideI18nTesting(),
         ToastService,
         {

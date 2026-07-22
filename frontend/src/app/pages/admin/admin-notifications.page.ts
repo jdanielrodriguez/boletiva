@@ -21,7 +21,7 @@ import type { PromoterListItemDto } from '../../core/api/types';
   imports: [FormsModule, TranslatePipe, BackLinkComponent, ConfirmDialogComponent],
   template: `
     <section class="admin-notif">
-      <app-back-link link="/configuracion" [label]="'notifications.back' | translate" testId="notif-back" />
+      <app-back-link link="/configuracion" [label]="'common.backToSettings' | translate" testId="notif-back" />
       <h1>{{ 'notifications.adminSendTitle' | translate }}</h1>
       <p class="muted">{{ 'notifications.adminSendHint' | translate }}</p>
 
@@ -91,7 +91,7 @@ import type { PromoterListItemDto } from '../../core/api/types';
   `,
   styles: [
     `
-      .admin-notif { max-width: 640px; margin: 0 auto; }
+      .admin-notif { max-width: 960px; margin: 0 auto; padding: 0 1rem; }
       .notif-form { display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem; }
       /* Control SEGMENTADO (dos opciones) en vez de radios sueltos. */
       .notif-target { display: inline-flex; gap: 0; border: 1px solid var(--pe-border); border-radius: 10px; padding: 0; margin: 0; overflow: hidden; width: fit-content; }

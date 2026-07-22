@@ -1,5 +1,9 @@
 <section class="config-page">
-  <h1>{{ 'config.title' | translate }}</h1>
+  <!-- Invitaciones se abre como página INDIVIDUAL (deep-link desde el menú admin): sin
+       título "Configuración" ni barra de tabs, solo su back-link (como Enviar notificaciones). -->
+  @if (tab() !== 'invitaciones') {
+    <h1>{{ 'config.title' | translate }}</h1>
+  }
 
   @if (isAdvisor() && advisorUnlock(); as au) {
     @if (au.lockEnabled && !au.unlocked) {
@@ -265,7 +269,6 @@
     }
 
     @case ('kb') {
-      <h2>{{ 'config.tabs.kb' | translate }}</h2>
       <app-kb-admin [embedded]="true" />
     }
     @case ('plantillas') {
@@ -563,6 +566,7 @@
     }
 
     @case ('invitaciones') {
+      <app-back-link link="/configuracion" [label]="'common.backToSettings' | translate" testId="inv-back" />
       <h2>{{ 'config.invitations.heading' | translate }}</h2>
       <p class="muted">{{ 'config.invitations.intro' | translate }}</p>
 

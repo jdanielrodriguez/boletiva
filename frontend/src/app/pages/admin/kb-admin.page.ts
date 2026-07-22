@@ -7,6 +7,7 @@ import { BackLinkComponent } from '../../shared/ui/back-link.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { LoadingComponent } from '../../shared/ui/loading.component';
 import { RichTextEditorComponent } from '../../shared/rich-text-editor/rich-text-editor.component';
+import { IconComponent } from '../../shared/icon/icon.component';
 
 interface EditModel {
   id: string | null;
@@ -45,6 +46,7 @@ const CATEGORIES: KbCategory[] = ['account', 'payments_settlement', 'billing', '
     EmptyStateComponent,
     LoadingComponent,
     RichTextEditorComponent,
+    IconComponent,
   ],
   templateUrl: './kb-admin.page.html',
 })

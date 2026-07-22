@@ -36,6 +36,7 @@ import { OtpInputComponent } from '../../shared/ui/otp-input/otp-input.component
 import { HallsListComponent } from './halls-list.component';
 import { TemplatesListComponent } from './templates-list.component';
 import { KbAdminPage } from '../admin/kb-admin.page';
+import { BackLinkComponent } from '../../shared/ui/back-link.component';
 import type {
   CreatedInvitationDto,
   InvitationListItemDto,
@@ -97,6 +98,7 @@ const INV_PAGE = 9;
     HallsListComponent,
     TemplatesListComponent,
     KbAdminPage,
+    BackLinkComponent,
     SearchFieldComponent,
     RouterLink,
     TourComponent,

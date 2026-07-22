@@ -3,6 +3,7 @@
   @if (embedded()) {
     <h2>{{ 'chat.title' | translate }}</h2>
   } @else {
+    <app-back-link link="/configuracion" [label]="'common.backToSettings' | translate" testId="support-back" />
     <h1>{{ 'chat.title' | translate }}</h1>
   }
 

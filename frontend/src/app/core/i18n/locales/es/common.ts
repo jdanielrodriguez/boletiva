@@ -11,6 +11,7 @@ export const common = {
   add: 'Agregar',
   create: 'Crear',
   back: 'Volver',
+  backToSettings: 'Volver a configuración',
   next: 'Siguiente',
   prev: 'Anterior',
   confirm: 'Confirmar',

@@ -18,7 +18,7 @@ import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
   imports: [FormsModule, TranslatePipe, BackLinkComponent, EmptyStateComponent, StatusLabelPipe, LocalizedDatePipe],
   template: `
     <section class="admin-advisors">
-      <app-back-link link="/configuracion" [label]="'advisor.admin.back' | translate" testId="adv-back" />
+      <app-back-link link="/configuracion" [label]="'common.backToSettings' | translate" testId="adv-back" />
       <h1>{{ 'advisor.admin.title' | translate }}</h1>
       <p class="muted">{{ 'advisor.admin.hint' | translate }}</p>
 
@@ -55,7 +55,7 @@ import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
   `,
   styles: [
     `
-      .admin-advisors { max-width: 640px; margin: 0 auto; }
+      .admin-advisors { max-width: 960px; margin: 0 auto; padding: 0 1rem; }
       .adv-invite-form { display: flex; gap: 0.6rem; align-items: flex-end; margin: 1rem 0; flex-wrap: wrap; }
       .adv-invite-form .field { flex: 1 1 240px; display: flex; flex-direction: column; gap: 0.3rem; }
       /* Input y botón a la MISMA altura → el botón queda alineado con el input (no arriba). */

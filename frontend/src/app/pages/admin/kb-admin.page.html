@@ -8,8 +8,8 @@
       <h1>{{ 'kb.title' | translate }}</h1>
     }
     @if (!editing()) {
-      <button type="button" class="btn btn-primary" (click)="newArticle()" data-testid="kb-new">
-        {{ 'kb.new' | translate }}
+      <button type="button" class="btn primary" (click)="newArticle()" data-testid="kb-new">
+        <app-icon name="add" [size]="16" /> {{ 'kb.new' | translate }}
       </button>
     }
   </header>
@@ -66,9 +66,11 @@
       }
 
       <div class="kb-form-actions">
-        <button type="button" class="btn" (click)="cancel()" data-testid="kb-cancel">{{ 'common.cancel' | translate }}</button>
-        <button type="submit" class="btn btn-primary" [disabled]="saving()" data-testid="kb-save">
-          {{ (saving() ? 'kb.saving' : 'kb.save') | translate }}
+        <button type="button" class="btn" (click)="cancel()" data-testid="kb-cancel">
+          <app-icon name="cancel" [size]="16" /> {{ 'common.cancel' | translate }}
+        </button>
+        <button type="submit" class="btn primary" [disabled]="saving()" data-testid="kb-save">
+          <app-icon name="save" [size]="16" /> {{ (saving() ? 'kb.saving' : 'kb.save') | translate }}
         </button>
       </div>
     </form>
@@ -95,11 +97,24 @@
             <span class="kb-q">{{ a.question }}</span>
           </div>
           <div class="kb-row-actions">
-            <button type="button" class="btn btn-sm" (click)="edit(a)" [attr.data-testid]="'kb-edit-' + a.id">{{ 'kb.edit' | translate }}</button>
-            <button type="button" class="btn btn-sm" (click)="togglePublish(a)">
-              {{ (a.status === 'published' ? 'kb.unpublish' : 'kb.publish') | translate }}
+            <button type="button" class="btn small" (click)="edit(a)" [attr.data-testid]="'kb-edit-' + a.id">
+              <app-icon name="edit" [size]="15" /> {{ 'kb.edit' | translate }}
             </button>
-            <button type="button" class="btn btn-sm btn-danger" (click)="remove(a)">{{ 'kb.delete' | translate }}</button>
+            @if (a.status === 'published') {
+              <button type="button" class="btn small" (click)="togglePublish(a)" [attr.data-testid]="'kb-unpublish-' + a.id">
+                <app-icon name="hide" [size]="15" /> {{ 'kb.unpublish' | translate }}
+              </button>
+            } @else {
+              <button type="button" class="btn small primary" (click)="togglePublish(a)" [attr.data-testid]="'kb-publish-' + a.id">
+                <app-icon name="publish" [size]="15" /> {{ 'kb.publish' | translate }}
+              </button>
+            }
+            <!-- Eliminar SOLO en borrador (un artículo publicado hay que despublicarlo antes). -->
+            @if (a.status !== 'published') {
+              <button type="button" class="btn small danger" (click)="remove(a)" [attr.data-testid]="'kb-delete-' + a.id">
+                <app-icon name="delete" [size]="15" /> {{ 'kb.delete' | translate }}
+              </button>
+            }
           </div>
         </li>
       }
