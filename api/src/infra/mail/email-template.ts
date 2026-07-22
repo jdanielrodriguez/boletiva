@@ -59,7 +59,12 @@ export function escapeHtml(value: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/'/g, '&#39;')
+    // Neutraliza las llaves: un valor dinámico (nombre de evento/promotor, título) que
+    // contenga el literal `{{accent}}`/`{{muted}}`… no debe colarse hasta la sustitución
+    // de tokens de paleta de renderEmail (se insertan ANTES). Se renderiza igual.
+    .replace(/{/g, '&#123;')
+    .replace(/}/g, '&#125;');
 }
 
 /** Convierte HTML simple a texto plano legible (para el multipart). */

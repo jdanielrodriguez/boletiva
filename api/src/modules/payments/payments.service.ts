@@ -790,7 +790,7 @@ export class PaymentsService {
       resourceId: order.id,
       email: {
         subject: `${title} — Boletiva`,
-        html: `<p style="margin:0 0 12px 0;">${bodyText}</p>${isRefund ? '<p class="pe-muted" style="margin:0;font-size:14px;color:#6b6b76;">Puedes ver tu saldo en tu cuenta.</p>' : ''}`,
+        html: `<p style="margin:0 0 12px 0;">${bodyText}</p>${isRefund ? '<p class="pe-muted" style="margin:0;font-size:14px;color:{{muted}};">Puedes ver tu saldo en tu cuenta.</p>' : ''}`,
       },
     });
   }
