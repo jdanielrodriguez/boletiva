@@ -1,8 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { IntegrationsService } from '../../../infra/integrations/integrations.service';
 import { hmacSha256, randomToken } from '../../../common/utils/crypto';
 import {
+  CardData,
   CreatePaymentInput,
   CreatePaymentResult,
   PaymentProvider,
@@ -58,6 +59,12 @@ export class PagaloPaymentProvider implements PaymentProvider {
   async createPayment(input: CreatePaymentInput): Promise<CreatePaymentResult> {
     // Sin credenciales → 503 "servicio no disponible" (nunca pega al endpoint real).
     this.integrations.assertAvailable('pagalo');
+    // Pagalo NO tiene SDK de tokenización de cliente: cobra con la tarjeta que el
+    // comprador captura en NUESTRO formulario (misma UX que el simulador). Sin tarjeta
+    // no hay cómo cobrar → 400 (nunca pega al endpoint real). CVV fresco por cobro; NO se persiste.
+    if (!input.card) {
+      throw new BadRequestException('Pagalo requiere los datos de la tarjeta para cobrar');
+    }
     const cfg = this.config.getOrThrow<PagaloConfig>('pagalo');
 
     const body = this.buildBody(cfg, input);
@@ -99,21 +106,22 @@ export class PagaloPaymentProvider implements PaymentProvider {
   }
 
   /**
-   * Construye el form POST real de Pagalo. `tarjetaPagalo` es un TOKEN OPACO que el SDK
-   * cliente (frontend, PCI) genera y envía; el backend NUNCA ve el PAN. Los datos de
-   * cliente/detalle se completarán desde la orden (TODO al conectar el checkout real).
+   * Construye el form POST real de Pagalo (contrato pagalocard verificado en el legacy
+   * `ticketera`/`tiketera`). `tarjetaPagalo` lleva los datos de la tarjeta que el comprador
+   * capturó en nuestro formulario — Pagalo NO ofrece SDK de tokenización de cliente, así que
+   * el cobro es SAQ-D (aceptado sólo para alpha; en la versión pública se usa dLocal, PCI-safe).
+   * El monto es server-authoritative (`input.amount`); el nombre en la tarjeta identifica al comprador.
    */
   private buildBody(cfg: PagaloConfig, input: CreatePaymentInput): string {
+    const card = input.card as CardData; // garantizado por createPayment
     const empresa = {
       key_secret: cfg.keySecret,
       key_public: cfg.keyPublic,
       idenEmpresa: cfg.idenEmpresa,
     };
-    // TODO(checkout real): poblar cliente/detalle desde la orden (nombre, email, dirección,
-    // ipAddress, deviceFingerprintID). Aquí solo el monto server-authoritative (input.amount).
     const cliente = {
       codigo: input.orderId,
-      firstName: '',
+      firstName: card.name,
       lastName: '',
       street1: '',
       country: 'GT',
@@ -128,8 +136,15 @@ export class PagaloPaymentProvider implements PaymentProvider {
       phone: '',
       deviceFingerprintID: '',
     };
-    // tarjetaPagalo: token opaco base64 del SDK cliente. TODO: recibirlo del checkout.
-    const tarjetaPagalo = '';
+    // tarjetaPagalo: shape exacto del contrato pagalocard (nameCard/accountNumber/
+    // expirationMonth/expirationYear/CVVCard). El CVV viaja sólo aquí y NO se persiste.
+    const tarjetaPagalo = {
+      nameCard: card.name,
+      accountNumber: card.number,
+      expirationMonth: card.expMonth,
+      expirationYear: card.expYear,
+      CVVCard: card.cvv,
+    };
     const detalle = {
       id_producto: input.orderId,
       cantidad: 1,

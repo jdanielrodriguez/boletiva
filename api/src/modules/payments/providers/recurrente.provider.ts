@@ -23,36 +23,49 @@ export class RecurrentePaymentProvider implements PaymentProvider {
   ) {}
 
   async createPayment(input: CreatePaymentInput): Promise<CreatePaymentResult> {
-    // Sin credenciales → 503 "servicio no disponible". Punto único de corte: mientras
-    // no haya llaves, jamás se ejecuta el request real de abajo.
+    // Sin credenciales → 503 "servicio no disponible" (nunca pega al endpoint real).
     this.integrations.assertAvailable('recurrente');
+    const r = this.config.getOrThrow<{ apiSecret: string; baseUrl: string }>('recurrente');
+    // URL del frontend para el retorno (primer CORS origin), igual que otros enlaces.
+    const front = (this.config.get<string[]>('cors.origins') ?? [])[0] ?? '';
+    // Monto en centavos (GTQ, 2 decimales). Mínimo Q5 (500) según Recurrente.
+    const amountInCents = Math.round(parseFloat(input.amount) * 100);
 
-    // TODO(integración Recurrente): crear el checkout real. Esqueleto de referencia
-    // (docs https://app.recurrente.com/api). El fulfillment llega por el webhook propio
-    // de Recurrente a POST /payments/webhook (webhook-first), no de forma síncrona.
-    //
-    // const r = this.config.getOrThrow('recurrente') as {
-    //   apiKey: string; apiSecret: string; baseUrl: string;
-    // };
-    // const res = await fetch(`${r.baseUrl}/checkouts`, {
-    //   method: 'POST',
-    //   headers: {
-    //     'X-PUBLIC-KEY': r.apiKey,
-    //     'X-SECRET-KEY': r.apiSecret,
-    //     'Content-Type': 'application/json',
-    //   },
-    //   body: JSON.stringify({
-    //     items: [{ name: `Orden ${input.orderId}`, amount_in_cents: ..., currency: input.currency }],
-    //     metadata: { orderId: input.orderId, providerRef: input.providerRef },
-    //   }),
-    // });
-    // const json = await res.json();
-    // return { providerRef: input.providerRef, paymentUrl: json.checkout_url, installments: input.installments };
-
-    // Inalcanzable (assertAvailable ya cortó); presente para el contrato de tipos.
-    this.logger.warn(
-      `RecurrentePaymentProvider.createPayment invocado sin integración activa (orden ${input.orderId})`,
-    );
-    throw new Error('Recurrente no implementado (env-only, diferido)');
+    // Checkout HOSPEDADO: crea el checkout y devuelve la URL a la que el frontend redirige.
+    // El fulfillment NO es síncrono: llega por el webhook Svix de Recurrente
+    // (POST /payments/recurrente/webhook), que mapea `metadata.providerRef` → nuestra orden.
+    let json: { checkout_url?: string; id?: string };
+    try {
+      const res = await fetch(`${r.baseUrl}/checkouts`, {
+        method: 'POST',
+        headers: { 'X-SECRET-KEY': r.apiSecret, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: [
+            {
+              name: `Orden ${input.orderId}`,
+              amount_in_cents: amountInCents,
+              currency: input.currency,
+              quantity: 1,
+            },
+          ],
+          success_url: `${front}/checkout/${input.orderId}?estado=ok`,
+          cancel_url: `${front}/checkout/${input.orderId}?estado=cancelado`,
+          // Correlation id: metadata viaja de vuelta en el webhook → mapea a nuestra orden.
+          metadata: { orderId: input.orderId, providerRef: input.providerRef },
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.text().catch(() => '');
+        throw new Error(`Recurrente ${res.status}: ${body.slice(0, 300)}`);
+      }
+      json = (await res.json()) as { checkout_url?: string; id?: string };
+    } catch (e) {
+      this.logger.error(`Recurrente: fallo al crear checkout de la orden ${input.orderId}: ${String(e)}`);
+      throw e;
+    }
+    if (!json.checkout_url) {
+      throw new Error(`Recurrente no devolvió checkout_url (orden ${input.orderId})`);
+    }
+    return { providerRef: input.providerRef, paymentUrl: json.checkout_url, installments: input.installments };
   }
 }

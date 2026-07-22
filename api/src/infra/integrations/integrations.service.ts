@@ -45,7 +45,9 @@ export class IntegrationsService {
     switch (service) {
       case 'recurrente': {
         const r = this.get('recurrente');
-        return !!(r.apiKey && r.apiSecret);
+        // Recurrente NO tiene clave pública (si la piden, es `clave_publica_no_requerida`):
+        // basta la SECRET KEY (`X-SECRET-KEY`) para cobrar. Ver docs.recurrente.com.
+        return !!r.apiSecret;
       }
       case 'pagalo': {
         const p = this.get('pagalo');

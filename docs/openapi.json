@@ -5062,6 +5062,53 @@
         ]
       }
     },
+    "/api/v1/payments/recurrente/webhook": {
+      "post": {
+        "operationId": "PaymentsController_recurrenteWebhook_v1",
+        "parameters": [
+          {
+            "name": "svix-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "svix-timestamp",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "svix-signature",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Webhook de Recurrente (firma SVIX sobre el cuerpo CRUDO)",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
     "/api/v1/wallet": {
       "get": {
         "operationId": "WalletController_me_v1",
@@ -10160,8 +10207,8 @@
     }
   },
   "info": {
-    "title": "Boletiva API",
-    "description": "API de la boletera Boletiva",
+    "title": "Pasa Eventos API",
+    "description": "API de la boletera Pasa Eventos",
     "version": "1.0",
     "contact": {}
   },
@@ -16508,6 +16555,43 @@
           "gateways"
         ]
       },
+      "CardDto": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "string",
+            "description": "Número de tarjeta (PAN), sólo dígitos",
+            "example": "4242424242424242"
+          },
+          "expMonth": {
+            "type": "string",
+            "description": "Mes de expiración MM",
+            "example": "12"
+          },
+          "expYear": {
+            "type": "string",
+            "description": "Año de expiración YYYY",
+            "example": "2030"
+          },
+          "cvv": {
+            "type": "string",
+            "description": "CVV (3-4 dígitos). No se almacena.",
+            "example": "123"
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre en la tarjeta",
+            "example": "JUAN PEREZ"
+          }
+        },
+        "required": [
+          "number",
+          "expMonth",
+          "expYear",
+          "cvv",
+          "name"
+        ]
+      },
       "PayOrderDto": {
         "type": "object",
         "properties": {
@@ -16536,6 +16620,14 @@
             "type": "string",
             "description": "Nombre fiscal para la factura (FEL).",
             "maxLength": 150
+          },
+          "card": {
+            "description": "Tarjeta capturada en nuestro formulario. Requerida SOLO para pasarelas sin SDK de tokenización (Pagalo) cuando no se paga todo con wallet. Simulador/Recurrente la ignoran.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CardDto"
+              }
+            ]
           }
         }
       },
