@@ -176,6 +176,11 @@ button:hover:not(:disabled),
      gris oscuro fijo (antes #262a3a oscurecía el botón en el tema claro). */
   border-color: var(--pe-accent);
   background: color-mix(in srgb, var(--pe-accent) 10%, var(--pe-surface-2));
+  /* FIJA texto legible: el tinte de hover es CLARO → si el botón tenía texto blanco
+     (relleno de acento), al hover se mezclaba (invisible). Con el color de texto del
+     tema queda legible. Los botones con hover propio (.primary/.danger/.subtle/
+     .cta-promoter) lo sobreescriben más abajo con su color. */
+  color: var(--pe-text);
 }
 
 button:active:not(:disabled) {
