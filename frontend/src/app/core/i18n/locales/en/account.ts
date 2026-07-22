@@ -3,6 +3,10 @@ export const account = {
   title: 'My account',
   sectionsAria: 'Account sections',
   general: 'General',
+  adminModule: {
+    title: 'Module not applicable to administrators',
+    body: 'As an administrator you don’t buy tickets, so this module (payment methods, billing, wallet and tickets) has no use in your account. Use a customer account to try the purchase flow.',
+  },
   nav: {
     profile: 'Profile',
     methods: 'Payment methods',

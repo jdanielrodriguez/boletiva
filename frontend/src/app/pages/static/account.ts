@@ -141,6 +141,11 @@ export class Account {
   private readonly route = inject(ActivatedRoute);
   protected readonly section = signal<Section>('perfil');
 
+  /** El admin no compra como cliente → los módulos de comprador (todo menos "perfil")
+   *  no le aplican; se muestra un aviso especial en lugar del contenido. */
+  protected readonly isAdmin = computed(() => this.session.hasRole('admin'));
+  protected readonly adminModuleBlocked = computed(() => this.isAdmin() && this.section() !== 'perfil');
+
   /** Secciones válidas para el deep-link `?s=` (accesos rápidos del dropdown). */
   private static readonly SECTIONS: Section[] = [
     'perfil',

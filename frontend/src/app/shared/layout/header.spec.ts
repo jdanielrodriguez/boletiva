@@ -1,5 +1,5 @@
 import { provideZonelessChangeDetection } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { EMPTY, of, Subject } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
@@ -190,18 +190,30 @@ describe('Header', () => {
     expect(el.querySelector('[data-testid="dd-facturacion"]')).not.toBeNull();
   });
 
-  it('logout navega al inicio', async () => {
+  it('logout navega al inicio tras la espera mínima de 3s', async () => {
     await setup({ logout: of(undefined) });
     const nav = spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
-    comp.logout();
-    expect(nav).toHaveBeenCalledWith('/');
+    jasmine.clock().install();
+    try {
+      comp.logout();
+      expect(nav).not.toHaveBeenCalled(); // aún no: espera los 3s
+      jasmine.clock().tick(3001);
+      expect(nav).toHaveBeenCalledWith('/');
+    } finally {
+      jasmine.clock().uninstall();
+    }
   });
 
-  it('logout con error también navega al inicio', async () => {
+  it('logout que completa sin emitir (204/EMPTY) igual navega al inicio', async () => {
     await setup({ logout: EMPTY });
     const nav = spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
-    comp.logout();
-    // EMPTY completa → complete handler navega.
-    expect(nav).toHaveBeenCalledWith('/');
+    jasmine.clock().install();
+    try {
+      comp.logout();
+      jasmine.clock().tick(3001);
+      expect(nav).toHaveBeenCalledWith('/');
+    } finally {
+      jasmine.clock().uninstall();
+    }
   });
 });

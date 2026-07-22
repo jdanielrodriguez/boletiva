@@ -981,33 +981,54 @@ app-root {
 }
 
 /* Configuración (F7) */
+/* Control SEGMENTADO moderno: un "track" tenue contiene los tabs como pastillas; el
+   activo es superficie elevada con acento sutil (no el gradiente pleno, que competía
+   con los CTAs primarios). Theme-aware por tokens. */
 .config-tabs {
-  display: flex;
-  gap: 0.5rem;
+  display: inline-flex;
+  gap: 0.25rem;
+  padding: 0.3rem;
   margin-bottom: 1.25rem;
   flex-wrap: wrap;
+  background: var(--pe-surface-2);
+  border: 1px solid var(--pe-border);
+  border-radius: 999px;
 }
-/* Móvil: tabs en una tira scrolleable en vez de 2-3 filas de pills que comen alto. */
+/* Móvil: tira scrolleable (radio menor para que no parezca cápsula recortada). */
 @media (max-width: 560px) {
   .config-tabs {
+    display: flex;
     flex-wrap: nowrap;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
+    border-radius: var(--pe-radius-sm);
   }
   .config-tabs::-webkit-scrollbar { display: none; }
   .config-tabs button { flex: 0 0 auto; white-space: nowrap; }
 }
 
 .config-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   background: transparent;
-  border: 1px solid var(--pe-border);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--pe-muted);
+  padding: 0.45rem 0.95rem;
+  font-weight: 600;
+}
+.config-tabs button:hover:not(.active) {
+  color: var(--pe-text);
+  background: color-mix(in srgb, var(--pe-accent) 8%, transparent);
 }
 
 .config-tabs button.active {
-  background: var(--pe-grad);
-  border-color: transparent;
-  color: #fff;
+  background: var(--pe-surface);
+  border-color: var(--pe-accent-border, var(--pe-border));
+  color: var(--pe-accent-strong, var(--pe-accent));
+  box-shadow: var(--pe-shadow, 0 2px 8px rgba(0, 0, 0, 0.12));
 }
 
 .events-by-date {
@@ -3864,6 +3885,19 @@ button.danger {
   color: var(--pe-text);
 }
 .info-banner a { color: var(--pe-teal); text-decoration: underline; }
+/* "Más detalles de seguridad": chip-enlace con acento y chevron (se ve como acción). */
+.info-banner a.security-details-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  text-decoration: none;
+  font-weight: 600;
+  color: var(--pe-accent-strong, var(--pe-accent));
+  white-space: nowrap;
+}
+.info-banner a.security-details-link:hover { text-decoration: underline; }
+.info-banner a.security-details-link .app-icon { transition: transform 0.12s ease; }
+.info-banner a.security-details-link:hover .app-icon { transform: translateX(2px); }
 .info-icon {
   display: inline-flex;
   align-items: center;
@@ -4742,6 +4776,22 @@ p.warn,
   margin-top: 1px;
   color: var(--pe-accent-strong, var(--pe-accent));
 }
+
+/* Aviso para el ADMIN en módulos de comprador (no aplican a su cuenta). */
+.admin-module-notice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.6rem;
+  padding: 2.5rem 1.5rem;
+  border: 1px dashed var(--pe-border);
+  border-radius: var(--pe-radius);
+  background: var(--pe-grad-soft);
+}
+.admin-module-notice .app-icon { color: var(--pe-accent-strong, var(--pe-accent)); opacity: 0.8; }
+.admin-module-notice h2 { margin: 0; font-size: 1.15rem; }
+.admin-module-notice p { margin: 0; max-width: 34rem; }
 
 .ok { color: var(--pe-success); font-weight: 600; }
 p.ok,

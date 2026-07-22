@@ -1,8 +1,10 @@
 import { Component, computed, HostListener, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+import { catchError, defaultIfEmpty, forkJoin, of, timer } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { SessionStore } from '../../core/auth/session.store';
+import { LoadingStore } from '../../core/ui/loading.store';
 import { LangSwitcherComponent } from './lang-switcher.component';
 import { ThemeSwitcherComponent } from './theme-switcher.component';
 import { NotificationBellComponent } from '../notifications/notification-bell.component';
@@ -22,6 +24,7 @@ import { IconComponent } from '../icon/icon.component';
 export class Header {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly loading = inject(LoadingStore);
   protected readonly session = inject(SessionStore);
 
   protected readonly menuOpen = signal(false);
@@ -60,9 +63,22 @@ export class Header {
 
   logout(): void {
     this.closeMenu();
-    this.auth.logout().subscribe({
-      complete: () => void this.router.navigateByUrl('/'),
-      error: () => void this.router.navigateByUrl('/'),
+    // Overlay global + espera MÍNIMA de 3s: el logout real suele ser instantáneo, pero
+    // mostramos el loader un momento para que el cierre de sesión se perciba deliberado.
+    this.loading.start();
+    // `defaultIfEmpty`: el logout puede COMPLETAR sin emitir (204) → garantiza una
+    // emisión para que forkJoin dispare aunque no venga cuerpo.
+    forkJoin([
+      this.auth.logout().pipe(
+        catchError(() => of(void 0)),
+        defaultIfEmpty(void 0),
+      ),
+      timer(3000),
+    ]).subscribe({
+      next: () => {
+        this.loading.stop();
+        void this.router.navigateByUrl('/');
+      },
     });
   }
 }

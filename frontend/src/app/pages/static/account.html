@@ -12,6 +12,13 @@
     </nav>
 
     <div class="account-content">
+      @if (adminModuleBlocked()) {
+        <div class="admin-module-notice" data-testid="admin-module-notice">
+          <app-icon name="lock" [size]="26" />
+          <h2>{{ 'account.adminModule.title' | translate }}</h2>
+          <p class="muted">{{ 'account.adminModule.body' | translate }}</p>
+        </div>
+      } @else {
       @switch (section()) {
         @case ('perfil') {
           <h2>{{ 'account.nav.profile' | translate }}</h2>
@@ -259,7 +266,7 @@
               </svg>
             </span>
             {{ 'account.methods.infoLead' | translate }}
-            <a routerLink="/terminos">{{ 'account.methods.securityDetails' | translate }}</a>.
+            <a class="security-details-link" routerLink="/terminos">{{ 'account.methods.securityDetails' | translate }} <app-icon name="chevron-right" [size]="13" /></a>
           </p>
 
           @if (cards().length > 0) {
@@ -812,6 +819,7 @@
             />
           }
         }
+      }
       }
     </div>
   </div>

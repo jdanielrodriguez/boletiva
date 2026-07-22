@@ -3,6 +3,10 @@ export const account = {
   title: 'Mi cuenta',
   sectionsAria: 'Secciones de la cuenta',
   general: 'General',
+  adminModule: {
+    title: 'Módulo no aplicable para administradores',
+    body: 'Como administrador no compras boletos, así que este módulo (métodos de pago, facturación, wallet y boletos) no tiene uso en tu cuenta. Úsalo con una cuenta de cliente para probar el flujo de compra.',
+  },
   nav: {
     profile: 'Perfil',
     methods: 'Métodos de pago',
