@@ -8,6 +8,9 @@ import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { LoadingComponent } from '../../shared/ui/loading.component';
 import { RichTextEditorComponent } from '../../shared/rich-text-editor/rich-text-editor.component';
 import { IconComponent } from '../../shared/icon/icon.component';
+import { TranslateService } from '@ngx-translate/core';
+import { ConfirmController } from '../../shared/confirm-dialog/confirm-controller';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 
 interface EditModel {
   id: string | null;
@@ -47,12 +50,16 @@ const CATEGORIES: KbCategory[] = ['account', 'payments_settlement', 'billing', '
     LoadingComponent,
     RichTextEditorComponent,
     IconComponent,
+    ConfirmDialogComponent,
   ],
   templateUrl: './kb-admin.page.html',
 })
 export class KbAdminPage {
   private readonly kb = inject(KbApi);
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly translate = inject(TranslateService);
+  /** Confirmación (con bitácora de autorización) para publicar / regresar a borrador. */
+  protected readonly confirm = new ConfirmController();
 
   /** Modo incrustado (dentro de un tab de Configuración): sin back-link ni h1 propios. */
   readonly embedded = input(false);
@@ -136,9 +143,23 @@ export class KbAdminPage {
   }
 
   protected togglePublish(a: KbArticle): void {
-    this.actionError.set('');
-    const req = a.status === 'published' ? this.kb.unpublish(a.id) : this.kb.publish(a.id);
-    req.subscribe({ next: () => this.load(), error: () => this.actionError.set('kb.actionError') });
+    const toDraft = a.status === 'published';
+    // Ambas acciones (publicar / regresar a borrador) piden confirmación → el
+    // confirm-dialog registra la bitácora de autorización (quién autorizó qué).
+    this.confirm.ask({
+      title: this.translate.instant(toDraft ? 'kb.confirmDraftTitle' : 'kb.confirmPublishTitle'),
+      message: this.translate.instant(toDraft ? 'kb.confirmDraftMsg' : 'kb.confirmPublishMsg', {
+        q: a.question,
+      }),
+      confirmLabel: this.translate.instant(toDraft ? 'kb.unpublish' : 'kb.publish'),
+      confirmIcon: toDraft ? 'draft' : 'publish',
+      danger: false,
+      onConfirm: () => {
+        this.actionError.set('');
+        const req = toDraft ? this.kb.unpublish(a.id) : this.kb.publish(a.id);
+        req.subscribe({ next: () => this.load(), error: () => this.actionError.set('kb.actionError') });
+      },
+    });
   }
 
   protected remove(a: KbArticle): void {

@@ -96,7 +96,12 @@ export class KbService {
         { answerText: { contains: query.q.trim(), mode: 'insensitive' } },
       ];
     }
-    return this.prisma.kbArticle.findMany({ where, orderBy: { updatedAt: 'desc' } });
+    // Orden ESTABLE (no por updatedAt): publicar/regresar-a-borrador no debe reordenar la
+    // lista (antes saltaba al tope). Mismo criterio que el FAQ público.
+    return this.prisma.kbArticle.findMany({
+      where,
+      orderBy: [{ category: 'asc' }, { sortOrder: 'asc' }, { createdAt: 'asc' }],
+    });
   }
 
   async adminGet(id: string) {

@@ -120,4 +120,15 @@
       }
     </ul>
   }
+
+  @if (confirm.request(); as cf) {
+    <app-confirm-dialog
+      [title]="cf.title"
+      [message]="cf.message"
+      [confirmLabel]="cf.confirmLabel ?? ('common.confirm' | translate)"
+      [confirmIcon]="cf.confirmIcon ?? 'alert'"
+      [danger]="cf.danger ?? false"
+      (accept)="confirm.accept()"
+      (cancelled)="confirm.cancel()" />
+  }
 </section>
