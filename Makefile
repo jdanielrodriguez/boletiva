@@ -283,9 +283,13 @@ gcp-prod-wake:
 # los holds/colas son efímeros, no importa perderlos). Requiere gcloud autenticado.
 .PHONY: gcp-redis-delete
 gcp-redis-delete:
-	@echo "🗑️  Borrando Memorystore '$(PROD_REDIS_INSTANCE)' ($(PROD_REGION))…"
-	-gcloud redis instances delete $(PROD_REDIS_INSTANCE) --region=$(PROD_REGION) --project=$(PROD_PROJECT) --quiet
-	@echo "✅ Redis borrado (deja de facturar). Recréalo con 'make gcp-redis-create'."
+	@if gcloud redis instances describe $(PROD_REDIS_INSTANCE) --region=$(PROD_REGION) --project=$(PROD_PROJECT) >/dev/null 2>&1; then \
+	  echo "🗑️  Borrando Memorystore '$(PROD_REDIS_INSTANCE)' ($(PROD_REGION))…"; \
+	  gcloud redis instances delete $(PROD_REDIS_INSTANCE) --region=$(PROD_REGION) --project=$(PROD_PROJECT) --quiet; \
+	  echo "✅ Redis borrado (deja de facturar). Recréalo con 'make gcp-redis-create'."; \
+	else \
+	  echo "ℹ️  Memorystore '$(PROD_REDIS_INSTANCE)' ya no existe (nada que borrar) — OK."; \
+	fi
 
 .PHONY: gcp-redis-create
 gcp-redis-create:
