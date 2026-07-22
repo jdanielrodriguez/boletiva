@@ -10,6 +10,8 @@ export const gate = {
   preparing: 'Preparing the event…',
   claimFailed: 'Could not open the validator. Retry or ask for a new link.',
   manifestFailed: 'Could not download the ticket list. Check your connection and try again.',
+  manifestTampered: 'The ticket list is not authentic (invalid signature). Reconnect to download it again.',
+  manifestExpired: 'The ticket list has expired. Reconnect to refresh it before validating.',
   // Camera (required)
   cameraNeededTitle: 'We need the camera',
   cameraDenied: 'Could not access the camera. Grant permission to scan tickets.',

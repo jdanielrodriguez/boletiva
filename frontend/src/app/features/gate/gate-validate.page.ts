@@ -16,6 +16,7 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { GateApi } from '../../core/api/gate.api';
 import { GateDb, type QueuedCheckin } from '../../core/gate/gate-db';
 import { parseQr, verifyTotp } from '../../core/gate/totp';
+import { verifyManifest } from '../../core/gate/manifest-verify';
 import { apiErrorMessage } from '../../core/http/api-error';
 
 type Phase = 'loading' | 'welcome' | 'starting' | 'scanning' | 'cameraError' | 'invalid';
@@ -64,6 +65,8 @@ export class GateValidatePage implements OnDestroy {
   protected readonly ticketCount = signal(0);
   protected readonly pending = signal(0);
   protected readonly online = signal(true);
+  /** Expiración del manifiesto guardado (SafeTix): pasado este instante NO se valida offline. */
+  private manifestExpiresAt: number | null = null;
   // Escaneo AUTOMÁTICO disponible (BarcodeDetector nativo o jsQR). Si es false, la única
   // vía es la entrada MANUAL del contenido del QR (respaldo).
   protected readonly manualSupported = signal(true);
@@ -160,19 +163,30 @@ export class GateValidatePage implements OnDestroy {
   private downloadManifest(): void {
     this.api.manifest(this.eventId, this.gateToken).subscribe({
       next: async (m) => {
+        // Verifica AUTENTICIDAD/INTEGRIDAD (Ed25519 + recomputo del digest) antes de guardar:
+        // un manifiesto manipulado (MITM sustituyendo un totpSecret) se rechaza. 'unsupported'
+        // (navegador sin Ed25519) se acepta con degradación — la expiración sigue protegiendo.
+        const verdict = await verifyManifest(m);
+        if (verdict === 'invalid') {
+          this.error.set(this.translate.instant('gate.manifestTampered'));
+          this.phase.set('invalid');
+          return; // NO se persiste un manifiesto no auténtico
+        }
         await this.db.saveManifest(
           this.eventId,
           m.tickets.map((t) => ({ serial: t.serial, status: t.status, totpSecret: t.totpSecret })),
           { expiresAt: m.expiresAt, gateToken: this.gateToken, eventName: this.eventName() },
         );
+        this.manifestExpiresAt = Date.parse(m.expiresAt);
         this.ticketCount.set((await this.db.ticketCount()) ?? m.tickets.length);
         this.pending.set((await this.db.queueCount()) ?? 0);
         void this.startCamera();
       },
       error: async (err) => {
-        // Sin red pero con manifiesto ya guardado antes → seguimos offline.
+        // Sin red pero con manifiesto ya guardado antes → seguimos offline (si no venció).
         const meta = await this.db.getMeta(this.eventId);
         if (meta) {
+          this.manifestExpiresAt = Date.parse(meta.expiresAt);
           this.ticketCount.set((await this.db.ticketCount()) ?? 0);
           void this.startCamera();
         } else {
@@ -285,6 +299,11 @@ export class GateValidatePage implements OnDestroy {
     if (this.busy) return;
     this.busy = true;
     try {
+      // Expiración SafeTix: un manifiesto vencido NO valida offline (lleva secretos TOTP en
+      // claro). Obliga a reconectar para re-sincronizar → un manifiesto robado deja de servir.
+      if (this.manifestExpiresAt != null && Date.now() >= this.manifestExpiresAt) {
+        return this.show({ kind: 'invalid', message: this.translate.instant('gate.manifestExpired') });
+      }
       const parsed = parseQr(payload);
       if (!parsed) return this.show({ kind: 'invalid', message: this.translate.instant('gate.resultBadFormat') });
       const ticket = await this.db.getTicket(parsed.serial);

@@ -9,11 +9,16 @@ export interface GateManifestTicket {
   status: string;
   totpSecret: string;
   signature?: string;
+  // Campos que cubre la firma del manifiesto (necesarios para reconstruir el digest):
+  ticketId?: string;
+  ownerId?: string;
 }
 
 /** Manifiesto firmado de validación offline (`GET /events/:id/manifest`). */
 export interface GateManifest {
   eventId?: string;
+  maxSeq?: number; // parte del contenido firmado
+  contentHash?: string; // sha256 del contenido canónico (lo que se firma)
   publicKeyPem: string;
   signature: string;
   expiresAt: string;

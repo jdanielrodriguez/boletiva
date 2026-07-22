@@ -10,6 +10,8 @@ export const gate = {
   preparing: 'Preparando el evento…',
   claimFailed: 'No se pudo abrir el validador. Reintenta o pide un nuevo enlace.',
   manifestFailed: 'No se pudo descargar la lista de boletos. Revisa tu conexión e intenta de nuevo.',
+  manifestTampered: 'La lista de boletos no es auténtica (firma inválida). Reconéctate para descargarla de nuevo.',
+  manifestExpired: 'La lista de boletos venció. Reconéctate para actualizarla antes de seguir validando.',
   // Cámara (obligatoria)
   cameraNeededTitle: 'Necesitamos la cámara',
   cameraDenied: 'No se pudo acceder a la cámara. Concede el permiso para escanear los boletos.',
