@@ -7,6 +7,7 @@ import { QueueService } from '../../infra/queue/queue.service';
 import { QUEUES } from '../../infra/queue/queue.constants';
 import { MailService } from '../../infra/mail/mail.service';
 import { randomToken, sha256 } from '../../common/utils/crypto';
+import { escapeHtml } from '../../common/utils/html';
 
 interface UnlockMailJob {
   advisorEmail: string;
@@ -48,15 +49,23 @@ export class AdvisorUnlockService implements OnModuleInit {
       where: { roles: { has: Role.admin }, status: 'active' },
       select: { email: true },
     });
-    const subject = 'Solicitud de desbloqueo de asesor';
-    const html =
-      `<p>El asesor <b>${job.advisorName || job.advisorEmail}</b> pidió desbloqueo para editar.</p>` +
-      `<p>Para autorizarlo por una ventana de tiempo, abre este enlace:</p>` +
-      `<p><a href="${job.link}">${job.link}</a></p>`;
+    const who = escapeHtml(job.advisorName || job.advisorEmail);
+    const subject = '🔓 Un asesor pide autorización para editar — Boletiva';
+    // Plantilla con marca + tema (resuelve la franja según la config) + CTA botón
+    // (con enlace de respaldo debajo). Envío directo: ya estamos en el worker de la cola.
     for (const a of admins) {
-      await this.mail.send({ to: a.email, subject, html }).catch((e) =>
-        this.logger.warn(`No se pudo avisar a ${a.email}: ${(e as Error).message}`),
-      );
+      await this.mail
+        .sendTemplated(a.email, subject, {
+          title: 'Solicitud de desbloqueo de asesor',
+          preheader: `${who} pide permiso para editar áreas de administración.`,
+          bodyHtml:
+            `<p style="margin:0 0 12px 0;">El asesor <strong>${who}</strong> (${escapeHtml(job.advisorEmail)}) ` +
+            `solicitó una <strong>ventana de desbloqueo</strong> para editar áreas de administración.</p>` +
+            `<p style="margin:0 0 12px 0;">Si reconoces la solicitud, autorízala: abrirá una ventana de tiempo limitada.</p>` +
+            `<p style="margin:0;font-size:14px;color:#8a8a94;">Si no la reconoces, ignora este correo (no se abre ninguna ventana).</p>`,
+          cta: { url: job.link, label: '🔓 Autorizar edición' },
+        })
+        .catch((e) => this.logger.warn(`No se pudo avisar a ${a.email}: ${(e as Error).message}`));
     }
   }
 
