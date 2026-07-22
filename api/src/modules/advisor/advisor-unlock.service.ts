@@ -88,7 +88,10 @@ export class AdvisorUnlockService implements OnModuleInit {
       where: { id: advisorId },
       select: { email: true, firstName: true },
     });
-    const base = this.config.get<string>('app.publicUrl') ?? '';
+    // Base = URL del FRONTEND (primer CORS origin), igual que invitaciones/validadores.
+    // Antes usaba `app.publicUrl` (vacío en dev) → el enlace salía RELATIVO y el cliente
+    // de correo (MailHog :8026) le anteponía SU host. Ahora es absoluto al frontend.
+    const base = (this.config.get<string[]>('cors.origins') ?? [])[0] ?? '';
     const link = `${base}/admin/asesor-desbloqueo?token=${token}`;
     // Aviso a TODOS los admins (best-effort, cola MAIL → nunca bloquea).
     await this.queue.enqueue(QUEUES.MAIL, 'advisor-unlock-request', {
