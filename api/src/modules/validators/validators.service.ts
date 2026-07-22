@@ -167,28 +167,27 @@ export class ValidatorsService {
     return { id: inv.id, email, status: inv.status, url, expiresAt: expiresAt.toISOString() };
   }
 
-  /** User ligero solo-validación: crea con rol gate_operator o añade el rol si ya existe. */
+  /**
+   * Ancla de la invitación (FK `operatorId`). El validador NO necesita el rol
+   * `gate_operator` en su cuenta: el `claim` (magic-link) firma un gate-token que ya
+   * lleva `roles:[gate_operator]` + `gateEventId`, y el manifiesto/checkins se autorizan
+   * con ESE token + la asignación viva. Por eso:
+   *  - Si el email YA es de un usuario (p.ej. un cliente), NO se le toca la cuenta ni los
+   *    roles → un mismo correo puede ser cliente Y validador sin interferencia. (B5)
+   *  - Si es un email nuevo, se crea un usuario LIGERO solo como ancla de la invitación.
+   */
   private async ensureOperator(email: string) {
     const existing = await this.prisma.user.findUnique({ where: { email } });
-    if (!existing) {
-      return this.prisma.user.create({
-        data: {
-          email,
-          firstName: 'Validador',
-          roles: [Role.gate_operator],
-          emailVerifiedAt: new Date(), // invitado → correo de confianza
-        },
-        select: { id: true, roles: true },
-      });
-    }
-    if (!existing.roles.includes(Role.gate_operator)) {
-      return this.prisma.user.update({
-        where: { id: existing.id },
-        data: { roles: { set: [...new Set([...existing.roles, Role.gate_operator])] } },
-        select: { id: true, roles: true },
-      });
-    }
-    return { id: existing.id, roles: existing.roles };
+    if (existing) return { id: existing.id, roles: existing.roles };
+    return this.prisma.user.create({
+      data: {
+        email,
+        firstName: 'Validador',
+        roles: [Role.gate_operator],
+        emailVerifiedAt: new Date(), // invitado → correo de confianza
+      },
+      select: { id: true, roles: true },
+    });
   }
 
   /** Lista los validadores del evento con su estado (para el panel del promotor). */

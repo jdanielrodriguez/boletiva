@@ -227,6 +227,37 @@ describe('Validadores de boletos (e2e)', () => {
     await http().post('/api/v1/validators/claim').send({ token }).expect(404);
   });
 
+  it('B5: invitar como validador a un CLIENTE existente NO contamina su cuenta (rol intacto) y aun así valida', async () => {
+    const buyer = await prisma.user.findUniqueOrThrow({ where: { email: SEED.buyer } });
+    const rolesBefore = [...buyer.roles];
+    expect(rolesBefore).not.toContain('gate_operator');
+
+    const inv = await http()
+      .post(`/api/v1/events/${eventId}/validators`)
+      .set(bearer(promoterToken))
+      .send({ email: SEED.buyer })
+      .expect(201);
+
+    // La cuenta del cliente NO cambió: sigue sin rol gate_operator (sin interferencia).
+    const after = await prisma.user.findUniqueOrThrow({ where: { email: SEED.buyer } });
+    expect(after.roles).toEqual(rolesBefore);
+    expect(after.roles).not.toContain('gate_operator');
+
+    // Aun así puede validar: el canje firma el gate-token (que ya lleva el rol) y abre el manifiesto.
+    const token = inv.body.url.split('/validar/')[1] as string;
+    const claim = await http().post('/api/v1/validators/claim').send({ token }).expect(200);
+    await http()
+      .get(`/api/v1/events/${eventId}/manifest`)
+      .set(bearer(claim.body.gateToken as string))
+      .expect(200);
+
+    // Limpieza: quitar la invitación/asignación de este caso.
+    await http()
+      .delete(`/api/v1/events/${eventId}/validators/${inv.body.id}`)
+      .set(bearer(promoterToken))
+      .expect(200);
+  });
+
   it('un dispositivo a la vez ("último gana"): canjear en otro rota el sid → el manifiesto del gate-token viejo → 403', async () => {
     const inv = await http()
       .post(`/api/v1/events/${eventId}/validators`)
