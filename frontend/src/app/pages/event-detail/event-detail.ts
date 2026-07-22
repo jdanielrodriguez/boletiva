@@ -13,6 +13,7 @@ import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { MoneyPipe } from '../../shared/money.pipe';
 import { BackLinkComponent } from '../../shared/ui/back-link.component';
 import { TourComponent, type TourStep } from '../../shared/tour/tour.component';
+import { IconComponent } from '../../shared/icon/icon.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { LoadingComponent } from '../../shared/ui/loading.component';
 import { SeoService } from '../../core/seo/seo.service';
@@ -40,6 +41,7 @@ const EMPTY_AV: EventAvailabilityDto = { seatMap: null, localities: [], seats: [
     EmptyStateComponent,
     LoadingComponent,
     TourComponent,
+    IconComponent,
   ],
   templateUrl: './event-detail.html',
 })

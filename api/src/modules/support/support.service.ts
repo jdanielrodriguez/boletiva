@@ -206,12 +206,29 @@ export class SupportService implements OnModuleInit, OnModuleDestroy {
     return this.summarize(ticket);
   }
 
-  /** Lista: el promotor ve los suyos NO archivados (o todos si includeArchived); el agente ve todos. */
-  async listTickets(user: AuthUser, includeArchived = false) {
+  /**
+   * Lista: el promotor ve los suyos NO archivados (o todos si includeArchived); el
+   * agente ve todos. Filtros server-side opcionales (mandato: nunca en el cliente):
+   * por estado y por búsqueda de texto en el asunto (case-insensitive).
+   */
+  async listTickets(
+    user: AuthUser,
+    opts: { includeArchived?: boolean; status?: string; search?: string } = {},
+  ) {
     await this.assertCanUse(user);
-    const where: Prisma.SupportTicketWhereInput = this.isAgent(user)
+    const status =
+      opts.status && (Object.values(SupportStatus) as string[]).includes(opts.status)
+        ? (opts.status as SupportStatus)
+        : undefined;
+    const search = opts.search?.trim();
+    const scope: Prisma.SupportTicketWhereInput = this.isAgent(user)
       ? {}
-      : { promoterId: user.userId, ...(includeArchived ? {} : { archivedByPromoterAt: null }) };
+      : { promoterId: user.userId, ...(opts.includeArchived ? {} : { archivedByPromoterAt: null }) };
+    const where: Prisma.SupportTicketWhereInput = {
+      ...scope,
+      ...(status ? { status } : {}),
+      ...(search ? { subject: { contains: search, mode: 'insensitive' } } : {}),
+    };
     const tickets = await this.prisma.supportTicket.findMany({
       where,
       orderBy: { lastMessageAt: 'desc' },

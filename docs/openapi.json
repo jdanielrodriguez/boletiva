@@ -2209,6 +2209,22 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "search",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -7105,6 +7121,33 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filtra por estado de evento (draft/published/suspended/cancelled/finished)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Desde (fecha del evento, ISO YYYY-MM-DD)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Hasta inclusive (fecha del evento, ISO YYYY-MM-DD)",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -7139,6 +7182,33 @@
             "required": false,
             "in": "query",
             "description": "Solo admin: promotor a inspeccionar",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filtra por estado de evento",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Desde (fecha del evento, ISO YYYY-MM-DD)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Hasta inclusive (fecha del evento, ISO YYYY-MM-DD)",
             "schema": {
               "type": "string"
             }
@@ -8191,8 +8261,27 @@
         "parameters": [
           {
             "name": "archived",
-            "required": true,
+            "required": false,
             "in": "query",
+            "description": "true = incluye archivados (promotor)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filtra por estado del ticket",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Busca en el asunto (case-insensitive)",
             "schema": {
               "type": "string"
             }
@@ -9817,8 +9906,8 @@
     }
   },
   "info": {
-    "title": "Pasa Eventos API",
-    "description": "API de la boletera Pasa Eventos",
+    "title": "Boletiva API",
+    "description": "API de la boletera Boletiva",
     "version": "1.0",
     "contact": {}
   },
@@ -18078,6 +18167,11 @@
             "type": "string",
             "nullable": true,
             "description": "Evento al que está filtrado el dashboard (null = todos)"
+          },
+          "selectedStatus": {
+            "type": "string",
+            "nullable": true,
+            "description": "Estado de evento al que está filtrado el dashboard (null = todos)"
           }
         },
         "required": [
@@ -18090,7 +18184,8 @@
           "salesOverTime",
           "dimensions",
           "availableEvents",
-          "selectedEventId"
+          "selectedEventId",
+          "selectedStatus"
         ]
       },
       "AdminProfitabilityRowDto": {

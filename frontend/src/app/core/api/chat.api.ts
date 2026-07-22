@@ -122,8 +122,16 @@ export class ChatApi {
   ): Observable<ChatThread> {
     return this.api.post<ChatThread>('/support/tickets', { subject, message, ...opts });
   }
-  listThreads(archived = false): Observable<ChatThread[]> {
-    return this.api.get<ChatThread[]>(`/support/tickets${archived ? '?archived=true' : ''}`);
+  listThreads(
+    archived = false,
+    filters: { status?: string; search?: string } = {},
+  ): Observable<ChatThread[]> {
+    const params = new URLSearchParams();
+    if (archived) params.set('archived', 'true');
+    if (filters.status) params.set('status', filters.status);
+    if (filters.search?.trim()) params.set('search', filters.search.trim());
+    const q = params.toString();
+    return this.api.get<ChatThread[]>(`/support/tickets${q ? `?${q}` : ''}`);
   }
   getMessages(ticketId: string): Observable<{ ticket: ChatThread; messages: ChatMessage[] }> {
     return this.api.get<{ ticket: ChatThread; messages: ChatMessage[] }>(`/support/tickets/${ticketId}/messages`);

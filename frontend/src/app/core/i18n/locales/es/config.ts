@@ -250,6 +250,8 @@ export const config = {
     submitHint: 'Pulsa "Invitar" de nuevo (o Enter) para enviar.',
     invite: 'Invitar',
     createdHeading: 'Enlaces generados (cópialos y compártelos)',
+    copy: 'Copiar enlace',
+    copied: 'Enlace copiado',
     listHeading: 'Invitaciones',
     searchPlaceholder: 'Buscar correo…',
     allStatuses: 'Todos los estados',

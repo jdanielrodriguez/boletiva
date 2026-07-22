@@ -41,6 +41,27 @@
           <button type="button" class="btn small chat-toggle-btn chat-archived-toggle" [class.active]="showArchived()" (click)="toggleArchived()" data-testid="chat-archived-toggle">
             <app-icon name="history" [size]="15" /> {{ (showArchived() ? 'chat.hideArchived' : 'chat.showArchived') | translate }}
           </button>
+          <!-- PROMOTOR: filtros de sus tickets (estado + búsqueda), server-side. -->
+          <div class="chat-own-filters">
+            <label class="chat-status-filter">
+              <span class="sr-only">{{ 'chat.filterStatus' | translate }}</span>
+              <select [ngModel]="ownStatus()" (ngModelChange)="setOwnStatus($event)" data-testid="chat-own-status" [attr.aria-label]="'chat.filterStatus' | translate">
+                @for (s of ownStatuses; track s) {
+                  <option [ngValue]="s">{{ s ? (s | statusLabel) : ('chat.allStatuses' | translate) }}</option>
+                }
+              </select>
+            </label>
+            <label class="chat-own-search">
+              <span class="sr-only">{{ 'chat.searchOwn' | translate }}</span>
+              <input
+                type="search"
+                [ngModel]="ownSearch()"
+                (keyup.enter)="submitOwnSearch($any($event.target).value)"
+                (search)="submitOwnSearch($any($event.target).value)"
+                [placeholder]="'chat.searchOwn' | translate"
+                data-testid="chat-own-search" />
+            </label>
+          </div>
         }
 
         <!-- AGENTE: filtros de cola -->
@@ -85,7 +106,7 @@
         </div>
 
         @if (isAgent() && nextCursor()) {
-          <button type="button" class="btn small btn-block" (click)="loadQueue(false)" data-testid="chat-load-more">{{ 'chat.loadMore' | translate }}</button>
+          <button type="button" class="btn small btn-block" (click)="loadQueue(false)" data-testid="chat-load-more">{{ 'chat.loadMore' | translate }} <app-icon name="chevron-right" /></button>
         }
       </aside>
 

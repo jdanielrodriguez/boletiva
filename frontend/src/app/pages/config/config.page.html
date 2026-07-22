@@ -604,7 +604,12 @@
             @for (c of created(); track c.id) {
               <article class="inv-card">
                 <span class="inv-email">{{ c.email }}</span>
-                <input class="inv-url" type="text" readonly [value]="c.url" />
+                <div class="inv-url-row">
+                  <input class="inv-url" type="text" readonly [value]="c.url" />
+                  <button type="button" class="btn small" (click)="copyInvite(c.url)" [attr.aria-label]="'config.invitations.copy' | translate" [title]="'config.invitations.copy' | translate" data-testid="inv-copy">
+                    <app-icon name="copy" />
+                  </button>
+                </div>
               </article>
             }
           </div>

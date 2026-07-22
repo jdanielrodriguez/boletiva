@@ -434,6 +434,10 @@ export const promoter = {
     filterPromoterSelf: 'My events',
     filterEvent: 'Event',
     filterEventAll: 'All events',
+    filterStatus: 'Status',
+    filterStatusAll: 'All statuses',
+    filterFrom: 'From',
+    filterTo: 'To',
     loading: 'Loading dashboard…',
     error: 'Could not load the dashboard.',
     // Promoter GLOBAL dashboard (Phase 3)

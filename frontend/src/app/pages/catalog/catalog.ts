@@ -16,6 +16,7 @@ import { LoadingComponent } from '../../shared/ui/loading.component';
 import { SearchFieldComponent } from '../../shared/ui/search-field.component';
 import { PagerComponent } from '../../shared/ui/pager.component';
 import { TourComponent, TourStep } from '../../shared/tour/tour.component';
+import { IconComponent } from '../../shared/icon/icon.component';
 
 const PAGE_SIZE = 12;
 
@@ -43,6 +44,7 @@ interface CatalogResult {
     LoadingComponent,
     SearchFieldComponent,
     TourComponent,
+    IconComponent,
   ],
   templateUrl: './catalog.html',
 })

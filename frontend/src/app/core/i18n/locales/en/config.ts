@@ -250,6 +250,8 @@ export const config = {
     submitHint: 'Press "Invite" again (or Enter) to send.',
     invite: 'Invite',
     createdHeading: 'Generated links (copy and share them)',
+    copy: 'Copy link',
+    copied: 'Link copied',
     listHeading: 'Invitations',
     searchPlaceholder: 'Search email…',
     allStatuses: 'All statuses',

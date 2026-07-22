@@ -41,7 +41,12 @@ export type IconName =
   | 'bell'
   | 'book'
   | 'logout'
-  | 'refresh';
+  | 'refresh'
+  | 'download'
+  | 'calendar'
+  | 'pin'
+  | 'copy'
+  | 'chevron-right';
 
 /**
  * Icono SVG inline reutilizable (trazo, hereda `currentColor`). Se usa dentro de
@@ -237,6 +242,28 @@ export type IconName =
       @case ('refresh') {
         <path d="M21 12a9 9 0 1 1-2.64-6.36" />
         <path d="M21 4v5h-5" />
+      }
+      @case ('download') {
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <path d="M7 10l5 5 5-5" />
+        <path d="M12 15V3" />
+      }
+      @case ('calendar') {
+        <rect x="3" y="4" width="18" height="18" rx="2" />
+        <path d="M16 2v4" />
+        <path d="M8 2v4" />
+        <path d="M3 10h18" />
+      }
+      @case ('pin') {
+        <path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z" />
+        <circle cx="12" cy="10" r="3" />
+      }
+      @case ('copy') {
+        <rect x="9" y="9" width="13" height="13" rx="2" />
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+      }
+      @case ('chevron-right') {
+        <path d="M9 18l6-6-6-6" />
       }
     }
   </svg>`,

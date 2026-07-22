@@ -31,6 +31,8 @@ import { BackLinkComponent } from '../../shared/ui/back-link.component';
 const CATEGORIES: SupportCategory[] = ['billing', 'payments_settlement', 'event', 'technical', 'account', 'other'];
 const PRIORITIES: SupportPriority[] = ['low', 'medium', 'high', 'urgent'];
 const AGENT_STATUS: (SupportStatus | '')[] = ['', 'new', 'open', 'awaiting_support', 'awaiting_promoter', 'resolved', 'suspended'];
+/** Estados que el PROMOTOR filtra en sus propios tickets (subconjunto con sentido para él). */
+const OWN_STATUS: (SupportStatus | '')[] = ['', 'open', 'awaiting_support', 'awaiting_promoter', 'resolved', 'closed'];
 
 /**
  * Workspace de soporte (T3). Un solo punto de entrada que se adapta al rol:
@@ -58,6 +60,7 @@ export class SupportChatPage implements OnDestroy {
   protected readonly categories = CATEGORIES;
   protected readonly priorities = PRIORITIES;
   protected readonly agentStatuses = AGENT_STATUS;
+  protected readonly ownStatuses = OWN_STATUS;
 
   /** Embebido en otra página con su propio <h1> (consola admin) → título como <h2>. */
   readonly embedded = input(false);
@@ -90,6 +93,9 @@ export class SupportChatPage implements OnDestroy {
   protected readonly newCategory = signal<SupportCategory>('other');
   protected readonly newPriority = signal<SupportPriority>('medium');
   protected readonly showArchived = signal(false);
+  // Promotor: filtros de SUS tickets (estado + búsqueda de asunto, server-side).
+  protected readonly ownStatus = signal<SupportStatus | ''>('');
+  protected readonly ownSearch = signal('');
 
   // Agente: filtros de la cola
   protected readonly quick = signal<'unassigned' | 'mine' | 'all'>('unassigned');
@@ -184,7 +190,12 @@ export class SupportChatPage implements OnDestroy {
   private reloadOwn(): void {
     this.loading.set(true);
     this.listError.set(false);
-    this.api.listThreads(this.showArchived()).subscribe({
+    this.api
+      .listThreads(this.showArchived(), {
+        status: this.ownStatus() || undefined,
+        search: this.ownSearch() || undefined,
+      })
+      .subscribe({
       next: (t) => {
         this.threads.set(t);
         this.loading.set(false);
@@ -234,6 +245,16 @@ export class SupportChatPage implements OnDestroy {
   }
   protected toggleArchived(): void {
     this.showArchived.update((v) => !v);
+    this.reloadOwn();
+  }
+  /** Promotor: filtra sus tickets por estado (server-side). */
+  protected setOwnStatus(s: SupportStatus | ''): void {
+    this.ownStatus.set(s);
+    this.reloadOwn();
+  }
+  /** Promotor: busca en el asunto de sus tickets (server-side; al Enter o botón). */
+  protected submitOwnSearch(term: string): void {
+    this.ownSearch.set(term.trim());
     this.reloadOwn();
   }
 

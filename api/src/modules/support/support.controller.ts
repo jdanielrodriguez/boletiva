@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiProperty, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiProperty, ApiQuery, ApiTags } from '@nestjs/swagger';
 import {
   IsArray,
   IsBoolean,
@@ -160,8 +160,16 @@ export class SupportController {
 
   @Get()
   @ApiOperation({ summary: 'Lista de tickets (promotor: los suyos; agente: todos)' })
-  list(@CurrentUser() user: AuthUser, @Query('archived') archived?: string) {
-    return this.support.listTickets(user, archived === 'true');
+  @ApiQuery({ name: 'archived', required: false, description: 'true = incluye archivados (promotor)' })
+  @ApiQuery({ name: 'status', required: false, description: 'Filtra por estado del ticket' })
+  @ApiQuery({ name: 'search', required: false, description: 'Busca en el asunto (case-insensitive)' })
+  list(
+    @CurrentUser() user: AuthUser,
+    @Query('archived') archived?: string,
+    @Query('status') status?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.support.listTickets(user, { includeArchived: archived === 'true', status, search });
   }
 
   @Get(':id/messages')

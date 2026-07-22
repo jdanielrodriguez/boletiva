@@ -7,6 +7,7 @@ import { ToastService } from '../../core/ui/toast.service';
 import { apiErrorMessage } from '../../core/http/api-error';
 import { ConfirmController } from '../../shared/confirm-dialog/confirm-controller';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
+import { IconComponent } from '../../shared/icon/icon.component';
 
 /**
  * Gestión de validadores del evento (tab del editor). El promotor invita por email
@@ -17,7 +18,7 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dial
  */
 @Component({
   selector: 'app-event-validators',
-  imports: [FormsModule, TranslatePipe, ConfirmDialogComponent],
+  imports: [FormsModule, TranslatePipe, ConfirmDialogComponent, IconComponent],
   templateUrl: './event-validators.component.html',
 })
 export class EventValidatorsComponent {

@@ -30,6 +30,7 @@ export const chat = {
   all: 'Todos',
   filterStatus: 'Filtrar por estado',
   allStatuses: 'Todos los estados',
+  searchOwn: 'Buscar por asunto…',
   loadMore: 'Cargar más',
   take: 'Tomar',
   assignTo: 'Asignar a…',

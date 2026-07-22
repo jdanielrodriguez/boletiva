@@ -168,6 +168,14 @@ export class ConfigPage {
   private readonly route = inject(ActivatedRoute);
   private readonly translate = inject(TranslateService);
 
+  /** Copia el enlace de invitación al portapapeles (una sola vez visible). */
+  protected copyInvite(url: string): void {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      void navigator.clipboard.writeText(url);
+      this.toasts.info(this.translate.instant('config.invitations.copied'));
+    }
+  }
+
   protected readonly tab = signal<AdminTab>('eventos');
 
   /** Tabs válidos para el deep-link `?tab=` (se restaura al recargar). */

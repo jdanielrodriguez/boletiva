@@ -10,9 +10,9 @@
       @if (ev.category) {
         <span class="event-cat">{{ ev.category.name }}</span>
       }
-      <time [attr.datetime]="ev.startsAt">{{ ev.startsAt | localizedDate: 'full' }}</time>
+      <time [attr.datetime]="ev.startsAt"><app-icon name="calendar" />{{ ev.startsAt | localizedDate: 'full' }}</time>
       @if (ev.address) {
-        <span class="event-place">{{ ev.address }}</span>
+        <span class="event-place"><app-icon name="pin" />{{ ev.address }}</span>
       }
     </div>
 

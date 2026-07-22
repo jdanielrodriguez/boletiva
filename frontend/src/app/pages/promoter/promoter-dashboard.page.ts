@@ -5,6 +5,7 @@ import { DOCUMENT } from '@angular/common';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { FormsModule } from '@angular/forms';
 import { PromoterDashboardApi } from '../../core/api/promoter-dashboard.api';
+import { IconComponent } from '../../shared/icon/icon.component';
 import { AdminApi } from '../../core/api/admin.api';
 import { SessionStore } from '../../core/auth/session.store';
 import { ToastService } from '../../core/ui/toast.service';
@@ -51,6 +52,7 @@ const STATUS_KEY: Record<string, string> = {
     ChartComponent,
     MoneyPipe,
     ReportsMaintenanceGateComponent,
+    IconComponent,
   ],
   templateUrl: './promoter-dashboard.page.html',
   styleUrl: './promoter-dashboard.page.css',
@@ -74,6 +76,12 @@ export class PromoterDashboardPage {
   /** Filtro por EVENTO ('' = todos) y, para admin, por PROMOTOR ('' = ninguno seleccionado). */
   protected readonly selectedEvent = signal<string>('');
   protected readonly selectedPromoter = signal<string>('');
+  /** Filtros server-side: estado del evento ('' = todos) y rango por fecha del evento. */
+  protected readonly selectedStatus = signal<string>('');
+  protected readonly dateFrom = signal<string>('');
+  protected readonly dateTo = signal<string>('');
+  /** Estados de evento disponibles para el selector (mismas claves i18n que la dimensión). */
+  protected readonly statusList = Object.keys(STATUS_KEY);
   /** Lista de promotores (solo admin) para el selector. */
   protected readonly promoters = signal<{ id: string; name: string }[]>([]);
 
@@ -95,16 +103,27 @@ export class PromoterDashboardPage {
   private load(): void {
     this.loading.set(true);
     this.error.set(false);
-    this.api.dashboard(this.selectedPromoter() || undefined, this.selectedEvent() || undefined).subscribe({
-      next: (d) => {
-        this.data.set(d);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.error.set(true);
-        this.loading.set(false);
-      },
-    });
+    this.api
+      .dashboard(this.selectedPromoter() || undefined, this.selectedEvent() || undefined, this.currentFilters())
+      .subscribe({
+        next: (d) => {
+          this.data.set(d);
+          this.loading.set(false);
+        },
+        error: () => {
+          this.error.set(true);
+          this.loading.set(false);
+        },
+      });
+  }
+
+  /** Filtros server-side vigentes (estado + rango de fecha). */
+  private currentFilters(): { status?: string; from?: string; to?: string } {
+    return {
+      status: this.selectedStatus() || undefined,
+      from: this.dateFrom() || undefined,
+      to: this.dateTo() || undefined,
+    };
   }
 
   /** Admin elige promotor → resetea el filtro de evento y recarga. */
@@ -118,6 +137,28 @@ export class PromoterDashboardPage {
   protected onEventChange(id: string): void {
     this.selectedEvent.set(id);
     this.load();
+  }
+
+  /** Filtra por estado de evento (o todos). */
+  protected onStatusChange(status: string): void {
+    this.selectedStatus.set(status);
+    this.load();
+  }
+
+  /** Rango por fecha del evento (desde/hasta, inclusive). */
+  protected onFromChange(v: string): void {
+    this.dateFrom.set(v);
+    this.load();
+  }
+
+  protected onToChange(v: string): void {
+    this.dateTo.set(v);
+    this.load();
+  }
+
+  /** Etiqueta i18n de un estado de evento para el selector. */
+  protected statusLabelKey(s: string): string {
+    return STATUS_KEY[s] ?? s;
   }
 
   protected readonly currency = computed(() => this.data()?.currency ?? 'GTQ');
@@ -200,7 +241,7 @@ export class PromoterDashboardPage {
   protected downloadExcel(): void {
     if (!isPlatformBrowser(this.platformId) || this.downloading()) return;
     this.downloading.set(true);
-    this.api.export(this.selectedPromoter() || undefined).subscribe({
+    this.api.export(this.selectedPromoter() || undefined, this.currentFilters()).subscribe({
       next: (res) => {
         this.downloading.set(false);
         const blob = res.body;

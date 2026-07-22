@@ -106,6 +106,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/2fa/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reenvía el código del segundo factor por correo (solo método email) */
+        post: operations["AuthController_resend2fa_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/verify-email": {
         parameters: {
             query?: never;
@@ -505,7 +522,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lista usuarios (admin; keyset ?cursor&limit + ?search) */
+        /** Lista usuarios (admin real; keyset ?cursor&limit + ?search) */
         get: operations["UsersController_list_v1"];
         put?: never;
         post?: never;
@@ -522,7 +539,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Detalle de usuario (admin) */
+        /** Detalle de usuario (admin real) */
         get: operations["UsersController_get_v1"];
         put?: never;
         post?: never;
@@ -545,7 +562,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Asigna roles a un usuario (admin) */
+        /** Asigna roles a un usuario (SOLO admin real; ni un asesor desbloqueado) */
         patch: operations["UsersController_setRoles_v1"];
         trace?: never;
     };
@@ -562,7 +579,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Activa/desactiva un usuario (admin) */
+        /** Activa/desactiva un usuario (SOLO admin real) */
         patch: operations["UsersController_setStatus_v1"];
         trace?: never;
     };
@@ -1194,7 +1211,7 @@ export interface paths {
         /** Lista todas las versiones de comisiones (admin) */
         get: operations["PricingController_listSchedules_v1"];
         put?: never;
-        /** Crea y activa una nueva versión de comisiones (admin) */
+        /** Crea y activa una nueva versión de comisiones (admin real) */
         post: operations["PricingController_create_v1"];
         delete?: never;
         options?: never;
@@ -2190,7 +2207,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Pasarelas activas (métodos disponibles para cobrar) */
+        /** Pasarelas activas (métodos disponibles; el promotor elige la de su evento) */
         get: operations["PaymentGatewaysController_active_v1"];
         put?: never;
         post?: never;
@@ -2564,6 +2581,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{id}/seats/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stream SSE público de disponibilidad de asientos del evento (FU11) */
+        get: operations["StreamController_seatsStream_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{id}/banner": {
         parameters: {
             query?: never;
@@ -2623,7 +2657,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Detalle de un salón */
+        /** Detalle de un salón (gestión admin; incluye estado y notas internas) */
         get: operations["HallsController_get_v1"];
         put?: never;
         post?: never;
@@ -2864,7 +2898,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Detalle de una plantilla */
+        /** Detalle de una plantilla (gestión admin; incluye estado y notas) */
         get: operations["SeatTemplatesController_get_v1"];
         put?: never;
         post?: never;
@@ -3491,6 +3525,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/support/agents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lista de agentes (asesor/admin) para reasignar tickets */
+        get: operations["SupportExtrasController_agents_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/support/metrics": {
         parameters: {
             query?: never;
@@ -3560,6 +3611,161 @@ export interface paths {
         head?: never;
         /** Edita una respuesta rápida */
         patch: operations["SupportExtrasController_updateMacro_v1"];
+        trace?: never;
+    };
+    "/api/v1/kb": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** FAQ público: artículos publicados (filtro categoría/idioma/búsqueda) */
+        get: operations["KbController_list_v1"];
+        put?: never;
+        /** Crea un artículo (draft) — admin/asesor */
+        post: operations["KbController_create_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Búsqueda del FAQ/bot: sugiere artículos públicos relevantes (autoresponder) */
+        get: operations["KbController_search_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/admin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listado de gestión (cualquier estado/visibilidad) — admin/asesor */
+        get: operations["KbController_adminList_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/admin/suggest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Asistente del agente: sugiere artículos (incluye INTERNOS) para responder */
+        get: operations["KbController_agentSuggest_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/admin/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detalle de gestión por id — admin/asesor */
+        get: operations["KbController_adminGet_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Elimina un artículo — admin/asesor */
+        delete: operations["KbController_delete_v1"];
+        options?: never;
+        head?: never;
+        /** Edita un artículo — admin/asesor */
+        patch: operations["KbController_update_v1"];
+        trace?: never;
+    };
+    "/api/v1/kb/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publica un artículo — admin/asesor */
+        post: operations["KbController_publish_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/{id}/unpublish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Despublica un artículo (vuelve a draft) — admin/asesor */
+        post: operations["KbController_unpublish_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detalle público de un artículo por slug (FAQ) */
+        get: operations["KbController_getBySlug_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/notifications": {
@@ -3659,6 +3865,75 @@ export interface paths {
         put?: never;
         /** Envía una notificación manual a un promotor o a todos (admin) */
         post: operations["NotificationsController_adminSend_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/advisors/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lista de invitaciones de asesor (admin) */
+        get: operations["AdvisorInvitationsController_list_v1"];
+        put?: never;
+        /** Invita asesores por correo (admin) */
+        post: operations["AdvisorInvitationsController_create_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/advisors/invitations/peek": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Valida un token de invitación (público): correo + si requiere contraseña */
+        get: operations["AdvisorInvitationsController_peek_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/advisors/invitations/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirma el rol asesor (usuario existente autenticado) */
+        post: operations["AdvisorInvitationsController_accept_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/advisors/invitations/set-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Fija la contraseña y activa la cuenta de asesor (usuario nuevo, por token) */
+        post: operations["AdvisorInvitationsController_setPassword_v1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3894,6 +4169,26 @@ export interface components {
             user: components["schemas"]["PublicUserResponseDto"];
             /** @description Par de tokens de la sesión */
             tokens: components["schemas"]["TokenPairResponseDto"];
+        };
+        TwoFactorResendDto: {
+            /**
+             * @description Token de pre-autenticación devuelto por el login (status = 2fa_required)
+             * @example eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+             */
+            preauthToken: string;
+        };
+        TwoFactorResendResponseDto: {
+            /**
+             * @description Método de segundo factor del usuario
+             * @example email
+             * @enum {string}
+             */
+            method: "email" | "totp";
+            /**
+             * @description true si se reenvió un código (solo método email); false para TOTP
+             * @example true
+             */
+            resent: boolean;
         };
         VerifyEmailCodeDto: {
             /**
@@ -8249,6 +8544,8 @@ export interface components {
             availableEvents: components["schemas"]["DashboardEventRefDto"][];
             /** @description Evento al que está filtrado el dashboard (null = todos) */
             selectedEventId: string | null;
+            /** @description Estado de evento al que está filtrado el dashboard (null = todos) */
+            selectedStatus: string | null;
         };
         AdminProfitabilityRowDto: {
             /** Format: uuid */
@@ -8697,6 +8994,80 @@ export interface components {
             /** @enum {string} */
             category?: "billing" | "payments_settlement" | "event" | "technical" | "account" | "other";
         };
+        KbPublicArticleDto: {
+            slug: string;
+            question: string;
+            answerHtml: string;
+            /** @enum {string|null} */
+            category: "billing" | "payments_settlement" | "event" | "technical" | "account" | "other" | null;
+            tags: string[];
+        };
+        KbSuggestionDto: {
+            slug: string;
+            question: string;
+            /** @description Respuesta en texto plano (para el bot/RAG) */
+            answerText: string;
+            /** @description Relevancia 0..1 */
+            score: number;
+        };
+        KbArticleResponseDto: {
+            id: string;
+            slug: string;
+            question: string;
+            /** @description Respuesta con formato (HTML saneado) */
+            answerHtml: string;
+            /** @enum {string|null} */
+            category: "billing" | "payments_settlement" | "event" | "technical" | "account" | "other" | null;
+            locale: string;
+            /** @enum {string} */
+            status: "draft" | "published";
+            /** @enum {string} */
+            visibility: "public" | "internal";
+            tags: string[];
+            sortOrder: number;
+            viewCount: number;
+            publishedAt: string | null;
+            updatedAt: string;
+        };
+        CreateKbArticleDto: {
+            /** @description Pregunta/título */
+            question: string;
+            /** @description Respuesta con formato (HTML enriquecido; se sanea en el servidor) */
+            answerHtml: string;
+            /** @description Slug único (se autogenera desde la pregunta si se omite) */
+            slug?: string;
+            /** @enum {string} */
+            category?: "billing" | "payments_settlement" | "event" | "technical" | "account" | "other";
+            /**
+             * @description Idioma (es/en)
+             * @default es
+             */
+            locale: string;
+            /**
+             * @default public
+             * @enum {string}
+             */
+            visibility: "public" | "internal";
+            /** @description Etiquetas (máx 20) */
+            tags?: string[];
+            /**
+             * @description Orden dentro de su categoría (asc)
+             * @default 0
+             */
+            sortOrder: number;
+        };
+        UpdateKbArticleDto: {
+            question?: string;
+            answerHtml?: string;
+            slug?: string;
+            /** @enum {string|null} */
+            category?: "billing" | "payments_settlement" | "event" | "technical" | "account" | "other" | null;
+            locale?: string;
+            /** @enum {string} */
+            visibility?: "public" | "internal";
+            tags?: string[];
+            sortOrder?: number;
+        };
         SetPreferenceDto: {
             type: string;
             /** @enum {string} */
@@ -8715,6 +9086,23 @@ export interface components {
             title: string;
             /** @example El sábado habrá mantenimiento de 2 a 4 am. */
             body: string;
+        };
+        CreateAdvisorInvitesDto: {
+            /**
+             * @example [
+             *       "asesor@correo.com"
+             *     ]
+             */
+            emails: string[];
+        };
+        AcceptAdvisorDto: {
+            /** @description Token de la invitación */
+            token: string;
+        };
+        SetAdvisorPasswordDto: {
+            token: string;
+            /** @example Password123 */
+            password: string;
         };
     };
     responses: never;
@@ -8850,6 +9238,29 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuthSessionResponseDto"];
+                };
+            };
+        };
+    };
+    AuthController_resend2fa_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TwoFactorResendDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwoFactorResendResponseDto"];
                 };
             };
         };
@@ -10122,6 +10533,8 @@ export interface operations {
         parameters: {
             query: {
                 status: string;
+                search: string;
+                limit: string;
             };
             header?: never;
             path?: never;
@@ -12634,6 +13047,26 @@ export interface operations {
             };
         };
     };
+    StreamController_seatsStream_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Flujo SSE: abre con `ready` y empuja deltas `seat` ({sold|released}) del evento. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     BannerController_generate_v1: {
         parameters: {
             query?: never;
@@ -12939,6 +13372,12 @@ export interface operations {
                 promoterId?: string;
                 /** @description Filtra el dashboard a un solo evento */
                 eventId?: string;
+                /** @description Filtra por estado de evento (draft/published/suspended/cancelled/finished) */
+                status?: string;
+                /** @description Desde (fecha del evento, ISO YYYY-MM-DD) */
+                from?: string;
+                /** @description Hasta inclusive (fecha del evento, ISO YYYY-MM-DD) */
+                to?: string;
             };
             header?: never;
             path?: never;
@@ -12961,6 +13400,12 @@ export interface operations {
             query?: {
                 /** @description Solo admin: promotor a inspeccionar */
                 promoterId?: string;
+                /** @description Filtra por estado de evento */
+                status?: string;
+                /** @description Desde (fecha del evento, ISO YYYY-MM-DD) */
+                from?: string;
+                /** @description Hasta inclusive (fecha del evento, ISO YYYY-MM-DD) */
+                to?: string;
             };
             header?: never;
             path?: never;
@@ -13603,8 +14048,13 @@ export interface operations {
     };
     SupportController_list_v1: {
         parameters: {
-            query: {
-                archived: string;
+            query?: {
+                /** @description true = incluye archivados (promotor) */
+                archived?: string;
+                /** @description Filtra por estado del ticket */
+                status?: string;
+                /** @description Busca en el asunto (case-insensitive) */
+                search?: string;
             };
             header?: never;
             path?: never;
@@ -13961,6 +14411,23 @@ export interface operations {
             };
         };
     };
+    SupportExtrasController_agents_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     SupportExtrasController_metrics_v1: {
         parameters: {
             query?: never;
@@ -14099,6 +14566,259 @@ export interface operations {
             };
         };
     };
+    KbController_list_v1: {
+        parameters: {
+            query?: {
+                category?: "billing" | "payments_settlement" | "event" | "technical" | "account" | "other";
+                /** @description Idioma (es/en) */
+                locale?: string;
+                /** @description Búsqueda por texto (pregunta/respuesta/etiquetas) */
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KbPublicArticleDto"][];
+                };
+            };
+        };
+    };
+    KbController_create_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateKbArticleDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KbArticleResponseDto"];
+                };
+            };
+        };
+    };
+    KbController_search_v1: {
+        parameters: {
+            query: {
+                /** @description Consulta del usuario */
+                q: string;
+                /** @description Idioma (es/en) */
+                locale?: string;
+                /** @description Máximo de resultados (1..10) */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KbSuggestionDto"][];
+                };
+            };
+        };
+    };
+    KbController_adminList_v1: {
+        parameters: {
+            query?: {
+                category?: "billing" | "payments_settlement" | "event" | "technical" | "account" | "other";
+                /** @description Idioma (es/en) */
+                locale?: string;
+                /** @description Búsqueda por texto (pregunta/respuesta/etiquetas) */
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KbArticleResponseDto"][];
+                };
+            };
+        };
+    };
+    KbController_agentSuggest_v1: {
+        parameters: {
+            query: {
+                /** @description Consulta del usuario */
+                q: string;
+                /** @description Idioma (es/en) */
+                locale?: string;
+                /** @description Máximo de resultados (1..10) */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KbSuggestionDto"][];
+                };
+            };
+        };
+    };
+    KbController_adminGet_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KbArticleResponseDto"];
+                };
+            };
+        };
+    };
+    KbController_delete_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    KbController_update_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateKbArticleDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KbArticleResponseDto"];
+                };
+            };
+        };
+    };
+    KbController_publish_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KbArticleResponseDto"];
+                };
+            };
+        };
+    };
+    KbController_unpublish_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KbArticleResponseDto"];
+                };
+            };
+        };
+    };
+    KbController_getBySlug_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KbPublicArticleDto"];
+                };
+            };
+        };
+    };
     NotificationsController_list_v1: {
         parameters: {
             query?: {
@@ -14226,6 +14946,105 @@ export interface operations {
         };
         responses: {
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdvisorInvitationsController_list_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdvisorInvitationsController_create_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAdvisorInvitesDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdvisorInvitationsController_peek_v1: {
+        parameters: {
+            query: {
+                token: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdvisorInvitationsController_accept_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcceptAdvisorDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdvisorInvitationsController_setPassword_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetAdvisorPasswordDto"];
+            };
+        };
+        responses: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -433,6 +433,10 @@ export const promoter = {
     filterPromoterSelf: 'Mis eventos',
     filterEvent: 'Evento',
     filterEventAll: 'Todos los eventos',
+    filterStatus: 'Estado',
+    filterStatusAll: 'Todos los estados',
+    filterFrom: 'Desde',
+    filterTo: 'Hasta',
     loading: 'Cargando dashboard…',
     error: 'No se pudo cargar el dashboard.',
     // Dashboard GLOBAL del promotor (Fase 3)

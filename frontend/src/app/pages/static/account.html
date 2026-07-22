@@ -435,6 +435,7 @@
                     }
                     @if (m.kind === 'event_settlement' && m.eventId) {
                       <button type="button" class="link-btn" (click)="downloadSettlement(m.eventId)" [disabled]="downloadingSettlement() === m.eventId" data-testid="settlement-download">
+                        <app-icon name="download" />
                         {{ (downloadingSettlement() === m.eventId ? 'account.billing.settlement.downloading' : 'account.billing.settlement.download') | translate }}
                       </button>
                       <button type="button" class="link-btn" (click)="toggleTxnDetail(m)" data-testid="settlement-view-transaction">
@@ -701,9 +702,9 @@
                                   [attr.title]="(qrVisible(t.id) ? 'account.tickets.hideQr' : 'account.tickets.showQr') | translate"
                                 >
                                   @if (qrVisible(t.id)) {
-                                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7z"/><path d="M4 4l16 16" stroke-linecap="round"/></svg>
+                                    <app-icon name="hide" [size]="20" />
                                   } @else {
-                                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7z"/><circle cx="12" cy="12" r="2.6"/></svg>
+                                    <app-icon name="view" [size]="20" />
                                   }
                                 </button>
                                 @if (media()[t.id]; as m) {
@@ -716,7 +717,7 @@
                                     [attr.aria-label]="'account.tickets.downloadPdfAria' | translate"
                                     [title]="'account.tickets.downloadPdf' | translate"
                                   >
-                                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12" stroke-linecap="round"/><path d="M7 11l5 5 5-5" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 20h14" stroke-linecap="round"/></svg>
+                                    <app-icon name="download" [size]="20" />
                                   </a>
                                 }
                                 <button

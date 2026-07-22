@@ -35,13 +35,19 @@ export class AnalyticsController {
   })
   @ApiQuery({ name: 'promoterId', required: false, description: 'Solo admin: promotor a inspeccionar' })
   @ApiQuery({ name: 'eventId', required: false, description: 'Filtra el dashboard a un solo evento' })
+  @ApiQuery({ name: 'status', required: false, description: 'Filtra por estado de evento (draft/published/suspended/cancelled/finished)' })
+  @ApiQuery({ name: 'from', required: false, description: 'Desde (fecha del evento, ISO YYYY-MM-DD)' })
+  @ApiQuery({ name: 'to', required: false, description: 'Hasta inclusive (fecha del evento, ISO YYYY-MM-DD)' })
   @ApiOkResponse({ type: PromoterDashboardDto })
   dashboardData(
     @CurrentUser() user: AuthUser,
     @Query('promoterId') promoterId?: string,
     @Query('eventId') eventId?: string,
+    @Query('status') status?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
   ) {
-    return this.dashboard.forPromoter(user, promoterId, eventId);
+    return this.dashboard.forPromoter(user, promoterId, eventId, { status, from, to });
   }
 
   @Get('dashboard/export.xlsx')
@@ -54,6 +60,9 @@ export class AnalyticsController {
       'una hoja por dimensión (evento/categoría/salón/estado/mes).',
   })
   @ApiQuery({ name: 'promoterId', required: false, description: 'Solo admin: promotor a inspeccionar' })
+  @ApiQuery({ name: 'status', required: false, description: 'Filtra por estado de evento' })
+  @ApiQuery({ name: 'from', required: false, description: 'Desde (fecha del evento, ISO YYYY-MM-DD)' })
+  @ApiQuery({ name: 'to', required: false, description: 'Hasta inclusive (fecha del evento, ISO YYYY-MM-DD)' })
   @ApiOkResponse({
     description: 'Archivo .xlsx (adjunto)',
     content: {
@@ -66,8 +75,15 @@ export class AnalyticsController {
     @CurrentUser() user: AuthUser,
     @Res() res: Response,
     @Query('promoterId') promoterId?: string,
+    @Query('status') status?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
   ): Promise<void> {
-    const { filename, buffer } = await this.dashboardExport.exportForPromoter(user, promoterId);
+    const { filename, buffer } = await this.dashboardExport.exportForPromoter(user, promoterId, {
+      status,
+      from,
+      to,
+    });
     res.set({
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': `attachment; filename="${filename}"`,

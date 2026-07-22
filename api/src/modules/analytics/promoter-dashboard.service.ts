@@ -34,6 +34,24 @@ interface EventRow {
   hallName: string | null;
 }
 
+/** Filtros server-side del dashboard (acotan qué eventos entran en la agregación). */
+export interface DashboardFilters {
+  /** Estado del evento (draft/published/suspended/cancelled/finished). */
+  status?: string;
+  /** Rango por fecha del evento (`startsAt`), ISO `YYYY-MM-DD`. `to` es inclusivo. */
+  from?: string;
+  to?: string;
+}
+
+const VALID_STATUS = new Set(['draft', 'published', 'suspended', 'cancelled', 'finished']);
+
+/** Parsea una fecha ISO a Date; `endOfDay` la lleva al último instante del día (rango inclusivo). */
+function parseDate(v: string | undefined, endOfDay = false): Date | null {
+  if (!v) return null;
+  const d = new Date(endOfDay ? `${v}T23:59:59.999` : `${v}T00:00:00`);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 const zeroMetric = (): Metric => ({
   events: 0,
   ticketsSold: 0,
@@ -87,6 +105,7 @@ export class PromoterDashboardService {
     user: AuthUser,
     promoterId?: string,
     eventId?: string,
+    filters: DashboardFilters = {},
   ): Promise<PromoterDashboardDto> {
     const promoter = await this.resolvePromoter(user, promoterId);
 
@@ -116,11 +135,23 @@ export class PromoterDashboardService {
       }),
     );
 
-    // Lista para el selector de evento (todos los del promotor) + evento seleccionado.
+    // Lista para el selector de evento (SIEMPRE todos los del promotor, sin acotar por
+    // los filtros → el selector nunca queda vacío) + evento seleccionado.
     const availableEvents = allEvents.map((e) => ({ id: e.id, name: e.name }));
     const selectedEventId = eventId && allEvents.some((e) => e.id === eventId) ? eventId : null;
-    // Filtro por evento: si se pide uno válido, el dashboard agrega SOLO ese evento.
-    const events = selectedEventId ? allEvents.filter((e) => e.id === selectedEventId) : allEvents;
+
+    // Filtros server-side (acotan qué eventos entran en la agregación, igual que eventId):
+    // por evento concreto, por estado y por rango de fecha del evento (`startsAt`).
+    const status = filters.status && VALID_STATUS.has(filters.status) ? filters.status : null;
+    const fromDate = parseDate(filters.from);
+    const toDate = parseDate(filters.to, true);
+    const events = allEvents.filter(
+      (e) =>
+        (!selectedEventId || e.id === selectedEventId) &&
+        (!status || e.status === status) &&
+        (!fromDate || e.startsAt >= fromDate) &&
+        (!toDate || e.startsAt <= toDate),
+    );
 
     const base = {
       promoterId: promoter.id,
@@ -130,6 +161,7 @@ export class PromoterDashboardService {
       publishedCount: events.filter((e) => e.status === 'published').length,
       availableEvents,
       selectedEventId,
+      selectedStatus: status,
     };
 
     if (events.length === 0) {

@@ -1891,6 +1891,23 @@ app-root {
 .event-card time {
   color: var(--pe-muted);
   font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+/* El icono de fecha/lugar acompaña al texto sin dominarlo (tono atenuado). */
+.event-card .event-place .app-icon,
+.event-card time .app-icon,
+.event-detail .event-meta .event-place .app-icon,
+.event-detail .event-meta time .app-icon {
+  flex: none;
+  opacity: 0.75;
+}
+.event-detail .event-meta .event-place,
+.event-detail .event-meta time {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .catalog-pager {
@@ -3353,6 +3370,10 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
 .chat-quick { margin-bottom: 0.5rem; }
 .chat-status-filter { display: block; margin-bottom: 0.5rem; }
 .chat-status-filter select { width: 100%; }
+/* Promotor: filtros de sus propios tickets (estado + búsqueda). */
+.chat-own-filters { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.5rem; }
+.chat-own-filters select,
+.chat-own-search input { width: 100%; }
 
 /* Badges de estado de soporte que no existían */
 .badge-new { background: var(--pe-accent-soft); color: var(--pe-accent-strong); }
@@ -4109,6 +4130,19 @@ button.danger {
   width: 100%;
   font-size: 0.8rem;
   color: var(--pe-muted);
+}
+/* Enlace de invitación + botón copiar en una fila. */
+.inv-url-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.inv-url-row .inv-url {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.inv-url-row .btn {
+  flex: none;
 }
 .badge-test {
   background: rgba(245, 158, 11, 0.18);
