@@ -34,9 +34,14 @@ export class AuditController {
     @CurrentUser('userId') userId: string,
     @Req() req: Request,
   ): Promise<MessageResponseDto> {
+    // El cuerpo lo controla el cliente: cualquier usuario autenticado podría enviar un
+    // `action` arbitrario y, sin espacio de nombres, forjar en la bitácora un evento que
+    // parezca de GOBERNANZA server-side (p.ej. "admin.impersonate.start"). Prefijamos toda
+    // confirmación de UI con `ui.confirm:` → queda inequívocamente marcada como intención
+    // del cliente, no como un evento del servidor. La no-repudiación del click se conserva.
     await this.audit.record({
       userId,
-      action: dto.action,
+      action: `ui.confirm:${dto.action}`,
       resource: dto.resource ?? null,
       ip: this.clientIp(req),
       userAgent: (req.headers['user-agent'] as string) ?? null,

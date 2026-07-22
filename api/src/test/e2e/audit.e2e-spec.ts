@@ -54,7 +54,9 @@ describe('Bitácora de auditoría (audit) e2e', () => {
 
     const list = await http().get('/api/v1/audit').set(bearer(adminToken)).expect(200);
     const rec = list.body.items[0];
-    expect(rec.action).toBe('promoter.approve');
+    // Las confirmaciones de UI se namespacean con `ui.confirm:` (no pueden hacerse pasar
+    // por un evento de gobernanza server-side aunque el cliente mande esa cadena).
+    expect(rec.action).toBe('ui.confirm:promoter.approve');
     expect(rec.resource).toBe('promo-123');
     expect(rec.userId).toBe(buyerId);
     expect(rec.userAgent).toBe('JestTest/1.0'); // capturado server-side, no del body
