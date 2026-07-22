@@ -699,6 +699,28 @@ async function seedDemoNotifications(buyerId: string, promoterId: string): Promi
   });
 }
 
+/** Tickets de soporte de muestra (para ver la bandeja del agente y la vista del promotor). */
+async function seedDemoSupport(promoterId: string, adminId: string): Promise<void> {
+  if ((await prisma.supportTicket.count()) > 0) return;
+  // Ticket 1: abierto, con mensaje del promotor (aparece en la cola sin-asignar).
+  const t1 = await prisma.supportTicket.create({
+    data: { promoterId, subject: 'No veo mi liquidación del evento', category: 'payments_settlement', priority: 'high', status: 'new' },
+  });
+  await prisma.supportMessage.create({
+    data: { ticketId: t1.id, senderId: promoterId, senderRole: Role.promoter, body: 'Hola, mi evento ya terminó pero no aparece la liquidación. ¿Me ayudan?' },
+  });
+  // Ticket 2: resuelto, con respuesta del admin (aparece en "resueltos").
+  const t2 = await prisma.supportTicket.create({
+    data: { promoterId, subject: '¿Cómo cambio la pasarela de un evento?', category: 'technical', priority: 'medium', status: 'resolved', assignedToId: adminId, resolvedAt: new Date() },
+  });
+  await prisma.supportMessage.createMany({
+    data: [
+      { ticketId: t2.id, senderId: promoterId, senderRole: Role.promoter, body: 'No encuentro dónde cambiar la pasarela.' },
+      { ticketId: t2.id, senderId: adminId, senderRole: Role.admin, body: 'En el editor del evento, pestaña Configuración, mientras esté en borrador o suspendido. ¡Saludos!' },
+    ],
+  });
+}
+
 async function seedKbArticles(authorId?: string): Promise<void> {
   // Base de Conocimientos (T6): artículos publicados iniciales del FAQ (≥5 por categoría),
   // en `prisma/kb-seed-data.ts`. Idempotente por slug.
@@ -743,6 +765,7 @@ async function main(): Promise<void> {
   await seedKbArticles(users['admin@boletiva.com']);
   await seedDemoCard(users['cliente@boletiva.com']);
   await seedDemoNotifications(users['cliente@boletiva.com'], users['promotor@boletiva.com']);
+  await seedDemoSupport(users['promotor@boletiva.com'], users['admin@boletiva.com']);
 
   const [settings, userCount, catCount, eventCount, hallCount, tplCount] = await Promise.all([
     prisma.setting.count(),
