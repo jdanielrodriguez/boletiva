@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
+import { SESClient, SendRawEmailCommand } from '@aws-sdk/client-ses';
 import { PrismaService } from '../prisma/prisma.service';
 import { QueueService } from '../queue/queue.service';
 import { QUEUES } from '../queue/queue.constants';
@@ -93,6 +94,8 @@ export class MailService implements OnModuleInit {
 
   onModuleInit(): void {
     const mail = this.config.getOrThrow<{
+      transport: string;
+      region: string;
       host: string;
       port: number;
       user: string;
@@ -101,12 +104,26 @@ export class MailService implements OnModuleInit {
       from: string;
     }>('mail');
     this.from = mail.from;
-    this.transporter = nodemailer.createTransport({
-      host: mail.host,
-      port: mail.port,
-      secure: mail.secure,
-      auth: mail.user ? { user: mail.user, pass: mail.pass } : undefined,
-    });
+    if (mail.transport === 'ses') {
+      // AWS SES vía SDK (prod): un request HTTPS por correo, sin overhead SMTP, y libera
+      // más rápido a los workers de BullMQ. Las credenciales las resuelve el SDK del
+      // entorno (variables AWS_* o rol IAM / WIF de Cloud Run). El resto del código
+      // (plantillas, sendMail, colas) queda intacto: solo cambia el transporte.
+      const ses = new SESClient({ region: mail.region });
+      // Los tipos de nodemailer no exponen la opción `SES` (es una extensión), pero el
+      // transporte existe en runtime → cast controlado.
+      this.transporter = nodemailer.createTransport({
+        SES: { ses, aws: { SendRawEmailCommand } },
+      } as unknown as nodemailer.TransportOptions);
+    } else {
+      // SMTP (MailHog local / cualquier proveedor SMTP).
+      this.transporter = nodemailer.createTransport({
+        host: mail.host,
+        port: mail.port,
+        secure: mail.secure,
+        auth: mail.user ? { user: mail.user, pass: mail.pass } : undefined,
+      });
+    }
     // Consumidor de la cola MAIL para los correos genéricos ya plantillados
     // (auth, invitaciones…). Otros emisores (confirmación de compra, avisos de
     // promotor, liquidación) registran su propio handler y filtran por `name`.

@@ -26,7 +26,7 @@ export interface AppConfig {
     };
     gcs: { projectId: string; bucket: string; serviceAccountJson: string };
   };
-  mail: { host: string; port: number; user: string; pass: string; secure: boolean; from: string };
+  mail: { transport: string; region: string; host: string; port: number; user: string; pass: string; secure: boolean; from: string };
   jwt: {
     accessSecret: string;
     accessTtl: number;
@@ -191,6 +191,11 @@ export const configuration = (): AppConfig => {
       },
     },
     mail: {
+      // Transporte: 'smtp' (MailHog local / cualquier SMTP) o 'ses' (AWS SES vía SDK,
+      // recomendado en prod: 1 request HTTPS, sin baile SMTP, y habilita bounce handling
+      // por Configuration Sets). El resto de la lógica (plantillas, colas) es idéntica.
+      transport: (process.env.MAIL_TRANSPORT ?? 'smtp').toLowerCase(),
+      region: process.env.MAIL_AWS_REGION ?? process.env.AWS_REGION ?? 'us-east-1',
       host: process.env.MAIL_HOST as string,
       port: parseInt(process.env.MAIL_PORT ?? '1025', 10),
       user: process.env.MAIL_USER ?? '',
