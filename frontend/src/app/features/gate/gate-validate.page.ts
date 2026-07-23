@@ -155,10 +155,16 @@ export class GateValidatePage implements OnDestroy {
     this.phase.set('starting');
     this.error.set(null);
     this.api.claim(this.token).subscribe({
-      next: (res) => {
+      next: async (res) => {
         this.gateToken = res.gateToken;
         this.eventId = res.gateEventId;
         this.eventName.set(res.event.name);
+        // G2.3 (auditoría 4): drenar la cola de check-ins PENDIENTES antes de re-descargar
+        // el manifiesto. saveManifest hace clear()+reput con la verdad del backend; sin este
+        // flush previo, un boleto validado offline (aún en la cola) se resetearía a 'valid' y
+        // podría volver a dar VERDE tras una recarga. Con el flush, el backend ya lo tiene como
+        // 'used' y el manifiesto descargado lo refleja. (No-op si la cola está vacía / sin red.)
+        await this.flush();
         this.downloadManifest();
       },
       error: (err) => {

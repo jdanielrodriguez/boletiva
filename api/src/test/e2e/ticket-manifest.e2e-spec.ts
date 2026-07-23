@@ -141,6 +141,8 @@ describe('Boletos: manifiesto offline + propagación (e2e)', () => {
   it('manifiesto completo: trae secretos TOTP + firma Ed25519 verificable offline', async () => {
     const ticketId = await buyTicket(0);
     const res = await manifest(0).expect(200);
+    // G2.1 (auditoría 4): el manifiesto lleva secretos TOTP en claro → nunca cacheable.
+    expect(res.headers['cache-control']).toContain('no-store');
     expect(res.body.count).toBeGreaterThanOrEqual(1);
     const entry = res.body.tickets.find((t: { ticketId: string }) => t.ticketId === ticketId);
     expect(entry).toBeDefined();
