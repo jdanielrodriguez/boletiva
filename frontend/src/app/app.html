@@ -30,5 +30,5 @@
   <app-loading [fullscreen]="true" [label]="'common.loading' | translate" data-testid="hydration-loader" />
 }
 @if (globalLoading()) {
-  <app-loading [fullscreen]="true" [dim]="true" [label]="'common.loading' | translate" data-testid="global-loader" />
+  <app-loading [fullscreen]="true" [dim]="true" [blocking]="globalLoadingBlocking()" [label]="'common.loading' | translate" data-testid="global-loader" />
 }
