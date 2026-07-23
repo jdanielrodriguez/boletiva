@@ -1,8 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AdvisorInvitationsApi, type AdvisorInvitationRow } from '../../core/api/advisor-invitations.api';
 import { AdvisorsApi, type AdvisorRow } from '../../core/api/advisors.api';
+import { AdvisorApi, type AdvisorUnlockState } from '../../core/api/advisor.api';
 import { ToastService } from '../../core/ui/toast.service';
 import { BackLinkComponent } from '../../shared/ui/back-link.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
@@ -56,8 +59,13 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dial
           [subtitle]="'advisor.admin.emptyBody' | translate" />
       }
 
-      <!-- Gestión de asesores actuales: deshabilitar (→ cliente) / habilitar / notificar / eliminar. -->
-      <h2 class="adv-mgmt-title">{{ 'advisor.admin.manageTitle' | translate }}</h2>
+      <!-- Gestión de asesores actuales: deshabilitar (→ cliente) / habilitar / notificar / eliminar / desbloquear. -->
+      <div class="adv-mgmt-head">
+        <h2 class="adv-mgmt-title">{{ 'advisor.admin.manageTitle' | translate }}</h2>
+        <button type="button" class="btn small subtle" (click)="refreshAdvisors()" [disabled]="refreshing()" data-testid="adv-refresh">
+          <app-icon name="reactivate" [size]="15" /> {{ refreshing() ? ('common.loading' | translate) : ('advisor.admin.refresh' | translate) }}
+        </button>
+      </div>
       @if (advisors().length > 0) {
         <ul class="adv-list" data-testid="adv-mgmt-list">
           @for (a of advisors(); track a.id) {
@@ -67,12 +75,22 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dial
                 <span class="badge badge-inactive">{{ 'advisor.admin.disabledBadge' | translate }}</span>
               } @else {
                 <span class="badge badge-active">{{ 'advisor.admin.activeBadge' | translate }}</span>
+                @if (unlockLabel(a.id) === 'active') {
+                  <span class="badge badge-active" [title]="'advisor.admin.unlockUntil' | translate: { time: (unlockExpiresAt(a.id) | localizedDate: 'short') }" [attr.data-testid]="'adv-unlock-active-' + a.id">
+                    <app-icon name="unlock" [size]="13" /> {{ 'advisor.admin.unlockActive' | translate }}
+                  </span>
+                } @else if (unlockLabel(a.id) === 'pending') {
+                  <span class="badge badge-pending" [attr.data-testid]="'adv-unlock-pending-' + a.id">{{ 'advisor.admin.unlockPending' | translate }}</span>
+                }
               }
               <div class="adv-actions">
                 @if (a.disabled) {
                   <button type="button" class="btn small success" (click)="enable(a)" [attr.data-testid]="'adv-enable-' + a.id"><app-icon name="reactivate" [size]="15" /> {{ 'advisor.admin.enable' | translate }}</button>
                   <button type="button" class="btn small danger" (click)="askRemove(a)" [attr.data-testid]="'adv-remove-' + a.id"><app-icon name="delete" [size]="15" /> {{ 'advisor.admin.remove' | translate }}</button>
                 } @else {
+                  @if (unlockLabel(a.id) !== 'active') {
+                    <button type="button" class="btn small" [class.success]="unlockLabel(a.id) === 'pending'" [class.subtle]="unlockLabel(a.id) !== 'pending'" (click)="askGrant(a)" [attr.data-testid]="'adv-grant-' + a.id"><app-icon name="unlock" [size]="15" /> {{ 'advisor.admin.grant' | translate }}</button>
+                  }
                   <button type="button" class="btn small subtle" (click)="askNotify(a)" [attr.data-testid]="'adv-notify-' + a.id"><app-icon name="bell" [size]="15" /> {{ 'advisor.admin.notify' | translate }}</button>
                   <button type="button" class="btn small subtle" (click)="askDisable(a)" [attr.data-testid]="'adv-disable-' + a.id"><app-icon name="suspend" [size]="15" /> {{ 'advisor.admin.disable' | translate }}</button>
                 }
@@ -105,7 +123,8 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dial
       .adv-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.8rem; border: 1px solid var(--pe-border); border-radius: var(--pe-radius-sm); }
       .adv-email { font-weight: 600; }
       .adv-row time { margin-left: auto; }
-      .adv-mgmt-title { margin: 1.8rem 0 0.6rem; font-size: 1.1rem; }
+      .adv-mgmt-head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; margin: 1.8rem 0 0.6rem; flex-wrap: wrap; }
+      .adv-mgmt-title { margin: 0; font-size: 1.1rem; }
       .adv-row.is-disabled { opacity: 0.75; }
       .adv-actions { margin-left: auto; display: flex; gap: 0.4rem; flex-wrap: wrap; }
     `,
@@ -114,6 +133,7 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dial
 export class AdminAdvisorsPage {
   private readonly api = inject(AdvisorInvitationsApi);
   private readonly advisorsApi = inject(AdvisorsApi);
+  private readonly advisorApi = inject(AdvisorApi);
   private readonly toasts = inject(ToastService);
   private readonly translate = inject(TranslateService);
   protected readonly confirm = new ConfirmController();
@@ -121,20 +141,78 @@ export class AdminAdvisorsPage {
   protected readonly emails = signal('');
   protected readonly rows = signal<AdvisorInvitationRow[]>([]);
   protected readonly advisors = signal<AdvisorRow[]>([]);
+  protected readonly unlockStates = signal<AdvisorUnlockState[]>([]);
   protected readonly working = signal(false);
   protected readonly loading = signal(false);
   protected readonly loadError = signal(false);
+  protected readonly refreshing = signal(false);
   protected readonly canInvite = computed(() => this.emails().trim().length > 3);
+
+  /** Estado de desbloqueo indexado por asesor (O(1) en la plantilla). */
+  private readonly unlockMap = computed(() => {
+    const m = new Map<string, AdvisorUnlockState>();
+    for (const s of this.unlockStates()) m.set(s.advisorId, s);
+    return m;
+  });
 
   constructor() {
     this.reload();
     this.reloadAdvisors();
   }
 
+  /** Recarga la lista de asesores Y sus estados de desbloqueo (una pasada, sin socket). */
   private reloadAdvisors(): void {
-    this.advisorsApi.list().subscribe({
-      next: (a) => this.advisors.set(a),
-      error: () => this.advisors.set([]),
+    forkJoin({
+      advisors: this.advisorsApi.list().pipe(catchError(() => of([] as AdvisorRow[]))),
+      unlocks: this.advisorApi.listPending().pipe(catchError(() => of([] as AdvisorUnlockState[]))),
+    }).subscribe(({ advisors, unlocks }) => {
+      this.advisors.set(advisors);
+      this.unlockStates.set(unlocks);
+    });
+  }
+
+  /** Botón "Actualizar": recarga a demanda (el usuario pidió refresco manual, sin socket). */
+  protected refreshAdvisors(): void {
+    this.refreshing.set(true);
+    forkJoin({
+      advisors: this.advisorsApi.list().pipe(catchError(() => of([] as AdvisorRow[]))),
+      unlocks: this.advisorApi.listPending().pipe(catchError(() => of([] as AdvisorUnlockState[]))),
+    }).subscribe(({ advisors, unlocks }) => {
+      this.advisors.set(advisors);
+      this.unlockStates.set(unlocks);
+      this.refreshing.set(false);
+      this.toasts.info(this.t('advisor.admin.refreshedOk'));
+    });
+  }
+
+  /** Estado de desbloqueo de un asesor para la plantilla: 'active' | 'pending' | 'none'. */
+  protected unlockLabel(id: string): 'active' | 'pending' | 'none' {
+    const s = this.unlockMap().get(id);
+    if (!s) return 'none';
+    if (s.unlocked) return 'active';
+    if (s.pending) return 'pending';
+    return 'none';
+  }
+
+  protected unlockExpiresAt(id: string): string | null {
+    return this.unlockMap().get(id)?.expiresAt ?? null;
+  }
+
+  /** El admin concede el desbloqueo directamente (F3): confirma → abre la ventana → recarga. */
+  protected askGrant(a: AdvisorRow): void {
+    this.confirm.ask({
+      title: this.t('advisor.admin.grantTitle'),
+      message: this.t('advisor.admin.grantMsg', { name: a.firstName || a.email }),
+      confirmLabel: this.t('advisor.admin.grant'),
+      confirmIcon: 'unlock',
+      onConfirm: () =>
+        this.advisorApi.grant(a.id).subscribe({
+          next: () => {
+            this.toasts.success(this.t('advisor.admin.grantedOk'));
+            this.reloadAdvisors();
+          },
+          error: () => this.toasts.error(this.t('advisor.admin.actionError')),
+        }),
     });
   }
 

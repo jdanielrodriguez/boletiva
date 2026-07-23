@@ -308,4 +308,58 @@ describe('Rol asesor (e2e)', () => {
       .set(bearer(advisorToken))
       .expect(404);
   });
+
+  // --- F3: desbloqueo desde el panel admin (sin depender del correo) ---
+
+  it('F3: GET /advisor/unlock/pending lista al asesor con solicitud pendiente (@AdminOnly; asesor 403)', async () => {
+    await setLock(true);
+    await prisma.advisorUnlock.deleteMany({ where: { advisorId } });
+    // Sin solicitudes: el asesor NO aparece.
+    let list = await http().get('/api/v1/advisor/unlock/pending').set(bearer(adminToken)).expect(200);
+    expect((list.body as Array<{ advisorId: string }>).find((r) => r.advisorId === advisorId)).toBeUndefined();
+    // El asesor solicita → aparece con pending:true.
+    await http().post('/api/v1/advisor/unlock/request').set(bearer(advisorToken)).expect(200);
+    list = await http().get('/api/v1/advisor/unlock/pending').set(bearer(adminToken)).expect(200);
+    const row = (list.body as Array<{ advisorId: string; pending: boolean; unlocked: boolean }>).find(
+      (r) => r.advisorId === advisorId,
+    );
+    expect(row).toBeDefined();
+    expect(row?.pending).toBe(true);
+    expect(row?.unlocked).toBe(false);
+    // Un ASESOR NO puede listar los desbloqueos (@AdminOnly) → 403.
+    await http().get('/api/v1/advisor/unlock/pending').set(bearer(advisorToken)).expect(403);
+    await prisma.advisorUnlock.deleteMany({ where: { advisorId } });
+  });
+
+  it('F3: POST /advisor/unlock/grant concede el desbloqueo directo (sin token); abre la ventana', async () => {
+    await setLock(true);
+    await prisma.advisorUnlock.deleteMany({ where: { advisorId } });
+    // Sin ventana: mutar área admin → 403.
+    await http()
+      .patch(`/api/v1/promoters/${promoterId}/note`)
+      .set(bearer(advisorToken))
+      .send({ note: 'antes del grant' })
+      .expect(403);
+    // El admin concede directamente (sin el token del correo).
+    const g = await http().post(`/api/v1/advisor/unlock/grant/${advisorId}`).set(bearer(adminToken)).expect(200);
+    expect(g.body).toMatchObject({ granted: true, advisorId });
+    expect(g.body.expiresAt).toBeTruthy();
+    // Ahora la ventana está abierta → el asesor muta.
+    await http()
+      .patch(`/api/v1/promoters/${promoterId}/note`)
+      .set(bearer(advisorToken))
+      .send({ note: 'tras el grant' })
+      .expect(200);
+    // El status del asesor lo refleja.
+    const st = await http().get('/api/v1/advisor/unlock/status').set(bearer(advisorToken)).expect(200);
+    expect(st.body.unlocked).toBe(true);
+    await prisma.advisorUnlock.deleteMany({ where: { advisorId } });
+  });
+
+  it('F3: grant es @AdminOnly (asesor 403) y valida que el destino sea asesor (404)', async () => {
+    // Un asesor (aunque hereda admin) NO puede conceder desbloqueos.
+    await http().post(`/api/v1/advisor/unlock/grant/${advisorId}`).set(bearer(advisorToken)).expect(403);
+    // Conceder a un usuario que NO es asesor (el promotor semilla) → 404.
+    await http().post(`/api/v1/advisor/unlock/grant/${promoterId}`).set(bearer(adminToken)).expect(404);
+  });
 });

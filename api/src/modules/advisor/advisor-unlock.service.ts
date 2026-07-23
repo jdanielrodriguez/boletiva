@@ -15,6 +15,13 @@ interface UnlockMailJob {
   link: string;
 }
 
+interface UnlockGrantedMailJob {
+  advisorEmail: string;
+  advisorName: string;
+  expiresAt: string;
+  minutes: number;
+}
+
 /** Minutos de la ventana de desbloqueo del asesor (configurable por env). */
 const DEFAULT_WINDOW_MIN = 30;
 /** Vida del ENLACE pendiente de aprobación: un correo viejo no debe seguir siendo válido. */
@@ -43,8 +50,10 @@ export class AdvisorUnlockService implements OnModuleInit {
     this.queue.registerHandler(QUEUES.MAIL, (name, data) => this.handleMail(name, data));
   }
 
-  /** Handler de la cola MAIL (compartida): avisa a los admins con el enlace de aprobación. */
+  /** Handler de la cola MAIL (compartida): avisa a los admins con el enlace de
+   * aprobación, o al asesor cuando un admin le concede el desbloqueo (F3). */
   private async handleMail(name: string, data: unknown): Promise<void> {
+    if (name === 'advisor-unlock-granted') return this.handleGrantedMail(data);
     if (name !== 'advisor-unlock-request') return;
     const job = data as UnlockMailJob;
     const admins = await this.prisma.user.findMany({
@@ -69,6 +78,23 @@ export class AdvisorUnlockService implements OnModuleInit {
         })
         .catch((e) => this.logger.warn(`No se pudo avisar a ${a.email}: ${(e as Error).message}`));
     }
+  }
+
+  /** Correo al ASESOR cuando un admin le concede el desbloqueo directamente (F3). */
+  private async handleGrantedMail(data: unknown): Promise<void> {
+    const job = data as UnlockGrantedMailJob;
+    const who = escapeHtml(job.advisorName || 'asesor');
+    await this.mail
+      .sendTemplated(job.advisorEmail, '🔓 Desbloqueo concedido — Boletiva', {
+        title: '¡Listo! Ya puedes editar 🎉',
+        preheader: `Un administrador autorizó tu desbloqueo por ${job.minutes} minutos.`,
+        bodyHtml:
+          `<p style="margin:0 0 12px 0;">Hola <strong>${who}</strong>, un administrador ` +
+          `autorizó tu <strong>ventana de desbloqueo</strong> para editar áreas de administración.</p>` +
+          `<p style="margin:0;font-size:14px;color:{{muted}};">La ventana está activa por ` +
+          `<strong>${job.minutes} minutos</strong>. Cuando termine, tendrás que solicitarla de nuevo.</p>`,
+      })
+      .catch((e) => this.logger.warn(`No se pudo avisar al asesor: ${(e as Error).message}`));
   }
 
   /** ¿Está activada la exigencia de desbloqueo? (setting; default true). */
@@ -152,5 +178,86 @@ export class AdvisorUnlockService implements OnModuleInit {
       expiresAt: active?.expiresAt ?? null,
       pending: !!pending,
     };
+  }
+
+  /**
+   * Estado de desbloqueo de TODOS los asesores con actividad, para el panel admin
+   * (F3): un asesor aparece si tiene una solicitud PENDIENTE o una ventana APROBADA
+   * vigente. Una sola consulta (server-side) → la tabla no hace N peticiones.
+   */
+  async listUnlockStates(): Promise<
+    Array<{ advisorId: string; pending: boolean; requestedAt: Date | null; unlocked: boolean; expiresAt: Date | null }>
+  > {
+    const now = new Date();
+    const rows = await this.prisma.advisorUnlock.findMany({
+      where: { OR: [{ approved: false }, { approved: true, expiresAt: { gt: now } }] },
+      orderBy: { createdAt: 'desc' },
+    });
+    const byAdvisor = new Map<
+      string,
+      { advisorId: string; pending: boolean; requestedAt: Date | null; unlocked: boolean; expiresAt: Date | null }
+    >();
+    for (const r of rows) {
+      const cur =
+        byAdvisor.get(r.advisorId) ??
+        { advisorId: r.advisorId, pending: false, requestedAt: null, unlocked: false, expiresAt: null };
+      if (!r.approved) {
+        cur.pending = true;
+        if (!cur.requestedAt || r.createdAt > cur.requestedAt) cur.requestedAt = r.createdAt;
+      } else if (r.expiresAt && r.expiresAt > now) {
+        cur.unlocked = true;
+        if (!cur.expiresAt || r.expiresAt > cur.expiresAt) cur.expiresAt = r.expiresAt;
+      }
+      byAdvisor.set(r.advisorId, cur);
+    }
+    return [...byAdvisor.values()];
+  }
+
+  /**
+   * El ADMIN concede el desbloqueo DIRECTAMENTE, sin el token del correo (F3): abre
+   * la ventana y avisa al asesor. Vía paralela y AUDITADA al `approve` por enlace
+   * (queda `approvedById`). Reutiliza la solicitud pendiente si existe. @AdminOnly.
+   */
+  async grant(advisorId: string, adminId: string) {
+    const advisor = await this.prisma.user.findUnique({
+      where: { id: advisorId },
+      select: { id: true, email: true, firstName: true, roles: true },
+    });
+    if (!advisor || !advisor.roles.includes(Role.advisor)) {
+      throw new NotFoundException('Asesor no encontrado');
+    }
+    const minutes = this.config.get<number>('advisor.unlockWindowMin') ?? DEFAULT_WINDOW_MIN;
+    const expiresAt = new Date(Date.now() + minutes * 60_000);
+    const pending = await this.prisma.advisorUnlock.findFirst({
+      where: { advisorId, approved: false },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (pending) {
+      await this.prisma.advisorUnlock.update({
+        where: { id: pending.id },
+        data: { approved: true, approvedById: adminId, approvedAt: new Date(), expiresAt },
+      });
+    } else {
+      await this.prisma.advisorUnlock.create({
+        data: {
+          advisorId,
+          tokenHash: sha256(randomToken(24)), // token aleatorio: no aprobable por enlace
+          approved: true,
+          approvedById: adminId,
+          approvedAt: new Date(),
+          expiresAt,
+        },
+      });
+    }
+    // Limpia cualquier otra solicitud pendiente del asesor (ya está desbloqueado).
+    await this.prisma.advisorUnlock.deleteMany({ where: { advisorId, approved: false } });
+    // Avisa al asesor (best-effort, cola MAIL → nunca bloquea).
+    await this.queue.enqueue(QUEUES.MAIL, 'advisor-unlock-granted', {
+      advisorEmail: advisor.email,
+      advisorName: advisor.firstName ?? '',
+      expiresAt: expiresAt.toISOString(),
+      minutes,
+    });
+    return { granted: true, advisorId, expiresAt };
   }
 }

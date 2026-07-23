@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiProperty, ApiTags } from '@nestjs/swagger';
 import { IsString, MinLength } from 'class-validator';
 import { Role } from '@prisma/client';
@@ -23,6 +23,28 @@ export class AdvisorUnlockStatusDto {
   expiresAt!: Date | null;
   @ApiProperty({ description: 'true si hay una solicitud pendiente de aprobación' })
   pending!: boolean;
+}
+
+export class AdvisorUnlockStateDto {
+  @ApiProperty({ description: 'ID del asesor' })
+  advisorId!: string;
+  @ApiProperty({ description: 'true si tiene una solicitud de desbloqueo pendiente' })
+  pending!: boolean;
+  @ApiProperty({ format: 'date-time', nullable: true, description: 'Momento de la solicitud pendiente' })
+  requestedAt!: Date | null;
+  @ApiProperty({ description: 'true si tiene una ventana de desbloqueo vigente' })
+  unlocked!: boolean;
+  @ApiProperty({ format: 'date-time', nullable: true, description: 'Fin de la ventana vigente' })
+  expiresAt!: Date | null;
+}
+
+export class GrantAdvisorUnlockResultDto {
+  @ApiProperty()
+  granted!: boolean;
+  @ApiProperty()
+  advisorId!: string;
+  @ApiProperty({ format: 'date-time', nullable: true })
+  expiresAt!: Date | null;
 }
 
 /**
@@ -59,5 +81,24 @@ export class AdvisorController {
   @ApiOperation({ summary: 'El admin aprueba el desbloqueo del asesor (desde el enlace)' })
   approve(@Body() dto: ApproveAdvisorUnlockDto, @CurrentUser('userId') adminId: string) {
     return this.unlock.approve(dto.token, adminId);
+  }
+
+  @Get('pending')
+  @Roles(Role.admin)
+  @AdminOnly() // EXCLUSIVO admin: un asesor NO ve/gestiona los desbloqueos.
+  @ApiOperation({ summary: 'Estado de desbloqueo de todos los asesores con actividad (panel admin)' })
+  @ApiOkResponse({ type: AdvisorUnlockStateDto, isArray: true })
+  listPending() {
+    return this.unlock.listUnlockStates();
+  }
+
+  @Post('grant/:advisorId')
+  @Roles(Role.admin)
+  @AdminOnly() // EXCLUSIVO admin: concede el desbloqueo directo, sin el token del correo.
+  @HttpCode(200)
+  @ApiOperation({ summary: 'El admin concede el desbloqueo del asesor directamente (sin enlace)' })
+  @ApiOkResponse({ type: GrantAdvisorUnlockResultDto })
+  grant(@Param('advisorId') advisorId: string, @CurrentUser('userId') adminId: string) {
+    return this.unlock.grant(advisorId, adminId);
   }
 }
