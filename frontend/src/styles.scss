@@ -2289,7 +2289,10 @@ app-root {
 }
 
 .loc-tab:hover {
-  border-color: var(--pe-primary);
+  /* Más contraste en hover (antes solo cambiaba el borde): fondo de acento + borde fuerte. */
+  border-color: var(--pe-accent);
+  background: var(--pe-accent-soft);
+  color: var(--pe-accent-strong, var(--pe-accent));
 }
 
 .loc-tab.active {
@@ -3088,7 +3091,9 @@ app-root {
 
 .locality-row:hover {
   transform: translateY(-2px);
-  border-color: var(--pe-primary);
+  /* Más contraste en hover: borde y fondo de acento (antes solo borde primary). */
+  border-color: var(--pe-accent);
+  background: var(--pe-accent-soft);
   box-shadow: var(--pe-shadow);
 }
 
