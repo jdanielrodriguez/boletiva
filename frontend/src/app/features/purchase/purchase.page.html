@@ -93,10 +93,23 @@
       <p class="warn" data-testid="purchase-expired">{{ 'purchase.expiredWarn' | translate }}</p>
     }
     @if (blocked()) {
-      <div class="warn reserve-blocked" data-testid="reserve-blocked" role="alert">
-        <p>{{ blocked() }}</p>
-        <p class="reserve-blocked-hint">{{ 'purchase.reserveLimitHint' | translate }}</p>
-        <button type="button" class="btn btn-outline" data-testid="reserve-login" (click)="loginToReserve()">
+      <div class="reserve-blocked" data-testid="reserve-blocked" role="alert">
+        <button type="button" class="reserve-blocked-close" data-testid="reserve-blocked-close" (click)="dismissBlocked()" [attr.aria-label]="'common.close' | translate">
+          <app-icon name="close" [size]="18" />
+        </button>
+        <div class="reserve-blocked-body">
+          <app-icon class="reserve-blocked-icon" name="alert" [size]="22" />
+          <div class="reserve-blocked-text">
+            <p class="reserve-blocked-msg">{{ blocked() }}</p>
+            @if (cooldownSeconds() > 0) {
+              <p class="reserve-blocked-timer" data-testid="reserve-blocked-timer" [attr.aria-label]="'purchase.reserveCooldownAria' | translate">
+                {{ 'purchase.reserveCooldownTimer' | translate: { mm: cooldownMm(), ss: (cooldownSs() | number: '2.0-0') } }}
+              </p>
+            }
+            <p class="reserve-blocked-hint">{{ 'purchase.reserveLimitHint' | translate }}</p>
+          </div>
+        </div>
+        <button type="button" class="btn btn-outline reserve-blocked-login" data-testid="reserve-login" (click)="loginToReserve()">
           {{ 'purchase.reserveLimitLogin' | translate }}
         </button>
       </div>

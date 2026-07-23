@@ -4899,20 +4899,78 @@ button.danger {
 
 /* Advertencia anti-abuso de reservas anónimas (429) en la página de compra. */
 .reserve-blocked {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.65rem;
   align-items: flex-start;
   margin: 0.75rem 0;
-  padding: 0.85rem 1rem;
-  border-radius: 12px;
-  background: var(--pe-warning-soft, rgba(217, 119, 6, 0.12));
-  border: 1px solid var(--pe-warning-border, rgba(217, 119, 6, 0.4));
+  padding: 1rem 2.5rem 1rem 1.1rem; /* espacio a la derecha para la X */
+  border-radius: 14px;
+  /* Contraste alto: fondo cálido más saturado + franja de acento a la izquierda. */
+  background: var(--pe-warning-soft, rgba(217, 119, 6, 0.16));
+  border: 1px solid var(--pe-warning-border, rgba(217, 119, 6, 0.5));
+  border-left: 5px solid var(--pe-warning-strong, #b45309);
+  color: var(--pe-warning-ink, var(--pe-warning-strong, #7c3d00));
+  box-shadow: var(--pe-shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+}
+.reserve-blocked-close {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
   color: var(--pe-warning-strong, #b45309);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.reserve-blocked-close:hover {
+  background: var(--pe-warning-border, rgba(217, 119, 6, 0.4));
+  color: var(--pe-on-accent, #fff);
+}
+.reserve-blocked-body {
+  display: flex;
+  gap: 0.7rem;
+  align-items: flex-start;
+}
+.reserve-blocked-icon {
+  flex: 0 0 auto;
+  color: var(--pe-warning-strong, #b45309);
+  margin-top: 0.1rem;
+}
+.reserve-blocked-msg {
+  margin: 0;
+  font-weight: 600;
+  color: var(--pe-warning-ink, var(--pe-warning-strong, #7c3d00));
+}
+.reserve-blocked-timer {
+  display: inline-flex;
+  align-items: center;
+  margin: 0.4rem 0;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: var(--pe-warning-strong, #b45309);
+  color: var(--pe-on-accent, #fff);
+  font-weight: 700;
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
 }
 .reserve-blocked .reserve-blocked-hint {
-  color: var(--pe-muted);
+  margin: 0;
+  color: var(--pe-warning-ink, var(--pe-warning-strong, #7c3d00));
+  opacity: 0.85;
   font-size: 0.9rem;
+}
+.reserve-blocked-login {
+  margin-top: 0.15rem;
 }
 .back-link {
   display: inline-flex;

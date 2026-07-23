@@ -61,6 +61,8 @@ describe('Límite de reserva por IP (visitantes) (e2e)', () => {
       'res:ip:cooldown:203.0.113.10',
       'res:ip:active:203.0.113.30',
       'res:ip:cooldown:203.0.113.30',
+      'res:ip:active:203.0.113.40',
+      'res:ip:cooldown:203.0.113.40',
     );
     await prisma.order.deleteMany({ where: { eventId } });
     await prisma.event.deleteMany({ where: { id: eventId } });
@@ -95,6 +97,35 @@ describe('Límite de reserva por IP (visitantes) (e2e)', () => {
     // Tras vencer el cooldown (2 s) vuelve a permitir.
     await new Promise((res) => setTimeout(res, 2300));
     await reserve('203.0.113.30').expect(201);
+  });
+
+  it('GET /reservations/cooldown expone el tiempo restante (para el cronómetro del banner)', async () => {
+    const ip = '203.0.113.40';
+    // Sin actividad: no hay cooldown.
+    await request(app.getHttpServer())
+      .get('/api/v1/reservations/cooldown')
+      .set('X-Forwarded-For', ip)
+      .expect(200)
+      .expect((r) => {
+        expect(r.body.onCooldown).toBe(false);
+        expect(r.body.retryAfterSeconds).toBe(0);
+      });
+    // Reservar y cancelar → arranca el cooldown.
+    const created = await reserve(ip).expect(201);
+    await request(app.getHttpServer())
+      .delete(`/api/v1/reservations/${created.body.token}`)
+      .set('X-Forwarded-For', ip)
+      .expect(200);
+    // Ahora el endpoint reporta cooldown activo con segundos restantes > 0 (autoritativo).
+    await request(app.getHttpServer())
+      .get('/api/v1/reservations/cooldown')
+      .set('X-Forwarded-For', ip)
+      .expect(200)
+      .expect((r) => {
+        expect(r.body.onCooldown).toBe(true);
+        expect(r.body.retryAfterSeconds).toBeGreaterThan(0);
+        expect(r.body.retryAfterSeconds).toBeLessThanOrEqual(2);
+      });
   });
 
   it('usuario logueado NO tiene límite (Bearer válido salta el guard por IP)', async () => {
