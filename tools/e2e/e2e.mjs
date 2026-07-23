@@ -185,7 +185,7 @@ async function main() {
   console.log('\n▶ Reserva anónima compartible');
   let shareLink = '';
   await step('reserva SIN login y genera link para compartir', async () => {
-    await page.goto(`${FE}/eventos/${EVENT_SLUG}/comprar`, { waitUntil: 'networkidle0' });
+    await page.goto(`${FE}/eventos/${EVENT_SLUG}/comprar`, { waitUntil: 'domcontentloaded' });
     await clickLocTab(page, 'General'); // mapa único: elegir la zona GA para ver el stepper
     await waitSel(page, '[data-testid="loc-quantity"]');
     await waitSel(page, '[data-testid="qty-plus"]');
@@ -202,7 +202,7 @@ async function main() {
   });
 
   await step('abrir el link muestra la reserva y pide login al pagar', async () => {
-    await page.goto(shareLink, { waitUntil: 'networkidle0' });
+    await page.goto(shareLink, { waitUntil: 'domcontentloaded' });
     await waitSel(page, '[data-testid="pay-btn"]');
     assert(
       (await page.$('[data-testid="reservation-items"]')) !== null,
@@ -233,7 +233,7 @@ async function main() {
 
   console.log('\n▶ Compra completa (selección → reserva → checkout → pago SSE)');
   await step('selecciona General por cantidad y reserva', async () => {
-    await page.goto(`${FE}/eventos/${EVENT_SLUG}/comprar`, { waitUntil: 'networkidle0' });
+    await page.goto(`${FE}/eventos/${EVENT_SLUG}/comprar`, { waitUntil: 'domcontentloaded' });
     await clickLocTab(page, 'General'); // mapa único: elegir la zona GA para ver el stepper
     await waitSel(page, '[data-testid="loc-quantity"]');
     // Stepper +/− (reemplazó al <select> nativo): sube a 2, esperando el re-render

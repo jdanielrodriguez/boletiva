@@ -360,8 +360,10 @@ export class SeatMapComponent {
             : COLORS.available;
 
       const g = new K.Group({ x: seat.x as number, y: seat.y as number, opacity: locked && !owned ? 0.45 : 1 });
-      g.add(new K.Rect({ x: -11, y: -16, width: 22, height: 6, cornerRadius: 3, fill: color }));
+      // El ESCENARIO está ARRIBA → la sillita MIRA hacia arriba: respaldo ABAJO, asiento
+      // encima (antes el respaldo iba arriba y parecían de espaldas al escenario).
       g.add(new K.Rect({ x: -13, y: -8, width: 26, height: 16, cornerRadius: 5, fill: color }));
+      g.add(new K.Rect({ x: -11, y: 10, width: 22, height: 6, cornerRadius: 3, fill: color }));
       if (owned) {
         g.add(this.icon(K, '✓', '#ffffff'));
       } else if (chosen && !taken && !locked) {

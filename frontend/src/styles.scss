@@ -2324,9 +2324,31 @@ app-root {
 
 .loc-tabs {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap; /* vista PILL: una sola línea con scroll horizontal */
+  overflow-x: auto;
   gap: 0.6rem;
   margin: 0.5rem 0 1.25rem;
+  padding-bottom: 0.5rem;
+  /* Scrollbar delgada de marca (no la del sistema). */
+  scrollbar-width: thin;
+  scrollbar-color: var(--pe-accent) transparent;
+}
+.loc-tabs::-webkit-scrollbar {
+  height: 8px;
+}
+.loc-tabs::-webkit-scrollbar-track {
+  background: var(--pe-surface-2, transparent);
+  border-radius: 999px;
+}
+.loc-tabs::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--pe-accent) 70%, transparent);
+  border-radius: 999px;
+}
+.loc-tabs::-webkit-scrollbar-thumb:hover {
+  background: var(--pe-accent);
+}
+.loc-tabs .loc-tab {
+  flex: 0 0 auto; /* no encoger: mantienen su ancho y desbordan a scroll */
 }
 
 .loc-tab {
