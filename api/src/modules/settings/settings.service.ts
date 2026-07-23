@@ -32,6 +32,9 @@ export interface PublicConfig {
   reportsMaintenance: boolean;
   tourEnabled: boolean;
   tourResetDays: number;
+  /** UX: indicador de carga artificial al hacer clic (clientes/visitantes) + su duración (ms). */
+  clickDelayEnabled: boolean;
+  clickDelayMs: number;
   /** Temas por franja + switch, para resolver el tema en SSR sin parpadeo. */
   theme: ThemeConfig;
   /** Qué integraciones externas están configuradas (para gating de UI). */
@@ -114,6 +117,8 @@ export class SettingsService {
       reportsMaintenance: resolveBool(PUBLIC_CONFIG_KEYS.reportsMaintenance),
       tourEnabled: resolveBool(PUBLIC_CONFIG_KEYS.tourEnabled),
       tourResetDays: resolveInt(PUBLIC_CONFIG_KEYS.tourResetDays),
+      clickDelayEnabled: resolveBool(PUBLIC_CONFIG_KEYS.clickDelayEnabled),
+      clickDelayMs: resolveInt(PUBLIC_CONFIG_KEYS.clickDelayMs),
       theme: {
         slots: {
           dia: resolveEnum(PUBLIC_CONFIG_KEYS.themeSlotDia),

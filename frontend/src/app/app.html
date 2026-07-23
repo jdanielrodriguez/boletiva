@@ -32,3 +32,6 @@
 @if (globalLoading()) {
   <app-loading [fullscreen]="true" [dim]="true" [blocking]="globalLoadingBlocking()" [label]="'common.loading' | translate" data-testid="global-loader" />
 }
+@if (clickDelayActive()) {
+  <app-loading [fullscreen]="true" [dim]="true" [blocking]="true" data-testid="click-delay-loader" />
+}

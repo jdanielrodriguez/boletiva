@@ -8995,6 +8995,16 @@ export interface components {
              */
             tourResetDays: number;
             /**
+             * @description Muestra un breve indicador de carga al hacer clic (clientes/visitantes).
+             * @example true
+             */
+            clickDelayEnabled: boolean;
+            /**
+             * @description Duración (ms) del indicador de carga al hacer clic (si está activado).
+             * @example 200
+             */
+            clickDelayMs: number;
+            /**
              * @description Integraciones externas configuradas y disponibles (gating de UI).
              * @example {
              *       "recurrente": false,

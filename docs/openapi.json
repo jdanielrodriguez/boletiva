@@ -19120,6 +19120,16 @@
             "description": "Días para reofrecer un tour ya visto/saltado/rechazado (reinicio).",
             "example": 30
           },
+          "clickDelayEnabled": {
+            "type": "boolean",
+            "description": "Muestra un breve indicador de carga al hacer clic (clientes/visitantes).",
+            "example": true
+          },
+          "clickDelayMs": {
+            "type": "number",
+            "description": "Duración (ms) del indicador de carga al hacer clic (si está activado).",
+            "example": 200
+          },
           "capabilities": {
             "type": "object",
             "description": "Integraciones externas configuradas y disponibles (gating de UI).",
@@ -19206,6 +19216,8 @@
           "reportsMaintenance",
           "tourEnabled",
           "tourResetDays",
+          "clickDelayEnabled",
+          "clickDelayMs",
           "capabilities",
           "recaptchaSiteKey",
           "theme",

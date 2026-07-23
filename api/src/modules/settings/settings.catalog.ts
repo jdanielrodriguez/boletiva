@@ -136,6 +136,23 @@ export const SETTINGS_CATALOG: SettingDef[] = [
       'ofrecerlo (reinicio). También deja de ofrecerse tras verlo 3 veces sin interactuar.',
   },
   {
+    key: 'ux.click_delay_enabled',
+    type: 'bool',
+    default: true,
+    description:
+      'Muestra un breve indicador de carga al hacer clic en botones (clientes/visitantes) ' +
+      'para que la acción se sienta más sólida. El admin puede desactivarlo cuando quiera.',
+  },
+  {
+    key: 'ux.click_delay_ms',
+    type: 'int',
+    default: 200,
+    min: 0,
+    max: 3000,
+    description:
+      'Duración (ms) del indicador de carga al hacer clic (si está activado). Por defecto 200ms (0.2s).',
+  },
+  {
     key: 'theme.slot.noche',
     type: 'enum',
     default: 'pulso',
@@ -283,6 +300,8 @@ export const PUBLIC_CONFIG_KEYS = {
   reportsMaintenance: 'reports.maintenance',
   tourEnabled: 'tour.enabled',
   tourResetDays: 'tour.reset_days',
+  clickDelayEnabled: 'ux.click_delay_enabled',
+  clickDelayMs: 'ux.click_delay_ms',
   themeSlotNoche: 'theme.slot.noche',
   themeSlotDia: 'theme.slot.dia',
   themeDefaultFranja: 'theme.default_franja',

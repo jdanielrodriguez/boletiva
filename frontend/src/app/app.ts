@@ -19,6 +19,7 @@ import { LoadingStore } from './core/ui/loading.store';
 import { I18nService } from './core/i18n/i18n.service';
 import { ThemeService, type Franja } from './core/theme/theme.service';
 import { PublicConfigStore } from './core/config/public-config.store';
+import { ClickDelayService } from './core/ui/click-delay.service';
 
 @Component({
   selector: 'app-root',
@@ -47,7 +48,10 @@ export class App {
   private readonly i18n = inject(I18nService);
   private readonly theme = inject(ThemeService);
   private readonly publicConfig = inject(PublicConfigStore);
+  private readonly clickDelay = inject(ClickDelayService);
   private readonly impersonation = inject(ImpersonationService);
+  /** Velo breve tras un clic (cliente/visitante) — sensación de "está procesando". */
+  protected readonly clickDelayActive = this.clickDelay.active;
   private readonly isBrowser = isPlatformBrowser(this.platformId);
 
   /** Guard: la decisión de idioma inicial se aplica una sola vez. */
@@ -134,6 +138,7 @@ export class App {
     if (this.isBrowser) {
       this.maintenance.load();
       this.publicConfig.load();
+      this.clickDelay.install(); // delay artificial en clics (cliente/visitante, config admin)
       // W9: restaura una impersonación persistida ANTES de resolver la sesión. Si
       // había token, `ensureLoaded` ve un access token en memoria y hace /auth/me
       // directo → resuelve al promotor (con `impersonatedBy`) sin refrescar al admin.

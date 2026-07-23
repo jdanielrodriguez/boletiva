@@ -146,6 +146,16 @@ async function seedSettings(): Promise<void> {
       value: true,
       description: 'Exigir desbloqueo por tiempo (aprobado por admin) para que un asesor mute datos',
     },
+    {
+      key: 'ux.click_delay_enabled',
+      value: true,
+      description: 'Muestra un breve indicador de carga al hacer clic (clientes/visitantes).',
+    },
+    {
+      key: 'ux.click_delay_ms',
+      value: 200,
+      description: 'Duración (ms) del indicador de carga al hacer clic (si está activado). Default 200ms.',
+    },
   ];
   for (const s of defaults) {
     // BASELINE autoritativa: el seed impone SIEMPRE el valor deseado (update de
