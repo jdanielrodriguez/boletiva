@@ -13,6 +13,7 @@
     "prisma:studio": "prisma studio",
     "db:seed": "ts-node --project tsconfig.tools.json prisma/seed.ts",
     "db:seed:stadium": "ts-node --project tsconfig.tools.json prisma/seed-stadium.ts",
+    "db:custody-migrate": "ts-node --project tsconfig.tools.json prisma/recompute-custody-hashes.ts",
     "smoke": "ts-node --project tsconfig.tools.json tools/smoke/smoke.ts"
   },
   "private": true,

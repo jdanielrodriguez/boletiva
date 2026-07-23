@@ -253,7 +253,11 @@ export const configuration = (): AppConfig => {
     },
     safetix: {
       gateTokenTtl: parseInt(process.env.SAFETIX_GATE_TOKEN_TTL ?? '1800', 10), // 30 min
-      manifestTtl: parseInt(process.env.SAFETIX_MANIFEST_TTL ?? '21600', 10), // 6 h
+      // G6.2 (auditoría 4): 2 h (antes 6 h). El manifiesto lleva el estado de validez;
+      // una ventana grande deja que un boleto reembolsado/revocado dé VERDE en una puerta
+      // desconectada hasta que caduque. 2 h acota la exposición offline sin exigir red
+      // constante (el re-sync incremental cada 45s lo refresca en cuanto hay conexión).
+      manifestTtl: parseInt(process.env.SAFETIX_MANIFEST_TTL ?? '7200', 10), // 2 h
     },
     editUnlock: {
       ttl: parseInt(process.env.EVENT_EDIT_UNLOCK_TTL ?? '300', 10), // 5 min
