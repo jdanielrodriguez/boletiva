@@ -69,40 +69,22 @@
           {{ submitting() ? ('auth.verifying' | translate) : ('auth.verify' | translate) }}
         </button>
 
-        <!-- Estado del reenvío: confirmación + reloj visual (barra que se vacía).
-             Al llegar a 0 desaparece y el botón de reenviar se habilita. -->
-        @if (info() || resendCooldown() > 0) {
-          <div class="resend-status" role="status" data-testid="twofa-info">
-            @if (info(); as i) {
-              <span class="resend-status-head"><app-icon name="refresh" [size]="16" /> {{ i }}</span>
-            }
-            @if (resendCooldown() > 0) {
-              <div
-                class="resend-progress"
-                data-testid="twofa-countdown"
-                [attr.aria-label]="'auth.resendCountdown' | translate: { s: resendCooldown() }"
-              >
-                <span class="resend-progress-bar" [style.width.%]="resendPct()"></span>
-              </div>
-            }
+        <!-- Reenvío estandarizado (F2): botón + cronómetro + estado. Para 2FA por correo
+             lleva el control compartido con el botón "usar otra cuenta" proyectado;
+             para TOTP (sin reenvío) solo el botón de volver. -->
+        @if (method() === 'email') {
+          <app-resend-code testId="twofa-resend" [resending]="resending()" [info]="info()" (resend)="resendCode()">
+            <button type="button" class="btn small ghost twofa-btn" (click)="backToCredentials()" data-testid="twofa-back">
+              <app-icon name="user" [size]="15" /> {{ 'auth.useAnotherAccount' | translate }}
+            </button>
+          </app-resend-code>
+        } @else {
+          <div class="twofa-actions">
+            <button type="button" class="btn small ghost twofa-btn" (click)="backToCredentials()" data-testid="twofa-back">
+              <app-icon name="user" [size]="15" /> {{ 'auth.useAnotherAccount' | translate }}
+            </button>
           </div>
         }
-
-        <div class="twofa-actions">
-          @if (method() === 'email') {
-            <button type="button" class="btn small twofa-btn" [disabled]="resending() || resendCooldown() > 0" (click)="resendCode()" data-testid="twofa-resend">
-              <app-icon name="refresh" [size]="15" />
-              @if (resendCooldown() > 0) {
-                {{ 'auth.resendIn' | translate: { s: resendCooldown() } }}
-              } @else {
-                {{ 'auth.resendCode' | translate }}
-              }
-            </button>
-          }
-          <button type="button" class="btn small ghost twofa-btn" (click)="backToCredentials()" data-testid="twofa-back">
-            <app-icon name="user" [size]="15" /> {{ 'auth.useAnotherAccount' | translate }}
-          </button>
-        </div>
       </form>
     }
   </section>

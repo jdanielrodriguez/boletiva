@@ -36,6 +36,8 @@ export const common = {
   continue: 'Continuar',
   understood: 'Entendido',
   retry: 'Reintentar',
+  loadErrorTitle: 'No se pudo cargar',
+  loadErrorSubtitle: 'Hubo un problema al cargar esta información. Reintenta en un momento.',
   discard: 'Descartar cambios',
   discardChangesTitle: '¿Descartar los cambios?',
   discardChangesMessage: 'Tienes cambios sin guardar. Si sales ahora se perderán.',

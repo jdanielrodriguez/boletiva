@@ -395,7 +395,16 @@
             </div>
           }
 
-          @if (movements().length === 0) {
+          @if (movementsError()) {
+            <app-empty-state
+              variant="error"
+              data-testid="orders-error"
+              [title]="'common.loadErrorTitle' | translate"
+              [subtitle]="'common.loadErrorSubtitle' | translate"
+              [retryLabel]="'common.retry' | translate"
+              (retry)="loadMovements()"
+            />
+          } @else if (movements().length === 0) {
             <app-empty-state
               variant="billing"
               [skeleton]="true"
@@ -551,7 +560,16 @@
           <!-- Primero la mini-facturación de movimientos -->
           <div class="card-block">
             <h3>{{ 'account.wallet.recentMovements' | translate }}</h3>
-            @if (orders().length > 0) {
+            @if (ordersError()) {
+              <app-empty-state
+                variant="error"
+                data-testid="wallet-orders-error"
+                [title]="'common.loadErrorTitle' | translate"
+                [subtitle]="'common.loadErrorSubtitle' | translate"
+                [retryLabel]="'common.retry' | translate"
+                (retry)="loadOrders()"
+              />
+            } @else if (orders().length > 0) {
               <ul class="order-list mini" data-testid="wallet-orders">
                 @for (o of orders().slice(0, 5); track o.id) {
                   <li>
@@ -579,7 +597,16 @@
           <!-- Luego la tabla de retiros con filtros -->
           <div class="card-block">
             <h3>{{ 'account.wallet.myWithdrawals' | translate }}</h3>
-            @if (withdrawals().length > 0) {
+            @if (withdrawalsError()) {
+              <app-empty-state
+                variant="error"
+                data-testid="withdrawals-error"
+                [title]="'common.loadErrorTitle' | translate"
+                [subtitle]="'common.loadErrorSubtitle' | translate"
+                [retryLabel]="'common.retry' | translate"
+                (retry)="loadWallet()"
+              />
+            } @else if (withdrawals().length > 0) {
               <div class="filters" data-testid="withdrawal-filters">
                 <div class="field">
                   <label for="wd-f-status">{{ 'common.status' | translate }}</label>
@@ -654,7 +681,16 @@
               <button type="button" class="link-btn" (click)="clearOrderFilter()" data-testid="clear-tickets-order-filter">{{ 'account.tickets.viewAllTickets' | translate }}</button>
             </p>
           }
-          @if (activosGrouped().length > 0) {
+          @if (ticketsError()) {
+            <app-empty-state
+              variant="error"
+              data-testid="activos-error"
+              [title]="'common.loadErrorTitle' | translate"
+              [subtitle]="'common.loadErrorSubtitle' | translate"
+              [retryLabel]="'common.retry' | translate"
+              (retry)="retryTickets()"
+            />
+          } @else if (activosGrouped().length > 0) {
             <div class="ticket-groups" data-testid="tickets-activos">
               @for (eg of pageEvents('activos'); track eg.eventId) {
                 <article class="event-card">
@@ -776,7 +812,16 @@
 
         @case ('pasados') {
           <h2>{{ 'account.nav.pastTickets' | translate }}</h2>
-          @if (pasados().length > 0) {
+          @if (ticketsError()) {
+            <app-empty-state
+              variant="error"
+              data-testid="pasados-error"
+              [title]="'common.loadErrorTitle' | translate"
+              [subtitle]="'common.loadErrorSubtitle' | translate"
+              [retryLabel]="'common.retry' | translate"
+              (retry)="retryTickets()"
+            />
+          } @else if (pasados().length > 0) {
             <div class="ticket-groups" data-testid="tickets-pasados">
               @for (eg of pageEvents('pasados'); track eg.eventId) {
                 <article class="event-card is-past">

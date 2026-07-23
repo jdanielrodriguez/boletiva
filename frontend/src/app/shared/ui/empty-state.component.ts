@@ -1,8 +1,8 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-/** Ilustración según el contexto del vacío. */
-export type EmptyVariant = 'tickets' | 'billing' | 'wallet' | 'card' | 'generic';
+/** Ilustración según el contexto del vacío (o 'error' para un fallo de carga). */
+export type EmptyVariant = 'tickets' | 'billing' | 'wallet' | 'card' | 'generic' | 'error';
 
 /**
  * Estado vacío BONITO y reutilizable: en vez de una sola línea de texto muestra un
@@ -46,6 +46,14 @@ export type EmptyVariant = 'tickets' | 'billing' | 'wallet' | 'card' | 'generic'
               <path d="M14 40h10" stroke-dasharray="2 3" />
             </svg>
           }
+          @case ('error') {
+            <!-- Fallo de carga: triángulo de aviso (distinto del vacío legítimo). -->
+            <svg viewBox="0 0 64 64" width="72" height="72" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M32 8 4 56h56z" />
+              <path d="M32 26v14" />
+              <circle cx="32" cy="48" r="1.5" fill="currentColor" stroke="none" />
+            </svg>
+          }
           @default {
             <!-- Bandeja vacía (neutro y amable) en vez de carita triste. -->
             <svg viewBox="0 0 64 64" width="72" height="72" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -59,6 +67,12 @@ export type EmptyVariant = 'tickets' | 'billing' | 'wallet' | 'card' | 'generic'
       <h3 class="empty-title">{{ title() }}</h3>
       @if (subtitle()) {
         <p class="empty-subtitle muted">{{ subtitle() }}</p>
+      }
+
+      @if (retryLabel()) {
+        <button type="button" class="btn primary empty-cta" (click)="retry.emit()" data-testid="empty-retry">
+          {{ retryLabel() }}
+        </button>
       }
 
       @if (skeleton()) {
@@ -153,6 +167,11 @@ export class EmptyStateComponent {
   readonly ctaLabel = input<string>('');
   /** Ruta del CTA (routerLink), p.ej. `/`. */
   readonly ctaLink = input<string>('');
+  /** Etiqueta del botón "reintentar" (ya traducida); si se define, se muestra el botón
+   * y al pulsarlo emite `retry`. Para el estado de error de carga (C6). */
+  readonly retryLabel = input<string>('');
+  /** Se emite al pulsar "reintentar". */
+  readonly retry = output<void>();
 
   /** Anchos (%) de las líneas del skeleton — insinúan contenido variable. */
   protected readonly skeletonRows = [90, 72, 84, 60];

@@ -21,16 +21,21 @@
       </form>
 
       <p class="auth-alt verify-nocode">{{ 'auth.verifyNoCode' | translate }}</p>
-      <div class="verify-actions">
-        <button type="button" class="btn small subtle" [disabled]="resending()" (click)="resend()" data-testid="verify-modal-resend">
-          <app-icon name="refresh" [size]="15" />
-          {{ resending() ? ('auth.verifyResending' | translate) : ('auth.verifyResend' | translate) }}
-        </button>
+      <!-- Reenvío estandarizado (F2): botón + cronómetro + estado. El botón "cerrar
+           sesión" va proyectado en la misma fila de acciones. -->
+      <app-resend-code
+        testId="verify-modal-resend"
+        label="auth.verifyResend"
+        resendingLabel="auth.verifyResending"
+        [resending]="resending()"
+        [info]="info()"
+        (resend)="resend()"
+      >
         <button type="button" class="btn small subtle" (click)="signOut()" data-testid="verify-modal-logout">
           <app-icon name="logout" [size]="15" />
           {{ 'auth.verifyLogout' | translate }}
         </button>
-      </div>
+      </app-resend-code>
     </section>
   </div>
 }

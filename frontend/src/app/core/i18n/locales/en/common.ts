@@ -36,6 +36,8 @@ export const common = {
   continue: 'Continue',
   understood: 'Got it',
   retry: 'Retry',
+  loadErrorTitle: 'Could not load',
+  loadErrorSubtitle: 'There was a problem loading this information. Please try again in a moment.',
   discard: 'Discard changes',
   discardChangesTitle: 'Discard changes?',
   discardChangesMessage: 'You have unsaved changes. If you leave now they will be lost.',
