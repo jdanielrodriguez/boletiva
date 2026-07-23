@@ -37,6 +37,16 @@ describe('ShareBox', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     expect(writeText).toHaveBeenCalledWith('http://localhost:4200/reserva/tok-1');
-    expect(el.querySelector('[data-testid="share-copy"]')?.textContent).toContain('copiado');
+    // Botón SOLO-ICONO (auditoría alpha): el feedback de "copiado" ya no es texto, es la
+    // clase .is-copied (verde) + el title/aria-label.
+    const copyBtn = el.querySelector('[data-testid="share-copy"]') as HTMLButtonElement;
+    expect(copyBtn.classList.contains('is-copied')).toBe(true);
+    expect(copyBtn.getAttribute('aria-label')).toContain('copiado');
+  });
+
+  it('los botones de compartir son SOLO-ICONO (sin texto de nombre de plataforma)', () => {
+    const wa = el.querySelector('.share-btn.wa') as HTMLElement;
+    expect(wa.querySelector('app-icon')).not.toBeNull(); // tiene el icono
+    expect((wa.textContent ?? '').trim()).toBe(''); // sin texto "WhatsApp"
   });
 });
