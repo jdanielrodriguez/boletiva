@@ -40,12 +40,16 @@ describe('Lockout de login por cuenta (e2e)', () => {
       .set('X-Forwarded-For', ip)
       .send({ email, password: 'WrongPassword1' });
 
-  it('10 fallos (IPs distintas) → 401; el 11º → 429 (cuenta bloqueada)', async () => {
+  it('lockout por (cuenta+IP): 10 fallos de la MISMA IP → el 11º → 429; otra IP NO se bloquea (anti-DoS)', async () => {
+    const attacker = '198.51.100.10';
     for (let i = 0; i < 10; i++) {
-      await attempt(`198.51.100.${i + 1}`).expect(401);
+      await attempt(attacker).expect(401);
     }
-    // Umbral superado: aunque la IP sea nueva, la CUENTA está bloqueada.
-    await attempt('198.51.100.200').expect(429);
+    // La IP abusiva queda bloqueada para esta cuenta.
+    await attempt(attacker).expect(429);
+    // PERO la MISMA cuenta desde OTRA IP (la víctima legítima) NO está bloqueada → 401,
+    // no 429 (QA auth-H5: el lockout por email global permitía DoS dirigido a una cuenta).
+    await attempt('203.0.113.77').expect(401);
   });
 
   it('reenviar código 2FA: cooldown de 1 minuto → 2º reenvío inmediato responde 429', async () => {

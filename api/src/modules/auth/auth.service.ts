@@ -156,9 +156,11 @@ export class AuthService {
 
   async login(dto: LoginDto, ctx: DeviceContext): Promise<LoginResult> {
     const email = dto.email.toLowerCase().trim();
-    // Lockout por cuenta: si acumuló demasiados fallos recientes → 429 (no revela si el
-    // correo existe; aplica igual a inexistentes para no filtrar por temporización).
-    const failKey = `login-fail:${email}`;
+    // Lockout por (CUENTA + IP) — QA auth-H5: si fuera solo por email, cualquiera podría
+    // BLOQUEAR una cuenta ajena a propósito (DoS) fallando el login. Al ligarlo también a la
+    // IP, el bloqueo afecta solo al origen abusivo; la víctima (otra IP) sigue entrando. La
+    // fuerza bruta distribuida la contienen el rate-limit por IP del endpoint + captcha + 2FA.
+    const failKey = `login-fail:${email}:${ctx.ip ?? 'unknown'}`;
     if ((await this.rateLimit.count(failKey)) >= AuthService.LOGIN_MAX_FAILS) {
       throw new HttpException(
         'Demasiados intentos fallidos. Espera unos minutos o restablece tu contraseña.',
