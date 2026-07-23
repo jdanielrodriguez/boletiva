@@ -281,5 +281,6 @@ export const routes: Routes = [
     canActivate: [authGuard],
     title: 'Configuraciones — Boletiva',
   },
-  { path: '**', redirectTo: '' },
+  // G3.2 (auditoría 4): 404 real (antes redirigía mudo al inicio) con status 404 en SSR + noindex.
+  { path: '**', loadComponent: () => import('./pages/not-found/not-found.page').then((m) => m.NotFoundPage) },
 ];

@@ -20,6 +20,7 @@ export const common = {
   no: 'No',
   loading: 'Loading…',
   sending: 'Sending…',
+  send: 'Send',
   search: 'Search',
   all: 'All',
   none: 'None',

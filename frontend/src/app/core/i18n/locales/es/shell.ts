@@ -55,6 +55,8 @@ export const shell = {
   termsComingSoon: 'El contenido legal completo se publicará próximamente.',
   forbiddenTitle: '403 — Sin permiso',
   forbiddenBody: 'Tu cuenta no tiene acceso a esta sección.',
+  notFoundTitle: '404 — Página no encontrada',
+  notFoundBody: 'La página que buscas no existe o cambió de lugar.',
   impersonation: {
     viewingAs: 'Estás viendo la plataforma como {{name}}',
     exit: 'Salir de la vista',

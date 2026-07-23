@@ -53,6 +53,8 @@ export const shell = {
   termsWalletP:
     'Your wallet balance comes only from refunds and ticket resales: it represents money already backed by a purchase. It cannot be topped up with a card.',
   termsComingSoon: 'The full legal content will be published soon.',
+  notFoundTitle: '404 — Page not found',
+  notFoundBody: 'The page you are looking for does not exist or has moved.',
   forbiddenTitle: '403 — Forbidden',
   forbiddenBody: 'Your account does not have access to this section.',
   impersonation: {

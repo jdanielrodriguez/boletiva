@@ -20,6 +20,7 @@ export const common = {
   no: 'No',
   loading: 'Cargando…',
   sending: 'Enviando…',
+  send: 'Enviar',
   search: 'Buscar',
   all: 'Todos',
   otpGroup: 'Código de verificación',

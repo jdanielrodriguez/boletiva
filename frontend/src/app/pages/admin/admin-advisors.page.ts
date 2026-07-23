@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, HostListener, computed, inject, signal } from '@angular/core';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { FormsModule } from '@angular/forms';
@@ -118,6 +118,30 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dial
         [confirmIcon]="cf.confirmIcon ?? 'alert'" [danger]="cf.danger ?? false"
         (accept)="confirm.accept()" (cancelled)="confirm.cancel()" />
     }
+
+    <!-- G3.3 (auditoría 4): modal propio para notificar (reemplaza window.prompt nativo). -->
+    @if (notifyTarget(); as t) {
+      <div class="modal-backdrop">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="notify-title" data-testid="adv-notify-modal">
+          <h3 id="notify-title">{{ 'advisor.admin.notifyTitle' | translate }}</h3>
+          <p class="muted">{{ t.firstName || t.email }}</p>
+          <textarea
+            class="notify-textarea"
+            rows="4"
+            [ngModel]="notifyMessage()"
+            (ngModelChange)="notifyMessage.set($event)"
+            [placeholder]="'advisor.admin.notifyPrompt' | translate"
+            data-testid="adv-notify-text"
+          ></textarea>
+          <div class="notify-actions">
+            <button type="button" class="btn primary" [disabled]="!notifyMessage().trim() || notifySending()" (click)="sendNotify()" data-testid="adv-notify-send">
+              <app-icon name="bell" [size]="15" /> {{ notifySending() ? ('common.sending' | translate) : ('common.send' | translate) }}
+            </button>
+            <button type="button" class="btn subtle" (click)="closeNotify()" data-testid="adv-notify-cancel">{{ 'common.cancel' | translate }}</button>
+          </div>
+        </div>
+      </div>
+    }
   `,
   styles: [
     `
@@ -134,6 +158,8 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dial
       .badge-unlock { background: var(--pe-accent-soft); color: var(--pe-accent-strong, var(--pe-accent)); border: 1px solid var(--pe-accent-border, var(--pe-accent)); }
       .adv-email { font-weight: 600; }
       .adv-row time { margin-left: auto; }
+      .notify-textarea { width: 100%; box-sizing: border-box; margin: 0.6rem 0; padding: 0.6rem 0.75rem; border: 1px solid var(--pe-border); border-radius: 8px; background: var(--pe-surface); color: var(--pe-text); font: inherit; resize: vertical; }
+      .notify-actions { display: flex; gap: 0.6rem; justify-content: flex-end; flex-wrap: wrap; }
       .adv-mgmt-head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; margin: 1.8rem 0 0.6rem; flex-wrap: wrap; }
       .adv-mgmt-title { margin: 0; font-size: 1.1rem; }
       .adv-row.is-disabled { opacity: 0.75; }
@@ -159,6 +185,10 @@ export class AdminAdvisorsPage {
   protected readonly refreshing = signal(false);
   /** Error de carga de la lista de GESTIÓN de asesores (distinto del vacío legítimo). */
   protected readonly mgmtError = signal(false);
+  /** G3.3: estado del modal de notificación al asesor (reemplaza window.prompt). */
+  protected readonly notifyTarget = signal<AdvisorRow | null>(null);
+  protected readonly notifyMessage = signal('');
+  protected readonly notifySending = signal(false);
   protected readonly canInvite = computed(() => this.emails().trim().length > 3);
 
   /** Estado de desbloqueo indexado por asesor (O(1) en la plantilla). */
@@ -279,12 +309,40 @@ export class AdminAdvisorsPage {
     });
   }
 
+  /** G3.3: abre el modal propio de notificación (sin window.prompt nativo). */
   protected askNotify(a: AdvisorRow): void {
-    const body = typeof window !== 'undefined' ? window.prompt(this.t('advisor.admin.notifyPrompt')) : null;
-    if (!body?.trim()) return;
-    this.advisorsApi.notify(a.id, this.t('advisor.admin.notifyTitle'), body.trim()).subscribe({
-      next: () => this.toasts.success(this.t('advisor.admin.notifiedOk')),
-      error: () => this.toasts.error(this.t('advisor.admin.actionError')),
+    this.notifyTarget.set(a);
+    this.notifyMessage.set('');
+  }
+
+  protected closeNotify(): void {
+    if (this.notifySending()) return;
+    this.notifyTarget.set(null);
+    this.notifyMessage.set('');
+  }
+
+  /** Escape cierra el modal de notificación (a11y; no hay click-to-close en el backdrop). */
+  @HostListener('document:keydown.escape')
+  protected onEscape(): void {
+    if (this.notifyTarget()) this.closeNotify();
+  }
+
+  protected sendNotify(): void {
+    const a = this.notifyTarget();
+    const body = this.notifyMessage().trim();
+    if (!a || !body || this.notifySending()) return;
+    this.notifySending.set(true);
+    this.advisorsApi.notify(a.id, this.t('advisor.admin.notifyTitle'), body).subscribe({
+      next: () => {
+        this.notifySending.set(false);
+        this.notifyTarget.set(null);
+        this.notifyMessage.set('');
+        this.toasts.success(this.t('advisor.admin.notifiedOk'));
+      },
+      error: () => {
+        this.notifySending.set(false);
+        this.toasts.error(this.t('advisor.admin.actionError'));
+      },
     });
   }
 
