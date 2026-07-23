@@ -45,6 +45,18 @@ export class HallsService {
   listPublished() {
     return this.prisma.hall.findMany({
       where: { status: ContentStatus.published, hidden: false, disabled: false },
+      // G1.1 (auditoría 4): proyección de solo campos públicos — NO exponer la nota
+      // interna `notes` al promotor (coherente con el endurecimiento de GET /halls/:id).
+      select: {
+        id: true,
+        name: true,
+        address: true,
+        lat: true,
+        lng: true,
+        city: true,
+        seatTemplateId: true,
+        status: true,
+      },
       orderBy: { name: 'asc' },
     });
   }

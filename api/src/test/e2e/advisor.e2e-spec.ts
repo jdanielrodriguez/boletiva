@@ -296,6 +296,8 @@ describe('Rol asesor (e2e)', () => {
     await http().post(`/api/v1/wallet/withdrawals/${dummy}/pay`).set(bearer(advisorToken)).send({}).expect(403);
     await http().post(`/api/v1/events/${dummy}/settlement/finalize`).set(bearer(advisorToken)).expect(403);
     await http().post('/api/v1/pricing/schedules').set(bearer(advisorToken)).send({ platformPct: 0.1 }).expect(403);
+    // G1.2: LEER el historial de comisiones también es @AdminOnly (antes lo veía el asesor).
+    await http().get('/api/v1/pricing/schedules').set(bearer(advisorToken)).expect(403);
   });
 
   it('A-1: el candado NO bloquea la bandeja de soporte del asesor (take pasa el guard → 404 por ticket inexistente, no 403)', async () => {

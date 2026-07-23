@@ -39,6 +39,8 @@ describe('Salones (halls) e2e', () => {
     expect(Array.isArray(res.body)).toBe(true);
     expect(res.body.length).toBeGreaterThanOrEqual(3);
     expect(res.body.every((h: { status: string }) => h.status === 'published')).toBe(true);
+    // G1.2 (auditoría 4): la proyección NO expone la nota interna `notes` al promotor.
+    expect(res.body.every((h: Record<string, unknown>) => !('notes' in h))).toBe(true);
   });
 
   it('sin token → 401; buyer → 403 (rol insuficiente)', async () => {
