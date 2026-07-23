@@ -18,6 +18,7 @@ import { RedisService } from '../../infra/redis/redis.service';
 import { PricingService, ResolvedFees } from '../pricing/pricing.service';
 import { PriceQuote, PricingEngine } from '../pricing/pricing.engine';
 import { StreamService } from '../stream/stream.service';
+import { MAX_HELD_SEATS_PER_HOLDER } from '../inventory/seat-hold.service';
 
 /** Datos de facturación FEL opcionales (sin NIT → consumidor final 'CF'). */
 export interface BillingInput {
@@ -146,6 +147,7 @@ export class CheckoutService {
         ivaOnNet: true,
         status: true,
         startsAt: true,
+        maxPerOrder: true,
         promoter: { select: { promoterStatus: true } },
       },
     });
@@ -153,6 +155,17 @@ export class CheckoutService {
     // Ventas cerradas si el evento ya inició o concluyó (o no está publicado).
     if (event.status !== 'published' || event.startsAt.getTime() <= Date.now()) {
       throw new ConflictException('Las ventas de este evento están cerradas');
+    }
+    // F4 (auditoría 4): el cap de boletos por compra debe ser SERVER-AUTHORITATIVE también
+    // en el commit directo, no solo en el hold. Sin esto, saltando la UI (POST directo a
+    // /events/:id/orders con N seatIds) se derrota el tope anti-reventa del promotor. El
+    // cap efectivo = min(tope global anti-acaparamiento, maxPerOrder del evento si lo fijó).
+    const perOrderCap =
+      event.maxPerOrder && event.maxPerOrder > 0
+        ? Math.min(MAX_HELD_SEATS_PER_HOLDER, event.maxPerOrder)
+        : MAX_HELD_SEATS_PER_HOLDER;
+    if (seatIds.length > perOrderCap) {
+      throw new BadRequestException(`Máximo ${perOrderCap} boletos por compra para este evento`);
     }
     // Promotor suspendido/rechazado (p.ej. por fraude): NO se vende, aunque el evento siga
     // publicado. `revoke` no despublica en cascada, así que el enforcement vive aquí también.
