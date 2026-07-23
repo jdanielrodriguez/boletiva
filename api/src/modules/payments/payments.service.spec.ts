@@ -520,8 +520,9 @@ describe('PaymentsService (ramas de borde, unit)', () => {
       });
       // Ya procesado → cortocircuito duplicate (evita mockear todo el fulfillment).
       prisma.webhookEvent.findUnique.mockResolvedValue({ processedAt: new Date() });
+      const ts = String(Math.floor(Date.now() / 1000)); // fresco (dentro de la ventana anti-replay)
       const res = await service.handleRecurrenteWebhook(
-        { svixId: 'm9', svixTimestamp: '1700000000', svixSignature: svixSign('m9', '1700000000', body) },
+        { svixId: 'm9', svixTimestamp: ts, svixSignature: svixSign('m9', ts, body) },
         body,
       );
       expect(res).toEqual({ received: true, duplicate: true });
@@ -530,11 +531,24 @@ describe('PaymentsService (ramas de borde, unit)', () => {
     it('Recurrente: event_type desconocido (válido) → ignorado', async () => {
       const { service } = build();
       const body = JSON.stringify({ event_type: 'subscription.created' });
+      const ts = String(Math.floor(Date.now() / 1000));
       const res = await service.handleRecurrenteWebhook(
-        { svixId: 'm2', svixTimestamp: '1700000000', svixSignature: svixSign('m2', '1700000000', body) },
+        { svixId: 'm2', svixTimestamp: ts, svixSignature: svixSign('m2', ts, body) },
         body,
       );
       expect(res).toEqual({ received: true, ignored: true });
+    });
+
+    it('Recurrente: timestamp VIEJO (fuera de ±5 min) aunque la firma sea válida → 401 (anti-replay)', async () => {
+      const { service } = build();
+      const body = JSON.stringify({ event_type: 'intent.succeeded', metadata: { providerRef: 'r_old' } });
+      const stale = '1700000000'; // Nov 2023 → fuera de la ventana
+      await expect(
+        service.handleRecurrenteWebhook(
+          { svixId: 'm3', svixTimestamp: stale, svixSignature: svixSign('m3', stale, body) },
+          body,
+        ),
+      ).rejects.toBeInstanceOf(Error);
     });
 
     it('un error no-P2002 al insertar el webhook se propaga', async () => {

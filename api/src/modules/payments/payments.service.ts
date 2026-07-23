@@ -32,6 +32,9 @@ export interface WebhookPayload {
   occurredAt?: string;
 }
 
+/** Ventana de tolerancia del svix-timestamp (anti-replay del webhook de Recurrente). */
+const SVIX_TOLERANCE_SEC = 300;
+
 /** Forma (parcial) del webhook SVIX de Recurrente. `metadata` la sembramos nosotros. */
 interface RecurrenteWebhookPayload {
   event_type?: string;
@@ -624,6 +627,15 @@ export class PaymentsService {
       headers.svixSignature ?? '',
     );
     if (!ok) throw new UnauthorizedException('Firma de webhook (Svix) inválida');
+
+    // Frescura del timestamp (anti-replay, QA): la firma cubre el svix-timestamp, pero sin
+    // ventana un payload firmado capturado podría reenviarse indefinidamente. Se rechaza fuera
+    // de ±5 min. (La dedupe por svix-id también frena replays, pero esto acota la ventana.)
+    const tsSec = parseInt(headers.svixTimestamp ?? '', 10);
+    const nowSec = Math.floor(Date.now() / 1000);
+    if (!Number.isFinite(tsSec) || Math.abs(nowSec - tsSec) > SVIX_TOLERANCE_SEC) {
+      throw new UnauthorizedException('Webhook (Svix) fuera de la ventana de tiempo');
+    }
 
     let evt: RecurrenteWebhookPayload;
     try {

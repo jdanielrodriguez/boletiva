@@ -32,6 +32,12 @@ async function bootstrap(): Promise<void> {
   // Logger estructurado (pino) como logger de Nest.
   app.useLogger(app.get(Logger));
 
+  // Límite EXPLÍCITO de tamaño de cuerpo (QA): con rawBody global cada request se bufferea en
+  // memoria; sin tope, un cuerpo enorme es un DoS de memoria. 1 MB cubre webhooks/JSON de la app
+  // (las subidas de media van directas al storage por URL firmada, no por el body de la API).
+  app.useBodyParser('json', { limit: '1mb' });
+  app.useBodyParser('urlencoded', { limit: '1mb', extended: true });
+
   // Fail-fast en PROD: secretos con default de dev, trust proxy mal parametrizado o
   // CORS '*' con credenciales → aborta el arranque (auditoría dual C1/C2/M5).
   assertProductionSecurity(config);

@@ -1,6 +1,6 @@
 import { HttpResponse } from '@angular/common/http';
 import { DOCUMENT, UpperCasePipe, isPlatformBrowser } from '@angular/common';
-import { Component, ElementRef, PLATFORM_ID, computed, effect, inject, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, PLATFORM_ID, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { I18nService } from '../../core/i18n/i18n.service';
@@ -486,6 +486,11 @@ export class Account {
   }
   protected closeWalletInfo(): void {
     this.showWalletInfo.set(false);
+  }
+  /** Cierra el modal de info de wallet con Escape (a11y, QA): el backdrop no recibe foco. */
+  @HostListener('document:keydown.escape')
+  protected onEscape(): void {
+    if (this.showWalletInfo()) this.closeWalletInfo();
   }
   /** Filtros de la tabla de retiros (estado/fecha). */
   protected readonly wdFilterStatus = signal<string>('');

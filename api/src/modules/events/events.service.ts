@@ -438,7 +438,10 @@ export class EventsService {
    * se oculta si no hay ninguno. Devuelve el detalle gestionable actualizado.
    */
   async setPromoted(id: string, featured: boolean, user: AuthUser) {
-    await this.getManaged(id, user); // 404/403 si no existe o no lo gestiona
+    const event = await this.getManaged(id, user); // 404/403 si no existe o no lo gestiona
+    // No se puede DESTACAR un evento concluido (QA): homologa la regla de solo-lectura del
+    // resto del ciclo de vida. Quitar el destacado (featured=false) sí se permite (limpieza).
+    if (featured) this.assertNotConcluded(event);
     // El ASESOR gestiona los destacados con autoridad de admin (la mutación ya la gatea
     // el AdvisorUnlockGuard con ventana de desbloqueo) → no aplica la gobernanza de
     // promotor (can_feature_events / premium). Así puede ACTIVAR y desactivar destacados.
