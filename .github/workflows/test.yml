@@ -171,16 +171,19 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 20
-      # G4.3 (auditoría 4): umbral 'moderate' en prod-deps (antes 'high' dejaba pasar
-      # moderadas). El job entero es continue-on-error (no bloquea el merge; alerta).
-      - name: Audit backend (prod deps)
-        run: npm audit --omit=dev --audit-level=moderate
-      - name: Audit frontend (prod deps)
+      # G4.3 (auditoría 4, ajustado): prod-deps BLOQUEA solo en high/critical (umbral real).
+      # Los 'moderate' se REPORTAN como informativo (no tumban el step): hoy son transitivos
+      # de uuid<11.1.1 dentro de exceljs/gaxios/@google-cloud/storage, sin fix sin romper
+      # (audit fix --force degrada exceljs) y por un path que NO usamos (v4 aleatorio, no
+      # v3/v5/v6 con buf). El job es continue-on-error igual.
+      - name: Audit backend (prod deps — high/critical)
+        run: npm audit --omit=dev --audit-level=high
+      - name: Audit frontend (prod deps — high/critical)
         working-directory: frontend
-        run: npm audit --omit=dev --audit-level=moderate
-      # devDependencies: informativo (no debe bloquear ni alarmar por herramientas de build).
-      - name: Audit backend (dev deps, informativo)
-        run: npm audit --audit-level=high || true
-      - name: Audit frontend (dev deps, informativo)
+        run: npm audit --omit=dev --audit-level=high
+      # Informativo (no bloquea): moderate en todo el árbol (prod + dev) para visibilidad.
+      - name: Audit backend (moderate, informativo)
+        run: npm audit --audit-level=moderate || true
+      - name: Audit frontend (moderate, informativo)
         working-directory: frontend
-        run: npm audit --audit-level=high || true
+        run: npm audit --audit-level=moderate || true
