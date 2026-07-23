@@ -1,6 +1,7 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { ContentStatus, KbVisibility, Prisma, SupportCategory } from '@prisma/client';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ContentStatus, KbVisibility, Prisma, Role, SupportCategory } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { AuthUser } from '../../common/decorators/current-user.decorator';
 import { sanitizeRichHtml, stripHtml } from '../../common/utils/html';
 import {
   CreateKbArticleDto,
@@ -110,6 +111,17 @@ export class KbService {
     return a;
   }
 
+  /** ¿El asesor tiene una ventana de desbloqueo vigente? (o el candado está apagado). */
+  private async advisorUnlocked(advisorId: string): Promise<boolean> {
+    const s = await this.prisma.setting.findUnique({ where: { key: 'advisor.lock_enabled' } });
+    const lockEnabled = s == null ? true : s.value === true;
+    if (!lockEnabled) return true;
+    const active = await this.prisma.advisorUnlock.findFirst({
+      where: { advisorId, approved: true, expiresAt: { gt: new Date() } },
+    });
+    return !!active;
+  }
+
   async create(dto: CreateKbArticleDto, actorId: string) {
     const answerHtml = sanitizeRichHtml(dto.answerHtml);
     // Normaliza SIEMPRE (también el slug provisto por el admin) → sin espacios/`/`/unicode.
@@ -130,8 +142,21 @@ export class KbService {
     });
   }
 
-  async update(id: string, dto: UpdateKbArticleDto) {
-    await this.adminGet(id);
+  async update(id: string, dto: UpdateKbArticleDto, user?: AuthUser) {
+    const article = await this.adminGet(id);
+    // G5.1 (auditoría 4): el asesor edita DRAFTS libremente (@SkipAdvisorUnlock), pero
+    // editar un artículo YA PUBLICADO (contenido en vivo en la FAQ) o cambiar su
+    // visibilidad/slug es una acción GOBERNADA → exige su ventana de desbloqueo, igual
+    // que publicar. Sin esto, bastaba publicar una vez para luego reescribir el contenido
+    // público o pasar 'internal'→'public' sin aprobación. Un admin real NO está sujeto.
+    const isAdvisor = !!user && user.roles.includes(Role.advisor) && !user.roles.includes(Role.admin);
+    const governed =
+      article.status === ContentStatus.published || dto.visibility !== undefined || dto.slug !== undefined;
+    if (isAdvisor && governed && !(await this.advisorUnlocked(user.userId))) {
+      throw new ForbiddenException(
+        'Editar un artículo publicado (o cambiar su visibilidad/enlace) requiere desbloqueo de asesor.',
+      );
+    }
     const data: Prisma.KbArticleUpdateInput = {};
     if (dto.question !== undefined) data.question = dto.question.trim();
     if (dto.answerHtml !== undefined) {

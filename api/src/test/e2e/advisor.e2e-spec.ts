@@ -364,4 +364,34 @@ describe('Rol asesor (e2e)', () => {
     // Conceder a un usuario que NO es asesor (el promotor semilla) → 404.
     await http().post(`/api/v1/advisor/unlock/grant/${promoterId}`).set(bearer(adminToken)).expect(404);
   });
+
+  it('G5.1 (auditoría 4): el asesor NO edita un KB PUBLICADO (ni su slug) sin ventana → 403; con ventana sí', async () => {
+    await setLock(true);
+    await prisma.advisorUnlock.deleteMany({ where: { advisorId } }); // sin ventana
+    // Admin real crea + PUBLICA un artículo (queda como contenido público en vivo).
+    const created = await http()
+      .post('/api/v1/kb')
+      .set(bearer(adminToken))
+      .send({ question: `G51 ${stamp}?`, answerHtml: '<p>v1</p>' })
+      .expect((r) => {
+        if (![200, 201].includes(r.status)) throw new Error(`KB create → ${r.status}`);
+      });
+    const kbId = created.body.id as string;
+    await http()
+      .post(`/api/v1/kb/${kbId}/publish`)
+      .set(bearer(adminToken))
+      .expect((r) => {
+        if (![200, 201].includes(r.status)) throw new Error(`KB publish → ${r.status}`);
+      });
+    // Asesor SIN ventana editando contenido PUBLICADO → 403 (antes del fix era 200 y salía en vivo).
+    await http().patch(`/api/v1/kb/${kbId}`).set(bearer(advisorToken)).send({ answerHtml: '<p>editado sin permiso</p>' }).expect(403);
+    // Cambiar el slug (aunque siguiera en draft) también es gobernado → 403.
+    await http().patch(`/api/v1/kb/${kbId}`).set(bearer(advisorToken)).send({ slug: `secuestro-${stamp}` }).expect(403);
+    // Con ventana de desbloqueo aprobada → permitido.
+    await unlock();
+    await http().patch(`/api/v1/kb/${kbId}`).set(bearer(advisorToken)).send({ answerHtml: '<p>editado con permiso</p>' }).expect(200);
+    // Limpieza.
+    await prisma.advisorUnlock.deleteMany({ where: { advisorId } });
+    await prisma.kbArticle.deleteMany({ where: { id: kbId } });
+  });
 });
