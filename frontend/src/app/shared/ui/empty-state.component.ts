@@ -17,7 +17,7 @@ export type EmptyVariant = 'tickets' | 'billing' | 'wallet' | 'card' | 'generic'
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink],
   template: `
-    <div class="empty-state" data-testid="empty-state">
+    <div class="empty-state" [class.empty-state--error]="variant() === 'error'" data-testid="empty-state">
       <div class="empty-illustration" aria-hidden="true">
         @switch (variant()) {
           @case ('tickets') {
@@ -110,6 +110,12 @@ export type EmptyVariant = 'tickets' | 'billing' | 'wallet' | 'card' | 'generic'
         border-radius: 50%;
         background: var(--pe-accent-soft);
         margin-bottom: 0.25rem;
+      }
+      /* Variante de ERROR de carga (C6): el fallo debe LEERSE como problema, no como
+         un vacío alegre → ilustración en tono de peligro, no de marca. */
+      .empty-state--error .empty-illustration {
+        color: var(--pe-danger);
+        background: var(--pe-danger-soft);
       }
       .empty-title {
         margin: 0;

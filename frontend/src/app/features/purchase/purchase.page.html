@@ -73,6 +73,9 @@
     <aside class="cart-summary cart-top">
       <div>
         <p class="cart-count">{{ 'purchase.selectedCount' | translate: { n: store.totalCount() } }}</p>
+        @if (store.availability()?.maxPerOrder) {
+          <p class="cart-cap" data-testid="cart-cap">{{ 'purchase.maxPerOrder' | translate: { n: store.effectiveMax() } }}</p>
+        }
         <p class="total">{{ 'purchase.totalAmount' | translate: { total: (store.totalDisplay() | money) } }}</p>
       </div>
       <button
@@ -171,7 +174,7 @@
                   class="qty-btn"
                   data-testid="qty-plus"
                   [attr.aria-label]="'purchase.addOne' | translate"
-                  [disabled]="store.quantityFor(loc.id) >= store.maxFor(loc)"
+                  [disabled]="store.quantityFor(loc.id) >= store.maxFor(loc) || store.totalCount() >= store.effectiveMax()"
                   (click)="changeQuantity(loc, 1)"
                 >
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke-linecap="round" /></svg>

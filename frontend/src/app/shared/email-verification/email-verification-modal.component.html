@@ -31,7 +31,7 @@
         [info]="info()"
         (resend)="resend()"
       >
-        <button type="button" class="btn small subtle" (click)="signOut()" data-testid="verify-modal-logout">
+        <button type="button" class="btn small ghost twofa-btn" (click)="signOut()" data-testid="verify-modal-logout">
           <app-icon name="logout" [size]="15" />
           {{ 'auth.verifyLogout' | translate }}
         </button>

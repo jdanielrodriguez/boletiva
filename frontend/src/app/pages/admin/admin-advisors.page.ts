@@ -76,7 +76,7 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dial
               } @else {
                 <span class="badge badge-active">{{ 'advisor.admin.activeBadge' | translate }}</span>
                 @if (unlockLabel(a.id) === 'active') {
-                  <span class="badge badge-active" [title]="'advisor.admin.unlockUntil' | translate: { time: (unlockExpiresAt(a.id) | localizedDate: 'short') }" [attr.data-testid]="'adv-unlock-active-' + a.id">
+                  <span class="badge badge-unlock" [title]="'advisor.admin.unlockUntil' | translate: { time: (unlockExpiresAt(a.id) | localizedDate: 'short') }" [attr.data-testid]="'adv-unlock-active-' + a.id">
                     <app-icon name="unlock" [size]="13" /> {{ 'advisor.admin.unlockActive' | translate }}
                   </span>
                 } @else if (unlockLabel(a.id) === 'pending') {
@@ -98,6 +98,14 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dial
             </li>
           }
         </ul>
+      } @else if (mgmtError()) {
+        <app-empty-state
+          variant="error"
+          data-testid="adv-mgmt-error"
+          [title]="'common.loadErrorTitle' | translate"
+          [subtitle]="'common.loadErrorSubtitle' | translate"
+          [retryLabel]="'common.retry' | translate"
+          (retry)="refreshAdvisors()" />
       } @else {
         <p class="muted" data-testid="adv-mgmt-empty">{{ 'advisor.admin.mgmtEmpty' | translate }}</p>
       }
@@ -120,7 +128,10 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dial
       .adv-invite-form input { height: 42px; box-sizing: border-box; padding: 0 0.75rem; border: 1px solid var(--pe-border); border-radius: 8px; background: var(--pe-surface); color: var(--pe-text); }
       .adv-invite-form .btn { height: 42px; }
       .adv-list { list-style: none; padding: 0; margin: 1rem 0 0; display: flex; flex-direction: column; gap: 0.4rem; }
-      .adv-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.8rem; border: 1px solid var(--pe-border); border-radius: var(--pe-radius-sm); }
+      .adv-row { display: flex; align-items: center; flex-wrap: wrap; gap: 0.6rem; padding: 0.6rem 0.8rem; border: 1px solid var(--pe-border); border-radius: var(--pe-radius-sm); }
+      /* Desbloqueo VIGENTE: token de acento (temporal) para no confundirlo con el badge
+         verde de 'cuenta activa' que aparece en la misma fila (auditoría de diseño). */
+      .badge-unlock { background: var(--pe-accent-soft); color: var(--pe-accent-strong, var(--pe-accent)); border: 1px solid var(--pe-accent-border, var(--pe-accent)); }
       .adv-email { font-weight: 600; }
       .adv-row time { margin-left: auto; }
       .adv-mgmt-head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; margin: 1.8rem 0 0.6rem; flex-wrap: wrap; }
@@ -146,6 +157,8 @@ export class AdminAdvisorsPage {
   protected readonly loading = signal(false);
   protected readonly loadError = signal(false);
   protected readonly refreshing = signal(false);
+  /** Error de carga de la lista de GESTIÓN de asesores (distinto del vacío legítimo). */
+  protected readonly mgmtError = signal(false);
   protected readonly canInvite = computed(() => this.emails().trim().length > 3);
 
   /** Estado de desbloqueo indexado por asesor (O(1) en la plantilla). */
@@ -160,26 +173,35 @@ export class AdminAdvisorsPage {
     this.reloadAdvisors();
   }
 
-  /** Recarga la lista de asesores Y sus estados de desbloqueo (una pasada, sin socket). */
-  private reloadAdvisors(): void {
+  /** Recarga la lista de asesores Y sus estados de desbloqueo (una pasada, sin socket).
+   *  Marca `mgmtError` si falla la lista (para distinguir fallo de "no hay asesores"). */
+  private loadAdvisorsAndUnlocks(done?: () => void): void {
+    this.mgmtError.set(false);
+    let failed = false;
     forkJoin({
-      advisors: this.advisorsApi.list().pipe(catchError(() => of([] as AdvisorRow[]))),
+      advisors: this.advisorsApi.list().pipe(
+        catchError(() => {
+          failed = true;
+          return of([] as AdvisorRow[]);
+        }),
+      ),
       unlocks: this.advisorApi.listPending().pipe(catchError(() => of([] as AdvisorUnlockState[]))),
     }).subscribe(({ advisors, unlocks }) => {
       this.advisors.set(advisors);
       this.unlockStates.set(unlocks);
+      this.mgmtError.set(failed);
+      done?.();
     });
+  }
+
+  private reloadAdvisors(): void {
+    this.loadAdvisorsAndUnlocks();
   }
 
   /** Botón "Actualizar": recarga a demanda (el usuario pidió refresco manual, sin socket). */
   protected refreshAdvisors(): void {
     this.refreshing.set(true);
-    forkJoin({
-      advisors: this.advisorsApi.list().pipe(catchError(() => of([] as AdvisorRow[]))),
-      unlocks: this.advisorApi.listPending().pipe(catchError(() => of([] as AdvisorUnlockState[]))),
-    }).subscribe(({ advisors, unlocks }) => {
-      this.advisors.set(advisors);
-      this.unlockStates.set(unlocks);
+    this.loadAdvisorsAndUnlocks(() => {
       this.refreshing.set(false);
       this.toasts.info(this.t('advisor.admin.refreshedOk'));
     });

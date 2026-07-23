@@ -30,7 +30,7 @@ import { IconComponent } from '../icon/icon.component';
   imports: [TranslatePipe, IconComponent],
   template: `
     @if (info() || cooldown() > 0) {
-      <div class="resend-status" role="status" [attr.data-testid]="testId() + '-info'">
+      <div class="resend-status" [class.resend-status--info]="info()" role="status" [attr.data-testid]="testId() + '-info'">
         @if (info(); as i) {
           <span class="resend-status-head"><app-icon name="refresh" [size]="16" /> {{ i }}</span>
         }

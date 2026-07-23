@@ -11,6 +11,7 @@ export const purchase = {
   continueToPay: 'Continue to payment',
   backToSelect: 'Choose again',
   selectedCount: '{{n}} ticket(s) selected',
+  maxPerOrder: 'Max {{n}} tickets per purchase',
   totalAmount: 'Total: {{total}}',
   reserving: 'Reserving…',
   reserve: 'Reserve',
