@@ -534,34 +534,30 @@ async function seedCategories(adminId: string) {
 }
 
 /**
- * Genera los asientos de una tribuna en ARCO (bowl de estadio) dentro de un espacio
- * de coordenadas COMPARTIDO por todas las tribunas → al unir todas las localidades
- * el mapa se lee como el recinto completo. `dir=-1` curva hacia abajo (tribuna
- * superior/Norte, extremos hacia la cancha); `dir=+1` hacia arriba (inferior/Sur).
+ * Rejilla de asientos (filas × columnas) en una región rectangular del "mundo".
+ * Todas las zonas del evento comparten el MISMO espacio de coordenadas → juntas
+ * forman el recinto (como en el mapa de VivaTicket del Estadio Cementos Progreso:
+ * ESCENARIO arriba, Mesas AMEX/Ultra Fan al frente, Tribuna izq + Preferencia der).
  */
-function arcTribuneSeats(opts: {
+function gridSeats(opts: {
   section: string;
-  rowPrefix: string;
+  prefix: string;
   rows: number;
   cols: number;
-  xStart: number;
-  xEnd: number;
-  yBase: number;
-  rowGap: number;
-  dir: -1 | 1;
+  x0: number;
+  y0: number;
+  dx: number;
+  dy: number;
 }): Array<{ label: string; row: string; section: string; x: number; y: number }> {
   const out: Array<{ label: string; row: string; section: string; x: number; y: number }> = [];
-  const span = opts.xEnd - opts.xStart;
   for (let r = 0; r < opts.rows; r++) {
-    for (let i = 0; i < opts.cols; i++) {
-      const dc = opts.cols > 1 ? (i - (opts.cols - 1) / 2) / ((opts.cols - 1) / 2) : 0; // -1..1
-      const yArc = dc * dc * 44 * opts.dir; // parábola: los extremos se acercan a la cancha
+    for (let c = 0; c < opts.cols; c++) {
       out.push({
-        label: `${opts.rowPrefix}${r + 1}-${i + 1}`,
-        row: `${opts.rowPrefix}${r + 1}`,
+        label: `${opts.prefix}${r + 1}-${c + 1}`,
+        row: `${opts.prefix}${r + 1}`,
         section: opts.section,
-        x: Math.round(opts.xStart + (opts.cols > 1 ? (i * span) / (opts.cols - 1) : 0)),
-        y: Math.round(opts.yBase + r * opts.rowGap * opts.dir + yArc),
+        x: opts.x0 + c * opts.dx,
+        y: opts.y0 + r * opts.dy,
       });
     }
   }
@@ -596,11 +592,12 @@ async function seedDemoEvent(
     data: {
       promoterId,
       categoryId,
-      name: 'Clásico en el Estadio Cementos Progreso',
+      name: 'Romeo Santos & Prince Royce en el Estadio Cementos Progreso',
       slug,
       description:
-        'Partido de exhibición en el Estadio Cementos Progreso (El Trébol), zona 6. ' +
-        'Elige tu zona en el mapa del estadio: cancha general, tribunas Norte/Sur o Preferencia numerada.',
+        'Una noche de bachata en el Estadio Cementos Progreso, zona 6. Elige tu zona en el ' +
+        'mapa: Mesas AMEX y Ultra Fan frente al escenario, Tribuna y Preferencia laterales, ' +
+        'o General. Acércate en el mapa (doble clic o rueda) para ver los asientos de cada zona.',
       hallId: hall?.id ?? null,
       address: hall?.address ?? 'Calzada José Milla y Vidaurre, Zona 6, Ciudad de Guatemala',
       lat: hall?.lat ?? 14.6469,
@@ -613,68 +610,51 @@ async function seedDemoEvent(
     },
   });
 
-  // ── Cancha (admisión GENERAL) — sin mapa, se vende por cantidad. El E2E aterriza
-  // aquí por defecto (localidad alfabéticamente primera → stepper de cantidad). ──
-  const general = await prisma.locality.create({
-    data: { eventId: event.id, name: 'General', slug: 'general', kind: 'general', desiredNet: 75, capacity: 150 },
-  });
-  await prisma.seat.createMany({
-    data: Array.from({ length: 150 }, (_, i) => ({ localityId: general.id, label: `GA-${i + 1}` })),
-    skipDuplicates: true,
-  });
+  // Layout inspirado en el mapa real (VivaTicket). Mundo ~ x[0..1000] y[0..900] con el
+  // ESCENARIO arriba (barra del propio mapa). Cada zona es una localidad numerada.
+  const zones: Array<{
+    name: string; slug: string; net: number;
+    grid: Parameters<typeof gridSeats>[0];
+  }> = [
+    // Frente al escenario: Mesas AMEX (premium) izquierda/derecha.
+    { name: 'Mesas AMEX Izquierda', slug: 'mesas-amex-izq', net: 250, grid: { section: 'AMEX Izq', prefix: 'AI', rows: 5, cols: 7, x0: 300, y0: 90, dx: 26, dy: 28 } },
+    { name: 'Mesas AMEX Derecha', slug: 'mesas-amex-der', net: 250, grid: { section: 'AMEX Der', prefix: 'AD', rows: 5, cols: 7, x0: 520, y0: 90, dx: 26, dy: 28 } },
+    // Detrás: Mesas Ultra Fan izquierda/derecha.
+    { name: 'Mesas Ultra Fan Izquierda', slug: 'mesas-ultrafan-izq', net: 180, grid: { section: 'Ultra Fan Izq', prefix: 'UI', rows: 5, cols: 7, x0: 300, y0: 260, dx: 26, dy: 28 } },
+    { name: 'Mesas Ultra Fan Derecha', slug: 'mesas-ultrafan-der', net: 180, grid: { section: 'Ultra Fan Der', prefix: 'UD', rows: 5, cols: 7, x0: 520, y0: 260, dx: 26, dy: 28 } },
+    // Laterales: Tribuna (con Platea) izquierda + Preferencia derecha.
+    { name: 'Tribuna', slug: 'tribuna', net: 120, grid: { section: 'Tribuna', prefix: 'T', rows: 12, cols: 3, x0: 120, y0: 95, dx: 28, dy: 26 } },
+    { name: 'Preferencia', slug: 'preferencia', net: 150, grid: { section: 'Preferencia', prefix: 'P', rows: 12, cols: 3, x0: 760, y0: 95, dx: 28, dy: 26 } },
+  ];
+  const localityByName: Record<string, { id: string }> = {};
+  for (const z of zones) {
+    const seats = gridSeats(z.grid);
+    const loc = await prisma.locality.create({
+      data: { eventId: event.id, name: z.name, slug: z.slug, kind: 'seated', desiredNet: z.net },
+    });
+    await prisma.seat.createMany({ data: seats.map((s) => ({ localityId: loc.id, ...s })), skipDuplicates: true });
+    await prisma.locality.update({ where: { id: loc.id }, data: { capacity: seats.length } });
+    localityByName[z.name] = loc;
+  }
 
-  // ── Tribunas NORTE y SUR: dos mapas que se UNEN en el mismo espacio de coordenadas
-  // (arcos opuestos del bowl). Vistas juntas forman el estadio; por separado, su zona. ──
-  const norteSeats = arcTribuneSeats({
-    section: 'Norte', rowPrefix: 'N', rows: 3, cols: 18, xStart: 150, xEnd: 770, yBase: 50, rowGap: 30, dir: -1,
-  });
-  const surSeats = arcTribuneSeats({
-    section: 'Sur', rowPrefix: 'S', rows: 3, cols: 18, xStart: 150, xEnd: 770, yBase: 590, rowGap: 30, dir: 1,
-  });
-  const norte = await prisma.locality.create({
-    data: { eventId: event.id, name: 'Tribuna Norte', slug: 'tribuna-norte', kind: 'seated', desiredNet: 90 },
-  });
-  await prisma.seat.createMany({
-    data: norteSeats.map((s) => ({ localityId: norte.id, ...s })),
-    skipDuplicates: true,
-  });
-  await prisma.locality.update({ where: { id: norte.id }, data: { capacity: norteSeats.length } });
+  // ── General 1 / General 2 (admisión GENERAL, el arco inferior en U): sin mapa, se
+  // venden por cantidad. El E2E aterriza en "General 1" (clickLocTab('General')). ──
+  for (const [name, slug] of [['General 1', 'general-1'], ['General 2', 'general-2']] as const) {
+    const g = await prisma.locality.create({
+      data: { eventId: event.id, name, slug, kind: 'general', desiredNet: 75, capacity: 120 },
+    });
+    await prisma.seat.createMany({
+      data: Array.from({ length: 120 }, (_, i) => ({ localityId: g.id, label: `${slug}-GA-${i + 1}` })),
+      skipDuplicates: true,
+    });
+  }
 
-  const sur = await prisma.locality.create({
-    data: { eventId: event.id, name: 'Tribuna Sur', slug: 'tribuna-sur', kind: 'seated', desiredNet: 90 },
-  });
-  await prisma.seat.createMany({
-    data: surSeats.map((s) => ({ localityId: sur.id, ...s })),
-    skipDuplicates: true,
-  });
-  await prisma.locality.update({ where: { id: sur.id }, data: { capacity: surSeats.length } });
-
-  // ── Tribuna PREFERENCIA: lateral derecho, rejilla recta NUMERADA (filas A–F). ──
-  const prefRows = ['A', 'B', 'C', 'D', 'E', 'F'];
-  const prefSeats = prefRows.flatMap((rl, r) =>
-    Array.from({ length: 10 }, (_, c) => ({
-      label: `${rl}-${c + 1}`,
-      row: rl,
-      section: 'Preferencia',
-      x: 850 + c * 26,
-      y: 190 + r * 36,
-    })),
-  );
-  const preferencia = await prisma.locality.create({
-    data: { eventId: event.id, name: 'Tribuna Preferencia', slug: 'tribuna-preferencia', kind: 'seated', desiredNet: 150 },
-  });
-  await prisma.seat.createMany({
-    data: prefSeats.map((s) => ({ localityId: preferencia.id, ...s })),
-    skipDuplicates: true,
-  });
-  await prisma.locality.update({ where: { id: preferencia.id }, data: { capacity: prefSeats.length } });
-
-  // ── El 2º cliente YA compró asientos (Norte + Sur + Preferencia) → aparecen
-  // OCUPADOS para el cliente 1 en el mapa (demuestra sold/pending compartido). ──
+  // ── El 2º cliente YA compró asientos (varias zonas) → salen OCUPADOS/azules para su
+  // dueño y OCUPADOS para el cliente 1 (demuestra sold compartido). ──
   await sellSeatsToBuyer(buyer2Id, event.id, [
-    { localityId: norte.id, labels: ['N2-8', 'N2-9', 'N2-10'], net: 90 },
-    { localityId: sur.id, labels: ['S1-9', 'S1-10'], net: 90 },
-    { localityId: preferencia.id, labels: ['A-1', 'A-2', 'B-1'], net: 150 },
+    { localityId: localityByName['Mesas AMEX Derecha'].id, labels: ['AD1-1', 'AD1-2', 'AD2-1'], net: 250 },
+    { localityId: localityByName['Preferencia'].id, labels: ['P1-1', 'P1-2'], net: 150 },
+    { localityId: localityByName['Mesas Ultra Fan Izquierda'].id, labels: ['UI1-1', 'UI1-2', 'UI3-4'], net: 180 },
   ]);
 }
 

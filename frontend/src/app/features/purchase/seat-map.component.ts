@@ -207,17 +207,22 @@ export class SeatMapComponent {
     return Math.max(this.farScale * this.MIN_REL, Math.min(this.farScale * this.MAX_REL, s));
   }
 
-  /** Zoom inmediato (sin tween) manteniendo fijo el punto (lx,ly) del viewport. */
-  private zoomAtLocal(lx: number, ly: number, factor: number): void {
+  /** Zoom manteniendo fijo el punto (lx,ly) del viewport. `animate` = tween cinematográfico. */
+  private zoomAtLocal(lx: number, ly: number, factor: number, animate = false): void {
     if (!this.stage) return;
     const old = this.stage.scaleX();
     const target = this.clampScale(old * factor);
     const wx = (lx - this.stage.x()) / old;
     const wy = (ly - this.stage.y()) / old;
-    this.stage.scale({ x: target, y: target });
-    this.stage.position({ x: lx - wx * target, y: ly - wy * target });
-    this.stage.batchDraw();
-    this.updateZoom();
+    const pos = { x: lx - wx * target, y: ly - wy * target };
+    if (animate) {
+      this.moveCamera(target, pos, true);
+    } else {
+      this.stage.scale({ x: target, y: target });
+      this.stage.position(pos);
+      this.stage.batchDraw();
+      this.updateZoom();
+    }
   }
 
   private onResize(): void {
@@ -373,6 +378,12 @@ export class SeatMapComponent {
           return;
         }
         if (!taken) this.seatToggle.emit(seat.id);
+      });
+      // Doble clic/tap: acerca la cámara (cinematográfico) hacia el punto → ver las
+      // mesas/asientos de la zona. (Zoom out con la rueda/pinch/reset vuelve a todo.)
+      g.on('dblclick dbltap', () => {
+        const p = this.stage?.getPointerPosition();
+        if (p) this.zoomAtLocal(p.x, p.y, 2, true);
       });
       const clickable = locked || !taken;
       g.on('mouseenter', () => this.setCursor(clickable ? 'pointer' : 'grab'));

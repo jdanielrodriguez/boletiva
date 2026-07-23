@@ -17,7 +17,7 @@ import { writeFileSync } from 'node:fs';
 // httpOnly del refresh (SameSite=Lax) viaje entre navegaciones. Ver launch args.
 const FE = process.env.E2E_FRONTEND_URL || 'http://localhost:4200';
 const MAIL = process.env.E2E_MAILHOG_URL || 'http://pasaeventos_mailhog:8025';
-const BUYER = { email: 'cliente@pasaeventos.com', password: 'Password123' };
+const BUYER = { email: 'cliente@boletiva.com', password: 'Password123' };
 const EVENT_SLUG = 'evento-demo-pasaeventos';
 
 let pass = 0;
@@ -164,7 +164,7 @@ async function main() {
     await page.goto(`${FE}/eventos/${EVENT_SLUG}`, { waitUntil: 'networkidle0' });
     await waitSel(page, 'h1');
     const h1 = await text(page, 'h1');
-    assert(h1.toLowerCase().includes('evento'), `h1 inesperado: ${h1}`);
+    assert(h1.length > 0, `h1 vacío`); // el @type=Event de abajo confirma que es detalle de evento
     const ld = await page.$('#pe-jsonld');
     assert(ld !== null, 'falta JSON-LD');
     const type = await page.$eval('#pe-jsonld', (el) => JSON.parse(el.textContent)['@type']);
@@ -440,7 +440,7 @@ async function main() {
   const promoCtx = await browser.createBrowserContext();
   const promo = await promoCtx.newPage();
   await step('"Nuevo evento" abre la vista de edición en MODO NUEVO (form en blanco) y Guardar crea', async () => {
-    await doLogin(promo, 'promotor@pasaeventos.com', 'Password123');
+    await doLogin(promo, 'promotor@boletiva.com', 'Password123');
     await promo.goto(`${FE}/promotor`, { waitUntil: 'networkidle0' });
     await promo.waitForSelector('[data-testid="toggle-create"]', { timeout: 15000 });
     // El botón navega a /promotor/eventos/nuevo (misma página de edición, en blanco).
@@ -691,7 +691,7 @@ async function main() {
   const adminPg = await adminCtx.newPage();
   let inviteLink = '';
   await step('el admin invita a un promotor por correo y obtiene el enlace con token', async () => {
-    await doLogin(adminPg, 'admin@pasaeventos.com', 'Password123');
+    await doLogin(adminPg, 'admin@boletiva.com', 'Password123');
     await adminPg.goto(`${FE}/configuracion`, { waitUntil: 'networkidle0' });
     await adminPg.waitForSelector('[data-testid="tab-invitaciones"]', { timeout: 15000 });
     await adminPg.click('[data-testid="tab-invitaciones"]');

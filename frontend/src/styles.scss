@@ -3047,11 +3047,32 @@ app-root {
   margin: 0 0 1.25rem;
   transition: transform 0.25s ease, opacity 0.25s ease;
 }
-/* Al hacer scroll hacia abajo se aparta (sube fuera de vista) para no tapar el mapa. */
+/* Al hacer scroll hacia abajo NO desaparece: se ACOPLA al fondo de la pantalla
+   (deslizándose desde abajo) para seguir visible y accesible sin tapar el mapa. */
 .cart-top.is-hidden {
-  transform: translateY(calc(-1 * (var(--pe-topbar-h, 64px) + 160px)));
-  opacity: 0;
-  pointer-events: none;
+  position: fixed;
+  top: auto;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: 0;
+  border-radius: var(--pe-radius) var(--pe-radius) 0 0;
+  border-bottom: none;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.18);
+  z-index: 50;
+  animation: cart-dock 0.28s ease;
+}
+@keyframes cart-dock {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+/* Deja aire al final para que la barra acoplada nunca tape el último contenido. */
+.purchase {
+  padding-bottom: 5.5rem;
 }
 
 .cart-top .cart-count {
