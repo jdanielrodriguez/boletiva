@@ -33,5 +33,7 @@
   <app-loading [fullscreen]="true" [dim]="true" [blocking]="globalLoadingBlocking()" [label]="'common.loading' | translate" data-testid="global-loader" />
 }
 @if (clickDelayActive()) {
-  <app-loading [fullscreen]="true" [dim]="true" [blocking]="true" data-testid="click-delay-loader" />
+  <!-- Velo VISUAL únicamente (no bloqueante): da sensación de "procesando" sin tragarse
+       clics rápidos posteriores (doble clic, qty→reservar, abrir dropdown, etc.). -->
+  <app-loading [fullscreen]="true" [dim]="true" [blocking]="false" data-testid="click-delay-loader" />
 }
