@@ -20,6 +20,7 @@ export const purchase = {
   overviewTitle: 'Venue map',
   overviewHint: 'Hover and tap a section to view and pick its seats.',
   overviewHoverCta: 'Tap to pick seats in {{name}}',
+  stage: 'Stage',
   seatPickerAria: 'Choose seat (accessible list)',
   seatMapMobileHint: 'Scroll and tap to pick your seats. If the map is dense, rotate your phone to landscape.',
   legendAvailable: 'Available',

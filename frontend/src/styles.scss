@@ -2308,19 +2308,32 @@ app-root {
   border: 1px solid var(--pe-border);
   background: var(--pe-surface);
   min-width: 130px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
 
-.loc-tab:hover {
-  /* Más contraste en hover (antes solo cambiaba el borde): fondo de acento + borde fuerte. */
+/* NO-seleccionado: hover elegante — se eleva con borde de acento + sombra (sin
+   pintarse entero de color, que se veía plano). */
+.loc-tab:not(.active):hover {
   border-color: var(--pe-accent);
   background: var(--pe-accent-soft);
   color: var(--pe-accent-strong, var(--pe-accent));
+  transform: translateY(-2px);
+  box-shadow: var(--pe-shadow);
 }
 
 .loc-tab.active {
   background: var(--pe-grad);
   border-color: transparent;
   color: #fff;
+}
+
+/* SELECCIONADO: el hover NO cambia el color (se veía mal) — solo una sombra sutil. */
+.loc-tab.active:hover {
+  background: var(--pe-grad);
+  border-color: transparent;
+  color: #fff;
+  transform: none;
+  box-shadow: var(--pe-shadow);
 }
 
 .loc-tab .loc-tab-price {
@@ -4991,8 +5004,20 @@ button.danger {
   opacity: 0.85;
   font-size: 0.9rem;
 }
-.reserve-blocked-login {
+/* Botón CTA del banner: sólido de acento (rosa) con tinta AA → contrasta contra el
+   beige del banner y contra el verde de los boletos; se ve claramente como botón. */
+.reserve-blocked .reserve-blocked-login {
   margin-top: 0.15rem;
+  background: var(--pe-accent);
+  border: 1px solid var(--pe-accent);
+  color: var(--pe-on-accent, #fff);
+  font-weight: 700;
+  box-shadow: var(--pe-shadow);
+}
+.reserve-blocked .reserve-blocked-login:hover {
+  background: var(--pe-accent-strong, var(--pe-accent));
+  border-color: var(--pe-accent-strong, var(--pe-accent));
+  color: var(--pe-on-accent, #fff);
 }
 .back-link {
   display: inline-flex;

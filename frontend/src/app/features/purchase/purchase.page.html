@@ -109,7 +109,7 @@
             <p class="reserve-blocked-hint">{{ 'purchase.reserveLimitHint' | translate }}</p>
           </div>
         </div>
-        <button type="button" class="btn btn-outline reserve-blocked-login" data-testid="reserve-login" (click)="loginToReserve()">
+        <button type="button" class="btn reserve-blocked-login" data-testid="reserve-login" (click)="loginToReserve()">
           {{ 'purchase.reserveLimitLogin' | translate }}
         </button>
       </div>
@@ -134,6 +134,7 @@
         <app-seat-map
           [seats]="store.allSeats()"
           [interactive]="false"
+          [stageLabel]="'purchase.stage' | translate"
           (localityPick)="focusLocality($event)"
           (localityHover)="onOverviewHover($event)"
         />
@@ -171,6 +172,7 @@
           <app-seat-map
             [seats]="store.activeSeats()"
             [selected]="store.selectedSet()"
+            [stageLabel]="'purchase.stage' | translate"
             (seatToggle)="store.toggleSeat($event)"
           />
           <!-- a11y: el canvas Konva no es operable por teclado/lector. Lista paralela

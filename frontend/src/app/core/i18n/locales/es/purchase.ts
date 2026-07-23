@@ -20,6 +20,7 @@ export const purchase = {
   overviewTitle: 'Mapa del recinto',
   overviewHint: 'Pasa el cursor y toca una zona para ver y elegir sus asientos.',
   overviewHoverCta: 'Toca para elegir asientos en {{name}}',
+  stage: 'Escenario',
   seatPickerAria: 'Elegir asiento (lista accesible)',
   seatMapMobileHint: 'Desplaza y toca para elegir tus asientos. Si el mapa es muy denso, gira el teléfono a horizontal.',
   legendAvailable: 'Disponible',

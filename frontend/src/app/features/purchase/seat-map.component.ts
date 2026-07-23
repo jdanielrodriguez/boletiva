@@ -38,17 +38,28 @@ const PAD = 40;
       <button type="button" class="btn small icon-only" [disabled]="zoom() >= MAX_ZOOM" (click)="zoomIn()" data-testid="seat-zoom-in" aria-label="Acercar">+</button>
       <button type="button" class="btn small" (click)="resetZoom()" data-testid="seat-zoom-reset">100%</button>
     </div>
-    <div #host class="seat-map-host"></div>
+    <div class="seat-map-frame">
+      @if (stageLabel()) {
+        <div class="seat-stage" data-testid="seat-stage" aria-hidden="true"><span>{{ stageLabel() }}</span></div>
+      }
+      <div #host class="seat-map-host"></div>
+    </div>
   `,
   styles: [
     // El CANVAS ocupa el 100% del ancho del contenedor; el CONTENIDO (los asientos)
     // se centra dentro del stage vía offset del layer (no con CSS del canvas).
     ':host { display: block; width: 100%; }',
+    // El fondo del mapa = color de la página (antes blanco brillante). Marco con el
+    // escenario arriba (las localidades quedan debajo, hacia el escenario).
+    '.seat-map-frame { border-radius: 12px; background: var(--pe-bg); padding: 0.25rem; overflow: hidden; }',
     // overflow-x:auto → si el mapa es más ancho que el viewport (evento grande en móvil)
     // se scrollea DENTRO en vez de desbordar la página. touch-action permite el pan.
-    '.seat-map-host { display: block; width: 100%; overflow: auto; -webkit-overflow-scrolling: touch; max-height: 70vh; }',
+    '.seat-map-host { display: block; width: 100%; overflow: auto; -webkit-overflow-scrolling: touch; max-height: 70vh; background: var(--pe-bg); }',
     '.seat-map-zoom { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.4rem; }',
     '.seat-zoom-lvl { min-width: 3.2rem; text-align: center; font-variant-numeric: tabular-nums; color: var(--pe-text-muted, #6b6b76); }',
+    // Etiqueta ESCENARIO: barra centrada arriba del mapa (referencia de orientación).
+    '.seat-stage { display: flex; justify-content: center; margin: 0.15rem auto 0.6rem; }',
+    '.seat-stage span { display: inline-block; min-width: 55%; text-align: center; padding: 0.4rem 1.5rem; border-radius: 8px; background: var(--pe-surface-2); color: var(--pe-text-muted, #6b6b76); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; box-shadow: inset 0 -3px 0 var(--pe-border); }',
   ],
 })
 export class SeatMapComponent {
@@ -60,6 +71,8 @@ export class SeatMapComponent {
    * pasar el cursor `localityHover` (para el CTA de la página). `true` = compra normal.
    */
   readonly interactive = input(true);
+  /** Texto de la etiqueta del escenario (barra superior). null = no se muestra. */
+  readonly stageLabel = input<string | null>(null);
   readonly seatToggle = output<string>();
   /** Vista general: clic en una zona → id de su localidad. */
   readonly localityPick = output<string>();
