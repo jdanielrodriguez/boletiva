@@ -3,7 +3,14 @@ import { Prisma, User } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { StorageService } from '../../infra/storage/storage.service';
+import { AuditService } from '../audit/audit.service';
 import { slugify } from '../../common/utils/slug';
+
+/** Contexto del actor (IP/UA server-side) para la bitácora de no-repudio. */
+export interface ActorContext {
+  ip?: string | null;
+  userAgent?: string | null;
+}
 import { KeysetQuery, keysetResult, keysetTake } from '../../common/utils/pagination';
 import { AvatarPresignDto, SetAvatarDto, UpdateProfileDto, UpdateUserRolesDto, UpdateUserStatusDto } from './dto/users.dto';
 
@@ -50,6 +57,7 @@ export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
+    private readonly audit: AuditService,
   ) {}
 
   /**
@@ -152,30 +160,50 @@ export class UsersService {
     return this.present(user);
   }
 
-  async setRoles(id: string, dto: UpdateUserRolesDto, actorId?: string) {
+  async setRoles(id: string, dto: UpdateUserRolesDto, actorId?: string, ctx?: ActorContext) {
     // Defensa en profundidad (además de @AdminOnly): nadie edita sus propios roles →
     // cierra la auto-escalada aunque el endpoint quedara mal decorado en el futuro.
     if (actorId && actorId === id) {
       throw new ForbiddenException('No puedes modificar tus propios roles');
     }
-    await this.assertExists(id);
+    const before = await this.prisma.user.findUnique({ where: { id }, select: { roles: true } });
+    if (!before) throw new NotFoundException('Usuario no encontrado');
     const user = await this.prisma.user.update({
       where: { id },
       data: { roles: dto.roles },
       select: publicSelect,
     });
+    // No-repudio (QA): otorgar/quitar roles es la escalada de privilegios más sensible →
+    // queda en la bitácora hash-chain con actor + IP/UA server-side y el diff de roles.
+    await this.audit.record({
+      userId: actorId ?? null,
+      action: 'admin.user.roles.set',
+      resource: `user:${id}`,
+      ip: ctx?.ip ?? null,
+      userAgent: ctx?.userAgent ?? null,
+      payload: { before: before.roles, after: dto.roles },
+    });
     return this.present(user);
   }
 
-  async setStatus(id: string, dto: UpdateUserStatusDto, actorId?: string) {
+  async setStatus(id: string, dto: UpdateUserStatusDto, actorId?: string, ctx?: ActorContext) {
     if (actorId && actorId === id) {
       throw new ForbiddenException('No puedes cambiar tu propio estado');
     }
-    await this.assertExists(id);
+    const before = await this.prisma.user.findUnique({ where: { id }, select: { status: true } });
+    if (!before) throw new NotFoundException('Usuario no encontrado');
     const user = await this.prisma.user.update({
       where: { id },
       data: { status: dto.status },
       select: publicSelect,
+    });
+    await this.audit.record({
+      userId: actorId ?? null,
+      action: 'admin.user.status.set',
+      resource: `user:${id}`,
+      ip: ctx?.ip ?? null,
+      userAgent: ctx?.userAgent ?? null,
+      payload: { before: before.status, after: dto.status },
     });
     return this.present(user);
   }

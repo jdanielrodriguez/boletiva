@@ -5,7 +5,7 @@
     <p class="auth-sub">{{ 'auth.modalSubtitle' | translate }}</p>
 
     @if (error()) {
-      <p class="form-error" data-testid="modal-error">{{ error() }}</p>
+      <p class="form-error" role="alert" data-testid="modal-error">{{ error() }}</p>
     }
 
     @if (!needs2fa()) {
@@ -48,6 +48,11 @@
         <button type="submit" class="primary btn-block" [disabled]="submitting()">
           {{ submitting() ? ('auth.verifying' | translate) : ('auth.verify' | translate) }}
         </button>
+
+        <!-- Reenvío estandarizado (F2): botón + cronómetro + estado. Solo para 2FA por correo. -->
+        @if (method() === 'email') {
+          <app-resend-code testId="modal-resend" [resending]="resending()" [info]="info()" (resend)="resendCode()" />
+        }
       </form>
     }
   </section>

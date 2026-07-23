@@ -78,8 +78,8 @@
                   </button>
                 }
 
-                <!-- Tarjetas guardadas -->
-                @for (c of savedMethods(); track c.id) {
+                <!-- Tarjetas guardadas (solo si el cobro tokenizado está soportado; hoy off) -->
+                @for (c of savedCardsEnabled ? savedMethods() : []; track c.id) {
                   <button
                     type="button"
                     class="pay-option"
@@ -100,8 +100,8 @@
                   </button>
                 }
 
-                <!-- Nueva tarjeta (siempre disponible como opción) -->
-                @if (hasSavedMethods()) {
+                <!-- Nueva tarjeta (como opción explícita solo cuando hay tarjetas guardadas visibles) -->
+                @if (savedCardsEnabled && hasSavedMethods()) {
                   <button
                     type="button"
                     class="pay-option"
@@ -262,7 +262,7 @@
           </div>
 
           @if (error()) {
-            <p class="error" data-testid="checkout-error">{{ error() }}</p>
+            <p class="error" role="alert" data-testid="checkout-error">{{ error() }}</p>
           }
           @if (status() === 'pending' && paying()) {
             <p class="awaiting" data-testid="awaiting">{{ 'checkout.awaiting' | translate }}</p>

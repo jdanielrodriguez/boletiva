@@ -19,6 +19,7 @@ export type LoadingVariant = 'spinner' | 'skeleton';
       class="pe-loading"
       [class.pe-loading--fullscreen]="fullscreen()"
       [class.pe-loading--dim]="fullscreen() && dim()"
+      [class.pe-loading--blocking]="fullscreen() && blocking()"
       [class.pe-loading--block]="!fullscreen()"
       role="status"
       aria-live="polite"
@@ -73,6 +74,13 @@ export type LoadingVariant = 'spinner' | 'skeleton';
            transitorio de una petición en vuelo se trague la siguiente acción del
            usuario). El scrim oscurece; la interacción pasa a través. (v3.9) */
         pointer-events: none;
+      }
+      /* Overlay BLOQUEANTE (logout u otra acción deliberada, F1): a diferencia del
+         overlay HTTP transitorio, SÍ captura los clics para que el usuario no
+         interactúe con la UI mientras se procesa. Anula el pointer-events:none. */
+      .pe-loading--blocking {
+        pointer-events: auto;
+        cursor: progress;
       }
       .pe-spinner {
         width: 42px;
@@ -134,6 +142,9 @@ export class LoadingComponent {
   /** Con `fullscreen`: oscurece el contenido (scrim translúcido) en vez de taparlo
    * opaco. Para el overlay de peticiones en vuelo (v3.9 · C1). */
   readonly dim = input(false);
+  /** Con `fullscreen`: el overlay CAPTURA los clics (bloquea la interacción) en
+   * vez de dejarlos pasar. Para acciones deliberadas como el logout (F1). */
+  readonly blocking = input(false);
   /** Texto ya traducido; opcional. */
   readonly label = input<string>('');
   /** Anchos (%) de las líneas del skeleton. */

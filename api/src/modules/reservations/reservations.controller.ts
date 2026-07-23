@@ -25,6 +25,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { clientIp } from '../../common/utils/client-ip';
 import { RequireCaptcha } from '../../common/decorators/require-captcha.decorator';
 import { CaptchaGuard } from '../../common/guards/captcha.guard';
+import { NoAdminPurchaseGuard } from '../../common/guards/no-admin-purchase.guard';
 import { OrderResponseDto } from '../orders/dto/orders.dto';
 import { ReservationContext, ReservationsService } from './reservations.service';
 import {
@@ -102,6 +103,7 @@ export class ReservationsController {
 
   @Post('reservations/:token/checkout')
   @RequireVerifiedEmail()
+  @UseGuards(NoAdminPurchaseGuard) // el admin no compra como usuario real (homologa las 3 puertas de compra)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Paga una reserva: crea la orden a nombre del usuario logueado' })
   @ApiCreatedResponse({ type: OrderResponseDto })

@@ -34,6 +34,14 @@ export const shell = {
   verifyBody: 'Te enviamos un enlace de confirmación. Necesitas verificar tu correo para comprar, crear o transferir boletos.',
   verifyRedirecting: 'Te llevamos al inicio…',
   verifyBackHome: 'Volver al inicio',
+  verifyingBody: 'Estamos verificando tu correo…',
+  verifiedTitle: 'Correo verificado ✅',
+  verifiedBody: 'Tu correo quedó verificado. Ya puedes comprar, crear y transferir boletos.',
+  verifyError: 'No pudimos verificar tu correo: el enlace no es válido o ya expiró. Pide uno nuevo desde tu cuenta.',
+  passwordlessTitle: 'Acceso con enlace',
+  passwordlessBody: 'Iniciando tu sesión…',
+  passwordlessError: 'El enlace de acceso no es válido o ya expiró. Solicita uno nuevo desde el inicio de sesión.',
+  passwordlessBackLogin: 'Ir a iniciar sesión',
   termsIntro:
     'Al usar Boletiva aceptas nuestras condiciones de compra, la política de reembolsos según cada evento y el tratamiento de tus datos conforme a la ley aplicable en Guatemala.',
   termsSecurityTitle: 'Seguridad de los pagos y tus tarjetas',
@@ -47,6 +55,8 @@ export const shell = {
   termsComingSoon: 'El contenido legal completo se publicará próximamente.',
   forbiddenTitle: '403 — Sin permiso',
   forbiddenBody: 'Tu cuenta no tiene acceso a esta sección.',
+  notFoundTitle: '404 — Página no encontrada',
+  notFoundBody: 'La página que buscas no existe o cambió de lugar.',
   impersonation: {
     viewingAs: 'Estás viendo la plataforma como {{name}}',
     exit: 'Salir de la vista',

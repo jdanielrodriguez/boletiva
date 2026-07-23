@@ -92,6 +92,7 @@ export class WalletWithdrawalService {
       refType: 'withdrawal',
       refId: w.id,
       memo: `Reintegro de retiro ${w.id}`,
+      idempotent: true,
       entries: [
         { type: 'user_wallet', ownerId: w.userId, amount: w.amount.toFixed(2) },
         { type: 'payout_pending', amount: w.net.negated().toFixed(2) },
@@ -101,34 +102,24 @@ export class WalletWithdrawalService {
   }
 
   async approve(id: string, adminId: string) {
-    const w = await this.getOr404(id);
-    if (w.status !== WithdrawalStatus.pending) {
-      throw new ConflictException(`El retiro no está pendiente (${w.status})`);
-    }
-    const updated = await this.prisma.walletWithdrawal.update({
-      where: { id },
+    // CAS: solo transiciona una vez (pending→approved). Doble clic/carrera → count 0 → 409.
+    const claim = await this.prisma.walletWithdrawal.updateMany({
+      where: { id, status: WithdrawalStatus.pending },
       data: { status: WithdrawalStatus.approved, decidedById: adminId, decidedAt: new Date() },
     });
-    return this.summarize(updated);
+    if (claim.count === 0) {
+      const w = await this.getOr404(id); // 404 si no existe; si existe → conflicto de estado
+      throw new ConflictException(`El retiro no está pendiente (${w.status})`);
+    }
+    return this.summarize(await this.prisma.walletWithdrawal.findUniqueOrThrow({ where: { id } }));
   }
 
   async pay(id: string, adminId: string, note?: string) {
-    const w = await this.getOr404(id);
-    if (w.status !== WithdrawalStatus.pending && w.status !== WithdrawalStatus.approved) {
-      throw new ConflictException(`El retiro no se puede pagar en estado ${w.status}`);
-    }
-    await this.ledger.post({
-      kind: 'withdrawal_paid',
-      refType: 'withdrawal',
-      refId: id,
-      memo: `Pago de retiro ${id}`,
-      entries: [
-        { type: 'payout_pending', amount: new Decimal(w.net).negated().toFixed(2) },
-        { type: 'payout_settled', amount: new Decimal(w.net).toFixed(2) },
-      ],
-    });
-    const updated = await this.prisma.walletWithdrawal.update({
-      where: { id },
+    const w = await this.getOr404(id); // 404 + valores (net) para el asiento
+    // CAS-FIRST: solo el ganador (pending|approved→paid) asienta el pago. Evita doble
+    // payout por doble clic o por carrera con reject (solo una transición gana la fila).
+    const claim = await this.prisma.walletWithdrawal.updateMany({
+      where: { id, status: { in: [WithdrawalStatus.pending, WithdrawalStatus.approved] } },
       data: {
         status: WithdrawalStatus.paid,
         decidedById: adminId,
@@ -137,17 +128,29 @@ export class WalletWithdrawalService {
         note: note ?? w.note,
       },
     });
-    return this.summarize(updated);
+    if (claim.count === 0) {
+      throw new ConflictException(`El retiro no se puede pagar en estado ${w.status}`);
+    }
+    await this.ledger.post({
+      kind: 'withdrawal_paid',
+      refType: 'withdrawal',
+      refId: id,
+      memo: `Pago de retiro ${id}`,
+      idempotent: true,
+      entries: [
+        { type: 'payout_pending', amount: new Decimal(w.net).negated().toFixed(2) },
+        { type: 'payout_settled', amount: new Decimal(w.net).toFixed(2) },
+      ],
+    });
+    return this.summarize(await this.prisma.walletWithdrawal.findUniqueOrThrow({ where: { id } }));
   }
 
   async reject(id: string, adminId: string, note?: string) {
     const w = await this.getOr404(id);
-    if (w.status !== WithdrawalStatus.pending && w.status !== WithdrawalStatus.approved) {
-      throw new ConflictException(`El retiro no se puede rechazar en estado ${w.status}`);
-    }
-    await this.refund(this.decimalize(w));
-    const updated = await this.prisma.walletWithdrawal.update({
-      where: { id },
+    // CAS-FIRST: solo el ganador reintegra. Evita doble reintegro por doble clic o por
+    // carrera con pay (solo una transición terminal gana la fila).
+    const claim = await this.prisma.walletWithdrawal.updateMany({
+      where: { id, status: { in: [WithdrawalStatus.pending, WithdrawalStatus.approved] } },
       data: {
         status: WithdrawalStatus.rejected,
         decidedById: adminId,
@@ -155,21 +158,26 @@ export class WalletWithdrawalService {
         note: note ?? null,
       },
     });
-    return this.summarize(updated);
+    if (claim.count === 0) {
+      throw new ConflictException(`El retiro no se puede rechazar en estado ${w.status}`);
+    }
+    await this.refund(this.decimalize(w));
+    return this.summarize(await this.prisma.walletWithdrawal.findUniqueOrThrow({ where: { id } }));
   }
 
   async cancel(id: string, userId: string) {
     const w = await this.getOr404(id);
     if (w.userId !== userId) throw new NotFoundException('Retiro no encontrado'); // IDOR
-    if (w.status !== WithdrawalStatus.pending) {
+    // CAS-FIRST (ligado al dueño): solo el ganador reintegra. Evita doble reintegro.
+    const claim = await this.prisma.walletWithdrawal.updateMany({
+      where: { id, userId, status: WithdrawalStatus.pending },
+      data: { status: WithdrawalStatus.cancelled, note: 'Cancelado por el usuario' },
+    });
+    if (claim.count === 0) {
       throw new ConflictException(`Solo puedes cancelar un retiro pendiente (${w.status})`);
     }
     await this.refund(this.decimalize(w));
-    const updated = await this.prisma.walletWithdrawal.update({
-      where: { id },
-      data: { status: WithdrawalStatus.cancelled, note: 'Cancelado por el usuario' },
-    });
-    return this.summarize(updated);
+    return this.summarize(await this.prisma.walletWithdrawal.findUniqueOrThrow({ where: { id } }));
   }
 
   async listMine(userId: string, page: KeysetQuery = {}) {

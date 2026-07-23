@@ -63,9 +63,11 @@ export class Header {
 
   logout(): void {
     this.closeMenu();
-    // Overlay global + espera MÍNIMA de 3s: el logout real suele ser instantáneo, pero
-    // mostramos el loader un momento para que el cierre de sesión se perciba deliberado.
-    this.loading.start();
+    // Overlay global BLOQUEANTE + espera MÍNIMA de 1s: el logout real suele ser
+    // instantáneo, pero mostramos el loader un momento para que el cierre se perciba
+    // deliberado. `startBlocking` CAPTURA los clics (F1) → el usuario no puede tocar
+    // la UI a medio cierre de sesión (antes el overlay dejaba pasar el clic).
+    this.loading.startBlocking();
     // `defaultIfEmpty`: el logout puede COMPLETAR sin emitir (204) → garantiza una
     // emisión para que forkJoin dispare aunque no venga cuerpo.
     forkJoin([
@@ -73,10 +75,10 @@ export class Header {
         catchError(() => of(void 0)),
         defaultIfEmpty(void 0),
       ),
-      timer(3000),
+      timer(1000),
     ]).subscribe({
       next: () => {
-        this.loading.stop();
+        this.loading.stopBlocking();
         void this.router.navigateByUrl('/');
       },
     });

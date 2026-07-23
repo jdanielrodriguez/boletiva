@@ -146,6 +146,15 @@ describe('Ingest de validación offline (e2e)', () => {
     expect(conflicts.body.some((c: { serial: string; reason: string }) => c.serial === s0 && c.reason === 'already_used')).toBe(true);
   });
 
+  it('Ola1-QA: conflictos de un evento al que NO está asignado → 403 (IDOR cerrado)', async () => {
+    // Mismo control que el batch: el operador solo ve conflictos de eventos donde está
+    // asignado. Un evento ajeno (sin asignación) → 403, sin filtrar seriales/timestamps.
+    await http()
+      .get('/api/v1/events/00000000-0000-0000-0000-000000000000/checkins/conflicts')
+      .set(bearer(operatorToken))
+      .expect(403);
+  });
+
   it('serial inexistente → notFound; boleto revocado → invalid + conflicto', async () => {
     const notFound = await batch([{ serial: 'PENOEXISTE' }]).expect(200);
     expect(notFound.body).toMatchObject({ total: 1, notFound: 1 });

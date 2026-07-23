@@ -78,4 +78,20 @@ describe('LoginModal', () => {
     comp['close']();
     expect(spy).toHaveBeenCalled();
   });
+
+  it('F2: en el paso 2FA reenvía el código (resend2fa) y muestra el aviso', async () => {
+    const resend2fa = jasmine.createSpy('resend2fa').and.returnValue(of({ method: 'email', resent: true }));
+    await setup({ login: () => of({ status: '2fa_required', method: 'email', preauthToken: 'p' } as never), resend2fa });
+    comp['submit']();
+    comp['resendCode']();
+    expect(resend2fa).toHaveBeenCalledWith('p');
+    expect(comp['info']()).toContain('reenviamos');
+  });
+
+  it('F2: reenviar sin preauthToken no llama al servicio', async () => {
+    const resend2fa = jasmine.createSpy('resend2fa').and.returnValue(of({ method: 'email', resent: true }));
+    await setup({ resend2fa });
+    comp['resendCode']();
+    expect(resend2fa).not.toHaveBeenCalled();
+  });
 });

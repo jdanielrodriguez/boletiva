@@ -65,6 +65,10 @@ export class App {
     () => this.isBrowser && !this.booting() && this.loading.visible(),
   );
 
+  /** ¿El overlay global debe BLOQUEAR la interacción? (acciones deliberadas como
+   * el logout, F1). Los overlays HTTP transitorios dejan pasar el clic. */
+  protected readonly globalLoadingBlocking = computed(() => this.loading.blocking());
+
   /** ¿El usuario resuelto es admin? (para el bypass del mantenimiento). */
   private readonly isAdmin = computed(() => this.session.roles().includes('admin'));
 

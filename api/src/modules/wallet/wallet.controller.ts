@@ -9,6 +9,7 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -19,8 +20,11 @@ import {
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { Audit } from '../../common/decorators/audit.decorator';
+import { AuditInterceptor } from '../../common/interceptors/audit.interceptor';
 import { AdminOnly } from '../../common/decorators/admin-only.decorator';
 import { RequireVerifiedEmail } from '../../common/decorators/verified-email.decorator';
+import { assertNotAdvisor } from '../../common/auth/advisor-limits';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user.decorator';
 import { PageQueryDto } from '../../common/dto/page-query.dto';
 import { WalletService } from './wallet.service';
@@ -36,6 +40,7 @@ import {
 
 @ApiTags('wallet')
 @ApiBearerAuth()
+@UseInterceptors(AuditInterceptor)
 @Controller('wallet')
 export class WalletController {
   constructor(
@@ -59,6 +64,9 @@ export class WalletController {
   })
   @ApiCreatedResponse({ type: WithdrawalActionResponseDto })
   request(@Body() dto: RequestWithdrawalDto, @CurrentUser() user: AuthUser) {
+    // G7 (arquitecto): un ASESOR (rol de soporte) NUNCA solicita retiros de wallet, aunque
+    // herede permisos de admin. La tesorería (aprobar/pagar/rechazar) ya es @AdminOnly.
+    assertNotAdvisor(user, 'Un asesor no puede solicitar retiros de wallet.');
     // Acción financiera: nunca en una sesión de impersonación. Un admin suplantando a
     // un promotor no puede mover el saldo ajeno (mismo criterio que el cierre de caja).
     if (user.impersonatedBy || user.impersonation) {
@@ -89,6 +97,7 @@ export class WalletController {
   @Post('withdrawals/:id/approve')
   @Roles(Role.admin)
   @AdminOnly()
+  @Audit('admin.withdrawal.approve', { resource: 'withdrawal', param: 'id' })
   @HttpCode(200)
   @ApiOperation({ summary: 'Aprueba un retiro (admin)' })
   @ApiOkResponse({ type: WithdrawalActionResponseDto })
@@ -99,6 +108,7 @@ export class WalletController {
   @Post('withdrawals/:id/pay')
   @Roles(Role.admin)
   @AdminOnly()
+  @Audit('admin.withdrawal.pay', { resource: 'withdrawal', param: 'id' })
   @HttpCode(200)
   @ApiOperation({ summary: 'Marca un retiro como pagado (admin)' })
   @ApiOkResponse({ type: WithdrawalActionResponseDto })
@@ -113,6 +123,7 @@ export class WalletController {
   @Post('withdrawals/:id/reject')
   @Roles(Role.admin)
   @AdminOnly()
+  @Audit('admin.withdrawal.reject', { resource: 'withdrawal', param: 'id' })
   @HttpCode(200)
   @ApiOperation({ summary: 'Rechaza un retiro y reintegra el saldo (admin)' })
   @ApiOkResponse({ type: WithdrawalActionResponseDto })
@@ -125,10 +136,17 @@ export class WalletController {
   }
 
   @Delete('withdrawals/:id')
+  @Roles(Role.promoter, Role.admin)
   @HttpCode(200)
   @ApiOperation({ summary: 'Cancela un retiro propio pendiente (reintegra el saldo)' })
   @ApiOkResponse({ type: WithdrawalActionResponseDto })
-  cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('userId') userId: string) {
-    return this.withdrawals.cancel(id, userId);
+  cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
+    // Acción financiera: nunca en impersonación (reintegra saldo ajeno). Igual que `request`.
+    if (user.impersonatedBy || user.impersonation) {
+      throw new ForbiddenException(
+        'No se puede cancelar un retiro en una sesión de impersonación; usa tu sesión real',
+      );
+    }
+    return this.withdrawals.cancel(id, user.userId);
   }
 }

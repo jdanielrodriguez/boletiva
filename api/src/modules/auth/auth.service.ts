@@ -132,9 +132,33 @@ export class AuthService {
     // correo de cortesía ("ya tienes una cuenta") y devolvemos una respuesta genérica
     // `pending` (202) — sin sesión, sin crear nada. El flujo de alta real (correo nuevo)
     // sigue devolviendo 201 + tokens.
-    if (await this.prisma.user.findUnique({ where: { email } })) {
-      await this.sendAlreadyRegisteredEmail(email);
-      return { pending: true };
+    const existing = await this.prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      // Adopción de PLACEHOLDER (QA cuentas-fantasma): una cuenta creada solo como ANCLA de una
+      // invitación de validador (sin contraseña y sin verificar) NO debe bloquear el alta real
+      // de esa persona. Si es un placeholder, el signup lo ADOPTA (fija contraseña + datos,
+      // conserva el user.id y el rol gate_operator). Una cuenta REAL (con contraseña) o ya
+      // verificada/anonimizada/OAuth sigue devolviendo `pending` (anti-enumeración M-01).
+      const isPlaceholder = !existing.passwordHash && !existing.emailVerifiedAt && !existing.anonymizedAt;
+      if (!isPlaceholder) {
+        await this.sendAlreadyRegisteredEmail(email);
+        return { pending: true };
+      }
+      const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
+      const adopted = await this.prisma.user.update({
+        where: { id: existing.id },
+        data: {
+          passwordHash,
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+          phone: dto.phone,
+          roles: existing.roles.includes('buyer') ? existing.roles : [...existing.roles, 'buyer'],
+        },
+      });
+      await this.challenges.issue(adopted.id, adopted.email, 'email_verify', { withMagicLink: true });
+      await this.devices.touch(adopted.id, ctx);
+      const tokens = await this.tokens.issuePair(adopted, ctx);
+      return { user: await this.toPublic(adopted), tokens };
     }
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
     const user = await this.prisma.user.create({
@@ -156,9 +180,11 @@ export class AuthService {
 
   async login(dto: LoginDto, ctx: DeviceContext): Promise<LoginResult> {
     const email = dto.email.toLowerCase().trim();
-    // Lockout por cuenta: si acumuló demasiados fallos recientes → 429 (no revela si el
-    // correo existe; aplica igual a inexistentes para no filtrar por temporización).
-    const failKey = `login-fail:${email}`;
+    // Lockout por (CUENTA + IP) — QA auth-H5: si fuera solo por email, cualquiera podría
+    // BLOQUEAR una cuenta ajena a propósito (DoS) fallando el login. Al ligarlo también a la
+    // IP, el bloqueo afecta solo al origen abusivo; la víctima (otra IP) sigue entrando. La
+    // fuerza bruta distribuida la contienen el rate-limit por IP del endpoint + captcha + 2FA.
+    const failKey = `login-fail:${email}:${ctx.ip ?? 'unknown'}`;
     if ((await this.rateLimit.count(failKey)) >= AuthService.LOGIN_MAX_FAILS) {
       throw new HttpException(
         'Demasiados intentos fallidos. Espera unos minutos o restablece tu contraseña.',
@@ -188,7 +214,10 @@ export class AuthService {
     // Email verificado: 2FA obligatorio en dispositivos no confiables.
     // El aviso de "nuevo dispositivo" se envía DESPUÉS de validar el 2FA (en
     // verifyTwoFactor), no aquí: no queremos alertar de un intento aún sin autenticar.
-    if (!this.devices.isTrusted(device)) {
+    // Confiamos SOLO si hay id estable (header/cookie) Y el dispositivo está marcado. Un
+    // login SIN X-Device-Id (o legacy confiado por UA) exige 2FA siempre → cierra el salto
+    // de 2FA por User-Agent reproducible.
+    if (!this.devices.hasStableId(ctx) || !this.devices.isTrusted(device)) {
       await this.twofactor.startChallenge(user);
       return {
         status: '2fa_required',

@@ -11,6 +11,7 @@ export const purchase = {
   continueToPay: 'Continuar al pago',
   backToSelect: 'Volver a elegir',
   selectedCount: '{{n}} boleto(s) seleccionado(s)',
+  maxPerOrder: 'Máximo {{n}} boletos por compra',
   totalAmount: 'Total: {{total}}',
   reserving: 'Reservando…',
   reserve: 'Reservar',

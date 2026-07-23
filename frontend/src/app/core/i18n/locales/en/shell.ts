@@ -34,6 +34,14 @@ export const shell = {
   verifyBody: 'We sent you a confirmation link. You need to verify your email to buy, create or transfer tickets.',
   verifyRedirecting: 'Taking you home…',
   verifyBackHome: 'Back to home',
+  verifyingBody: 'Verifying your email…',
+  verifiedTitle: 'Email verified ✅',
+  verifiedBody: 'Your email is verified. You can now buy, create and transfer tickets.',
+  verifyError: "We couldn't verify your email: the link is invalid or has expired. Request a new one from your account.",
+  passwordlessTitle: 'Link sign-in',
+  passwordlessBody: 'Signing you in…',
+  passwordlessError: 'The sign-in link is invalid or has expired. Request a new one from the login page.',
+  passwordlessBackLogin: 'Go to sign in',
   termsIntro:
     'By using Boletiva you accept our purchase conditions, the refund policy for each event and the processing of your data under the applicable law in Guatemala.',
   termsSecurityTitle: 'Payment and card security',
@@ -45,6 +53,8 @@ export const shell = {
   termsWalletP:
     'Your wallet balance comes only from refunds and ticket resales: it represents money already backed by a purchase. It cannot be topped up with a card.',
   termsComingSoon: 'The full legal content will be published soon.',
+  notFoundTitle: '404 — Page not found',
+  notFoundBody: 'The page you are looking for does not exist or has moved.',
   forbiddenTitle: '403 — Forbidden',
   forbiddenBody: 'Your account does not have access to this section.',
   impersonation: {

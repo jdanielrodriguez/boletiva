@@ -6,6 +6,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { AdminOnly } from '../../common/decorators/admin-only.decorator';
 import { AuthUser, CurrentUser } from '../../common/decorators/current-user.decorator';
 import { MessageResponseDto } from '../../common/dto/response.dto';
+import { clientIp } from '../../common/utils/client-ip';
 import { ImpersonationService } from './impersonation.service';
 import { ImpersonationResponseDto } from './dto/impersonation.dto';
 
@@ -14,13 +15,6 @@ import { ImpersonationResponseDto } from './dto/impersonation.dto';
 @Controller('admin')
 export class AdminController {
   constructor(private readonly impersonation: ImpersonationService) {}
-
-  /** IP real del cliente: prioriza X-Forwarded-For (Cloud Run/proxy) sobre req.ip. */
-  private clientIp(req: Request): string | null {
-    const fwd = req.headers['x-forwarded-for'];
-    if (typeof fwd === 'string' && fwd.length) return fwd.split(',')[0].trim();
-    return req.ip ?? null;
-  }
 
   // La ruta estática `impersonate/stop` se declara ANTES de `impersonate/:userId`
   // para que Express no intente parsear "stop" como un UUID.
@@ -32,7 +26,7 @@ export class AdminController {
   @ApiOkResponse({ type: MessageResponseDto })
   stop(@CurrentUser() user: AuthUser, @Req() req: Request): Promise<MessageResponseDto> {
     return this.impersonation.stop(user, {
-      ip: this.clientIp(req),
+      ip: clientIp(req),
       userAgent: (req.headers['user-agent'] as string) ?? null,
     });
   }
@@ -53,7 +47,7 @@ export class AdminController {
     @Req() req: Request,
   ): Promise<ImpersonationResponseDto> {
     return this.impersonation.start(adminId, userId, {
-      ip: this.clientIp(req),
+      ip: clientIp(req),
       userAgent: (req.headers['user-agent'] as string) ?? null,
     });
   }

@@ -50,6 +50,16 @@ export class AuthApi {
     return this.api.post<PublicUserResponseDto>('/auth/verify-email', dto);
   }
 
+  /** Verifica el correo con el TOKEN del enlace mágico (?token= del correo). */
+  verifyEmailToken(token: string): Observable<PublicUserResponseDto> {
+    return this.api.post<PublicUserResponseDto>('/auth/verify-email/token', { token });
+  }
+
+  /** Acceso passwordless con el TOKEN del enlace mágico → devuelve la sesión. */
+  passwordlessToken(token: string): Observable<AuthSessionResponseDto> {
+    return this.api.post<AuthSessionResponseDto>('/auth/passwordless/token', { token });
+  }
+
   /** Reenvía el correo de verificación (captcha-gated: acción 'resend'). */
   resendVerification(dto: ResendVerificationDto, captchaToken?: string): Observable<MessageResponseDto> {
     return this.api.post<MessageResponseDto>('/auth/resend-verification', dto, undefined, captchaOpts(captchaToken));

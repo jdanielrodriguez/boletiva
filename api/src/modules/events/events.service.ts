@@ -11,6 +11,7 @@ import { PrismaService } from '../../infra/prisma/prisma.service';
 import { StorageService } from '../../infra/storage/storage.service';
 import { RedisService } from '../../infra/redis/redis.service';
 import { AuthUser } from '../../common/decorators/current-user.decorator';
+import { assertNotAdvisor } from '../../common/auth/advisor-limits';
 import { slugify, slugWithSuffix } from '../../common/utils/slug';
 import { PromotersService } from '../promoters/promoters.service';
 import { PremiumService } from '../promoters/premium.service';
@@ -286,7 +287,9 @@ export class EventsService {
       s.status === 'available' && held.has(s.id) ? { ...s, status: 'held' as const } : s,
     );
 
-    return { seatMap, localities, seats };
+    // F4: tope de boletos por compra que fijó el promotor (null = solo el global 50).
+    // El cliente lo aplica en la selección; el backend lo re-valida en hold/commit.
+    return { seatMap, localities, seats, maxPerOrder: event.maxPerOrder ?? null };
   }
 
   /** IDs (de entre los dados) que están reservados en Redis (hold vigente). */
@@ -339,6 +342,17 @@ export class EventsService {
     // Alimenta el aviso del editor ("hay boletos vendidos → ejecutar devoluciones").
     const soldTicketsCount = await this.soldTicketsCount(id);
     return { ...signed, soldTicketsCount };
+  }
+
+  /**
+   * Como {@link getManaged} pero además exige que el evento NO haya concluido, para
+   * operaciones que lo MUTAN (p.ej. media). Antes las mutaciones de media solo validaban
+   * ownership (getManaged) y podían tocar un evento finalizado/cancelado (QA promotores-H5).
+   */
+  async getManagedMutable(id: string, user: AuthUser) {
+    const event = await this.getManaged(id, user);
+    this.assertNotConcluded(event);
+    return event;
   }
 
   /** Boletos vendidos de un evento: ítems ACTIVOS de órdenes PAGADAS (== ticketsSold). */
@@ -413,6 +427,7 @@ export class EventsService {
         absorbInstallmentCost: dto.absorbInstallmentCost,
         // Destacar (slider del inicio) es SOLO admin: un promotor no puede autopromocionarse.
         promotedPriority: isAdmin ? dto.promotedPriority : undefined,
+        maxPerOrder: dto.maxPerOrder ?? undefined, // F4: tope de boletos por compra
         status: 'draft',
       },
       include: {
@@ -427,7 +442,10 @@ export class EventsService {
    * se oculta si no hay ninguno. Devuelve el detalle gestionable actualizado.
    */
   async setPromoted(id: string, featured: boolean, user: AuthUser) {
-    await this.getManaged(id, user); // 404/403 si no existe o no lo gestiona
+    const event = await this.getManaged(id, user); // 404/403 si no existe o no lo gestiona
+    // No se puede DESTACAR un evento concluido (QA): homologa la regla de solo-lectura del
+    // resto del ciclo de vida. Quitar el destacado (featured=false) sí se permite (limpieza).
+    if (featured) this.assertNotConcluded(event);
     // El ASESOR gestiona los destacados con autoridad de admin (la mutación ya la gatea
     // el AdvisorUnlockGuard con ventana de desbloqueo) → no aplica la gobernanza de
     // promotor (can_feature_events / premium). Así puede ACTIVAR y desactivar destacados.
@@ -533,6 +551,8 @@ export class EventsService {
         absorbInstallmentCost: dto.absorbInstallmentCost,
         // Destacar solo lo cambia un admin (o vía el endpoint /promote); ignorado para promotor.
         promotedPriority: user.roles.includes(Role.admin) ? dto.promotedPriority : undefined,
+        // F4: tope de boletos por compra. undefined = no cambia; null = limpiar (usa el global).
+        maxPerOrder: dto.maxPerOrder,
       },
     });
   }
@@ -544,6 +564,12 @@ export class EventsService {
     unlockToken?: string,
   ) {
     const event = await this.getManaged(id, user);
+    // G7 (arquitecto): CANCELAR es exclusivo del admin/promotor-dueño; un asesor NO puede
+    // (implicaciones legales), ni siquiera con su ventana de desbloqueo. Va ANTES del
+    // check de concluido → el asesor recibe 403 sea cual sea el estado del evento.
+    if (status === 'cancelled') {
+      assertNotAdvisor(user, 'Un asesor no puede cancelar eventos; es exclusivo del administrador.');
+    }
     this.assertNotConcluded(event);
     await this.editUnlock.assertCanMutate(user, event, unlockToken);
     if (status === 'published') {
@@ -614,6 +640,9 @@ export class EventsService {
 
   async remove(id: string, user: AuthUser, unlockToken?: string) {
     const event = await this.getManaged(id, user);
+    // G7 (arquitecto): ELIMINAR es exclusivo del admin/promotor-dueño; un asesor NO puede.
+    // Antes del check de concluido → 403 determinista sin importar el estado del evento.
+    assertNotAdvisor(user, 'Un asesor no puede eliminar eventos; es exclusivo del administrador.');
     this.assertNotConcluded(event);
     await this.editUnlock.assertCanMutate(user, event, unlockToken);
     if (event.status === 'published') {

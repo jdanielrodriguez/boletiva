@@ -1,4 +1,18 @@
-import { ChangeDetectionStrategy, Component, Injector, inject, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  HostListener,
+  Injector,
+  OnDestroy,
+  PLATFORM_ID,
+  afterNextRender,
+  inject,
+  input,
+  output,
+  viewChild,
+} from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { TranslatePipe } from '@ngx-translate/core';
 import { IconComponent, type IconName } from '../icon/icon.component';
@@ -35,7 +49,7 @@ export interface ConfirmRequest {
   host: { '(document:keydown.escape)': 'cancelled.emit()' },
   imports: [IconComponent, TranslatePipe],
   template: `<div class="modal-backdrop" data-testid="confirm-dialog">
-    <div class="modal-card confirm-card" role="alertdialog" aria-modal="true" [attr.aria-labelledby]="'confirm-title'" [attr.aria-describedby]="'confirm-msg'">
+    <div #card class="modal-card confirm-card" role="alertdialog" aria-modal="true" [attr.aria-labelledby]="'confirm-title'" [attr.aria-describedby]="'confirm-msg'">
       <div class="confirm-head" [class.is-danger]="danger()">
         <span class="confirm-icon" [class.is-danger]="danger()" aria-hidden="true">
           <app-icon [name]="resolvedTitleIcon()" [size]="28" />
@@ -100,7 +114,7 @@ export interface ConfirmRequest {
     `,
   ],
 })
-export class ConfirmDialogComponent {
+export class ConfirmDialogComponent implements OnDestroy {
   readonly title = input('¿Confirmar acción?');
   readonly message = input('Esta acción no se puede deshacer.');
   readonly confirmLabel = input('Eliminar');
@@ -125,6 +139,52 @@ export class ConfirmDialogComponent {
   // stubbeadas). Solo auditamos si HttpClient está disponible (siempre en la app
   // real); si no, degradamos en silencio sin romper esos tests.
   private readonly canAudit = inject(HttpClient, { optional: true }) !== null;
+
+  // G3.4 (auditoría 4): gestión de foco (a11y). Al abrir, enfoca la acción segura
+  // (Cancelar si es destructiva; Aceptar si no) y atrapa Tab dentro del modal; al
+  // cerrar, restaura el foco al elemento que abrió el diálogo.
+  private readonly card = viewChild<ElementRef<HTMLElement>>('card');
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+  private readonly previouslyFocused: HTMLElement | null =
+    this.isBrowser && typeof document !== 'undefined'
+      ? (document.activeElement as HTMLElement | null)
+      : null;
+
+  constructor() {
+    afterNextRender(() => {
+      const el = this.card()?.nativeElement;
+      if (!el) return;
+      const target = this.danger()
+        ? el.querySelector<HTMLElement>('[data-testid="confirm-cancel"]')
+        : el.querySelector<HTMLElement>('[data-testid="confirm-accept"]');
+      (target ?? el.querySelector<HTMLElement>('button'))?.focus();
+    });
+  }
+
+  /** Atrapa el foco (Tab/Shift+Tab) dentro del modal mientras está abierto. */
+  @HostListener('keydown', ['$event'])
+  protected trapFocus(e: KeyboardEvent): void {
+    if (e.key !== 'Tab' || !this.isBrowser) return;
+    const el = this.card()?.nativeElement;
+    if (!el) return;
+    const focusables = Array.from(el.querySelectorAll<HTMLElement>('button:not([disabled])'));
+    if (!focusables.length) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    const active = document.activeElement as HTMLElement | null;
+    if (e.shiftKey && active === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && active === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+
+  ngOnDestroy(): void {
+    // Devuelve el foco al disparador (si sigue en el DOM) al cerrarse el diálogo.
+    if (this.isBrowser && this.previouslyFocused?.isConnected) this.previouslyFocused.focus();
+  }
 
   /** Icono efectivo: el explícito, o 'alert'/'help' según sea destructiva. */
   protected readonly resolvedTitleIcon = () => this.titleIcon() ?? (this.danger() ? 'alert' : 'help');

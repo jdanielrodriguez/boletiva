@@ -111,7 +111,8 @@ describe('Privacidad / retención (e2e)', () => {
     const eventId = await mkEvent(new Date('2028-05-01T23:00:00-06:00'));
     await mkOrder(uid, eventId);
 
-    const res = await http().post(`/api/v1/admin/users/${uid}/anonymize`).set(bearer(adminToken)).expect(200);
+    // force: el usuario tiene un evento futuro (2028) → salvaguarda; el admin fuerza a propósito.
+    const res = await http().post(`/api/v1/admin/users/${uid}/anonymize`).set(bearer(adminToken)).send({ force: true }).expect(200);
     expect(res.body).toMatchObject({ id: uid, anonymized: true });
 
     const user = await prisma.user.findUniqueOrThrow({ where: { id: uid } });
@@ -136,8 +137,23 @@ describe('Privacidad / retención (e2e)', () => {
         { type: 'platform_revenue', amount: '-50.00' },
       ],
     });
-    await http().post(`/api/v1/admin/users/${uid}/anonymize`).set(bearer(adminToken)).expect(200);
+    // force: el usuario tiene saldo>0 → salvaguarda; el admin fuerza para probar preservación.
+    await http().post(`/api/v1/admin/users/${uid}/anonymize`).set(bearer(adminToken)).send({ force: true }).expect(200);
     expect((await ledger.walletBalance(uid)).toFixed(2)).toBe('50.00'); // ledger intacto
+  });
+
+  it('QA: sin force, un usuario con SALDO>0 no se puede anonimizar → 400 (salvaguarda)', async () => {
+    const uid = await mkUser('saldo');
+    await ledger.post({
+      kind: 'seed_wallet',
+      entries: [
+        { type: 'user_wallet', ownerId: uid, amount: '25.00' },
+        { type: 'platform_revenue', amount: '-25.00' },
+      ],
+    });
+    await http().post(`/api/v1/admin/users/${uid}/anonymize`).set(bearer(adminToken)).expect(400);
+    const user = await prisma.user.findUniqueOrThrow({ where: { id: uid } });
+    expect(user.anonymizedAt).toBeNull(); // no se anonimizó
   });
 
   it('es idempotente; no anonimiza admins (400); usuario inexistente (404)', async () => {
@@ -204,7 +220,8 @@ describe('Privacidad / retención (e2e)', () => {
       },
     });
 
-    await http().post(`/api/v1/admin/users/${uid}/anonymize`).set(bearer(adminToken)).expect(200);
+    // force: el usuario compró un evento futuro (2028) → salvaguarda; se fuerza para la prueba.
+    await http().post(`/api/v1/admin/users/${uid}/anonymize`).set(bearer(adminToken)).send({ force: true }).expect(200);
 
     const after = await prisma.ticket.findUniqueOrThrow({ where: { id: ticket.id } });
     expect(after.ownerId).toBe(uid); // el boleto sobrevive intacto

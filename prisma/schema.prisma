@@ -744,6 +744,12 @@ model Event {
   // global (setting `transfer.max_per_ticket_default`).
   maxTransfers Int? @map("max_transfers")
 
+  // F4: máximo de boletos por COMPRA (reserva) que puede llevar un comprador para
+  // este evento. null = usa el tope global (MAX_HELD_SEATS_PER_HOLDER, 50). Lo fija
+  // el promotor en el editor. Se aplica en la UI de compra Y server-authoritative
+  // en hold/commit (el efectivo es min(este, 50)).
+  maxPerOrder Int? @map("max_per_order")
+
   // Destacado editable (slider "hero" del inicio). null = no promocionado; un
   // entero define el ORDEN de prioridad (menor = primero). Lo edita admin/promotor.
   promotedPriority Int? @map("promoted_priority")

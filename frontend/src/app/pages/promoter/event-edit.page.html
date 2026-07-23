@@ -4,7 +4,7 @@
   @if (loading()) {
     <p class="muted">{{ 'promoter.edit.loadingEvent' | translate }}</p>
   } @else if (notFound()) {
-    <p class="error" data-testid="edit-notfound">{{ 'promoter.edit.notFound' | translate }}</p>
+    <p class="error" role="alert" data-testid="edit-notfound">{{ 'promoter.edit.notFound' | translate }}</p>
   } @else {
     <div class="panel-header">
       <div>
@@ -409,6 +409,20 @@
                 [label]="'promoter.edit.absorbLabel' | translate" testId="cfg-absorb" />
             </div>
 
+            <label class="field cfg-field">
+              <span>{{ 'promoter.edit.maxPerOrderLabel' | translate }}</span>
+              <input
+                type="number"
+                min="1"
+                max="50"
+                [ngModel]="c.maxPerOrder()"
+                (ngModelChange)="c.maxPerOrder.set($event ? +$event : null)"
+                [placeholder]="'promoter.edit.maxPerOrderPlaceholder' | translate"
+                data-testid="cfg-maxperorder"
+              />
+              <small class="muted">{{ 'promoter.edit.maxPerOrderHint' | translate }}</small>
+            </label>
+
             <button type="button" class="btn primary" [disabled]="savingConfig()" (click)="saveConfig()" data-testid="cfg-save" [title]="'promoter.edit.saveConfig' | translate">
               <app-icon name="save" /> {{ savingConfig() ? ('promoter.edit.savingShort' | translate) : ('promoter.edit.saveConfig' | translate) }}
             </button>
@@ -439,7 +453,7 @@
                 </p>
               }
               @if (refundError(); as err) {
-                <p class="error" data-testid="refund-error">{{ err }}</p>
+                <p class="error" role="alert" data-testid="refund-error">{{ err }}</p>
               }
               <button type="button" class="btn danger" [disabled]="refunding()" (click)="askRefundAll()" data-testid="ev-refund-all"
                 [title]="'promoter.edit.refundAllBtn' | translate">
@@ -583,7 +597,7 @@
             <app-loading data-testid="cash-transfer-net-loading" [label]="'common.loading' | translate" />
           }
           @if (cashError(); as err) {
-            <p class="error" data-testid="cash-transfer-error">{{ err }}</p>
+            <p class="error" role="alert" data-testid="cash-transfer-error">{{ err }}</p>
           }
           <!-- Deshabilitado mientras el evento no esté suspendido/cancelado/finalizado.
                El aviso explica por qué (transparencia). -->

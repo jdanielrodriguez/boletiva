@@ -65,6 +65,12 @@
 
   @if (loading()) {
     <p class="muted">{{ 'promoter.panel.loading' | translate }}</p>
+  } @else if (loadError()) {
+    <app-empty-state variant="error" data-testid="events-error"
+      [title]="'common.loadErrorTitle' | translate"
+      [subtitle]="'common.loadErrorSubtitle' | translate"
+      [retryLabel]="'common.retry' | translate"
+      (retry)="loadEvents()" />
   } @else if (events().length === 0) {
     <app-empty-state variant="generic" data-testid="events-empty"
       [title]="'promoter.panel.empty' | translate"

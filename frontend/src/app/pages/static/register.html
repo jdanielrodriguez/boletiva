@@ -8,7 +8,7 @@
 
       @case ('invalid') {
         <h1>{{ 'auth.invitationInvalidTitle' | translate }}</h1>
-        <p class="error" data-testid="inv-invalid">{{ error() ?? ('auth.invitationInvalidBody' | translate) }}</p>
+        <p class="error" role="alert" data-testid="inv-invalid">{{ error() ?? ('auth.invitationInvalidBody' | translate) }}</p>
         <p class="auth-alt"><a routerLink="/login">{{ 'auth.goToLogin' | translate }}</a></p>
       }
 
@@ -73,7 +73,7 @@
             <label for="rg-pass2">{{ 'auth.confirmPassword' | translate }}</label>
             <input id="rg-pass2" type="password" [ngModel]="confirmPassword()" (ngModelChange)="confirmPassword.set($event)" name="confirmPassword" autocomplete="new-password" data-testid="rg-pass2" />
             @if (confirmPassword() && !matches()) {
-              <p class="field-error" data-testid="rg-mismatch">{{ 'auth.msgConfirmMismatch' | translate }}</p>
+              <p class="field-error" role="alert" data-testid="rg-mismatch">{{ 'auth.msgConfirmMismatch' | translate }}</p>
             }
           </div>
 
@@ -87,7 +87,7 @@
           </button>
 
           @if (error(); as e) {
-            <p class="error" data-testid="rg-error">{{ e }}</p>
+            <p class="error" role="alert" data-testid="rg-error">{{ e }}</p>
           }
           @if (info(); as i) {
             <p class="info" data-testid="rg-info" role="status">{{ i }}</p>

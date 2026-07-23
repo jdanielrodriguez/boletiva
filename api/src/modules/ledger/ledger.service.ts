@@ -26,6 +26,16 @@ export interface PostInput {
   refId?: string;
   memo?: string;
   entries: EntryInput[];
+  /**
+   * Idempotencia RACE-SAFE: si ya existe una transacción con el mismo
+   * (kind, refType, refId), no se asienta de nuevo y se devuelve la existente.
+   * La comprobación ocurre DENTRO del advisory lock que serializa el chain, así
+   * que no hay ventana TOCTOU (a diferencia del patrón "read-then-post" externo).
+   * Requiere refType+refId. Úsalo SOLO en asientos que deben ocurrir una vez por
+   * referencia (order_payment, refund, chargeback, withdrawal_*); NO en los que se
+   * repiten legítimamente (wallet_pass_fee por ticket, settlement por evento, …).
+   */
+  idempotent?: boolean;
 }
 
 /** Cuál es una cuenta de sistema (sin dueño real). */
@@ -64,9 +74,24 @@ export class LedgerService {
       throw new BadRequestException(`Los asientos deben sumar 0 (suman ${sum.toFixed(2)})`);
     }
 
+    if (input.idempotent && (!input.refType || !input.refId)) {
+      throw new BadRequestException('post idempotente requiere refType y refId');
+    }
+
     return this.prisma.$transaction(async (tx) => {
       // Serializa el encadenado: solo un post construye el chain a la vez.
       await tx.$executeRawUnsafe(`SELECT pg_advisory_xact_lock(${CHAIN_LOCK_KEY})`);
+
+      // Idempotencia race-safe: ya dentro del lock, si existe una tx con el mismo
+      // (kind,refType,refId) se devuelve tal cual (no re-asienta ni re-mueve saldos).
+      // Cierra de raíz el TOCTOU del "read-then-post" que hacían los callers.
+      if (input.idempotent) {
+        const existing = await tx.ledgerTransaction.findFirst({
+          where: { kind: input.kind, refType: input.refType, refId: input.refId },
+          include: { entries: true },
+        });
+        if (existing) return existing;
+      }
 
       // Resolver/crear cuentas y calcular su nuevo saldo.
       const resolved: Array<{ accountId: string; amount: Decimal }> = [];

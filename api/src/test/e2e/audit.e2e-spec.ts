@@ -54,7 +54,9 @@ describe('Bitácora de auditoría (audit) e2e', () => {
 
     const list = await http().get('/api/v1/audit').set(bearer(adminToken)).expect(200);
     const rec = list.body.items[0];
-    expect(rec.action).toBe('promoter.approve');
+    // Las confirmaciones de UI se namespacean con `ui.confirm:` (no pueden hacerse pasar
+    // por un evento de gobernanza server-side aunque el cliente mande esa cadena).
+    expect(rec.action).toBe('ui.confirm:promoter.approve');
     expect(rec.resource).toBe('promo-123');
     expect(rec.userId).toBe(buyerId);
     expect(rec.userAgent).toBe('JestTest/1.0'); // capturado server-side, no del body
@@ -103,6 +105,31 @@ describe('Bitácora de auditoría (audit) e2e', () => {
     const res = await http().get('/api/v1/audit/verify').set(bearer(adminToken)).expect(200);
     expect(res.body.ok).toBe(false);
     expect(res.body.brokenAt).toBe(target.seq.toString());
+  });
+
+  it('G4.1: una mutación de gobernanza (@Audit) deja rastro server-side sin que el cliente lo pida', async () => {
+    await clearAudit();
+    // PATCH /admin/maintenance está decorado con @Audit → el interceptor registra el evento.
+    await http()
+      .patch('/api/v1/admin/maintenance')
+      .set(bearer(adminToken))
+      .set('User-Agent', 'JestTest/1.0')
+      .send({ enabled: false })
+      .expect(200);
+    // El registro es best-effort/asíncrono → reintenta hasta que aparezca.
+    let rec: { action: string; userId: string; ip: string; userAgent: string } | undefined;
+    for (let i = 0; i < 20 && !rec; i++) {
+      const list = await http().get('/api/v1/audit').set(bearer(adminToken)).expect(200);
+      rec = (list.body.items as { action: string; userId: string; ip: string; userAgent: string }[]).find(
+        (r) => r.action === 'admin.maintenance.set',
+      );
+      if (!rec) await new Promise((r) => setTimeout(r, 50));
+    }
+    expect(rec).toBeDefined();
+    expect(rec?.action).toBe('admin.maintenance.set'); // acción canónica server-side
+    expect(rec?.userId).toBeTruthy(); // el admin autenticado
+    expect(rec?.userAgent).toBe('JestTest/1.0'); // capturado server-side, no del body
+    expect(rec?.ip).toBeTruthy();
   });
 
   it('M4: alterar el PAYLOAD también rompe la cadena (el hash incluye su digest)', async () => {

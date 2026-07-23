@@ -11,6 +11,7 @@ import {
   MaxLength,
   Min,
   MinLength,
+  ValidateIf,
 } from 'class-validator';
 
 /** Descripción compartida del destacado editable (slider del inicio). */
@@ -22,6 +23,11 @@ const PROMOTED_DESC =
 const ABSORB_DESC =
   'Si el PROMOTOR absorbe el costo de las cuotas (se descuenta de su neto). ' +
   'false/omitir = lo absorbe la PLATAFORMA. El comprador paga igual en ambos casos.';
+
+/** Descripción compartida del tope de boletos por compra (F4). */
+const MAX_PER_ORDER_DESC =
+  'Máximo de boletos por compra para este evento (1–50). null/omitir = tope global (50). ' +
+  'Se aplica en la selección de compra y se re-valida server-authoritative en hold/commit.';
 
 export class CreateEventDto {
   @ApiProperty({ description: 'Nombre del evento (3–150 caracteres)', example: 'Concierto de Apertura' })
@@ -116,6 +122,13 @@ export class CreateEventDto {
   @IsInt()
   @Min(0)
   promotedPriority?: number;
+
+  @ApiPropertyOptional({ description: MAX_PER_ORDER_DESC, example: 10, minimum: 1, nullable: true })
+  @IsOptional()
+  @ValidateIf((o) => o.maxPerOrder !== null)
+  @IsInt()
+  @Min(1)
+  maxPerOrder?: number | null;
 }
 
 export class UpdateEventDto {
@@ -197,6 +210,13 @@ export class UpdateEventDto {
   @IsInt()
   @Min(0)
   promotedPriority?: number;
+
+  @ApiPropertyOptional({ description: MAX_PER_ORDER_DESC, example: 10, minimum: 1, nullable: true })
+  @IsOptional()
+  @ValidateIf((o) => o.maxPerOrder !== null) // null = limpiar el tope (usa el global)
+  @IsInt()
+  @Min(1)
+  maxPerOrder?: number | null;
 }
 
 /** Destacar/quitar un evento del slider del inicio (solo admin). */

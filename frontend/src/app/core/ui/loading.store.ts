@@ -17,10 +17,16 @@ export class LoadingStore {
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   private readonly _count = signal(0);
   private readonly _visible = signal(false);
+  private readonly _blocking = signal(false);
   private timer: ReturnType<typeof setTimeout> | null = null;
 
   /** ¿Mostrar el overlay oscurecido? (tras el debounce, con peticiones en vuelo). */
   readonly visible = this._visible.asReadonly();
+
+  /** ¿El overlay debe CAPTURAR clics (no dejar interactuar)? Para acciones
+   * deliberadas como el logout, donde el usuario no debe poder tocar nada
+   * mientras se procesa (F1). Los overlays HTTP normales dejan pasar el clic. */
+  readonly blocking = this._blocking.asReadonly();
 
   /** Registra el inicio de una petición no-silenciosa. */
   start(): void {
@@ -32,6 +38,27 @@ export class LoadingStore {
   stop(): void {
     this._count.update((n) => Math.max(0, n - 1));
     this.reconcile();
+  }
+
+  /** Inicia un overlay BLOQUEANTE e INMEDIATO (sin debounce): captura clics para
+   * que el usuario no interactúe durante una acción deliberada (logout). Debe
+   * cerrarse siempre con `stopBlocking()`. (F1) */
+  startBlocking(): void {
+    this._blocking.set(true);
+    this._count.update((n) => n + 1);
+    if (this.isBrowser) {
+      if (this.timer) {
+        clearTimeout(this.timer);
+        this.timer = null;
+      }
+      this._visible.set(true);
+    }
+  }
+
+  /** Cierra el overlay bloqueante iniciado con `startBlocking()`. */
+  stopBlocking(): void {
+    this._blocking.set(false);
+    this.stop();
   }
 
   /** Ajusta el overlay al estado del contador, con debounce al mostrar. */

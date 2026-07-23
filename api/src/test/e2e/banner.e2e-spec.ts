@@ -108,4 +108,23 @@ describe('Banner con IA (e2e)', () => {
     await http().post(`/api/v1/events/${eventId}/banner`).set(bearer(otherToken)).expect(403);
     await prisma.user.deleteMany({ where: { email } });
   });
+
+  it('G1.3 (auditoría 4): evento CONCLUIDO → 403 (no se regenera el banner, solo-lectura)', async () => {
+    const concluded = await prisma.event.create({
+      data: {
+        promoterId,
+        name: `BN Concluido ${stamp}`,
+        slug: `bn-fin-${stamp}`,
+        startsAt: new Date('2020-01-01T20:00:00-06:00'),
+        endsAt: new Date('2020-01-01T23:00:00-06:00'),
+        status: 'finished',
+      },
+    });
+    try {
+      await http().post(`/api/v1/events/${concluded.id}/banner`).set(bearer(promoterToken)).expect(403);
+    } finally {
+      await prisma.eventMedia.deleteMany({ where: { eventId: concluded.id } });
+      await prisma.event.deleteMany({ where: { id: concluded.id } });
+    }
+  });
 });

@@ -54,7 +54,7 @@
   @if (loading()) {
     <p class="auth-sub" data-testid="validators-loading">{{ 'common.loading' | translate }}</p>
   } @else if (error()) {
-    <p class="error" data-testid="validators-error">{{ error() }}</p>
+    <p class="error" role="alert" data-testid="validators-error">{{ error() }}</p>
   } @else if (items().length === 0) {
     <p class="auth-sub" data-testid="validators-empty">{{ 'promoter.validators.empty' | translate }}</p>
   } @else {

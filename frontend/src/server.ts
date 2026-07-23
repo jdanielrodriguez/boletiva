@@ -89,6 +89,7 @@ app.get('/robots.txt', (_req, res) => {
         'Disallow: /validar',
         'Disallow: /login',
         'Disallow: /verificar-correo',
+        'Disallow: /passwordless',
         '',
       ].join('\n'),
     );

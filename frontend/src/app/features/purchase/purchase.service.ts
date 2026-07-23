@@ -104,8 +104,18 @@ export class PurchaseService {
     this.qtySel.set(new Map());
   }
 
+  /**
+   * Cap EFECTIVO de boletos por compra (F4): el mínimo entre el tope global del
+   * carrito y el `maxPerOrder` que el promotor fijó en el evento (null = solo el
+   * global). Es la fuente de verdad de la UI; el backend lo re-valida en hold/commit.
+   */
+  readonly effectiveMax = computed(() => {
+    const m = this.availability()?.maxPerOrder ?? null;
+    return m != null && m > 0 ? Math.min(MAX_PER_CART, m) : MAX_PER_CART;
+  });
+
   maxFor(loc: LocalityAvailabilityDto): number {
-    return Math.min(loc.available, MAX_PER_CART);
+    return Math.min(loc.available, this.effectiveMax());
   }
 
   readonly totalCount = computed(() => {
@@ -176,15 +186,29 @@ export class PurchaseService {
 
   toggleSeat(seatId: string): void {
     const next = new Set(this.seatSel());
+    // Cap por el TOTAL de la selección (asientos + generales) contra el máximo
+    // efectivo del evento (F4): no se puede seleccionar de más.
     if (next.has(seatId)) next.delete(seatId);
-    else if (next.size < MAX_PER_CART) next.add(seatId);
+    else if (this.totalCount() < this.effectiveMax()) next.add(seatId);
     this.seatSel.set(next);
   }
 
   setQuantity(localityId: string, quantity: number): void {
     const next = new Map(this.qtySel());
-    if (quantity <= 0) next.delete(localityId);
-    else next.set(localityId, quantity);
+    if (quantity <= 0) {
+      next.delete(localityId);
+      this.qtySel.set(next);
+      return;
+    }
+    // Clamp (F4): no exceder ni la disponibilidad de la localidad ni el presupuesto
+    // restante del tope efectivo del evento (contando lo ya seleccionado en otras).
+    const loc = this.localities().find((l) => l.id === localityId);
+    const usedElsewhere = this.totalCount() - this.quantityFor(localityId);
+    const budget = Math.max(0, this.effectiveMax() - usedElsewhere);
+    const localMax = loc ? Math.min(loc.available, budget) : budget;
+    const clamped = Math.max(0, Math.min(quantity, localMax));
+    if (clamped <= 0) next.delete(localityId);
+    else next.set(localityId, clamped);
     this.qtySel.set(next);
   }
 

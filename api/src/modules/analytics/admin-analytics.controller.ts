@@ -9,6 +9,7 @@ import {
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { AdminOnly } from '../../common/decorators/admin-only.decorator';
 import { RateLimit } from '../../common/rate-limit/rate-limit.decorator';
 import { AdminProfitabilityService } from './admin-profitability.service';
 import { AdminProfitabilityExportService } from './admin-profitability-export.service';
@@ -17,6 +18,7 @@ import { AdminProfitabilityDto } from './dto/admin-profitability.dto';
 @ApiTags('analytics')
 @ApiBearerAuth()
 @Roles(Role.admin)
+@AdminOnly() // rentabilidad de PLATAFORMA: exclusiva del admin; el asesor (hereda admin) NO la ve
 @Controller('admin/analytics')
 export class AdminAnalyticsController {
   constructor(

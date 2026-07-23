@@ -238,7 +238,12 @@ export class ReservationsService {
   async checkoutReservation(token: string, buyerId: string, billing?: BillingInput) {
     const { rid, eventId, seatIds } = this.verify(token);
     // holderId = rid → el commit acepta el hold hecho bajo la reserva.
-    return this.checkout.commit(eventId, seatIds, buyerId, billing, rid);
+    const order = await this.checkout.commit(eventId, seatIds, buyerId, billing, rid);
+    // Libera los asientos VENDIDOS del set de cap por identidad (QA): antes solo se limpiaba
+    // al CANCELAR, así que un comprador que reservó cerca del tope quedaba bloqueado ~10 min
+    // tras COMPRAR. Best-effort (el TTL igual purga). El usuario logueado usa la clave `u:`.
+    await this.redis.getClient().srem(`res:seats:u:${buyerId}`, ...seatIds).catch(() => undefined);
+    return order;
   }
 
   /**

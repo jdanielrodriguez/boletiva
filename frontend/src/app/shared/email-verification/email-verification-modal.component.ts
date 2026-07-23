@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -7,6 +7,7 @@ import { SessionStore } from '../../core/auth/session.store';
 import { ToastService } from '../../core/ui/toast.service';
 import { apiErrorMessage } from '../../core/http/api-error';
 import { OtpInputComponent } from '../ui/otp-input/otp-input.component';
+import { ResendCodeComponent } from '../ui/resend-code.component';
 import { IconComponent } from '../icon/icon.component';
 
 /**
@@ -21,7 +22,7 @@ import { IconComponent } from '../icon/icon.component';
  */
 @Component({
   selector: 'app-email-verification-modal',
-  imports: [FormsModule, TranslatePipe, OtpInputComponent, IconComponent],
+  imports: [FormsModule, TranslatePipe, OtpInputComponent, ResendCodeComponent, IconComponent],
   templateUrl: './email-verification-modal.component.html',
 })
 export class EmailVerificationModal {
@@ -30,6 +31,7 @@ export class EmailVerificationModal {
   private readonly toasts = inject(ToastService);
   private readonly translate = inject(TranslateService);
   private readonly router = inject(Router);
+  private readonly resendCtl = viewChild(ResendCodeComponent);
 
   protected readonly visible = computed(
     () => this.session.isAuthenticated() && !this.session.isEmailVerified(),
@@ -39,6 +41,7 @@ export class EmailVerificationModal {
   protected readonly working = signal(false);
   protected readonly resending = signal(false);
   protected readonly error = signal<string | null>(null);
+  protected readonly info = signal<string | null>(null);
 
   protected onCode(value: string): void {
     this.code.set(value);
@@ -68,14 +71,19 @@ export class EmailVerificationModal {
   protected resend(): void {
     if (this.resending()) return;
     this.resending.set(true);
+    this.info.set(null);
+    this.error.set(null);
     this.auth.resendVerification().subscribe({
       next: () => {
         this.resending.set(false);
-        this.toasts.success(this.translate.instant('auth.verifyResent'));
+        // Estado en línea + cronómetro (estandarizado con login/compra, F2).
+        this.info.set(this.translate.instant('auth.verifyResent'));
+        this.resendCtl()?.startCooldown(60);
       },
       error: (err) => {
         this.resending.set(false);
-        this.toasts.error(apiErrorMessage(err, this.translate.instant('auth.verifyResendFailed')));
+        this.error.set(apiErrorMessage(err, this.translate.instant('auth.verifyResendFailed')));
+        if ((err as { status?: number })?.status === 429) this.resendCtl()?.startCooldown(60);
       },
     });
   }

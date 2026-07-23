@@ -1,6 +1,6 @@
 import { HttpResponse } from '@angular/common/http';
 import { DOCUMENT, UpperCasePipe, isPlatformBrowser } from '@angular/common';
-import { Component, ElementRef, PLATFORM_ID, computed, effect, inject, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, PLATFORM_ID, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { LocalizedDatePipe } from '../../core/i18n/localized-date.pipe';
 import { I18nService } from '../../core/i18n/i18n.service';
@@ -9,8 +9,8 @@ import { ThemeService, type Franja } from '../../core/theme/theme.service';
 import { MoneyPipe } from '../../shared/money.pipe';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { EMPTY, catchError, expand, of, reduce } from 'rxjs';
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { EMPTY, catchError, expand, of, reduce, switchMap } from 'rxjs';
 import { OrdersApi } from '../../core/api/orders.api';
 import { PaymentMethodsApi } from '../../core/api/payment-methods.api';
 import { PromoterEventsApi } from '../../core/api/promoter-events.api';
@@ -473,6 +473,9 @@ export class Account {
   protected readonly withdrawals = signal<WithdrawalResponseDto[]>([]);
   protected readonly withdrawAmount = signal<number | null>(null);
   protected readonly withdrawing = signal(false);
+  /** Estados de ERROR de carga (C6): distinguen "falló la carga" del vacío legítimo. */
+  protected readonly walletError = signal(false);
+  protected readonly withdrawalsError = signal(false);
   /**
    * ¿El usuario es "vendedor" (promotor/admin)? Determina la información del wallet
    * y si ve los retiros: el backend responde 403 a un buyer en /wallet/withdrawals,
@@ -486,6 +489,11 @@ export class Account {
   }
   protected closeWalletInfo(): void {
     this.showWalletInfo.set(false);
+  }
+  /** Cierra el modal de info de wallet con Escape (a11y, QA): el backdrop no recibe foco. */
+  @HostListener('document:keydown.escape')
+  protected onEscape(): void {
+    if (this.showWalletInfo()) this.closeWalletInfo();
   }
   /** Filtros de la tabla de retiros (estado/fecha). */
   protected readonly wdFilterStatus = signal<string>('');
@@ -521,6 +529,9 @@ export class Account {
   protected readonly orders = signal<OrderResponseDto[]>([]);
   /** Feed unificado de movimientos (egreso = compra; ingreso = refund/reventa/venta). */
   protected readonly movements = signal<MovementResponseDto[]>([]);
+  /** Estados de ERROR de carga (C6). */
+  protected readonly ordersError = signal(false);
+  protected readonly movementsError = signal(false);
   /** Filtro por orden concreta (deep-link desde un boleto/compra). null = todas. */
   protected readonly orderFilter = signal<string | null>(null);
   /** Filtro de dirección: '' = todos | 'income' = ingresos | 'expense' = egresos. */
@@ -609,17 +620,32 @@ export class Account {
   // Trae TODOS los boletos siguiendo el cursor keyset (no solo la 1.ª página de
   // 100), para que la paginación por evento/compra cuente y muestre todo aunque
   // el usuario tenga cientos de boletos.
+  /** Estado de error de la carga de boletos (C6) + disparador de reintento. */
+  protected readonly ticketsError = signal(false);
+  private readonly ticketsReload = signal(0);
   private readonly ticketsData = toSignal(
-    this.ticketsApi.list().pipe(
-      expand((page) => (page.nextCursor ? this.ticketsApi.list(page.nextCursor) : EMPTY)),
-      reduce(
-        (acc, page) => ({ items: [...(acc.items ?? []), ...(page.items ?? [])], nextCursor: null }),
-        { items: [] } as TicketPageResponseDto,
+    toObservable(this.ticketsReload).pipe(
+      switchMap(() =>
+        this.ticketsApi.list().pipe(
+          expand((page) => (page.nextCursor ? this.ticketsApi.list(page.nextCursor) : EMPTY)),
+          reduce(
+            (acc, page) => ({ items: [...(acc.items ?? []), ...(page.items ?? [])], nextCursor: null }),
+            { items: [] } as TicketPageResponseDto,
+          ),
+          catchError(() => {
+            this.ticketsError.set(true);
+            return of({ items: [] } as TicketPageResponseDto);
+          }),
+        ),
       ),
-      catchError(() => of({ items: [] } as TicketPageResponseDto)),
     ),
     { initialValue: { items: [] } as TicketPageResponseDto },
   );
+  /** Reintenta la carga de boletos (C6, botón del estado de error). */
+  protected retryTickets(): void {
+    this.ticketsError.set(false);
+    this.ticketsReload.update((n) => n + 1);
+  }
   /** Un boleto es PASADO si su evento ya concluyó (endsAt < ahora) o ya no es usable
    *  (usado/revocado/transferido). ACTIVO = usable y su evento aún no terminó. */
   private isPastTicket(t: TicketResponseDto): boolean {
@@ -991,14 +1017,22 @@ export class Account {
   }
 
   // --- Wallet ---
-  private loadWallet(): void {
+  protected loadWallet(): void {
+    this.walletError.set(false);
     this.walletApi.balance().subscribe({
       next: (w) => this.wallet.set(w),
-      error: () => this.wallet.set(null),
+      error: () => {
+        this.wallet.set(null);
+        this.walletError.set(true);
+      },
     });
+    this.withdrawalsError.set(false);
     this.walletApi.withdrawals().subscribe({
       next: (p) => this.withdrawals.set(p.items ?? []),
-      error: () => this.withdrawals.set([]),
+      error: () => {
+        this.withdrawals.set([]);
+        this.withdrawalsError.set(true);
+      },
     });
   }
 
@@ -1044,18 +1078,26 @@ export class Account {
   }
 
   // --- Facturación ---
-  private loadOrders(): void {
+  protected loadOrders(): void {
+    this.ordersError.set(false);
     this.ordersApi.list().subscribe({
       next: (p) => this.orders.set(p.items ?? []),
-      error: () => this.orders.set([]),
+      error: () => {
+        this.orders.set([]);
+        this.ordersError.set(true);
+      },
     });
   }
 
   /** Carga el feed de movimientos (ingresos + egresos) para la facturación. */
-  private loadMovements(): void {
+  protected loadMovements(): void {
+    this.movementsError.set(false);
     this.ordersApi.movements().subscribe({
       next: (p) => this.movements.set(p.items ?? []),
-      error: () => this.movements.set([]),
+      error: () => {
+        this.movements.set([]);
+        this.movementsError.set(true);
+      },
     });
   }
 

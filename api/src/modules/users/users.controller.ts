@@ -1,9 +1,11 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Request } from 'express';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AdminOnly } from '../../common/decorators/admin-only.decorator';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user.decorator';
+import { clientIp } from '../../common/utils/client-ip';
 import { UsersService } from './users.service';
 import {
   AvatarPresignDto,
@@ -84,8 +86,12 @@ export class UsersController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateUserRolesDto,
     @CurrentUser() actor: AuthUser,
+    @Req() req: Request,
   ) {
-    return this.users.setRoles(id, dto, actor.userId);
+    return this.users.setRoles(id, dto, actor.userId, {
+      ip: clientIp(req),
+      userAgent: (req.headers['user-agent'] as string) ?? null,
+    });
   }
 
   @Patch(':id/status')
@@ -97,7 +103,11 @@ export class UsersController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateUserStatusDto,
     @CurrentUser() actor: AuthUser,
+    @Req() req: Request,
   ) {
-    return this.users.setStatus(id, dto, actor.userId);
+    return this.users.setStatus(id, dto, actor.userId, {
+      ip: clientIp(req),
+      userAgent: (req.headers['user-agent'] as string) ?? null,
+    });
   }
 }

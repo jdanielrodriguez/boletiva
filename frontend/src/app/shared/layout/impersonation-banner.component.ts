@@ -37,7 +37,7 @@ import { IconComponent } from '../icon/icon.component';
         gap: 0.6rem 0.9rem;
         padding: 0.55rem 1rem;
         background: var(--pe-accent, #e14eca);
-        color: #fff;
+        color: var(--pe-on-accent, #fff); /* AA en ambos temas (QA contraste) */
         font-weight: 700;
         font-size: 0.95rem;
         text-align: center;

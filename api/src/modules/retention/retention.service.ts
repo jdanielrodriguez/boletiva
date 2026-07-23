@@ -7,8 +7,17 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Role } from '@prisma/client';
+import { LedgerAccountType, Role } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
+
+/** Opciones de anonimización manual: actor (no-repudio) + `force` para saltar salvaguardas. */
+export interface AnonymizeOpts {
+  force?: boolean;
+  actorId?: string | null;
+  ip?: string | null;
+  userAgent?: string | null;
+}
 import { RedisService } from '../../infra/redis/redis.service';
 
 /**
@@ -33,6 +42,7 @@ export class RetentionService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
+    private readonly audit: AuditService,
     config: ConfigService,
   ) {
     this.enabled = config.get<boolean>('retention.enabled') ?? false;
@@ -61,13 +71,34 @@ export class RetentionService implements OnModuleInit, OnModuleDestroy {
   }
 
   /** Anonimiza a un usuario. Idempotente; no aplica a admins. */
-  async anonymizeUser(userId: string): Promise<{ id: string; anonymized: boolean }> {
+  async anonymizeUser(userId: string, opts: AnonymizeOpts = {}): Promise<{ id: string; anonymized: boolean }> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('Usuario no encontrado');
     if (user.roles.includes(Role.admin)) {
       throw new BadRequestException('No se puede anonimizar a un administrador');
     }
     if (user.anonymizedAt) return { id: userId, anonymized: true }; // ya anonimizado
+
+    // Salvaguardas (QA): la anonimización es IRREVERSIBLE. Salvo `force` explícito, se RECHAZA
+    // si el usuario tiene saldo>0 (dinero recuperable que perdería) o eventos FUTUROS (propios o
+    // comprados). El job automático pre-filtra en eligibleUserIds y pasa force:true.
+    if (!opts.force) {
+      const now = new Date();
+      const [wallet, futureOwned, futureBought] = await Promise.all([
+        this.prisma.ledgerAccount.findUnique({
+          where: { type_ownerId_currency: { type: LedgerAccountType.user_wallet, ownerId: userId, currency: 'GTQ' } },
+          select: { balance: true },
+        }),
+        this.prisma.event.count({ where: { promoterId: userId, endsAt: { gte: now } } }),
+        this.prisma.order.count({ where: { buyerId: userId, event: { endsAt: { gte: now } } } }),
+      ]);
+      if (wallet && wallet.balance.gt(0)) {
+        throw new BadRequestException('El usuario tiene saldo en su billetera; retíralo o usa force para anonimizar');
+      }
+      if (futureOwned > 0 || futureBought > 0) {
+        throw new BadRequestException('El usuario tiene eventos futuros (propios o comprados); usa force para anonimizar');
+      }
+    }
 
     await this.prisma.$transaction([
       this.prisma.user.update({
@@ -97,6 +128,18 @@ export class RetentionService implements OnModuleInit, OnModuleDestroy {
       this.prisma.authChallenge.deleteMany({ where: { userId } }),
       this.prisma.passwordRecovery.deleteMany({ where: { userId } }),
     ]);
+    // No-repudio (QA): acción irreversible sobre PII → queda en la bitácora hash-chain con el
+    // actor (admin) o 'system' (job), IP/UA y si fue forzada. Best-effort: no revierte el trabajo.
+    await this.audit
+      .record({
+        userId: opts.actorId ?? null,
+        action: 'admin.user.anonymize',
+        resource: `user:${userId}`,
+        ip: opts.ip ?? null,
+        userAgent: opts.userAgent ?? null,
+        payload: { forced: opts.force === true, source: opts.actorId ? 'manual' : 'job' },
+      })
+      .catch((e) => this.logger.warn(`audit anonymize ${userId}: ${(e as Error).message}`));
     this.logger.log(`Usuario ${userId} anonimizado (ledger preservado)`);
     return { id: userId, anonymized: true };
   }
@@ -115,7 +158,15 @@ export class RetentionService implements OnModuleInit, OnModuleDestroy {
       },
       select: { id: true },
     });
-    return users.map((u) => u.id);
+    const ids = users.map((u) => u.id);
+    if (!ids.length) return [];
+    // Excluye a los que tengan saldo en billetera (dinero recuperable) — no elegibles.
+    const funded = await this.prisma.ledgerAccount.findMany({
+      where: { type: LedgerAccountType.user_wallet, ownerId: { in: ids }, balance: { gt: 0 } },
+      select: { ownerId: true },
+    });
+    const fundedSet = new Set(funded.map((f) => f.ownerId));
+    return ids.filter((id) => !fundedSet.has(id));
   }
 
   /** Ejecuta la retención: anonimiza a todos los elegibles. */
@@ -123,7 +174,8 @@ export class RetentionService implements OnModuleInit, OnModuleDestroy {
     const days = daysOverride ?? this.days;
     const ids = await this.eligibleUserIds(days);
     for (const id of ids) {
-      await this.anonymizeUser(id).catch((e) =>
+      // force:true — eligibleUserIds ya excluyó saldo>0 y eventos futuros; el actor es el job.
+      await this.anonymizeUser(id, { force: true }).catch((e) =>
         this.logger.error(`No se pudo anonimizar ${id}: ${e.message}`),
       );
     }

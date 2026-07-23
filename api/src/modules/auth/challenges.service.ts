@@ -109,7 +109,7 @@ export class ChallengesService {
       email_verify: {
         subject: '✅ Verifica tu correo — Boletiva',
         intro: '¡Ya casi! Verifica tu correo y tu cuenta queda lista para la acción.',
-        path: '/verify-email',
+        path: '/verificar-correo', // ruta REAL del frontend (antes '/verify-email' → 404)
       },
       passwordless: {
         subject: '🔑 Tu enlace de acceso — Boletiva',

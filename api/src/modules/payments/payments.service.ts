@@ -32,6 +32,9 @@ export interface WebhookPayload {
   occurredAt?: string;
 }
 
+/** Ventana de tolerancia del svix-timestamp (anti-replay del webhook de Recurrente). */
+const SVIX_TOLERANCE_SEC = 300;
+
 /** Forma (parcial) del webhook SVIX de Recurrente. `metadata` la sembramos nosotros. */
 interface RecurrenteWebhookPayload {
   event_type?: string;
@@ -164,25 +167,46 @@ export class PaymentsService {
       }
     }
 
-    // Caso 1: el wallet cubre el total → confirmación inmediata (sin pasarela).
-    if (walletPortion.gt(0) && gatewayCharge.isZero()) {
-      const payment = await this.prisma.payment.create({
+    // El intento de pago es la FUENTE DE IDEMPOTENCIA race-safe (índice único parcial
+    // payments_one_pending_per_order): CREARLO es el candado. Dos POST /pay simultáneos →
+    // el 2º choca con P2002 → se devuelve el intento existente SIN reservar saldo de nuevo
+    // ni volver a cobrar a la pasarela (cierra el doble cobro de tarjeta — QA blackhat).
+    const method: 'wallet' | 'mixed' | 'gateway' = gatewayCharge.isZero()
+      ? 'wallet'
+      : walletPortion.gt(0)
+        ? 'mixed'
+        : 'gateway';
+    const providerRef = `${method === 'wallet' ? 'wallet' : provider.name}_${randomToken(12)}`;
+    let payment;
+    try {
+      payment = await this.prisma.payment.create({
         data: {
           orderId,
           provider: provider.name,
-          providerRef: `wallet_${randomToken(12)}`,
-          method: 'wallet',
-          amount: '0.00',
-          walletAmount: total.toFixed(2),
+          providerRef,
+          method,
+          amount: gatewayCharge.toFixed(2),
+          walletAmount: walletPortion.toFixed(2),
           currency: order.currency,
         },
       });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        const existing = await this.prisma.payment.findFirst({ where: { orderId, status: 'pending' } });
+        if (existing) return this.summarize(existing); // otro POST /pay ya creó el intento
+      }
+      throw e;
+    }
+
+    // Caso 1: el wallet cubre el total → confirmación inmediata (sin pasarela).
+    if (method === 'wallet') {
       await this.fulfill(payment.id); // debita wallet + distribuye + orden paid
       const done = await this.prisma.payment.findUniqueOrThrow({ where: { id: payment.id } });
       return this.summarize(done);
     }
 
-    // Caso 2: mixto → reservar la porción de wallet (payment_holding) ahora.
+    // Caso 2: mixto → reservar la porción de wallet (payment_holding) ahora. Va DESPUÉS del
+    // candado (create) → solo el intento ganador reserva (no hay doble reserva por carrera).
     if (walletPortion.gt(0)) {
       await this.ledger.post({
         kind: 'wallet_reserve',
@@ -197,17 +221,6 @@ export class PaymentsService {
     }
 
     // Caso 2 y 3: la pasarela cobra `gatewayCharge` (todo el total si no hay wallet).
-    const payment = await this.prisma.payment.create({
-      data: {
-        orderId,
-        provider: provider.name,
-        providerRef: `${provider.name}_${randomToken(12)}`,
-        method: walletPortion.gt(0) ? 'mixed' : 'gateway',
-        amount: gatewayCharge.toFixed(2),
-        walletAmount: walletPortion.toFixed(2),
-        currency: order.currency,
-      },
-    });
     const res = await provider.createPayment({
       providerRef: payment.providerRef,
       orderId,
@@ -615,6 +628,15 @@ export class PaymentsService {
     );
     if (!ok) throw new UnauthorizedException('Firma de webhook (Svix) inválida');
 
+    // Frescura del timestamp (anti-replay, QA): la firma cubre el svix-timestamp, pero sin
+    // ventana un payload firmado capturado podría reenviarse indefinidamente. Se rechaza fuera
+    // de ±5 min. (La dedupe por svix-id también frena replays, pero esto acota la ventana.)
+    const tsSec = parseInt(headers.svixTimestamp ?? '', 10);
+    const nowSec = Math.floor(Date.now() / 1000);
+    if (!Number.isFinite(tsSec) || Math.abs(nowSec - tsSec) > SVIX_TOLERANCE_SEC) {
+      throw new UnauthorizedException('Webhook (Svix) fuera de la ventana de tiempo');
+    }
+
     let evt: RecurrenteWebhookPayload;
     try {
       evt = JSON.parse(rawBody) as RecurrenteWebhookPayload;
@@ -673,13 +695,47 @@ export class PaymentsService {
     // fuera de orden: una orden ya `refunded`/`cancelled`/`expired` NO debe resucitar
     // a `paid` ni re-emitir boletos. (La dedupe por (provider,eventId) cubre el replay
     // del MISMO evento, pero no un evento distinto con el mismo pago.)
-    if (order.status !== 'pending') return;
+    // Solo `pending` o ya `paid` siguen; expired/cancelled/refunded = pago tardío → NO mover dinero.
+    if (order.status !== 'pending' && order.status !== 'paid') {
+      this.logger.warn(
+        `fulfill sobre orden ${order.id} en estado ${order.status}; pago tardío → reconciliación, no se asienta`,
+      );
+      return;
+    }
 
-    // Asiento contable (idempotente por referencia de orden).
-    const already = await this.prisma.ledgerTransaction.findFirst({
-      where: { kind: 'order_payment', refType: 'order', refId: order.id },
-    });
-    if (!already) {
+    // CLAIM-FIRST (C1): reclama la orden (pending→paid) + marca el pago, atómico. El
+    // asiento contable va DESPUÉS y solo si la orden quedó `paid` → un pago tardío sobre
+    // una orden expirada por el sweeper NO mueve dinero sin boletos. Idempotente si ya
+    // estaba paid (otro intento la reclamó): igual se asegura el asiento (idempotente).
+    const [, claim] = await this.prisma.$transaction([
+      this.prisma.payment.update({
+        where: { id: paymentId },
+        data: { status: 'succeeded', succeededAt: new Date() },
+      }),
+      this.prisma.order.updateMany({
+        where: { id: order.id, status: 'pending' },
+        data: { status: 'paid', paidAt: new Date() },
+      }),
+    ]);
+    const justClaimed = claim.count === 1;
+    if (!justClaimed) {
+      // No la reclamamos: ya estaba `paid` (idempotente: quien ganó el claim ya asentó) o
+      // el sweeper la expiró entre la lectura y el CAS (pago tardío → reconciliación). En
+      // AMBOS casos NO asentamos aquí: el asiento contable lo hace SOLO quien gana el claim
+      // pending→paid, así el dinero nunca se mueve sin que la orden quede efectivamente paid.
+      const fresh = await this.prisma.order.findUniqueOrThrow({
+        where: { id: order.id },
+        select: { status: true },
+      });
+      if (fresh.status !== 'paid') {
+        this.logger.warn(`Orden ${order.id} ya no es pagable (${fresh.status}); no se asienta`);
+      }
+      return;
+    }
+
+    // Reclamada (pending→paid) por nosotros → asiento contable. IDEMPOTENTE (order_payment
+    // por orden) como cinturón-y-tirantes: dedupe race-safe dentro del advisory lock del ledger.
+    {
       const net = new Decimal(order.net.toString());
       const platformFee = new Decimal(order.platformFee.toString());
       const fixedFees = new Decimal(order.fixedFees.toString());
@@ -741,40 +797,20 @@ export class PaymentsService {
         refType: 'order',
         refId: order.id,
         memo: `Pago de orden ${order.id} (${payment.method})`,
+        idempotent: true,
         entries: entries as never,
       });
     }
 
-    // Marca pagada de forma CONDICIONAL (compare-and-set status='pending'): si el
-    // orders-sweeper expiró la orden entre la lectura y aquí (pago tardío tras
-    // expiración), NO la resucitamos a `paid` — el sweeper ya liberó sus asientos y
-    // reactivarla los revendería (doble-venta). El asiento contable ya quedó asentado
-    // (idempotente); este caso raro requiere reconciliación/refund, no reventa.
-    const [, claim] = await this.prisma.$transaction([
-      this.prisma.payment.update({
-        where: { id: paymentId },
-        data: { status: 'succeeded', succeededAt: new Date() },
-      }),
-      this.prisma.order.updateMany({
-        where: { id: order.id, status: 'pending' },
-        data: { status: 'paid', paidAt: new Date() },
-      }),
-    ]);
-    if (claim.count === 0) {
-      this.logger.warn(
-        `Orden ${order.id} ya no estaba pending al confirmar (sweeper/expiración); no se reactiva a paid`,
-      );
-      return;
+    // Notificaciones + trabajo pesado SOLO en la reclamación fresca (no en un reproceso
+    // idempotente): la emisión de boletos (y en cascada QR/PDF/correos) se encola tras
+    // asentar el pago (condición del arquitecto). enqueue no lanza: un fallo no revierte el pago.
+    if (justClaimed) {
+      await this.queue.enqueue(QUEUES.TICKETS, 'issue', { orderId: order.id });
+      // Push SSE: la orden quedó pagada (el frontend deja el estado `pending`).
+      this.stream.emitOrder(order.id, { status: 'paid', total: order.total.toFixed(2) });
+      if (new Decimal(payment.walletAmount.toString()).gt(0)) await this.pushWallet(order.buyerId);
     }
-
-    // Trabajo pesado FUERA del camino crítico: la emisión de boletos (y, en
-    // cascada, QR/PDF y correos) se encola tras asentar el pago (condición del
-    // arquitecto). enqueue no lanza: un fallo aquí no revierte el pago.
-    await this.queue.enqueue(QUEUES.TICKETS, 'issue', { orderId: order.id });
-
-    // Push SSE: la orden quedó pagada (el frontend deja el estado `pending`).
-    this.stream.emitOrder(order.id, { status: 'paid', total: order.total.toFixed(2) });
-    if (new Decimal(payment.walletAmount.toString()).gt(0)) await this.pushWallet(order.buyerId);
   }
 
   /**
@@ -793,15 +829,19 @@ export class PaymentsService {
       where: { id: payment.orderId },
       include: { items: true, event: { select: { promoterId: true } } },
     });
-    if (order.status !== 'paid') {
+    // CLAIM-FIRST: solo el ganador del CAS `paid→refunded` revierte. Evita doble
+    // refund/chargeback por entregas concurrentes del webhook (o refund+chargeback del
+    // mismo pago): el segundo ve count==0 y sale idempotente sin re-asentar ni re-liberar.
+    const claim = await this.prisma.order.updateMany({
+      where: { id: order.id, status: 'paid' },
+      data: { status: 'refunded' },
+    });
+    if (claim.count === 0) {
       this.logger.warn(`${mode} sobre orden no pagada ${order.id} (${order.status}); se ignora`);
-      return; // idempotente: tras el primer reverso la orden queda 'refunded'
+      return; // idempotente: tras el primer reverso la orden ya no está 'paid'
     }
 
-    const already = await this.prisma.ledgerTransaction.findFirst({
-      where: { kind: { in: ['refund', 'chargeback'] }, refType: 'order', refId: order.id },
-    });
-    if (!already) {
+    {
       const net = new Decimal(order.net.toString());
       const platformFee = new Decimal(order.platformFee.toString());
       const fixedFees = new Decimal(order.fixedFees.toString());
@@ -819,6 +859,7 @@ export class PaymentsService {
         refType: 'order',
         refId: order.id,
         memo: `${mode} de orden ${order.id}`,
+        idempotent: true,
         entries: [
           {
             type: 'promoter_payable',
@@ -840,7 +881,7 @@ export class PaymentsService {
         where: { id: { in: seatIds } },
         data: { status: 'available' },
       }),
-      this.prisma.order.update({ where: { id: order.id }, data: { status: 'refunded' } }),
+      // (el estado de la orden ya se fijó a 'refunded' en el CAS claim-first de arriba)
     ]);
 
     // Invalidar los boletos al instante (reembolso/contracargo). La propagación a

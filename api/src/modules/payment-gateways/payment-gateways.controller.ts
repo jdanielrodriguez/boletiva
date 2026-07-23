@@ -8,6 +8,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -19,6 +20,8 @@ import {
 import { ChallengePurpose, Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AdminOnly } from '../../common/decorators/admin-only.decorator';
+import { Audit } from '../../common/decorators/audit.decorator';
+import { AuditInterceptor } from '../../common/interceptors/audit.interceptor';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ChallengesService } from '../auth/challenges.service';
 import { PaymentGatewaysService } from './payment-gateways.service';
@@ -33,6 +36,7 @@ import {
 
 @ApiTags('payment-gateways')
 @ApiBearerAuth()
+@UseInterceptors(AuditInterceptor)
 @Controller('payment-gateways')
 export class PaymentGatewaysController {
   constructor(
@@ -74,6 +78,7 @@ export class PaymentGatewaysController {
   @Post()
   @Roles(Role.admin)
   @AdminOnly()
+  @Audit('admin.gateway.create', { resource: 'gateway' })
   @ApiOperation({ summary: 'Crea una pasarela (admin) — exige código OTP de desbloqueo' })
   @ApiCreatedResponse({ type: GatewayResponseDto })
   async create(@Body() dto: CreateGatewayDto, @CurrentUser('userId') adminId: string) {
@@ -94,6 +99,7 @@ export class PaymentGatewaysController {
   @Patch(':id/status')
   @Roles(Role.admin)
   @AdminOnly()
+  @Audit('admin.gateway.status.set', { resource: 'gateway', param: 'id' })
   @ApiOperation({ summary: 'Cambia el estado de una pasarela (admin)' })
   @ApiOkResponse({ type: GatewayResponseDto })
   setStatus(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateGatewayStatusDto) {
@@ -103,6 +109,7 @@ export class PaymentGatewaysController {
   @Post(':id/make-default')
   @Roles(Role.admin)
   @AdminOnly()
+  @Audit('admin.gateway.make_default', { resource: 'gateway', param: 'id' })
   @ApiOperation({ summary: 'Designa la pasarela default de plataforma (admin)' })
   @ApiCreatedResponse({ type: GatewayResponseDto })
   makeDefault(@Param('id', ParseUUIDPipe) id: string) {
@@ -112,6 +119,7 @@ export class PaymentGatewaysController {
   @Delete(':id')
   @Roles(Role.admin)
   @AdminOnly()
+  @Audit('admin.gateway.delete', { resource: 'gateway', param: 'id' })
   @HttpCode(200)
   @ApiOperation({ summary: 'Elimina una pasarela y migra sus eventos a la default (admin)' })
   @ApiOkResponse({ type: GatewayDeleteResponseDto })

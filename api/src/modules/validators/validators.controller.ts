@@ -23,7 +23,7 @@ import { Observable } from 'rxjs';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Public } from '../../common/decorators/public.decorator';
-import { SkipRateLimit } from '../../common/rate-limit/rate-limit.decorator';
+import { RateLimit, SkipRateLimit } from '../../common/rate-limit/rate-limit.decorator';
 import { AuthUser, CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ValidatorsService } from './validators.service';
 import {
@@ -90,6 +90,7 @@ export class EventValidatorsController {
   @Post()
   @HttpCode(201)
   @Roles(Role.admin, Role.promoter)
+  @RateLimit({ limit: 20, windowSec: 3600 }) // cada invitación manda un correo → cota anti-amplificación (QA)
   @ApiOperation({ summary: 'Invita/habilita un validador por email (envía código + magic-link)' })
   @ApiCreatedResponse({ type: ValidatorInviteResponseDto })
   invite(
@@ -138,6 +139,7 @@ export class EventValidatorsController {
   @Post(':id/enable')
   @HttpCode(200)
   @Roles(Role.admin, Role.promoter)
+  @RateLimit({ limit: 20, windowSec: 3600 }) // reenvía correo → misma cota anti-amplificación
   @ApiOperation({ summary: 'Re-habilita un validador y le reenvía un nuevo acceso' })
   @ApiOkResponse({ type: ValidatorInviteResponseDto })
   enable(

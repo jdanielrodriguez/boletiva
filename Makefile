@@ -329,8 +329,51 @@ gcp-down:
 .PHONY: gcp-up
 gcp-up:
 	@echo "⏫ Levantando infra de PROD ($(PROD_PROJECT))…"
-	gcloud sql instances patch $(PROD_SQL_INSTANCE) --activation-policy=ALWAYS --project=$(PROD_PROJECT) --quiet
+	@echo "→ Arrancando Cloud SQL (ALWAYS). Prender la instancia tarda varios minutos;"
+	@echo "  el patch se lanza SIN bloquear y luego se sondea el estado (a prueba de timeouts)."
+	-@gcloud sql instances patch $(PROD_SQL_INSTANCE) --activation-policy=ALWAYS --project=$(PROD_PROJECT) --quiet --async >/dev/null 2>&1 || true
+	@printf "→ Esperando a que Cloud SQL quede RUNNABLE"; \
+	 i=0; \
+	 until [ "$$(gcloud sql instances describe $(PROD_SQL_INSTANCE) --project=$(PROD_PROJECT) --format='value(state)' 2>/dev/null)" = "RUNNABLE" ]; do \
+	   i=$$((i+1)); \
+	   if [ $$i -gt 90 ]; then echo " ❌ no llegó a RUNNABLE tras ~15 min"; exit 1; fi; \
+	   printf "."; sleep 10; \
+	 done; \
+	 echo " ✓ RUNNABLE"
 	$(MAKE) gcp-redis-create
-	gcloud run services update $(PROD_API_SERVICE) --min-instances=1 --region=$(PROD_REGION) --project=$(PROD_PROJECT) --quiet
+	@echo "→ Postgres RUNNABLE, pero RUNNABLE ≠ 'acepta conexiones': el proxy de Cloud SQL"
+	@echo "  tarda ~1-2 min más en aceptar. La API conecta a la BD en el boot (Prisma), así que"
+	@echo "  desplegar de inmediato la mata (i/o timeout). Damos margen + reintentamos el deploy."
+	@sleep 45
+	@echo "→ Desplegando API (reintenta hasta que Postgres acepte conexiones)…"
+	@i=0; \
+	 until gcloud run services update $(PROD_API_SERVICE) --min-instances=1 --region=$(PROD_REGION) --project=$(PROD_PROJECT) --quiet; do \
+	   i=$$((i+1)); \
+	   if [ $$i -ge 5 ]; then echo " ❌ la API no arrancó tras 5 intentos (revisa 'make prod-logs')"; exit 1; fi; \
+	   echo " ↻ intento $$i falló (Postgres probablemente aún iniciando); reintento en 40s…"; sleep 40; \
+	 done
 	gcloud run services update $(PROD_FRONTEND_SERVICE) --min-instances=1 --region=$(PROD_REGION) --project=$(PROD_PROJECT) --quiet
-	@echo "✅ Infra ARRIBA. Verifica: curl https://api.boletiva.com/api/v1/health"
+	@printf "→ Verificando salud del backend"; \
+	 code=""; \
+	 for i in 1 2 3 4 5 6 7 8 9 10 11 12; do \
+	   code=$$(curl -s -o /dev/null -w '%{http_code}' https://api.boletiva.com/api/v1/health 2>/dev/null || true); \
+	   [ "$$code" = "200" ] && break; \
+	   printf "."; sleep 10; \
+	 done; \
+	 if [ "$$code" = "200" ]; then echo " ✓ /health=200"; else echo " ⚠️ /health=$$code (revisa logs: make prod-logs)"; fi
+	@echo "✅ Infra ARRIBA y lista para desplegar desde el Action (develop→master)."
+
+# Cambia la API de PROD a SES por SDK (MAIL_TRANSPORT=ses) para que ENVÍE correos (en alpha,
+# el Sandbox de SES solo entrega a direcciones VERIFICADAS). El SDK necesita credenciales AWS
+# API (NO las SMTP de pasaeventos-mail-user/pass). PRERREQUISITO — crear los 2 secretos:
+#   printf '%s' 'AKIA...tu-access-key-id'   | gcloud secrets create pasaeventos-aws-ses-key-id  --data-file=- --project=$(PROD_PROJECT)
+#   printf '%s' 'tu-secret-access-key'      | gcloud secrets create pasaeventos-aws-ses-secret --data-file=- --project=$(PROD_PROJECT)
+# (si ya existen, usa: gcloud secrets versions add <nombre> --data-file=-). Luego: make prod-mail-ses
+.PHONY: prod-mail-ses
+prod-mail-ses:
+	@echo "✉️  API de PROD → SES por SDK (MAIL_TRANSPORT=ses, región us-east-1) + credenciales AWS."
+	gcloud run services update $(PROD_API_SERVICE) \
+	  --update-env-vars=MAIL_TRANSPORT=ses,MAIL_AWS_REGION=us-east-1 \
+	  --update-secrets=AWS_ACCESS_KEY_ID=pasaeventos-aws-ses-key-id:latest,AWS_SECRET_ACCESS_KEY=pasaeventos-aws-ses-secret:latest \
+	  --region=$(PROD_REGION) --project=$(PROD_PROJECT) --quiet
+	@echo "✅ Listo. Recuerda: en Sandbox SOLO entrega a correos VERIFICADOS en la consola SES."

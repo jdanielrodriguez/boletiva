@@ -3,6 +3,7 @@
 import './infra/observability/tracing';
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -25,12 +26,21 @@ async function bootstrap(): Promise<void> {
 
   // rawBody: necesario para verificar el webhook SVIX de Recurrente (la firma es sobre el
   // cuerpo CRUDO). No cambia el parseo normal; solo expone `req.rawBody` donde se pida.
-  const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bufferLogs: true,
+    rawBody: true,
+  });
   const config = app.get(ConfigService);
   const isProd = config.get<boolean>('isProd');
 
   // Logger estructurado (pino) como logger de Nest.
   app.useLogger(app.get(Logger));
+
+  // Límite EXPLÍCITO de tamaño de cuerpo (QA): con rawBody global cada request se bufferea en
+  // memoria; sin tope, un cuerpo enorme es un DoS de memoria. 1 MB cubre webhooks/JSON de la app
+  // (las subidas de media van directas al storage por URL firmada, no por el body de la API).
+  app.useBodyParser('json', { limit: '1mb' });
+  app.useBodyParser('urlencoded', { limit: '1mb', extended: true });
 
   // Fail-fast en PROD: secretos con default de dev, trust proxy mal parametrizado o
   // CORS '*' con credenciales → aborta el arranque (auditoría dual C1/C2/M5).
@@ -49,10 +59,16 @@ async function bootstrap(): Promise<void> {
   app.getHttpAdapter().getInstance().set('trust proxy', config.get('security.trustProxy') ?? false);
   app.use(helmet());
   app.use(compression());
+  // G4.2 (auditoría 4): el allowlist de CORS se aplica en TODOS los entornos (antes
+  // `!isProd` dejaba pasar CUALQUIER origen también en staging). En no-producción se
+  // permiten ADEMÁS localhost/127.0.0.1 (cualquier puerto) para el dev local, sin
+  // abrir el resto. Prod: SOLO `cors.origins`.
+  const devOriginRe = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
   app.enableCors({
     origin: (origin, cb) => {
       const allowed = config.get<string[]>('cors.origins') ?? [];
-      if (!origin || allowed.includes('*') || allowed.includes(origin) || !isProd) {
+      const devOk = !isProd && devOriginRe.test(origin ?? '');
+      if (!origin || allowed.includes('*') || allowed.includes(origin) || devOk) {
         return cb(null, true);
       }
       // I-01: rechazo LIMPIO — no reflejamos las cabeceras CORS (el navegador bloquea

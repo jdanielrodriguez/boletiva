@@ -2,6 +2,7 @@ import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post } from '@ne
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { RateLimit } from '../../common/rate-limit/rate-limit.decorator';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user.decorator';
 import { ValidationIngestService } from './validation-ingest.service';
 import { GateAccessService } from './gate-access.service';
@@ -19,6 +20,10 @@ export class ValidationIngestController {
 
   @Post('events/:eventId/checkins/batch')
   @Roles(Role.gate_operator, Role.admin)
+  // G2.2 (auditoría 4): cota de frecuencia por IP — un lote acepta hasta 5000 ítems y
+  // publica a RabbitMQ; sin tope, un operador comprometido inunda la cola. 120/min es
+  // holgado para el drenaje real store-and-forward de una puerta. (env-gated).
+  @RateLimit({ limit: 120, windowSec: 60 })
   @HttpCode(200)
   @ApiOperation({ summary: 'Ingesta un lote de check-ins offline del evento (operador asignado)' })
   @ApiOkResponse({ type: BatchCheckinResultDto })
@@ -36,7 +41,10 @@ export class ValidationIngestController {
   @Roles(Role.gate_operator, Role.admin)
   @ApiOperation({ summary: 'Conflictos de validación del evento (dobles check-in)' })
   @ApiOkResponse({ type: CheckinConflictDto, isArray: true })
-  conflicts(@Param('eventId', ParseUUIDPipe) eventId: string) {
+  async conflicts(@Param('eventId', ParseUUIDPipe) eventId: string, @CurrentUser() user: AuthUser) {
+    // Mismo control que el batch: solo un operador ASIGNADO al evento (o admin) ve sus
+    // conflictos → cierra el IDOR (un operador de otro evento leía seriales/timestamps ajenos).
+    await this.gateAccess.assertAssignedToEvent(eventId, user);
     return this.ingest.listConflicts(eventId);
   }
 }

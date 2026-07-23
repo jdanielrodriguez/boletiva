@@ -129,4 +129,115 @@ describe('Topes de holds y órdenes pending por usuario (e2e)', () => {
     // 2 órdenes pending → la 3ª excede el tope.
     await buyOne().then((r) => expect(r.status).toBe(409));
   });
+
+  // --- F4: tope de boletos por COMPRA definido en el evento ---
+  it('F4: maxPerOrder del evento acota el hold (cantidad y asientos) y se expone en availability', async () => {
+    const capEvent = await prisma.event.create({
+      data: {
+        promoterId: (await prisma.user.findUniqueOrThrow({ where: { email: SEED.promoter } })).id,
+        name: `CAP ${stamp}`,
+        slug: `cap-${stamp}`,
+        startsAt: new Date('2029-02-01T20:00:00-06:00'),
+        endsAt: new Date('2029-02-01T23:00:00-06:00'),
+        status: 'published',
+        maxPerOrder: 3, // el promotor limita a 3 boletos por compra
+      },
+    });
+    const capLoc = await prisma.locality.create({
+      data: { eventId: capEvent.id, name: 'GA', slug: 'ga', kind: 'general', desiredNet: 100, capacity: 20 },
+    });
+    await prisma.seat.createMany({
+      data: Array.from({ length: 20 }, (_, i) => ({ localityId: capLoc.id, label: `CAP-${i + 1}` })),
+    });
+    // Partir de cero el set de cap simultáneo del comprador (otras pruebas lo poblaron).
+    await redis.getClient().del(`hold:owner:${buyerId}`);
+    try {
+      // availability expone el tope del evento.
+      const av = await http().get(`/api/v1/events/${capEvent.id}/availability`).expect(200);
+      expect(av.body.maxPerOrder).toBe(3);
+
+      // Cantidad por encima del tope del evento → 400 (aunque el global es 50).
+      const over = await http()
+        .post(`/api/v1/events/${capEvent.id}/holds`)
+        .set(auth())
+        .send({ localityId: capLoc.id, quantity: 4 })
+        .expect(400);
+      expect(String(over.body.message)).toContain('3');
+
+      // Justo en el tope → 201.
+      await http()
+        .post(`/api/v1/events/${capEvent.id}/holds`)
+        .set(auth())
+        .send({ localityId: capLoc.id, quantity: 3 })
+        .expect(201);
+
+      // Ya tiene 3 en reserva para el evento; 1 más excede el tope simultáneo del evento → 409.
+      await http()
+        .post(`/api/v1/events/${capEvent.id}/holds`)
+        .set(auth())
+        .send({ localityId: capLoc.id, quantity: 1 })
+        .expect(409);
+    } finally {
+      const keys = await redis.getClient().keys('hold:*');
+      if (keys.length) await redis.getClient().del(...keys);
+      await prisma.seat.deleteMany({ where: { localityId: capLoc.id } });
+      await prisma.locality.deleteMany({ where: { id: capLoc.id } });
+      await prisma.event.deleteMany({ where: { id: capEvent.id } });
+    }
+  });
+
+  it('F4 (auditoría 4): el cap es server-authoritative también en el COMMIT DIRECTO (sin hold)', async () => {
+    const capEvent2 = await prisma.event.create({
+      data: {
+        promoterId: (await prisma.user.findUniqueOrThrow({ where: { email: SEED.promoter } })).id,
+        name: `CAP2 ${stamp}`,
+        slug: `cap2-${stamp}`,
+        startsAt: new Date('2029-03-01T20:00:00-06:00'),
+        endsAt: new Date('2029-03-01T23:00:00-06:00'),
+        status: 'published',
+        maxPerOrder: 2,
+      },
+    });
+    const capLoc2 = await prisma.locality.create({
+      data: { eventId: capEvent2.id, name: 'GA', slug: 'ga', kind: 'general', desiredNet: 100, capacity: 10 },
+    });
+    await prisma.seat.createMany({
+      data: Array.from({ length: 10 }, (_, i) => ({ localityId: capLoc2.id, label: `C2-${i + 1}` })),
+    });
+    // Limpia pendientes del comprador (el tope de pendientes se evalúa ANTES del cap; sin
+    // esto el commit devolvería 409 por pendientes en vez del 400 por cap que queremos medir).
+    const pend = await prisma.order.findMany({ where: { buyerId, status: 'pending' }, select: { id: true } });
+    if (pend.length) {
+      await prisma.orderItem.deleteMany({ where: { orderId: { in: pend.map((o) => o.id) } } });
+      await prisma.order.deleteMany({ where: { id: { in: pend.map((o) => o.id) } } });
+    }
+    await redis.getClient().del(`hold:owner:${buyerId}`);
+    try {
+      const seats = await prisma.seat.findMany({
+        where: { localityId: capLoc2.id, status: 'available' },
+        select: { id: true },
+        take: 5,
+      });
+      const ids = seats.map((s) => s.id);
+      // Commit DIRECTO (sin hold) con 3 ids > maxPerOrder=2 → 400 (antes del fix: 201).
+      const over = await http()
+        .post(`/api/v1/events/${capEvent2.id}/orders`)
+        .set(auth())
+        .send({ seatIds: ids.slice(0, 3) })
+        .expect(400);
+      expect(String(over.body.message)).toContain('2');
+      // Commit directo con 2 ids (== cap) → 201.
+      await http()
+        .post(`/api/v1/events/${capEvent2.id}/orders`)
+        .set(auth())
+        .send({ seatIds: ids.slice(0, 2) })
+        .expect(201);
+    } finally {
+      await prisma.orderItem.deleteMany({ where: { order: { eventId: capEvent2.id } } });
+      await prisma.order.deleteMany({ where: { eventId: capEvent2.id } });
+      await prisma.seat.deleteMany({ where: { localityId: capLoc2.id } });
+      await prisma.locality.deleteMany({ where: { id: capLoc2.id } });
+      await prisma.event.deleteMany({ where: { id: capEvent2.id } });
+    }
+  });
 });

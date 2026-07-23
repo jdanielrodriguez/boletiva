@@ -37,11 +37,12 @@
 
   --pe-accent: #e14eca;
   --pe-accent-strong: #f06be0;
+  --pe-on-accent: #1a1020; /* texto AA sobre --pe-accent (noche = accent CLARO → tinta oscura) */
   --pe-accent-soft: color-mix(in srgb, var(--pe-accent) 16%, transparent);
   --pe-accent-border: color-mix(in srgb, var(--pe-accent) 45%, transparent);
 
   --pe-text-muted: var(--pe-muted);
-  --pe-focus-ring: color-mix(in srgb, var(--pe-primary) 40%, transparent);
+  --pe-focus-ring: var(--pe-primary); /* SÓLIDO (a11y/WCAG): un anillo translúcido al 40% no alcanza 3:1 */
 
   --pe-danger: #ff6b81;
   --pe-danger-strong: #e14b63;
@@ -85,11 +86,12 @@
 
   --pe-accent: #d1521f;
   --pe-accent-strong: #b8431a;
+  --pe-on-accent: #ffffff; /* texto AA sobre --pe-accent (día = accent OSCURO → tinta blanca) */
   --pe-accent-soft: color-mix(in srgb, var(--pe-accent) 14%, transparent);
   --pe-accent-border: color-mix(in srgb, var(--pe-accent) 40%, transparent);
 
   --pe-text-muted: var(--pe-muted);
-  --pe-focus-ring: color-mix(in srgb, var(--pe-primary) 40%, transparent);
+  --pe-focus-ring: var(--pe-primary); /* SÓLIDO (a11y/WCAG): un anillo translúcido al 40% no alcanza 3:1 */
 
   --pe-danger: #d83a4e;
   --pe-danger-strong: #c02338;
@@ -229,9 +231,11 @@ button.ghost {
    fundirse con el header, y se distingue del botón primario (login). */
 a.cta-promoter,
 .btn.cta-promoter {
-  background: var(--pe-accent-soft);
+  /* Relleno de acento SÓLIDO + texto on-accent (QA): antes texto accent-strong sobre
+     accent-soft se fundía con el header (siempre oscuro) en tema día. Sólido = AA en ambos. */
+  background: var(--pe-accent);
   border: 1.5px solid var(--pe-accent);
-  color: var(--pe-accent-strong);
+  color: var(--pe-on-accent);
   font-weight: 700;
   border-radius: 999px;
   padding: 0.5rem 1.1rem;
@@ -240,9 +244,9 @@ a.cta-promoter,
 }
 a.cta-promoter:hover:not(:disabled),
 .btn.cta-promoter:hover:not(:disabled) {
-  background: var(--pe-accent);
-  border-color: var(--pe-accent);
-  color: #fff;
+  background: var(--pe-accent-strong);
+  border-color: var(--pe-accent-strong);
+  color: var(--pe-on-accent);
   box-shadow: var(--pe-glow);
   transform: translateY(-1px);
 }
@@ -1832,7 +1836,7 @@ app-root {
 }
 
 .auth-alt a {
-  color: var(--pe-primary);
+  color: var(--pe-accent-strong); /* AA sobre la tarjeta de auth en ambos temas (QA); antes --pe-primary (naranja día) fallaba */
   font-weight: 600;
 }
 
@@ -2961,6 +2965,11 @@ app-root {
   color: var(--pe-muted);
   margin: 0;
 }
+.cart-top .cart-cap {
+  color: var(--pe-muted);
+  margin: 0.1rem 0 0;
+  font-size: 0.8rem;
+}
 
 .cart-top .total {
   margin: 0.15rem 0 0;
@@ -3309,15 +3318,17 @@ button.danger:hover:not(:disabled) { background: var(--pe-danger); border-color:
 .gateway-edit-actions > .btn.small,
 .adv-actions > .btn.small { min-height: 34px; }
 
+/* Texto con la variante -strong (más oscura) para pasar AA en el tema DÍA (claro):
+   el tono base no alcanza 4.5:1 sobre el fondo crema. En NOCHE -strong sigue ≥AA. */
 .btn.success,
-button.success { border-color: var(--pe-success-border); color: var(--pe-success); background: transparent; }
+button.success { border-color: var(--pe-success-border); color: var(--pe-success-strong); background: transparent; }
 .btn.success:hover:not(:disabled),
-button.success:hover:not(:disabled) { background: var(--pe-success-soft); border-color: var(--pe-success); color: var(--pe-success); }
+button.success:hover:not(:disabled) { background: var(--pe-success-soft); border-color: var(--pe-success); color: var(--pe-success-strong); }
 
 .btn.warning,
-button.warning { border-color: var(--pe-warning-border); color: var(--pe-warning); background: transparent; }
+button.warning { border-color: var(--pe-warning-border); color: var(--pe-warning-strong); background: transparent; }
 .btn.warning:hover:not(:disabled),
-button.warning:hover:not(:disabled) { background: var(--pe-warning-soft); border-color: var(--pe-warning); color: var(--pe-warning); }
+button.warning:hover:not(:disabled) { background: var(--pe-warning-soft); border-color: var(--pe-warning); color: var(--pe-warning-strong); }
 
 .btn.outline,
 .btn-outline,
@@ -3358,6 +3369,12 @@ button.outline:hover:not(:disabled) { border-color: var(--pe-accent); color: var
   line-height: 1.35;
 }
 .check-row input { margin-top: 0.2rem; }
+/* Campo de config con input compacto (p.ej. "máx boletos por compra", F4): el número
+   no debe ocupar todo el ancho como un input de texto. */
+.cfg-field { display: block; margin: 0.9rem 0; }
+.cfg-field > span { display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.3rem; }
+.cfg-field input { max-width: 12rem; }
+.cfg-field small { display: block; margin-top: 0.3rem; }
 
 /* Grid de eventos (cards) */
 .events-grid {
@@ -3421,7 +3438,7 @@ button.ev-card-name:hover:not(:disabled) { color: var(--pe-primary); background:
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: #fff;
+  color: var(--pe-on-accent); /* AA en ambos temas (accent claro→tinta oscura / oscuro→blanca) */
   background: var(--pe-accent);
   box-shadow: 0 2px 8px -2px var(--pe-accent-soft);
 }
@@ -5391,11 +5408,18 @@ textarea.invalid {
   margin: 0.75rem 0 0;
   padding: 0.7rem 0.85rem;
   border-radius: 10px;
-  background: var(--pe-success-soft);
-  border: 1px solid var(--pe-success-border, var(--pe-success));
+  /* NEUTRO por defecto: el cooldown también corre tras un 429 (límite), donde arriba
+     hay un mensaje de ERROR rojo → no mostrar verde de éxito junto al error. */
+  background: var(--pe-surface-2);
+  border: 1px solid var(--pe-border);
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
+}
+/* Solo cuando hay confirmación positiva de reenvío (info) se tiñe de éxito. */
+.resend-status--info {
+  background: var(--pe-success-soft);
+  border-color: var(--pe-success-border, var(--pe-success));
 }
 .resend-status-head {
   display: flex;
@@ -5403,7 +5427,8 @@ textarea.invalid {
   gap: 0.45rem;
   font-size: 0.88rem;
   font-weight: 600;
-  color: var(--pe-success);
+  /* success-strong = mayor contraste sobre success-soft (AA en tema día). */
+  color: var(--pe-success-strong, var(--pe-success));
 }
 .resend-status-head .app-icon { flex: none; }
 .resend-progress {
