@@ -1,18 +1,17 @@
 <div class="share-box" data-testid="share-box">
   <span class="share-label">{{ 'reservation.shareLabel' | translate }}</span>
   <div class="share-actions">
-    <a class="share-btn wa" [href]="whatsapp()" target="_blank" rel="noopener" [attr.aria-label]="'reservation.shareWhatsapp' | translate">
-      WhatsApp
+    <a class="share-btn wa" [href]="whatsapp()" target="_blank" rel="noopener" [attr.title]="'reservation.shareWhatsapp' | translate" [attr.aria-label]="'reservation.shareWhatsapp' | translate">
+      <app-icon name="whatsapp" [size]="20" />
     </a>
-    <a class="share-btn fb" [href]="facebook()" target="_blank" rel="noopener" [attr.aria-label]="'reservation.shareFacebook' | translate">
-      Facebook
+    <a class="share-btn fb" [href]="facebook()" target="_blank" rel="noopener" [attr.title]="'reservation.shareFacebook' | translate" [attr.aria-label]="'reservation.shareFacebook' | translate">
+      <app-icon name="facebook" [size]="20" />
     </a>
-    <a class="share-btn x" [href]="x()" target="_blank" rel="noopener" [attr.aria-label]="'reservation.shareX' | translate">
-      X
+    <a class="share-btn x" [href]="x()" target="_blank" rel="noopener" [attr.title]="'reservation.shareX' | translate" [attr.aria-label]="'reservation.shareX' | translate">
+      <app-icon name="x-social" [size]="18" />
     </a>
-    <button type="button" class="share-btn copy" (click)="copy()" data-testid="share-copy">
-      <app-icon name="copy" />
-      {{ copied() ? ('reservation.linkCopied' | translate) : ('reservation.copyLink' | translate) }}
+    <button type="button" class="share-btn copy" [class.is-copied]="copied()" (click)="copy()" data-testid="share-copy" [attr.title]="(copied() ? 'reservation.linkCopied' : 'reservation.copyLink') | translate" [attr.aria-label]="(copied() ? 'reservation.linkCopied' : 'reservation.copyLink') | translate">
+      <app-icon name="copy" [size]="18" />
     </button>
   </div>
 </div>

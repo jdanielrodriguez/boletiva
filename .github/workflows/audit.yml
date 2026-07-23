@@ -1,0 +1,32 @@
+# Auditoría de dependencias (supply chain) — MANUAL, a demanda.
+# Decisión del usuario (2026-07-23): NO auditorías automáticas en cada push ni PRs de
+# Dependabot (evitar cambios de dependencias que no conocemos). Esto se corre a mano
+# desde la pestaña Actions → "npm audit (manual)" → Run workflow.
+name: npm audit (manual)
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  audit:
+    name: npm audit (supply chain)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+      # prod-deps: reporta high/critical (umbral real). Los 'moderate' actuales son
+      # transitivos de uuid<11.1.1 (exceljs/gaxios/@google-cloud/storage) sin fix sin
+      # romper y por un path que NO usamos (v4 aleatorio, no v3/v5/v6 con buf).
+      - name: Audit backend (prod deps — high/critical)
+        run: npm audit --omit=dev --audit-level=high
+      - name: Audit frontend (prod deps — high/critical)
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=high
+      # Informativo (no bloquea): moderate en todo el árbol (prod + dev) para visibilidad.
+      - name: Audit backend (moderate, informativo)
+        run: npm audit --audit-level=moderate || true
+      - name: Audit frontend (moderate, informativo)
+        working-directory: frontend
+        run: npm audit --audit-level=moderate || true
