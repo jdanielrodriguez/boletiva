@@ -10,7 +10,11 @@ import {
   Patch,
   Post,
   Query,
+  Req,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import type { Request } from 'express';
 import { ApiHeader } from '@nestjs/swagger';
 import {
   ApiBearerAuth,
@@ -42,7 +46,31 @@ import {
 @ApiTags('events')
 @Controller('events')
 export class EventsController {
-  constructor(private readonly events: EventsService) {}
+  private readonly jwtSecret: string;
+
+  constructor(
+    private readonly events: EventsService,
+    private readonly jwt: JwtService,
+    config: ConfigService,
+  ) {
+    this.jwtSecret = config.getOrThrow<string>('jwt.accessSecret');
+  }
+
+  /**
+   * userId del Bearer best-effort: la disponibilidad es @Public (no puebla req.user),
+   * pero si viene un access token válido lo usamos para marcar los asientos que el
+   * usuario YA compró (azul). Token inválido/ausente → anónimo (sin marca).
+   */
+  private userIdFromBearer(req: Request): string | null {
+    const auth = req.headers.authorization;
+    if (!auth?.startsWith('Bearer ')) return null;
+    try {
+      const payload = this.jwt.verify<{ sub?: string }>(auth.slice(7), { secret: this.jwtSecret });
+      return payload?.sub ?? null;
+    } catch {
+      return null;
+    }
+  }
 
   @Public()
   @Get()
@@ -104,8 +132,8 @@ export class EventsController {
     summary: 'Disponibilidad para comprar: mapa + localidades (con precio) + asientos',
   })
   @ApiOkResponse({ type: EventAvailabilityDto })
-  getAvailability(@Param('eventId', ParseUUIDPipe) eventId: string) {
-    return this.events.getAvailability(eventId);
+  getAvailability(@Param('eventId', ParseUUIDPipe) eventId: string, @Req() req: Request) {
+    return this.events.getAvailability(eventId, this.userIdFromBearer(req));
   }
 
   @Public()

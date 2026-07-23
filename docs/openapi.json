@@ -4829,6 +4829,28 @@
         ]
       }
     },
+    "/api/v1/reservations/cooldown": {
+      "get": {
+        "operationId": "ReservationsController_cooldown_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservationCooldownDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Estado del cooldown anti-abuso del visitante (segundos restantes)",
+        "tags": [
+          "reservations"
+        ]
+      }
+    },
     "/api/v1/reservations/{token}": {
       "get": {
         "operationId": "ReservationsController_getByToken_v1",
@@ -10275,8 +10297,8 @@
     }
   },
   "info": {
-    "title": "Boletiva API",
-    "description": "API de la boletera Boletiva",
+    "title": "Pasa Eventos API",
+    "description": "API de la boletera Pasa Eventos",
     "version": "1.0",
     "contact": {}
   },
@@ -12549,13 +12571,19 @@
               "blocked"
             ],
             "example": "available"
+          },
+          "owned": {
+            "type": "boolean",
+            "example": false,
+            "description": "true si el usuario logueado YA compró este asiento (se pinta en azul)"
           }
         },
         "required": [
           "id",
           "localityId",
           "label",
-          "status"
+          "status",
+          "owned"
         ]
       },
       "EventAvailabilityDto": {
@@ -16534,6 +16562,28 @@
           "currency",
           "total",
           "items"
+        ]
+      },
+      "ReservationCooldownDto": {
+        "type": "object",
+        "properties": {
+          "onCooldown": {
+            "type": "boolean",
+            "description": "true si el visitante está en cooldown tras cancelar una reserva"
+          },
+          "hasActive": {
+            "type": "boolean",
+            "description": "true si ya tiene una reserva anónima activa (por IP)"
+          },
+          "retryAfterSeconds": {
+            "type": "number",
+            "description": "Segundos restantes de cooldown (0 si no aplica). Autoritativo: úsalo para el cronómetro."
+          }
+        },
+        "required": [
+          "onCooldown",
+          "hasActive",
+          "retryAfterSeconds"
         ]
       },
       "CheckoutReservationDto": {

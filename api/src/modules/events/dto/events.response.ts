@@ -388,6 +388,12 @@ export class SeatAvailabilityDto {
 
   @ApiProperty({ enum: SeatStatus, example: SeatStatus.available })
   status!: SeatStatus;
+
+  @ApiProperty({
+    example: false,
+    description: 'true si el usuario logueado YA compró este asiento (se pinta en azul)',
+  })
+  owned!: boolean;
 }
 
 /** Mapa de asientos activo (geometría del lienzo). */

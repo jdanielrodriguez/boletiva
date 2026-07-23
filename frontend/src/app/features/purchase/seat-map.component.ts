@@ -20,6 +20,7 @@ const COLORS = {
   available: '#35d07f', // = --pe-success (noche)
   selected: '#e14eca', // = --pe-accent (rosa de marca)
   taken: '#3a3f52',
+  owned: '#3b82f6', // AZUL: asientos que el usuario YA compró (suyos)
 };
 const PAD = 46; // margen alrededor del contenido al encuadrar (en coords de mundo)
 
@@ -77,6 +78,8 @@ export class SeatMapComponent {
   readonly focusLocalityId = input<string | null>(null);
   /** BLOQUEO: solo esta localidad es seleccionable; las demás se atenúan y su clic cambia de zona. */
   readonly selectableLocalityId = input<string | null>(null);
+  /** DESHABILITADO: se ve el mapa pero NADA es interactivo (p.ej. con una localidad general activa). */
+  readonly disabled = input(false);
   readonly seatToggle = output<string>();
   /** Clic en una zona NO activa (o sin foco) → id de su localidad (cambiar/enfocar). */
   readonly localityPick = output<string>();
@@ -119,6 +122,7 @@ export class SeatMapComponent {
       this.seats();
       this.selected();
       this.selectableLocalityId();
+      this.disabled();
       const focus = this.focusLocalityId();
       this.zoom();
       if (!this.stage) return;
@@ -221,35 +225,48 @@ export class SeatMapComponent {
     const K = this.konva;
     const sel = this.selected();
     const activeLoc = this.selectableLocalityId();
+    const allDisabled = this.disabled();
 
     for (const seat of this.seats()) {
       if (seat.x == null || seat.y == null) continue;
+      const owned = !!(seat as { owned?: boolean }).owned;
       const taken = seat.status !== 'available';
       const chosen = sel.has(seat.id);
-      // Bloqueada = hay una localidad activa y este asiento es de OTRA.
-      const locked = !!activeLoc && seat.localityId !== activeLoc;
-      const color = taken ? COLORS.taken : chosen ? COLORS.selected : COLORS.available;
+      // Bloqueada = hay una localidad activa y este asiento es de OTRA (o todo el mapa
+      // está deshabilitado, p.ej. con una localidad general activa).
+      const locked = allDisabled || (!!activeLoc && seat.localityId !== activeLoc);
+      const color = owned
+        ? COLORS.owned
+        : taken
+          ? COLORS.taken
+          : chosen && !locked
+            ? COLORS.selected
+            : COLORS.available;
 
-      const g = new K.Group({ x: seat.x as number, y: seat.y as number, opacity: locked ? 0.4 : 1 });
+      const g = new K.Group({ x: seat.x as number, y: seat.y as number, opacity: locked && !owned ? 0.4 : 1 });
       g.add(new K.Rect({ x: -11, y: -16, width: 22, height: 6, cornerRadius: 3, fill: color }));
       g.add(new K.Rect({ x: -13, y: -8, width: 26, height: 16, cornerRadius: 5, fill: color }));
-      if (chosen && !taken && !locked) {
+      if (owned) {
+        g.add(this.icon(K, '✓', '#ffffff')); // suyo (comprado)
+      } else if (chosen && !taken && !locked) {
         g.add(this.icon(K, '✓', '#ffffff'));
       } else if (taken) {
         g.add(this.icon(K, '×', '#9aa0b0'));
       }
 
-      // Clic: en OTRA zona → cambia de localidad; en la activa disponible → selecciona.
-      g.on('click tap', () => {
-        if (locked || (!activeLoc && this.focusLocalityId() !== seat.localityId)) {
-          this.localityPick.emit(seat.localityId);
-          return;
-        }
-        if (!taken) this.seatToggle.emit(seat.id);
-      });
-      const clickable = locked || !taken;
-      g.on('mouseenter', () => this.setCursor(clickable ? 'pointer' : 'grab'));
-      g.on('mouseleave', () => this.setCursor('grab'));
+      if (!allDisabled) {
+        // Clic: en OTRA zona → cambia de localidad; en la activa disponible → selecciona.
+        g.on('click tap', () => {
+          if (locked || (!activeLoc && this.focusLocalityId() !== seat.localityId)) {
+            this.localityPick.emit(seat.localityId);
+            return;
+          }
+          if (!taken) this.seatToggle.emit(seat.id);
+        });
+        const clickable = locked || !taken;
+        g.on('mouseenter', () => this.setCursor(clickable ? 'pointer' : 'grab'));
+        g.on('mouseleave', () => this.setCursor('grab'));
+      }
       this.layer.add(g);
     }
     this.layer.draw();

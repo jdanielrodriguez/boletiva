@@ -71,6 +71,9 @@ export class PurchaseService {
   /** true si la localidad activa es numerada (tiene asientos con coordenadas). */
   readonly activeIsSeated = computed(() => this.activeSeats().length > 0);
 
+  /** true si hay una localidad activa y es GENERAL (sin mapa → se compra por cantidad). */
+  readonly activeIsGeneral = computed(() => !!this.activeLocality() && !this.activeIsSeated());
+
   /** TODOS los asientos con coordenadas del evento → mapa UNIDO (vista general del recinto). */
   readonly allSeats = computed(() =>
     (this.availability()?.seats ?? []).filter((s) => s.x != null && s.y != null),

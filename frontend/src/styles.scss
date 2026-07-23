@@ -2276,6 +2276,43 @@ app-root {
   margin: 0 0 0.5rem;
   min-height: 1.2rem;
 }
+/* Info de la zona activa (nombre + tipo + disponibilidad + precio) sobre el mapa. */
+.locality-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--pe-border);
+  border-left: 4px solid var(--pe-accent);
+  border-radius: 12px;
+  background: var(--pe-surface-2, var(--pe-surface));
+  margin-bottom: 0.5rem;
+}
+.locality-info-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.locality-info-name {
+  font-size: 1.05rem;
+}
+.locality-info-meta {
+  color: var(--pe-text-muted, #6b6b76);
+  font-size: 0.88rem;
+}
+.locality-info-price {
+  font-weight: 700;
+  color: var(--pe-teal);
+  white-space: nowrap;
+}
+.locality-info-price em {
+  font-style: normal;
+  font-weight: 500;
+  font-size: 0.82rem;
+  color: var(--pe-text-muted, #6b6b76);
+}
 
 .loc-tabs {
   display: flex;
@@ -2366,6 +2403,9 @@ app-root {
 }
 .seat-legend .legend.tk::before {
   background: #3a3f52;
+}
+.seat-legend .legend.own::before {
+  background: #3b82f6;
 }
 
 .loc-quantity {

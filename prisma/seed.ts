@@ -740,6 +740,7 @@ async function sellSeatsToBuyer(
         orderId: order.id,
         eventId,
         localityId: ln.localityId,
+        seatId: ln.seatId,
         ownerId: buyerId,
         status: 'valid',
         serial: `SEED-DEMO-${ln.label}`,

@@ -140,18 +140,35 @@
          atenúan). Tocar otra zona cambia la localidad activa. -->
     @if (store.hasSeatedMap()) {
       <section class="venue-map" data-testid="venue-map">
-        <p class="venue-map-hint muted small" data-testid="venue-map-hint" aria-live="polite">
-          @if (store.activeSeatedLocalityId()) {
-            {{ 'purchase.pickSeatsIn' | translate: { name: store.activeLocality()?.name } }}
+        <!-- Info de la zona activa (fusiona lo que antes estaba en la página de
+             localidades): nombre, tipo, disponibilidad y precio. -->
+        @if (store.activeLocality(); as loc) {
+          <div class="locality-info" data-testid="locality-info">
+            <div class="locality-info-main">
+              <strong class="locality-info-name">{{ loc.name }}</strong>
+              <span class="locality-info-meta">
+                {{ (store.activeIsSeated() ? 'purchase.kindSeated' : 'purchase.kindGeneral') | translate }}
+                · {{ 'purchase.availableCount' | translate: { n: loc.available } }}
+              </span>
+            </div>
+            @if (loc.price) {
+              <span class="locality-info-price">{{ loc.price.total | money }} <em>{{ 'purchase.perTicket' | translate }}</em></span>
+            }
+          </div>
+          @if (store.activeIsGeneral()) {
+            <p class="venue-map-hint muted small">{{ 'purchase.generalNoMapHint' | translate }}</p>
           } @else {
-            {{ 'purchase.overviewHint' | translate }}
+            <p class="venue-map-hint muted small">{{ 'purchase.pickSeatsIn' | translate: { name: loc.name } }}</p>
           }
-        </p>
+        } @else {
+          <p class="venue-map-hint muted small" data-testid="venue-map-hint" aria-live="polite">{{ 'purchase.overviewHint' | translate }}</p>
+        }
         <app-seat-map
           [seats]="store.allSeats()"
           [selected]="store.selectedSet()"
           [focusLocalityId]="store.activeSeatedLocalityId()"
           [selectableLocalityId]="store.activeSeatedLocalityId()"
+          [disabled]="store.activeIsGeneral()"
           [stageLabel]="'purchase.stage' | translate"
           (seatToggle)="store.toggleSeat($event)"
           (localityPick)="store.setActiveLocality($event)"
@@ -175,6 +192,7 @@
         <p class="seat-legend">
           <span class="legend av">{{ 'purchase.legendAvailable' | translate }}</span>
           <span class="legend sel">{{ 'purchase.legendSelected' | translate }}</span>
+          <span class="legend own">{{ 'purchase.legendOwned' | translate }}</span>
           <span class="legend tk">{{ 'purchase.legendTaken' | translate }}</span>
         </p>
       </section>
@@ -182,7 +200,7 @@
 
     <!-- Localidad GENERAL activa → stepper de cantidad (sin mapa). -->
     @if (store.activeLocality(); as loc) {
-      @if (!store.activeIsSeated()) {
+      @if (store.activeIsGeneral()) {
         <section class="loc-active">
           <h2>{{ loc.name }} @if (loc.price) { · {{ loc.price.total | money }} {{ 'purchase.perTicket' | translate }} }</h2>
           <div class="loc-quantity" data-testid="loc-quantity">
