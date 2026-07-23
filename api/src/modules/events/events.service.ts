@@ -564,12 +564,13 @@ export class EventsService {
     unlockToken?: string,
   ) {
     const event = await this.getManaged(id, user);
-    this.assertNotConcluded(event);
     // G7 (arquitecto): CANCELAR es exclusivo del admin/promotor-dueño; un asesor NO puede
-    // (implicaciones legales), ni siquiera con su ventana de desbloqueo.
+    // (implicaciones legales), ni siquiera con su ventana de desbloqueo. Va ANTES del
+    // check de concluido → el asesor recibe 403 sea cual sea el estado del evento.
     if (status === 'cancelled') {
       assertNotAdvisor(user, 'Un asesor no puede cancelar eventos; es exclusivo del administrador.');
     }
+    this.assertNotConcluded(event);
     await this.editUnlock.assertCanMutate(user, event, unlockToken);
     if (status === 'published') {
       // Un evento cancelado/finalizado es terminal: no se re-publica. Un evento
@@ -639,9 +640,10 @@ export class EventsService {
 
   async remove(id: string, user: AuthUser, unlockToken?: string) {
     const event = await this.getManaged(id, user);
-    this.assertNotConcluded(event);
     // G7 (arquitecto): ELIMINAR es exclusivo del admin/promotor-dueño; un asesor NO puede.
+    // Antes del check de concluido → 403 determinista sin importar el estado del evento.
     assertNotAdvisor(user, 'Un asesor no puede eliminar eventos; es exclusivo del administrador.');
+    this.assertNotConcluded(event);
     await this.editUnlock.assertCanMutate(user, event, unlockToken);
     if (event.status === 'published') {
       throw new BadRequestException('No se puede eliminar un evento publicado; cancélalo primero');
