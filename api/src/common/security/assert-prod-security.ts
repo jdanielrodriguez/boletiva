@@ -60,14 +60,22 @@ export function assertProductionSecurity(config: ConfigService): void {
     );
   }
 
-  // QA · reCAPTCHA debe estar ACTIVO en prod. CaptchaService.verify() FALLA-ABIERTO cuando
-  // no hay integración (dev/test) → si en prod queda deshabilitado o sin secretKey, el
-  // @RequireCaptcha() de signup/login/forgot deja pasar todo (sin anti-bot). Se corta al boot.
+  // reCAPTCHA: el peligro REAL es el fail-open SILENCIOSO — que quede HABILITADO pero SIN
+  // secret, porque entonces CaptchaService.verify() deja pasar todo y NADIE lo nota. Eso sí
+  // aborta el boot. En cambio, DESHABILITARLO explícitamente (RECAPTCHA_DISABLED=true, p.ej.
+  // durante el alpha) es una decisión CONSCIENTE: @RequireCaptcha() se salta por completo,
+  // no hay fail-open engañoso → solo se ADVIERTE, no se aborta (así el deploy de alpha no se
+  // cae por elegir tener el captcha apagado).
   const rc = config.get<{ disabled?: boolean; secretKey?: string }>('recaptcha');
-  if (rc?.disabled || !rc?.secretKey) {
+  if (rc?.disabled) {
+    logger.warn(
+      'reCAPTCHA DESHABILITADO en producción (RECAPTCHA_DISABLED=true): signup/login/forgot van SIN ' +
+        'anti-bot. Aceptable para alpha; habilítalo (RECAPTCHA_DISABLED=false + RECAPTCHA_SECRET_KEY) antes de abrir al público.',
+    );
+  } else if (!rc?.secretKey) {
     problems.push(
-      `reCAPTCHA debe estar habilitado en prod (RECAPTCHA_DISABLED=false y RECAPTCHA_SECRET_KEY ` +
-        `inyectado): sin credenciales el captcha falla-abierto y signup/login/forgot quedan sin anti-bot.`,
+      `reCAPTCHA está HABILITADO pero falta RECAPTCHA_SECRET_KEY: el captcha falla-ABIERTO (deja pasar ` +
+        `todo) sin avisar. Inyecta el secreto, o deshabilítalo explícitamente (RECAPTCHA_DISABLED=true).`,
     );
   }
 

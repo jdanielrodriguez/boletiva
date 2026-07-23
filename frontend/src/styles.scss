@@ -2918,22 +2918,30 @@ app-root {
   gap: 0.5rem;
 }
 
+/* Botones de compartir SOLO-ICONO (mismo tamaño; cambia solo color + icono/glifo). */
 .share-btn {
   display: inline-flex;
   align-items: center;
-  padding: 0.5rem 0.9rem;
-  border-radius: 999px;
-  font-weight: 600;
-  font-size: 0.9rem;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border-radius: 50%;
   border: 1px solid var(--pe-border);
   background: var(--pe-surface-2);
   color: var(--pe-text);
   cursor: pointer;
+  transition: transform 0.12s ease, filter 0.12s ease;
+}
+.share-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
 }
 
+/* Marca: fondo de la plataforma + glifo BLANCO (mismo tamaño, solo cambia el color). */
 .share-btn.wa {
   background: #25d366;
-  color: #06331b;
+  color: #fff;
   border-color: transparent;
 }
 .share-btn.fb {
@@ -2944,8 +2952,13 @@ app-root {
 .share-btn.x {
   background: #000;
   color: #fff;
-  /* Borde más claro: sobre el fondo casi-negro de noche, #333 no separaba la píldora. */
   border-color: #4a4a4a;
+}
+/* Copiar: neutro; al copiar, verde de éxito (feedback sin texto). */
+.share-btn.copy.is-copied {
+  background: var(--pe-success-soft);
+  color: var(--pe-success-strong, var(--pe-success));
+  border-color: var(--pe-success-border, var(--pe-success));
 }
 
 /* --- Carrito arriba (compra) --- */

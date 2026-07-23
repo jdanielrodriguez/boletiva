@@ -61,13 +61,16 @@ describe('assertProductionSecurity (guard de arranque)', () => {
     expect(() => assertProductionSecurity(cfg(noProvider))).toThrow();
   });
 
-  it('QA: reCAPTCHA deshabilitado o sin secret en prod → aborta (falla-abierto anti-bot)', () => {
+  it('QA: reCAPTCHA HABILITADO pero sin secret (o sin config) → aborta (fail-open silencioso); DESHABILITADO explícito → NO aborta (solo advierte)', () => {
+    // Deshabilitado explícito (p.ej. alpha): decisión consciente, sin fail-open → solo advierte.
     expect(() =>
       assertProductionSecurity(cfg({ ...SECURE, recaptcha: { disabled: true, secretKey: 'x' } })),
-    ).toThrow();
+    ).not.toThrow();
+    // Habilitado pero SIN secret → CaptchaService falla-abierto sin avisar → aborta.
     expect(() =>
       assertProductionSecurity(cfg({ ...SECURE, recaptcha: { disabled: false, secretKey: '' } })),
     ).toThrow();
+    // Sin config de recaptcha → se trata como habilitado-sin-secret → aborta.
     const { recaptcha: _rc, ...noRc } = SECURE;
     void _rc;
     expect(() => assertProductionSecurity(cfg(noRc))).toThrow();
