@@ -90,25 +90,42 @@ export class SeatHoldService {
   }
 
   /**
+   * Cap EFECTIVO de boletos por compra para el evento (F4): el mínimo entre el tope
+   * global anti-acaparamiento y el `maxPerOrder` que el promotor fijó en el evento
+   * (null/≤0 → solo el global). Server-authoritative: no confía en la UI.
+   */
+  private async resolveCap(eventId: string): Promise<number> {
+    const ev = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      select: { maxPerOrder: true },
+    });
+    const perOrder = ev?.maxPerOrder ?? null;
+    if (perOrder != null && perOrder > 0) return Math.min(MAX_HELD_SEATS_PER_HOLDER, perOrder);
+    return MAX_HELD_SEATS_PER_HOLDER;
+  }
+
+  /**
    * Contabiliza los asientos recién tomados en el set del holder y aplica el tope
-   * simultáneo. Si al sumarlos se excede, hace ROLLBACK (libera los recién tomados) y
-   * lanza 409 → nadie puede acaparar el aforo con holds en bucle.
+   * simultáneo (`cap` efectivo del evento). Si al sumarlos se excede, hace ROLLBACK
+   * (libera los recién tomados) y lanza 409 → nadie puede acaparar el aforo con holds
+   * en bucle ni superar el máximo por compra del evento.
    */
   private async trackAndCap(
     holderId: string,
     eventId: string,
     seatIds: string[],
     ttlSeconds: number,
+    cap: number,
   ): Promise<void> {
     const client = this.redis.getClient();
     const setKey = this.ownerSetKey(holderId);
     await client.sadd(setKey, ...seatIds);
     await client.expire(setKey, ttlSeconds);
     const count = await client.scard(setKey);
-    if (count > MAX_HELD_SEATS_PER_HOLDER) {
+    if (count > cap) {
       await this.release(eventId, seatIds, holderId); // libera lo recién tomado + SREM
       throw new ConflictException(
-        `Máximo ${MAX_HELD_SEATS_PER_HOLDER} asientos en reserva a la vez. Completa o cancela los actuales.`,
+        `Máximo ${cap} boletos en reserva a la vez para este evento. Completa o cancela los actuales.`,
       );
     }
   }
@@ -150,8 +167,9 @@ export class SeatHoldService {
   ): Promise<HoldResult> {
     const unique = [...new Set(seatIds)];
     if (unique.length === 0) throw new BadRequestException('Debes indicar al menos un asiento');
-    if (unique.length > MAX_HELD_SEATS_PER_HOLDER) {
-      throw new BadRequestException(`Máximo ${MAX_HELD_SEATS_PER_HOLDER} asientos por reserva`);
+    const cap = await this.resolveCap(eventId);
+    if (unique.length > cap) {
+      throw new BadRequestException(`Máximo ${cap} boletos por reserva para este evento`);
     }
 
     // Validación en BD (fuente de verdad del inventario, indexada por localidad/estado).
@@ -175,7 +193,7 @@ export class SeatHoldService {
       throw new ConflictException('Algún asiento ya está reservado por otra persona');
     }
 
-    await this.trackAndCap(holderId, eventId, unique, ttlSeconds);
+    await this.trackAndCap(holderId, eventId, unique, ttlSeconds, cap);
 
     return {
       seatIds: unique,
@@ -238,8 +256,9 @@ export class SeatHoldService {
     if (!Number.isInteger(quantity) || quantity < 1) {
       throw new BadRequestException('La cantidad debe ser un entero positivo');
     }
-    if (quantity > MAX_HELD_SEATS_PER_HOLDER) {
-      throw new BadRequestException(`Máximo ${MAX_HELD_SEATS_PER_HOLDER} cupos por reserva`);
+    const perOrderCap = await this.resolveCap(eventId);
+    if (quantity > perOrderCap) {
+      throw new BadRequestException(`Máximo ${perOrderCap} boletos por reserva para este evento`);
     }
 
     const locality = await this.prisma.locality.findFirst({
@@ -274,7 +293,7 @@ export class SeatHoldService {
     }
 
     const seatIds = chosen.map((idx) => candidates[idx - 1].id);
-    await this.trackAndCap(holderId, eventId, seatIds, ttlSeconds);
+    await this.trackAndCap(holderId, eventId, seatIds, ttlSeconds, perOrderCap);
     return {
       seatIds,
       holderId,

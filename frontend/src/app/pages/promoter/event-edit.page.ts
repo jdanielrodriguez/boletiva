@@ -316,6 +316,8 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
     gatewayId: signal(''),
     ivaOnNet: signal(true),
     absorbInstallmentCost: signal(false),
+    // F4: tope de boletos por compra. null = usa el global (50).
+    maxPerOrder: signal<number | null>(null),
   };
 
   // Localidades
@@ -481,6 +483,7 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
       gatewayId: this.c.gatewayId(),
       ivaOnNet: this.c.ivaOnNet(),
       absorbInstallmentCost: this.c.absorbInstallmentCost(),
+      maxPerOrder: this.c.maxPerOrder(),
       promoterId: this.newPromoterId(),
     });
   }
@@ -685,6 +688,7 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
     this.c.gatewayId.set(ev.gatewayId ?? '');
     this.c.ivaOnNet.set(ev.ivaOnNet);
     this.c.absorbInstallmentCost.set(ev.absorbInstallmentCost);
+    this.c.maxPerOrder.set(ev.maxPerOrder ?? null);
     // El detalle gestionable no trae URL firmada del cover; si ya tenemos un
     // preview local (recién subido/generado) lo conservamos para no perderlo al
     // recargar. Solo se limpia si el evento realmente no tiene cover.
@@ -798,6 +802,7 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
           startsAt: new Date(this.d.startsAt()).toISOString(),
           ivaOnNet: this.c.ivaOnNet(),
           absorbInstallmentCost: this.c.absorbInstallmentCost(),
+          maxPerOrder: this.c.maxPerOrder(),
         })
         .subscribe({
           next: (ev) => {
@@ -832,6 +837,7 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
         startsAt: this.d.startsAt() ? new Date(this.d.startsAt()).toISOString() : undefined,
         ivaOnNet: this.c.ivaOnNet(),
         absorbInstallmentCost: this.c.absorbInstallmentCost(),
+        maxPerOrder: this.c.maxPerOrder(),
       })
       .subscribe({
         next: (ev) => {
@@ -882,6 +888,7 @@ export class EventEditPage implements OnDestroy, HasUnsavedChanges {
         gatewayId: this.c.gatewayId() || undefined,
         ivaOnNet: this.c.ivaOnNet(),
         absorbInstallmentCost: this.c.absorbInstallmentCost(),
+        maxPerOrder: this.c.maxPerOrder(),
       })
       .subscribe({
         next: (ev) => {

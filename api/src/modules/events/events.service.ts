@@ -286,7 +286,9 @@ export class EventsService {
       s.status === 'available' && held.has(s.id) ? { ...s, status: 'held' as const } : s,
     );
 
-    return { seatMap, localities, seats };
+    // F4: tope de boletos por compra que fijó el promotor (null = solo el global 50).
+    // El cliente lo aplica en la selección; el backend lo re-valida en hold/commit.
+    return { seatMap, localities, seats, maxPerOrder: event.maxPerOrder ?? null };
   }
 
   /** IDs (de entre los dados) que están reservados en Redis (hold vigente). */
@@ -424,6 +426,7 @@ export class EventsService {
         absorbInstallmentCost: dto.absorbInstallmentCost,
         // Destacar (slider del inicio) es SOLO admin: un promotor no puede autopromocionarse.
         promotedPriority: isAdmin ? dto.promotedPriority : undefined,
+        maxPerOrder: dto.maxPerOrder ?? undefined, // F4: tope de boletos por compra
         status: 'draft',
       },
       include: {
@@ -547,6 +550,8 @@ export class EventsService {
         absorbInstallmentCost: dto.absorbInstallmentCost,
         // Destacar solo lo cambia un admin (o vía el endpoint /promote); ignorado para promotor.
         promotedPriority: user.roles.includes(Role.admin) ? dto.promotedPriority : undefined,
+        // F4: tope de boletos por compra. undefined = no cambia; null = limpiar (usa el global).
+        maxPerOrder: dto.maxPerOrder,
       },
     });
   }

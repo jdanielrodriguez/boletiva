@@ -6472,6 +6472,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnonymizeDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -6589,14 +6599,6 @@
             }
           },
           {
-            "name": "access_token",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "name": "authorization",
             "required": true,
             "in": "header",
@@ -6617,7 +6619,7 @@
             }
           }
         },
-        "summary": "Stream SSE del checkout (order/seat/wallet). Auth: ?ticket= (o ?access_token=)",
+        "summary": "Stream SSE del checkout (order/seat/wallet). Auth: ?ticket= (un solo uso) o Bearer",
         "tags": [
           "stream"
         ]
@@ -8367,6 +8369,72 @@
           }
         ],
         "summary": "El admin aprueba el desbloqueo del asesor (desde el enlace)",
+        "tags": [
+          "advisor"
+        ]
+      }
+    },
+    "/api/v1/advisor/unlock/pending": {
+      "get": {
+        "operationId": "AdvisorController_listPending_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdvisorUnlockStateDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Estado de desbloqueo de todos los asesores con actividad (panel admin)",
+        "tags": [
+          "advisor"
+        ]
+      }
+    },
+    "/api/v1/advisor/unlock/grant/{advisorId}": {
+      "post": {
+        "operationId": "AdvisorController_grant_v1",
+        "parameters": [
+          {
+            "name": "advisorId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GrantAdvisorUnlockResultDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "El admin concede el desbloqueo del asesor directamente (sin enlace)",
         "tags": [
           "advisor"
         ]
@@ -10207,8 +10275,8 @@
     }
   },
   "info": {
-    "title": "Pasa Eventos API",
-    "description": "API de la boletera Pasa Eventos",
+    "title": "Boletiva API",
+    "description": "API de la boletera Boletiva",
     "version": "1.0",
     "contact": {}
   },
@@ -11597,6 +11665,12 @@
             "example": 1,
             "description": "Prioridad en el slider de destacados (menor = primero; null = no promocionado)"
           },
+          "maxPerOrder": {
+            "type": "number",
+            "nullable": true,
+            "example": 10,
+            "description": "Máximo de boletos por compra (null = tope global 50). F4."
+          },
           "createdByAdminId": {
             "type": "string",
             "format": "uuid",
@@ -11808,6 +11882,12 @@
             "example": 1,
             "description": "Prioridad en el slider de destacados (menor = primero; null = no promocionado)"
           },
+          "maxPerOrder": {
+            "type": "number",
+            "nullable": true,
+            "example": 10,
+            "description": "Máximo de boletos por compra (null = tope global 50). F4."
+          },
           "createdByAdminId": {
             "type": "string",
             "format": "uuid",
@@ -11970,6 +12050,12 @@
             "nullable": true,
             "example": 1,
             "description": "Prioridad en el slider de destacados (menor = primero; null = no promocionado)"
+          },
+          "maxPerOrder": {
+            "type": "number",
+            "nullable": true,
+            "example": 10,
+            "description": "Máximo de boletos por compra (null = tope global 50). F4."
           },
           "createdByAdminId": {
             "type": "string",
@@ -12195,6 +12281,12 @@
             "nullable": true,
             "example": 1,
             "description": "Prioridad en el slider de destacados (menor = primero; null = no promocionado)"
+          },
+          "maxPerOrder": {
+            "type": "number",
+            "nullable": true,
+            "example": 10,
+            "description": "Máximo de boletos por compra (null = tope global 50). F4."
           },
           "createdByAdminId": {
             "type": "string",
@@ -12489,6 +12581,11 @@
             "items": {
               "$ref": "#/components/schemas/SeatAvailabilityDto"
             }
+          },
+          "maxPerOrder": {
+            "type": "number",
+            "nullable": true,
+            "description": "Máximo de boletos por compra fijado por el promotor (null = tope global 50). F4."
           }
         },
         "required": [
@@ -12606,6 +12703,12 @@
             "nullable": true,
             "example": 1,
             "description": "Prioridad en el slider de destacados (menor = primero; null = no promocionado)"
+          },
+          "maxPerOrder": {
+            "type": "number",
+            "nullable": true,
+            "example": 10,
+            "description": "Máximo de boletos por compra (null = tope global 50). F4."
           },
           "createdByAdminId": {
             "type": "string",
@@ -12744,6 +12847,13 @@
             "description": "Prioridad en el slider de destacados del inicio (menor = primero). null/omitir = no promocionado. Lo edita admin/promotor.",
             "example": 1,
             "minimum": 0
+          },
+          "maxPerOrder": {
+            "type": "number",
+            "description": "Máximo de boletos por compra para este evento (1–50). null/omitir = tope global (50). Se aplica en la selección de compra y se re-valida server-authoritative en hold/commit.",
+            "example": 10,
+            "minimum": 1,
+            "nullable": true
           }
         },
         "required": [
@@ -12862,6 +12972,12 @@
             "example": 1,
             "description": "Prioridad en el slider de destacados (menor = primero; null = no promocionado)"
           },
+          "maxPerOrder": {
+            "type": "number",
+            "nullable": true,
+            "example": 10,
+            "description": "Máximo de boletos por compra (null = tope global 50). F4."
+          },
           "createdByAdminId": {
             "type": "string",
             "format": "uuid",
@@ -12971,6 +13087,13 @@
             "description": "Prioridad en el slider de destacados del inicio (menor = primero). null/omitir = no promocionado. Lo edita admin/promotor.",
             "example": 1,
             "minimum": 0,
+            "nullable": true
+          },
+          "maxPerOrder": {
+            "type": "number",
+            "description": "Máximo de boletos por compra para este evento (1–50). null/omitir = tope global (50). Se aplica en la selección de compra y se re-valida server-authoritative en hold/commit.",
+            "example": 10,
+            "minimum": 1,
             "nullable": true
           }
         }
@@ -17737,6 +17860,15 @@
           "last4"
         ]
       },
+      "AnonymizeDto": {
+        "type": "object",
+        "properties": {
+          "force": {
+            "type": "boolean",
+            "description": "Forzar aunque el usuario tenga saldo>0 o eventos futuros (acción deliberada e irreversible)"
+          }
+        }
+      },
       "AnonymizeResponseDto": {
         "type": "object",
         "properties": {
@@ -19378,6 +19510,63 @@
         },
         "required": [
           "token"
+        ]
+      },
+      "AdvisorUnlockStateDto": {
+        "type": "object",
+        "properties": {
+          "advisorId": {
+            "type": "string",
+            "description": "ID del asesor"
+          },
+          "pending": {
+            "type": "boolean",
+            "description": "true si tiene una solicitud de desbloqueo pendiente"
+          },
+          "requestedAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true,
+            "description": "Momento de la solicitud pendiente"
+          },
+          "unlocked": {
+            "type": "boolean",
+            "description": "true si tiene una ventana de desbloqueo vigente"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true,
+            "description": "Fin de la ventana vigente"
+          }
+        },
+        "required": [
+          "advisorId",
+          "pending",
+          "requestedAt",
+          "unlocked",
+          "expiresAt"
+        ]
+      },
+      "GrantAdvisorUnlockResultDto": {
+        "type": "object",
+        "properties": {
+          "granted": {
+            "type": "boolean"
+          },
+          "advisorId": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "granted",
+          "advisorId",
+          "expiresAt"
         ]
       },
       "CreateTicketDto": {

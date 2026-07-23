@@ -409,6 +409,20 @@
                 [label]="'promoter.edit.absorbLabel' | translate" testId="cfg-absorb" />
             </div>
 
+            <label class="field cfg-field">
+              <span>{{ 'promoter.edit.maxPerOrderLabel' | translate }}</span>
+              <input
+                type="number"
+                min="1"
+                max="50"
+                [ngModel]="c.maxPerOrder()"
+                (ngModelChange)="c.maxPerOrder.set($event ? +$event : null)"
+                [placeholder]="'promoter.edit.maxPerOrderPlaceholder' | translate"
+                data-testid="cfg-maxperorder"
+              />
+              <small class="muted">{{ 'promoter.edit.maxPerOrderHint' | translate }}</small>
+            </label>
+
             <button type="button" class="btn primary" [disabled]="savingConfig()" (click)="saveConfig()" data-testid="cfg-save" [title]="'promoter.edit.saveConfig' | translate">
               <app-icon name="save" /> {{ savingConfig() ? ('promoter.edit.savingShort' | translate) : ('promoter.edit.saveConfig' | translate) }}
             </button>
