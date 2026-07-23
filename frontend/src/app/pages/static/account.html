@@ -550,8 +550,11 @@
             @if (wallet(); as w) {
               <span class="wallet-hero-amount" data-testid="wallet-balance">{{ w.balance | money }}</span>
               <span class="wallet-hero-currency">{{ w.currency }}</span>
+            } @else if (walletError()) {
+              <span class="wallet-hero-amount" data-testid="wallet-balance-error">{{ 'account.wallet.balanceError' | translate }}</span>
+              <button type="button" class="btn small subtle wallet-hero-retry" (click)="loadWallet()" data-testid="wallet-balance-retry">{{ 'common.retry' | translate }}</button>
             } @else {
-              <span class="muted">{{ 'account.wallet.balanceError' | translate }}</span>
+              <span class="wallet-hero-amount" aria-hidden="true">…</span>
             }
           </div>
 
