@@ -222,6 +222,9 @@ describe('Validadores de boletos (e2e)', () => {
       .expect(200);
     expect(reenabled.body.status).toBe('active');
     const newToken = reenabled.body.url.split('/validar/')[1] as string;
+    // QA B4: el GATE-TOKEN de la sesión ANTERIOR (emitido antes del disable) NO revive tras
+    // rehabilitar — aunque la asignación esté restaurada — porque activeSessionId se reseteó.
+    await http().get(`/api/v1/events/${eventId}/manifest`).set(bearer(gateToken)).expect(403);
     await http().post('/api/v1/validators/claim').send({ token: newToken }).expect(200);
     // El token viejo ya no sirve (fue rotado).
     await http().post('/api/v1/validators/claim').send({ token }).expect(404);

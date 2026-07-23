@@ -12,6 +12,9 @@ export const gate = {
   manifestFailed: 'No se pudo descargar la lista de boletos. Revisa tu conexión e intenta de nuevo.',
   manifestTampered: 'La lista de boletos no es auténtica (firma inválida). Reconéctate para descargarla de nuevo.',
   manifestExpired: 'La lista de boletos venció. Reconéctate para actualizarla antes de seguir validando.',
+  manifestUnsupported:
+    'Este dispositivo no puede verificar la firma de forma segura. Usa un navegador actualizado (con Ed25519) para validar.',
+  accessRevoked: 'Tu acceso como validador fue revocado. La validación se detuvo; contacta al organizador.',
   // Cámara (obligatoria)
   cameraNeededTitle: 'Necesitamos la cámara',
   cameraDenied: 'No se pudo acceder a la cámara. Concede el permiso para escanear los boletos.',

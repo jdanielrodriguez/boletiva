@@ -326,7 +326,9 @@ export class ValidatorsService {
     await this.prisma.$transaction([
       this.prisma.validatorInvitation.update({
         where: { id },
-        data: { status: ValidatorStatus.disabled },
+        // activeSessionId=null invalida cualquier gate-token previo (QA): al deshabilitar,
+        // un token emitido antes deja de pasar assertActiveSession aunque se rehabilite luego.
+        data: { status: ValidatorStatus.disabled, activeSessionId: null },
       }),
       this.prisma.gateAssignment.deleteMany({ where: { eventId, operatorId: inv.operatorId } }),
     ]);
@@ -364,7 +366,7 @@ export class ValidatorsService {
     await this.prisma.$transaction([
       this.prisma.validatorInvitation.updateMany({
         where: { eventId, status: ValidatorStatus.active },
-        data: { status: ValidatorStatus.disabled },
+        data: { status: ValidatorStatus.disabled, activeSessionId: null }, // invalida gate-tokens previos
       }),
       this.prisma.gateAssignment.deleteMany({ where: { eventId, operatorId: { in: opIds } } }),
     ]);
@@ -397,6 +399,9 @@ export class ValidatorsService {
           codeHash: sha256(randomToken(16)),
           tokenHash: sha256(token),
           expiresAt,
+          // Fuerza que SOLO el próximo claim del nuevo enlace habilite operaciones online:
+          // un gate-token emitido antes del disable NO revive al rehabilitar (QA).
+          activeSessionId: null,
         },
       }),
     ]);
