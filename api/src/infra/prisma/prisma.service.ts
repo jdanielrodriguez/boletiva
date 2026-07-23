@@ -64,6 +64,14 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
        ON ticket_transfers (ticket_id)
        WHERE status = 'pending'`,
     );
+    // Solo puede haber UN intento de pago PENDIENTE por orden (QA auth blackhat): cierra la
+    // carrera de dos POST /pay simultáneos que cobrarían la tarjeta dos veces. El create del
+    // 2º intento choca con P2002 → se devuelve el intento existente sin volver a cobrar.
+    await this.$executeRawUnsafe(
+      `CREATE UNIQUE INDEX IF NOT EXISTS payments_one_pending_per_order
+       ON payments (order_id)
+       WHERE status = 'pending'`,
+    );
   }
 
   async onModuleDestroy(): Promise<void> {

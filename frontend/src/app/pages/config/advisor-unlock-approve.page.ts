@@ -6,7 +6,9 @@ import { AdvisorApi } from '../../core/api/advisor.api';
 
 /**
  * B2 · Página a la que llega el ADMIN desde el enlace del correo para APROBAR el
- * desbloqueo temporal de un asesor. Toma `?token=` y llama al backend (admin-only).
+ * desbloqueo temporal de un asesor. Toma `?token=` pero NO aprueba al cargar (QA): exige
+ * un CLICK explícito de confirmación → abrir la ventana de edición de admin es un acto
+ * consciente, no algo que dispare un prefetch/escáner de correo al abrir la URL.
  */
 @Component({
   selector: 'app-advisor-unlock-approve',
@@ -15,6 +17,12 @@ import { AdvisorApi } from '../../core/api/advisor.api';
     <section class="auth-card">
       <h1>{{ 'advisor.approveTitle' | translate }}</h1>
       @switch (state()) {
+        @case ('confirm') {
+          <p class="muted" data-testid="adv-confirm">{{ 'advisor.approveConfirm' | translate }}</p>
+          <button type="button" class="btn primary" data-testid="adv-authorize" (click)="authorize()">
+            {{ 'advisor.authorizeBtn' | translate }}
+          </button>
+        }
         @case ('loading') {
           <p class="muted" data-testid="adv-loading">{{ 'advisor.approving' | translate }}</p>
         }
@@ -57,16 +65,20 @@ import { AdvisorApi } from '../../core/api/advisor.api';
 export class AdvisorUnlockApprovePage {
   private readonly route = inject(ActivatedRoute);
   private readonly advisor = inject(AdvisorApi);
-  protected readonly state = signal<'loading' | 'ok' | 'error'>('loading');
+  protected readonly state = signal<'confirm' | 'loading' | 'ok' | 'error'>('confirm');
   protected readonly expiresAt = signal<string | null>(null);
+  private readonly token = this.route.snapshot.queryParamMap.get('token');
 
   constructor() {
-    const token = this.route.snapshot.queryParamMap.get('token');
-    if (!token) {
-      this.state.set('error');
-      return;
-    }
-    this.advisor.approve(token).subscribe({
+    // Sin token → error directo; con token, ESPERA el click (no auto-aprueba).
+    if (!this.token) this.state.set('error');
+  }
+
+  /** Solo tras el click consciente del admin se abre la ventana de desbloqueo. */
+  protected authorize(): void {
+    if (!this.token) return;
+    this.state.set('loading');
+    this.advisor.approve(this.token).subscribe({
       next: (r) => {
         this.expiresAt.set(r.expiresAt);
         this.state.set('ok');

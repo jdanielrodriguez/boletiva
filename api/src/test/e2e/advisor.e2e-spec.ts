@@ -120,6 +120,40 @@ describe('Rol asesor (e2e)', () => {
     await http().get('/api/v1/settings').set(bearer(adminToken)).expect(200);
   });
 
+  it('QA escalada: otorgar Premium (tier) y "activar pruebas" son @AdminOnly → 403 al asesor aun con desbloqueo', async () => {
+    await unlock(); // ventana de desbloqueo VIGENTE: aun así, @AdminOnly corta al asesor
+    await http()
+      .patch(`/api/v1/promoters/${promoterId}/tier`)
+      .set(bearer(advisorToken))
+      .send({ tier: 'premium' })
+      .expect(403);
+    await http()
+      .patch('/api/v1/promoters/settings')
+      .set(bearer(advisorToken))
+      .send({ requireApproval: false })
+      .expect(403);
+    // El admin real sí puede accionar la perilla de gobernanza (control).
+    await http()
+      .patch('/api/v1/promoters/settings')
+      .set(bearer(adminToken))
+      .send({ requireApproval: true })
+      .expect(200);
+    // Limpia la ventana de desbloqueo que abrió unlock() para no filtrarla al siguiente test.
+    await prisma.advisorUnlock.deleteMany({});
+  });
+
+  it('QA: el enlace de desbloqueo PENDIENTE caduca (token viejo → 400)', async () => {
+    const req = await http().post('/api/v1/advisor/unlock/request').set(bearer(advisorToken)).expect(200);
+    const token = req.body.devToken as string;
+    // Envejece el pendiente más allá del TTL (30 min) → approve debe rechazarlo.
+    await prisma.advisorUnlock.updateMany({
+      where: { approved: false },
+      data: { createdAt: new Date(Date.now() - 31 * 60 * 1000) },
+    });
+    await http().post('/api/v1/advisor/unlock/approve').set(bearer(adminToken)).send({ token }).expect(400);
+    await prisma.advisorUnlock.deleteMany({});
+  });
+
   it('MUTACIÓN de área admin SIN desbloqueo → 403; tras aprobar el desbloqueo → 200', async () => {
     await setLock(true);
     // Sin ventana → bloqueado.

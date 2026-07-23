@@ -10,6 +10,9 @@ export const advisor = {
   requestError: 'No se pudo enviar la solicitud de desbloqueo.',
   approveTitle: 'Aprobar desbloqueo de asesor',
   approving: 'Aprobando…',
+  approveConfirm:
+    'Vas a abrir una ventana de edición de administración para este asesor. Autoriza solo si reconoces la solicitud.',
+  authorizeBtn: 'Autorizar desbloqueo',
   approved: 'Desbloqueo aprobado. El asesor ya puede editar por la ventana concedida.',
   approvedUntil: 'Vigente hasta las {{time}}.',
   approveError: 'No se pudo aprobar el desbloqueo (enlace inválido o vencido).',

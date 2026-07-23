@@ -23,6 +23,7 @@ import {
 } from '@nestjs/swagger';
 import { PromoterStatus, Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { AdminOnly } from '../../common/decorators/admin-only.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { RequireCaptcha } from '../../common/decorators/require-captcha.decorator';
 import { CaptchaGuard } from '../../common/guards/captcha.guard';
@@ -123,6 +124,7 @@ export class PromotersController {
 
   @Patch(':id/tier')
   @Roles(Role.admin)
+  @AdminOnly() // otorgar Premium/prueba gratis es monetario → solo admin real, no el asesor (QA)
   @ApiOperation({ summary: 'Fija el plan de un promotor a mano (admin): premium directo o prueba de N días' })
   @ApiOkResponse({ type: PremiumTierResponseDto })
   adminSetTier(@Param('id', ParseUUIDPipe) id: string, @Body() dto: AdminSetTierDto) {
@@ -131,6 +133,7 @@ export class PromotersController {
 
   @Post('premium/expire-trials')
   @Roles(Role.admin)
+  @AdminOnly()
   @HttpCode(200)
   @ApiOperation({ summary: 'Baja a free las pruebas premium vencidas (disparo manual; también corre a diario)' })
   expireTrials() {
@@ -139,6 +142,7 @@ export class PromotersController {
 
   @Get('settings')
   @Roles(Role.admin)
+  @AdminOnly()
   @ApiOperation({ summary: 'Config de autorización de promotores (admin)' })
   @ApiOkResponse({ type: RequireApprovalResponseDto })
   async settings() {
@@ -147,6 +151,7 @@ export class PromotersController {
 
   @Patch('settings')
   @Roles(Role.admin)
+  @AdminOnly() // "Activar pruebas" (auto-aprobar promotores) es una perilla de gobernanza → solo admin
   @ApiOperation({ summary: 'Activa/desactiva la exigencia de autorización — "Activar pruebas" (admin)' })
   @ApiOkResponse({ type: RequireApprovalResponseDto })
   setSettings(@Body() dto: SetRequireApprovalDto) {

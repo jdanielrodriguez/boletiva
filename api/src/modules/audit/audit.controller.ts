@@ -7,6 +7,7 @@ import { AdminOnly } from '../../common/decorators/admin-only.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { PageQueryDto } from '../../common/dto/page-query.dto';
 import { MessageResponseDto } from '../../common/dto/response.dto';
+import { clientIp } from '../../common/utils/client-ip';
 import { AuditService } from './audit.service';
 import { AuditPageDto, AuditVerifyDto, ConfirmAuditDto } from './dto/audit.dto';
 
@@ -15,13 +16,6 @@ import { AuditPageDto, AuditVerifyDto, ConfirmAuditDto } from './dto/audit.dto';
 @Controller('audit')
 export class AuditController {
   constructor(private readonly audit: AuditService) {}
-
-  /** IP real del cliente: prioriza X-Forwarded-For (Cloud Run/proxy) sobre req.ip. */
-  private clientIp(req: Request): string | null {
-    const fwd = req.headers['x-forwarded-for'];
-    if (typeof fwd === 'string' && fwd.length) return fwd.split(',')[0].trim();
-    return req.ip ?? null;
-  }
 
   @Post('confirm')
   @HttpCode(200)
@@ -43,7 +37,7 @@ export class AuditController {
       userId,
       action: `ui.confirm:${dto.action}`,
       resource: dto.resource ?? null,
-      ip: this.clientIp(req),
+      ip: clientIp(req),
       userAgent: (req.headers['user-agent'] as string) ?? null,
       payload: dto.payload,
     });

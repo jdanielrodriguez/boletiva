@@ -142,6 +142,18 @@ describe('Pagos: PaymentProvider + webhooks (e2e)', () => {
     expect(order.status).toBe('pending'); // no se confirma en la iniciación
   });
 
+  it('concurrencia: dos POST /pay simultáneos → UN solo intento pending (no doble cobro)', async () => {
+    const orderId = await createOrder(7);
+    const [a, b] = await Promise.all([pay(orderId), pay(orderId)]);
+    expect(a.status).toBe(201);
+    expect(b.status).toBe(201);
+    // Ambos devuelven el MISMO intento (el 2º choca con P2002 y recibe el existente).
+    expect(a.body.providerRef).toBe(b.body.providerRef);
+    // Y solo hay UN intento pending en BD (no dos → no doble cobro a la pasarela).
+    const pending = await prisma.payment.count({ where: { orderId, status: 'pending' } });
+    expect(pending).toBe(1);
+  });
+
   it('IDOR: otro comprador no puede pagar una orden ajena → 404', async () => {
     const orderId = await createOrder(1);
     await pay(orderId, buyerBToken).expect(404);

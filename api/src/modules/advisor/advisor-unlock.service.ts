@@ -17,6 +17,8 @@ interface UnlockMailJob {
 
 /** Minutos de la ventana de desbloqueo del asesor (configurable por env). */
 const DEFAULT_WINDOW_MIN = 30;
+/** Vida del ENLACE pendiente de aprobación: un correo viejo no debe seguir siendo válido. */
+const PENDING_TOKEN_TTL_MIN = 30;
 
 /**
  * Desbloqueo del ASESOR (B2). Un asesor hereda los permisos del admin pero, para
@@ -111,6 +113,12 @@ export class AdvisorUnlockService implements OnModuleInit {
     const unlock = await this.prisma.advisorUnlock.findUnique({ where: { tokenHash: sha256(token) } });
     if (!unlock) throw new NotFoundException('Enlace de desbloqueo inválido');
     if (unlock.approved) throw new BadRequestException('Este desbloqueo ya fue aprobado');
+    // TTL del enlace pendiente (QA): un correo de aprobación viejo (semanas/meses) NO debe
+    // seguir siendo válido. Se rechaza y se limpia si superó la ventana de vida del token.
+    if (Date.now() - unlock.createdAt.getTime() > PENDING_TOKEN_TTL_MIN * 60_000) {
+      await this.prisma.advisorUnlock.delete({ where: { id: unlock.id } });
+      throw new BadRequestException('El enlace de desbloqueo caducó; pide al asesor que lo solicite de nuevo');
+    }
     const minutes = this.config.get<number>('advisor.unlockWindowMin') ?? DEFAULT_WINDOW_MIN;
     const updated = await this.prisma.advisorUnlock.update({
       where: { id: unlock.id },

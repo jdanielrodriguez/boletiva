@@ -10,6 +10,9 @@ export const advisor = {
   requestError: 'Could not send the unlock request.',
   approveTitle: 'Approve advisor unlock',
   approving: 'Approving…',
+  approveConfirm:
+    'You are about to open an admin editing window for this advisor. Authorize only if you recognize the request.',
+  authorizeBtn: 'Authorize unlock',
   approved: 'Unlock approved. The advisor can now edit during the granted window.',
   approvedUntil: 'Valid until {{time}}.',
   approveError: 'Could not approve the unlock (invalid or expired link).',

@@ -164,25 +164,46 @@ export class PaymentsService {
       }
     }
 
-    // Caso 1: el wallet cubre el total → confirmación inmediata (sin pasarela).
-    if (walletPortion.gt(0) && gatewayCharge.isZero()) {
-      const payment = await this.prisma.payment.create({
+    // El intento de pago es la FUENTE DE IDEMPOTENCIA race-safe (índice único parcial
+    // payments_one_pending_per_order): CREARLO es el candado. Dos POST /pay simultáneos →
+    // el 2º choca con P2002 → se devuelve el intento existente SIN reservar saldo de nuevo
+    // ni volver a cobrar a la pasarela (cierra el doble cobro de tarjeta — QA blackhat).
+    const method: 'wallet' | 'mixed' | 'gateway' = gatewayCharge.isZero()
+      ? 'wallet'
+      : walletPortion.gt(0)
+        ? 'mixed'
+        : 'gateway';
+    const providerRef = `${method === 'wallet' ? 'wallet' : provider.name}_${randomToken(12)}`;
+    let payment;
+    try {
+      payment = await this.prisma.payment.create({
         data: {
           orderId,
           provider: provider.name,
-          providerRef: `wallet_${randomToken(12)}`,
-          method: 'wallet',
-          amount: '0.00',
-          walletAmount: total.toFixed(2),
+          providerRef,
+          method,
+          amount: gatewayCharge.toFixed(2),
+          walletAmount: walletPortion.toFixed(2),
           currency: order.currency,
         },
       });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        const existing = await this.prisma.payment.findFirst({ where: { orderId, status: 'pending' } });
+        if (existing) return this.summarize(existing); // otro POST /pay ya creó el intento
+      }
+      throw e;
+    }
+
+    // Caso 1: el wallet cubre el total → confirmación inmediata (sin pasarela).
+    if (method === 'wallet') {
       await this.fulfill(payment.id); // debita wallet + distribuye + orden paid
       const done = await this.prisma.payment.findUniqueOrThrow({ where: { id: payment.id } });
       return this.summarize(done);
     }
 
-    // Caso 2: mixto → reservar la porción de wallet (payment_holding) ahora.
+    // Caso 2: mixto → reservar la porción de wallet (payment_holding) ahora. Va DESPUÉS del
+    // candado (create) → solo el intento ganador reserva (no hay doble reserva por carrera).
     if (walletPortion.gt(0)) {
       await this.ledger.post({
         kind: 'wallet_reserve',
@@ -197,17 +218,6 @@ export class PaymentsService {
     }
 
     // Caso 2 y 3: la pasarela cobra `gatewayCharge` (todo el total si no hay wallet).
-    const payment = await this.prisma.payment.create({
-      data: {
-        orderId,
-        provider: provider.name,
-        providerRef: `${provider.name}_${randomToken(12)}`,
-        method: walletPortion.gt(0) ? 'mixed' : 'gateway',
-        amount: gatewayCharge.toFixed(2),
-        walletAmount: walletPortion.toFixed(2),
-        currency: order.currency,
-      },
-    });
     const res = await provider.createPayment({
       providerRef: payment.providerRef,
       orderId,
