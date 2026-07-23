@@ -179,12 +179,14 @@ export class ValidatorsService {
   private async ensureOperator(email: string) {
     const existing = await this.prisma.user.findUnique({ where: { email } });
     if (existing) return { id: existing.id, roles: existing.roles };
+    // Ancla LIGERA de la invitación. NO se pre-verifica (QA cuentas-fantasma): un placeholder
+    // (sin contraseña y sin emailVerifiedAt) NO bloquea el alta real de esa persona — el signup
+    // lo ADOPTA (ver auth.service.signup). Antes se marcaba verificado → squatting del correo.
     return this.prisma.user.create({
       data: {
         email,
         firstName: 'Validador',
         roles: [Role.gate_operator],
-        emailVerifiedAt: new Date(), // invitado → correo de confianza
       },
       select: { id: true, roles: true },
     });

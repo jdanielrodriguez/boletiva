@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, Param, ParseUUIDPipe, Post, Req } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOkResponse,
@@ -7,11 +7,24 @@ import {
   ApiPropertyOptional,
   ApiTags,
 } from '@nestjs/swagger';
-import { IsInt, IsOptional, Max, Min } from 'class-validator';
+import { Request } from 'express';
+import { IsBoolean, IsInt, IsOptional, Max, Min } from 'class-validator';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AdminOnly } from '../../common/decorators/admin-only.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { clientIp } from '../../common/utils/client-ip';
 import { RetentionService } from './retention.service';
+
+/** Cuerpo (opcional) para anonimizar: `force` salta las salvaguardas (saldo>0 / eventos futuros). */
+class AnonymizeDto {
+  @ApiPropertyOptional({
+    description: 'Forzar aunque el usuario tenga saldo>0 o eventos futuros (acción deliberada e irreversible)',
+  })
+  @IsOptional()
+  @IsBoolean()
+  force?: boolean;
+}
 
 class RunRetentionDto {
   @ApiPropertyOptional({
@@ -56,8 +69,18 @@ export class RetentionController {
   @HttpCode(200)
   @ApiOperation({ summary: 'Anonimiza (seudonimiza) a un usuario, preservando el ledger (admin)' })
   @ApiOkResponse({ type: AnonymizeResponseDto })
-  anonymize(@Param('id', ParseUUIDPipe) id: string) {
-    return this.retention.anonymizeUser(id);
+  anonymize(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser('userId') actorId: string,
+    @Body() dto: AnonymizeDto,
+    @Req() req: Request,
+  ) {
+    return this.retention.anonymizeUser(id, {
+      force: dto.force ?? false,
+      actorId,
+      ip: clientIp(req),
+      userAgent: (req.headers['user-agent'] as string) ?? null,
+    });
   }
 
   @Post('retention/run')

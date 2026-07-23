@@ -132,9 +132,33 @@ export class AuthService {
     // correo de cortesía ("ya tienes una cuenta") y devolvemos una respuesta genérica
     // `pending` (202) — sin sesión, sin crear nada. El flujo de alta real (correo nuevo)
     // sigue devolviendo 201 + tokens.
-    if (await this.prisma.user.findUnique({ where: { email } })) {
-      await this.sendAlreadyRegisteredEmail(email);
-      return { pending: true };
+    const existing = await this.prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      // Adopción de PLACEHOLDER (QA cuentas-fantasma): una cuenta creada solo como ANCLA de una
+      // invitación de validador (sin contraseña y sin verificar) NO debe bloquear el alta real
+      // de esa persona. Si es un placeholder, el signup lo ADOPTA (fija contraseña + datos,
+      // conserva el user.id y el rol gate_operator). Una cuenta REAL (con contraseña) o ya
+      // verificada/anonimizada/OAuth sigue devolviendo `pending` (anti-enumeración M-01).
+      const isPlaceholder = !existing.passwordHash && !existing.emailVerifiedAt && !existing.anonymizedAt;
+      if (!isPlaceholder) {
+        await this.sendAlreadyRegisteredEmail(email);
+        return { pending: true };
+      }
+      const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
+      const adopted = await this.prisma.user.update({
+        where: { id: existing.id },
+        data: {
+          passwordHash,
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+          phone: dto.phone,
+          roles: existing.roles.includes('buyer') ? existing.roles : [...existing.roles, 'buyer'],
+        },
+      });
+      await this.challenges.issue(adopted.id, adopted.email, 'email_verify', { withMagicLink: true });
+      await this.devices.touch(adopted.id, ctx);
+      const tokens = await this.tokens.issuePair(adopted, ctx);
+      return { user: await this.toPublic(adopted), tokens };
     }
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
     const user = await this.prisma.user.create({

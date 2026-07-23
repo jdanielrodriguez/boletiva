@@ -115,6 +115,13 @@ export class CheckoutPage implements OnDestroy {
   protected readonly selectedCardId = signal<string | null>(null);
   /** Modo de pago elegido (tarjeta guardada / saldo / tarjeta nueva). */
   protected readonly payMode = signal<PayMode>('new');
+  /**
+   * ¿Se ofrece pagar con una tarjeta GUARDADA en el checkout? HOY no: ninguna pasarela cobra
+   * con un token guardado (el simulador lo ignora; Pagalo necesita la tarjeta fresca). Ofrecerlo
+   * sería un flujo que no cobra (QA). Se reactivará con tokenización real (dLocal). La gestión de
+   * tarjetas guardadas en /cuenta se mantiene; solo se oculta como método de cobro aquí.
+   */
+  protected readonly savedCardsEnabled = false;
   protected readonly cvv = signal('');
 
   // --- Tarjeta nueva (solo cuando no hay métodos guardados). Visual: el cobro
@@ -277,8 +284,11 @@ export class CheckoutPage implements OnDestroy {
       const cards = methods ?? [];
       this.savedMethods.set(cards);
       this.wallet.set(wallet);
-      // Modo por defecto: tarjeta guardada (la default) si existe; si no, tarjeta nueva.
-      if (cards.length > 0) {
+      // Modo por defecto. Solo se ofrece "tarjeta guardada" si el cobro tokenizado está
+      // soportado (savedCardsEnabled). Hoy NINGUNA pasarela cobra con un token guardado
+      // (el simulador lo ignora; Pagalo exige la tarjeta fresca) → NO se ofrece el modo
+      // 'saved' (evita un flujo que no cobra — QA). Default: tarjeta nueva.
+      if (this.savedCardsEnabled && cards.length > 0) {
         const def = cards.find((c) => c.isDefault) ?? cards[0];
         this.selectedCardId.set(def.id);
         this.payMode.set('saved');
