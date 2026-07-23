@@ -118,34 +118,8 @@
       <p class="error" role="alert" data-testid="purchase-error">{{ error() }}</p>
     }
 
-    <!-- Vista general del recinto: MAPA UNIDO (todas las tribunas juntas). Al pasar
-         el cursor sobre una zona se muestra un CTA; al hacer clic se entra a esa
-         localidad (abajo se ve el MISMO mapa con vendidos/reservados y se elige). -->
-    @if (store.hasSeatedMap()) {
-      <section class="venue-overview" data-testid="venue-overview">
-        <h2>{{ 'purchase.overviewTitle' | translate }}</h2>
-        <p class="venue-overview-cta" data-testid="venue-overview-cta" aria-live="polite">
-          @if (hoverLocalityName(); as n) {
-            <strong>{{ 'purchase.overviewHoverCta' | translate: { name: n } }}</strong>
-          } @else {
-            {{ 'purchase.overviewHint' | translate }}
-          }
-        </p>
-        <app-seat-map
-          [seats]="store.allSeats()"
-          [interactive]="false"
-          [stageLabel]="'purchase.stage' | translate"
-          (localityPick)="focusLocality($event)"
-          (localityHover)="onOverviewHover($event)"
-        />
-        <p class="seat-legend">
-          <span class="legend av">{{ 'purchase.legendAvailable' | translate }}</span>
-          <span class="legend tk">{{ 'purchase.legendTaken' | translate }}</span>
-        </p>
-      </section>
-    }
-
-    <!-- Botones de localidad: se elige UNA a la vez (la que venga del detalle o la 1ª) -->
+    <!-- Localidades (chips): elegir zona. Con mapa también se elige tocando el mapa;
+         la zona activa se resalta y su precio se muestra. -->
     <div class="loc-tabs" role="group" [attr.aria-label]="'purchase.localities' | translate">
       @for (loc of store.localities(); track loc.id) {
         <button
@@ -161,22 +135,30 @@
       }
     </div>
 
-    @if (store.activeLocality(); as loc) {
-      <section class="loc-active">
-        <h2>{{ loc.name }} @if (loc.price) { · {{ loc.price.total | money }} {{ 'purchase.perTicket' | translate }} }</h2>
-
-        @if (store.activeIsSeated()) {
-          <!-- Aviso móvil: en pantallas chicas el mapa es denso; se puede desplazar y
-               tocar, o usar la lista de asientos de abajo (QA final, cliente móvil). -->
-          <p class="seat-mobile-hint muted small" data-testid="purchase-seat-hint">{{ 'purchase.seatMapMobileHint' | translate }}</p>
-          <app-seat-map
-            [seats]="store.activeSeats()"
-            [selected]="store.selectedSet()"
-            [stageLabel]="'purchase.stage' | translate"
-            (seatToggle)="store.toggleSeat($event)"
-          />
-          <!-- a11y: el canvas Konva no es operable por teclado/lector. Lista paralela
-               (sr-only, se revela al enfocar) para elegir asientos sin mouse. -->
+    <!-- MAPA ÚNICO del recinto (B0): se ve TODO el mapa; al elegir una localidad la
+         cámara se acerca a esa zona y SOLO ahí se pueden elegir asientos (las demás se
+         atenúan). Tocar otra zona cambia la localidad activa. -->
+    @if (store.hasSeatedMap()) {
+      <section class="venue-map" data-testid="venue-map">
+        <p class="venue-map-hint muted small" data-testid="venue-map-hint" aria-live="polite">
+          @if (store.activeSeatedLocalityId()) {
+            {{ 'purchase.pickSeatsIn' | translate: { name: store.activeLocality()?.name } }}
+          } @else {
+            {{ 'purchase.overviewHint' | translate }}
+          }
+        </p>
+        <app-seat-map
+          [seats]="store.allSeats()"
+          [selected]="store.selectedSet()"
+          [focusLocalityId]="store.activeSeatedLocalityId()"
+          [selectableLocalityId]="store.activeSeatedLocalityId()"
+          [stageLabel]="'purchase.stage' | translate"
+          (seatToggle)="store.toggleSeat($event)"
+          (localityPick)="store.setActiveLocality($event)"
+        />
+        <!-- a11y: el canvas Konva no es operable por teclado/lector. Lista paralela
+             (sr-only) de la zona activa para elegir asientos sin mouse. -->
+        @if (store.activeSeatedLocalityId()) {
           <div class="sr-only" role="group" [attr.aria-label]="'purchase.seatPickerAria' | translate">
             @for (s of store.activeSeats(); track s.id) {
               @if (s.status === 'available' || store.selectedSet().has(s.id)) {
@@ -189,12 +171,20 @@
               }
             }
           </div>
-          <p class="seat-legend">
-            <span class="legend av">{{ 'purchase.legendAvailable' | translate }}</span>
-            <span class="legend sel">{{ 'purchase.legendSelected' | translate }}</span>
-            <span class="legend tk">{{ 'purchase.legendTaken' | translate }}</span>
-          </p>
-        } @else {
+        }
+        <p class="seat-legend">
+          <span class="legend av">{{ 'purchase.legendAvailable' | translate }}</span>
+          <span class="legend sel">{{ 'purchase.legendSelected' | translate }}</span>
+          <span class="legend tk">{{ 'purchase.legendTaken' | translate }}</span>
+        </p>
+      </section>
+    }
+
+    <!-- Localidad GENERAL activa → stepper de cantidad (sin mapa). -->
+    @if (store.activeLocality(); as loc) {
+      @if (!store.activeIsSeated()) {
+        <section class="loc-active">
+          <h2>{{ loc.name }} @if (loc.price) { · {{ loc.price.total | money }} {{ 'purchase.perTicket' | translate }} }</h2>
           <div class="loc-quantity" data-testid="loc-quantity">
             <span class="loc-avail">{{ 'purchase.availableCount' | translate: { n: loc.available } }}</span>
             @if (store.maxFor(loc) > 0) {
@@ -225,8 +215,8 @@
               <span class="sold-out">{{ 'purchase.soldOut' | translate }}</span>
             }
           </div>
-        }
-      </section>
+        </section>
+      }
     }
 
     <!-- La lista de seleccionados va DEBAJO del mapa: así seleccionar un asiento no

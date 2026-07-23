@@ -50,6 +50,27 @@ async function text(page, sel) {
   return page.$eval(sel, (el) => el.textContent?.trim() ?? '').catch(() => '');
 }
 
+/**
+ * Selecciona una localidad por su nombre (chip). Con el mapa único (B0) la compra
+ * aterriza en la vista LEJANA sin localidad activa: hay que elegir la zona primero.
+ */
+async function clickLocTab(page, name) {
+  await waitSel(page, '[data-testid="loc-tab"]');
+  const clicked = await page.$$eval(
+    '[data-testid="loc-tab"]',
+    (btns, n) => {
+      const b = btns.find((x) => (x.textContent || '').includes(n));
+      if (b) {
+        b.click();
+        return true;
+      }
+      return false;
+    },
+    name,
+  );
+  if (!clicked) throw new Error(`no se encontró la localidad "${name}"`);
+}
+
 async function clearMail() {
   await fetch(`${MAIL}/api/v1/messages`, { method: 'DELETE' }).catch(() => {});
 }
@@ -165,6 +186,7 @@ async function main() {
   let shareLink = '';
   await step('reserva SIN login y genera link para compartir', async () => {
     await page.goto(`${FE}/eventos/${EVENT_SLUG}/comprar`, { waitUntil: 'networkidle0' });
+    await clickLocTab(page, 'General'); // mapa único: elegir la zona GA para ver el stepper
     await waitSel(page, '[data-testid="loc-quantity"]');
     await waitSel(page, '[data-testid="qty-plus"]');
     await page.click('[data-testid="qty-plus"]');
@@ -212,6 +234,7 @@ async function main() {
   console.log('\n▶ Compra completa (selección → reserva → checkout → pago SSE)');
   await step('selecciona General por cantidad y reserva', async () => {
     await page.goto(`${FE}/eventos/${EVENT_SLUG}/comprar`, { waitUntil: 'networkidle0' });
+    await clickLocTab(page, 'General'); // mapa único: elegir la zona GA para ver el stepper
     await waitSel(page, '[data-testid="loc-quantity"]');
     // Stepper +/− (reemplazó al <select> nativo): sube a 2, esperando el re-render
     // (zoneless) entre clics para no perder ninguna pulsación.

@@ -21,6 +21,7 @@ export const purchase = {
   overviewHint: 'Hover and tap a section to view and pick its seats.',
   overviewHoverCta: 'Tap to pick seats in {{name}}',
   stage: 'Stage',
+  pickSeatsIn: 'Pick your seats in {{name}} — other sections are locked.',
   seatPickerAria: 'Choose seat (accessible list)',
   seatMapMobileHint: 'Scroll and tap to pick your seats. If the map is dense, rotate your phone to landscape.',
   legendAvailable: 'Available',

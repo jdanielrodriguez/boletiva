@@ -83,8 +83,19 @@ export class PurchaseService {
     return m;
   });
 
-  /** ¿Hay al menos una localidad con asientos (mapa)? → muestra la vista general. */
+  /** ¿Hay al menos una localidad con asientos (mapa)? → muestra el mapa del recinto. */
   readonly hasSeatedMap = computed(() => this.allSeats().length > 0);
+
+  /**
+   * Id de la localidad activa SOLO si es numerada (tiene asientos en el mapa). Es lo
+   * que la cámara enfoca y lo que se puede seleccionar; null = vista lejana / sin foco
+   * (p.ej. nada seleccionado, o una localidad general activa → el mapa no se enfoca).
+   */
+  readonly activeSeatedLocalityId = computed<string | null>(() => {
+    const id = this.activeLocalityId();
+    if (!id) return null;
+    return this.allSeats().some((s) => s.localityId === id) ? id : null;
+  });
 
   /** Cambia la localidad en vista. La selección se ACUMULA entre localidades
    * (se permite comprar varias localidades a la vez). */

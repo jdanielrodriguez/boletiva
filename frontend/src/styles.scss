@@ -2268,26 +2268,13 @@ app-root {
 }
 
 /* Botones de localidad (una a la vez) */
-/* Vista general del recinto (mapa unido, preview clickable). */
-.venue-overview {
+/* Mapa único del recinto (B0): un solo mapa con cámara + bloqueo por localidad. */
+.venue-map {
   margin: 0.5rem 0 1.25rem;
-  padding: 1rem;
-  border: 1px solid var(--pe-border);
-  border-radius: 14px;
-  background: var(--pe-surface-2, var(--pe-surface));
 }
-.venue-overview h2 {
-  margin: 0 0 0.35rem;
-  font-size: 1.05rem;
-}
-.venue-overview-cta {
-  margin: 0 0 0.6rem;
-  min-height: 1.3rem;
-  color: var(--pe-text-muted, #6b6b76);
-  font-size: 0.92rem;
-}
-.venue-overview-cta strong {
-  color: var(--pe-accent-strong, var(--pe-accent));
+.venue-map-hint {
+  margin: 0 0 0.5rem;
+  min-height: 1.2rem;
 }
 
 .loc-tabs {

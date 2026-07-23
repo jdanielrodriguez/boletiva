@@ -122,10 +122,14 @@ export class PurchasePage implements OnDestroy {
       tap((av) => {
         this.store.availability.set(av);
         if (!this.store.activeLocalityId() && av.localities.length > 0) {
-          // La localidad viene del botón del detalle (?loc=); si no, la primera.
+          // La localidad puede venir del botón del detalle (?loc=). Si NO viene:
+          // - con mapa (asientos numerados) → NO se auto-selecciona → vista LEJANA de
+          //   todo el recinto (el comprador elige su zona en el mapa o en los chips).
+          // - solo-general (sin mapa) → se activa la primera para mostrar el stepper.
           const wanted = this.route.snapshot.queryParamMap.get('loc');
-          const chosen = av.localities.find((l) => l.id === wanted) ?? av.localities[0];
-          this.store.setActiveLocality(chosen.id);
+          const chosen = wanted ? av.localities.find((l) => l.id === wanted) : undefined;
+          if (chosen) this.store.setActiveLocality(chosen.id);
+          else if (!this.store.hasSeatedMap()) this.store.setActiveLocality(av.localities[0].id);
         }
         this.loaded.set(true);
         this.tryRestore(); // reanuda una reserva viva tras un F5
@@ -179,27 +183,6 @@ export class PurchasePage implements OnDestroy {
   /** Cierra el banner de bloqueo (X). Reaparece si se intenta reservar de nuevo. */
   protected dismissBlocked(): void {
     this.blocked.set(null);
-  }
-
-  /** Nombre de la zona bajo el cursor en el mapa unido (CTA de la vista general). */
-  protected readonly hoverLocalityName = signal<string | null>(null);
-
-  /** Vista general: el cursor entró/salió de una zona → actualiza el CTA. */
-  protected onOverviewHover(localityId: string | null): void {
-    this.hoverLocalityName.set(localityId ? this.store.localityNames()[localityId] ?? null : null);
-  }
-
-  /**
-   * Vista general: clic en una zona del mapa unido → entra a esa localidad (la marca
-   * activa) y desplaza la vista a su sección (donde se ve el MISMO mapa con los
-   * asientos vendidos/reservados y se pueden elegir).
-   */
-  protected focusLocality(localityId: string): void {
-    this.store.setActiveLocality(localityId);
-    this.hoverLocalityName.set(null);
-    if (isPlatformBrowser(this.platformId)) {
-      setTimeout(() => document.querySelector('.loc-active')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
-    }
   }
 
   /** Stepper +/− de cantidad para una localidad general (capado a [0, max]). */
