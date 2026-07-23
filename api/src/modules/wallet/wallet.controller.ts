@@ -24,6 +24,7 @@ import { Audit } from '../../common/decorators/audit.decorator';
 import { AuditInterceptor } from '../../common/interceptors/audit.interceptor';
 import { AdminOnly } from '../../common/decorators/admin-only.decorator';
 import { RequireVerifiedEmail } from '../../common/decorators/verified-email.decorator';
+import { assertNotAdvisor } from '../../common/auth/advisor-limits';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user.decorator';
 import { PageQueryDto } from '../../common/dto/page-query.dto';
 import { WalletService } from './wallet.service';
@@ -63,6 +64,9 @@ export class WalletController {
   })
   @ApiCreatedResponse({ type: WithdrawalActionResponseDto })
   request(@Body() dto: RequestWithdrawalDto, @CurrentUser() user: AuthUser) {
+    // G7 (arquitecto): un ASESOR (rol de soporte) NUNCA solicita retiros de wallet, aunque
+    // herede permisos de admin. La tesorería (aprobar/pagar/rechazar) ya es @AdminOnly.
+    assertNotAdvisor(user, 'Un asesor no puede solicitar retiros de wallet.');
     // Acción financiera: nunca en una sesión de impersonación. Un admin suplantando a
     // un promotor no puede mover el saldo ajeno (mismo criterio que el cierre de caja).
     if (user.impersonatedBy || user.impersonation) {

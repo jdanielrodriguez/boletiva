@@ -394,4 +394,20 @@ describe('Rol asesor (e2e)', () => {
     await prisma.advisorUnlock.deleteMany({ where: { advisorId } });
     await prisma.kbArticle.deleteMany({ where: { id: kbId } });
   });
+
+  it('G7 (arquitecto): el asesor NO puede CANCELAR ni ELIMINAR eventos, aun DESBLOQUEADO → 403', async () => {
+    await setLock(true);
+    await unlock(); // ventana vigente: aun así, cancelar/eliminar es exclusivo del admin
+    const event = await prisma.event.findFirstOrThrow({ where: { promoterId } });
+    await http().post(`/api/v1/events/${event.id}/cancel`).set(bearer(advisorToken)).expect(403);
+    await http().delete(`/api/v1/events/${event.id}`).set(bearer(advisorToken)).expect(403);
+    await prisma.advisorUnlock.deleteMany({ where: { advisorId } });
+  });
+
+  it('G7 (arquitecto): el asesor NO puede solicitar retiros de wallet, aun DESBLOQUEADO → 403', async () => {
+    await setLock(true);
+    await unlock();
+    await http().post('/api/v1/wallet/withdrawals').set(bearer(advisorToken)).send({ amount: 100 }).expect(403);
+    await prisma.advisorUnlock.deleteMany({ where: { advisorId } });
+  });
 });

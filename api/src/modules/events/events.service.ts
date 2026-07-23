@@ -11,6 +11,7 @@ import { PrismaService } from '../../infra/prisma/prisma.service';
 import { StorageService } from '../../infra/storage/storage.service';
 import { RedisService } from '../../infra/redis/redis.service';
 import { AuthUser } from '../../common/decorators/current-user.decorator';
+import { assertNotAdvisor } from '../../common/auth/advisor-limits';
 import { slugify, slugWithSuffix } from '../../common/utils/slug';
 import { PromotersService } from '../promoters/promoters.service';
 import { PremiumService } from '../promoters/premium.service';
@@ -564,6 +565,11 @@ export class EventsService {
   ) {
     const event = await this.getManaged(id, user);
     this.assertNotConcluded(event);
+    // G7 (arquitecto): CANCELAR es exclusivo del admin/promotor-dueño; un asesor NO puede
+    // (implicaciones legales), ni siquiera con su ventana de desbloqueo.
+    if (status === 'cancelled') {
+      assertNotAdvisor(user, 'Un asesor no puede cancelar eventos; es exclusivo del administrador.');
+    }
     await this.editUnlock.assertCanMutate(user, event, unlockToken);
     if (status === 'published') {
       // Un evento cancelado/finalizado es terminal: no se re-publica. Un evento
@@ -634,6 +640,8 @@ export class EventsService {
   async remove(id: string, user: AuthUser, unlockToken?: string) {
     const event = await this.getManaged(id, user);
     this.assertNotConcluded(event);
+    // G7 (arquitecto): ELIMINAR es exclusivo del admin/promotor-dueño; un asesor NO puede.
+    assertNotAdvisor(user, 'Un asesor no puede eliminar eventos; es exclusivo del administrador.');
     await this.editUnlock.assertCanMutate(user, event, unlockToken);
     if (event.status === 'published') {
       throw new BadRequestException('No se puede eliminar un evento publicado; cancélalo primero');
