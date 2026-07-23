@@ -9,6 +9,7 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -20,6 +21,7 @@ import {
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Audit } from '../../common/decorators/audit.decorator';
+import { AuditInterceptor } from '../../common/interceptors/audit.interceptor';
 import { AdminOnly } from '../../common/decorators/admin-only.decorator';
 import { RequireVerifiedEmail } from '../../common/decorators/verified-email.decorator';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user.decorator';
@@ -37,6 +39,7 @@ import {
 
 @ApiTags('wallet')
 @ApiBearerAuth()
+@UseInterceptors(AuditInterceptor)
 @Controller('wallet')
 export class WalletController {
   constructor(

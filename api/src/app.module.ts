@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import { Module } from '@nestjs/common';
-import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
 import type { IncomingMessage, ServerResponse } from 'http';
@@ -17,7 +17,6 @@ import { RabbitModule } from './infra/messaging/rabbit.module';
 import { HealthModule } from './health/health.module';
 import { RateLimitModule } from './common/rate-limit/rate-limit.module';
 import { RateLimitGuard } from './common/rate-limit/rate-limit.guard';
-import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 import { VerifiedEmailGuard } from './modules/auth/guards/verified-email.guard';
@@ -167,9 +166,10 @@ import { AdvisorsModule } from './modules/advisors/advisors.module';
     // para mutar en área admin (salvo advisor.lock_enabled=false).
     { provide: APP_GUARD, useClass: AdvisorUnlockGuard },
     { provide: APP_GUARD, useClass: VerifiedEmailGuard },
-    // No-repudio (Auditoría 4 · G4.1): deja rastro hash-chain de los endpoints marcados
-    // con @Audit(...) al completar con éxito (quién/qué/sobre qué/IP·UA). Best-effort.
-    { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
+    // No-repudio (Auditoría 4 · G4.1): el AuditInterceptor NO se registra global porque un
+    // interceptor global altera el manejo de los handlers @Sse async (abren la conexión 200
+    // antes de que el rechazo propague el 404) → rompía el IDOR del stream. Se aplica
+    // POR-CONTROLLER con @UseInterceptors en los que tienen rutas @Audit (ninguno usa @Sse).
   ],
 })
 export class AppModule {}

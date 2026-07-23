@@ -8,6 +8,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -20,6 +21,7 @@ import { ChallengePurpose, Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AdminOnly } from '../../common/decorators/admin-only.decorator';
 import { Audit } from '../../common/decorators/audit.decorator';
+import { AuditInterceptor } from '../../common/interceptors/audit.interceptor';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ChallengesService } from '../auth/challenges.service';
 import { PaymentGatewaysService } from './payment-gateways.service';
@@ -34,6 +36,7 @@ import {
 
 @ApiTags('payment-gateways')
 @ApiBearerAuth()
+@UseInterceptors(AuditInterceptor)
 @Controller('payment-gateways')
 export class PaymentGatewaysController {
   constructor(

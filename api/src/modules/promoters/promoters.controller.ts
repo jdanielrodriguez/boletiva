@@ -12,6 +12,7 @@ import {
   Req,
   Res,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
@@ -24,6 +25,7 @@ import {
 import { PromoterStatus, Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Audit } from '../../common/decorators/audit.decorator';
+import { AuditInterceptor } from '../../common/interceptors/audit.interceptor';
 import { AdminOnly } from '../../common/decorators/admin-only.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { RequireCaptcha } from '../../common/decorators/require-captcha.decorator';
@@ -54,6 +56,7 @@ import {
 
 @ApiTags('promoters')
 @ApiBearerAuth()
+@UseInterceptors(AuditInterceptor)
 @Controller('promoters')
 export class PromotersController {
   constructor(

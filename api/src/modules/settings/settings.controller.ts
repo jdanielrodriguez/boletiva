@@ -1,9 +1,10 @@
-import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, UseInterceptors } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AdminOnly } from '../../common/decorators/admin-only.decorator';
 import { Audit } from '../../common/decorators/audit.decorator';
+import { AuditInterceptor } from '../../common/interceptors/audit.interceptor';
 import { SettingsService } from './settings.service';
 import { SettingViewDto, UpdateSettingDto } from './dto/settings.dto';
 
@@ -11,6 +12,7 @@ import { SettingViewDto, UpdateSettingDto } from './dto/settings.dto';
 @ApiBearerAuth()
 @Roles(Role.admin)
 @AdminOnly()
+@UseInterceptors(AuditInterceptor)
 @Controller('settings')
 export class SettingsController {
   constructor(private readonly settings: SettingsService) {}

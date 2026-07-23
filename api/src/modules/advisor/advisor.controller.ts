@@ -1,10 +1,11 @@
-import { Body, Controller, Get, HttpCode, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Post, UseInterceptors } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiProperty, ApiTags } from '@nestjs/swagger';
 import { IsString, MinLength } from 'class-validator';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AdminOnly } from '../../common/decorators/admin-only.decorator';
 import { Audit } from '../../common/decorators/audit.decorator';
+import { AuditInterceptor } from '../../common/interceptors/audit.interceptor';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AdvisorUnlockService } from './advisor-unlock.service';
 
@@ -55,6 +56,7 @@ export class GrantAdvisorUnlockResultDto {
  */
 @ApiTags('advisor')
 @ApiBearerAuth()
+@UseInterceptors(AuditInterceptor)
 @Controller('advisor/unlock')
 export class AdvisorController {
   constructor(private readonly unlock: AdvisorUnlockService) {}
