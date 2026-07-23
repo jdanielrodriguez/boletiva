@@ -59,10 +59,16 @@ async function bootstrap(): Promise<void> {
   app.getHttpAdapter().getInstance().set('trust proxy', config.get('security.trustProxy') ?? false);
   app.use(helmet());
   app.use(compression());
+  // G4.2 (auditoría 4): el allowlist de CORS se aplica en TODOS los entornos (antes
+  // `!isProd` dejaba pasar CUALQUIER origen también en staging). En no-producción se
+  // permiten ADEMÁS localhost/127.0.0.1 (cualquier puerto) para el dev local, sin
+  // abrir el resto. Prod: SOLO `cors.origins`.
+  const devOriginRe = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
   app.enableCors({
     origin: (origin, cb) => {
       const allowed = config.get<string[]>('cors.origins') ?? [];
-      if (!origin || allowed.includes('*') || allowed.includes(origin) || !isProd) {
+      const devOk = !isProd && devOriginRe.test(origin ?? '');
+      if (!origin || allowed.includes('*') || allowed.includes(origin) || devOk) {
         return cb(null, true);
       }
       // I-01: rechazo LIMPIO — no reflejamos las cabeceras CORS (el navegador bloquea

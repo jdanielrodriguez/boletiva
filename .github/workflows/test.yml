@@ -171,8 +171,16 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 20
-      - name: Audit backend (root)
-        run: npm audit --omit=dev --audit-level=high
-      - name: Audit frontend
+      # G4.3 (auditoría 4): umbral 'moderate' en prod-deps (antes 'high' dejaba pasar
+      # moderadas). El job entero es continue-on-error (no bloquea el merge; alerta).
+      - name: Audit backend (prod deps)
+        run: npm audit --omit=dev --audit-level=moderate
+      - name: Audit frontend (prod deps)
         working-directory: frontend
-        run: npm audit --omit=dev --audit-level=high
+        run: npm audit --omit=dev --audit-level=moderate
+      # devDependencies: informativo (no debe bloquear ni alarmar por herramientas de build).
+      - name: Audit backend (dev deps, informativo)
+        run: npm audit --audit-level=high || true
+      - name: Audit frontend (dev deps, informativo)
+        working-directory: frontend
+        run: npm audit --audit-level=high || true

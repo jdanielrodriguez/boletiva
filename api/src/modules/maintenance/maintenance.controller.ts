@@ -5,6 +5,7 @@ import { Public } from '../../common/decorators/public.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AdminOnly } from '../../common/decorators/admin-only.decorator';
 import { AllowDuringMaintenance } from '../../common/decorators/maintenance.decorator';
+import { Audit } from '../../common/decorators/audit.decorator';
 import { MaintenanceService } from './maintenance.service';
 import { MaintenanceStatusDto, UpdateMaintenanceDto } from './dto/maintenance.dto';
 
@@ -25,6 +26,7 @@ export class MaintenanceController {
 
   @Patch('admin/maintenance')
   @Roles(Role.admin)
+  @Audit('admin.maintenance.set', { resource: 'maintenance' })
   @ApiBearerAuth()
   @AllowDuringMaintenance()
   @ApiOperation({ summary: 'Activa/desactiva el modo mantenimiento (admin)' })

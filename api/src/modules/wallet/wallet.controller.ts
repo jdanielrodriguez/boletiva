@@ -19,6 +19,7 @@ import {
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { Audit } from '../../common/decorators/audit.decorator';
 import { AdminOnly } from '../../common/decorators/admin-only.decorator';
 import { RequireVerifiedEmail } from '../../common/decorators/verified-email.decorator';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user.decorator';
@@ -89,6 +90,7 @@ export class WalletController {
   @Post('withdrawals/:id/approve')
   @Roles(Role.admin)
   @AdminOnly()
+  @Audit('admin.withdrawal.approve', { resource: 'withdrawal', param: 'id' })
   @HttpCode(200)
   @ApiOperation({ summary: 'Aprueba un retiro (admin)' })
   @ApiOkResponse({ type: WithdrawalActionResponseDto })
@@ -99,6 +101,7 @@ export class WalletController {
   @Post('withdrawals/:id/pay')
   @Roles(Role.admin)
   @AdminOnly()
+  @Audit('admin.withdrawal.pay', { resource: 'withdrawal', param: 'id' })
   @HttpCode(200)
   @ApiOperation({ summary: 'Marca un retiro como pagado (admin)' })
   @ApiOkResponse({ type: WithdrawalActionResponseDto })
@@ -113,6 +116,7 @@ export class WalletController {
   @Post('withdrawals/:id/reject')
   @Roles(Role.admin)
   @AdminOnly()
+  @Audit('admin.withdrawal.reject', { resource: 'withdrawal', param: 'id' })
   @HttpCode(200)
   @ApiOperation({ summary: 'Rechaza un retiro y reintegra el saldo (admin)' })
   @ApiOkResponse({ type: WithdrawalActionResponseDto })

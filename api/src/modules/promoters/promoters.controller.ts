@@ -23,6 +23,7 @@ import {
 } from '@nestjs/swagger';
 import { PromoterStatus, Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { Audit } from '../../common/decorators/audit.decorator';
 import { AdminOnly } from '../../common/decorators/admin-only.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { RequireCaptcha } from '../../common/decorators/require-captcha.decorator';
@@ -125,6 +126,7 @@ export class PromotersController {
   @Patch(':id/tier')
   @Roles(Role.admin)
   @AdminOnly() // otorgar Premium/prueba gratis es monetario → solo admin real, no el asesor (QA)
+  @Audit('admin.promoter.tier.set', { resource: 'promoter', param: 'id' })
   @ApiOperation({ summary: 'Fija el plan de un promotor a mano (admin): premium directo o prueba de N días' })
   @ApiOkResponse({ type: PremiumTierResponseDto })
   adminSetTier(@Param('id', ParseUUIDPipe) id: string, @Body() dto: AdminSetTierDto) {
@@ -152,6 +154,7 @@ export class PromotersController {
   @Patch('settings')
   @Roles(Role.admin)
   @AdminOnly() // "Activar pruebas" (auto-aprobar promotores) es una perilla de gobernanza → solo admin
+  @Audit('admin.promoter.settings.set', { resource: 'promoter-settings' })
   @ApiOperation({ summary: 'Activa/desactiva la exigencia de autorización — "Activar pruebas" (admin)' })
   @ApiOkResponse({ type: RequireApprovalResponseDto })
   setSettings(@Body() dto: SetRequireApprovalDto) {
@@ -176,6 +179,7 @@ export class PromotersController {
 
   @Post(':id/approve')
   @Roles(Role.admin)
+  @Audit('admin.promoter.approve', { resource: 'promoter', param: 'id' })
   @HttpCode(200)
   @ApiOperation({ summary: 'Aprueba (o reactiva) un promotor (admin)' })
   @ApiOkResponse({ type: PromoterStatusResponseDto })
@@ -185,6 +189,7 @@ export class PromotersController {
 
   @Post(':id/reject')
   @Roles(Role.admin)
+  @Audit('admin.promoter.reject', { resource: 'promoter', param: 'id' })
   @HttpCode(200)
   @ApiOperation({ summary: 'Rechaza una solicitud de promotor (admin)' })
   @ApiOkResponse({ type: PromoterStatusResponseDto })
@@ -198,6 +203,7 @@ export class PromotersController {
 
   @Post(':id/suspend')
   @Roles(Role.admin)
+  @Audit('admin.promoter.suspend', { resource: 'promoter', param: 'id' })
   @HttpCode(200)
   @ApiOperation({ summary: 'Suspende a un promotor (admin)' })
   @ApiOkResponse({ type: PromoterStatusResponseDto })

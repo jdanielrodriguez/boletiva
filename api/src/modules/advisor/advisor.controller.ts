@@ -4,6 +4,7 @@ import { IsString, MinLength } from 'class-validator';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AdminOnly } from '../../common/decorators/admin-only.decorator';
+import { Audit } from '../../common/decorators/audit.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AdvisorUnlockService } from './advisor-unlock.service';
 
@@ -77,6 +78,7 @@ export class AdvisorController {
   @Post('approve')
   @Roles(Role.admin)
   @AdminOnly() // EXCLUSIVO admin: un asesor (que hereda admin) NO puede auto-aprobarse.
+  @Audit('admin.advisor.unlock.approve', { resource: 'advisor-unlock' })
   @HttpCode(200)
   @ApiOperation({ summary: 'El admin aprueba el desbloqueo del asesor (desde el enlace)' })
   approve(@Body() dto: ApproveAdvisorUnlockDto, @CurrentUser('userId') adminId: string) {
@@ -95,6 +97,7 @@ export class AdvisorController {
   @Post('grant/:advisorId')
   @Roles(Role.admin)
   @AdminOnly() // EXCLUSIVO admin: concede el desbloqueo directo, sin el token del correo.
+  @Audit('admin.advisor.unlock.grant', { resource: 'advisor', param: 'advisorId' })
   @HttpCode(200)
   @ApiOperation({ summary: 'El admin concede el desbloqueo del asesor directamente (sin enlace)' })
   @ApiOkResponse({ type: GrantAdvisorUnlockResultDto })
