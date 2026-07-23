@@ -2313,6 +2313,14 @@ app-root {
   font-size: 0.82rem;
   color: var(--pe-text-muted, #6b6b76);
 }
+/* Stepper de cantidad ARRIBA del mapa (zona general): destacado bajo el precio. */
+.loc-quantity.above-map {
+  margin: 0 0 0.6rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--pe-accent);
+  border-radius: 12px;
+  background: var(--pe-accent-soft);
+}
 
 .loc-tabs {
   display: flex;

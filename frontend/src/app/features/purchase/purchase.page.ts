@@ -1,5 +1,5 @@
 import { DecimalPipe, isPlatformBrowser } from '@angular/common';
-import { Component, OnDestroy, PLATFORM_ID, afterNextRender, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, PLATFORM_ID, afterNextRender, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -95,6 +95,9 @@ export class PurchasePage implements OnDestroy {
    * siembra desde el TTL de Redis (endpoint /reservations/cooldown), por lo que
    * al recargar la página muestra el tiempo real, no uno reiniciado.
    */
+  /** Duración del zoom cinematográfico de la cámara del mapa (ms). Configurable a futuro
+   *  desde la config del admin (via /public/config); por ahora un default agradable. */
+  protected readonly cameraMs = signal(900);
   protected readonly cooldownSeconds = signal(0);
   protected readonly cooldownMm = computed(() => Math.floor(this.cooldownSeconds() / 60));
   protected readonly cooldownSs = computed(() => this.cooldownSeconds() % 60);
@@ -156,6 +159,15 @@ export class PurchasePage implements OnDestroy {
   protected readonly ss = computed(() => this.secondsLeft() % 60);
 
   constructor() {
+    // Al activar una zona GENERAL, el mapa se deshabilita y el foco va al stepper de
+    // cantidad (que está ARRIBA del mapa) → el comprador ve dónde elegir la cantidad.
+    effect(() => {
+      if (this.store.activeIsGeneral() && isPlatformBrowser(this.platformId)) {
+        setTimeout(() => {
+          (document.querySelector('[data-testid="qty-plus"]') as HTMLElement | null)?.focus();
+        }, 0);
+      }
+    });
     afterNextRender(() => {
       this.ticker = setInterval(() => this.tick(), 1000);
       // Al cargar (o recargar) la página, si el visitante sigue en cooldown, el

@@ -13,16 +13,14 @@ import {
 import type Konva from 'konva';
 import type { SeatAvailabilityDto } from '../../core/api/types';
 
-// Paleta alineada a la marca (mismos hex que la leyenda en styles.scss:
-// .seat-legend .legend.{av,sel,tk}). Konva pinta sobre canvas → hex literal,
-// no tokens CSS; si cambian aquí, cambiar también la leyenda.
+// Paleta alineada a la marca (mismos hex que la leyenda en styles.scss).
 const COLORS = {
-  available: '#35d07f', // = --pe-success (noche)
+  available: '#35d07f', // = --pe-success
   selected: '#e14eca', // = --pe-accent (rosa de marca)
   taken: '#3a3f52',
-  owned: '#3b82f6', // AZUL: asientos que el usuario YA compró (suyos)
+  owned: '#3b82f6', // AZUL: asientos que el usuario YA compró
 };
-const PAD = 46; // margen alrededor del contenido al encuadrar (en coords de mundo)
+const PAD = 46; // margen (coords de mundo) al encuadrar un box
 
 interface Box {
   minX: number;
@@ -32,39 +30,49 @@ interface Box {
 }
 
 /**
- * Mapa de asientos con Konva/Canvas y CÁMARA (B0): dibuja TODO el recinto en un
- * "mundo" y encuadra con la cámara (escala + posición del layer). El viewport es
- * de alto fijo (sin overflow); se puede recorrer con drag (pan). Al indicar
- * `focusLocalityId` la cámara hace un tween de acercamiento a esa localidad; sin
- * foco encuadra todo lo más lejos posible. `selectableLocalityId` BLOQUEA las demás
- * zonas (atenuadas; un clic en ellas cambia de localidad en vez de seleccionar).
- * Solo navegador (Konva se importa dinámicamente en afterNextRender).
+ * Mapa de asientos con Konva/Canvas y CÁMARA (B0). Dibuja TODO el recinto en un
+ * "mundo"; la cámara = transform del STAGE (scale + position) → se puede ARRASTRAR
+ * desde cualquier punto (incluidas zonas vacías) y hacer zoom. La vista completa del
+ * recinto = 100%; enfocar una localidad hace un tween cinematográfico (>100%);
+ * también se puede alejar (<100%). `disabled` muestra un velo "no aplica" (pero un
+ * clic en una zona igual la selecciona). Solo navegador (import dinámico de Konva).
  */
 @Component({
   selector: 'app-seat-map',
   template: `
     <div class="seat-map-zoom" role="group" aria-label="Zoom del mapa">
-      <button type="button" class="btn small icon-only" [disabled]="zoom() <= MIN_ZOOM" (click)="zoomOut()" data-testid="seat-zoom-out" aria-label="Alejar">−</button>
-      <span class="seat-zoom-lvl" data-testid="seat-zoom-lvl">{{ zoom() * 100 }}%</span>
-      <button type="button" class="btn small icon-only" [disabled]="zoom() >= MAX_ZOOM" (click)="zoomIn()" data-testid="seat-zoom-in" aria-label="Acercar">+</button>
-      <button type="button" class="btn small" (click)="resetZoom()" data-testid="seat-zoom-reset">{{ focusLocalityId() ? '↺' : '100%' }}</button>
+      <button type="button" class="btn small icon-only" (click)="zoomOut()" data-testid="seat-zoom-out" aria-label="Alejar">−</button>
+      <span class="seat-zoom-lvl" data-testid="seat-zoom-lvl">{{ displayZoom() }}%</span>
+      <button type="button" class="btn small icon-only" (click)="zoomIn()" data-testid="seat-zoom-in" aria-label="Acercar">+</button>
+      <button type="button" class="btn small" (click)="resetCamera()" data-testid="seat-zoom-reset" [attr.aria-label]="'Ver todo el recinto'">↺ 100%</button>
     </div>
     <div class="seat-map-frame">
       @if (stageLabel()) {
         <div class="seat-stage" data-testid="seat-stage" aria-hidden="true"><span>{{ stageLabel() }}</span></div>
       }
-      <div #host class="seat-map-host"></div>
+      <div class="seat-map-viewport">
+        <div #host class="seat-map-host"></div>
+        @if (disabled() && disabledLabel()) {
+          <div class="seat-map-veil" data-testid="seat-map-veil" aria-hidden="true">
+            <span>{{ disabledLabel() }}</span>
+          </div>
+        }
+      </div>
     </div>
   `,
   styles: [
     ':host { display: block; width: 100%; }',
-    // Fondo = color de la página (antes blanco brillante). El viewport es de ALTO FIJO
-    // y sin overflow: la cámara (pan/zoom) recorre el mundo, no la barra de scroll.
     '.seat-map-frame { border-radius: 12px; background: var(--pe-bg); padding: 0.25rem; overflow: hidden; }',
+    '.seat-map-viewport { position: relative; }',
+    // Viewport de ALTO FIJO sin overflow: la cámara (pan/zoom) recorre el mundo.
     '.seat-map-host { display: block; width: 100%; height: clamp(320px, 60vh, 680px); overflow: hidden; touch-action: none; cursor: grab; background: var(--pe-bg); }',
     '.seat-map-host:active { cursor: grabbing; }',
+    // Velo oscuro cuando la zona activa no está en el mapa (general). No bloquea el
+    // puntero (pointer-events:none) → un clic igual llega a los asientos (cambia zona).
+    '.seat-map-veil { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; border-radius: 12px; background: rgba(10, 13, 19, 0.55); }',
+    '.seat-map-veil span { padding: 0.5rem 1.1rem; border-radius: 999px; background: rgba(0,0,0,0.55); color: #fff; font-weight: 600; font-size: 0.85rem; letter-spacing: 0.02em; }',
     '.seat-map-zoom { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.4rem; }',
-    '.seat-zoom-lvl { min-width: 3.2rem; text-align: center; font-variant-numeric: tabular-nums; color: var(--pe-text-muted, #6b6b76); }',
+    '.seat-zoom-lvl { min-width: 3.6rem; text-align: center; font-variant-numeric: tabular-nums; color: var(--pe-text-muted, #6b6b76); }',
     '.seat-stage { display: flex; justify-content: center; margin: 0.15rem auto 0.6rem; }',
     '.seat-stage span { display: inline-block; min-width: 55%; text-align: center; padding: 0.4rem 1.5rem; border-radius: 8px; background: var(--pe-surface-2); color: var(--pe-text-muted, #6b6b76); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; box-shadow: inset 0 -3px 0 var(--pe-border); }',
   ],
@@ -72,40 +80,34 @@ interface Box {
 export class SeatMapComponent {
   readonly seats = input<SeatAvailabilityDto[]>([]);
   readonly selected = input<ReadonlySet<string>>(new Set<string>());
-  /** Texto de la etiqueta del escenario (barra superior). null = no se muestra. */
   readonly stageLabel = input<string | null>(null);
-  /** CÁMARA: la localidad a encuadrar (zoom). null = encuadra todo (vista lejana). */
+  /** CÁMARA: localidad a encuadrar (zoom). null = encuadra todo (100%). */
   readonly focusLocalityId = input<string | null>(null);
-  /** BLOQUEO: solo esta localidad es seleccionable; las demás se atenúan y su clic cambia de zona. */
+  /** BLOQUEO: solo esta localidad es seleccionable; las demás se atenúan (clic = cambia zona). */
   readonly selectableLocalityId = input<string | null>(null);
-  /** DESHABILITADO: se ve el mapa pero NADA es interactivo (p.ej. con una localidad general activa). */
+  /** Velo "no aplica" (zona general activa): mapa visible pero sin selección de asientos. */
   readonly disabled = input(false);
+  readonly disabledLabel = input<string | null>(null);
+  /** Duración del tween cinematográfico de cámara (ms). Configurable por el admin. */
+  readonly cameraMs = input(900);
   readonly seatToggle = output<string>();
-  /** Clic en una zona NO activa (o sin foco) → id de su localidad (cambiar/enfocar). */
+  /** Clic en una zona → id de su localidad (cambiar/enfocar). */
   readonly localityPick = output<string>();
 
   private readonly host = viewChild.required<ElementRef<HTMLDivElement>>('host');
 
-  protected readonly MIN_ZOOM = 1;
-  protected readonly MAX_ZOOM = 4;
-  /** Zoom manual del usuario (multiplica sobre el encuadre de la cámara). */
-  protected readonly zoom = signal(1);
+  /** Zoom mostrado (% relativo a la vista completa = 100%). Se fija al terminar el tween. */
+  protected readonly displayZoom = signal(100);
+
+  private readonly MIN_REL = 0.4; // se puede alejar hasta 40% de la vista completa
+  private readonly MAX_REL = 6; // y acercar hasta 600%
 
   private konva: typeof Konva | null = null;
   private stage: Konva.Stage | null = null;
   private layer: Konva.Layer | null = null;
   private resizeObserver: ResizeObserver | null = null;
+  private farScale = 1; // escala de la vista completa (referencia 100%)
   private lastFocus: string | null | undefined = undefined;
-
-  protected zoomIn(): void {
-    this.zoom.set(Math.min(this.MAX_ZOOM, Math.round((this.zoom() + 0.5) * 100) / 100));
-  }
-  protected zoomOut(): void {
-    this.zoom.set(Math.max(this.MIN_ZOOM, Math.round((this.zoom() - 0.5) * 100) / 100));
-  }
-  protected resetZoom(): void {
-    this.zoom.set(1);
-  }
 
   constructor() {
     afterNextRender(async () => {
@@ -118,18 +120,16 @@ export class SeatMapComponent {
     });
     inject(DestroyRef).onDestroy(() => this.resizeObserver?.disconnect());
     effect(() => {
-      // Dependencias: repinta/reencuadra al cambiar.
       this.seats();
       this.selected();
       this.selectableLocalityId();
       this.disabled();
       const focus = this.focusLocalityId();
-      this.zoom();
       if (!this.stage) return;
       const focusChanged = this.lastFocus !== focus;
       this.lastFocus = focus;
       this.redraw();
-      this.applyCamera(focusChanged); // anima solo cuando cambia el foco
+      this.applyCamera(focusChanged); // anima solo al cambiar el foco
     });
   }
 
@@ -138,11 +138,11 @@ export class SeatMapComponent {
     const el = this.host().nativeElement;
     this.stage = new this.konva.Stage({
       container: el,
-      width: this.viewportWidth(),
-      height: this.viewportHeight(),
+      width: this.vw(),
+      height: this.vh(),
+      draggable: true, // pan desde cualquier punto del lienzo
     });
     this.layer = new this.konva.Layer();
-    this.layer.draggable(true); // pan libre por el recinto
     this.stage.add(this.layer);
     this.lastFocus = this.focusLocalityId();
     this.redraw();
@@ -151,7 +151,7 @@ export class SeatMapComponent {
 
   private onResize(): void {
     if (!this.stage) return;
-    this.stage.size({ width: this.viewportWidth(), height: this.viewportHeight() });
+    this.stage.size({ width: this.vw(), height: this.vh() });
     this.applyCamera(false);
   }
 
@@ -160,16 +160,14 @@ export class SeatMapComponent {
     this.drawSeats();
   }
 
-  private viewportWidth(): number {
+  private vw(): number {
     const el = this.host().nativeElement;
     return el.clientWidth || el.parentElement?.clientWidth || 320;
   }
-  private viewportHeight(): number {
-    const el = this.host().nativeElement;
-    return el.clientHeight || 420;
+  private vh(): number {
+    return this.host().nativeElement.clientHeight || 420;
   }
 
-  /** BBox (en coords de mundo) de un subconjunto de asientos, o null si no hay. */
   private boxOf(seats: SeatAvailabilityDto[]): Box | null {
     const pts = seats.filter((s) => s.x != null && s.y != null);
     if (pts.length === 0) return null;
@@ -178,46 +176,89 @@ export class SeatMapComponent {
     return { minX: Math.min(...xs), minY: Math.min(...ys), maxX: Math.max(...xs), maxY: Math.max(...ys) };
   }
 
-  /** Calcula escala + posición del layer para encuadrar `box` en el viewport. */
-  private cameraFor(box: Box): { scale: number; x: number; y: number } {
-    const vw = this.viewportWidth();
-    const vh = this.viewportHeight();
+  /** Escala que encuadra un box en el viewport (fit ambos ejes). */
+  private fitScale(box: Box): number {
     const boxW = box.maxX - box.minX + PAD * 2;
     const boxH = box.maxY - box.minY + PAD * 2;
-    // Encaja el box completo en el viewport (ambos ejes) y aplica el zoom manual.
-    const fit = Math.min(vw / boxW, vh / boxH);
-    const scale = Math.max(0.05, Math.min(this.MAX_ZOOM * 2, fit * this.zoom()));
-    const centerX = (box.minX + box.maxX) / 2;
-    const centerY = (box.minY + box.maxY) / 2;
-    return { scale, x: vw / 2 - centerX * scale, y: vh / 2 - centerY * scale };
+    return Math.min(this.vw() / boxW, this.vh() / boxH);
   }
 
-  /** Encuadra la cámara al foco (localidad) o a todo el recinto; anima si `animate`. */
+  /** Posición del stage para centrar `box` a una `scale` dada. */
+  private centerPos(box: Box, scale: number): { x: number; y: number } {
+    const cx = (box.minX + box.maxX) / 2;
+    const cy = (box.minY + box.maxY) / 2;
+    return { x: this.vw() / 2 - cx * scale, y: this.vh() / 2 - cy * scale };
+  }
+
+  /** Mueve la cámara al foco (localidad) o a la vista completa (100%); anima si procede. */
   private applyCamera(animate: boolean): void {
-    if (!this.konva || !this.stage || !this.layer) return;
+    if (!this.konva || !this.stage) return;
+    const world = this.boxOf(this.seats());
+    if (!world) return;
+    this.farScale = this.fitScale(world); // referencia 100%
+
     const focusId = this.focusLocalityId();
     const focusBox = focusId ? this.boxOf(this.seats().filter((s) => s.localityId === focusId)) : null;
-    const box = focusBox ?? this.boxOf(this.seats());
-    if (!box) {
-      this.stage.size({ width: this.viewportWidth(), height: 160 });
-      return;
-    }
-    const cam = this.cameraFor(box);
+    const box = focusBox ?? world;
+    // La vista completa va exacta al 100%; una localidad se acerca a su encuadre.
+    const scale = focusBox ? this.fitScale(box) : this.farScale;
+    const pos = this.centerPos(box, scale);
+    this.moveCamera(scale, pos, animate);
+  }
+
+  private moveCamera(scale: number, pos: { x: number; y: number }, animate: boolean): void {
+    if (!this.konva || !this.stage) return;
+    const finish = () => this.updateZoom();
     if (animate) {
       new this.konva.Tween({
-        node: this.layer,
-        duration: 0.45,
+        node: this.stage,
+        duration: Math.max(0, this.cameraMs()) / 1000,
         easing: this.konva.Easings.EaseInOut,
-        scaleX: cam.scale,
-        scaleY: cam.scale,
-        x: cam.x,
-        y: cam.y,
+        scaleX: scale,
+        scaleY: scale,
+        x: pos.x,
+        y: pos.y,
+        onFinish: finish,
       }).play();
     } else {
-      this.layer.scale({ x: cam.scale, y: cam.scale });
-      this.layer.position({ x: cam.x, y: cam.y });
-      this.layer.draw();
+      this.stage.scale({ x: scale, y: scale });
+      this.stage.position(pos);
+      this.stage.batchDraw();
+      finish();
     }
+  }
+
+  /** Actualiza el % mostrado (relativo a la vista completa = 100%). */
+  private updateZoom(): void {
+    if (!this.stage || this.farScale <= 0) return;
+    this.displayZoom.set(Math.round((this.stage.scaleX() / this.farScale) * 100));
+  }
+
+  /** Zoom manual alrededor del centro del viewport (mantiene el punto central). */
+  private zoomBy(factor: number): void {
+    if (!this.stage) return;
+    const cur = this.stage.scaleX();
+    const target = Math.max(this.farScale * this.MIN_REL, Math.min(this.farScale * this.MAX_REL, cur * factor));
+    // Punto de mundo en el centro del viewport (para no “saltar”).
+    const p = this.stage.position();
+    const wx = (this.vw() / 2 - p.x) / cur;
+    const wy = (this.vh() / 2 - p.y) / cur;
+    const pos = { x: this.vw() / 2 - wx * target, y: this.vh() / 2 - wy * target };
+    this.moveCamera(target, pos, true);
+  }
+
+  protected zoomIn(): void {
+    this.zoomBy(1.35);
+  }
+  protected zoomOut(): void {
+    this.zoomBy(1 / 1.35);
+  }
+  /** Botón reiniciar: vuelve a la vista completa del recinto (100%, donde inicia). */
+  protected resetCamera(): void {
+    const world = this.boxOf(this.seats());
+    if (!world) return;
+    this.farScale = this.fitScale(world);
+    this.moveCamera(this.farScale, this.centerPos(world, this.farScale), true);
   }
 
   private drawSeats(): void {
@@ -232,8 +273,7 @@ export class SeatMapComponent {
       const owned = !!(seat as { owned?: boolean }).owned;
       const taken = seat.status !== 'available';
       const chosen = sel.has(seat.id);
-      // Bloqueada = hay una localidad activa y este asiento es de OTRA (o todo el mapa
-      // está deshabilitado, p.ej. con una localidad general activa).
+      // Bloqueada = mapa deshabilitado (zona general activa) o de OTRA localidad.
       const locked = allDisabled || (!!activeLoc && seat.localityId !== activeLoc);
       const color = owned
         ? COLORS.owned
@@ -243,30 +283,29 @@ export class SeatMapComponent {
             ? COLORS.selected
             : COLORS.available;
 
-      const g = new K.Group({ x: seat.x as number, y: seat.y as number, opacity: locked && !owned ? 0.4 : 1 });
+      const g = new K.Group({ x: seat.x as number, y: seat.y as number, opacity: locked && !owned ? 0.45 : 1 });
       g.add(new K.Rect({ x: -11, y: -16, width: 22, height: 6, cornerRadius: 3, fill: color }));
       g.add(new K.Rect({ x: -13, y: -8, width: 26, height: 16, cornerRadius: 5, fill: color }));
       if (owned) {
-        g.add(this.icon(K, '✓', '#ffffff')); // suyo (comprado)
+        g.add(this.icon(K, '✓', '#ffffff'));
       } else if (chosen && !taken && !locked) {
         g.add(this.icon(K, '✓', '#ffffff'));
       } else if (taken) {
         g.add(this.icon(K, '×', '#9aa0b0'));
       }
 
-      if (!allDisabled) {
-        // Clic: en OTRA zona → cambia de localidad; en la activa disponible → selecciona.
-        g.on('click tap', () => {
-          if (locked || (!activeLoc && this.focusLocalityId() !== seat.localityId)) {
-            this.localityPick.emit(seat.localityId);
-            return;
-          }
-          if (!taken) this.seatToggle.emit(seat.id);
-        });
-        const clickable = locked || !taken;
-        g.on('mouseenter', () => this.setCursor(clickable ? 'pointer' : 'grab'));
-        g.on('mouseleave', () => this.setCursor('grab'));
-      }
+      // Clic: en OTRA zona (o mapa deshabilitado) → cambia de localidad; en la activa
+      // disponible → selecciona. (El velo no bloquea: pointer-events:none.)
+      g.on('click tap', () => {
+        if (locked || (!activeLoc && this.focusLocalityId() !== seat.localityId)) {
+          this.localityPick.emit(seat.localityId);
+          return;
+        }
+        if (!taken) this.seatToggle.emit(seat.id);
+      });
+      const clickable = locked || !taken;
+      g.on('mouseenter', () => this.setCursor(clickable ? 'pointer' : 'grab'));
+      g.on('mouseleave', () => this.setCursor('grab'));
       this.layer.add(g);
     }
     this.layer.draw();
