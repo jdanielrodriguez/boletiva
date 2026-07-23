@@ -3,6 +3,7 @@
 import './infra/observability/tracing';
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -25,7 +26,10 @@ async function bootstrap(): Promise<void> {
 
   // rawBody: necesario para verificar el webhook SVIX de Recurrente (la firma es sobre el
   // cuerpo CRUDO). No cambia el parseo normal; solo expone `req.rawBody` donde se pida.
-  const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bufferLogs: true,
+    rawBody: true,
+  });
   const config = app.get(ConfigService);
   const isProd = config.get<boolean>('isProd');
 
