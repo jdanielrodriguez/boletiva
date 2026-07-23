@@ -468,6 +468,15 @@ async function seedUsers() {
       roles: [Role.buyer],
       password: process.env.SEED_BUYER_PASSWORD || 'Password123',
     },
+    {
+      // 2º comprador: YA compró asientos en el evento demo (tribunas del estadio).
+      // Sus asientos aparecen OCUPADOS para el cliente 1 → demuestra sold/pending
+      // en el mapa (que dos personas no ven los mismos cupos libres).
+      email: 'cliente2@boletiva.com',
+      firstName: 'Ana',
+      roles: [Role.buyer],
+      password: process.env.SEED_BUYER2_PASSWORD || 'Password123',
+    },
   ];
   const created: Record<string, string> = {};
   for (const u of users) {
@@ -514,7 +523,46 @@ async function seedCategories(adminId: string) {
   return ids;
 }
 
-async function seedDemoEvent(promoterId: string, categoryId: string): Promise<void> {
+/**
+ * Genera los asientos de una tribuna en ARCO (bowl de estadio) dentro de un espacio
+ * de coordenadas COMPARTIDO por todas las tribunas → al unir todas las localidades
+ * el mapa se lee como el recinto completo. `dir=-1` curva hacia abajo (tribuna
+ * superior/Norte, extremos hacia la cancha); `dir=+1` hacia arriba (inferior/Sur).
+ */
+function arcTribuneSeats(opts: {
+  section: string;
+  rowPrefix: string;
+  rows: number;
+  cols: number;
+  xStart: number;
+  xEnd: number;
+  yBase: number;
+  rowGap: number;
+  dir: -1 | 1;
+}): Array<{ label: string; row: string; section: string; x: number; y: number }> {
+  const out: Array<{ label: string; row: string; section: string; x: number; y: number }> = [];
+  const span = opts.xEnd - opts.xStart;
+  for (let r = 0; r < opts.rows; r++) {
+    for (let i = 0; i < opts.cols; i++) {
+      const dc = opts.cols > 1 ? (i - (opts.cols - 1) / 2) / ((opts.cols - 1) / 2) : 0; // -1..1
+      const yArc = dc * dc * 44 * opts.dir; // parábola: los extremos se acercan a la cancha
+      out.push({
+        label: `${opts.rowPrefix}${r + 1}-${i + 1}`,
+        row: `${opts.rowPrefix}${r + 1}`,
+        section: opts.section,
+        x: Math.round(opts.xStart + (opts.cols > 1 ? (i * span) / (opts.cols - 1) : 0)),
+        y: Math.round(opts.yBase + r * opts.rowGap * opts.dir + yArc),
+      });
+    }
+  }
+  return out;
+}
+
+async function seedDemoEvent(
+  promoterId: string,
+  categoryId: string,
+  buyer2Id: string,
+): Promise<void> {
   const slug = 'evento-demo-pasaeventos';
   const startsAt = new Date('2026-12-04T20:00:00-06:00');
   const endsAt = new Date('2026-12-04T23:00:00-06:00');
@@ -530,71 +578,186 @@ async function seedDemoEvent(promoterId: string, categoryId: string): Promise<vo
     return;
   }
 
+  // Salón real: Estadio Cementos Progreso (creado en seedHalls). Se enlaza al evento
+  // y se prefijan dirección/coordenadas → flujo realista (evento en un recinto real).
+  const hall = await prisma.hall.findFirst({ where: { name: 'Estadio Cementos Progreso' } });
+
   const event = await prisma.event.create({
     data: {
       promoterId,
       categoryId,
-      name: 'Evento Demo Boletiva',
+      name: 'Clásico en el Estadio Cementos Progreso',
       slug,
-      description: 'Evento de ejemplo generado por el seed.',
-      address: 'Ciudad de Guatemala',
-      lat: 14.6349,
-      lng: -90.5069,
-      startsAt: new Date('2026-12-04T20:00:00-06:00'),
-      endsAt: new Date('2026-12-04T23:00:00-06:00'),
+      description:
+        'Partido de exhibición en el Estadio Cementos Progreso (El Trébol), zona 6. ' +
+        'Elige tu zona en el mapa del estadio: cancha general, tribunas Norte/Sur o Preferencia numerada.',
+      hallId: hall?.id ?? null,
+      address: hall?.address ?? 'Calzada José Milla y Vidaurre, Zona 6, Ciudad de Guatemala',
+      lat: hall?.lat ?? 14.6469,
+      lng: hall?.lng ?? -90.5389,
+      startsAt,
+      endsAt,
       status: 'published',
       // Destacado en el slider del inicio (GET /events/promoted).
       promotedPriority: 1,
     },
   });
 
-  const vip = await prisma.locality.create({
-    data: {
-      eventId: event.id,
-      name: 'Mesas VIP',
-      slug: 'mesas-vip',
-      kind: 'seated',
-      desiredNet: 100,
-    },
-  });
+  // ── Cancha (admisión GENERAL) — sin mapa, se vende por cantidad. El E2E aterriza
+  // aquí por defecto (localidad alfabéticamente primera → stepper de cantidad). ──
   const general = await prisma.locality.create({
+    data: { eventId: event.id, name: 'General', slug: 'general', kind: 'general', desiredNet: 75, capacity: 150 },
+  });
+  await prisma.seat.createMany({
+    data: Array.from({ length: 150 }, (_, i) => ({ localityId: general.id, label: `GA-${i + 1}` })),
+    skipDuplicates: true,
+  });
+
+  // ── Tribunas NORTE y SUR: dos mapas que se UNEN en el mismo espacio de coordenadas
+  // (arcos opuestos del bowl). Vistas juntas forman el estadio; por separado, su zona. ──
+  const norteSeats = arcTribuneSeats({
+    section: 'Norte', rowPrefix: 'N', rows: 3, cols: 18, xStart: 150, xEnd: 770, yBase: 50, rowGap: 30, dir: -1,
+  });
+  const surSeats = arcTribuneSeats({
+    section: 'Sur', rowPrefix: 'S', rows: 3, cols: 18, xStart: 150, xEnd: 770, yBase: 590, rowGap: 30, dir: 1,
+  });
+  const norte = await prisma.locality.create({
+    data: { eventId: event.id, name: 'Tribuna Norte', slug: 'tribuna-norte', kind: 'seated', desiredNet: 90 },
+  });
+  await prisma.seat.createMany({
+    data: norteSeats.map((s) => ({ localityId: norte.id, ...s })),
+    skipDuplicates: true,
+  });
+  await prisma.locality.update({ where: { id: norte.id }, data: { capacity: norteSeats.length } });
+
+  const sur = await prisma.locality.create({
+    data: { eventId: event.id, name: 'Tribuna Sur', slug: 'tribuna-sur', kind: 'seated', desiredNet: 90 },
+  });
+  await prisma.seat.createMany({
+    data: surSeats.map((s) => ({ localityId: sur.id, ...s })),
+    skipDuplicates: true,
+  });
+  await prisma.locality.update({ where: { id: sur.id }, data: { capacity: surSeats.length } });
+
+  // ── Tribuna PREFERENCIA: lateral derecho, rejilla recta NUMERADA (filas A–F). ──
+  const prefRows = ['A', 'B', 'C', 'D', 'E', 'F'];
+  const prefSeats = prefRows.flatMap((rl, r) =>
+    Array.from({ length: 10 }, (_, c) => ({
+      label: `${rl}-${c + 1}`,
+      row: rl,
+      section: 'Preferencia',
+      x: 850 + c * 26,
+      y: 190 + r * 36,
+    })),
+  );
+  const preferencia = await prisma.locality.create({
+    data: { eventId: event.id, name: 'Tribuna Preferencia', slug: 'tribuna-preferencia', kind: 'seated', desiredNet: 150 },
+  });
+  await prisma.seat.createMany({
+    data: prefSeats.map((s) => ({ localityId: preferencia.id, ...s })),
+    skipDuplicates: true,
+  });
+  await prisma.locality.update({ where: { id: preferencia.id }, data: { capacity: prefSeats.length } });
+
+  // ── El 2º cliente YA compró asientos (Norte + Sur + Preferencia) → aparecen
+  // OCUPADOS para el cliente 1 en el mapa (demuestra sold/pending compartido). ──
+  await sellSeatsToBuyer(buyer2Id, event.id, [
+    { localityId: norte.id, labels: ['N2-8', 'N2-9', 'N2-10'], net: 90 },
+    { localityId: sur.id, labels: ['S1-9', 'S1-10'], net: 90 },
+    { localityId: preferencia.id, labels: ['A-1', 'A-2', 'B-1'], net: 150 },
+  ]);
+}
+
+/**
+ * Marca un conjunto de asientos como VENDIDOS a un comprador: crea una orden `paid`
+ * con sus ítems (snapshot mínimo pero coherente) + un boleto por ítem, y pone el
+ * `seat.status='sold'` (que es lo que lee `availability`). Idempotente-safe para el
+ * seed (se llama solo al crear el evento). Genera media best-effort del boleto.
+ */
+async function sellSeatsToBuyer(
+  buyerId: string,
+  eventId: string,
+  groups: Array<{ localityId: string; labels: string[]; net: number }>,
+): Promise<void> {
+  const event = await prisma.event.findUnique({ where: { id: eventId } });
+  if (!event) return;
+  // Precio de comprador aproximado por asiento (gross-up ~1.3× el neto) — el seed no
+  // pasa por el PricingEngine; basta con un snapshot coherente para la caja/boletos.
+  const priceOf = (net: number) => Math.round(net * 1.3 * 100) / 100;
+
+  let orderNet = 0;
+  let orderTotal = 0;
+  const lines: Array<{ localityId: string; seatId: string; label: string; net: number; total: number }> = [];
+  for (const g of groups) {
+    const seats = await prisma.seat.findMany({ where: { localityId: g.localityId, label: { in: g.labels } } });
+    for (const s of seats) {
+      const total = priceOf(g.net);
+      lines.push({ localityId: g.localityId, seatId: s.id, label: s.label, net: g.net, total });
+      orderNet += g.net;
+      orderTotal += total;
+    }
+  }
+  if (lines.length === 0) return;
+
+  const platformFee = Math.round(orderNet * 0.1 * 100) / 100;
+  const taxableBase = Math.round((orderNet + platformFee) * 100) / 100;
+  const iva = Math.round(taxableBase * 0.12 * 100) / 100;
+  const gatewayFee = Math.round((orderTotal - taxableBase - iva) * 100) / 100;
+
+  const order = await prisma.order.create({
     data: {
-      eventId: event.id,
-      name: 'General',
-      slug: 'general',
-      kind: 'general',
-      desiredNet: 75,
-      capacity: 100,
+      buyerId,
+      eventId,
+      status: 'paid',
+      net: orderNet.toFixed(2),
+      platformFee: platformFee.toFixed(2),
+      fixedFees: '0.00',
+      taxableBase: taxableBase.toFixed(2),
+      iva: iva.toFixed(2),
+      gatewayFee: (gatewayFee > 0 ? gatewayFee : 0).toFixed(2),
+      total: orderTotal.toFixed(2),
+      paidAt: new Date('2026-11-01T12:00:00-06:00'),
     },
   });
 
-  // Asientos numerados de la localidad con mapa (VIP), en una FILA CURVADA tipo
-  // teatro (arco), para demostrar que el lienzo soporta geometrías arbitrarias
-  // (curvas, escenarios, etc.). Cada asiento lleva fila + número.
-  await prisma.seat.createMany({
-    data: Array.from({ length: 20 }, (_, i) => {
-      const t = ((-45 + (i * 90) / 19) * Math.PI) / 180;
-      return {
-        localityId: vip.id,
-        label: String(i + 1),
-        row: 'A',
-        x: Math.round(320 + 300 * Math.sin(t)),
-        y: Math.round(60 + 300 * (1 - Math.cos(t))),
-      };
-    }),
-    skipDuplicates: true,
-  });
-  await prisma.locality.update({ where: { id: vip.id }, data: { capacity: 20 } });
-
-  // Materializa el aforo GENERAL como filas `seats` (GA-*): la admisión general
-  // se vende por cantidad asignando cupos concretos (anti-doble-venta).
-  await prisma.seat.createMany({
-    data: Array.from({ length: 100 }, (_, i) => ({
-      localityId: general.id,
-      label: `GA-${i + 1}`,
-    })),
-    skipDuplicates: true,
-  });
+  for (const ln of lines) {
+    const item = await prisma.orderItem.create({
+      data: {
+        orderId: order.id,
+        localityId: ln.localityId,
+        seatId: ln.seatId,
+        label: ln.label,
+        net: ln.net.toFixed(2),
+        total: ln.total.toFixed(2),
+        quote: {},
+        quoteHash: `seed-demo-${ln.seatId}`,
+        active: true,
+      },
+    });
+    const ticket = await prisma.ticket.create({
+      data: {
+        orderItemId: item.id,
+        orderId: order.id,
+        eventId,
+        localityId: ln.localityId,
+        ownerId: buyerId,
+        status: 'valid',
+        serial: `SEED-DEMO-${ln.label}`,
+        totpSecret: 'seed',
+        signature: 'seed',
+        signingKeyId: 'seed',
+      },
+    });
+    // El estado que lee `availability`: sin esto el asiento seguiría `available`.
+    await prisma.seat.update({ where: { id: ln.seatId }, data: { status: 'sold' } });
+    await generateSeedTicketMedia({
+      ticketId: ticket.id,
+      eventId,
+      serial: ticket.serial,
+      eventName: event.name,
+      startsAt: event.startsAt,
+    });
+  }
 }
 
 /**
@@ -876,7 +1039,11 @@ async function main(): Promise<void> {
   await seedHalls(templates['rows']);
   const users = await seedUsers();
   const categories = await seedCategories(users['admin@boletiva.com']);
-  await seedDemoEvent(users['promotor@boletiva.com'], categories['Concierto']);
+  await seedDemoEvent(
+    users['promotor@boletiva.com'],
+    categories['Concierto'],
+    users['cliente2@boletiva.com'],
+  );
   await seedPastSoldEvent(
     users['promotor@boletiva.com'],
     categories['Concierto'],

@@ -54,7 +54,17 @@ const PAD = 40;
 export class SeatMapComponent {
   readonly seats = input<SeatAvailabilityDto[]>([]);
   readonly selected = input<ReadonlySet<string>>(new Set<string>());
+  /**
+   * `false` = modo VISTA GENERAL (mapa unido del recinto): los asientos no se
+   * seleccionan; al hacer clic se emite `localityPick` (entrar a esa localidad) y al
+   * pasar el cursor `localityHover` (para el CTA de la página). `true` = compra normal.
+   */
+  readonly interactive = input(true);
   readonly seatToggle = output<string>();
+  /** Vista general: clic en una zona → id de su localidad. */
+  readonly localityPick = output<string>();
+  /** Vista general: cursor sobre una zona (id) o fuera (null) → CTA en la página. */
+  readonly localityHover = output<string | null>();
 
   private readonly host = viewChild.required<ElementRef<HTMLDivElement>>('host');
 
@@ -94,6 +104,7 @@ export class SeatMapComponent {
     effect(() => {
       this.seats();
       this.selected();
+      this.interactive();
       this.zoom(); // repinta al cambiar el zoom
       if (this.stage) this.rebuild();
     });
@@ -101,27 +112,67 @@ export class SeatMapComponent {
 
   private build(): void {
     if (!this.konva) return;
-    const { width, height, offsetX, offsetY } = this.extents();
-    this.offsetX = offsetX;
-    this.offsetY = offsetY;
-    const z = this.zoom();
-    this.stage = new this.konva.Stage({ container: this.host().nativeElement, width: width * z, height: height * z });
-    this.stage.scale({ x: z, y: z });
+    this.stage = new this.konva.Stage({ container: this.host().nativeElement, width: 1, height: 1 });
     this.layer = new this.konva.Layer();
     this.stage.add(this.layer);
+    this.applyLayout();
     this.drawSeats();
   }
 
   private rebuild(): void {
     if (!this.konva || !this.stage) return;
-    const { width, height, offsetX, offsetY } = this.extents();
-    this.offsetX = offsetX;
-    this.offsetY = offsetY;
-    const z = this.zoom();
-    this.stage.scale({ x: z, y: z });
-    this.stage.size({ width: width * z, height: height * z });
+    this.applyLayout();
     this.layer?.destroyChildren();
     this.drawSeats();
+  }
+
+  /**
+   * Layout ANCHO-FIJO: el mapa nunca es más ancho que el contenedor a zoom 100%
+   * (se escala el contenido para caber en el ancho → sin scroll horizontal). El
+   * alto CRECE en vertical (más asientos ⇒ más alto) y el host scrollea en Y.
+   * El zoom manual (>100%) sí puede desbordar en X → ahí el pan/scroll es esperado.
+   * La escala se aplica al LAYER (no al stage) para poder centrar con layer.position.
+   */
+  private applyLayout(): void {
+    if (!this.stage || !this.layer) return;
+    const pts = this.seats().filter((s) => s.x != null && s.y != null);
+    const containerW = this.containerWidth();
+    if (pts.length === 0) {
+      this.offsetX = 0;
+      this.offsetY = 0;
+      this.stage.scale({ x: 1, y: 1 });
+      this.layer.scale({ x: 1, y: 1 });
+      this.layer.position({ x: 0, y: 0 });
+      this.stage.size({ width: containerW, height: 160 });
+      return;
+    }
+    const xs = pts.map((s) => s.x as number);
+    const ys = pts.map((s) => s.y as number);
+    const minX = Math.min(...xs);
+    const minY = Math.min(...ys);
+    const contentWidth = Math.max(...xs) - minX + PAD * 2;
+    const contentHeight = Math.max(...ys) - minY + PAD * 2;
+
+    // Normaliza el origen del contenido a (PAD, PAD).
+    this.offsetX = PAD - minX;
+    this.offsetY = PAD - minY;
+
+    // Ajuste-a-ancho: nunca AMPLÍA por encima de 1 (mapas pequeños quedan a tamaño
+    // natural y se centran); si el contenido es más ancho, lo REDUCE para caber.
+    const fitScale = Math.min(1, containerW / contentWidth);
+    const scale = fitScale * this.zoom();
+
+    // El stage ocupa como mínimo el ancho del contenedor (permite centrar); si el
+    // zoom lo hace más ancho, crece (scroll horizontal al hacer zoom-in).
+    const scaledW = contentWidth * scale;
+    const stageW = Math.max(containerW, scaledW);
+    const stageH = contentHeight * scale;
+    const centerPx = Math.max(0, (stageW - scaledW) / 2);
+
+    this.stage.scale({ x: 1, y: 1 });
+    this.layer.scale({ x: scale, y: scale });
+    this.layer.position({ x: centerPx, y: 0 });
+    this.stage.size({ width: stageW, height: stageH });
   }
 
   /** Ancho disponible del contenedor (para que el stage ocupe el 100%). */
@@ -130,39 +181,11 @@ export class SeatMapComponent {
     return el.clientWidth || el.parentElement?.clientWidth || 320;
   }
 
-  /**
-   * El STAGE ocupa el ancho del contenedor (mínimo, el del contenido). El OFFSET
-   * normaliza el origen del contenido a (PAD, PAD) y además lo CENTRA
-   * horizontalmente dentro del stage (margen sobrante repartido a ambos lados) →
-   * el canvas llena el ancho y los asientos quedan centrados.
-   */
-  private extents(): { width: number; height: number; offsetX: number; offsetY: number } {
-    const pts = this.seats().filter((s) => s.x != null && s.y != null);
-    const containerW = this.containerWidth();
-    if (pts.length === 0) {
-      return { width: containerW, height: 160, offsetX: 0, offsetY: 0 };
-    }
-    const xs = pts.map((s) => s.x as number);
-    const ys = pts.map((s) => s.y as number);
-    const minX = Math.min(...xs);
-    const minY = Math.min(...ys);
-    const maxX = Math.max(...xs);
-    const maxY = Math.max(...ys);
-    const contentWidth = maxX - minX + PAD * 2;
-    const stageWidth = Math.max(contentWidth, containerW);
-    const centerExtra = Math.max(0, (stageWidth - contentWidth) / 2);
-    return {
-      width: stageWidth,
-      height: maxY - minY + PAD * 2,
-      offsetX: PAD - minX + centerExtra,
-      offsetY: PAD - minY,
-    };
-  }
-
   private drawSeats(): void {
     if (!this.konva || !this.layer) return;
     const K = this.konva;
     const sel = this.selected();
+    const preview = !this.interactive();
 
     for (const seat of this.seats()) {
       if (seat.x == null || seat.y == null) continue;
@@ -181,7 +204,19 @@ export class SeatMapComponent {
         g.add(this.icon(K, '×', '#9aa0b0'));
       }
 
-      if (!taken) {
+      if (preview) {
+        // Vista general: toda la zona es clicable (entrar a la localidad) y el cursor
+        // es pointer; el hover avisa a la página para el CTA de la zona.
+        g.on('click tap', () => this.localityPick.emit(seat.localityId));
+        g.on('mouseenter', () => {
+          this.setCursor('pointer');
+          this.localityHover.emit(seat.localityId);
+        });
+        g.on('mouseleave', () => {
+          this.setCursor('default');
+          this.localityHover.emit(null);
+        });
+      } else if (!taken) {
         g.on('click tap', () => this.seatToggle.emit(seat.id));
         g.on('mouseenter', () => this.setCursor('pointer'));
         g.on('mouseleave', () => this.setCursor('default'));

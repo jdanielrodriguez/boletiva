@@ -71,6 +71,21 @@ export class PurchaseService {
   /** true si la localidad activa es numerada (tiene asientos con coordenadas). */
   readonly activeIsSeated = computed(() => this.activeSeats().length > 0);
 
+  /** TODOS los asientos con coordenadas del evento → mapa UNIDO (vista general del recinto). */
+  readonly allSeats = computed(() =>
+    (this.availability()?.seats ?? []).filter((s) => s.x != null && s.y != null),
+  );
+
+  /** Nombre de localidad por id (para el CTA al pasar el cursor sobre el mapa unido). */
+  readonly localityNames = computed<Record<string, string>>(() => {
+    const m: Record<string, string> = {};
+    for (const l of this.localities()) m[l.id] = l.name;
+    return m;
+  });
+
+  /** ¿Hay al menos una localidad con asientos (mapa)? → muestra la vista general. */
+  readonly hasSeatedMap = computed(() => this.allSeats().length > 0);
+
   /** Cambia la localidad en vista. La selección se ACUMULA entre localidades
    * (se permite comprar varias localidades a la vez). */
   setActiveLocality(id: string): void {

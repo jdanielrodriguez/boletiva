@@ -181,6 +181,27 @@ export class PurchasePage implements OnDestroy {
     this.blocked.set(null);
   }
 
+  /** Nombre de la zona bajo el cursor en el mapa unido (CTA de la vista general). */
+  protected readonly hoverLocalityName = signal<string | null>(null);
+
+  /** Vista general: el cursor entró/salió de una zona → actualiza el CTA. */
+  protected onOverviewHover(localityId: string | null): void {
+    this.hoverLocalityName.set(localityId ? this.store.localityNames()[localityId] ?? null : null);
+  }
+
+  /**
+   * Vista general: clic en una zona del mapa unido → entra a esa localidad (la marca
+   * activa) y desplaza la vista a su sección (donde se ve el MISMO mapa con los
+   * asientos vendidos/reservados y se pueden elegir).
+   */
+  protected focusLocality(localityId: string): void {
+    this.store.setActiveLocality(localityId);
+    this.hoverLocalityName.set(null);
+    if (isPlatformBrowser(this.platformId)) {
+      setTimeout(() => document.querySelector('.loc-active')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+    }
+  }
+
   /** Stepper +/− de cantidad para una localidad general (capado a [0, max]). */
   protected changeQuantity(loc: LocalityAvailabilityDto, delta: number): void {
     const current = this.store.quantityFor(loc.id);

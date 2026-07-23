@@ -118,6 +118,32 @@
       <p class="error" role="alert" data-testid="purchase-error">{{ error() }}</p>
     }
 
+    <!-- Vista general del recinto: MAPA UNIDO (todas las tribunas juntas). Al pasar
+         el cursor sobre una zona se muestra un CTA; al hacer clic se entra a esa
+         localidad (abajo se ve el MISMO mapa con vendidos/reservados y se elige). -->
+    @if (store.hasSeatedMap()) {
+      <section class="venue-overview" data-testid="venue-overview">
+        <h2>{{ 'purchase.overviewTitle' | translate }}</h2>
+        <p class="venue-overview-cta" data-testid="venue-overview-cta" aria-live="polite">
+          @if (hoverLocalityName(); as n) {
+            <strong>{{ 'purchase.overviewHoverCta' | translate: { name: n } }}</strong>
+          } @else {
+            {{ 'purchase.overviewHint' | translate }}
+          }
+        </p>
+        <app-seat-map
+          [seats]="store.allSeats()"
+          [interactive]="false"
+          (localityPick)="focusLocality($event)"
+          (localityHover)="onOverviewHover($event)"
+        />
+        <p class="seat-legend">
+          <span class="legend av">{{ 'purchase.legendAvailable' | translate }}</span>
+          <span class="legend tk">{{ 'purchase.legendTaken' | translate }}</span>
+        </p>
+      </section>
+    }
+
     <!-- Botones de localidad: se elige UNA a la vez (la que venga del detalle o la 1ª) -->
     <div class="loc-tabs" role="group" [attr.aria-label]="'purchase.localities' | translate">
       @for (loc of store.localities(); track loc.id) {
