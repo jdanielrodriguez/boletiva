@@ -40,6 +40,13 @@ export class BannerService {
     if (!user.roles.includes(Role.admin) && !isOwner) {
       throw new ForbiddenException('No es tu evento');
     }
+    // G1.3 (auditoría 4): un evento CONCLUIDO/cancelado es solo-lectura — no regenerar
+    // el cover (ni consumir generación de IA) sobre él, igual que el resto de mutaciones
+    // de media (que ya usan getManagedMutable). Evita el bypass del invariante por el banner.
+    const ended = !!event.endsAt && new Date(event.endsAt).getTime() < Date.now();
+    if (ended || event.status === 'finished' || event.status === 'cancelled') {
+      throw new ForbiddenException('El evento ya concluyó; no se puede regenerar su banner.');
+    }
 
     const image = await this.provider.generate({
       eventName: event.name,

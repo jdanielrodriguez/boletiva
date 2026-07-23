@@ -24,6 +24,16 @@ export class DevicesService {
     return sha256(ctx.deviceId?.trim() || `ua:${ctx.userAgent ?? ''}`);
   }
 
+  /**
+   * ¿El contexto trae una identidad ESTABLE (header `X-Device-Id` o cookie `device_id`)?
+   * El fallback por User-Agent NO cuenta: un UA es público y trivialmente reproducible,
+   * así que un atacante con la contraseña + el mismo UA se saltaría el 2FA "confiando"
+   * un dispositivo que nunca lo fue. Sin id estable → el dispositivo NO puede confiarse.
+   */
+  hasStableId(ctx: DeviceContext): boolean {
+    return !!ctx.deviceId?.trim();
+  }
+
   /** Registra/actualiza el dispositivo; indica si es nuevo (nunca visto). */
   async touch(userId: string, ctx: DeviceContext): Promise<{ device: Device; isNew: boolean }> {
     const deviceHash = this.hash(ctx);
@@ -49,15 +59,22 @@ export class DevicesService {
 
   /** ¿El dispositivo de este contexto ya estaba marcado confiable en BD? */
   async isKnownTrusted(userId: string, ctx: DeviceContext): Promise<boolean> {
+    if (!this.hasStableId(ctx)) return false; // UA-only nunca cuenta como confiable
     const device = await this.prisma.device.findUnique({
       where: { userId_deviceHash: { userId, deviceHash: this.hash(ctx) } },
     });
     return device?.trustedAt != null;
   }
 
-  /** Marca el dispositivo como confiable (tras pasar 2FA). */
+  /** Marca el dispositivo como confiable (tras pasar 2FA). Solo si hay id estable. */
   async trust(userId: string, ctx: DeviceContext): Promise<void> {
     const deviceHash = this.hash(ctx);
+    if (!this.hasStableId(ctx)) {
+      // Sin id estable: registramos el dispositivo (touch) pero NO lo confiamos, para no
+      // crear una entrada "confiable" atada a un simple User-Agent reproducible.
+      await this.touch(userId, ctx);
+      return;
+    }
     await this.prisma.device.upsert({
       where: { userId_deviceHash: { userId, deviceHash } },
       update: {

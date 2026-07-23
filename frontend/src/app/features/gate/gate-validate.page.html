@@ -25,7 +25,7 @@
             {{ 'gate.welcomeAsLabel' | translate }} <strong>{{ validatorEmail() }}</strong>
           </p>
           <p class="gate-note">{{ 'gate.welcomeHint' | translate }}</p>
-          @if (error()) { <p class="gate-msg error">{{ error() }}</p> }
+          @if (error()) { <p class="gate-msg error" role="alert">{{ error() }}</p> }
           <button type="button" class="primary btn-block gate-cta" (click)="start()" data-testid="gate-start">
             {{ 'gate.start' | translate }}
           </button>

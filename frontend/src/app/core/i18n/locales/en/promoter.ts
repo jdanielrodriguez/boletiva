@@ -173,6 +173,10 @@ export const promoter = {
       'VAT applies on my net (uncheck only if you already pay the ticket VAT yourself).',
     absorbLabel:
       'I absorb the cost of installments (Visacuotas/Mastercuotas). If you enable it, the financing surcharge is deducted from your net; otherwise the platform covers it. The buyer pays the same.',
+    maxPerOrderLabel: 'Max tickets per purchase',
+    maxPerOrderPlaceholder: 'No limit (max. 50)',
+    maxPerOrderHint:
+      'Cap on tickets a buyer can take per purchase for this event. Empty = uses the global maximum (50). Applied in selection and validated on the server.',
     saveConfig: 'Save configuration',
     accountsTitle: 'Event accounts',
     dashboardTitle: 'Dashboard',

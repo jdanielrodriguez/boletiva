@@ -2588,7 +2588,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Stream SSE del checkout (order/seat/wallet). Auth: ?ticket= (o ?access_token=) */
+        /** Stream SSE del checkout (order/seat/wallet). Auth: ?ticket= (un solo uso) o Bearer */
         get: operations["StreamController_orderStream_v1"];
         put?: never;
         post?: never;
@@ -3296,6 +3296,40 @@ export interface paths {
         put?: never;
         /** El admin aprueba el desbloqueo del asesor (desde el enlace) */
         post: operations["AdvisorController_approve_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/advisor/unlock/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Estado de desbloqueo de todos los asesores con actividad (panel admin) */
+        get: operations["AdvisorController_listPending_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/advisor/unlock/grant/{advisorId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** El admin concede el desbloqueo del asesor directamente (sin enlace) */
+        post: operations["AdvisorController_grant_v1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4925,6 +4959,11 @@ export interface components {
              */
             promotedPriority?: number | null;
             /**
+             * @description Máximo de boletos por compra (null = tope global 50). F4.
+             * @example 10
+             */
+            maxPerOrder?: number | null;
+            /**
              * Format: uuid
              * @description Admin que creó el evento a nombre del promotor (null = lo creó el propio promotor)
              */
@@ -5057,6 +5096,11 @@ export interface components {
              */
             promotedPriority?: number | null;
             /**
+             * @description Máximo de boletos por compra (null = tope global 50). F4.
+             * @example 10
+             */
+            maxPerOrder?: number | null;
+            /**
              * Format: uuid
              * @description Admin que creó el evento a nombre del promotor (null = lo creó el propio promotor)
              */
@@ -5163,6 +5207,11 @@ export interface components {
              * @example 1
              */
             promotedPriority?: number | null;
+            /**
+             * @description Máximo de boletos por compra (null = tope global 50). F4.
+             * @example 10
+             */
+            maxPerOrder?: number | null;
             /**
              * Format: uuid
              * @description Admin que creó el evento a nombre del promotor (null = lo creó el propio promotor)
@@ -5312,6 +5361,11 @@ export interface components {
              */
             promotedPriority?: number | null;
             /**
+             * @description Máximo de boletos por compra (null = tope global 50). F4.
+             * @example 10
+             */
+            maxPerOrder?: number | null;
+            /**
              * Format: uuid
              * @description Admin que creó el evento a nombre del promotor (null = lo creó el propio promotor)
              */
@@ -5442,6 +5496,8 @@ export interface components {
             seatMap?: components["schemas"]["SeatMapDto"] | null;
             localities: components["schemas"]["LocalityAvailabilityDto"][];
             seats: components["schemas"]["SeatAvailabilityDto"][];
+            /** @description Máximo de boletos por compra fijado por el promotor (null = tope global 50). F4. */
+            maxPerOrder?: number | null;
         };
         PublicEventDetailDto: {
             /**
@@ -5530,6 +5586,11 @@ export interface components {
              * @example 1
              */
             promotedPriority?: number | null;
+            /**
+             * @description Máximo de boletos por compra (null = tope global 50). F4.
+             * @example 10
+             */
+            maxPerOrder?: number | null;
             /**
              * Format: uuid
              * @description Admin que creó el evento a nombre del promotor (null = lo creó el propio promotor)
@@ -5624,6 +5685,11 @@ export interface components {
              * @example 1
              */
             promotedPriority?: number;
+            /**
+             * @description Máximo de boletos por compra para este evento (1–50). null/omitir = tope global (50). Se aplica en la selección de compra y se re-valida server-authoritative en hold/commit.
+             * @example 10
+             */
+            maxPerOrder?: number | null;
         };
         EventResponseDto: {
             /**
@@ -5713,6 +5779,11 @@ export interface components {
              */
             promotedPriority?: number | null;
             /**
+             * @description Máximo de boletos por compra (null = tope global 50). F4.
+             * @example 10
+             */
+            maxPerOrder?: number | null;
+            /**
              * Format: uuid
              * @description Admin que creó el evento a nombre del promotor (null = lo creó el propio promotor)
              */
@@ -5798,6 +5869,11 @@ export interface components {
              * @example 1
              */
             promotedPriority?: number | null;
+            /**
+             * @description Máximo de boletos por compra para este evento (1–50). null/omitir = tope global (50). Se aplica en la selección de compra y se re-valida server-authoritative en hold/commit.
+             * @example 10
+             */
+            maxPerOrder?: number | null;
         };
         PromoteEventDto: {
             /**
@@ -8276,6 +8352,10 @@ export interface components {
              */
             isDefault?: boolean;
         };
+        AnonymizeDto: {
+            /** @description Forzar aunque el usuario tenga saldo>0 o eventos futuros (acción deliberada e irreversible) */
+            force?: boolean;
+        };
         AnonymizeResponseDto: {
             /**
              * Format: uuid
@@ -9083,6 +9163,30 @@ export interface components {
         ApproveAdvisorUnlockDto: {
             /** @description Token del enlace de desbloqueo recibido por el admin */
             token: string;
+        };
+        AdvisorUnlockStateDto: {
+            /** @description ID del asesor */
+            advisorId: string;
+            /** @description true si tiene una solicitud de desbloqueo pendiente */
+            pending: boolean;
+            /**
+             * Format: date-time
+             * @description Momento de la solicitud pendiente
+             */
+            requestedAt: string | null;
+            /** @description true si tiene una ventana de desbloqueo vigente */
+            unlocked: boolean;
+            /**
+             * Format: date-time
+             * @description Fin de la ventana vigente
+             */
+            expiresAt: string | null;
+        };
+        GrantAdvisorUnlockResultDto: {
+            granted: boolean;
+            advisorId: string;
+            /** Format: date-time */
+            expiresAt: string | null;
         };
         CreateTicketDto: {
             /** @example Duda con la liquidación de mi evento */
@@ -13177,7 +13281,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnonymizeDto"];
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -13237,7 +13345,6 @@ export interface operations {
         parameters: {
             query: {
                 ticket: string;
-                access_token: string;
             };
             header: {
                 authorization: string;
@@ -14289,6 +14396,46 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    AdvisorController_listPending_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdvisorUnlockStateDto"][];
+                };
+            };
+        };
+    };
+    AdvisorController_grant_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                advisorId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrantAdvisorUnlockResultDto"];
+                };
             };
         };
     };

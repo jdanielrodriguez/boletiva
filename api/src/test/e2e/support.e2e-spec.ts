@@ -192,6 +192,19 @@ describe('Tickets de soporte (e2e)', () => {
     expect(rt.slaPausedAt).toBeNull();
   });
 
+  it('QA soporte-1: un ticket SUSPENDIDO NO se reactiva porque el promotor responda', async () => {
+    const created = await open('Suspendido-reply').expect(201);
+    await http().post(`/api/v1/support/tickets/${created.body.id}/suspend`).set(bearer(adminToken)).expect(200);
+    // El promotor responde: el mensaje se guarda (201) pero el ticket SIGUE suspendido.
+    await http()
+      .post(`/api/v1/support/tickets/${created.body.id}/messages`)
+      .set(bearer(promoterToken))
+      .send({ body: 'sigo esperando' })
+      .expect(201);
+    const t = await prisma.supportTicket.findUniqueOrThrow({ where: { id: created.body.id } });
+    expect(t.status).toBe('suspended'); // solo un admin puede reabrirlo (resume)
+  });
+
   it('RBAC: un promotor NO puede resolver/suspender/reasignar; un asesor NO puede reasignar (admin-only)', async () => {
     const created = await open('RBAC').expect(201);
     await http().post(`/api/v1/support/tickets/${created.body.id}/resolve`).set(bearer(promoterToken)).expect(403);

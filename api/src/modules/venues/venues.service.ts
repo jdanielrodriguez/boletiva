@@ -471,6 +471,12 @@ export class VenuesService {
   }
 
   async getActiveSeatMap(eventId: string) {
+    // Endpoint PÚBLICO: solo eventos PUBLICADOS. Antes no filtraba por estado → el mapa
+    // (geometría) de un evento en BORRADOR quedaba accesible por id (QA promotores-H7).
+    const event = await this.prisma.event.findUnique({ where: { id: eventId }, select: { status: true } });
+    if (!event || event.status !== 'published') {
+      throw new NotFoundException('El evento no tiene mapa de asientos activo');
+    }
     const map = await this.prisma.seatMap.findFirst({ where: { eventId, active: true } });
     if (!map) throw new NotFoundException('El evento no tiene mapa de asientos activo');
     return map;

@@ -208,6 +208,13 @@ export class EventResponseDto {
   promotedPriority!: number | null;
 
   @ApiPropertyOptional({
+    nullable: true,
+    example: 10,
+    description: 'Máximo de boletos por compra (null = tope global 50). F4.',
+  })
+  maxPerOrder!: number | null;
+
+  @ApiPropertyOptional({
     format: 'uuid',
     nullable: true,
     description:
@@ -426,4 +433,11 @@ export class EventAvailabilityDto {
 
   @ApiProperty({ type: () => SeatAvailabilityDto, isArray: true })
   seats!: SeatAvailabilityDto[];
+
+  @ApiPropertyOptional({
+    type: Number,
+    nullable: true,
+    description: 'Máximo de boletos por compra fijado por el promotor (null = tope global 50). F4.',
+  })
+  maxPerOrder!: number | null;
 }

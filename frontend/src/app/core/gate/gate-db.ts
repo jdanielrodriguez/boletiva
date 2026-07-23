@@ -66,7 +66,7 @@ export class GateDb {
   async saveManifest(
     eventId: string,
     tickets: GateTicket[],
-    meta: { expiresAt: string; gateToken: string; eventName: string },
+    meta: { expiresAt: string; gateToken: string; eventName: string; maxSeq: number },
   ): Promise<void> {
     const db = await this.open();
     if (!db) return;
@@ -76,6 +76,34 @@ export class GateDb {
       ts.clear();
       for (const tk of tickets) ts.put(tk);
       t.objectStore(S_META).put({ key: `event:${eventId}`, eventId, ...meta });
+      t.oncomplete = () => resolve();
+      t.onerror = () => resolve();
+    });
+  }
+
+  /**
+   * Aplica un DELTA de sincronización (pull incremental por `since`): actualiza (upsert) el
+   * estado y el secreto TOTP de los boletos cambiados —revocados/transferidos/usados desde la
+   * última descarga— y avanza `maxSeq`/`expiresAt` SIN borrar el resto. Así un boleto
+   * reembolsado deja de dar verde aunque el manifiesto inicial lo trajera como válido (QA).
+   */
+  async applyDelta(
+    eventId: string,
+    tickets: GateTicket[],
+    patch: { maxSeq: number; expiresAt: string },
+  ): Promise<void> {
+    const db = await this.open();
+    if (!db) return;
+    await new Promise<void>((resolve) => {
+      const t = db.transaction([S_TICKETS, S_META], 'readwrite');
+      const ts = t.objectStore(S_TICKETS);
+      for (const tk of tickets) ts.put(tk); // overwrite por serial (keyPath)
+      const metaStore = t.objectStore(S_META);
+      const getReq = metaStore.get(`event:${eventId}`);
+      getReq.onsuccess = () => {
+        const prev = (getReq.result as Record<string, unknown>) ?? { key: `event:${eventId}`, eventId };
+        metaStore.put({ ...prev, ...patch });
+      };
       t.oncomplete = () => resolve();
       t.onerror = () => resolve();
     });
@@ -91,11 +119,14 @@ export class GateDb {
     await this.tx(S_TICKETS, 'readwrite', (s) => s.put({ ...tk, status }));
   }
 
-  getMeta(eventId: string): Promise<{ expiresAt: string; gateToken: string; eventName: string } | null> {
+  getMeta(
+    eventId: string,
+  ): Promise<{ expiresAt: string; gateToken: string; eventName: string; maxSeq?: number } | null> {
     return this.tx(S_META, 'readonly', (s) => s.get(`event:${eventId}`)) as Promise<{
       expiresAt: string;
       gateToken: string;
       eventName: string;
+      maxSeq?: number;
     } | null>;
   }
 

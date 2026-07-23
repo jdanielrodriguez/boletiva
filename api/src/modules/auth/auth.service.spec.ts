@@ -56,6 +56,7 @@ describe('AuthService (ramas de borde, unit)', () => {
       trust: jest.fn(),
       isTrusted: jest.fn(),
       isKnownTrusted: jest.fn().mockResolvedValue(false),
+      hasStableId: jest.fn().mockReturnValue(true),
     };
     const twofactor = { verify: jest.fn(), startChallenge: jest.fn() };
     const google = { verify: jest.fn(), enabled: true };
@@ -158,6 +159,19 @@ describe('AuthService (ramas de borde, unit)', () => {
       devices.isTrusted.mockReturnValue(true);
       const res = await service.login({ email: 'u1@x.com', password: 'ok' }, ctx);
       expect(res.status).toBe('ok');
+    });
+
+    it('verificado + SIN id estable (solo User-Agent) → 2fa_required aunque figure confiable', async () => {
+      const { prisma, devices, service } = build();
+      prisma.user.findUnique.mockResolvedValue(makeUser());
+      prisma.user.update.mockResolvedValue(makeUser());
+      bcrypt.compare.mockResolvedValue(true);
+      devices.touch.mockResolvedValue({ device: {}, isNew: false });
+      devices.isTrusted.mockReturnValue(true); // legacy confiado por UA
+      devices.hasStableId.mockReturnValue(false); // pero no hay X-Device-Id/cookie
+      const res = await service.login({ email: 'u1@x.com', password: 'ok' }, ctx);
+      // Sin identidad estable NO se honra la confianza → exige 2FA (cierra el salto por UA).
+      expect(res.status).toBe('2fa_required');
     });
   });
 

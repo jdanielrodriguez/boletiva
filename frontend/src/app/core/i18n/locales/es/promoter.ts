@@ -172,6 +172,10 @@ export const promoter = {
       'El IVA aplica sobre mi neto (desmarca solo si ya pagas IVA del boleto por tu cuenta).',
     absorbLabel:
       'Absorbo el costo de las cuotas (Visacuotas/Mastercuotas). Si lo activas, el recargo por financiamiento se descuenta de tu neto; si no, lo cubre la plataforma. El comprador paga igual.',
+    maxPerOrderLabel: 'Máximo de boletos por compra',
+    maxPerOrderPlaceholder: 'Sin límite (máx. 50)',
+    maxPerOrderHint:
+      'Tope de boletos que un comprador puede llevar por compra en este evento. Vacío = usa el máximo global (50). Se aplica en la selección y se valida en el servidor.',
     saveConfig: 'Guardar configuración',
     accountsTitle: 'Cuentas del evento',
     dashboardTitle: 'Dashboard',

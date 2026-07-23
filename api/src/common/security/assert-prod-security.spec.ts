@@ -15,6 +15,7 @@ const SECURE: Record<string, unknown> = {
   'security.trustProxy': 1,
   'cors.origins': ['https://boletiva.com'],
   'payment.provider': 'recurrente', // prod exige pasarela real (no simulador)
+  recaptcha: { disabled: false, secretKey: 'real-recaptcha-secret' }, // prod exige captcha activo
 };
 
 describe('assertProductionSecurity (guard de arranque)', () => {
@@ -58,5 +59,17 @@ describe('assertProductionSecurity (guard de arranque)', () => {
     const { ['payment.provider']: _omit, ...noProvider } = SECURE;
     void _omit;
     expect(() => assertProductionSecurity(cfg(noProvider))).toThrow();
+  });
+
+  it('QA: reCAPTCHA deshabilitado o sin secret en prod → aborta (falla-abierto anti-bot)', () => {
+    expect(() =>
+      assertProductionSecurity(cfg({ ...SECURE, recaptcha: { disabled: true, secretKey: 'x' } })),
+    ).toThrow();
+    expect(() =>
+      assertProductionSecurity(cfg({ ...SECURE, recaptcha: { disabled: false, secretKey: '' } })),
+    ).toThrow();
+    const { recaptcha: _rc, ...noRc } = SECURE;
+    void _rc;
+    expect(() => assertProductionSecurity(cfg(noRc))).toThrow();
   });
 });

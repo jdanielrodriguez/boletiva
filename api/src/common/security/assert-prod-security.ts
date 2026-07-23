@@ -60,6 +60,17 @@ export function assertProductionSecurity(config: ConfigService): void {
     );
   }
 
+  // QA · reCAPTCHA debe estar ACTIVO en prod. CaptchaService.verify() FALLA-ABIERTO cuando
+  // no hay integración (dev/test) → si en prod queda deshabilitado o sin secretKey, el
+  // @RequireCaptcha() de signup/login/forgot deja pasar todo (sin anti-bot). Se corta al boot.
+  const rc = config.get<{ disabled?: boolean; secretKey?: string }>('recaptcha');
+  if (rc?.disabled || !rc?.secretKey) {
+    problems.push(
+      `reCAPTCHA debe estar habilitado en prod (RECAPTCHA_DISABLED=false y RECAPTCHA_SECRET_KEY ` +
+        `inyectado): sin credenciales el captcha falla-abierto y signup/login/forgot quedan sin anti-bot.`,
+    );
+  }
+
   if (problems.length > 0) {
     logger.error('Configuración de PRODUCCIÓN insegura — se aborta el arranque:');
     for (const p of problems) logger.error(`  • ${p}`);

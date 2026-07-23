@@ -24,7 +24,7 @@
       </header>
 
       @if (error()) {
-        <p class="form-error bp-center" data-testid="bp-error">{{ error() }}</p>
+        <p class="form-error bp-center" role="alert" data-testid="bp-error">{{ error() }}</p>
       }
 
       <div class="bp-plans">
@@ -125,7 +125,7 @@
       </p>
 
       @if (error()) {
-        <p class="form-error" data-testid="bp-reg-error">{{ error() }}</p>
+        <p class="form-error" role="alert" data-testid="bp-reg-error">{{ error() }}</p>
       }
 
       <form (ngSubmit)="submitRegister()">

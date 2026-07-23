@@ -184,6 +184,27 @@ describe('Reembolsos y contracargos (e2e)', () => {
     expect((await ledger.verifyChain()).ok).toBe(true);
   });
 
+  it('concurrencia: dos reembolsos (eventId distinto, mismo pago) en paralelo → UN solo reverso', async () => {
+    // Parte de tokenCb con saldo 0.00 (el contracargo previo no acredita al wallet).
+    const { orderId, providerRef } = await paidOrder(tokenCb, 2, 'ref_s3');
+    // Dos entregas concurrentes con eventId DISTINTO (esquivan la dedupe por eventId) del
+    // MISMO pago → sin el CAS `paid→refunded`, ambas reembolsarían (doble crédito al wallet).
+    await Promise.all([
+      webhook('ref_conc_a', 'payment.refunded', providerRef),
+      webhook('ref_conc_b', 'payment.refunded', providerRef),
+    ]);
+    // Exactamente UN asiento de refund para la orden (el 2º CAS ve count 0 y sale).
+    const refundTxs = await prisma.ledgerTransaction.count({
+      where: { kind: 'refund', refType: 'order', refId: orderId },
+    });
+    expect(refundTxs).toBe(1);
+    // El wallet se acredita UNA vez (inflow), no dos.
+    expect(await walletBalance(tokenCb)).toBe(CANON.inflow);
+    const o = await prisma.order.findUniqueOrThrow({ where: { id: orderId } });
+    expect(o.status).toBe('refunded');
+    expect((await ledger.verifyChain()).ok).toBe(true);
+  });
+
   it('facturación (movimientos): requiere auth y separa ingreso (refund) de egreso (compra)', async () => {
     // Sin token → 401 (guard global).
     await http().get('/api/v1/orders/movements').expect(401);

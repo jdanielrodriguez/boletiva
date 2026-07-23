@@ -166,6 +166,10 @@ import { AdvisorsModule } from './modules/advisors/advisors.module';
     // para mutar en área admin (salvo advisor.lock_enabled=false).
     { provide: APP_GUARD, useClass: AdvisorUnlockGuard },
     { provide: APP_GUARD, useClass: VerifiedEmailGuard },
+    // No-repudio (Auditoría 4 · G4.1): el AuditInterceptor NO se registra global porque un
+    // interceptor global altera el manejo de los handlers @Sse async (abren la conexión 200
+    // antes de que el rechazo propague el 404) → rompía el IDOR del stream. Se aplica
+    // POR-CONTROLLER con @UseInterceptors en los que tienen rutas @Audit (ninguno usa @Sse).
   ],
 })
 export class AppModule {}

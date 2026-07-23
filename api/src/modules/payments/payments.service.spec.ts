@@ -520,8 +520,9 @@ describe('PaymentsService (ramas de borde, unit)', () => {
       });
       // Ya procesado → cortocircuito duplicate (evita mockear todo el fulfillment).
       prisma.webhookEvent.findUnique.mockResolvedValue({ processedAt: new Date() });
+      const ts = String(Math.floor(Date.now() / 1000)); // fresco (dentro de la ventana anti-replay)
       const res = await service.handleRecurrenteWebhook(
-        { svixId: 'm9', svixTimestamp: '1700000000', svixSignature: svixSign('m9', '1700000000', body) },
+        { svixId: 'm9', svixTimestamp: ts, svixSignature: svixSign('m9', ts, body) },
         body,
       );
       expect(res).toEqual({ received: true, duplicate: true });
@@ -530,11 +531,24 @@ describe('PaymentsService (ramas de borde, unit)', () => {
     it('Recurrente: event_type desconocido (válido) → ignorado', async () => {
       const { service } = build();
       const body = JSON.stringify({ event_type: 'subscription.created' });
+      const ts = String(Math.floor(Date.now() / 1000));
       const res = await service.handleRecurrenteWebhook(
-        { svixId: 'm2', svixTimestamp: '1700000000', svixSignature: svixSign('m2', '1700000000', body) },
+        { svixId: 'm2', svixTimestamp: ts, svixSignature: svixSign('m2', ts, body) },
         body,
       );
       expect(res).toEqual({ received: true, ignored: true });
+    });
+
+    it('Recurrente: timestamp VIEJO (fuera de ±5 min) aunque la firma sea válida → 401 (anti-replay)', async () => {
+      const { service } = build();
+      const body = JSON.stringify({ event_type: 'intent.succeeded', metadata: { providerRef: 'r_old' } });
+      const stale = '1700000000'; // Nov 2023 → fuera de la ventana
+      await expect(
+        service.handleRecurrenteWebhook(
+          { svixId: 'm3', svixTimestamp: stale, svixSignature: svixSign('m3', stale, body) },
+          body,
+        ),
+      ).rejects.toBeInstanceOf(Error);
     });
 
     it('un error no-P2002 al insertar el webhook se propaga', async () => {
@@ -667,15 +681,16 @@ describe('PaymentsService (ramas de borde, unit)', () => {
       expect(stream.emitWallet).toHaveBeenCalled(); // pushWallet por walletAmount > 0
     });
 
-    it('orden ya pagada → no re-asienta (idempotente)', async () => {
+    it('orden ya pagada (el CAS no reclama) → no re-asienta (idempotente)', async () => {
       const { prisma, ledger, service } = build();
       prisma.payment.findUniqueOrThrow.mockResolvedValue({ id: 'p3', orderId: 'o1' });
       prisma.order.findUniqueOrThrow.mockResolvedValue(baseOrder({ status: 'paid' }));
+      prisma.order.updateMany.mockResolvedValue({ count: 0 }); // el CAS pending→paid no reclama (ya paid)
       await service.fulfill('p3');
       expect(ledger.post).not.toHaveBeenCalled();
     });
 
-    it('asiento contable ya existente → no lo duplica pero confirma', async () => {
+    it('reclama pending→paid y asienta con idempotencia EN EL LEDGER (no findFirst externo)', async () => {
       const { prisma, ledger, service } = build();
       prisma.payment.findUniqueOrThrow.mockResolvedValue({
         id: 'p4',
@@ -685,10 +700,33 @@ describe('PaymentsService (ramas de borde, unit)', () => {
         walletAmount: dec(0),
       });
       prisma.order.findUniqueOrThrow.mockResolvedValue(baseOrder());
-      prisma.ledgerTransaction.findFirst.mockResolvedValue({ id: 'txPrev' }); // ya asentado
+      prisma.paymentGateway.findUnique.mockResolvedValue({ transactionFixedFee: dec(0) });
+      prisma.order.updateMany.mockResolvedValue({ count: 1 }); // gana el claim
       await service.fulfill('p4');
-      expect(ledger.post).not.toHaveBeenCalled();
+      // La idempotencia ya NO es un findFirst externo (TOCTOU) sino la del propio ledger:
+      // el asiento se envía SIEMPRE con idempotent:true (dedupe race-safe dentro del post).
+      expect(ledger.post).toHaveBeenCalledWith(
+        expect.objectContaining({
+          kind: 'order_payment',
+          refType: 'order',
+          refId: 'o1',
+          idempotent: true,
+        }),
+      );
       expect(prisma.$transaction).toHaveBeenCalled();
+    });
+
+    it('C1 · pago tardío: expira entre la lectura y el CAS → NO asienta (reconciliación)', async () => {
+      const { prisma, ledger, service } = build();
+      prisma.payment.findUniqueOrThrow.mockResolvedValue({ id: 'p5', orderId: 'o1' });
+      // 1ª lectura: pending; el CAS no reclama (sweeper expiró); relectura: expired.
+      prisma.order.findUniqueOrThrow
+        .mockResolvedValueOnce(baseOrder({ status: 'pending' }))
+        .mockResolvedValueOnce({ status: 'expired' });
+      prisma.order.updateMany.mockResolvedValue({ count: 0 });
+      await service.fulfill('p5');
+      // Un pago que llega tras la expiración NO mueve dinero (evita dinero sin boletos).
+      expect(ledger.post).not.toHaveBeenCalled();
     });
   });
 

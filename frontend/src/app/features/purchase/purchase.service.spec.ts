@@ -59,6 +59,32 @@ describe('PurchaseService', () => {
     expect(store.maxFor(AVAIL.localities[1])).toBe(2);
   });
 
+  it('F4: maxPerOrder del evento acota effectiveMax y maxFor', () => {
+    store.availability.set({ ...AVAIL, maxPerOrder: 3 } as unknown as EventAvailabilityDto);
+    expect(store.effectiveMax()).toBe(3);
+    // GA con 80 disponibles → acotado a 3 por el tope del evento.
+    expect(store.maxFor(AVAIL.localities[0])).toBe(3);
+    // VIP con 2 disponibles → sigue mandando la disponibilidad (menor que 3).
+    expect(store.maxFor(AVAIL.localities[1])).toBe(2);
+  });
+
+  it('F4: no se puede seleccionar más que maxPerOrder (asientos + cantidad)', () => {
+    store.availability.set({ ...AVAIL, maxPerOrder: 2 } as unknown as EventAvailabilityDto);
+    store.toggleSeat('s1');
+    store.toggleSeat('s2'); // 2 asientos → llegó al tope
+    store.setQuantity('ga', 5); // pide 5 generales, pero el presupuesto ya es 0
+    expect(store.totalCount()).toBe(2); // no excede el tope del evento
+    expect(store.quantityFor('ga')).toBe(0);
+  });
+
+  it('F4: setQuantity se clampa al presupuesto restante del tope', () => {
+    store.availability.set({ ...AVAIL, maxPerOrder: 4 } as unknown as EventAvailabilityDto);
+    store.toggleSeat('s1'); // 1 usado
+    store.setQuantity('ga', 10); // pide 10, pero solo quedan 3 del tope
+    expect(store.quantityFor('ga')).toBe(3);
+    expect(store.totalCount()).toBe(4);
+  });
+
   it('totales combinan asiento + cantidad en centavos', () => {
     store.toggleSeat('s1');
     store.setQuantity('ga', 2);

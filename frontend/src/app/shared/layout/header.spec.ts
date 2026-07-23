@@ -4,6 +4,7 @@ import { Router, provideRouter } from '@angular/router';
 import { EMPTY, of, Subject } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { SessionStore } from '../../core/auth/session.store';
+import { LoadingStore } from '../../core/ui/loading.store';
 import { NotificationsApi } from '../../core/api/notifications.api';
 import { NotificationsSocketService } from '../../core/notifications/notifications-socket.service';
 import { provideI18nTesting } from '../../core/i18n/testing';
@@ -190,15 +191,20 @@ describe('Header', () => {
     expect(el.querySelector('[data-testid="dd-facturacion"]')).not.toBeNull();
   });
 
-  it('logout navega al inicio tras la espera mínima de 3s', async () => {
+  it('logout navega al inicio tras la espera mínima de 1s con overlay bloqueante', async () => {
     await setup({ logout: of(undefined) });
+    const loading = TestBed.inject(LoadingStore);
     const nav = spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
     jasmine.clock().install();
     try {
       comp.logout();
-      expect(nav).not.toHaveBeenCalled(); // aún no: espera los 3s
-      jasmine.clock().tick(3001);
+      expect(nav).not.toHaveBeenCalled(); // aún no: espera 1s
+      expect(loading.visible()).toBeTrue(); // overlay inmediato (sin debounce)
+      expect(loading.blocking()).toBeTrue(); // captura los clics durante el logout (F1)
+      jasmine.clock().tick(1001);
       expect(nav).toHaveBeenCalledWith('/');
+      expect(loading.blocking()).toBeFalse(); // se libera al terminar
+      expect(loading.visible()).toBeFalse();
     } finally {
       jasmine.clock().uninstall();
     }
@@ -210,7 +216,7 @@ describe('Header', () => {
     jasmine.clock().install();
     try {
       comp.logout();
-      jasmine.clock().tick(3001);
+      jasmine.clock().tick(1001);
       expect(nav).toHaveBeenCalledWith('/');
     } finally {
       jasmine.clock().uninstall();

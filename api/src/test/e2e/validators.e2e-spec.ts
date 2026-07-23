@@ -222,9 +222,31 @@ describe('Validadores de boletos (e2e)', () => {
       .expect(200);
     expect(reenabled.body.status).toBe('active');
     const newToken = reenabled.body.url.split('/validar/')[1] as string;
+    // QA B4: el GATE-TOKEN de la sesión ANTERIOR (emitido antes del disable) NO revive tras
+    // rehabilitar — aunque la asignación esté restaurada — porque activeSessionId se reseteó.
+    await http().get(`/api/v1/events/${eventId}/manifest`).set(bearer(gateToken)).expect(403);
     await http().post('/api/v1/validators/claim').send({ token: newToken }).expect(200);
     // El token viejo ya no sirve (fue rotado).
     await http().post('/api/v1/validators/claim').send({ token }).expect(404);
+  });
+
+  it('QA cuentas-fantasma: invitar crea un placeholder NO verificado que el signup ADOPTA (no bloquea el alta real)', async () => {
+    const email = `ghost_${stamp}@test.com`;
+    await http().post(`/api/v1/events/${eventId}/validators`).set(bearer(promoterToken)).send({ email }).expect(201);
+    const ghost = await prisma.user.findUniqueOrThrow({ where: { email } });
+    expect(ghost.emailVerifiedAt).toBeNull(); // ya NO se pre-verifica
+    expect(ghost.passwordHash).toBeNull();
+    // La persona real se registra con ese correo → se ADOPTA (devuelve tokens, no 'pending').
+    const s = await http()
+      .post('/api/v1/auth/signup')
+      .send({ email, password: 'Password123', firstName: 'Real' });
+    expect(s.body.tokens?.accessToken).toBeTruthy();
+    expect(s.body.pending).toBeUndefined();
+    const adopted = await prisma.user.findUniqueOrThrow({ where: { email } });
+    expect(adopted.id).toBe(ghost.id); // mismo id → ancla del validador preservada
+    expect(adopted.passwordHash).not.toBeNull();
+    expect(adopted.roles).toContain('gate_operator'); // sigue siendo validador
+    expect(adopted.roles).toContain('buyer'); // + comprador
   });
 
   it('B5: invitar como validador a un CLIENTE existente NO contamina su cuenta (rol intacto) y aun así valida', async () => {

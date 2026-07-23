@@ -179,12 +179,14 @@ export class ValidatorsService {
   private async ensureOperator(email: string) {
     const existing = await this.prisma.user.findUnique({ where: { email } });
     if (existing) return { id: existing.id, roles: existing.roles };
+    // Ancla LIGERA de la invitación. NO se pre-verifica (QA cuentas-fantasma): un placeholder
+    // (sin contraseña y sin emailVerifiedAt) NO bloquea el alta real de esa persona — el signup
+    // lo ADOPTA (ver auth.service.signup). Antes se marcaba verificado → squatting del correo.
     return this.prisma.user.create({
       data: {
         email,
         firstName: 'Validador',
         roles: [Role.gate_operator],
-        emailVerifiedAt: new Date(), // invitado → correo de confianza
       },
       select: { id: true, roles: true },
     });
@@ -326,7 +328,9 @@ export class ValidatorsService {
     await this.prisma.$transaction([
       this.prisma.validatorInvitation.update({
         where: { id },
-        data: { status: ValidatorStatus.disabled },
+        // activeSessionId=null invalida cualquier gate-token previo (QA): al deshabilitar,
+        // un token emitido antes deja de pasar assertActiveSession aunque se rehabilite luego.
+        data: { status: ValidatorStatus.disabled, activeSessionId: null },
       }),
       this.prisma.gateAssignment.deleteMany({ where: { eventId, operatorId: inv.operatorId } }),
     ]);
@@ -364,7 +368,7 @@ export class ValidatorsService {
     await this.prisma.$transaction([
       this.prisma.validatorInvitation.updateMany({
         where: { eventId, status: ValidatorStatus.active },
-        data: { status: ValidatorStatus.disabled },
+        data: { status: ValidatorStatus.disabled, activeSessionId: null }, // invalida gate-tokens previos
       }),
       this.prisma.gateAssignment.deleteMany({ where: { eventId, operatorId: { in: opIds } } }),
     ]);
@@ -397,6 +401,9 @@ export class ValidatorsService {
           codeHash: sha256(randomToken(16)),
           tokenHash: sha256(token),
           expiresAt,
+          // Fuerza que SOLO el próximo claim del nuevo enlace habilite operaciones online:
+          // un gate-token emitido antes del disable NO revive al rehabilitar (QA).
+          activeSessionId: null,
         },
       }),
     ]);

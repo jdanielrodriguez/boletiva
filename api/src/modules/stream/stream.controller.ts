@@ -97,14 +97,14 @@ export class StreamController {
 
   /**
    * Stream SSE del checkout: estado de la orden (pending→paid/…), deltas de asientos del
-   * evento y `wallet` del comprador — push sin polling. Auth por `?ticket=` (preferido: de
-   * un solo uso, ver stream-ticket) o, por compatibilidad, `?access_token=`/Bearer
-   * (EventSource no envía headers). Solo el dueño (IDOR→404).
+   * evento y `wallet` del comprador — push sin polling. Auth por `?ticket=` (un solo uso, ver
+   * stream-ticket) o `Authorization: Bearer` (el frontend usa el ticket, ya que EventSource no
+   * envía headers). El access token ya NO se acepta en la query (fuga por logs). Solo el dueño (IDOR→404).
    */
   @Public()
   @SkipRateLimit()
   @Sse('orders/:id/stream')
-  @ApiOperation({ summary: 'Stream SSE del checkout (order/seat/wallet). Auth: ?ticket= (o ?access_token=)' })
+  @ApiOperation({ summary: 'Stream SSE del checkout (order/seat/wallet). Auth: ?ticket= (un solo uso) o Bearer' })
   @ApiProduces('text/event-stream')
   @ApiOkResponse({
     description:
@@ -115,10 +115,9 @@ export class StreamController {
   async orderStream(
     @Param('id', ParseUUIDPipe) id: string,
     @Query('ticket') ticket?: string,
-    @Query('access_token') accessToken?: string,
     @Headers('authorization') authorization?: string,
   ): Promise<Observable<MessageEvent>> {
-    const userId = await this.resolveUserId(id, ticket, accessToken, authorization);
+    const userId = await this.resolveUserId(id, ticket, authorization);
     if (!userId) throw new UnauthorizedException('Se requiere un ticket o token válido');
 
     const order = await this.prisma.order.findUnique({
@@ -148,11 +147,15 @@ export class StreamController {
     return this.stream.streamSeats(id);
   }
 
-  /** Resuelve el userId desde el ticket de un solo uso o, como fallback, un JWT válido. */
+  /**
+   * Resuelve el userId desde el ticket de un solo uso (preferido; el frontend lo usa) o, como
+   * fallback, un JWT en el header Authorization: Bearer. Ya NO se acepta `?access_token=` en la
+   * query (QA): un JWT en la URL queda en los access logs de proxy/LB (fuga). El ticket es
+   * efímero (60s, un uso) y el Bearer no viaja en la URL.
+   */
   private async resolveUserId(
     orderId: string,
     ticket?: string,
-    accessToken?: string,
     authorization?: string,
   ): Promise<string | null> {
     if (ticket) {
@@ -162,7 +165,7 @@ export class StreamController {
       const [ordId, uid] = raw.split(':');
       return ordId === orderId && uid ? uid : null;
     }
-    const jwt = accessToken || (authorization?.startsWith('Bearer ') ? authorization.slice(7) : '');
+    const jwt = authorization?.startsWith('Bearer ') ? authorization.slice(7) : '';
     // Validación ÚNICA de access token (rechaza preauth 2FA, etc.) — helper compartido.
     return verifyAccessToken(this.jwt, this.jwtSecret, jwt || undefined)?.sub ?? null;
   }

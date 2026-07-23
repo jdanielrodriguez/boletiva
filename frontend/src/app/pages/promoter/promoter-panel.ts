@@ -88,6 +88,8 @@ export class PromoterPanel {
 
   protected readonly events = signal<MyEventListItemDto[]>([]);
   protected readonly loading = signal(true);
+  /** G3.1 (auditoría 4): fallo de carga de eventos (distinto del vacío legítimo). */
+  protected readonly loadError = signal(false);
   protected readonly page = signal(1);
   protected readonly pageSize = PAGE_SIZE;
   /** Búsqueda por nombre + filtro por estado (regla v3.2: toda lista los tiene). */
@@ -219,8 +221,9 @@ export class PromoterPanel {
     });
   }
 
-  private loadEvents(): void {
+  protected loadEvents(): void {
     this.loading.set(true);
+    this.loadError.set(false);
     this.eventsApi.mine().subscribe({
       next: (e) => {
         this.events.set(e);
@@ -230,6 +233,7 @@ export class PromoterPanel {
       error: () => {
         this.events.set([]);
         this.loading.set(false);
+        this.loadError.set(true);
         this.toasts.error(this.translate.instant('promoter.panel.loadError'));
       },
     });

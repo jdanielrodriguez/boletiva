@@ -10,7 +10,7 @@ const sign = (id: string, type: string, ref: string) => hmacSha256(SECRET, `${id
 
 /**
  * Ola 6.5 · Ticket 4 — SSE del checkout (`GET /orders/:id/stream`).
- * Cubre: auth por ?access_token= (EventSource no envía headers), IDOR→404,
+ * Cubre: auth por ?ticket= (un solo uso; el access token ya NO va en la query), IDOR→404,
  * apertura del stream (text/event-stream) con snapshot inicial, y recepción del
  * evento `order` (status=paid) cuando llega el webhook — push sin polling.
  */
@@ -47,7 +47,7 @@ describe('SSE del checkout (e2e)', () => {
       data: { eventId, name: 'S', slug: `s-${stamp}`, kind: 'seated', desiredNet: 100 },
     });
     await prisma.seat.createMany({
-      data: Array.from({ length: 4 }, (_, i) => ({ localityId: loc.id, label: `S${i + 1}` })),
+      data: Array.from({ length: 6 }, (_, i) => ({ localityId: loc.id, label: `S${i + 1}` })),
     });
     const seats = await prisma.seat.findMany({ where: { localityId: loc.id } });
     seatIds = seats.sort((a, b) => Number(a.label.slice(1)) - Number(b.label.slice(1))).map((s) => s.id);
@@ -102,9 +102,15 @@ describe('SSE del checkout (e2e)', () => {
     await http2().get(`/api/v1/orders/${o.id}/stream`).expect(401);
   });
 
-  it('IDOR: otro usuario (por ?access_token) → 404', async () => {
+  it('IDOR: otro usuario (Bearer ajeno) → 404', async () => {
     const o = await buy(1);
-    await http2().get(`/api/v1/orders/${o.id}/stream?access_token=${bToken}`).expect(404);
+    // El access token ya NO se acepta en la query (fuga por logs); se prueba vía Bearer.
+    await http2().get(`/api/v1/orders/${o.id}/stream`).set(bearer(bToken)).expect(404);
+  });
+
+  it('el access token en la query (?access_token=) YA NO autentica → 401', async () => {
+    const o = await buy(4);
+    await http2().get(`/api/v1/orders/${o.id}/stream?access_token=${token}`).expect(401);
   });
 
   it('H4: stream-ticket → abre el SSE con ?ticket= (un solo uso); IDOR y ticket inválido', async () => {
@@ -127,8 +133,9 @@ describe('SSE del checkout (e2e)', () => {
 
   it('dueño: abre el stream (text/event-stream + snapshot) y recibe `order` paid al pagar', async () => {
     const o = await buy(2);
-
-    const events = await openSse(`/api/v1/orders/${o.id}/stream?access_token=${token}`, async () => {
+    // Ticket de un solo uso (Bearer en header, no en URL) para abrir el SSE.
+    const t = await http2().post(`/api/v1/orders/${o.id}/stream-ticket`).set(bearer(token)).expect(200);
+    const events = await openSse(`/api/v1/orders/${o.id}/stream?ticket=${t.body.ticket}`, async () => {
       // Tras abrir el stream, dispara el pago + webhook → emite `order` paid.
       const pay = await http2().post(`/api/v1/orders/${o.id}/pay`).set(bearer(token)).expect(201);
       const evt = `sse_evt_${stamp}`;

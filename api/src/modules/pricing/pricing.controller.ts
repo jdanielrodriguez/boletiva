@@ -26,6 +26,7 @@ export class PricingController {
 
   @Get('schedules')
   @Roles(Role.admin)
+  @AdminOnly() // G1.2: EXCLUSIVO admin — un asesor NO lee el historial de comisiones.
   @ApiOperation({ summary: 'Lista todas las versiones de comisiones (admin)' })
   @ApiOkResponse({ type: FeeScheduleResponseDto, isArray: true })
   listSchedules() {

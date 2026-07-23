@@ -132,6 +132,10 @@ export class EventRefundsService {
         mode: opts.orderId ? 'single' : 'all',
         refundedOrders: refunded.length,
         totalNetRefunded: totalNet.toFixed(2),
+        // Trazabilidad: si un admin tramitó esto IMPERSONANDO al promotor, deja constancia
+        // del actor REAL en la bitácora (el userId es el del dueño). El payload va firmado
+        // en la hash-chain, así que no se puede alterar sin romper la cadena.
+        ...(user.impersonatedBy ? { impersonatedBy: user.impersonatedBy } : {}),
       },
     });
 
@@ -158,16 +162,23 @@ export class EventRefundsService {
   private async refundOne(order: Order, promoterId: string): Promise<Decimal> {
     const net = new Decimal(order.net.toString());
 
-    // Asiento contable idempotente (por si el mismo order se reprocesa): solo el neto.
-    const already = await this.prisma.ledgerTransaction.findFirst({
-      where: { kind: 'event_refund', refType: 'order', refId: order.id },
+    // CLAIM-FIRST: solo el ganador del CAS `paid→refunded` procesa. Evita doble devolución
+    // si corre en paralelo con un refund/chargeback del pago o con otra devolución del evento;
+    // el perdedor ve count==0 y sale (devuelve 0 → no suma al total ni re-libera asientos).
+    const claim = await this.prisma.order.updateMany({
+      where: { id: order.id, status: 'paid' },
+      data: { status: 'refunded' },
     });
-    if (!already && net.gt(0)) {
+    if (claim.count === 0) return new Decimal(0);
+
+    // Asiento contable IDEMPOTENTE (solo el neto): no duplica si ya existe.
+    if (net.gt(0)) {
       await this.ledger.post({
         kind: 'event_refund',
         refType: 'order',
         refId: order.id,
         memo: `Devolución (neto) por cancelación/suspensión de la orden ${order.id}`,
+        idempotent: true,
         entries: [
           { type: 'promoter_payable', ownerId: promoterId, amount: net.negated().toFixed(2) },
           { type: 'user_wallet', ownerId: order.buyerId, amount: net.toFixed(2) },
@@ -187,7 +198,7 @@ export class EventRefundsService {
         where: { id: { in: seatIds } },
         data: { status: 'available' },
       }),
-      this.prisma.order.update({ where: { id: order.id }, data: { status: 'refunded' } }),
+      // (el estado de la orden ya se fijó a 'refunded' en el CAS claim-first de arriba)
     ]);
 
     // Invalida los boletos + propaga la revocación a validadores offline (Ola 5).

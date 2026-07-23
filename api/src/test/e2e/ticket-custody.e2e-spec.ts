@@ -174,6 +174,24 @@ describe('Boletos: cadena de custodia (e2e)', () => {
     expect(res.body.integrity.brokenAt).toBe(1);
   });
 
+  it('G6.1 (auditoría 4): alterar el ACTOR de un check-in rompe la cadena (atribución firmada)', async () => {
+    const orderId = await buyAndPay(5);
+    const ticket = await prisma.ticket.findFirstOrThrow({ where: { orderId } });
+    const qr = await http().get(`/api/v1/tickets/${ticket.id}/qr`).set(bearer(buyerToken)).expect(200);
+    // El check-in crea el eslabón seq 2 con actorId = el operador que validó.
+    await http().post('/api/v1/tickets/verify').set(bearer(operatorToken)).send({ payload: qr.body.payload }).expect(200);
+    const checkin = await prisma.ticketCustodyEvent.findFirstOrThrow({ where: { ticketId: ticket.id, seq: 2 } });
+    expect(checkin.actorId).toBeTruthy(); // se registró QUIÉN validó
+    // Reasignar el actorId (falsear quién validó / en qué puerta) → debe romper la integridad.
+    await prisma.ticketCustodyEvent.update({
+      where: { id: checkin.id },
+      data: { actorId: '00000000-0000-0000-0000-000000000000' },
+    });
+    const res = await http().get(`/api/v1/tickets/${ticket.id}/custody`).set(bearer(buyerToken)).expect(200);
+    expect(res.body.integrity.ok).toBe(false);
+    expect(res.body.integrity.brokenAt).toBe(2);
+  });
+
   // ---- Cobertura adicional (auditoría QA) ----
 
   it('un admin puede ver la cadena de un boleto ajeno (escalada legítima)', async () => {

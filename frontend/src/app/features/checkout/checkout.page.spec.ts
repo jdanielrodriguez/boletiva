@@ -249,25 +249,20 @@ describe('CheckoutPage', () => {
     expect(el.querySelector('[data-testid="pay-saved-card"]')).toBeNull();
   });
 
-  it('con métodos guardados los ofrece para seleccionar y NO muestra el form por defecto', async () => {
+  it('QA: con métodos guardados NO se ofrece "tarjeta guardada" (cobro tokenizado off) → usa el form nuevo', async () => {
     await setup({ cards: CARDS });
-    expect(el.querySelector('[data-testid="pay-saved-card"]')).not.toBeNull();
-    expect(el.querySelector('[data-testid="new-card-form"]')).toBeNull();
-    // La tarjeta default queda seleccionada → pide CVV.
-    expect(el.querySelector('[data-testid="cvv-block"]')).not.toBeNull();
+    // El cobro con tarjeta tokenizada aún no existe → NO se expone el flujo 'saved'.
+    expect(el.querySelector('[data-testid="pay-saved-card"]')).toBeNull();
+    expect(el.querySelector('[data-testid="cvv-block"]')).toBeNull();
+    // Cae al formulario de tarjeta nueva (el flujo que sí cobra).
+    expect(el.querySelector('[data-testid="new-card-form"]')).not.toBeNull();
   });
 
-  it('pagar con tarjeta guardada exige CVV válido antes de confirmar', async () => {
+  it('con métodos guardados, el pago se hace con la tarjeta NUEVA del formulario', async () => {
     await setup({ cards: CARDS });
-    const payBtn = el.querySelector('[data-testid="pay-confirm"]') as HTMLButtonElement;
-    // Sin CVV → deshabilitado.
-    expect(payBtn.disabled).toBe(true);
-    const cvv = el.querySelector('[data-testid="saved-cvv"]') as HTMLInputElement;
-    cvv.value = '123';
-    cvv.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-    expect((el.querySelector('[data-testid="pay-confirm"]') as HTMLButtonElement).disabled).toBe(false);
+    fillNewCard();
     (el.querySelector('[data-testid="pay-confirm"]') as HTMLButtonElement).click();
+    // gw1 es Recurrente (no Pagalo) → no viaja `card`; el pago se inicia igual.
     expect(orders.pay).toHaveBeenCalledWith('o1', {
       gatewayId: 'gw1',
       installments: 1,

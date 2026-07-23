@@ -125,9 +125,11 @@ export class GateAccessService {
   }
 
   /**
-   * "Último gana": si el gate-token es de un VALIDADOR (trae `sid`), debe coincidir con el
-   * `activeSessionId` vigente de su invitación. Si se canjeó el enlace en otro dispositivo,
-   * el sid rotó → este token queda fuera de las operaciones ONLINE (manifiesto/subida).
+   * "Último gana": si el gate-token es de un VALIDADOR (trae `sid`), su invitación debe existir
+   * y tener un `activeSessionId` NO-NULO IGUAL al `sid`. Casos que se RECHAZAN (QA B4):
+   *  - se canjeó el enlace en otro dispositivo → el sid rotó (differ);
+   *  - se deshabilitó/rehabilitó al validador → activeSessionId se reseteó a null → un
+   *    gate-token anterior NO revive (antes null se trataba como "sin restricción" y pasaba).
    * Tokens sin `sid` (operador de puerta asignado directo, sin invitación) NO se afectan.
    */
   private async assertActiveSession(eventId: string, user: AuthUser): Promise<void> {
@@ -136,7 +138,7 @@ export class GateAccessService {
       where: { eventId, operatorId: user.userId },
       select: { activeSessionId: true },
     });
-    if (inv && inv.activeSessionId && inv.activeSessionId !== user.sid) {
+    if (!inv || inv.activeSessionId !== user.sid) {
       throw new ForbiddenException('Se abrió el validador en otro dispositivo; vuelve a abrir el enlace aquí.');
     }
   }

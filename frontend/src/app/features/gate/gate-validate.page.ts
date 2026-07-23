@@ -1,6 +1,7 @@
 import {
   Component,
   ElementRef,
+  HostListener,
   OnDestroy,
   PLATFORM_ID,
   effect,
@@ -12,9 +13,10 @@ import { isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import { GateApi } from '../../core/api/gate.api';
+import { GateApi, type GateManifest } from '../../core/api/gate.api';
 import { GateDb, type QueuedCheckin } from '../../core/gate/gate-db';
 import { parseQr, verifyTotp } from '../../core/gate/totp';
+import { verifyManifest } from '../../core/gate/manifest-verify';
 import { apiErrorMessage } from '../../core/http/api-error';
 
 type Phase = 'loading' | 'welcome' | 'starting' | 'scanning' | 'cameraError' | 'invalid';
@@ -63,10 +65,26 @@ export class GateValidatePage implements OnDestroy {
   protected readonly ticketCount = signal(0);
   protected readonly pending = signal(0);
   protected readonly online = signal(true);
+  /** Expiración del manifiesto guardado (SafeTix): pasado este instante NO se valida offline. */
+  private manifestExpiresAt: number | null = null;
   // Escaneo AUTOMÁTICO disponible (BarcodeDetector nativo o jsQR). Si es false, la única
   // vía es la entrada MANUAL del contenido del QR (respaldo).
   protected readonly manualSupported = signal(true);
   protected readonly manualCode = signal('');
+
+  /**
+   * Red de seguridad anti-pérdida de datos: si hay check-ins en la cola local (IndexedDB)
+   * sin sincronizar, el navegador muestra el diálogo nativo de confirmación antes de
+   * cerrar/recargar la pestaña. Evita que un portero pierda escaneos hechos offline por
+   * cerrar la app antes de recuperar conexión. Solo bloquea si `pending() > 0`.
+   */
+  @HostListener('window:beforeunload', ['$event'])
+  protected onBeforeUnload(e: BeforeUnloadEvent): void {
+    if (this.pending() > 0) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  }
 
   private token = '';
   private eventId = '';
@@ -84,6 +102,14 @@ export class GateValidatePage implements OnDestroy {
   private audioCtx?: AudioContext;
   /** Tamaño de lote al drenar la cola offline (evita payloads gigantes en 3G). */
   private static readonly FLUSH_CHUNK = 200;
+  /** Última `seq` sincronizada: base del pull incremental (`?since=`). */
+  private lastMaxSeq = 0;
+  private resyncTimer?: ReturnType<typeof setInterval>;
+  private resyncing = false;
+  /** Cada cuánto se re-sincroniza el manifiesto con el backend (propaga revocaciones). */
+  private static readonly RESYNC_MS = 45_000;
+  /** El acceso del validador fue REVOCADO (backend respondió 401/403): se detiene la validación. */
+  protected readonly revoked = signal(false);
 
   constructor() {
     this.token = this.route.snapshot.paramMap.get('token') ?? '';
@@ -129,10 +155,16 @@ export class GateValidatePage implements OnDestroy {
     this.phase.set('starting');
     this.error.set(null);
     this.api.claim(this.token).subscribe({
-      next: (res) => {
+      next: async (res) => {
         this.gateToken = res.gateToken;
         this.eventId = res.gateEventId;
         this.eventName.set(res.event.name);
+        // G2.3 (auditoría 4): drenar la cola de check-ins PENDIENTES antes de re-descargar
+        // el manifiesto. saveManifest hace clear()+reput con la verdad del backend; sin este
+        // flush previo, un boleto validado offline (aún en la cola) se resetearía a 'valid' y
+        // podría volver a dar VERDE tras una recarga. Con el flush, el backend ya lo tiene como
+        // 'used' y el manifiesto descargado lo refleja. (No-op si la cola está vacía / sin red.)
+        await this.flush();
         this.downloadManifest();
       },
       error: (err) => {
@@ -145,20 +177,39 @@ export class GateValidatePage implements OnDestroy {
   private downloadManifest(): void {
     this.api.manifest(this.eventId, this.gateToken).subscribe({
       next: async (m) => {
+        // Verifica AUTENTICIDAD/INTEGRIDAD (Ed25519 + recomputo del digest) antes de guardar.
+        // Un manifiesto manipulado (MITM sustituyendo un totpSecret) → 'invalid'. En navegador
+        // SIN Ed25519 en WebCrypto → 'unsupported': tampoco se acepta (un manifiesto forjado con
+        // su propio contentHash pasaría el recomputo pero NO la firma) → se exige un navegador
+        // que pueda verificar (QA). Solo 'ok' se persiste.
+        const verdict = await verifyManifest(m);
+        if (verdict !== 'ok') {
+          this.error.set(
+            this.translate.instant(verdict === 'unsupported' ? 'gate.manifestUnsupported' : 'gate.manifestTampered'),
+          );
+          this.phase.set('invalid');
+          return; // NO se persiste un manifiesto no verificado
+        }
         await this.db.saveManifest(
           this.eventId,
           m.tickets.map((t) => ({ serial: t.serial, status: t.status, totpSecret: t.totpSecret })),
-          { expiresAt: m.expiresAt, gateToken: this.gateToken, eventName: this.eventName() },
+          { expiresAt: m.expiresAt, gateToken: this.gateToken, eventName: this.eventName(), maxSeq: m.maxSeq ?? 0 },
         );
+        this.manifestExpiresAt = Date.parse(m.expiresAt);
+        this.lastMaxSeq = m.maxSeq ?? 0;
         this.ticketCount.set((await this.db.ticketCount()) ?? m.tickets.length);
         this.pending.set((await this.db.queueCount()) ?? 0);
+        this.startResync(); // pull incremental: propaga revocaciones/transferencias en vivo
         void this.startCamera();
       },
       error: async (err) => {
-        // Sin red pero con manifiesto ya guardado antes → seguimos offline.
+        // Sin red pero con manifiesto ya guardado antes → seguimos offline (si no venció).
         const meta = await this.db.getMeta(this.eventId);
         if (meta) {
+          this.manifestExpiresAt = Date.parse(meta.expiresAt);
+          this.lastMaxSeq = meta.maxSeq ?? 0;
           this.ticketCount.set((await this.db.ticketCount()) ?? 0);
+          this.startResync(); // reintentará el pull incremental al volver la red
           void this.startCamera();
         } else {
           this.error.set(apiErrorMessage(err, this.translate.instant('gate.manifestFailed')));
@@ -270,6 +321,15 @@ export class GateValidatePage implements OnDestroy {
     if (this.busy) return;
     this.busy = true;
     try {
+      // Acceso revocado (el backend respondió 401/403) → no se valida más.
+      if (this.revoked()) {
+        return this.show({ kind: 'invalid', message: this.translate.instant('gate.accessRevoked') });
+      }
+      // Expiración SafeTix: un manifiesto vencido NO valida offline (lleva secretos TOTP en
+      // claro). Obliga a reconectar para re-sincronizar → un manifiesto robado deja de servir.
+      if (this.manifestExpiresAt != null && Date.now() >= this.manifestExpiresAt) {
+        return this.show({ kind: 'invalid', message: this.translate.instant('gate.manifestExpired') });
+      }
       const parsed = parseQr(payload);
       if (!parsed) return this.show({ kind: 'invalid', message: this.translate.instant('gate.resultBadFormat') });
       const ticket = await this.db.getTicket(parsed.serial);
@@ -380,18 +440,83 @@ export class GateValidatePage implements OnDestroy {
           batch.map((q) => ({ serial: q.serial, checkedInAt: q.at })),
           this.gateToken,
         )
-        .subscribe({ next: () => resolve(true), error: () => resolve(false) });
+        .subscribe({
+          next: () => resolve(true),
+          error: (err: { status?: number }) => {
+            // 401/403 = acceso REVOCADO (no un fallo de red) → detener la validación (QA):
+            // un validador deshabilitado NO debe seguir admitiendo gente offline.
+            if (err?.status === 401 || err?.status === 403) this.markRevoked();
+            resolve(false);
+          },
+        });
     });
+  }
+
+  /** Arranca el pull incremental periódico (idempotente: no duplica el timer). */
+  private startResync(): void {
+    if (this.resyncTimer || !isPlatformBrowser(this.platformId)) return;
+    this.resyncTimer = setInterval(() => void this.resync(), GateValidatePage.RESYNC_MS);
+    void this.resync(); // primer pull inmediato
+  }
+
+  /**
+   * Pull INCREMENTAL del manifiesto (`?since=lastMaxSeq`): trae solo los boletos cambiados
+   * (revocados/transferidos/usados) desde la última sync, verifica su firma y los fusiona en
+   * IndexedDB → una revocación/reembolso deja de dar verde SIN esperar a que venza el
+   * manifiesto. Verifica la firma igual que el completo; 401/403 = acceso revocado → se corta.
+   */
+  private async resync(): Promise<void> {
+    if (this.resyncing || this.revoked() || !this.online() || !this.gateToken) return;
+    this.resyncing = true;
+    try {
+      const m = await new Promise<GateManifest | null>((resolve) => {
+        this.api.manifest(this.eventId, this.gateToken, this.lastMaxSeq).subscribe({
+          next: (r) => resolve(r),
+          error: (err: { status?: number }) => {
+            if (err?.status === 401 || err?.status === 403) this.markRevoked();
+            resolve(null);
+          },
+        });
+      });
+      if (!m) return;
+      // Solo aplica un delta cuya firma verifica (mismo criterio que el manifiesto completo).
+      if ((await verifyManifest(m)) !== 'ok') return;
+      if (m.tickets.length) {
+        await this.db.applyDelta(
+          this.eventId,
+          m.tickets.map((t) => ({ serial: t.serial, status: t.status, totpSecret: t.totpSecret })),
+          { maxSeq: m.maxSeq ?? this.lastMaxSeq, expiresAt: m.expiresAt },
+        );
+      }
+      this.lastMaxSeq = m.maxSeq ?? this.lastMaxSeq;
+      this.manifestExpiresAt = Date.parse(m.expiresAt); // el delta renueva la expiración
+      this.ticketCount.set((await this.db.ticketCount()) ?? 0);
+    } finally {
+      this.resyncing = false;
+    }
+  }
+
+  /** Marca el acceso como revocado y detiene el escaneo (deja de dar verde). */
+  private markRevoked(): void {
+    if (this.revoked()) return;
+    this.revoked.set(true);
+    if (this.scanTimer) clearInterval(this.scanTimer);
+    if (this.resyncTimer) clearInterval(this.resyncTimer);
+    this.stream?.getTracks().forEach((t) => t.stop());
+    this.error.set(this.translate.instant('gate.accessRevoked'));
+    this.phase.set('invalid');
   }
 
   private readonly onOnline = (): void => {
     this.online.set(true);
     void this.flush();
+    void this.resync(); // al volver la red, trae de inmediato revocaciones pendientes
   };
   private readonly onOffline = (): void => this.online.set(false);
 
   ngOnDestroy(): void {
     if (this.scanTimer) clearInterval(this.scanTimer);
+    if (this.resyncTimer) clearInterval(this.resyncTimer);
     this.stream?.getTracks().forEach((t) => t.stop());
     void this.audioCtx?.close().catch(() => undefined);
     if (isPlatformBrowser(this.platformId)) {

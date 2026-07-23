@@ -41,6 +41,7 @@ describe('Media de eventos (e2e)', () => {
         promoterId: promoter.id,
         name: 'MEDIA Event',
         slug: `media-${stamp}`,
+        status: 'published', // el listado público de media exige evento publicado (QA promotores-H7)
         startsAt: new Date('2027-11-01T20:00:00-06:00'),
         endsAt: new Date('2027-11-01T23:00:00-06:00'),
       },
@@ -106,6 +107,25 @@ describe('Media de eventos (e2e)', () => {
     await http().delete(`/api/v1/media/${reg.body.id}`).set(bearer(promoterToken)).expect(204);
     const after = await http().get(`/api/v1/events/${eventId}/media`).expect(200);
     expect(after.body).toHaveLength(0);
+  });
+
+  it('QA promotores-H7: la media de un evento en BORRADOR NO se expone en el listado público', async () => {
+    const draft = await prisma.event.create({
+      data: {
+        promoterId: (await prisma.user.findFirstOrThrow({ where: { roles: { has: 'promoter' } } })).id,
+        name: 'Draft Media',
+        slug: `media-draft-${stamp}`,
+        status: 'draft',
+        startsAt: new Date('2027-12-01T20:00:00-06:00'),
+        endsAt: new Date('2027-12-01T23:00:00-06:00'),
+      },
+    });
+    // Registra media directamente (el dueño puede en borrador).
+    await prisma.eventMedia.create({ data: { eventId: draft.id, key: `events/${draft.id}/secret.jpg`, kind: 'cover' } });
+    const list = await http().get(`/api/v1/events/${draft.id}/media`).expect(200);
+    expect(list.body).toHaveLength(0); // borrador → público vacío
+    await prisma.eventMedia.deleteMany({ where: { eventId: draft.id } });
+    await prisma.event.delete({ where: { id: draft.id } });
   });
 
   it('6.3: registrar una key FUERA del prefijo del evento → 400 (dueño)', async () => {

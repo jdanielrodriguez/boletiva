@@ -26,7 +26,7 @@ export interface AppConfig {
     };
     gcs: { projectId: string; bucket: string; serviceAccountJson: string };
   };
-  mail: { host: string; port: number; user: string; pass: string; secure: boolean; from: string };
+  mail: { transport: string; region: string; host: string; port: number; user: string; pass: string; secure: boolean; from: string };
   jwt: {
     accessSecret: string;
     accessTtl: number;
@@ -191,6 +191,11 @@ export const configuration = (): AppConfig => {
       },
     },
     mail: {
+      // Transporte: 'smtp' (MailHog local / cualquier SMTP) o 'ses' (AWS SES vía SDK,
+      // recomendado en prod: 1 request HTTPS, sin baile SMTP, y habilita bounce handling
+      // por Configuration Sets). El resto de la lógica (plantillas, colas) es idéntica.
+      transport: (process.env.MAIL_TRANSPORT ?? 'smtp').toLowerCase(),
+      region: process.env.MAIL_AWS_REGION ?? process.env.AWS_REGION ?? 'us-east-1',
       host: process.env.MAIL_HOST as string,
       port: parseInt(process.env.MAIL_PORT ?? '1025', 10),
       user: process.env.MAIL_USER ?? '',
@@ -248,7 +253,11 @@ export const configuration = (): AppConfig => {
     },
     safetix: {
       gateTokenTtl: parseInt(process.env.SAFETIX_GATE_TOKEN_TTL ?? '1800', 10), // 30 min
-      manifestTtl: parseInt(process.env.SAFETIX_MANIFEST_TTL ?? '21600', 10), // 6 h
+      // G6.2 (auditoría 4): 2 h (antes 6 h). El manifiesto lleva el estado de validez;
+      // una ventana grande deja que un boleto reembolsado/revocado dé VERDE en una puerta
+      // desconectada hasta que caduque. 2 h acota la exposición offline sin exigir red
+      // constante (el re-sync incremental cada 45s lo refresca en cuanto hay conexión).
+      manifestTtl: parseInt(process.env.SAFETIX_MANIFEST_TTL ?? '7200', 10), // 2 h
     },
     editUnlock: {
       ttl: parseInt(process.env.EVENT_EDIT_UNLOCK_TTL ?? '300', 10), // 5 min

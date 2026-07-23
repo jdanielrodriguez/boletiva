@@ -120,6 +120,40 @@ describe('Rol asesor (e2e)', () => {
     await http().get('/api/v1/settings').set(bearer(adminToken)).expect(200);
   });
 
+  it('QA escalada: otorgar Premium (tier) y "activar pruebas" son @AdminOnly → 403 al asesor aun con desbloqueo', async () => {
+    await unlock(); // ventana de desbloqueo VIGENTE: aun así, @AdminOnly corta al asesor
+    await http()
+      .patch(`/api/v1/promoters/${promoterId}/tier`)
+      .set(bearer(advisorToken))
+      .send({ tier: 'premium' })
+      .expect(403);
+    await http()
+      .patch('/api/v1/promoters/settings')
+      .set(bearer(advisorToken))
+      .send({ requireApproval: false })
+      .expect(403);
+    // El admin real sí puede accionar la perilla de gobernanza (control).
+    await http()
+      .patch('/api/v1/promoters/settings')
+      .set(bearer(adminToken))
+      .send({ requireApproval: true })
+      .expect(200);
+    // Limpia la ventana de desbloqueo que abrió unlock() para no filtrarla al siguiente test.
+    await prisma.advisorUnlock.deleteMany({});
+  });
+
+  it('QA: el enlace de desbloqueo PENDIENTE caduca (token viejo → 400)', async () => {
+    const req = await http().post('/api/v1/advisor/unlock/request').set(bearer(advisorToken)).expect(200);
+    const token = req.body.devToken as string;
+    // Envejece el pendiente más allá del TTL (30 min) → approve debe rechazarlo.
+    await prisma.advisorUnlock.updateMany({
+      where: { approved: false },
+      data: { createdAt: new Date(Date.now() - 31 * 60 * 1000) },
+    });
+    await http().post('/api/v1/advisor/unlock/approve').set(bearer(adminToken)).send({ token }).expect(400);
+    await prisma.advisorUnlock.deleteMany({});
+  });
+
   it('MUTACIÓN de área admin SIN desbloqueo → 403; tras aprobar el desbloqueo → 200', async () => {
     await setLock(true);
     // Sin ventana → bloqueado.
@@ -262,6 +296,8 @@ describe('Rol asesor (e2e)', () => {
     await http().post(`/api/v1/wallet/withdrawals/${dummy}/pay`).set(bearer(advisorToken)).send({}).expect(403);
     await http().post(`/api/v1/events/${dummy}/settlement/finalize`).set(bearer(advisorToken)).expect(403);
     await http().post('/api/v1/pricing/schedules').set(bearer(advisorToken)).send({ platformPct: 0.1 }).expect(403);
+    // G1.2: LEER el historial de comisiones también es @AdminOnly (antes lo veía el asesor).
+    await http().get('/api/v1/pricing/schedules').set(bearer(advisorToken)).expect(403);
   });
 
   it('A-1: el candado NO bloquea la bandeja de soporte del asesor (take pasa el guard → 404 por ticket inexistente, no 403)', async () => {
@@ -273,5 +309,105 @@ describe('Rol asesor (e2e)', () => {
       .post(`/api/v1/support/00000000-0000-0000-0000-000000000000/take`)
       .set(bearer(advisorToken))
       .expect(404);
+  });
+
+  // --- F3: desbloqueo desde el panel admin (sin depender del correo) ---
+
+  it('F3: GET /advisor/unlock/pending lista al asesor con solicitud pendiente (@AdminOnly; asesor 403)', async () => {
+    await setLock(true);
+    await prisma.advisorUnlock.deleteMany({ where: { advisorId } });
+    // Sin solicitudes: el asesor NO aparece.
+    let list = await http().get('/api/v1/advisor/unlock/pending').set(bearer(adminToken)).expect(200);
+    expect((list.body as Array<{ advisorId: string }>).find((r) => r.advisorId === advisorId)).toBeUndefined();
+    // El asesor solicita → aparece con pending:true.
+    await http().post('/api/v1/advisor/unlock/request').set(bearer(advisorToken)).expect(200);
+    list = await http().get('/api/v1/advisor/unlock/pending').set(bearer(adminToken)).expect(200);
+    const row = (list.body as Array<{ advisorId: string; pending: boolean; unlocked: boolean }>).find(
+      (r) => r.advisorId === advisorId,
+    );
+    expect(row).toBeDefined();
+    expect(row?.pending).toBe(true);
+    expect(row?.unlocked).toBe(false);
+    // Un ASESOR NO puede listar los desbloqueos (@AdminOnly) → 403.
+    await http().get('/api/v1/advisor/unlock/pending').set(bearer(advisorToken)).expect(403);
+    await prisma.advisorUnlock.deleteMany({ where: { advisorId } });
+  });
+
+  it('F3: POST /advisor/unlock/grant concede el desbloqueo directo (sin token); abre la ventana', async () => {
+    await setLock(true);
+    await prisma.advisorUnlock.deleteMany({ where: { advisorId } });
+    // Sin ventana: mutar área admin → 403.
+    await http()
+      .patch(`/api/v1/promoters/${promoterId}/note`)
+      .set(bearer(advisorToken))
+      .send({ note: 'antes del grant' })
+      .expect(403);
+    // El admin concede directamente (sin el token del correo).
+    const g = await http().post(`/api/v1/advisor/unlock/grant/${advisorId}`).set(bearer(adminToken)).expect(200);
+    expect(g.body).toMatchObject({ granted: true, advisorId });
+    expect(g.body.expiresAt).toBeTruthy();
+    // Ahora la ventana está abierta → el asesor muta.
+    await http()
+      .patch(`/api/v1/promoters/${promoterId}/note`)
+      .set(bearer(advisorToken))
+      .send({ note: 'tras el grant' })
+      .expect(200);
+    // El status del asesor lo refleja.
+    const st = await http().get('/api/v1/advisor/unlock/status').set(bearer(advisorToken)).expect(200);
+    expect(st.body.unlocked).toBe(true);
+    await prisma.advisorUnlock.deleteMany({ where: { advisorId } });
+  });
+
+  it('F3: grant es @AdminOnly (asesor 403) y valida que el destino sea asesor (404)', async () => {
+    // Un asesor (aunque hereda admin) NO puede conceder desbloqueos.
+    await http().post(`/api/v1/advisor/unlock/grant/${advisorId}`).set(bearer(advisorToken)).expect(403);
+    // Conceder a un usuario que NO es asesor (el promotor semilla) → 404.
+    await http().post(`/api/v1/advisor/unlock/grant/${promoterId}`).set(bearer(adminToken)).expect(404);
+  });
+
+  it('G5.1 (auditoría 4): el asesor NO edita un KB PUBLICADO (ni su slug) sin ventana → 403; con ventana sí', async () => {
+    await setLock(true);
+    await prisma.advisorUnlock.deleteMany({ where: { advisorId } }); // sin ventana
+    // Admin real crea + PUBLICA un artículo (queda como contenido público en vivo).
+    const created = await http()
+      .post('/api/v1/kb')
+      .set(bearer(adminToken))
+      .send({ question: `G51 ${stamp}?`, answerHtml: '<p>v1</p>' })
+      .expect((r) => {
+        if (![200, 201].includes(r.status)) throw new Error(`KB create → ${r.status}`);
+      });
+    const kbId = created.body.id as string;
+    await http()
+      .post(`/api/v1/kb/${kbId}/publish`)
+      .set(bearer(adminToken))
+      .expect((r) => {
+        if (![200, 201].includes(r.status)) throw new Error(`KB publish → ${r.status}`);
+      });
+    // Asesor SIN ventana editando contenido PUBLICADO → 403 (antes del fix era 200 y salía en vivo).
+    await http().patch(`/api/v1/kb/${kbId}`).set(bearer(advisorToken)).send({ answerHtml: '<p>editado sin permiso</p>' }).expect(403);
+    // Cambiar el slug (aunque siguiera en draft) también es gobernado → 403.
+    await http().patch(`/api/v1/kb/${kbId}`).set(bearer(advisorToken)).send({ slug: `secuestro-${stamp}` }).expect(403);
+    // Con ventana de desbloqueo aprobada → permitido.
+    await unlock();
+    await http().patch(`/api/v1/kb/${kbId}`).set(bearer(advisorToken)).send({ answerHtml: '<p>editado con permiso</p>' }).expect(200);
+    // Limpieza.
+    await prisma.advisorUnlock.deleteMany({ where: { advisorId } });
+    await prisma.kbArticle.deleteMany({ where: { id: kbId } });
+  });
+
+  it('G7 (arquitecto): el asesor NO puede CANCELAR ni ELIMINAR eventos, aun DESBLOQUEADO → 403', async () => {
+    await setLock(true);
+    await unlock(); // ventana vigente: aun así, cancelar/eliminar es exclusivo del admin
+    const event = await prisma.event.findFirstOrThrow({ where: { promoterId } });
+    await http().post(`/api/v1/events/${event.id}/cancel`).set(bearer(advisorToken)).expect(403);
+    await http().delete(`/api/v1/events/${event.id}`).set(bearer(advisorToken)).expect(403);
+    await prisma.advisorUnlock.deleteMany({ where: { advisorId } });
+  });
+
+  it('G7 (arquitecto): el asesor NO puede solicitar retiros de wallet, aun DESBLOQUEADO → 403', async () => {
+    await setLock(true);
+    await unlock();
+    await http().post('/api/v1/wallet/withdrawals').set(bearer(advisorToken)).send({ amount: 100 }).expect(403);
+    await prisma.advisorUnlock.deleteMany({ where: { advisorId } });
   });
 });

@@ -15,7 +15,7 @@ import { ContentStatus, Role } from '@prisma/client';
 import { Public } from '../../common/decorators/public.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { SkipAdvisorUnlock } from '../../common/decorators/skip-advisor-unlock.decorator';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { CurrentUser, AuthUser } from '../../common/decorators/current-user.decorator';
 import { KbService } from './kb.service';
 import { KbAutoResponderService } from './kb-auto-responder.service';
 import {
@@ -104,12 +104,17 @@ export class KbController {
 
   @Patch(':id')
   @Roles(Role.admin)
-  @SkipAdvisorUnlock() // Editar artículos es LIBRE para el asesor.
+  @SkipAdvisorUnlock() // Editar DRAFTS es libre para el asesor; el servicio exige ventana
+  // si el artículo ya está PUBLICADO o si cambia visibility/slug (G5.1 · auditoría 4).
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Edita un artículo — admin/asesor' })
   @ApiOkResponse({ type: KbArticleResponseDto })
-  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateKbArticleDto) {
-    return this.kb.update(id, dto);
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateKbArticleDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.kb.update(id, dto, user);
   }
 
   @Post(':id/publish')
