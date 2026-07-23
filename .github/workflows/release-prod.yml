@@ -97,7 +97,7 @@ jobs:
       frontend: ${{ steps.decide.outputs.frontend }}
       tag: ${{ steps.version.outputs.tag }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # historial completo (versión/tags) + diff de rutas
       - uses: dorny/paths-filter@v3
@@ -166,7 +166,7 @@ jobs:
       PROD_API_URL: ${{ vars.PROD_API_URL }}
       DEPLOY_ADMIN_TOKEN: ${{ secrets.DEPLOY_ADMIN_TOKEN }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Autenticar en GCP (WIF)
         uses: google-github-actions/auth@v2
         with:
@@ -263,7 +263,7 @@ jobs:
     env:
       TAG: ${{ needs.prep.outputs.tag }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Autenticar en GCP (WIF)
         uses: google-github-actions/auth@v2
         with:
@@ -305,7 +305,7 @@ jobs:
       (needs.deploy-backend.result == 'success' || needs.deploy-frontend.result == 'success')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Crear y pushear el tag

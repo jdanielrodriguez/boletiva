@@ -76,7 +76,7 @@ jobs:
     if: needs.guard.outputs.deploy == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Autenticar en GCP (Workload Identity Federation)
         uses: google-github-actions/auth@v2
