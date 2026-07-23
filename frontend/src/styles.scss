@@ -37,6 +37,7 @@
 
   --pe-accent: #e14eca;
   --pe-accent-strong: #f06be0;
+  --pe-on-accent: #1a1020; /* texto AA sobre --pe-accent (noche = accent CLARO → tinta oscura) */
   --pe-accent-soft: color-mix(in srgb, var(--pe-accent) 16%, transparent);
   --pe-accent-border: color-mix(in srgb, var(--pe-accent) 45%, transparent);
 
@@ -85,6 +86,7 @@
 
   --pe-accent: #d1521f;
   --pe-accent-strong: #b8431a;
+  --pe-on-accent: #ffffff; /* texto AA sobre --pe-accent (día = accent OSCURO → tinta blanca) */
   --pe-accent-soft: color-mix(in srgb, var(--pe-accent) 14%, transparent);
   --pe-accent-border: color-mix(in srgb, var(--pe-accent) 40%, transparent);
 
@@ -229,9 +231,11 @@ button.ghost {
    fundirse con el header, y se distingue del botón primario (login). */
 a.cta-promoter,
 .btn.cta-promoter {
-  background: var(--pe-accent-soft);
+  /* Relleno de acento SÓLIDO + texto on-accent (QA): antes texto accent-strong sobre
+     accent-soft se fundía con el header (siempre oscuro) en tema día. Sólido = AA en ambos. */
+  background: var(--pe-accent);
   border: 1.5px solid var(--pe-accent);
-  color: var(--pe-accent-strong);
+  color: var(--pe-on-accent);
   font-weight: 700;
   border-radius: 999px;
   padding: 0.5rem 1.1rem;
@@ -240,9 +244,9 @@ a.cta-promoter,
 }
 a.cta-promoter:hover:not(:disabled),
 .btn.cta-promoter:hover:not(:disabled) {
-  background: var(--pe-accent);
-  border-color: var(--pe-accent);
-  color: #fff;
+  background: var(--pe-accent-strong);
+  border-color: var(--pe-accent-strong);
+  color: var(--pe-on-accent);
   box-shadow: var(--pe-glow);
   transform: translateY(-1px);
 }
@@ -1832,7 +1836,7 @@ app-root {
 }
 
 .auth-alt a {
-  color: var(--pe-primary);
+  color: var(--pe-accent-strong); /* AA sobre la tarjeta de auth en ambos temas (QA); antes --pe-primary (naranja día) fallaba */
   font-weight: 600;
 }
 
@@ -3423,7 +3427,7 @@ button.ev-card-name:hover:not(:disabled) { color: var(--pe-primary); background:
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: #fff;
+  color: var(--pe-on-accent); /* AA en ambos temas (accent claro→tinta oscura / oscuro→blanca) */
   background: var(--pe-accent);
   box-shadow: 0 2px 8px -2px var(--pe-accent-soft);
 }
