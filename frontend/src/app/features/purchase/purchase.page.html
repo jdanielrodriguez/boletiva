@@ -69,8 +69,9 @@
       </div>
     </section>
   } @else {
-    <!-- Cuadro de total + Reservar: SIEMPRE arriba, junto a la selección -->
-    <aside class="cart-summary cart-top">
+    <!-- Cuadro de total + Reservar: se aparta al hacer scroll hacia abajo (no tapa el
+         mapa) y reaparece al subir. -->
+    <aside class="cart-summary cart-top" [class.is-hidden]="cartHidden()">
       <div>
         <p class="cart-count">{{ 'purchase.selectedCount' | translate: { n: store.totalCount() } }}</p>
         @if (store.availability()?.maxPerOrder) {

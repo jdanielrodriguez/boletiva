@@ -3045,6 +3045,13 @@ app-root {
   justify-content: space-between;
   gap: 1rem;
   margin: 0 0 1.25rem;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+/* Al hacer scroll hacia abajo se aparta (sube fuera de vista) para no tapar el mapa. */
+.cart-top.is-hidden {
+  transform: translateY(calc(-1 * (var(--pe-topbar-h, 64px) + 160px)));
+  opacity: 0;
+  pointer-events: none;
 }
 
 .cart-top .cart-count {

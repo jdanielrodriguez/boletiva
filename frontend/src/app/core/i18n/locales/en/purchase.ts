@@ -31,7 +31,7 @@ export const purchase = {
   kindGeneral: 'General admission',
   generalNoMapHint: 'This is a general-admission zone: pick the quantity above. The map is disabled.',
   mapNotApplyHere: 'The map does not apply to this zone — pick the quantity above',
-  legendTaken: 'Taken',
+  legendTaken: 'Sold',
   availableCount: '{{n}} available',
   quantityFor: 'Quantity for {{name}}',
   removeOne: 'Remove one',

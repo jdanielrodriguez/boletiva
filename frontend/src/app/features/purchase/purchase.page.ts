@@ -107,8 +107,15 @@ export class PurchasePage implements OnDestroy {
   protected readonly loaded = signal(false);
   /** Falló la carga de la disponibilidad/mapa → vista de error (C2). */
   protected readonly loadError = signal(false);
+  /**
+   * Barra de total/Reservar: se APARTA (sube fuera de vista) al hacer scroll hacia
+   * abajo — para no quedar encima del mapa mientras se exploran los asientos — y
+   * reaparece al hacer scroll hacia arriba.
+   */
+  protected readonly cartHidden = signal(false);
 
   private ticker: ReturnType<typeof setInterval> | null = null;
+  private onScroll: (() => void) | null = null;
 
   private readonly data = toSignal(
     this.route.paramMap.pipe(
@@ -168,11 +175,30 @@ export class PurchasePage implements OnDestroy {
         }, 0);
       }
     });
+    // Al enfocar una localidad NUMERADA (chip o clic en el mapa), la cámara se acerca
+    // y desplazamos la página hasta el mapa para que quede a la vista.
+    effect(() => {
+      const focused = this.store.activeSeatedLocalityId();
+      if (focused && isPlatformBrowser(this.platformId)) {
+        setTimeout(() => {
+          document.querySelector('[data-testid="venue-map"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 60);
+      }
+    });
     afterNextRender(() => {
       this.ticker = setInterval(() => this.tick(), 1000);
       // Al cargar (o recargar) la página, si el visitante sigue en cooldown, el
       // banner + cronómetro reaparecen con el tiempo REAL restante (TTL en Redis).
       this.refreshCooldown();
+      // Barra de total: se aparta al bajar / reaparece al subir (no tapa el mapa).
+      let lastY = window.scrollY;
+      this.onScroll = () => {
+        const y = window.scrollY;
+        if (y > lastY + 6 && y > 140) this.cartHidden.set(true);
+        else if (y < lastY - 6) this.cartHidden.set(false);
+        lastY = y;
+      };
+      window.addEventListener('scroll', this.onScroll, { passive: true });
     });
   }
 
@@ -350,5 +376,6 @@ export class PurchasePage implements OnDestroy {
   ngOnDestroy(): void {
     if (this.ticker) clearInterval(this.ticker);
     this.seatSub?.unsubscribe();
+    if (this.onScroll && isPlatformBrowser(this.platformId)) window.removeEventListener('scroll', this.onScroll);
   }
 }

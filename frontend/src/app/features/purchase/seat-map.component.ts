@@ -44,7 +44,9 @@ interface Box {
       <button type="button" class="btn small icon-only" (click)="zoomOut()" data-testid="seat-zoom-out" aria-label="Alejar">−</button>
       <span class="seat-zoom-lvl" data-testid="seat-zoom-lvl">{{ displayZoom() }}%</span>
       <button type="button" class="btn small icon-only" (click)="zoomIn()" data-testid="seat-zoom-in" aria-label="Acercar">+</button>
-      <button type="button" class="btn small" (click)="resetCamera()" data-testid="seat-zoom-reset" [attr.aria-label]="'Ver todo el recinto'">↺ 100%</button>
+      <button type="button" class="btn small icon-only" (click)="resetCamera()" data-testid="seat-zoom-reset" aria-label="Ver todo el recinto" title="Ver todo el recinto">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
     </div>
     <div class="seat-map-frame">
       @if (stageLabel()) {
@@ -65,7 +67,9 @@ interface Box {
     '.seat-map-frame { border-radius: 12px; background: var(--pe-bg); padding: 0.25rem; overflow: hidden; }',
     '.seat-map-viewport { position: relative; }',
     // Viewport de ALTO FIJO sin overflow: la cámara (pan/zoom) recorre el mundo.
-    '.seat-map-host { display: block; width: 100%; height: clamp(320px, 60vh, 680px); overflow: hidden; touch-action: none; cursor: grab; background: var(--pe-bg); }',
+    // touch-action: pan-y → en móvil UN dedo scrollea la PÁGINA (vertical); DOS dedos
+    // los captura el JS (pan + pinch). En desktop el pan es con el mouse (drag).
+    '.seat-map-host { display: block; width: 100%; height: clamp(320px, 60vh, 680px); overflow: hidden; touch-action: pan-y; cursor: grab; background: var(--pe-bg); }',
     '.seat-map-host:active { cursor: grabbing; }',
     // Velo oscuro cuando la zona activa no está en el mapa (general). No bloquea el
     // puntero (pointer-events:none) → un clic igual llega a los asientos (cambia zona).
@@ -108,6 +112,9 @@ export class SeatMapComponent {
   private resizeObserver: ResizeObserver | null = null;
   private farScale = 1; // escala de la vista completa (referencia 100%)
   private lastFocus: string | null | undefined = undefined;
+  private lastDist = 0; // pinch: distancia previa entre 2 dedos
+  private lastCenter: { x: number; y: number } | null = null;
+  private cleanupWheel: (() => void) | null = null;
 
   constructor() {
     afterNextRender(async () => {
@@ -118,7 +125,10 @@ export class SeatMapComponent {
         this.resizeObserver.observe(this.host().nativeElement);
       }
     });
-    inject(DestroyRef).onDestroy(() => this.resizeObserver?.disconnect());
+    inject(DestroyRef).onDestroy(() => {
+      this.resizeObserver?.disconnect();
+      this.cleanupWheel?.();
+    });
     effect(() => {
       this.seats();
       this.selected();
@@ -136,17 +146,78 @@ export class SeatMapComponent {
   private build(): void {
     if (!this.konva) return;
     const el = this.host().nativeElement;
+    // En dispositivos táctiles NO se arrastra con un dedo (ese dedo scrollea la
+    // página); el pan es con DOS dedos (custom). En desktop, drag con el mouse.
+    const isTouch = typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0;
     this.stage = new this.konva.Stage({
       container: el,
       width: this.vw(),
       height: this.vh(),
-      draggable: true, // pan desde cualquier punto del lienzo
+      draggable: !isTouch,
     });
     this.layer = new this.konva.Layer();
     this.stage.add(this.layer);
     this.lastFocus = this.focusLocalityId();
     this.redraw();
     this.applyCamera(false);
+    this.installGestures(el);
+  }
+
+  /** Wheel (desktop): zoom hacia el cursor. Táctil: 2 dedos = pan + pinch (zoom). */
+  private installGestures(el: HTMLElement): void {
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault(); // dentro del canvas la rueda hace ZOOM, no scroll de página
+      const rect = el.getBoundingClientRect();
+      this.zoomAtLocal(e.clientX - rect.left, e.clientY - rect.top, e.deltaY < 0 ? 1.12 : 1 / 1.12);
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    this.cleanupWheel = () => el.removeEventListener('wheel', onWheel);
+
+    this.stage?.on('touchmove', (e) => {
+      const touches = (e.evt as TouchEvent).touches;
+      if (touches.length !== 2 || !this.stage) return;
+      e.evt.preventDefault();
+      const rect = el.getBoundingClientRect();
+      const p1 = { x: touches[0].clientX - rect.left, y: touches[0].clientY - rect.top };
+      const p2 = { x: touches[1].clientX - rect.left, y: touches[1].clientY - rect.top };
+      const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+      const center = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+      if (this.lastDist > 0 && this.lastCenter) {
+        const old = this.stage.scaleX();
+        const target = this.clampScale(old * (dist / this.lastDist));
+        const wx = (center.x - this.stage.x()) / old;
+        const wy = (center.y - this.stage.y()) / old;
+        const dx = center.x - this.lastCenter.x;
+        const dy = center.y - this.lastCenter.y;
+        this.stage.scale({ x: target, y: target });
+        this.stage.position({ x: center.x - wx * target + dx, y: center.y - wy * target + dy });
+        this.stage.batchDraw();
+        this.updateZoom();
+      }
+      this.lastDist = dist;
+      this.lastCenter = center;
+    });
+    this.stage?.on('touchend', () => {
+      this.lastDist = 0;
+      this.lastCenter = null;
+    });
+  }
+
+  private clampScale(s: number): number {
+    return Math.max(this.farScale * this.MIN_REL, Math.min(this.farScale * this.MAX_REL, s));
+  }
+
+  /** Zoom inmediato (sin tween) manteniendo fijo el punto (lx,ly) del viewport. */
+  private zoomAtLocal(lx: number, ly: number, factor: number): void {
+    if (!this.stage) return;
+    const old = this.stage.scaleX();
+    const target = this.clampScale(old * factor);
+    const wx = (lx - this.stage.x()) / old;
+    const wy = (ly - this.stage.y()) / old;
+    this.stage.scale({ x: target, y: target });
+    this.stage.position({ x: lx - wx * target, y: ly - wy * target });
+    this.stage.batchDraw();
+    this.updateZoom();
   }
 
   private onResize(): void {
