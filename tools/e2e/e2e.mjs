@@ -233,6 +233,10 @@ async function main() {
 
   console.log('\n▶ Compra completa (selección → reserva → checkout → pago SSE)');
   await step('selecciona General por cantidad y reserva', async () => {
+    // La reserva anónima del paso anterior queda PERSISTIDA (localStorage) → un nuevo
+    // /comprar la restauraría (vista "reservada", sin chips). La limpiamos para empezar
+    // la compra completa desde la selección.
+    await page.evaluate(() => localStorage.clear()).catch(() => {});
     await page.goto(`${FE}/eventos/${EVENT_SLUG}/comprar`, { waitUntil: 'domcontentloaded' });
     await clickLocTab(page, 'General'); // mapa único: elegir la zona GA para ver el stepper
     await waitSel(page, '[data-testid="loc-quantity"]');
