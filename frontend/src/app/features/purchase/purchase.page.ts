@@ -185,13 +185,20 @@ export class PurchasePage implements OnDestroy {
         }, 0);
       }
     });
-    // Al enfocar una localidad NUMERADA (chip o clic en el mapa), la cámara se acerca
-    // y desplazamos la página hasta el mapa para que quede a la vista.
+    // Al enfocar una localidad NUMERADA desde el CHIP (cuando el mapa está fuera de vista),
+    // desplazamos la página hasta el mapa. Pero si el mapa YA está a la vista —enfoque por
+    // zoom (auto-foco a 250%) o por clic/doble-clic en el propio mapa— NO movemos la página:
+    // ese scroll reacomodaba la barra de total y hacía "saltar" la vista del mapa.
     effect(() => {
       const focused = this.store.activeSeatedLocalityId();
       if (focused && isPlatformBrowser(this.platformId)) {
         setTimeout(() => {
-          document.querySelector('[data-testid="venue-map"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          const el = document.querySelector('[data-testid="venue-map"]') as HTMLElement | null;
+          if (!el) return;
+          const r = el.getBoundingClientRect();
+          const vh = window.innerHeight;
+          const alreadyVisible = r.top < vh * 0.5 && r.bottom > vh * 0.35;
+          if (!alreadyVisible) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 60);
       }
     });

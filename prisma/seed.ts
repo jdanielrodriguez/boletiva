@@ -671,9 +671,12 @@ async function seedDemoEvent(
     // Generales = REGIONES clicables en ARCO (U) ANCHO cuyos extremos CONECTAN con Tribuna
     // (izq) y Preferencia (der) → junto a ellas forman el MARCO del estadio; las mesas van
     // adentro. General 1 = brazo izq, General 2 = brazo der.
+    // Radios elegidos para que los EXTREMOS del arco caigan EXACTO bajo Tribuna
+    // (x 140→212) y Preferencia (x 800→872): cx±outerR = 140/872 (borde externo),
+    // cx±innerR = 236/776 (borde interno) → los brazos quedan flush con las columnas.
     regions: [
-      { slug: 'general-1', x: 176, y: 670, w: 330, h: 330, label: 'GENERAL 1', arc: { cx: 506, cy: 670, innerRadius: 210, outerRadius: 330, rotation: 90, angle: 90 } },
-      { slug: 'general-2', x: 506, y: 670, w: 330, h: 330, label: 'GENERAL 2', arc: { cx: 506, cy: 670, innerRadius: 210, outerRadius: 330, rotation: 0, angle: 90 } },
+      { slug: 'general-1', x: 140, y: 650, w: 366, h: 366, label: 'GENERAL 1', arc: { cx: 506, cy: 650, innerRadius: 270, outerRadius: 366, rotation: 90, angle: 90 } },
+      { slug: 'general-2', x: 506, y: 650, w: 366, h: 366, label: 'GENERAL 2', arc: { cx: 506, cy: 650, innerRadius: 270, outerRadius: 366, rotation: 0, angle: 90 } },
     ],
     labels: [
       { x: 108, y: 250, text: 'TRIBUNA', rotation: -90, size: 15 },
