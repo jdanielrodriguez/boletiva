@@ -672,8 +672,9 @@ async function seedDemoEvent(
     // slug → seleccionan la localidad + activan su input + se resaltan). El arco curvo llega
     // en el paso de curvas; por ahora dos áreas contiguas abajo.
     regions: [
-      { slug: 'general-1', x: 120, y: 1010, w: 470, h: 150, label: 'GENERAL 1' },
-      { slug: 'general-2', x: 615, y: 1010, w: 470, h: 150, label: 'GENERAL 2' },
+      // Arco en U (media parábola c/u): General 1 = mitad izquierda, General 2 = derecha.
+      { slug: 'general-1', x: 305, y: 1000, w: 300, h: 310, label: 'GENERAL 1', arc: { cx: 610, cy: 1000, innerRadius: 175, outerRadius: 300, rotation: 90, angle: 90 } },
+      { slug: 'general-2', x: 610, y: 1000, w: 300, h: 310, label: 'GENERAL 2', arc: { cx: 610, cy: 1000, innerRadius: 175, outerRadius: 300, rotation: 0, angle: 90 } },
     ],
     labels: [
       { x: 96, y: 470, text: 'TRIBUNA', rotation: -90, size: 16 },
@@ -687,7 +688,7 @@ async function seedDemoEvent(
       version: 1,
       name: 'Estadio Cementos Progreso',
       width: 1220,
-      height: 1180,
+      height: 1320,
       active: true,
       layout: decorations as object,
     },

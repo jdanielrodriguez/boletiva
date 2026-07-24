@@ -46,6 +46,8 @@ export interface MapRegion {
   h: number;
   label?: string;
   active?: boolean;
+  /** Si viene, la región se dibuja como banda CURVA (anillo) — p.ej. Generales en U. */
+  arc?: { cx: number; cy: number; innerRadius: number; outerRadius: number; rotation: number; angle: number };
 }
 
 export interface MapDecorations {
@@ -350,17 +352,34 @@ export class SeatMapComponent {
     if (!this.konva || !this.layer) return;
     const K = this.konva;
     for (const r of this.regions()) {
-      const rect = new K.Rect({
-        x: r.x, y: r.y, width: r.w, height: r.h, cornerRadius: 12,
-        fill: r.active ? 'rgba(225,78,202,0.28)' : 'rgba(107,107,118,0.14)',
-        stroke: r.active ? '#e14eca' : '#b9b3a6', strokeWidth: r.active ? 3 : 1.5,
-      });
-      rect.on('click tap', () => this.localityPick.emit(r.id));
-      rect.on('mouseenter', () => this.setCursor('pointer'));
-      rect.on('mouseleave', () => this.setCursor('grab'));
-      this.layer.add(rect);
+      const fill = r.active ? 'rgba(225,78,202,0.28)' : 'rgba(107,107,118,0.14)';
+      const stroke = r.active ? '#e14eca' : '#b9b3a6';
+      const strokeWidth = r.active ? 3 : 1.5;
+      let labelX = r.x + r.w / 2;
+      let labelY = r.y + r.h / 2;
+      if (r.arc) {
+        const a = r.arc;
+        const shape = new K.Arc({
+          x: a.cx, y: a.cy, innerRadius: a.innerRadius, outerRadius: a.outerRadius,
+          angle: a.angle, rotation: a.rotation, fill, stroke, strokeWidth,
+        });
+        shape.on('click tap', () => this.localityPick.emit(r.id));
+        shape.on('mouseenter', () => this.setCursor('pointer'));
+        shape.on('mouseleave', () => this.setCursor('grab'));
+        this.layer.add(shape);
+        const mid = ((a.rotation + a.angle / 2) * Math.PI) / 180;
+        const midR = (a.innerRadius + a.outerRadius) / 2;
+        labelX = a.cx + midR * Math.cos(mid);
+        labelY = a.cy + midR * Math.sin(mid);
+      } else {
+        const rect = new K.Rect({ x: r.x, y: r.y, width: r.w, height: r.h, cornerRadius: 12, fill, stroke, strokeWidth });
+        rect.on('click tap', () => this.localityPick.emit(r.id));
+        rect.on('mouseenter', () => this.setCursor('pointer'));
+        rect.on('mouseleave', () => this.setCursor('grab'));
+        this.layer.add(rect);
+      }
       if (r.label) {
-        this.layer.add(new K.Text({ x: r.x, y: r.y, width: r.w, height: r.h, text: r.label, align: 'center', verticalAlign: 'middle', fontSize: 18, fontStyle: 'bold', fill: '#1a1a2e', listening: false }));
+        this.layer.add(new K.Text({ x: labelX - 80, y: labelY - 12, width: 160, height: 24, text: r.label, align: 'center', verticalAlign: 'middle', fontSize: 18, fontStyle: 'bold', fill: '#1a1a2e', listening: false }));
       }
     }
   }
