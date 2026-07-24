@@ -36,6 +36,18 @@ interface Box {
  * dibujan en el CANVAS y por eso se anclan y mueven/zoomean con el mapa (el ESCENARIO
  * ya no queda flotando en el centro). Vienen de `SeatMap.layout` del evento.
  */
+/** Región de una localidad SIN asientos (p.ej. General): un área clicable del mapa que
+ *  selecciona la localidad (activa su input de cantidad) y se resalta al estar activa. */
+export interface MapRegion {
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  label?: string;
+  active?: boolean;
+}
+
 export interface MapDecorations {
   /** Barra del ESCENARIO (rect negro + texto). */
   stage?: { x: number; y: number; w: number; h: number; label?: string };
@@ -116,6 +128,8 @@ export class SeatMapComponent {
   readonly priceByLocality = input<Record<string, string>>({});
   /** Decoraciones del recinto (escenario, FOH, PLATEA, etiquetas, primeros auxilios). */
   readonly decorations = input<MapDecorations | null>(null);
+  /** Regiones de localidades SIN asientos (Generales): áreas clicables del mapa. */
+  readonly regions = input<MapRegion[]>([]);
   /** Localidades que se dibujan como MESAS (círculos) en vez de sillas. */
   readonly tableLocalityIds = input<ReadonlySet<string>>(new Set<string>());
   /** Nombre por localidad (para las etiquetas de los bloques de zona en la vista lejana/LOD). */
@@ -165,6 +179,7 @@ export class SeatMapComponent {
       this.selectableLocalityId();
       this.disabled();
       this.decorations();
+      this.regions();
       this.tableLocalityIds();
       this.localityNames();
       this.stageLabel();
@@ -316,8 +331,10 @@ export class SeatMapComponent {
   }
 
   private redraw(): void {
+    this.tip.set(null); // el destroy de nodos no dispara mouseleave → limpia el tooltip
     this.layer?.destroyChildren();
     this.drawDecorations(); // debajo de los asientos
+    this.drawRegions(); // regiones clicables (Generales sin asientos)
     if (this.lodNear()) {
       this.drawTables(); // mesas (centro) debajo de sus sillas
       this.drawSeats();
@@ -325,6 +342,27 @@ export class SeatMapComponent {
       this.drawZoneBlocks(); // vista lejana: bloques de zona (LOD)
     }
     this.lastNear = this.lodNear();
+  }
+
+  /** Regiones de localidades SIN asientos (Generales): rect clicable que selecciona la
+   *  localidad (activa su input) y se resalta al estar activa. */
+  private drawRegions(): void {
+    if (!this.konva || !this.layer) return;
+    const K = this.konva;
+    for (const r of this.regions()) {
+      const rect = new K.Rect({
+        x: r.x, y: r.y, width: r.w, height: r.h, cornerRadius: 12,
+        fill: r.active ? 'rgba(225,78,202,0.28)' : 'rgba(107,107,118,0.14)',
+        stroke: r.active ? '#e14eca' : '#b9b3a6', strokeWidth: r.active ? 3 : 1.5,
+      });
+      rect.on('click tap', () => this.localityPick.emit(r.id));
+      rect.on('mouseenter', () => this.setCursor('pointer'));
+      rect.on('mouseleave', () => this.setCursor('grab'));
+      this.layer.add(rect);
+      if (r.label) {
+        this.layer.add(new K.Text({ x: r.x, y: r.y, width: r.w, height: r.h, text: r.label, align: 'center', verticalAlign: 'middle', fontSize: 18, fontStyle: 'bold', fill: '#1a1a2e', listening: false }));
+      }
+    }
   }
 
   /** Vista lejana (LOD): un bloque por localidad (bbox + nombre) en vez de miles de
@@ -428,6 +466,7 @@ export class SeatMapComponent {
     d?.blocks?.forEach((k) => grow(k.x, k.y, k.w, k.h));
     d?.labels?.forEach((l) => grow(l.x, l.y));
     d?.aids?.forEach((a) => grow(a.x, a.y));
+    this.regions().forEach((r) => grow(r.x, r.y, r.w, r.h));
     return b;
   }
 
@@ -453,7 +492,12 @@ export class SeatMapComponent {
     this.farScale = this.fitScale(world); // referencia 100%
 
     const focusId = this.focusLocalityId();
-    const focusBox = focusId ? this.boxOf(this.seats().filter((s) => s.localityId === focusId)) : null;
+    let focusBox = focusId ? this.boxOf(this.seats().filter((s) => s.localityId === focusId)) : null;
+    // Localidad SIN asientos (General): enfoca su REGIÓN.
+    if (focusId && !focusBox) {
+      const reg = this.regions().find((r) => r.id === focusId);
+      if (reg) focusBox = { minX: reg.x, minY: reg.y, maxX: reg.x + reg.w, maxY: reg.y + reg.h };
+    }
     const box = focusBox ?? world;
     // La vista completa va exacta al 100%; una localidad se acerca a su encuadre.
     const scale = focusBox ? this.fitScale(box) : this.farScale;
@@ -486,6 +530,7 @@ export class SeatMapComponent {
   /** Actualiza el % mostrado (relativo a la vista completa = 100%). */
   private updateZoom(): void {
     if (!this.stage || this.farScale <= 0) return;
+    this.tip.set(null); // cualquier zoom cierra el tooltip (evita que se quede pegado)
     this.displayZoom.set(Math.round((this.stage.scaleX() / this.farScale) * 100));
     // Cruzó el umbral LOD (lejos↔cerca) → redibuja bloques o asientos según corresponda.
     if (this.lodNear() !== this.lastNear) this.redraw();

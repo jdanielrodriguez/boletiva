@@ -667,8 +667,13 @@ async function seedDemoEvent(
       { x: 560, y: 230, w: 120, h: 130, label: 'FOH', fill: '#1e2a52' }, // entre AMEX Izq/Der
       { x: 590, y: 720, w: 62, h: 62, fill: '#1e2a52' }, // torre técnica entre Ultra Fan
       { x: 150, y: 420, w: 80, h: 170, label: 'PLATEA', fill: '#9aa0b0' }, // en la Tribuna
-      { x: 120, y: 1010, w: 470, h: 150, label: 'GENERAL 1', fill: '#ecdcd2' },
-      { x: 615, y: 1010, w: 470, h: 150, label: 'GENERAL 2', fill: '#dfe4ee' },
+    ],
+    // Localidades SIN asientos (Generales): REGIONES clicables (el frontend las mapea por
+    // slug → seleccionan la localidad + activan su input + se resaltan). El arco curvo llega
+    // en el paso de curvas; por ahora dos áreas contiguas abajo.
+    regions: [
+      { slug: 'general-1', x: 120, y: 1010, w: 470, h: 150, label: 'GENERAL 1' },
+      { slug: 'general-2', x: 615, y: 1010, w: 470, h: 150, label: 'GENERAL 2' },
     ],
     labels: [
       { x: 96, y: 470, text: 'TRIBUNA', rotation: -90, size: 16 },

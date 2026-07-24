@@ -8,7 +8,7 @@ import type {
   OrderResponseDto,
   ReservationResponseDto,
 } from '../../core/api/types';
-import type { MapDecorations } from './seat-map.component';
+import type { MapDecorations, MapRegion } from './seat-map.component';
 
 /** Tope anti-abuso por carrito (alineado con el backend). */
 export const MAX_PER_CART = 50;
@@ -101,6 +101,22 @@ export class PurchaseService {
   readonly decorations = computed<MapDecorations | null>(
     () => (this.availability()?.seatMap?.layout as MapDecorations | undefined) ?? null,
   );
+
+  /** Regiones de localidades SIN asientos (Generales), mapeadas por slug→id + activa. */
+  readonly regions = computed<MapRegion[]>(() => {
+    const layout = this.availability()?.seatMap?.layout as
+      | { regions?: { slug: string; x: number; y: number; w: number; h: number; label?: string }[] }
+      | undefined;
+    const raw = layout?.regions ?? [];
+    const active = this.activeLocalityId();
+    const bySlug = new Map(this.localities().map((l) => [l.slug, l.id]));
+    return raw
+      .filter((r) => bySlug.has(r.slug))
+      .map((r) => {
+        const id = bySlug.get(r.slug) as string;
+        return { id, x: r.x, y: r.y, w: r.w, h: r.h, label: r.label, active: id === active };
+      });
+  });
 
   /** Localidades que se dibujan como MESAS (círculos): las que se llaman "Mesa(s)…". */
   readonly tableLocalityIds = computed<ReadonlySet<string>>(
