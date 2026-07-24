@@ -662,31 +662,31 @@ async function seedDemoEvent(
   // abajo el arco GENERAL 1/2. Las DECORACIONES (escenario/FOH/PLATEA/etiquetas/cruces)
   // se guardan en SeatMap.layout → el frontend las dibuja en el canvas (se anclan).
   const decorations = {
-    stage: { x: 400, y: 20, w: 460, h: 52, label: 'ESCENARIO' },
+    stage: { x: 380, y: 20, w: 470, h: 50, label: 'ESCENARIO' },
     blocks: [
-      { x: 560, y: 250, w: 110, h: 150, label: 'FOH', fill: '#1e2a52' }, // entre AMEX Izq/Der
-      { x: 585, y: 740, w: 60, h: 60, fill: '#1e2a52' }, // torre técnica entre Ultra Fan
-      { x: 175, y: 430, w: 92, h: 200, label: 'PLATEA', fill: '#9aa0b0' }, // en la Tribuna
+      { x: 578, y: 250, w: 70, h: 150, label: 'FOH', fill: '#1e2a52' }, // entre AMEX Izq/Der
+      { x: 592, y: 720, w: 44, h: 44, fill: '#1e2a52' }, // torre técnica entre Ultra Fan
+      { x: 213, y: 380, w: 92, h: 200, label: 'PLATEA', fill: '#9aa0b0' }, // en la Tribuna
     ],
     // Generales = REGIONES clicables en ARCO (U). General 1 = mitad izquierda, General 2 =
     // mitad derecha; juntas forman la U bajo el recinto (como VivaTicket).
     regions: [
-      { slug: 'general-1', x: 315, y: 1120, w: 300, h: 300, label: 'GENERAL 1', arc: { cx: 615, cy: 1120, innerRadius: 175, outerRadius: 300, rotation: 90, angle: 90 } },
-      { slug: 'general-2', x: 615, y: 1120, w: 300, h: 300, label: 'GENERAL 2', arc: { cx: 615, cy: 1120, innerRadius: 175, outerRadius: 300, rotation: 0, angle: 90 } },
+      { slug: 'general-1', x: 313, y: 1120, w: 300, h: 300, label: 'GENERAL 1', arc: { cx: 613, cy: 1120, innerRadius: 175, outerRadius: 300, rotation: 90, angle: 90 } },
+      { slug: 'general-2', x: 613, y: 1120, w: 300, h: 300, label: 'GENERAL 2', arc: { cx: 613, cy: 1120, innerRadius: 175, outerRadius: 300, rotation: 0, angle: 90 } },
     ],
     labels: [
-      { x: 110, y: 470, text: 'TRIBUNA', rotation: -90, size: 16 },
-      { x: 1130, y: 260, text: 'PREFERENCIA', rotation: 90, size: 16 },
+      { x: 150, y: 440, text: 'TRIBUNA', rotation: -90, size: 15 },
+      { x: 1010, y: 380, text: 'PREFERENCIA', rotation: 90, size: 15 },
     ],
-    aids: [{ x: 615, y: 850 }, { x: 940, y: 150 }, { x: 940, y: 420 }],
+    aids: [{ x: 614, y: 810 }, { x: 930, y: 150 }, { x: 930, y: 420 }],
   };
   await prisma.seatMap.create({
     data: {
       eventId: event.id,
       version: 1,
       name: 'Estadio Cementos Progreso',
-      width: 1230,
-      height: 1440,
+      width: 1080,
+      height: 1450,
       active: true,
       layout: decorations as object,
     },
@@ -699,12 +699,13 @@ async function seedDemoEvent(
     seats: Array<{ label: string; row: string; section: string; x: number; y: number }>;
   }> = [
     // 30 mesas × 10 puestos = 300 por zona de mesas (como VivaTicket).
-    { name: 'Mesas AMEX Izquierda', slug: 'mesas-amex-izq', net: 250, seats: tableClusterSeats({ section: 'AMEX Izq', prefix: 'AI', tableRows: 6, tableCols: 5, seatsPerTable: 10, x0: 310, y0: 120, dx: 46, dy: 74 }) },
-    { name: 'Mesas AMEX Derecha', slug: 'mesas-amex-der', net: 250, seats: tableClusterSeats({ section: 'AMEX Der', prefix: 'AD', tableRows: 6, tableCols: 5, seatsPerTable: 10, x0: 680, y0: 120, dx: 46, dy: 74 }) },
-    { name: 'Mesas Ultra Fan Izquierda', slug: 'mesas-ultrafan-izq', net: 180, seats: tableClusterSeats({ section: 'Ultra Fan Izq', prefix: 'UI', tableRows: 6, tableCols: 5, seatsPerTable: 10, x0: 310, y0: 610, dx: 46, dy: 74 }) },
-    { name: 'Mesas Ultra Fan Derecha', slug: 'mesas-ultrafan-der', net: 180, seats: tableClusterSeats({ section: 'Ultra Fan Der', prefix: 'UD', tableRows: 6, tableCols: 5, seatsPerTable: 10, x0: 680, y0: 610, dx: 46, dy: 74 }) },
-    { name: 'Tribuna', slug: 'tribuna', net: 120, seats: gridSeats({ section: 'Tribuna', prefix: 'T', rows: 30, cols: 4, x0: 175, y0: 120, dx: 24, dy: 22 }) },
-    { name: 'Preferencia', slug: 'preferencia', net: 150, seats: gridSeats({ section: 'Preferencia', prefix: 'P', rows: 30, cols: 4, x0: 975, y0: 120, dx: 24, dy: 22 }) },
+    // 30 mesas × 10 = 300/zona. Layout AL RAS (pasillos angostos), como VivaTicket.
+    { name: 'Mesas AMEX Izquierda', slug: 'mesas-amex-izq', net: 250, seats: tableClusterSeats({ section: 'AMEX Izq', prefix: 'AI', tableRows: 6, tableCols: 5, seatsPerTable: 10, x0: 340, y0: 120, dx: 44, dy: 72 }) },
+    { name: 'Mesas AMEX Derecha', slug: 'mesas-amex-der', net: 250, seats: tableClusterSeats({ section: 'AMEX Der', prefix: 'AD', tableRows: 6, tableCols: 5, seatsPerTable: 10, x0: 665, y0: 120, dx: 44, dy: 72 }) },
+    { name: 'Mesas Ultra Fan Izquierda', slug: 'mesas-ultrafan-izq', net: 180, seats: tableClusterSeats({ section: 'Ultra Fan Izq', prefix: 'UI', tableRows: 6, tableCols: 5, seatsPerTable: 10, x0: 340, y0: 590, dx: 44, dy: 72 }) },
+    { name: 'Mesas Ultra Fan Derecha', slug: 'mesas-ultrafan-der', net: 180, seats: tableClusterSeats({ section: 'Ultra Fan Der', prefix: 'UD', tableRows: 6, tableCols: 5, seatsPerTable: 10, x0: 665, y0: 590, dx: 44, dy: 72 }) },
+    { name: 'Tribuna', slug: 'tribuna', net: 120, seats: gridSeats({ section: 'Tribuna', prefix: 'T', rows: 30, cols: 4, x0: 215, y0: 120, dx: 22, dy: 21 }) },
+    { name: 'Preferencia', slug: 'preferencia', net: 150, seats: gridSeats({ section: 'Preferencia', prefix: 'P', rows: 30, cols: 4, x0: 905, y0: 120, dx: 22, dy: 21 }) },
   ];
   const localityByName: Record<string, { id: string }> = {};
   for (const z of zones) {

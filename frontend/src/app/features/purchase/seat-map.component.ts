@@ -161,6 +161,7 @@ export class SeatMapComponent {
   private lastFocus: string | null | undefined = undefined;
   private redrawRaf = 0; // handle del requestAnimationFrame para throttle del redraw en pan
   private holdTimer: ReturnType<typeof setTimeout> | null = null; // click sostenido → zoom a mesa
+  private suppressFit = false; // auto-foco por zoom: enfoca SIN reencuadrar (mantiene el zoom)
   private lastDist = 0; // pinch: distancia previa entre 2 dedos
   private lastCenter: { x: number; y: number } | null = null;
   private cleanupWheel: (() => void) | null = null;
@@ -196,9 +197,11 @@ export class SeatMapComponent {
       this.lastFocus = focus;
       this.redraw();
       // Reencuadra si cambia el foco (animado) o si NO hay foco (overview sigue los
-      // datos). Con foco fijo (p.ej. al seleccionar un asiento) NO se mueve → antes hacía
-      // un zoom-out feo en cada selección.
-      if (focusChanged || focus == null) this.applyCamera(focusChanged);
+      // datos). Con foco fijo (p.ej. al seleccionar un asiento) NO se mueve. Y el
+      // auto-foco por zoom (suppressFit) NO reencuadra → mantiene el zoom que hiciste.
+      if (focusChanged && !this.suppressFit) this.applyCamera(true);
+      else if (focus == null && !focusChanged) this.applyCamera(false);
+      this.suppressFit = false;
     });
   }
 
@@ -407,27 +410,17 @@ export class SeatMapComponent {
     this.applyCamera(false);
   }
 
-  /** LOD: ¿estamos lo bastante cerca para dibujar asientos/mesas individuales? Si no
-   *  (vista lejana/overview), se dibujan BLOQUES de zona (como el overview de VivaTicket)
-   *  → miles de nodos no colapsan el navegador. */
-  private lodNear(): boolean {
-    // Una localidad ENFOCADA siempre muestra sus mesas/asientos (aunque el zoom
-    // calculado sea bajo). Si no hay foco, depende del zoom (overview = bloques).
-    if (this.focusLocalityId() != null) return true;
-    if (!this.stage || this.farScale <= 0) return true;
-    return this.stage.scaleX() >= this.farScale * 2.2;
-  }
-
   private redraw(): void {
     this.tip.set(null); // el destroy de nodos no dispara mouseleave → limpia el tooltip
     this.layer?.destroyChildren();
     this.drawDecorations(); // debajo de los asientos
     this.drawRegions(); // regiones clicables (Generales sin asientos)
-    if (this.lodNear()) {
-      this.drawTables(); // mesas (centro) debajo de sus sillas
+    // Los BLOQUES (cuadros) de zona se dibujan SIEMPRE: la localidad ENFOCADA se salta
+    // (sus mesas la cubren) y las demás quedan como su cuadro (apagado si hay foco).
+    this.drawZoneBlocks();
+    if (this.focusLocalityId() != null) {
+      this.drawTables(); // mesas (centro) debajo de sus sillas — SOLO la enfocada
       this.drawSeats();
-    } else {
-      this.drawZoneBlocks(); // vista lejana: bloques de zona (LOD)
     }
   }
 
@@ -469,12 +462,14 @@ export class SeatMapComponent {
     }
   }
 
-  /** Vista lejana (LOD): un bloque por localidad (bbox + nombre) en vez de miles de
-   *  asientos → el overview se lee como el de VivaTicket y el render es liviano. */
+  /** CUADRO por localidad (bbox + nombre), como el overview de VivaTicket. Se dibuja
+   *  SIEMPRE: la localidad ENFOCADA se salta (sus mesas la cubren); si hay foco, las demás
+   *  quedan APAGADAS (menor opacidad). Clicable → enfoca esa localidad. */
   private drawZoneBlocks(): void {
     if (!this.konva || !this.layer) return;
     const K = this.konva;
     const names = this.localityNames();
+    const focus = this.focusLocalityId();
     const boxes = new Map<string, Box>();
     for (const s of this.seats()) {
       if (s.x == null || s.y == null) continue;
@@ -489,17 +484,25 @@ export class SeatMapComponent {
     }
     const PADZ = 14;
     for (const [id, b] of boxes) {
-      this.layer.add(new K.Rect({
+      if (id === focus) continue; // la zona enfocada se dibuja como mesas, no como cuadro
+      const dim = focus != null; // hay una zona enfocada → las demás apagadas
+      const g = new K.Group({ opacity: dim ? 0.4 : 1 });
+      const rect = new K.Rect({
         x: b.minX - PADZ, y: b.minY - PADZ, width: b.maxX - b.minX + PADZ * 2, height: b.maxY - b.minY + PADZ * 2,
-        cornerRadius: 8, fill: 'rgba(53,208,127,0.16)', stroke: '#35d07f', strokeWidth: 1.5, listening: false,
-      }));
+        cornerRadius: 8, fill: 'rgba(53,208,127,0.16)', stroke: '#35d07f', strokeWidth: 1.5,
+      });
+      rect.on('click tap', () => this.localityPick.emit(id));
+      rect.on('mouseenter', () => this.setCursor('pointer'));
+      rect.on('mouseleave', () => this.setCursor('grab'));
+      g.add(rect);
       const name = names[id];
       if (name) {
-        this.layer.add(new K.Text({
+        g.add(new K.Text({
           x: b.minX - PADZ, y: b.minY - PADZ, width: b.maxX - b.minX + PADZ * 2, height: b.maxY - b.minY + PADZ * 2,
           text: name, align: 'center', verticalAlign: 'middle', fontSize: 16, fontStyle: 'bold', fill: '#1a1a2e', listening: false,
         }));
       }
+      this.layer.add(g);
     }
   }
 
@@ -638,11 +641,23 @@ export class SeatMapComponent {
   private updateZoom(): void {
     if (!this.stage || this.farScale <= 0) return;
     this.tip.set(null); // cualquier zoom cierra el tooltip (evita que se quede pegado)
-    this.displayZoom.set(Math.round((this.stage.scaleX() / this.farScale) * 100));
-    this.scheduleRedraw(); // re-cullea (viewport) y re-evalúa el LOD tras el zoom
-    // Enfocado y alejaste el zoom por debajo del overview (~100%) → sal de la zona.
-    if (this.focusLocalityId() != null && this.stage.scaleX() < this.farScale * 0.98) {
+    const rel = this.stage.scaleX() / this.farScale;
+    this.displayZoom.set(Math.round(rel * 100));
+    this.scheduleRedraw(); // re-cullea (viewport) tras el zoom
+    const focused = this.focusLocalityId() != null;
+    // ENFOCADO y alejaste por debajo del overview → sal de la zona (vuelve a localidades).
+    if (focused && rel < 1) {
       this.exitFocus.emit();
+    } else if (!focused && rel >= 2.5) {
+      // Pasaste el 250% sin foco → auto-enfoca la localidad bajo el CENTRO de la cámara
+      // (igual que un doble clic), SIN reencuadrar (mantiene el zoom que ya hiciste).
+      const cx = (this.vw() / 2 - this.stage.x()) / this.stage.scaleX();
+      const cy = (this.vh() / 2 - this.stage.y()) / this.stage.scaleX();
+      const loc = this.localityAt(cx, cy);
+      if (loc) {
+        this.suppressFit = true;
+        this.localityPick.emit(loc);
+      }
     }
   }
 
