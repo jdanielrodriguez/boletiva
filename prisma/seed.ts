@@ -610,21 +610,51 @@ async function seedDemoEvent(
     },
   });
 
-  // Layout inspirado en el mapa real (VivaTicket). Mundo ~ x[0..1000] y[0..900] con el
-  // ESCENARIO arriba (barra del propio mapa). Cada zona es una localidad numerada.
+  // Layout basado en el mapa REAL (VivaTicket, Estadio Cementos Progreso). Mundo
+  // ~ x[0..1130] y[0..650]: ESCENARIO arriba; frente = Mesas AMEX Izq/Der + Ultra Fan
+  // Izq/Der (con FOH al centro); laterales = Tribuna(+Platea) izq y Preferencia der;
+  // abajo el arco GENERAL 1/2. Las DECORACIONES (escenario/FOH/PLATEA/etiquetas/cruces)
+  // se guardan en SeatMap.layout → el frontend las dibuja en el canvas (se anclan).
+  const decorations = {
+    stage: { x: 335, y: 0, w: 460, h: 46, label: 'ESCENARIO' },
+    blocks: [
+      { x: 520, y: 150, w: 90, h: 70, label: 'FOH', fill: '#1e2a52' },
+      { x: 540, y: 405, w: 50, h: 46, fill: '#1e2a52' },
+      { x: 150, y: 420, w: 84, h: 60, label: 'PLATEA', fill: '#9aa0b0' },
+      { x: 120, y: 505, w: 455, h: 120, label: 'GENERAL 1', fill: '#ecdcd2' },
+      { x: 595, y: 505, w: 455, h: 120, label: 'GENERAL 2', fill: '#dfe4ee' },
+    ],
+    labels: [
+      { x: 96, y: 320, text: 'TRIBUNA', rotation: -90, size: 16 },
+      { x: 1075, y: 150, text: 'PREFERENCIA', rotation: 90, size: 16 },
+    ],
+    aids: [{ x: 565, y: 480 }, { x: 812, y: 96 }, { x: 812, y: 235 }],
+  };
+  await prisma.seatMap.create({
+    data: {
+      eventId: event.id,
+      version: 1,
+      name: 'Estadio Cementos Progreso',
+      width: 1130,
+      height: 650,
+      active: true,
+      layout: decorations as object,
+    },
+  });
+
   const zones: Array<{
     name: string; slug: string; net: number;
     grid: Parameters<typeof gridSeats>[0];
   }> = [
-    // Frente al escenario: Mesas AMEX (premium) izquierda/derecha.
-    { name: 'Mesas AMEX Izquierda', slug: 'mesas-amex-izq', net: 250, grid: { section: 'AMEX Izq', prefix: 'AI', rows: 5, cols: 7, x0: 300, y0: 90, dx: 26, dy: 28 } },
-    { name: 'Mesas AMEX Derecha', slug: 'mesas-amex-der', net: 250, grid: { section: 'AMEX Der', prefix: 'AD', rows: 5, cols: 7, x0: 520, y0: 90, dx: 26, dy: 28 } },
+    // Frente al escenario: Mesas AMEX (premium) izquierda/derecha (FOH al centro).
+    { name: 'Mesas AMEX Izquierda', slug: 'mesas-amex-izq', net: 250, grid: { section: 'AMEX Izq', prefix: 'AI', rows: 6, cols: 8, x0: 300, y0: 90, dx: 24, dy: 22 } },
+    { name: 'Mesas AMEX Derecha', slug: 'mesas-amex-der', net: 250, grid: { section: 'AMEX Der', prefix: 'AD', rows: 6, cols: 8, x0: 620, y0: 90, dx: 24, dy: 22 } },
     // Detrás: Mesas Ultra Fan izquierda/derecha.
-    { name: 'Mesas Ultra Fan Izquierda', slug: 'mesas-ultrafan-izq', net: 180, grid: { section: 'Ultra Fan Izq', prefix: 'UI', rows: 5, cols: 7, x0: 300, y0: 260, dx: 26, dy: 28 } },
-    { name: 'Mesas Ultra Fan Derecha', slug: 'mesas-ultrafan-der', net: 180, grid: { section: 'Ultra Fan Der', prefix: 'UD', rows: 5, cols: 7, x0: 520, y0: 260, dx: 26, dy: 28 } },
+    { name: 'Mesas Ultra Fan Izquierda', slug: 'mesas-ultrafan-izq', net: 180, grid: { section: 'Ultra Fan Izq', prefix: 'UI', rows: 6, cols: 8, x0: 300, y0: 280, dx: 24, dy: 22 } },
+    { name: 'Mesas Ultra Fan Derecha', slug: 'mesas-ultrafan-der', net: 180, grid: { section: 'Ultra Fan Der', prefix: 'UD', rows: 6, cols: 8, x0: 620, y0: 280, dx: 24, dy: 22 } },
     // Laterales: Tribuna (con Platea) izquierda + Preferencia derecha.
-    { name: 'Tribuna', slug: 'tribuna', net: 120, grid: { section: 'Tribuna', prefix: 'T', rows: 12, cols: 3, x0: 120, y0: 95, dx: 28, dy: 26 } },
-    { name: 'Preferencia', slug: 'preferencia', net: 150, grid: { section: 'Preferencia', prefix: 'P', rows: 12, cols: 3, x0: 760, y0: 95, dx: 28, dy: 26 } },
+    { name: 'Tribuna', slug: 'tribuna', net: 120, grid: { section: 'Tribuna', prefix: 'T', rows: 13, cols: 3, x0: 150, y0: 95, dx: 28, dy: 24 } },
+    { name: 'Preferencia', slug: 'preferencia', net: 150, grid: { section: 'Preferencia', prefix: 'P', rows: 13, cols: 3, x0: 945, y0: 95, dx: 28, dy: 24 } },
   ];
   const localityByName: Record<string, { id: string }> = {};
   for (const z of zones) {

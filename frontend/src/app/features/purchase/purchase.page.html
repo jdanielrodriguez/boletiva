@@ -194,6 +194,7 @@
           [disabledLabel]="'purchase.mapNotApplyHere' | translate"
           [cameraMs]="cameraMs()"
           [priceByLocality]="store.priceByLocality()"
+          [decorations]="store.decorations()"
           [stageLabel]="'purchase.stage' | translate"
           (seatToggle)="store.toggleSeat($event)"
           (localityPick)="store.setActiveLocality($event)"

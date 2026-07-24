@@ -32,6 +32,22 @@ interface Box {
 }
 
 /**
+ * Decoraciones del recinto (mismo espacio de coordenadas que los asientos) → se
+ * dibujan en el CANVAS y por eso se anclan y mueven/zoomean con el mapa (el ESCENARIO
+ * ya no queda flotando en el centro). Vienen de `SeatMap.layout` del evento.
+ */
+export interface MapDecorations {
+  /** Barra del ESCENARIO (rect negro + texto). */
+  stage?: { x: number; y: number; w: number; h: number; label?: string };
+  /** Bloques sin asientos: FOH, PLATEA, torres de sonido, etc. */
+  blocks?: { x: number; y: number; w: number; h: number; label?: string; fill?: string }[];
+  /** Etiquetas de zona (TRIBUNA / PREFERENCIA / GENERAL 1 / MESAS…). rotation en grados. */
+  labels?: { x: number; y: number; text: string; rotation?: number; size?: number }[];
+  /** Puntos de primeros auxilios (cruz roja). */
+  aids?: { x: number; y: number }[];
+}
+
+/**
  * Mapa de asientos con Konva/Canvas y CÁMARA (B0). Dibuja TODO el recinto en un
  * "mundo"; la cámara = transform del STAGE (scale + position) → se puede ARRASTRAR
  * desde cualquier punto (incluidas zonas vacías) y hacer zoom. La vista completa del
@@ -51,9 +67,6 @@ interface Box {
       </button>
     </div>
     <div class="seat-map-frame">
-      @if (stageLabel()) {
-        <div class="seat-stage" data-testid="seat-stage" aria-hidden="true"><span>{{ stageLabel() }}</span></div>
-      }
       <div class="seat-map-viewport">
         <div #host class="seat-map-host"></div>
         @if (disabled() && disabledLabel()) {
@@ -84,8 +97,6 @@ interface Box {
     '.seat-tip { position: absolute; transform: translate(-50%, -140%); pointer-events: none; z-index: 5; white-space: nowrap; padding: 0.3rem 0.6rem; border-radius: 8px; background: #10141c; color: #fff; font-size: 0.78rem; font-weight: 600; box-shadow: 0 4px 14px rgba(0,0,0,0.35); }',
     '.seat-map-zoom { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.4rem; }',
     '.seat-zoom-lvl { min-width: 3.6rem; text-align: center; font-variant-numeric: tabular-nums; color: var(--pe-text-muted, #6b6b76); }',
-    '.seat-stage { display: flex; justify-content: center; margin: 0.15rem auto 0.6rem; }',
-    '.seat-stage span { display: inline-block; min-width: 55%; text-align: center; padding: 0.4rem 1.5rem; border-radius: 8px; background: var(--pe-surface-2); color: var(--pe-text-muted, #6b6b76); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; box-shadow: inset 0 -3px 0 var(--pe-border); }',
   ],
 })
 export class SeatMapComponent {
@@ -103,6 +114,8 @@ export class SeatMapComponent {
   readonly cameraMs = input(900);
   /** Precio del comprador por localidad (id → "Q123.45") para el tooltip del asiento. */
   readonly priceByLocality = input<Record<string, string>>({});
+  /** Decoraciones del recinto (escenario, FOH, PLATEA, etiquetas, primeros auxilios). */
+  readonly decorations = input<MapDecorations | null>(null);
   readonly seatToggle = output<string>();
   /** Clic en una zona → id de su localidad (cambiar/enfocar). */
   readonly localityPick = output<string>();
@@ -146,6 +159,8 @@ export class SeatMapComponent {
       this.selected();
       this.selectableLocalityId();
       this.disabled();
+      this.decorations();
+      this.stageLabel();
       const focus = this.focusLocalityId();
       if (!this.stage) return;
       const focusChanged = this.lastFocus !== focus;
@@ -245,6 +260,7 @@ export class SeatMapComponent {
 
   private redraw(): void {
     this.layer?.destroyChildren();
+    this.drawDecorations(); // debajo de los asientos
     this.drawSeats();
   }
 
@@ -264,6 +280,26 @@ export class SeatMapComponent {
     return { minX: Math.min(...xs), minY: Math.min(...ys), maxX: Math.max(...xs), maxY: Math.max(...ys) };
   }
 
+  /** Caja del recinto completo = asientos ∪ decoraciones (escenario/bloques/etiquetas). */
+  private worldBox(): Box | null {
+    let b = this.boxOf(this.seats());
+    const grow = (x: number, y: number, w = 0, h = 0) => {
+      if (!b) b = { minX: x, minY: y, maxX: x + w, maxY: y + h };
+      else {
+        b.minX = Math.min(b.minX, x);
+        b.minY = Math.min(b.minY, y);
+        b.maxX = Math.max(b.maxX, x + w);
+        b.maxY = Math.max(b.maxY, y + h);
+      }
+    };
+    const d = this.decorations();
+    if (d?.stage) grow(d.stage.x, d.stage.y, d.stage.w, d.stage.h);
+    d?.blocks?.forEach((k) => grow(k.x, k.y, k.w, k.h));
+    d?.labels?.forEach((l) => grow(l.x, l.y));
+    d?.aids?.forEach((a) => grow(a.x, a.y));
+    return b;
+  }
+
   /** Escala que encuadra un box en el viewport (fit ambos ejes). */
   private fitScale(box: Box): number {
     const boxW = box.maxX - box.minX + PAD * 2;
@@ -281,7 +317,7 @@ export class SeatMapComponent {
   /** Mueve la cámara al foco (localidad) o a la vista completa (100%); anima si procede. */
   private applyCamera(animate: boolean): void {
     if (!this.konva || !this.stage) return;
-    const world = this.boxOf(this.seats());
+    const world = this.worldBox();
     if (!world) return;
     this.farScale = this.fitScale(world); // referencia 100%
 
@@ -343,10 +379,55 @@ export class SeatMapComponent {
   }
   /** Botón reiniciar: vuelve a la vista completa del recinto (100%, donde inicia). */
   protected resetCamera(): void {
-    const world = this.boxOf(this.seats());
+    const world = this.worldBox();
     if (!world) return;
     this.farScale = this.fitScale(world);
     this.moveCamera(this.farScale, this.centerPos(world, this.farScale), true);
+  }
+
+  /** Dibuja escenario + bloques (FOH/PLATEA) + etiquetas + cruces de primeros auxilios
+   *  en el mundo (se anclan y mueven/zoomean con el mapa). Debajo de los asientos. */
+  private drawDecorations(): void {
+    if (!this.konva || !this.layer) return;
+    const K = this.konva;
+    const d = this.decorations();
+
+    // ESCENARIO: del layout, o (fallback) una barra centrada arriba de los asientos.
+    let stage = d?.stage;
+    if (!stage) {
+      const b = this.boxOf(this.seats());
+      if (b) {
+        const w = (b.maxX - b.minX) * 0.5;
+        stage = { x: (b.minX + b.maxX) / 2 - w / 2, y: b.minY - 90, w, h: 46, label: this.stageLabel() ?? undefined };
+      }
+    }
+    if (stage) {
+      this.layer.add(new K.Rect({ x: stage.x, y: stage.y, width: stage.w, height: stage.h, cornerRadius: 6, fill: '#0a0d13', listening: false }));
+      this.layer.add(new K.Text({
+        x: stage.x, y: stage.y, width: stage.w, height: stage.h, text: (stage.label ?? this.stageLabel() ?? 'ESCENARIO').toUpperCase(),
+        align: 'center', verticalAlign: 'middle', fontSize: Math.min(30, stage.h * 0.55), fontStyle: 'bold', fill: '#ffffff', letterSpacing: 3, listening: false,
+      }));
+    }
+
+    // Bloques sin asientos (FOH = navy; PLATEA/otros = gris) con su etiqueta.
+    for (const k of d?.blocks ?? []) {
+      this.layer.add(new K.Rect({ x: k.x, y: k.y, width: k.w, height: k.h, cornerRadius: 4, fill: k.fill ?? '#1e2a52', listening: false }));
+      if (k.label) {
+        this.layer.add(new K.Text({ x: k.x, y: k.y, width: k.w, height: k.h, text: k.label, align: 'center', verticalAlign: 'middle', fontSize: 13, fontStyle: 'bold', fill: '#e8ecf5', listening: false }));
+      }
+    }
+
+    // Etiquetas de zona (TRIBUNA / PREFERENCIA / GENERAL / MESAS…), opcionalmente rotadas.
+    for (const l of d?.labels ?? []) {
+      this.layer.add(new K.Text({ x: l.x, y: l.y, text: l.text, rotation: l.rotation ?? 0, fontSize: l.size ?? 15, fontStyle: 'bold', fill: '#6b6b76', letterSpacing: 1, listening: false }));
+    }
+
+    // Cruces de primeros auxilios (cuadro blanco + cruz roja).
+    for (const a of d?.aids ?? []) {
+      this.layer.add(new K.Rect({ x: a.x - 9, y: a.y - 9, width: 18, height: 18, cornerRadius: 3, fill: '#ffffff', stroke: '#e11d48', strokeWidth: 1, listening: false }));
+      this.layer.add(new K.Rect({ x: a.x - 6, y: a.y - 2, width: 12, height: 4, fill: '#e11d48', listening: false }));
+      this.layer.add(new K.Rect({ x: a.x - 2, y: a.y - 6, width: 4, height: 12, fill: '#e11d48', listening: false }));
+    }
   }
 
   private drawSeats(): void {

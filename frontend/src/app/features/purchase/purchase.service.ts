@@ -8,6 +8,7 @@ import type {
   OrderResponseDto,
   ReservationResponseDto,
 } from '../../core/api/types';
+import type { MapDecorations } from './seat-map.component';
 
 /** Tope anti-abuso por carrito (alineado con el backend). */
 export const MAX_PER_CART = 50;
@@ -95,6 +96,11 @@ export class PurchaseService {
 
   /** ¿Hay al menos una localidad con asientos (mapa)? → muestra el mapa del recinto. */
   readonly hasSeatedMap = computed(() => this.allSeats().length > 0);
+
+  /** Decoraciones del recinto (escenario/FOH/PLATEA/etiquetas/cruces) desde SeatMap.layout. */
+  readonly decorations = computed<MapDecorations | null>(
+    () => (this.availability()?.seatMap?.layout as MapDecorations | undefined) ?? null,
+  );
 
   /**
    * Id de la localidad activa SOLO si es numerada (tiene asientos en el mapa). Es lo
