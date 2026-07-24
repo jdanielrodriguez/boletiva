@@ -55,9 +55,13 @@ export class PurchaseService {
   /** La reserva creada (con token para compartir). */
   readonly reservation = signal<ReservationResponseDto | null>(null);
 
-  readonly localities = computed<LocalityAvailabilityDto[]>(
-    () => this.availability()?.localities ?? [],
-  );
+  // Ordenadas de MÁS BARATA a MÁS CARA (por precio del comprador). Este orden es la ÚNICA
+  // fuente → se respeta en pills, dropdown, nombres, precios, etc. Sin precio van al final.
+  readonly localities = computed<LocalityAvailabilityDto[]>(() => {
+    const list = this.availability()?.localities ?? [];
+    const price = (l: LocalityAvailabilityDto): number => (l.price ? Number(l.price.total) : Number.POSITIVE_INFINITY);
+    return [...list].sort((a, b) => price(a) - price(b));
+  });
 
   readonly activeLocality = computed<LocalityAvailabilityDto | null>(
     () => this.localities().find((l) => l.id === this.activeLocalityId()) ?? null,

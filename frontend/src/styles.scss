@@ -2284,7 +2284,9 @@ app-root {
   z-index: 5;
   pointer-events: none;
 }
-.map-head > * {
+/* El panel/hint NO capturan el puntero → la rueda (zoom) y el arrastre pasan al canvas
+   aunque el mouse esté sobre el detalle fixed. Solo el stepper de cantidad es interactivo. */
+.map-head .loc-quantity {
   pointer-events: auto;
 }
 .map-head .venue-map-hint {

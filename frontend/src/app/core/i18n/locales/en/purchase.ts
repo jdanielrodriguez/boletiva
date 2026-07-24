@@ -26,7 +26,7 @@ export const purchase = {
   seatMapMobileHint: 'Scroll and tap to pick your seats. If the map is dense, rotate your phone to landscape.',
   legendAvailable: 'Available',
   legendSelected: 'Selected',
-  legendOwned: 'Yours (purchased)',
+  legendOwned: 'Already purchased ticket',
   legendReserved: 'Reserved',
   kindSeated: 'Numbered seat',
   kindGeneral: 'General admission',

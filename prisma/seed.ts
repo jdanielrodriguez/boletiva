@@ -661,14 +661,18 @@ async function seedDemoEvent(
   // Izq/Der (con FOH al centro); laterales = Tribuna(+Platea) izq y Preferencia der;
   // abajo el arco GENERAL 1/2. Las DECORACIONES (escenario/FOH/PLATEA/etiquetas/cruces)
   // se guardan en SeatMap.layout → el frontend las dibuja en el canvas (se anclan).
+  // PLATEA = palcos NO vendibles: cuadro inserto al FINAL de la Tribuna (base alineada con
+  // el fin de la columna). La Tribuna la RODEA (columnas de sillas a los lados y filas
+  // arriba); DENTRO del cuadro NO se generan sillas (ver filtro de la Tribuna abajo).
+  const PLATEA = { x: 150, y: 545, w: 54, h: 104, label: 'PLATEA', fill: '#9aa0b0' };
+  const inPlatea = (x: number, y: number): boolean =>
+    x >= PLATEA.x && x <= PLATEA.x + PLATEA.w && y >= PLATEA.y && y <= PLATEA.y + PLATEA.h;
   const decorations = {
     stage: { x: 300, y: 20, w: 400, h: 50, label: 'ESCENARIO' },
     blocks: [
       { x: 491, y: 170, w: 44, h: 175, label: 'FOH', fill: '#1e2a52' }, // en el hueco entre AMEX Izq/Der
       { x: 493, y: 545, w: 40, h: 44, fill: '#1e2a52' }, // torre técnica en el hueco entre Ultra Fan
-      // PLATEA = palcos NO vendibles: cuadro inserto al FINAL de la Tribuna (base alineada
-      // con el fin de la columna); la Tribuna la RODEA (margen verde a los lados y arriba).
-      { x: 150, y: 545, w: 54, h: 104, label: 'PLATEA', fill: '#9aa0b0' },
+      PLATEA,
     ],
     // Generales = REGIONES clicables en ARCO (U) ANCHO cuyos extremos CONECTAN con Tribuna
     // (izq) y Preferencia (der) → junto a ellas forman el MARCO del estadio; las mesas van
@@ -677,9 +681,11 @@ async function seedDemoEvent(
     // cx±outerR = 132/880 = borde externo de Tribuna/Preferencia; borde interno
     // cx±innerR = 220/792 = borde interno → los brazos quedan EXACTAMENTE alineados con
     // las columnas. cy = base del cuadro (649+8) → se TOCAN sin solaparse.
+    // Extremos en 0°/180° (alineados con Preferencia/Tribuna); dejan ~2° de HUECO en el
+    // centro (90°) entre General 1 y 2 → mismo criterio de "gap entre piezas".
     regions: [
-      { slug: 'general-1', x: 132, y: 666, w: 374, h: 374, label: 'GENERAL 1', arc: { cx: 506, cy: 666, innerRadius: 286, outerRadius: 374, rotation: 90, angle: 90 } },
-      { slug: 'general-2', x: 506, y: 666, w: 374, h: 374, label: 'GENERAL 2', arc: { cx: 506, cy: 666, innerRadius: 286, outerRadius: 374, rotation: 0, angle: 90 } },
+      { slug: 'general-1', x: 132, y: 666, w: 374, h: 374, label: 'GENERAL 1', arc: { cx: 506, cy: 666, innerRadius: 286, outerRadius: 374, rotation: 91, angle: 89 } },
+      { slug: 'general-2', x: 506, y: 666, w: 374, h: 374, label: 'GENERAL 2', arc: { cx: 506, cy: 666, innerRadius: 286, outerRadius: 374, rotation: 0, angle: 89 } },
     ],
     labels: [
       { x: 108, y: 250, text: 'TRIBUNA', rotation: -90, size: 15 },
@@ -714,7 +720,7 @@ async function seedDemoEvent(
     { name: 'Mesas AMEX Derecha', slug: 'mesas-amex-der', net: 250, seats: tableClusterSeats({ section: 'AMEX Der', prefix: 'AD', tableRows: 5, tableCols: 6, seatsPerTable: 10, x0: 560, y0: 120, dx: 37, dy: 58 }) },
     { name: 'Mesas Ultra Fan Izquierda', slug: 'mesas-ultrafan-izq', net: 180, seats: tableClusterSeats({ section: 'Ultra Fan Izq', prefix: 'UI', tableRows: 5, tableCols: 6, seatsPerTable: 10, x0: 280, y0: 430, dx: 37, dy: 58 }) },
     { name: 'Mesas Ultra Fan Derecha', slug: 'mesas-ultrafan-der', net: 180, seats: tableClusterSeats({ section: 'Ultra Fan Der', prefix: 'UD', tableRows: 5, tableCols: 6, seatsPerTable: 10, x0: 560, y0: 430, dx: 37, dy: 58 }) },
-    { name: 'Tribuna', slug: 'tribuna', net: 120, seats: gridSeats({ section: 'Tribuna', prefix: 'T', rows: 24, cols: 4, x0: 140, y0: 120, dx: 24, dy: 23 }) },
+    { name: 'Tribuna', slug: 'tribuna', net: 120, seats: gridSeats({ section: 'Tribuna', prefix: 'T', rows: 24, cols: 4, x0: 140, y0: 120, dx: 24, dy: 23 }).filter((s) => !inPlatea(s.x, s.y)) },
     { name: 'Preferencia', slug: 'preferencia', net: 150, seats: gridSeats({ section: 'Preferencia', prefix: 'P', rows: 24, cols: 4, x0: 800, y0: 120, dx: 24, dy: 23 }) },
   ];
   const localityByName: Record<string, { id: string }> = {};

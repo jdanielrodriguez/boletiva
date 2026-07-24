@@ -258,6 +258,16 @@ export class PurchasePage implements OnDestroy {
   }
 
   /** Stepper +/− de cantidad para una localidad general (capado a [0, max]). */
+  /** Clic en un pill: activa la localidad y desplaza la página para dejar el MAPA hasta
+   *  arriba (solo la zona enfocada + el detalle fixed a la vista; sin pills/carrito encima). */
+  protected pickFromPill(id: string): void {
+    this.store.setActiveLocality(id);
+    if (!isPlatformBrowser(this.platformId)) return;
+    setTimeout(() => {
+      document.querySelector('[data-testid="venue-map"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 60);
+  }
+
   protected changeQuantity(loc: LocalityAvailabilityDto, delta: number): void {
     const current = this.store.quantityFor(loc.id);
     const n = Math.max(0, Math.min(this.store.maxFor(loc), current + delta));

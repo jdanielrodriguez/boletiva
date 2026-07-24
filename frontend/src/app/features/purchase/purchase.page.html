@@ -128,7 +128,7 @@
           class="loc-tab"
           data-testid="loc-tab"
           [class.active]="loc.id === store.activeLocalityId()"
-          (click)="store.setActiveLocality(loc.id)"
+          (click)="pickFromPill(loc.id)"
         >
           <strong>{{ loc.name }}</strong>
           @if (loc.price) { <span class="loc-tab-price">{{ loc.price.total | money }}</span> }

@@ -26,7 +26,7 @@ export const purchase = {
   seatMapMobileHint: 'Desplaza y toca para elegir tus asientos. Si el mapa es muy denso, gira el teléfono a horizontal.',
   legendAvailable: 'Disponible',
   legendSelected: 'Seleccionada',
-  legendOwned: 'Tuyo (comprado)',
+  legendOwned: 'Boleto ya comprado',
   legendReserved: 'Reservado',
   kindSeated: 'Asiento numerado',
   kindGeneral: 'Admisión general',
