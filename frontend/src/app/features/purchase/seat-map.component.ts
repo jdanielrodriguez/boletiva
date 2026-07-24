@@ -141,6 +141,9 @@ export class SeatMapComponent {
   readonly localityPick = output<string>();
   /** Al alejar el zoom por debajo del overview estando enfocado → salir de la zona. */
   readonly exitFocus = output<void>();
+  /** Cada vez que la cámara LLEGA a la vista completa (~100%): reset, zoom manual a 100% o
+   *  salir de una zona → la página reubica el scroll (deja el zoom bajo el header). */
+  readonly overviewReached = output<void>();
 
   private readonly host = viewChild.required<ElementRef<HTMLDivElement>>('host');
   private readonly clickDelay = inject(ClickDelayService);
@@ -163,6 +166,7 @@ export class SeatMapComponent {
   private holdTimer: ReturnType<typeof setTimeout> | null = null; // click sostenido → zoom a mesa
   private suppressFit = false; // auto-foco por zoom: enfoca SIN reencuadrar (mantiene el zoom)
   private fadeInNext = false; // al cambiar de foco → las mesas/sillas entran con fundido suave
+  private atOverview = true; // latch: ya se emitió overviewReached al llegar a ~100% (evita repetir)
   private lastDist = 0; // pinch: distancia previa entre 2 dedos
   private lastCenter: { x: number; y: number } | null = null;
   private cleanupWheel: (() => void) | null = null;
@@ -688,6 +692,13 @@ export class SeatMapComponent {
     const rel = this.stage.scaleX() / this.farScale;
     this.displayZoom.set(Math.round(rel * 100));
     this.scheduleRedraw(); // re-cullea (viewport) tras el zoom
+    // LLEGADA a la vista completa (~100%) → avisa a la página para reubicar el scroll (una
+    // sola vez por llegada; el latch se rearma al volver a acercarse por encima del 110%).
+    if (rel <= 1.02) {
+      if (!this.atOverview) { this.atOverview = true; this.overviewReached.emit(); }
+    } else if (rel > 1.1) {
+      this.atOverview = false;
+    }
     const focused = this.focusLocalityId() != null;
     // SALIDA con umbral FIJO y BAJO (150%): igual para TODAS las zonas → el mismo zoom-out
     // suelta el foco (mesas→cuadros) en cualquiera. Queda por DEBAJO del encuadre de la zona

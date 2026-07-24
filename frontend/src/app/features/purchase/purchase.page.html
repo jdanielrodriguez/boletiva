@@ -207,6 +207,7 @@
           (seatToggle)="store.toggleSeat($event)"
           (localityPick)="store.setActiveLocality($event)"
           (exitFocus)="store.deselectLocality()"
+          (overviewReached)="scrollZoomUnderHeader()"
         />
         <!-- a11y: el canvas Konva no es operable por teclado/lector. Lista paralela
              (sr-only) de la zona activa para elegir asientos sin mouse. -->

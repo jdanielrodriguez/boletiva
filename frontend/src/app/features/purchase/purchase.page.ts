@@ -248,6 +248,12 @@ export class PurchasePage implements OnDestroy {
    *  arriba (solo la zona enfocada + el detalle fixed a la vista; sin pills/carrito encima). */
   protected pickFromPill(id: string): void {
     this.store.setActiveLocality(id);
+    this.scrollZoomUnderHeader();
+  }
+
+  /** Reubica el scroll para dejar el CONTROL DE ZOOM justo bajo el header. Se usa al elegir
+   *  un pill y cada vez que el mapa vuelve a la vista completa (reset / 100% / salir de zona). */
+  protected scrollZoomUnderHeader(): void {
     if (!isPlatformBrowser(this.platformId)) return;
     // Acopla la barra de total ABAJO ya → el layout queda en su estado FINAL antes de medir
     // (si no, al ocultarse durante el scroll el contenido subía ~90px y el zoom terminaba
