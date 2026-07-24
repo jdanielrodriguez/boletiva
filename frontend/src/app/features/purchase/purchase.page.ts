@@ -249,12 +249,18 @@ export class PurchasePage implements OnDestroy {
   protected pickFromPill(id: string): void {
     this.store.setActiveLocality(id);
     if (!isPlatformBrowser(this.platformId)) return;
+    // Acopla la barra de total ABAJO ya → el layout queda en su estado FINAL antes de medir
+    // (si no, al ocultarse durante el scroll el contenido subía ~90px y el zoom terminaba
+    // bajo el header). Medimos tras el reflow y desplazamos el CONTROL DE ZOOM bajo el header.
+    this.cartHidden.set(true);
     setTimeout(() => {
-      // Desplaza al ANCLA vacía que está justo arriba del control de zoom (tiene
-      // scroll-margin-top para dejar hueco al header sticky) → el zoom queda como primer
-      // elemento visible, no oculto tras el header ni pasado hasta el canvas.
-      document.querySelector('[data-testid="map-top-anchor"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 60);
+      const zoom = document.querySelector('.seat-map-zoom') as HTMLElement | null;
+      if (!zoom) return;
+      const header = document.querySelector('.site-header') as HTMLElement | null;
+      const off = (header?.getBoundingClientRect().height ?? 0) + 12;
+      const top = zoom.getBoundingClientRect().top + window.scrollY - off;
+      window.scrollTo({ top, behavior: 'smooth' });
+    }, 80);
   }
 
   protected changeQuantity(loc: LocalityAvailabilityDto, delta: number): void {

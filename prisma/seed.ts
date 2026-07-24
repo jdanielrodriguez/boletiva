@@ -664,7 +664,7 @@ async function seedDemoEvent(
   // PLATEA = palcos NO vendibles (como la referencia): cuadro en el MEDIO-SUPERIOR de la
   // Tribuna, pegado a su borde izquierdo → los asientos quedan a la DERECHA + filas arriba
   // y abajo. DENTRO del cuadro NO se generan sillas (ver filtro de la Tribuna abajo).
-  const PLATEA = { x: 136, y: 205, w: 60, h: 300, label: 'PLATEA', fill: '#9aa0b0' };
+  const PLATEA = { x: 136, y: 205, w: 60, h: 300, label: 'PLATEA', fill: '#1e2a52' };
   const inPlatea = (x: number, y: number): boolean =>
     x >= PLATEA.x && x <= PLATEA.x + PLATEA.w && y >= PLATEA.y && y <= PLATEA.y + PLATEA.h;
   const decorations = {

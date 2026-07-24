@@ -2273,13 +2273,6 @@ app-root {
   margin: 0.5rem 0 1.25rem;
   position: relative; /* ancla el overlay .map-head */
 }
-/* Ancla vacía (0px) al tope del mapa, justo arriba del control de zoom. Al hacerle
-   scrollIntoView (clic en pill), su scroll-margin-top deja hueco para el header sticky →
-   el zoom queda como primer elemento visible. */
-.map-top-anchor {
-  height: 0;
-  scroll-margin-top: 88px;
-}
 /* Panel de zona / hint como OVERLAY FLOTANTE sobre el mapa (no ocupa layout) → al enfocar
    una localidad aparece la "notificación" del precio SIN empujar la página → nunca hay
    scroll ni salto al hacer zoom. Solo los controles internos capturan el puntero. */
