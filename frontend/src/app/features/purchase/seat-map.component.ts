@@ -308,6 +308,9 @@ export class SeatMapComponent {
    *  (vista lejana/overview), se dibujan BLOQUES de zona (como el overview de VivaTicket)
    *  → miles de nodos no colapsan el navegador. */
   private lodNear(): boolean {
+    // Una localidad ENFOCADA siempre muestra sus mesas/asientos (aunque el zoom
+    // calculado sea bajo). Si no hay foco, depende del zoom (overview = bloques).
+    if (this.focusLocalityId() != null) return true;
     if (!this.stage || this.farScale <= 0) return true;
     return this.stage.scaleX() >= this.farScale * 2.2;
   }
@@ -380,11 +383,15 @@ export class SeatMapComponent {
         b.maxY = Math.max(b.maxY, s.y as number);
       }
     }
-    for (const b of groups.values()) {
-      const x = b.minX + 3;
-      const y = (b.minY + b.maxY) / 2 - 4; // franja central entre las dos filas de puntos
-      const w = Math.max(10, b.maxX - b.minX - 6);
-      this.layer.add(new K.Rect({ x, y, width: w, height: 8, cornerRadius: 4, fill: '#c9b18f', stroke: '#8a6d4a', strokeWidth: 1, listening: false }));
+    for (const [key, b] of groups) {
+      const cx = (b.minX + b.maxX) / 2;
+      // MESA vertical oscura con el NÚMERO (como VivaTicket); los puntos (sillas) la
+      // flanquean izquierda/derecha.
+      this.layer.add(new K.Rect({ x: cx - 8, y: b.minY - 3, width: 16, height: b.maxY - b.minY + 6, cornerRadius: 5, fill: '#3a3f52', listening: false }));
+      const num = (key.split('|')[1] ?? '').replace(/\D/g, '');
+      if (num) {
+        this.layer.add(new K.Text({ x: cx - 8, y: b.minY - 3, width: 16, height: b.maxY - b.minY + 6, text: num, align: 'center', verticalAlign: 'middle', fontSize: 9, fontStyle: 'bold', fill: '#ffffff', listening: false }));
+      }
     }
   }
 
