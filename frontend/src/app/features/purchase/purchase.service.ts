@@ -105,7 +105,7 @@ export class PurchaseService {
   /** Regiones de localidades SIN asientos (Generales), mapeadas por slug→id + activa. */
   readonly regions = computed<MapRegion[]>(() => {
     const layout = this.availability()?.seatMap?.layout as
-      | { regions?: { slug: string; x: number; y: number; w: number; h: number; label?: string }[] }
+      | { regions?: (Omit<MapRegion, 'id' | 'active'> & { slug: string })[] }
       | undefined;
     const raw = layout?.regions ?? [];
     const active = this.activeLocalityId();
@@ -114,7 +114,7 @@ export class PurchaseService {
       .filter((r) => bySlug.has(r.slug))
       .map((r) => {
         const id = bySlug.get(r.slug) as string;
-        return { id, x: r.x, y: r.y, w: r.w, h: r.h, label: r.label, active: id === active };
+        return { id, x: r.x, y: r.y, w: r.w, h: r.h, label: r.label, arc: r.arc, active: id === active };
       });
   });
 
@@ -138,6 +138,11 @@ export class PurchaseService {
    * (se permite comprar varias localidades a la vez). */
   setActiveLocality(id: string): void {
     this.activeLocalityId.set(id);
+  }
+
+  /** Salir de la zona enfocada → vuelve al overview (localidades). */
+  deselectLocality(): void {
+    this.activeLocalityId.set(null);
   }
 
   /**

@@ -139,6 +139,8 @@ export class SeatMapComponent {
   readonly seatToggle = output<string>();
   /** Clic en una zona → id de su localidad (cambiar/enfocar). */
   readonly localityPick = output<string>();
+  /** Al alejar el zoom por debajo del overview estando enfocado → salir de la zona. */
+  readonly exitFocus = output<void>();
 
   private readonly host = viewChild.required<ElementRef<HTMLDivElement>>('host');
   private readonly clickDelay = inject(ClickDelayService);
@@ -193,7 +195,10 @@ export class SeatMapComponent {
       const focusChanged = this.lastFocus !== focus;
       this.lastFocus = focus;
       this.redraw();
-      this.applyCamera(focusChanged); // anima solo al cambiar el foco
+      // Reencuadra si cambia el foco (animado) o si NO hay foco (overview sigue los
+      // datos). Con foco fijo (p.ej. al seleccionar un asiento) NO se mueve → antes hacía
+      // un zoom-out feo en cada selección.
+      if (focusChanged || focus == null) this.applyCamera(focusChanged);
     });
   }
 
@@ -527,10 +532,10 @@ export class SeatMapComponent {
       if (!this.inView(cx, (b.minY + b.maxY) / 2, view)) continue; // culling por viewport
       // MESA vertical oscura con el NÚMERO (como VivaTicket); los puntos (sillas) la
       // flanquean izquierda/derecha.
-      this.layer.add(new K.Rect({ x: cx - 8, y: b.minY - 3, width: 16, height: b.maxY - b.minY + 6, cornerRadius: 5, fill: '#3a3f52', listening: false }));
+      this.layer.add(new K.Rect({ x: cx - 6, y: b.minY - 2, width: 12, height: b.maxY - b.minY + 4, cornerRadius: 5, fill: '#3a3f52', listening: false }));
       const num = (key.split('|')[1] ?? '').replace(/\D/g, '');
       if (num) {
-        this.layer.add(new K.Text({ x: cx - 8, y: b.minY - 3, width: 16, height: b.maxY - b.minY + 6, text: num, align: 'center', verticalAlign: 'middle', fontSize: 9, fontStyle: 'bold', fill: '#ffffff', listening: false }));
+        this.layer.add(new K.Text({ x: cx - 10, y: b.minY - 2, width: 20, height: b.maxY - b.minY + 4, text: num, align: 'center', verticalAlign: 'middle', fontSize: 8, fontStyle: 'bold', fill: '#ffffff', listening: false }));
       }
     }
   }
@@ -635,6 +640,10 @@ export class SeatMapComponent {
     this.tip.set(null); // cualquier zoom cierra el tooltip (evita que se quede pegado)
     this.displayZoom.set(Math.round((this.stage.scaleX() / this.farScale) * 100));
     this.scheduleRedraw(); // re-cullea (viewport) y re-evalúa el LOD tras el zoom
+    // Enfocado y alejaste el zoom por debajo del overview (~100%) → sal de la zona.
+    if (this.focusLocalityId() != null && this.stage.scaleX() < this.farScale * 0.98) {
+      this.exitFocus.emit();
+    }
   }
 
   /** Zoom (animado) para encuadrar un box (p.ej. una mesa). */
@@ -784,8 +793,14 @@ export class SeatMapComponent {
           return;
         }
         if (!taken) {
+          const willSelect = !this.selected().has(seat.id);
           this.clickDelay.pulse(); // loader breve también al elegir asiento
           this.seatToggle.emit(seat.id);
+          // Al SELECCIONAR una silla, centra la cámara en su MESA (no reencuadra la zona).
+          if (willSelect && seat.row) {
+            const mesa = this.mesaBoxAt(seat.x as number, seat.y as number);
+            if (mesa) this.zoomToBox(mesa);
+          }
         }
       });
       const clickable = locked || !taken;
