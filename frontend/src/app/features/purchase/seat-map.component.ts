@@ -118,6 +118,8 @@ export class SeatMapComponent {
   readonly decorations = input<MapDecorations | null>(null);
   /** Localidades que se dibujan como MESAS (círculos) en vez de sillas. */
   readonly tableLocalityIds = input<ReadonlySet<string>>(new Set<string>());
+  /** Nombre por localidad (para las etiquetas de los bloques de zona en la vista lejana/LOD). */
+  readonly localityNames = input<Record<string, string>>({});
   readonly seatToggle = output<string>();
   /** Clic en una zona → id de su localidad (cambiar/enfocar). */
   readonly localityPick = output<string>();
@@ -139,6 +141,7 @@ export class SeatMapComponent {
   private resizeObserver: ResizeObserver | null = null;
   private farScale = 1; // escala de la vista completa (referencia 100%)
   private lastFocus: string | null | undefined = undefined;
+  private lastNear = true; // último nivel LOD dibujado (para redibujar al cruzar el umbral)
   private lastDist = 0; // pinch: distancia previa entre 2 dedos
   private lastCenter: { x: number; y: number } | null = null;
   private cleanupWheel: (() => void) | null = null;
@@ -163,6 +166,7 @@ export class SeatMapComponent {
       this.disabled();
       this.decorations();
       this.tableLocalityIds();
+      this.localityNames();
       this.stageLabel();
       const focus = this.focusLocalityId();
       if (!this.stage) return;
@@ -261,11 +265,58 @@ export class SeatMapComponent {
     this.applyCamera(false);
   }
 
+  /** LOD: ¿estamos lo bastante cerca para dibujar asientos/mesas individuales? Si no
+   *  (vista lejana/overview), se dibujan BLOQUES de zona (como el overview de VivaTicket)
+   *  → miles de nodos no colapsan el navegador. */
+  private lodNear(): boolean {
+    if (!this.stage || this.farScale <= 0) return true;
+    return this.stage.scaleX() >= this.farScale * 2.2;
+  }
+
   private redraw(): void {
     this.layer?.destroyChildren();
     this.drawDecorations(); // debajo de los asientos
-    this.drawTables(); // mesas (centro) debajo de sus sillas
-    this.drawSeats();
+    if (this.lodNear()) {
+      this.drawTables(); // mesas (centro) debajo de sus sillas
+      this.drawSeats();
+    } else {
+      this.drawZoneBlocks(); // vista lejana: bloques de zona (LOD)
+    }
+    this.lastNear = this.lodNear();
+  }
+
+  /** Vista lejana (LOD): un bloque por localidad (bbox + nombre) en vez de miles de
+   *  asientos → el overview se lee como el de VivaTicket y el render es liviano. */
+  private drawZoneBlocks(): void {
+    if (!this.konva || !this.layer) return;
+    const K = this.konva;
+    const names = this.localityNames();
+    const boxes = new Map<string, Box>();
+    for (const s of this.seats()) {
+      if (s.x == null || s.y == null) continue;
+      const b = boxes.get(s.localityId);
+      if (!b) boxes.set(s.localityId, { minX: s.x, minY: s.y, maxX: s.x, maxY: s.y });
+      else {
+        b.minX = Math.min(b.minX, s.x as number);
+        b.minY = Math.min(b.minY, s.y as number);
+        b.maxX = Math.max(b.maxX, s.x as number);
+        b.maxY = Math.max(b.maxY, s.y as number);
+      }
+    }
+    const PADZ = 14;
+    for (const [id, b] of boxes) {
+      this.layer.add(new K.Rect({
+        x: b.minX - PADZ, y: b.minY - PADZ, width: b.maxX - b.minX + PADZ * 2, height: b.maxY - b.minY + PADZ * 2,
+        cornerRadius: 8, fill: 'rgba(53,208,127,0.16)', stroke: '#35d07f', strokeWidth: 1.5, listening: false,
+      }));
+      const name = names[id];
+      if (name) {
+        this.layer.add(new K.Text({
+          x: b.minX - PADZ, y: b.minY - PADZ, width: b.maxX - b.minX + PADZ * 2, height: b.maxY - b.minY + PADZ * 2,
+          text: name, align: 'center', verticalAlign: 'middle', fontSize: 16, fontStyle: 'bold', fill: '#1a1a2e', listening: false,
+        }));
+      }
+    }
   }
 
   /** Dibuja la MESA (círculo central marrón) al centroide de cada grupo de sillas
@@ -382,6 +433,8 @@ export class SeatMapComponent {
   private updateZoom(): void {
     if (!this.stage || this.farScale <= 0) return;
     this.displayZoom.set(Math.round((this.stage.scaleX() / this.farScale) * 100));
+    // Cruzó el umbral LOD (lejos↔cerca) → redibuja bloques o asientos según corresponda.
+    if (this.lodNear() !== this.lastNear) this.redraw();
   }
 
   /** Zoom manual alrededor del centro del viewport (mantiene el punto central). */

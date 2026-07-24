@@ -579,9 +579,10 @@ function tableClusterSeats(o: {
   y0: number;
   dx: number;
   dy: number;
+  radius?: number;
 }): Array<{ label: string; row: string; section: string; x: number; y: number }> {
   const out: Array<{ label: string; row: string; section: string; x: number; y: number }> = [];
-  const R = 9; // radio de las sillas alrededor del centro de la mesa
+  const R = o.radius ?? 9; // radio de las sillas alrededor del centro de la mesa
   let t = 0;
   for (let r = 0; r < o.tableRows; r++) {
     for (let c = 0; c < o.tableCols; c++) {
@@ -656,27 +657,27 @@ async function seedDemoEvent(
   // abajo el arco GENERAL 1/2. Las DECORACIONES (escenario/FOH/PLATEA/etiquetas/cruces)
   // se guardan en SeatMap.layout → el frontend las dibuja en el canvas (se anclan).
   const decorations = {
-    stage: { x: 335, y: 0, w: 460, h: 46, label: 'ESCENARIO' },
+    stage: { x: 320, y: 20, w: 490, h: 48, label: 'ESCENARIO' },
     blocks: [
-      { x: 520, y: 150, w: 90, h: 70, label: 'FOH', fill: '#1e2a52' },
-      { x: 540, y: 405, w: 50, h: 46, fill: '#1e2a52' },
-      { x: 150, y: 420, w: 84, h: 60, label: 'PLATEA', fill: '#9aa0b0' },
-      { x: 120, y: 505, w: 455, h: 120, label: 'GENERAL 1', fill: '#ecdcd2' },
-      { x: 595, y: 505, w: 455, h: 120, label: 'GENERAL 2', fill: '#dfe4ee' },
+      { x: 505, y: 190, w: 120, h: 110, label: 'FOH', fill: '#1e2a52' }, // entre AMEX Izq/Der
+      { x: 540, y: 540, w: 60, h: 60, fill: '#1e2a52' }, // torre técnica entre Ultra Fan
+      { x: 150, y: 320, w: 78, h: 150, label: 'PLATEA', fill: '#9aa0b0' }, // en la Tribuna
+      { x: 120, y: 740, w: 455, h: 130, label: 'GENERAL 1', fill: '#ecdcd2' },
+      { x: 595, y: 740, w: 455, h: 130, label: 'GENERAL 2', fill: '#dfe4ee' },
     ],
     labels: [
-      { x: 96, y: 320, text: 'TRIBUNA', rotation: -90, size: 16 },
-      { x: 1075, y: 150, text: 'PREFERENCIA', rotation: 90, size: 16 },
+      { x: 96, y: 360, text: 'TRIBUNA', rotation: -90, size: 16 },
+      { x: 1090, y: 200, text: 'PREFERENCIA', rotation: 90, size: 16 },
     ],
-    aids: [{ x: 565, y: 480 }, { x: 812, y: 96 }, { x: 812, y: 235 }],
+    aids: [{ x: 565, y: 640 }, { x: 852, y: 120 }, { x: 852, y: 320 }],
   };
   await prisma.seatMap.create({
     data: {
       eventId: event.id,
       version: 1,
       name: 'Estadio Cementos Progreso',
-      width: 1130,
-      height: 650,
+      width: 1170,
+      height: 890,
       active: true,
       layout: decorations as object,
     },
@@ -688,12 +689,12 @@ async function seedDemoEvent(
     name: string; slug: string; net: number;
     seats: Array<{ label: string; row: string; section: string; x: number; y: number }>;
   }> = [
-    { name: 'Mesas AMEX Izquierda', slug: 'mesas-amex-izq', net: 250, seats: tableClusterSeats({ section: 'AMEX Izq', prefix: 'AI', tableRows: 4, tableCols: 4, seatsPerTable: 4, x0: 300, y0: 100, dx: 52, dy: 48 }) },
-    { name: 'Mesas AMEX Derecha', slug: 'mesas-amex-der', net: 250, seats: tableClusterSeats({ section: 'AMEX Der', prefix: 'AD', tableRows: 4, tableCols: 4, seatsPerTable: 4, x0: 610, y0: 100, dx: 52, dy: 48 }) },
-    { name: 'Mesas Ultra Fan Izquierda', slug: 'mesas-ultrafan-izq', net: 180, seats: tableClusterSeats({ section: 'Ultra Fan Izq', prefix: 'UI', tableRows: 4, tableCols: 4, seatsPerTable: 4, x0: 300, y0: 300, dx: 52, dy: 48 }) },
-    { name: 'Mesas Ultra Fan Derecha', slug: 'mesas-ultrafan-der', net: 180, seats: tableClusterSeats({ section: 'Ultra Fan Der', prefix: 'UD', tableRows: 4, tableCols: 4, seatsPerTable: 4, x0: 610, y0: 300, dx: 52, dy: 48 }) },
-    { name: 'Tribuna', slug: 'tribuna', net: 120, seats: gridSeats({ section: 'Tribuna', prefix: 'T', rows: 13, cols: 3, x0: 150, y0: 95, dx: 28, dy: 24 }) },
-    { name: 'Preferencia', slug: 'preferencia', net: 150, seats: gridSeats({ section: 'Preferencia', prefix: 'P', rows: 13, cols: 3, x0: 945, y0: 95, dx: 28, dy: 24 }) },
+    { name: 'Mesas AMEX Izquierda', slug: 'mesas-amex-izq', net: 250, seats: tableClusterSeats({ section: 'AMEX Izq', prefix: 'AI', tableRows: 5, tableCols: 4, seatsPerTable: 10, radius: 18, x0: 300, y0: 110, dx: 56, dy: 56 }) },
+    { name: 'Mesas AMEX Derecha', slug: 'mesas-amex-der', net: 250, seats: tableClusterSeats({ section: 'AMEX Der', prefix: 'AD', tableRows: 5, tableCols: 4, seatsPerTable: 10, radius: 18, x0: 640, y0: 110, dx: 56, dy: 56 }) },
+    { name: 'Mesas Ultra Fan Izquierda', slug: 'mesas-ultrafan-izq', net: 180, seats: tableClusterSeats({ section: 'Ultra Fan Izq', prefix: 'UI', tableRows: 5, tableCols: 4, seatsPerTable: 10, radius: 18, x0: 300, y0: 430, dx: 56, dy: 56 }) },
+    { name: 'Mesas Ultra Fan Derecha', slug: 'mesas-ultrafan-der', net: 180, seats: tableClusterSeats({ section: 'Ultra Fan Der', prefix: 'UD', tableRows: 5, tableCols: 4, seatsPerTable: 10, radius: 18, x0: 640, y0: 430, dx: 56, dy: 56 }) },
+    { name: 'Tribuna', slug: 'tribuna', net: 120, seats: gridSeats({ section: 'Tribuna', prefix: 'T', rows: 20, cols: 4, x0: 150, y0: 110, dx: 26, dy: 24 }) },
+    { name: 'Preferencia', slug: 'preferencia', net: 150, seats: gridSeats({ section: 'Preferencia', prefix: 'P', rows: 20, cols: 4, x0: 970, y0: 110, dx: 26, dy: 24 }) },
   ];
   const localityByName: Record<string, { id: string }> = {};
   for (const z of zones) {
