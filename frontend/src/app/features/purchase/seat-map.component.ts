@@ -264,7 +264,30 @@ export class SeatMapComponent {
   private redraw(): void {
     this.layer?.destroyChildren();
     this.drawDecorations(); // debajo de los asientos
+    this.drawTables(); // mesas (centro) debajo de sus sillas
     this.drawSeats();
+  }
+
+  /** Dibuja la MESA (círculo central marrón) al centroide de cada grupo de sillas
+   *  (mismo `localityId` + `row`) en las zonas de mesas → las sillas quedan alrededor. */
+  private drawTables(): void {
+    if (!this.konva || !this.layer) return;
+    const K = this.konva;
+    const tables = this.tableLocalityIds();
+    if (tables.size === 0) return;
+    const groups = new Map<string, { sx: number; sy: number; n: number }>();
+    for (const s of this.seats()) {
+      if (s.x == null || s.y == null || !tables.has(s.localityId)) continue;
+      const key = `${s.localityId}|${s.row ?? ''}`;
+      const g = groups.get(key) ?? { sx: 0, sy: 0, n: 0 };
+      g.sx += s.x as number;
+      g.sy += s.y as number;
+      g.n += 1;
+      groups.set(key, g);
+    }
+    for (const g of groups.values()) {
+      this.layer.add(new K.Circle({ x: g.sx / g.n, y: g.sy / g.n, radius: 7, fill: '#c9b18f', stroke: '#8a6d4a', strokeWidth: 1, listening: false }));
+    }
   }
 
   private vw(): number {
@@ -462,10 +485,9 @@ export class SeatMapComponent {
       const g = new K.Group({ x: seat.x as number, y: seat.y as number, opacity: locked && !owned ? 0.45 : 1 });
       const isTable = this.tableLocalityIds().has(seat.localityId);
       if (isTable) {
-        // Zona de MESAS: cada ASIENTO alrededor de la mesa se dibuja como CÍRCULO.
-        // (La mesa como tal — rect/círculo central con N sillas — llega en F1.4 al
-        // agrupar asientos por mesa.) El borde blanco marca el asiento seleccionado.
-        g.add(new K.Circle({ radius: 7, fill: color, stroke: chosen && !taken && !locked ? '#ffffff' : undefined, strokeWidth: chosen && !taken && !locked ? 2 : 0 }));
+        // Zona de MESAS: la mesa (centro) la dibuja drawTables(); cada SILLA alrededor
+        // es un CÍRCULO pequeño. Borde blanco = seleccionada.
+        g.add(new K.Circle({ radius: 5, fill: color, stroke: chosen && !taken && !locked ? '#ffffff' : undefined, strokeWidth: chosen && !taken && !locked ? 2 : 0 }));
       } else {
         // SILLA pequeña MIRANDO al escenario (arriba): asiento + respaldo abajo. Más
         // chica que antes para que no se traslapen los iconos.

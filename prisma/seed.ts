@@ -564,6 +564,46 @@ function gridSeats(opts: {
   return out;
 }
 
+/**
+ * Genera MESAS en rejilla: cada mesa tiene un centro y `seatsPerTable` sillas
+ * alrededor (en círculo). Las sillas comparten `row = <prefix><nºmesa>` → el mapa
+ * agrupa por mesa (dibuja la mesa al centroide) y cada silla como círculo alrededor.
+ */
+function tableClusterSeats(o: {
+  section: string;
+  prefix: string;
+  tableRows: number;
+  tableCols: number;
+  seatsPerTable: number;
+  x0: number;
+  y0: number;
+  dx: number;
+  dy: number;
+}): Array<{ label: string; row: string; section: string; x: number; y: number }> {
+  const out: Array<{ label: string; row: string; section: string; x: number; y: number }> = [];
+  const R = 9; // radio de las sillas alrededor del centro de la mesa
+  let t = 0;
+  for (let r = 0; r < o.tableRows; r++) {
+    for (let c = 0; c < o.tableCols; c++) {
+      t++;
+      const cx = o.x0 + c * o.dx;
+      const cy = o.y0 + r * o.dy;
+      const tableId = `${o.prefix}${t}`;
+      for (let s = 0; s < o.seatsPerTable; s++) {
+        const ang = ((-90 + s * (360 / o.seatsPerTable)) * Math.PI) / 180;
+        out.push({
+          label: `${tableId}-${s + 1}`,
+          row: tableId,
+          section: o.section,
+          x: Math.round(cx + R * Math.cos(ang)),
+          y: Math.round(cy + R * Math.sin(ang)),
+        });
+      }
+    }
+  }
+  return out;
+}
+
 async function seedDemoEvent(
   promoterId: string,
   categoryId: string,
@@ -642,23 +682,22 @@ async function seedDemoEvent(
     },
   });
 
+  // MESAS (AMEX + Ultra Fan) = clústeres (mesa central + 4 sillas alrededor).
+  // TRIBUNA/PREFERENCIA = rejilla de sillas mirando al escenario.
   const zones: Array<{
     name: string; slug: string; net: number;
-    grid: Parameters<typeof gridSeats>[0];
+    seats: Array<{ label: string; row: string; section: string; x: number; y: number }>;
   }> = [
-    // Frente al escenario: Mesas AMEX (premium) izquierda/derecha (FOH al centro).
-    { name: 'Mesas AMEX Izquierda', slug: 'mesas-amex-izq', net: 250, grid: { section: 'AMEX Izq', prefix: 'AI', rows: 6, cols: 8, x0: 300, y0: 90, dx: 24, dy: 22 } },
-    { name: 'Mesas AMEX Derecha', slug: 'mesas-amex-der', net: 250, grid: { section: 'AMEX Der', prefix: 'AD', rows: 6, cols: 8, x0: 620, y0: 90, dx: 24, dy: 22 } },
-    // Detrás: Mesas Ultra Fan izquierda/derecha.
-    { name: 'Mesas Ultra Fan Izquierda', slug: 'mesas-ultrafan-izq', net: 180, grid: { section: 'Ultra Fan Izq', prefix: 'UI', rows: 6, cols: 8, x0: 300, y0: 280, dx: 24, dy: 22 } },
-    { name: 'Mesas Ultra Fan Derecha', slug: 'mesas-ultrafan-der', net: 180, grid: { section: 'Ultra Fan Der', prefix: 'UD', rows: 6, cols: 8, x0: 620, y0: 280, dx: 24, dy: 22 } },
-    // Laterales: Tribuna (con Platea) izquierda + Preferencia derecha.
-    { name: 'Tribuna', slug: 'tribuna', net: 120, grid: { section: 'Tribuna', prefix: 'T', rows: 13, cols: 3, x0: 150, y0: 95, dx: 28, dy: 24 } },
-    { name: 'Preferencia', slug: 'preferencia', net: 150, grid: { section: 'Preferencia', prefix: 'P', rows: 13, cols: 3, x0: 945, y0: 95, dx: 28, dy: 24 } },
+    { name: 'Mesas AMEX Izquierda', slug: 'mesas-amex-izq', net: 250, seats: tableClusterSeats({ section: 'AMEX Izq', prefix: 'AI', tableRows: 4, tableCols: 4, seatsPerTable: 4, x0: 300, y0: 100, dx: 52, dy: 48 }) },
+    { name: 'Mesas AMEX Derecha', slug: 'mesas-amex-der', net: 250, seats: tableClusterSeats({ section: 'AMEX Der', prefix: 'AD', tableRows: 4, tableCols: 4, seatsPerTable: 4, x0: 610, y0: 100, dx: 52, dy: 48 }) },
+    { name: 'Mesas Ultra Fan Izquierda', slug: 'mesas-ultrafan-izq', net: 180, seats: tableClusterSeats({ section: 'Ultra Fan Izq', prefix: 'UI', tableRows: 4, tableCols: 4, seatsPerTable: 4, x0: 300, y0: 300, dx: 52, dy: 48 }) },
+    { name: 'Mesas Ultra Fan Derecha', slug: 'mesas-ultrafan-der', net: 180, seats: tableClusterSeats({ section: 'Ultra Fan Der', prefix: 'UD', tableRows: 4, tableCols: 4, seatsPerTable: 4, x0: 610, y0: 300, dx: 52, dy: 48 }) },
+    { name: 'Tribuna', slug: 'tribuna', net: 120, seats: gridSeats({ section: 'Tribuna', prefix: 'T', rows: 13, cols: 3, x0: 150, y0: 95, dx: 28, dy: 24 }) },
+    { name: 'Preferencia', slug: 'preferencia', net: 150, seats: gridSeats({ section: 'Preferencia', prefix: 'P', rows: 13, cols: 3, x0: 945, y0: 95, dx: 28, dy: 24 }) },
   ];
   const localityByName: Record<string, { id: string }> = {};
   for (const z of zones) {
-    const seats = gridSeats(z.grid);
+    const seats = z.seats;
     const loc = await prisma.locality.create({
       data: { eventId: event.id, name: z.name, slug: z.slug, kind: 'seated', desiredNet: z.net },
     });
