@@ -163,6 +163,7 @@ export class SeatMapComponent {
   private holdTimer: ReturnType<typeof setTimeout> | null = null; // click sostenido → zoom a mesa
   private suppressFit = false; // auto-foco por zoom: enfoca SIN reencuadrar (mantiene el zoom)
   private fadeInNext = false; // al cambiar de foco → las mesas/sillas entran con fundido suave
+  private focusEntryScale = 0; // escala con la que se ENTRÓ a la zona enfocada (salida relativa)
   private lastDist = 0; // pinch: distancia previa entre 2 dedos
   private lastCenter: { x: number; y: number } | null = null;
   private cleanupWheel: (() => void) | null = null;
@@ -442,7 +443,7 @@ export class SeatMapComponent {
           const group = new K.Group({ opacity: 0 });
           fresh.forEach((n) => n.moveTo(group));
           this.layer.add(group);
-          new K.Tween({ node: group, opacity: 1, duration: 0.4, easing: K.Easings.EaseInOut }).play();
+          new K.Tween({ node: group, opacity: 1, duration: 0.6, easing: K.Easings.EaseInOut }).play();
         }
       }
     }
@@ -635,6 +636,9 @@ export class SeatMapComponent {
     const box = focusBox ?? world;
     // La vista completa va exacta al 100%; una localidad se acerca a su encuadre.
     const scale = focusBox ? this.fitScale(box) : this.farScale;
+    // Recuerda el zoom de ENTRADA (varía por localidad: Preferencia encuadra a ~178%, AMEX
+    // a otro) → la SALIDA será relativa a esto, no a un % global fijo.
+    this.focusEntryScale = focusBox ? scale : 0;
     const pos = this.centerPos(box, scale);
     this.moveCamera(scale, pos, animate);
   }
@@ -669,10 +673,12 @@ export class SeatMapComponent {
     this.displayZoom.set(Math.round(rel * 100));
     this.scheduleRedraw(); // re-cullea (viewport) tras el zoom
     const focused = this.focusLocalityId() != null;
-    // ENFOCADO y bajaste del ~200% → SUELTA el foco (las mesas vuelven a ser cuadro) pero
-    // SIN recentrar la cámara (suppressFit): quedas en el mismo punto/zoom; al seguir
-    // alejando hasta 100% ya ves el overview normal. Histéresis con la entrada (250%).
-    if (focused && rel < 2) {
+    // SALIDA RELATIVA al zoom de entrada: si te alejas ~40% por debajo del zoom con que se
+    // enfocó la localidad → suelta el foco (SIN recentrar, suppressFit). Así una localidad
+    // que encuadra bajo (Preferencia ~178%) NO se cierra sola nada más entrar. Al seguir
+    // alejando hasta el overview (100%) ya ves los cuadros normales.
+    const exitScale = this.focusEntryScale * 0.6;
+    if (focused && this.focusEntryScale > 0 && this.stage.scaleX() < exitScale) {
       this.suppressFit = true;
       this.exitFocus.emit();
     } else if (!focused && rel >= 2.5) {
@@ -682,6 +688,7 @@ export class SeatMapComponent {
       const cy = (this.vh() / 2 - this.stage.y()) / this.stage.scaleX();
       const loc = this.localityAt(cx, cy);
       if (loc) {
+        this.focusEntryScale = this.stage.scaleX(); // entrada = zoom actual (auto-foco por zoom)
         this.suppressFit = true;
         this.localityPick.emit(loc);
       }
