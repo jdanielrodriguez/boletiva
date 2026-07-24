@@ -58,9 +58,9 @@ describe('Configuraciones (settings) e2e', () => {
   const http = () => request(app.getHttpServer());
   const bearer = (t: string) => ({ Authorization: `Bearer ${t}` });
 
-  it('admin lista el catálogo (34 claves, con value/default/type)', async () => {
+  it('admin lista el catálogo (36 claves, con value/default/type)', async () => {
     const res = await http().get('/api/v1/settings').set(bearer(adminToken)).expect(200);
-    expect(res.body.length).toBe(34);
+    expect(res.body.length).toBe(36);
     const item = res.body.find((s: { key: string }) => s.key === 'costshare.default_pct');
     expect(item).toBeDefined();
     expect(item.type).toBe('pct');
