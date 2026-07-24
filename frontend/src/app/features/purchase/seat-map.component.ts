@@ -157,7 +157,8 @@ export class SeatMapComponent {
   private resizeObserver: ResizeObserver | null = null;
   private farScale = 1; // escala de la vista completa (referencia 100%)
   private lastFocus: string | null | undefined = undefined;
-  private lastNear = true; // último nivel LOD dibujado (para redibujar al cruzar el umbral)
+  private redrawRaf = 0; // handle del requestAnimationFrame para throttle del redraw en pan
+  private holdTimer: ReturnType<typeof setTimeout> | null = null; // click sostenido → zoom a mesa
   private lastDist = 0; // pinch: distancia previa entre 2 dedos
   private lastCenter: { x: number; y: number } | null = null;
   private cleanupWheel: (() => void) | null = null;
@@ -174,6 +175,8 @@ export class SeatMapComponent {
     inject(DestroyRef).onDestroy(() => {
       this.resizeObserver?.disconnect();
       this.cleanupWheel?.();
+      this.cancelHold();
+      if (this.redrawRaf && typeof cancelAnimationFrame !== 'undefined') cancelAnimationFrame(this.redrawRaf);
     });
     effect(() => {
       this.seats();
@@ -253,18 +256,45 @@ export class SeatMapComponent {
       this.lastCenter = null;
     });
 
-    // Doble clic/tap EN CUALQUIER PARTE de una zona (asiento o espacio blanco) → enfoca
-    // esa localidad (la selecciona y la cámara se acerca, cinematográfico).
-    this.stage?.on('dblclick dbltap', () => {
-      if (!this.stage) return;
-      const p = this.stage.getPointerPosition();
-      if (!p) return;
-      const s = this.stage.scaleX() || 1;
-      const wx = (p.x - this.stage.x()) / s;
-      const wy = (p.y - this.stage.y()) / s;
-      const loc = this.localityAt(wx, wy);
-      if (loc) this.localityPick.emit(loc);
+    // Pan (arrastre) → re-cullea (redibuja lo visible) en el próximo frame.
+    this.stage?.on('dragmove', () => {
+      this.cancelHold();
+      this.scheduleRedraw();
     });
+
+    // Punto de mundo bajo el cursor/dedo.
+    const worldPoint = (): { wx: number; wy: number } | null => {
+      if (!this.stage) return null;
+      const p = this.stage.getPointerPosition();
+      if (!p) return null;
+      const s = this.stage.scaleX() || 1;
+      return { wx: (p.x - this.stage.x()) / s, wy: (p.y - this.stage.y()) / s };
+    };
+
+    // Clic SOSTENIDO (~450ms sin moverse) → zoom a la mesa (o enfoca la localidad).
+    this.stage?.on('mousedown touchstart', () => {
+      const pt = worldPoint();
+      if (!pt) return;
+      this.cancelHold();
+      this.holdTimer = setTimeout(() => {
+        this.holdTimer = null;
+        this.focusOrMesa(pt.wx, pt.wy);
+      }, 450);
+    });
+    this.stage?.on('mouseup touchend mouseleave', () => this.cancelHold());
+
+    // Doble clic/tap: zoom a la MESA bajo el punto (si hay zona enfocada) o enfoca la zona.
+    this.stage?.on('dblclick dbltap', () => {
+      const pt = worldPoint();
+      if (pt) this.focusOrMesa(pt.wx, pt.wy);
+    });
+  }
+
+  private cancelHold(): void {
+    if (this.holdTimer) {
+      clearTimeout(this.holdTimer);
+      this.holdTimer = null;
+    }
   }
 
   /** bbox por localidad (a partir de los asientos). */
@@ -282,6 +312,57 @@ export class SeatMapComponent {
       }
     }
     return m;
+  }
+
+  /** Rectángulo VISIBLE del mundo (para culling), con margen. */
+  private viewRect(): Box {
+    const s = this.stage?.scaleX() || 1;
+    const px = this.stage?.x() ?? 0;
+    const py = this.stage?.y() ?? 0;
+    const m = 60 / s; // margen en coords de mundo
+    const x0 = -px / s - m;
+    const y0 = -py / s - m;
+    return { minX: x0, minY: y0, maxX: x0 + this.vw() / s + 2 * m, maxY: y0 + this.vh() / s + 2 * m };
+  }
+  private inView(x: number, y: number, v: Box): boolean {
+    return x >= v.minX && x <= v.maxX && y >= v.minY && y <= v.maxY;
+  }
+
+  /** Redibuja en el próximo frame (throttle) — al hacer pan/zoom, para re-cullear. */
+  private scheduleRedraw(): void {
+    if (typeof requestAnimationFrame === 'undefined') {
+      this.redraw();
+      return;
+    }
+    if (this.redrawRaf) return;
+    this.redrawRaf = requestAnimationFrame(() => {
+      this.redrawRaf = 0;
+      this.redraw();
+    });
+  }
+
+  /** bbox de la MESA (grupo localityId|row) que contiene (wx,wy), en la localidad enfocada. */
+  private mesaBoxAt(wx: number, wy: number): Box | null {
+    const focus = this.focusLocalityId();
+    if (!focus) return null;
+    const byRow = new Map<string, Box>();
+    for (const s of this.seats()) {
+      if (s.x == null || s.y == null || s.localityId !== focus) continue;
+      const k = s.row ?? '';
+      const b = byRow.get(k);
+      if (!b) byRow.set(k, { minX: s.x, minY: s.y, maxX: s.x, maxY: s.y });
+      else {
+        b.minX = Math.min(b.minX, s.x as number);
+        b.minY = Math.min(b.minY, s.y as number);
+        b.maxX = Math.max(b.maxX, s.x as number);
+        b.maxY = Math.max(b.maxY, s.y as number);
+      }
+    }
+    const PADM = 14;
+    for (const b of byRow.values()) {
+      if (wx >= b.minX - PADM && wx <= b.maxX + PADM && wy >= b.minY - PADM && wy <= b.maxY + PADM) return b;
+    }
+    return null;
   }
 
   /** Localidad cuyo área (bbox + margen) contiene el punto de mundo (wx,wy), o null. */
@@ -343,7 +424,6 @@ export class SeatMapComponent {
     } else {
       this.drawZoneBlocks(); // vista lejana: bloques de zona (LOD)
     }
-    this.lastNear = this.lodNear();
   }
 
   /** Regiones de localidades SIN asientos (Generales): rect clicable que selecciona la
@@ -425,11 +505,12 @@ export class SeatMapComponent {
     const K = this.konva;
     const tables = this.tableLocalityIds();
     if (tables.size === 0) return;
-    // bbox por mesa (localityId|row) → dibuja la MESA como rect ALARGADO (inset) para
-    // que los PUNTOS (sillas) queden rodeándola arriba/abajo, como en VivaTicket.
+    // SOLO la localidad enfocada (culling por localidad); si no hay foco, ninguna mesa.
+    const focus = this.focusLocalityId();
+    if (!focus || !tables.has(focus)) return;
     const groups = new Map<string, Box>();
     for (const s of this.seats()) {
-      if (s.x == null || s.y == null || !tables.has(s.localityId)) continue;
+      if (s.x == null || s.y == null || s.localityId !== focus) continue;
       const key = `${s.localityId}|${s.row ?? ''}`;
       const b = groups.get(key);
       if (!b) groups.set(key, { minX: s.x, minY: s.y, maxX: s.x, maxY: s.y });
@@ -440,8 +521,10 @@ export class SeatMapComponent {
         b.maxY = Math.max(b.maxY, s.y as number);
       }
     }
+    const view = this.viewRect();
     for (const [key, b] of groups) {
       const cx = (b.minX + b.maxX) / 2;
+      if (!this.inView(cx, (b.minY + b.maxY) / 2, view)) continue; // culling por viewport
       // MESA vertical oscura con el NÚMERO (como VivaTicket); los puntos (sillas) la
       // flanquean izquierda/derecha.
       this.layer.add(new K.Rect({ x: cx - 8, y: b.minY - 3, width: 16, height: b.maxY - b.minY + 6, cornerRadius: 5, fill: '#3a3f52', listening: false }));
@@ -551,8 +634,25 @@ export class SeatMapComponent {
     if (!this.stage || this.farScale <= 0) return;
     this.tip.set(null); // cualquier zoom cierra el tooltip (evita que se quede pegado)
     this.displayZoom.set(Math.round((this.stage.scaleX() / this.farScale) * 100));
-    // Cruzó el umbral LOD (lejos↔cerca) → redibuja bloques o asientos según corresponda.
-    if (this.lodNear() !== this.lastNear) this.redraw();
+    this.scheduleRedraw(); // re-cullea (viewport) y re-evalúa el LOD tras el zoom
+  }
+
+  /** Zoom (animado) para encuadrar un box (p.ej. una mesa). */
+  private zoomToBox(box: Box): void {
+    const scale = this.fitScale(box);
+    this.moveCamera(scale, this.centerPos(box, scale), true);
+  }
+
+  /** Doble clic / clic sostenido: si hay zona enfocada → zoom a la MESA bajo el punto;
+   *  si no, enfoca la localidad del punto. */
+  private focusOrMesa(wx: number, wy: number): void {
+    const mesa = this.mesaBoxAt(wx, wy);
+    if (mesa) {
+      this.zoomToBox(mesa);
+      return;
+    }
+    const loc = this.localityAt(wx, wy);
+    if (loc) this.localityPick.emit(loc);
   }
 
   /** Zoom manual alrededor del centro del viewport (mantiene el punto central). */
@@ -633,9 +733,14 @@ export class SeatMapComponent {
     const sel = this.selected();
     const activeLoc = this.selectableLocalityId();
     const allDisabled = this.disabled();
+    // SOLO la localidad enfocada + CULLING por viewport (miles de asientos no colapsan).
+    const focus = this.focusLocalityId();
+    const view = this.viewRect();
 
     for (const seat of this.seats()) {
       if (seat.x == null || seat.y == null) continue;
+      if (focus && seat.localityId !== focus) continue; // solo la zona enfocada
+      if (!this.inView(seat.x as number, seat.y as number, view)) continue; // culling
       const owned = !!(seat as { owned?: boolean }).owned;
       const reserved = seat.status === 'held'; // reservado por otro (temporal)
       const sold = seat.status !== 'available' && !reserved; // vendido (definitivo)
