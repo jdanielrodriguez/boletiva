@@ -678,8 +678,8 @@ async function seedDemoEvent(
     // cx±innerR = 220/792 = borde interno → los brazos quedan EXACTAMENTE alineados con
     // las columnas. cy = base del cuadro (649+8) → se TOCAN sin solaparse.
     regions: [
-      { slug: 'general-1', x: 132, y: 657, w: 374, h: 374, label: 'GENERAL 1', arc: { cx: 506, cy: 657, innerRadius: 286, outerRadius: 374, rotation: 90, angle: 90 } },
-      { slug: 'general-2', x: 506, y: 657, w: 374, h: 374, label: 'GENERAL 2', arc: { cx: 506, cy: 657, innerRadius: 286, outerRadius: 374, rotation: 0, angle: 90 } },
+      { slug: 'general-1', x: 132, y: 666, w: 374, h: 374, label: 'GENERAL 1', arc: { cx: 506, cy: 666, innerRadius: 286, outerRadius: 374, rotation: 90, angle: 90 } },
+      { slug: 'general-2', x: 506, y: 666, w: 374, h: 374, label: 'GENERAL 2', arc: { cx: 506, cy: 666, innerRadius: 286, outerRadius: 374, rotation: 0, angle: 90 } },
     ],
     labels: [
       { x: 108, y: 250, text: 'TRIBUNA', rotation: -90, size: 15 },

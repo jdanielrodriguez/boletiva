@@ -888,14 +888,24 @@ export class SeatMapComponent {
     });
   }
 
-  /** Texto del tooltip: MESA/FILA + ASIENTO (sin repetir la fila) + precio o estado.
-   *  El label viene como `<fila>-<asiento>` (p.ej. "AD5-3") y la fila como `<pref><nº>`
-   *  ("AD5"); mostramos "Mesa 5 · Asiento 3" (zona de mesas) o "Fila 12 · Asiento 3" (grada). */
+  /** Texto del tooltip (sin repetir datos). El label viene como `<fila>-<asiento>`
+   *  (p.ej. "AD5-3") y la fila como `<pref><nº>` ("AD5"). Grada: "Fila 12 · Asiento 3".
+   *  Mesas: "Mesa 5 · Fila 2 · Asiento 3" — cada mesa tiene 2 lados (filas) de 5 sillas. */
   private tipText(seat: SeatAvailabilityDto, sold: boolean, reserved: boolean, owned: boolean): string {
-    const seatNum = seat.label.includes('-') ? seat.label.slice(seat.label.lastIndexOf('-') + 1) : seat.label;
     const rowNum = (seat.row ?? '').replace(/^[A-Za-z]+/, '') || (seat.row ?? '');
-    const unit = this.tableLocalityIds().has(seat.localityId) ? 'Mesa' : 'Fila';
-    const where = seat.row ? `${unit} ${rowNum} · Asiento ${seatNum}` : seat.label;
+    const seatIdx = seat.label.includes('-') ? parseInt(seat.label.slice(seat.label.lastIndexOf('-') + 1), 10) : NaN;
+    let where: string;
+    if (!seat.row) {
+      where = seat.label;
+    } else if (this.tableLocalityIds().has(seat.localityId) && Number.isFinite(seatIdx)) {
+      // Mesa: sillas 1–5 = Fila 1 (un lado), 6–10 = Fila 2 (el otro); asiento 1–5 por lado.
+      const fila = seatIdx <= 5 ? 1 : 2;
+      const asiento = seatIdx <= 5 ? seatIdx : seatIdx - 5;
+      where = `Mesa ${rowNum} · Fila ${fila} · Asiento ${asiento}`;
+    } else {
+      const seatNum = Number.isFinite(seatIdx) ? seatIdx : seat.label;
+      where = `Fila ${rowNum} · Asiento ${seatNum}`;
+    }
     const label = `${seat.section ? seat.section + ' · ' : ''}${where}`;
     if (owned) return `${label} · Tuyo`;
     if (sold) return `${label} · Vendido`;

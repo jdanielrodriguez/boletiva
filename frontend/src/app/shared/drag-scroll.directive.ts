@@ -50,10 +50,13 @@ export class DragScrollDirective {
     if (el.scrollWidth <= el.clientWidth) return; // no hay overflow → scroll normal
     const delta = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
     if (delta === 0) return;
-    const atStart = el.scrollLeft <= 0;
-    const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 1;
-    if ((delta < 0 && atStart) || (delta > 0 && atEnd)) return; // en el borde → deja pasar
-    el.scrollLeft += delta;
+    const max = el.scrollWidth - el.clientWidth;
+    const atStart = el.scrollLeft <= 1;
+    const atEnd = el.scrollLeft >= max - 1;
+    // En un extremo y siguiendo en esa dirección → NO capturamos: la página hace su scroll
+    // vertical normal (arriba en el inicio, abajo al final del carril).
+    if ((delta < 0 && atStart) || (delta > 0 && atEnd)) return;
+    el.scrollLeft = Math.max(0, Math.min(max, el.scrollLeft + delta));
     e.preventDefault();
   }
 
