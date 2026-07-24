@@ -666,7 +666,9 @@ async function seedDemoEvent(
     blocks: [
       { x: 491, y: 170, w: 44, h: 175, label: 'FOH', fill: '#1e2a52' }, // en el hueco entre AMEX Izq/Der
       { x: 493, y: 545, w: 40, h: 44, fill: '#1e2a52' }, // torre técnica en el hueco entre Ultra Fan
-      { x: 140, y: 490, w: 72, h: 110, label: 'PLATEA', fill: '#9aa0b0' }, // sub-área dentro de la Tribuna
+      // PLATEA = palcos NO vendibles: cuadro inserto al FINAL de la Tribuna (base alineada
+      // con el fin de la columna); la Tribuna la RODEA (margen verde a los lados y arriba).
+      { x: 150, y: 545, w: 54, h: 104, label: 'PLATEA', fill: '#9aa0b0' },
     ],
     // Generales = REGIONES clicables en ARCO (U) ANCHO cuyos extremos CONECTAN con Tribuna
     // (izq) y Preferencia (der) → junto a ellas forman el MARCO del estadio; las mesas van

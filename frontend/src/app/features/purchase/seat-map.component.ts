@@ -162,6 +162,7 @@ export class SeatMapComponent {
   private redrawRaf = 0; // handle del requestAnimationFrame para throttle del redraw en pan
   private holdTimer: ReturnType<typeof setTimeout> | null = null; // click sostenido → zoom a mesa
   private suppressFit = false; // auto-foco por zoom: enfoca SIN reencuadrar (mantiene el zoom)
+  private fadeInNext = false; // al cambiar de foco → las mesas/sillas entran con fundido suave
   private lastDist = 0; // pinch: distancia previa entre 2 dedos
   private lastCenter: { x: number; y: number } | null = null;
   private cleanupWheel: (() => void) | null = null;
@@ -195,6 +196,8 @@ export class SeatMapComponent {
       if (!this.stage) return;
       const focusChanged = this.lastFocus !== focus;
       this.lastFocus = focus;
+      // Al ENTRAR/CAMBIAR a una zona enfocada, las mesas/sillas entran con fundido suave.
+      if (focusChanged && focus != null) this.fadeInNext = true;
       this.redraw();
       // Reencuadra si cambia el foco (animado) o si NO hay foco (overview sigue los
       // datos). Con foco fijo (p.ej. al seleccionar un asiento) NO se mueve. Y el
@@ -425,8 +428,23 @@ export class SeatMapComponent {
     // (sus mesas la cubren) y las demás quedan como su cuadro (apagado si hay foco).
     this.drawZoneBlocks();
     if (this.focusLocalityId() != null) {
+      const K = this.konva;
+      const before = this.layer && K ? [...this.layer.getChildren()] : [];
       this.drawTables(); // mesas (centro) debajo de sus sillas — SOLO la enfocada
       this.drawSeats();
+      // Fundido de entrada (una vez por cambio de foco): reagrupo lo recién dibujado y
+      // subo su opacidad 0→1 con un tween suave (mismo tacto que el zoom). El re-cull del
+      // pan NO fade (fadeInNext ya está en false).
+      if (this.fadeInNext && K && this.layer) {
+        this.fadeInNext = false;
+        const fresh = [...this.layer.getChildren()].filter((n) => !before.includes(n));
+        if (fresh.length) {
+          const group = new K.Group({ opacity: 0 });
+          fresh.forEach((n) => n.moveTo(group));
+          this.layer.add(group);
+          new K.Tween({ node: group, opacity: 1, duration: 0.4, easing: K.Easings.EaseInOut }).play();
+        }
+      }
     }
   }
 
