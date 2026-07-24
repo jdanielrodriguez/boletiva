@@ -264,7 +264,15 @@ export class PurchasePage implements OnDestroy {
     this.store.setActiveLocality(id);
     if (!isPlatformBrowser(this.platformId)) return;
     setTimeout(() => {
-      document.querySelector('[data-testid="venue-map"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const el = document.querySelector('[data-testid="venue-map"]') as HTMLElement | null;
+      if (!el) return;
+      // Deja el TOPE del mapa (donde va el control de zoom, encima del canvas) JUSTO debajo
+      // del header sticky → el zoom queda visible, no oculto. Cálculo manual (no scrollIntoView
+      // + scroll-margin, que aquí no dejaba el zoom a la vista).
+      const header = document.querySelector('.site-header') as HTMLElement | null;
+      const off = (header?.getBoundingClientRect().height ?? 0) + 12;
+      const top = el.getBoundingClientRect().top + window.scrollY - off;
+      window.scrollTo({ top, behavior: 'smooth' });
     }, 60);
   }
 
