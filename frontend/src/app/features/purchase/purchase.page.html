@@ -141,6 +141,10 @@
          atenúan). Tocar otra zona cambia la localidad activa. -->
     @if (store.hasSeatedMap()) {
       <section class="venue-map" data-testid="venue-map">
+        <!-- Cabecera de altura FIJA: contiene la info de zona / hint. Al enfocar aparece el
+             panel y al salir el hint, pero el alto no cambia → el mapa NO se recorre (antes
+             el zoom parecía "subir/bajar" porque este bloque crecía/encogía). -->
+        <div class="map-head">
         <!-- Info de la zona activa (fusiona lo que antes estaba en la página de
              localidades): nombre, tipo, disponibilidad y precio. -->
         @if (store.activeLocality(); as loc) {
@@ -185,6 +189,7 @@
         } @else {
           <p class="venue-map-hint muted small" data-testid="venue-map-hint" aria-live="polite">{{ 'purchase.overviewHint' | translate }}</p>
         }
+        </div>
         <app-seat-map
           [seats]="store.allSeats()"
           [selected]="store.selectedSet()"

@@ -664,9 +664,9 @@ async function seedDemoEvent(
   const decorations = {
     stage: { x: 300, y: 20, w: 400, h: 50, label: 'ESCENARIO' },
     blocks: [
-      { x: 484, y: 175, w: 56, h: 165, label: 'FOH', fill: '#1e2a52' }, // entre AMEX Izq/Der
-      { x: 488, y: 560, w: 44, h: 44, fill: '#1e2a52' }, // torre técnica entre Ultra Fan
-      { x: 128, y: 400, w: 88, h: 150, label: 'PLATEA', fill: '#9aa0b0' }, // sobre la Tribuna
+      { x: 491, y: 170, w: 44, h: 175, label: 'FOH', fill: '#1e2a52' }, // en el hueco entre AMEX Izq/Der
+      { x: 493, y: 555, w: 40, h: 44, fill: '#1e2a52' }, // torre técnica en el hueco entre Ultra Fan
+      { x: 140, y: 500, w: 72, h: 120, label: 'PLATEA', fill: '#9aa0b0' }, // sub-área dentro de la Tribuna
     ],
     // Generales = REGIONES clicables en ARCO (U) ANCHO cuyos extremos CONECTAN con Tribuna
     // (izq) y Preferencia (der) → junto a ellas forman el MARCO del estadio; las mesas van
@@ -675,8 +675,8 @@ async function seedDemoEvent(
     // (x 140→212) y Preferencia (x 800→872): cx±outerR = 140/872 (borde externo),
     // cx±innerR = 236/776 (borde interno) → los brazos quedan flush con las columnas.
     regions: [
-      { slug: 'general-1', x: 140, y: 650, w: 366, h: 366, label: 'GENERAL 1', arc: { cx: 506, cy: 650, innerRadius: 270, outerRadius: 366, rotation: 90, angle: 90 } },
-      { slug: 'general-2', x: 506, y: 650, w: 366, h: 366, label: 'GENERAL 2', arc: { cx: 506, cy: 650, innerRadius: 270, outerRadius: 366, rotation: 0, angle: 90 } },
+      { slug: 'general-1', x: 140, y: 644, w: 366, h: 366, label: 'GENERAL 1', arc: { cx: 506, cy: 644, innerRadius: 270, outerRadius: 366, rotation: 90, angle: 90 } },
+      { slug: 'general-2', x: 506, y: 644, w: 366, h: 366, label: 'GENERAL 2', arc: { cx: 506, cy: 644, innerRadius: 270, outerRadius: 366, rotation: 0, angle: 90 } },
     ],
     labels: [
       { x: 108, y: 250, text: 'TRIBUNA', rotation: -90, size: 15 },

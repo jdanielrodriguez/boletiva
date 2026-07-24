@@ -181,7 +181,9 @@ export class PurchasePage implements OnDestroy {
     effect(() => {
       if (this.store.activeIsGeneral() && isPlatformBrowser(this.platformId)) {
         setTimeout(() => {
-          (document.querySelector('[data-testid="qty-plus"]') as HTMLElement | null)?.focus();
+          // preventScroll: enfocar el stepper NO debe desplazar la página (el navegador
+          // hace scroll al elemento por defecto → hacía "saltar" la vista del mapa al zoom).
+          (document.querySelector('[data-testid="qty-plus"]') as HTMLElement | null)?.focus({ preventScroll: true });
         }, 0);
       }
     });

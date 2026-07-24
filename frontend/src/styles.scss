@@ -2271,6 +2271,34 @@ app-root {
 /* Mapa único del recinto (B0): un solo mapa con cámara + bloqueo por localidad. */
 .venue-map {
   margin: 0.5rem 0 1.25rem;
+  position: relative; /* ancla el overlay .map-head */
+}
+/* Panel de zona / hint como OVERLAY FLOTANTE sobre el mapa (no ocupa layout) → al enfocar
+   una localidad aparece la "notificación" del precio SIN empujar la página → nunca hay
+   scroll ni salto al hacer zoom. Solo los controles internos capturan el puntero. */
+.map-head {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  z-index: 5;
+  pointer-events: none;
+}
+.map-head > * {
+  pointer-events: auto;
+}
+.map-head .venue-map-hint {
+  display: inline-block;
+  background: color-mix(in srgb, var(--pe-surface) 88%, transparent);
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 12%);
+  backdrop-filter: blur(2px);
+}
+.map-head .locality-info {
+  box-shadow: 0 4px 16px rgb(0 0 0 / 14%);
+  backdrop-filter: blur(3px);
+  background: color-mix(in srgb, var(--pe-surface-2, var(--pe-surface)) 92%, transparent);
 }
 .venue-map-hint {
   margin: 0 0 0.5rem;

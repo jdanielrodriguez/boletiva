@@ -482,7 +482,7 @@ export class SeatMapComponent {
         b.maxY = Math.max(b.maxY, s.y as number);
       }
     }
-    const PADZ = 14;
+    const PADZ = 8; // el cuadro ciñe los asientos (padding chico) → no invade los huecos vecinos (FOH, columnas)
     for (const [id, b] of boxes) {
       if (id === focus) continue; // la zona enfocada se dibuja como mesas, no como cuadro
       const dim = focus != null; // hay una zona enfocada → las demás apagadas
