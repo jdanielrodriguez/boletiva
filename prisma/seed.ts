@@ -661,10 +661,10 @@ async function seedDemoEvent(
   // Izq/Der (con FOH al centro); laterales = Tribuna(+Platea) izq y Preferencia der;
   // abajo el arco GENERAL 1/2. Las DECORACIONES (escenario/FOH/PLATEA/etiquetas/cruces)
   // se guardan en SeatMap.layout → el frontend las dibuja en el canvas (se anclan).
-  // PLATEA = palcos NO vendibles: cuadro inserto al FINAL de la Tribuna (base alineada con
-  // el fin de la columna). La Tribuna la RODEA (columnas de sillas a los lados y filas
-  // arriba); DENTRO del cuadro NO se generan sillas (ver filtro de la Tribuna abajo).
-  const PLATEA = { x: 150, y: 545, w: 54, h: 104, label: 'PLATEA', fill: '#9aa0b0' };
+  // PLATEA = palcos NO vendibles (como la referencia): cuadro en el MEDIO-SUPERIOR de la
+  // Tribuna, pegado a su borde izquierdo → los asientos quedan a la DERECHA + filas arriba
+  // y abajo. DENTRO del cuadro NO se generan sillas (ver filtro de la Tribuna abajo).
+  const PLATEA = { x: 136, y: 235, w: 60, h: 200, label: 'PLATEA', fill: '#9aa0b0' };
   const inPlatea = (x: number, y: number): boolean =>
     x >= PLATEA.x && x <= PLATEA.x + PLATEA.w && y >= PLATEA.y && y <= PLATEA.y + PLATEA.h;
   const decorations = {
