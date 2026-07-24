@@ -163,7 +163,6 @@ export class SeatMapComponent {
   private holdTimer: ReturnType<typeof setTimeout> | null = null; // click sostenido → zoom a mesa
   private suppressFit = false; // auto-foco por zoom: enfoca SIN reencuadrar (mantiene el zoom)
   private fadeInNext = false; // al cambiar de foco → las mesas/sillas entran con fundido suave
-  private focusEntryScale = 0; // escala con la que se ENTRÓ a la zona enfocada (salida relativa)
   private lastDist = 0; // pinch: distancia previa entre 2 dedos
   private lastCenter: { x: number; y: number } | null = null;
   private cleanupWheel: (() => void) | null = null;
@@ -440,6 +439,12 @@ export class SeatMapComponent {
         this.fadeInNext = false;
         const fresh = [...this.layer.getChildren()].filter((n) => !before.includes(n));
         if (fresh.length) {
+          // Cancela un redraw ya agendado (p.ej. el del zoom en el auto-foco): si no, el
+          // rAF pendiente redibujaría a opacidad 1 y "pisaría" el fundido → aparición seca.
+          if (this.redrawRaf && typeof cancelAnimationFrame !== 'undefined') {
+            cancelAnimationFrame(this.redrawRaf);
+            this.redrawRaf = 0;
+          }
           const group = new K.Group({ opacity: 0 });
           fresh.forEach((n) => n.moveTo(group));
           this.layer.add(group);
@@ -636,9 +641,6 @@ export class SeatMapComponent {
     const box = focusBox ?? world;
     // La vista completa va exacta al 100%; una localidad se acerca a su encuadre.
     const scale = focusBox ? this.fitScale(box) : this.farScale;
-    // Recuerda el zoom de ENTRADA (varía por localidad: Preferencia encuadra a ~178%, AMEX
-    // a otro) → la SALIDA será relativa a esto, no a un % global fijo.
-    this.focusEntryScale = focusBox ? scale : 0;
     const pos = this.centerPos(box, scale);
     this.moveCamera(scale, pos, animate);
   }
@@ -673,12 +675,11 @@ export class SeatMapComponent {
     this.displayZoom.set(Math.round(rel * 100));
     this.scheduleRedraw(); // re-cullea (viewport) tras el zoom
     const focused = this.focusLocalityId() != null;
-    // SALIDA RELATIVA al zoom de entrada: si te alejas ~40% por debajo del zoom con que se
-    // enfocó la localidad → suelta el foco (SIN recentrar, suppressFit). Así una localidad
-    // que encuadra bajo (Preferencia ~178%) NO se cierra sola nada más entrar. Al seguir
-    // alejando hasta el overview (100%) ya ves los cuadros normales.
-    const exitScale = this.focusEntryScale * 0.6;
-    if (focused && this.focusEntryScale > 0 && this.stage.scaleX() < exitScale) {
+    // SALIDA con umbral FIJO y BAJO (150%): igual para TODAS las zonas → el mismo zoom-out
+    // suelta el foco (mesas→cuadros) en cualquiera. Queda por DEBAJO del encuadre de la zona
+    // que menos acerca (Tribuna/Preferencia ~178%) → esas NO se cierran solas al entrar.
+    // Histéresis con la entrada por auto-foco (250%). Sin recentrar (suppressFit).
+    if (focused && rel < 1.5) {
       this.suppressFit = true;
       this.exitFocus.emit();
     } else if (!focused && rel >= 2.5) {
@@ -688,7 +689,6 @@ export class SeatMapComponent {
       const cy = (this.vh() / 2 - this.stage.y()) / this.stage.scaleX();
       const loc = this.localityAt(cx, cy);
       if (loc) {
-        this.focusEntryScale = this.stage.scaleX(); // entrada = zoom actual (auto-foco por zoom)
         this.suppressFit = true;
         this.localityPick.emit(loc);
       }
@@ -888,9 +888,15 @@ export class SeatMapComponent {
     });
   }
 
-  /** Texto del tooltip: disponibles → número + precio; ocupados → estado (Vendido/Reservado). */
+  /** Texto del tooltip: MESA/FILA + ASIENTO (sin repetir la fila) + precio o estado.
+   *  El label viene como `<fila>-<asiento>` (p.ej. "AD5-3") y la fila como `<pref><nº>`
+   *  ("AD5"); mostramos "Mesa 5 · Asiento 3" (zona de mesas) o "Fila 12 · Asiento 3" (grada). */
   private tipText(seat: SeatAvailabilityDto, sold: boolean, reserved: boolean, owned: boolean): string {
-    const label = `${seat.section ? seat.section + ' ' : ''}${seat.row ? 'Fila ' + seat.row + ' · ' : ''}${seat.label}`;
+    const seatNum = seat.label.includes('-') ? seat.label.slice(seat.label.lastIndexOf('-') + 1) : seat.label;
+    const rowNum = (seat.row ?? '').replace(/^[A-Za-z]+/, '') || (seat.row ?? '');
+    const unit = this.tableLocalityIds().has(seat.localityId) ? 'Mesa' : 'Fila';
+    const where = seat.row ? `${unit} ${rowNum} · Asiento ${seatNum}` : seat.label;
+    const label = `${seat.section ? seat.section + ' · ' : ''}${where}`;
     if (owned) return `${label} · Tuyo`;
     if (sold) return `${label} · Vendido`;
     if (reserved) return `${label} · Reservado`;

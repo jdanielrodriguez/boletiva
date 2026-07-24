@@ -14,6 +14,7 @@ import { Directive, ElementRef, inject } from '@angular/core';
     '(pointerup)': 'onUp()',
     '(pointerleave)': 'onUp()',
     '(dragstart)': '$event.preventDefault()',
+    '(wheel)': 'onWheel($event)',
   },
 })
 export class DragScrollDirective {
@@ -38,6 +39,22 @@ export class DragScrollDirective {
     const dx = e.clientX - this.startX;
     if (Math.abs(dx) > 4) this.moved = true;
     this.el.scrollLeft = this.startScroll - dx;
+  }
+
+  /**
+   * Rueda del ratón sobre el carril → scroll HORIZONTAL. Al llegar a un extremo (izq/der)
+   * NO capturamos la rueda → la página sigue con su scroll vertical normal.
+   */
+  protected onWheel(e: WheelEvent): void {
+    const el = this.el;
+    if (el.scrollWidth <= el.clientWidth) return; // no hay overflow → scroll normal
+    const delta = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+    if (delta === 0) return;
+    const atStart = el.scrollLeft <= 0;
+    const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 1;
+    if ((delta < 0 && atStart) || (delta > 0 && atEnd)) return; // en el borde → deja pasar
+    el.scrollLeft += delta;
+    e.preventDefault();
   }
 
   protected onUp(): void {
