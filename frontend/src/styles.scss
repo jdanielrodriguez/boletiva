@@ -2272,6 +2272,9 @@ app-root {
 .venue-map {
   margin: 0.5rem 0 1.25rem;
   position: relative; /* ancla el overlay .map-head */
+  /* Al desplazar al mapa (clic en pill), deja hueco para el header sticky → el CONTROL DE
+     ZOOM (arriba del canvas) queda visible, no oculto bajo el header. */
+  scroll-margin-top: 84px;
 }
 /* Panel de zona / hint como OVERLAY FLOTANTE sobre el mapa (no ocupa layout) → al enfocar
    una localidad aparece la "notificación" del precio SIN empujar la página → nunca hay

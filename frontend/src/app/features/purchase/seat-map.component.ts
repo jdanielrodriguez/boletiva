@@ -151,7 +151,7 @@ export class SeatMapComponent {
   protected readonly tip = signal<{ text: string; x: number; y: number } | null>(null);
 
   private readonly MIN_REL = 0.4; // se puede alejar hasta 40% de la vista completa
-  private readonly MAX_REL = 6; // y acercar hasta 600%
+  private readonly MAX_REL = 10; // y acercar hasta 1000%
 
   private konva: typeof Konva | null = null;
   private stage: Konva.Stage | null = null;
@@ -422,11 +422,13 @@ export class SeatMapComponent {
   private redraw(): void {
     this.tip.set(null); // el destroy de nodos no dispara mouseleave → limpia el tooltip
     this.layer?.destroyChildren();
-    this.drawDecorations(); // debajo de los asientos
     this.drawRegions(); // regiones clicables (Generales sin asientos)
     // Los BLOQUES (cuadros) de zona se dibujan SIEMPRE: la localidad ENFOCADA se salta
     // (sus mesas la cubren) y las demás quedan como su cuadro (apagado si hay foco).
     this.drawZoneBlocks();
+    // Decoraciones (escenario, FOH, PLATEA, etiquetas, cruces) ENCIMA de los cuadros → la
+    // PLATEA se ve sobre la cobertura verde de la Tribuna, no debajo.
+    this.drawDecorations();
     if (this.focusLocalityId() != null) {
       const K = this.konva;
       const before = this.layer && K ? [...this.layer.getChildren()] : [];
@@ -527,9 +529,19 @@ export class SeatMapComponent {
       g.add(rect);
       const name = names[id];
       if (name) {
+        const bx = b.minX - PADZ, by = b.minY - PADZ;
+        const bw = b.maxX - b.minX + PADZ * 2, bh = b.maxY - b.minY + PADZ * 2;
+        // Si una decoración (p.ej. PLATEA) tapa el centro del cuadro, ancla el nombre ABAJO
+        // para que no quede encima de ella.
+        const overlapped = (this.decorations()?.blocks ?? []).some(
+          (k) => k.x < bx + bw && k.x + k.w > bx && k.y < by + bh && k.y + k.h > by,
+        );
+        const labelH = 26;
         g.add(new K.Text({
-          x: b.minX - PADZ, y: b.minY - PADZ, width: b.maxX - b.minX + PADZ * 2, height: b.maxY - b.minY + PADZ * 2,
-          text: name, align: 'center', verticalAlign: 'middle', fontSize: 16, fontStyle: 'bold', fill: '#1a1a2e', listening: false,
+          x: bx, y: overlapped ? by + bh - labelH - 4 : by,
+          width: bw, height: overlapped ? labelH : bh,
+          text: name, align: 'center', verticalAlign: overlapped ? 'bottom' : 'middle',
+          fontSize: 16, fontStyle: 'bold', fill: '#1a1a2e', listening: false,
         }));
       }
       this.layer.add(g);
@@ -639,8 +651,10 @@ export class SeatMapComponent {
       if (reg) focusBox = { minX: reg.x, minY: reg.y, maxX: reg.x + reg.w, maxY: reg.y + reg.h };
     }
     const box = focusBox ?? world;
-    // La vista completa va exacta al 100%; una localidad se acerca a su encuadre.
-    const scale = focusBox ? this.fitScale(box) : this.farScale;
+    // La vista completa va exacta al 100%; una localidad se acerca a su encuadre. PERO si
+    // YA estás MÁS cerca que ese encuadre, NO alejamos: mantenemos tu zoom (solo re-centra
+    // en la zona). Solo acercamos cuando tu zoom es MENOR que el de encuadre de la zona.
+    const scale = focusBox ? Math.max(this.stage.scaleX(), this.fitScale(box)) : this.farScale;
     const pos = this.centerPos(box, scale);
     this.moveCamera(scale, pos, animate);
   }
