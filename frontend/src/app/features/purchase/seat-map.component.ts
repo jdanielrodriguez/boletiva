@@ -645,8 +645,11 @@ export class SeatMapComponent {
     this.displayZoom.set(Math.round(rel * 100));
     this.scheduleRedraw(); // re-cullea (viewport) tras el zoom
     const focused = this.focusLocalityId() != null;
-    // ENFOCADO y alejaste por debajo del overview → sal de la zona (vuelve a localidades).
-    if (focused && rel < 1) {
+    // ENFOCADO y bajaste del ~200% → SUELTA el foco (las mesas vuelven a ser cuadro) pero
+    // SIN recentrar la cámara (suppressFit): quedas en el mismo punto/zoom; al seguir
+    // alejando hasta 100% ya ves el overview normal. Histéresis con la entrada (250%).
+    if (focused && rel < 2) {
+      this.suppressFit = true;
       this.exitFocus.emit();
     } else if (!focused && rel >= 2.5) {
       // Pasaste el 250% sin foco → auto-enfoca la localidad bajo el CENTRO de la cámara
