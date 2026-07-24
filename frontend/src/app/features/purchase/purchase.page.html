@@ -195,6 +195,7 @@
           [cameraMs]="cameraMs()"
           [priceByLocality]="store.priceByLocality()"
           [decorations]="store.decorations()"
+          [tableLocalityIds]="store.tableLocalityIds()"
           [stageLabel]="'purchase.stage' | translate"
           (seatToggle)="store.toggleSeat($event)"
           (localityPick)="store.setActiveLocality($event)"

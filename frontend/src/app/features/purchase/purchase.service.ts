@@ -102,6 +102,11 @@ export class PurchaseService {
     () => (this.availability()?.seatMap?.layout as MapDecorations | undefined) ?? null,
   );
 
+  /** Localidades que se dibujan como MESAS (círculos): las que se llaman "Mesa(s)…". */
+  readonly tableLocalityIds = computed<ReadonlySet<string>>(
+    () => new Set(this.localities().filter((l) => /mesa/i.test(l.name)).map((l) => l.id)),
+  );
+
   /**
    * Id de la localidad activa SOLO si es numerada (tiene asientos en el mapa). Es lo
    * que la cámara enfoca y lo que se puede seleccionar; null = vista lejana / sin foco

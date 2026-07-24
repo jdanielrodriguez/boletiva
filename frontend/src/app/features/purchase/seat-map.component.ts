@@ -116,6 +116,8 @@ export class SeatMapComponent {
   readonly priceByLocality = input<Record<string, string>>({});
   /** Decoraciones del recinto (escenario, FOH, PLATEA, etiquetas, primeros auxilios). */
   readonly decorations = input<MapDecorations | null>(null);
+  /** Localidades que se dibujan como MESAS (círculos) en vez de sillas. */
+  readonly tableLocalityIds = input<ReadonlySet<string>>(new Set<string>());
   readonly seatToggle = output<string>();
   /** Clic en una zona → id de su localidad (cambiar/enfocar). */
   readonly localityPick = output<string>();
@@ -160,6 +162,7 @@ export class SeatMapComponent {
       this.selectableLocalityId();
       this.disabled();
       this.decorations();
+      this.tableLocalityIds();
       this.stageLabel();
       const focus = this.focusLocalityId();
       if (!this.stage) return;
@@ -457,13 +460,19 @@ export class SeatMapComponent {
               : COLORS.available;
 
       const g = new K.Group({ x: seat.x as number, y: seat.y as number, opacity: locked && !owned ? 0.45 : 1 });
-      // El ESCENARIO está ARRIBA → la sillita MIRA hacia arriba: respaldo ABAJO, asiento
-      // encima (antes el respaldo iba arriba y parecían de espaldas al escenario).
-      g.add(new K.Rect({ x: -13, y: -8, width: 26, height: 16, cornerRadius: 5, fill: color }));
-      g.add(new K.Rect({ x: -11, y: 10, width: 22, height: 6, cornerRadius: 3, fill: color }));
-      if (owned) {
-        g.add(this.icon(K, '✓', '#ffffff'));
-      } else if (chosen && !taken && !locked) {
+      const isTable = this.tableLocalityIds().has(seat.localityId);
+      if (isTable) {
+        // Zona de MESAS: cada ASIENTO alrededor de la mesa se dibuja como CÍRCULO.
+        // (La mesa como tal — rect/círculo central con N sillas — llega en F1.4 al
+        // agrupar asientos por mesa.) El borde blanco marca el asiento seleccionado.
+        g.add(new K.Circle({ radius: 7, fill: color, stroke: chosen && !taken && !locked ? '#ffffff' : undefined, strokeWidth: chosen && !taken && !locked ? 2 : 0 }));
+      } else {
+        // SILLA pequeña MIRANDO al escenario (arriba): asiento + respaldo abajo. Más
+        // chica que antes para que no se traslapen los iconos.
+        g.add(new K.Rect({ x: -8, y: -6, width: 16, height: 11, cornerRadius: 4, fill: color }));
+        g.add(new K.Rect({ x: -7, y: 6, width: 14, height: 4, cornerRadius: 2, fill: color }));
+      }
+      if (owned || (chosen && !taken && !locked)) {
         g.add(this.icon(K, '✓', '#ffffff'));
       } else if (taken) {
         g.add(this.icon(K, '×', '#9aa0b0'));
@@ -510,13 +519,13 @@ export class SeatMapComponent {
   private icon(K: typeof Konva, text: string, fill: string): Konva.Text {
     return new K.Text({
       text,
-      x: -13,
+      x: -8,
       y: -8,
-      width: 26,
+      width: 16,
       height: 16,
       align: 'center',
       verticalAlign: 'middle',
-      fontSize: 13,
+      fontSize: 11,
       fontStyle: 'bold',
       fill,
       listening: false,
