@@ -8,6 +8,7 @@ import type {
   OrderResponseDto,
   ReservationResponseDto,
 } from '../../core/api/types';
+import type { MapDecorations, MapRegion } from './seat-map.component';
 
 /** Tope anti-abuso por carrito (alineado con el backend). */
 export const MAX_PER_CART = 50;
@@ -54,9 +55,13 @@ export class PurchaseService {
   /** La reserva creada (con token para compartir). */
   readonly reservation = signal<ReservationResponseDto | null>(null);
 
-  readonly localities = computed<LocalityAvailabilityDto[]>(
-    () => this.availability()?.localities ?? [],
-  );
+  // Ordenadas de MÁS BARATA a MÁS CARA (por precio del comprador). Este orden es la ÚNICA
+  // fuente → se respeta en pills, dropdown, nombres, precios, etc. Sin precio van al final.
+  readonly localities = computed<LocalityAvailabilityDto[]>(() => {
+    const list = this.availability()?.localities ?? [];
+    const price = (l: LocalityAvailabilityDto): number => (l.price ? Number(l.price.total) : Number.POSITIVE_INFINITY);
+    return [...list].sort((a, b) => price(a) - price(b));
+  });
 
   readonly activeLocality = computed<LocalityAvailabilityDto | null>(
     () => this.localities().find((l) => l.id === this.activeLocalityId()) ?? null,
@@ -71,10 +76,77 @@ export class PurchaseService {
   /** true si la localidad activa es numerada (tiene asientos con coordenadas). */
   readonly activeIsSeated = computed(() => this.activeSeats().length > 0);
 
+  /** true si hay una localidad activa y es GENERAL (sin mapa → se compra por cantidad). */
+  readonly activeIsGeneral = computed(() => !!this.activeLocality() && !this.activeIsSeated());
+
+  /** TODOS los asientos con coordenadas del evento → mapa UNIDO (vista general del recinto). */
+  readonly allSeats = computed(() =>
+    (this.availability()?.seats ?? []).filter((s) => s.x != null && s.y != null),
+  );
+
+  /** Nombre de localidad por id (para el CTA al pasar el cursor sobre el mapa unido). */
+  readonly localityNames = computed<Record<string, string>>(() => {
+    const m: Record<string, string> = {};
+    for (const l of this.localities()) m[l.id] = l.name;
+    return m;
+  });
+
+  /** Precio del comprador por localidad (id → "123.45") para el tooltip del asiento. */
+  readonly priceByLocality = computed<Record<string, string>>(() => {
+    const m: Record<string, string> = {};
+    for (const l of this.localities()) if (l.price) m[l.id] = l.price.total;
+    return m;
+  });
+
+  /** ¿Hay al menos una localidad con asientos (mapa)? → muestra el mapa del recinto. */
+  readonly hasSeatedMap = computed(() => this.allSeats().length > 0);
+
+  /** Decoraciones del recinto (escenario/FOH/PLATEA/etiquetas/cruces) desde SeatMap.layout. */
+  readonly decorations = computed<MapDecorations | null>(
+    () => (this.availability()?.seatMap?.layout as MapDecorations | undefined) ?? null,
+  );
+
+  /** Regiones de localidades SIN asientos (Generales), mapeadas por slug→id + activa. */
+  readonly regions = computed<MapRegion[]>(() => {
+    const layout = this.availability()?.seatMap?.layout as
+      | { regions?: (Omit<MapRegion, 'id' | 'active'> & { slug: string })[] }
+      | undefined;
+    const raw = layout?.regions ?? [];
+    const active = this.activeLocalityId();
+    const bySlug = new Map(this.localities().map((l) => [l.slug, l.id]));
+    return raw
+      .filter((r) => bySlug.has(r.slug))
+      .map((r) => {
+        const id = bySlug.get(r.slug) as string;
+        return { id, x: r.x, y: r.y, w: r.w, h: r.h, label: r.label, arc: r.arc, active: id === active };
+      });
+  });
+
+  /** Localidades que se dibujan como MESAS (círculos): las que se llaman "Mesa(s)…". */
+  readonly tableLocalityIds = computed<ReadonlySet<string>>(
+    () => new Set(this.localities().filter((l) => /mesa/i.test(l.name)).map((l) => l.id)),
+  );
+
+  /**
+   * Id de la localidad activa SOLO si es numerada (tiene asientos en el mapa). Es lo
+   * que la cámara enfoca y lo que se puede seleccionar; null = vista lejana / sin foco
+   * (p.ej. nada seleccionado, o una localidad general activa → el mapa no se enfoca).
+   */
+  readonly activeSeatedLocalityId = computed<string | null>(() => {
+    const id = this.activeLocalityId();
+    if (!id) return null;
+    return this.allSeats().some((s) => s.localityId === id) ? id : null;
+  });
+
   /** Cambia la localidad en vista. La selección se ACUMULA entre localidades
    * (se permite comprar varias localidades a la vez). */
   setActiveLocality(id: string): void {
     this.activeLocalityId.set(id);
+  }
+
+  /** Salir de la zona enfocada → vuelve al overview (localidades). */
+  deselectLocality(): void {
+    this.activeLocalityId.set(null);
   }
 
   /**

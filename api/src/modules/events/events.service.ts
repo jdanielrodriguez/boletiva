@@ -223,7 +223,7 @@ export class EventsService {
    * server-authoritative) + asientos con coordenadas (solo localidades con
    * geometría; las GA se compran por cantidad → solo `available`).
    */
-  async getAvailability(eventId: string) {
+  async getAvailability(eventId: string, userId?: string | null) {
     const event = await this.prisma.event.findFirst({
       where: { id: eventId, status: 'published' },
       include: { localities: { orderBy: { name: 'asc' } } },
@@ -283,9 +283,23 @@ export class EventsService {
       },
       orderBy: { label: 'asc' },
     });
-    const seats = seated.map((s) =>
-      s.status === 'available' && held.has(s.id) ? { ...s, status: 'held' as const } : s,
-    );
+    // Asientos que el usuario logueado YA compró (boleto vigente o usado) en este
+    // evento → se marcan `owned` para pintarse en AZUL (los ve como suyos, no como
+    // "ocupados" genéricos). Best-effort: sin sesión no marca nada.
+    const ownedSeatIds = new Set<string>();
+    if (userId) {
+      const mine = await this.prisma.ticket.findMany({
+        where: { eventId, ownerId: userId, seatId: { not: null }, status: { in: ['valid', 'used'] } },
+        select: { seatId: true },
+      });
+      for (const t of mine) if (t.seatId) ownedSeatIds.add(t.seatId);
+    }
+
+    const seats = seated.map((s) => {
+      const owned = ownedSeatIds.has(s.id);
+      const status = s.status === 'available' && held.has(s.id) ? ('held' as const) : s.status;
+      return { ...s, status, owned };
+    });
 
     // F4: tope de boletos por compra que fijó el promotor (null = solo el global 50).
     // El cliente lo aplica en la selección; el backend lo re-valida en hold/commit.

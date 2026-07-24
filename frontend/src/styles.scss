@@ -2268,11 +2268,120 @@ app-root {
 }
 
 /* Botones de localidad (una a la vez) */
+/* Mapa único del recinto (B0): un solo mapa con cámara + bloqueo por localidad. */
+.venue-map {
+  margin: 0.5rem 0 1.25rem;
+  position: relative; /* ancla el overlay .map-head */
+}
+/* Panel de zona / hint como OVERLAY FLOTANTE sobre el mapa (no ocupa layout) → al enfocar
+   una localidad aparece la "notificación" del precio SIN empujar la página → nunca hay
+   scroll ni salto al hacer zoom. Solo los controles internos capturan el puntero. */
+.map-head {
+  position: absolute;
+  top: 46px; /* debajo de la fila de controles de zoom (no la tapa) */
+  left: 10px;
+  right: 10px;
+  z-index: 5;
+  pointer-events: none;
+}
+/* El panel/hint NO capturan el puntero → la rueda (zoom) y el arrastre pasan al canvas
+   aunque el mouse esté sobre el detalle fixed. Solo el stepper de cantidad es interactivo. */
+.map-head .loc-quantity {
+  pointer-events: auto;
+}
+.map-head .venue-map-hint {
+  display: inline-block;
+  background: color-mix(in srgb, var(--pe-surface) 88%, transparent);
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 12%);
+  backdrop-filter: blur(2px);
+}
+.map-head .locality-info {
+  box-shadow: 0 4px 16px rgb(0 0 0 / 14%);
+  backdrop-filter: blur(3px);
+  background: color-mix(in srgb, var(--pe-surface-2, var(--pe-surface)) 92%, transparent);
+}
+.venue-map-hint {
+  margin: 0 0 0.5rem;
+  min-height: 1.2rem;
+}
+/* Info de la zona activa (nombre + tipo + disponibilidad + precio) sobre el mapa. */
+.locality-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--pe-border);
+  border-left: 4px solid var(--pe-accent);
+  border-radius: 12px;
+  background: var(--pe-surface-2, var(--pe-surface));
+  margin-bottom: 0.5rem;
+}
+.locality-info-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.locality-info-name {
+  font-size: 1.05rem;
+}
+.locality-info-meta {
+  color: var(--pe-text-muted, #6b6b76);
+  font-size: 0.88rem;
+}
+.locality-info-price {
+  font-weight: 700;
+  color: var(--pe-teal);
+  white-space: nowrap;
+}
+.locality-info-price em {
+  font-style: normal;
+  font-weight: 500;
+  font-size: 0.82rem;
+  color: var(--pe-text-muted, #6b6b76);
+}
+/* Stepper de cantidad ARRIBA del mapa (zona general): destacado bajo el precio. */
+.loc-quantity.above-map {
+  margin: 0 0 0.6rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--pe-accent);
+  border-radius: 12px;
+  background: var(--pe-accent-soft);
+}
+
 .loc-tabs {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap; /* vista PILL: una sola línea con scroll horizontal */
+  overflow-x: auto;
+  overflow-y: hidden;
   gap: 0.6rem;
   margin: 0.5rem 0 1.25rem;
+  /* padding-top: deja aire para que el "lift" del hover (translateY -2px) no se corte. */
+  padding: 0.5rem 0.1rem 0.6rem;
+  cursor: grab;
+  /* Scrollbar delgada de marca (no la del sistema). */
+  scrollbar-width: thin;
+  scrollbar-color: var(--pe-accent) transparent;
+}
+.loc-tabs::-webkit-scrollbar {
+  height: 8px;
+}
+.loc-tabs::-webkit-scrollbar-track {
+  background: var(--pe-surface-2, transparent);
+  border-radius: 999px;
+}
+.loc-tabs::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--pe-accent) 70%, transparent);
+  border-radius: 999px;
+}
+.loc-tabs::-webkit-scrollbar-thumb:hover {
+  background: var(--pe-accent);
+}
+.loc-tabs .loc-tab {
+  flex: 0 0 auto; /* no encoger: mantienen su ancho y desbordan a scroll */
 }
 
 .loc-tab {
@@ -2286,16 +2395,32 @@ app-root {
   border: 1px solid var(--pe-border);
   background: var(--pe-surface);
   min-width: 130px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
 
-.loc-tab:hover {
-  border-color: var(--pe-primary);
+/* NO-seleccionado: hover elegante — se eleva con borde de acento + sombra (sin
+   pintarse entero de color, que se veía plano). */
+.loc-tab:not(.active):hover {
+  border-color: var(--pe-accent);
+  background: var(--pe-accent-soft);
+  color: var(--pe-accent-strong, var(--pe-accent));
+  transform: translateY(-2px);
+  box-shadow: var(--pe-shadow);
 }
 
 .loc-tab.active {
   background: var(--pe-grad);
   border-color: transparent;
   color: #fff;
+}
+
+/* SELECCIONADO: el hover NO cambia el color (se veía mal) — solo una sombra sutil. */
+.loc-tab.active:hover {
+  background: var(--pe-grad);
+  border-color: transparent;
+  color: #fff;
+  transform: none;
+  box-shadow: var(--pe-shadow);
 }
 
 .loc-tab .loc-tab-price {
@@ -2341,6 +2466,12 @@ app-root {
 }
 .seat-legend .legend.tk::before {
   background: #3a3f52;
+}
+.seat-legend .legend.own::before {
+  background: #3b82f6;
+}
+.seat-legend .legend.res::before {
+  background: #f59e0b;
 }
 
 .loc-quantity {
@@ -2972,6 +3103,48 @@ app-root {
   justify-content: space-between;
   gap: 1rem;
   margin: 0 0 1.25rem;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+/* Al hacer scroll hacia abajo NO desaparece: se ACOPLA al fondo de la pantalla
+   (deslizándose desde abajo) para seguir visible y accesible sin tapar el mapa. */
+.cart-top.is-hidden {
+  position: fixed;
+  top: auto;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: 0;
+  border-radius: var(--pe-radius) var(--pe-radius) 0 0;
+  border-bottom: none;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.18);
+  z-index: 50;
+  animation: cart-dock 0.28s ease;
+}
+@keyframes cart-dock {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+/* Reaparición arriba (scroll up): baja suave desde encima (no repentino). */
+.cart-top.cart-drop {
+  animation: cart-drop 0.4s ease;
+}
+@keyframes cart-drop {
+  from {
+    transform: translateY(-130%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+/* Deja aire al final para que la barra acoplada nunca tape el último contenido. */
+.purchase {
+  padding-bottom: 5.5rem;
 }
 
 .cart-top .cart-count {
@@ -3088,7 +3261,9 @@ app-root {
 
 .locality-row:hover {
   transform: translateY(-2px);
-  border-color: var(--pe-primary);
+  /* Más contraste en hover: borde y fondo de acento (antes solo borde primary). */
+  border-color: var(--pe-accent);
+  background: var(--pe-accent-soft);
   box-shadow: var(--pe-shadow);
 }
 
@@ -4894,20 +5069,90 @@ button.danger {
 
 /* Advertencia anti-abuso de reservas anónimas (429) en la página de compra. */
 .reserve-blocked {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.65rem;
   align-items: flex-start;
   margin: 0.75rem 0;
-  padding: 0.85rem 1rem;
-  border-radius: 12px;
-  background: var(--pe-warning-soft, rgba(217, 119, 6, 0.12));
-  border: 1px solid var(--pe-warning-border, rgba(217, 119, 6, 0.4));
+  padding: 1rem 2.5rem 1rem 1.1rem; /* espacio a la derecha para la X */
+  border-radius: 14px;
+  /* Contraste alto: fondo cálido más saturado + franja de acento a la izquierda. */
+  background: var(--pe-warning-soft, rgba(217, 119, 6, 0.16));
+  border: 1px solid var(--pe-warning-border, rgba(217, 119, 6, 0.5));
+  border-left: 5px solid var(--pe-warning-strong, #b45309);
+  color: var(--pe-warning-ink, var(--pe-warning-strong, #7c3d00));
+  box-shadow: var(--pe-shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+}
+.reserve-blocked-close {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
   color: var(--pe-warning-strong, #b45309);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.reserve-blocked-close:hover {
+  background: var(--pe-warning-border, rgba(217, 119, 6, 0.4));
+  color: var(--pe-on-accent, #fff);
+}
+.reserve-blocked-body {
+  display: flex;
+  gap: 0.7rem;
+  align-items: flex-start;
+}
+.reserve-blocked-icon {
+  flex: 0 0 auto;
+  color: var(--pe-warning-strong, #b45309);
+  margin-top: 0.1rem;
+}
+.reserve-blocked-msg {
+  margin: 0;
+  font-weight: 600;
+  color: var(--pe-warning-ink, var(--pe-warning-strong, #7c3d00));
+}
+.reserve-blocked-timer {
+  display: inline-flex;
+  align-items: center;
+  margin: 0.4rem 0;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: var(--pe-warning-strong, #b45309);
+  color: var(--pe-on-accent, #fff);
+  font-weight: 700;
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
 }
 .reserve-blocked .reserve-blocked-hint {
-  color: var(--pe-muted);
+  margin: 0;
+  color: var(--pe-warning-ink, var(--pe-warning-strong, #7c3d00));
+  opacity: 0.85;
   font-size: 0.9rem;
+}
+/* Botón CTA del banner: sólido de acento (rosa) con tinta AA → contrasta contra el
+   beige del banner y contra el verde de los boletos; se ve claramente como botón. */
+.reserve-blocked .reserve-blocked-login {
+  margin-top: 0.15rem;
+  background: var(--pe-accent);
+  border: 1px solid var(--pe-accent);
+  color: var(--pe-on-accent, #fff);
+  font-weight: 700;
+  box-shadow: var(--pe-shadow);
+}
+.reserve-blocked .reserve-blocked-login:hover {
+  background: var(--pe-accent-strong, var(--pe-accent));
+  border-color: var(--pe-accent-strong, var(--pe-accent));
+  color: var(--pe-on-accent, #fff);
 }
 .back-link {
   display: inline-flex;

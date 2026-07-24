@@ -25,6 +25,15 @@ export class ReservationsApi {
     return this.api.get<ReservationResponseDto>(`/reservations/${token}`);
   }
 
+  /**
+   * Estado del cooldown anti-abuso del visitante (por IP). `retryAfterSeconds` es
+   * AUTORITATIVO (viene del TTL en Redis) → sirve para pintar el cronómetro con el
+   * tiempo real, incluso tras recargar la página.
+   */
+  cooldown(): Observable<ReservationCooldown> {
+    return this.api.get<ReservationCooldown>(`/reservations/cooldown`);
+  }
+
   /** Cancela la reserva: libera los cupos e inicia el cooldown (visitantes). */
   cancel(token: string): Observable<{ cancelled: boolean }> {
     return this.api.delete<{ cancelled: boolean }>(`/reservations/${token}`);
@@ -33,6 +42,12 @@ export class ReservationsApi {
   checkout(token: string, body: CheckoutReservationDto = {}): Observable<OrderResponseDto> {
     return this.api.post<OrderResponseDto>(`/reservations/${token}/checkout`, body);
   }
+}
+
+export interface ReservationCooldown {
+  onCooldown: boolean;
+  hasActive: boolean;
+  retryAfterSeconds: number;
 }
 
 function captchaOpts(token?: string): { headers: Record<string, string> } | undefined {

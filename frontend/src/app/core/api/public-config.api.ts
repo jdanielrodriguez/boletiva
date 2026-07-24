@@ -30,6 +30,10 @@ export interface PublicConfig {
   tourEnabled?: boolean;
   /** Días para reofrecer un tour ya visto/rechazado (reinicio; default 30). */
   tourResetDays?: number;
+  /** UX: indicador de carga artificial al hacer clic (clientes/visitantes; default ON). */
+  clickDelayEnabled?: boolean;
+  /** Duración (ms) del indicador de carga al hacer clic (default 200). */
+  clickDelayMs?: number;
   /** Asignación de tema por franja + switch (para resolver el tema en el cliente). */
   theme?: ThemeConfig;
   /** Site key pública de reCAPTCHA v3 (vacía = deshabilitado, no se carga). */

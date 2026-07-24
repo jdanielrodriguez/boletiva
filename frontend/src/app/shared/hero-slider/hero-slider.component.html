@@ -4,7 +4,7 @@
     <div class="hero-viewport">
       <div class="hero-track" [style.transform]="'translateX(' + offset() + '%)'">
         @for (slide of slides(); track slide.slug) {
-          <a class="hero-slide" [routerLink]="['/eventos', slide.slug]">
+          <a class="hero-slide" [routerLink]="['/eventos', slide.slug, 'comprar']">
             @if (slide.imageUrl) {
               <img [src]="slide.imageUrl" [alt]="slide.name" />
             } @else {

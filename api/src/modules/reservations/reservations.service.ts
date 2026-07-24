@@ -135,6 +135,34 @@ export class ReservationsService {
   }
 
   /**
+   * Estado del cooldown/límite anti-abuso para el visitante actual (por IP).
+   * El frontend lo consulta para pintar el banner + cronómetro con el tiempo
+   * restante AUTORITATIVO (sirve al recargar: siempre muestra los segundos reales).
+   * Usuario logueado o límite deshabilitado → nunca bloqueado.
+   */
+  async cooldownStatus(ctx: ReservationContext): Promise<{
+    onCooldown: boolean;
+    hasActive: boolean;
+    retryAfterSeconds: number;
+  }> {
+    if (!this.limitApplies(ctx)) {
+      return { onCooldown: false, hasActive: false, retryAfterSeconds: 0 };
+    }
+    const client = this.redis.getClient();
+    const [cooldownTtl, activeExists] = await Promise.all([
+      client.ttl(this.cooldownKey(ctx.ip)),
+      client.exists(this.activeKey(ctx.ip)),
+    ]);
+    // ttl: -2 = no existe, -1 = sin expiración (no debería), >0 = segundos restantes.
+    const retryAfterSeconds = cooldownTtl > 0 ? cooldownTtl : 0;
+    return {
+      onCooldown: retryAfterSeconds > 0,
+      hasActive: activeExists === 1,
+      retryAfterSeconds,
+    };
+  }
+
+  /**
    * Crea una reserva anónima (hold bajo el token). Puede combinar VARIAS
    * localidades: asientos numerados + cupos generales, todo bajo el mismo `rid`.
    * Si algún hold falla, libera lo ya tomado (todo-o-nada a nivel de reserva).
