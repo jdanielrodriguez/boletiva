@@ -692,12 +692,12 @@ export class SeatMapComponent {
     // SALIDA con umbral FIJO y BAJO (150%): igual para TODAS las zonas → el mismo zoom-out
     // suelta el foco (mesas→cuadros) en cualquiera. Queda por DEBAJO del encuadre de la zona
     // que menos acerca (Tribuna/Preferencia ~178%) → esas NO se cierran solas al entrar.
-    // Histéresis con la entrada por auto-foco (250%). Sin recentrar (suppressFit).
+    // Histéresis con la ENTRADA por auto-foco (175%). Sin recentrar (suppressFit).
     if (focused && rel < 1.5) {
       this.suppressFit = true;
       this.exitFocus.emit();
-    } else if (!focused && rel >= 2.5) {
-      // Pasaste el 250% sin foco → auto-enfoca la localidad bajo el CENTRO de la cámara
+    } else if (!focused && rel >= 1.75) {
+      // Pasaste el 175% sin foco → auto-enfoca la localidad bajo el CENTRO de la cámara
       // (igual que un doble clic), SIN reencuadrar (mantiene el zoom que ya hiciste).
       const cx = (this.vw() / 2 - this.stage.x()) / this.stage.scaleX();
       const cy = (this.vh() / 2 - this.stage.y()) / this.stage.scaleX();
