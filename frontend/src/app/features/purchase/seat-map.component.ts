@@ -296,6 +296,12 @@ export class SeatMapComponent {
       const pt = worldPoint();
       if (pt) this.focusOrMesa(pt.wx, pt.wy);
     });
+
+    // Clic en zona VACÍA (fondo, no una zona/asiento) con una GENERAL activa → salir:
+    // quita el velo/mensaje y el input de cantidad hasta elegir otra zona o alejar el zoom.
+    this.stage?.on('click tap', (e: Konva.KonvaEventObject<Event>) => {
+      if (e.target === this.stage && this.disabled()) this.exitFocus.emit();
+    });
   }
 
   private cancelHold(): void {

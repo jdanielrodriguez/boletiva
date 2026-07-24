@@ -665,24 +665,26 @@ async function seedDemoEvent(
     stage: { x: 300, y: 20, w: 400, h: 50, label: 'ESCENARIO' },
     blocks: [
       { x: 491, y: 170, w: 44, h: 175, label: 'FOH', fill: '#1e2a52' }, // en el hueco entre AMEX Izq/Der
-      { x: 493, y: 555, w: 40, h: 44, fill: '#1e2a52' }, // torre técnica en el hueco entre Ultra Fan
-      { x: 140, y: 500, w: 72, h: 120, label: 'PLATEA', fill: '#9aa0b0' }, // sub-área dentro de la Tribuna
+      { x: 493, y: 545, w: 40, h: 44, fill: '#1e2a52' }, // torre técnica en el hueco entre Ultra Fan
+      { x: 140, y: 490, w: 72, h: 110, label: 'PLATEA', fill: '#9aa0b0' }, // sub-área dentro de la Tribuna
     ],
     // Generales = REGIONES clicables en ARCO (U) ANCHO cuyos extremos CONECTAN con Tribuna
     // (izq) y Preferencia (der) → junto a ellas forman el MARCO del estadio; las mesas van
     // adentro. General 1 = brazo izq, General 2 = brazo der.
-    // Radios elegidos para que los EXTREMOS del arco caigan EXACTO bajo Tribuna
-    // (x 140→212) y Preferencia (x 800→872): cx±outerR = 140/872 (borde externo),
-    // cx±innerR = 236/776 (borde interno) → los brazos quedan flush con las columnas.
+    // Ancho del arco = ANCHO del CUADRO de la columna (con PADZ=8): borde externo
+    // cx±outerR = 132/880 = borde externo de Tribuna/Preferencia; borde interno
+    // cx±innerR = 220/792 = borde interno → los brazos quedan EXACTAMENTE alineados con
+    // las columnas. cy = base del cuadro (649+8) → se TOCAN sin solaparse.
     regions: [
-      { slug: 'general-1', x: 140, y: 644, w: 366, h: 366, label: 'GENERAL 1', arc: { cx: 506, cy: 644, innerRadius: 270, outerRadius: 366, rotation: 90, angle: 90 } },
-      { slug: 'general-2', x: 506, y: 644, w: 366, h: 366, label: 'GENERAL 2', arc: { cx: 506, cy: 644, innerRadius: 270, outerRadius: 366, rotation: 0, angle: 90 } },
+      { slug: 'general-1', x: 132, y: 657, w: 374, h: 374, label: 'GENERAL 1', arc: { cx: 506, cy: 657, innerRadius: 286, outerRadius: 374, rotation: 90, angle: 90 } },
+      { slug: 'general-2', x: 506, y: 657, w: 374, h: 374, label: 'GENERAL 2', arc: { cx: 506, cy: 657, innerRadius: 286, outerRadius: 374, rotation: 0, angle: 90 } },
     ],
     labels: [
       { x: 108, y: 250, text: 'TRIBUNA', rotation: -90, size: 15 },
       { x: 905, y: 220, text: 'PREFERENCIA', rotation: 90, size: 15 },
     ],
-    aids: [{ x: 506, y: 700 }, { x: 782, y: 150 }, { x: 782, y: 430 }],
+    // Primeros auxilios: centrados en el PASILLO BLANCO CENTRAL (x≈513, hueco del FOH).
+    aids: [{ x: 513, y: 150 }, { x: 513, y: 430 }, { x: 513, y: 630 }],
   };
   await prisma.seatMap.create({
     data: {

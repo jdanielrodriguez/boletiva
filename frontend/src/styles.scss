@@ -2278,7 +2278,7 @@ app-root {
    scroll ni salto al hacer zoom. Solo los controles internos capturan el puntero. */
 .map-head {
   position: absolute;
-  top: 10px;
+  top: 46px; /* debajo de la fila de controles de zoom (no la tapa) */
   left: 10px;
   right: 10px;
   z-index: 5;
