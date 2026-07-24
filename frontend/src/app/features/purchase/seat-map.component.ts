@@ -235,6 +235,45 @@ export class SeatMapComponent {
       this.lastDist = 0;
       this.lastCenter = null;
     });
+
+    // Doble clic/tap EN CUALQUIER PARTE de una zona (asiento o espacio blanco) → enfoca
+    // esa localidad (la selecciona y la cámara se acerca, cinematográfico).
+    this.stage?.on('dblclick dbltap', () => {
+      if (!this.stage) return;
+      const p = this.stage.getPointerPosition();
+      if (!p) return;
+      const s = this.stage.scaleX() || 1;
+      const wx = (p.x - this.stage.x()) / s;
+      const wy = (p.y - this.stage.y()) / s;
+      const loc = this.localityAt(wx, wy);
+      if (loc) this.localityPick.emit(loc);
+    });
+  }
+
+  /** bbox por localidad (a partir de los asientos). */
+  private localityBoxes(): Map<string, Box> {
+    const m = new Map<string, Box>();
+    for (const s of this.seats()) {
+      if (s.x == null || s.y == null) continue;
+      const b = m.get(s.localityId);
+      if (!b) m.set(s.localityId, { minX: s.x, minY: s.y, maxX: s.x, maxY: s.y });
+      else {
+        b.minX = Math.min(b.minX, s.x as number);
+        b.minY = Math.min(b.minY, s.y as number);
+        b.maxX = Math.max(b.maxX, s.x as number);
+        b.maxY = Math.max(b.maxY, s.y as number);
+      }
+    }
+    return m;
+  }
+
+  /** Localidad cuyo área (bbox + margen) contiene el punto de mundo (wx,wy), o null. */
+  private localityAt(wx: number, wy: number): string | null {
+    const PADH = 24;
+    for (const [id, b] of this.localityBoxes()) {
+      if (wx >= b.minX - PADH && wx <= b.maxX + PADH && wy >= b.minY - PADH && wy <= b.maxY + PADH) return id;
+    }
+    return null;
   }
 
   private clampScale(s: number): number {
@@ -326,18 +365,26 @@ export class SeatMapComponent {
     const K = this.konva;
     const tables = this.tableLocalityIds();
     if (tables.size === 0) return;
-    const groups = new Map<string, { sx: number; sy: number; n: number }>();
+    // bbox por mesa (localityId|row) → dibuja la MESA como rect ALARGADO (inset) para
+    // que los PUNTOS (sillas) queden rodeándola arriba/abajo, como en VivaTicket.
+    const groups = new Map<string, Box>();
     for (const s of this.seats()) {
       if (s.x == null || s.y == null || !tables.has(s.localityId)) continue;
       const key = `${s.localityId}|${s.row ?? ''}`;
-      const g = groups.get(key) ?? { sx: 0, sy: 0, n: 0 };
-      g.sx += s.x as number;
-      g.sy += s.y as number;
-      g.n += 1;
-      groups.set(key, g);
+      const b = groups.get(key);
+      if (!b) groups.set(key, { minX: s.x, minY: s.y, maxX: s.x, maxY: s.y });
+      else {
+        b.minX = Math.min(b.minX, s.x as number);
+        b.minY = Math.min(b.minY, s.y as number);
+        b.maxX = Math.max(b.maxX, s.x as number);
+        b.maxY = Math.max(b.maxY, s.y as number);
+      }
     }
-    for (const g of groups.values()) {
-      this.layer.add(new K.Circle({ x: g.sx / g.n, y: g.sy / g.n, radius: 7, fill: '#c9b18f', stroke: '#8a6d4a', strokeWidth: 1, listening: false }));
+    for (const b of groups.values()) {
+      const x = b.minX + 3;
+      const y = (b.minY + b.maxY) / 2 - 4; // franja central entre las dos filas de puntos
+      const w = Math.max(10, b.maxX - b.minX - 6);
+      this.layer.add(new K.Rect({ x, y, width: w, height: 8, cornerRadius: 4, fill: '#c9b18f', stroke: '#8a6d4a', strokeWidth: 1, listening: false }));
     }
   }
 
@@ -538,9 +585,9 @@ export class SeatMapComponent {
       const g = new K.Group({ x: seat.x as number, y: seat.y as number, opacity: locked && !owned ? 0.45 : 1 });
       const isTable = this.tableLocalityIds().has(seat.localityId);
       if (isTable) {
-        // Zona de MESAS: la mesa (centro) la dibuja drawTables(); cada SILLA alrededor
-        // es un CÍRCULO pequeño. Borde blanco = seleccionada.
-        g.add(new K.Circle({ radius: 5, fill: color, stroke: chosen && !taken && !locked ? '#ffffff' : undefined, strokeWidth: chosen && !taken && !locked ? 2 : 0 }));
+        // Zona de MESAS: la mesa (larga) la dibuja drawTables(); cada SILLA alrededor
+        // es un PUNTO. Borde blanco = seleccionada.
+        g.add(new K.Circle({ radius: 4, fill: color, stroke: chosen && !taken && !locked ? '#ffffff' : undefined, strokeWidth: chosen && !taken && !locked ? 2 : 0 }));
       } else {
         // SILLA pequeña MIRANDO al escenario (arriba): asiento + respaldo abajo. Más
         // chica que antes para que no se traslapen los iconos.
@@ -564,12 +611,6 @@ export class SeatMapComponent {
           this.clickDelay.pulse(); // loader breve también al elegir asiento
           this.seatToggle.emit(seat.id);
         }
-      });
-      // Doble clic/tap: acerca la cámara (cinematográfico) hacia el punto → ver las
-      // mesas/asientos de la zona. (Zoom out con la rueda/pinch/reset vuelve a todo.)
-      g.on('dblclick dbltap', () => {
-        const p = this.stage?.getPointerPosition();
-        if (p) this.zoomAtLocal(p.x, p.y, 2, true);
       });
       const clickable = locked || !taken;
       const tipText = this.tipText(seat, sold, reserved, owned);

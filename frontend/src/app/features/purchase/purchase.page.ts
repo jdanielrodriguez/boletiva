@@ -2,6 +2,7 @@ import { DecimalPipe, isPlatformBrowser } from '@angular/common';
 import { Component, OnDestroy, PLATFORM_ID, afterNextRender, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Title } from '@angular/platform-browser';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { catchError, of, switchMap, tap } from 'rxjs';
 import { Subscription } from 'rxjs';
@@ -65,6 +66,7 @@ export class PurchasePage implements OnDestroy {
   ];
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly title = inject(Title);
   private readonly eventsApi = inject(EventsApi);
   private readonly session = inject(SessionStore);
   private readonly siteUrl = inject(SITE_URL);
@@ -117,6 +119,9 @@ export class PurchasePage implements OnDestroy {
   protected readonly cartHidden = signal(false);
   /** Offset desde abajo de la barra acoplada: sube para no tapar el footer al final. */
   protected readonly cartBottom = signal(0);
+  /** Al REAPARECER arriba (scroll up), reproduce una animación de bajada suave. */
+  protected readonly cartDropping = signal(false);
+  private dropTimer: ReturnType<typeof setTimeout> | null = null;
 
   private ticker: ReturnType<typeof setInterval> | null = null;
   private onScroll: (() => void) | null = null;
@@ -126,6 +131,7 @@ export class PurchasePage implements OnDestroy {
       switchMap((pm) => this.eventsApi.getBySlug(pm.get('slug') ?? '')),
       tap((ev) => {
         this.eventName.set(ev.name);
+        this.title.setTitle(`${ev.name} — Comprar · Boletiva`); // nombre del evento primero
         this.store.eventId.set(ev.id);
         // Disponibilidad en vivo (FU11): repinta el mapa cuando otros compran/liberan.
         if (isPlatformBrowser(this.platformId) && !this.seatSub) {
@@ -199,7 +205,15 @@ export class PurchasePage implements OnDestroy {
       this.onScroll = () => {
         const y = window.scrollY;
         if (y > lastY + 6 && y > 140) this.cartHidden.set(true);
-        else if (y < lastY - 6) this.cartHidden.set(false);
+        else if (y < lastY - 6) {
+          // Reaparece arriba → dispara la animación de bajada (suave), una vez.
+          if (this.cartHidden()) {
+            this.cartDropping.set(true);
+            if (this.dropTimer) clearTimeout(this.dropTimer);
+            this.dropTimer = setTimeout(() => this.cartDropping.set(false), 420);
+          }
+          this.cartHidden.set(false);
+        }
         lastY = y;
         // Al llegar al final, la barra acoplada sube para quedar JUSTO encima del footer
         // (aprovecha el espacio entre el resumen y el footer, sin taparlo).
@@ -388,5 +402,6 @@ export class PurchasePage implements OnDestroy {
     if (this.ticker) clearInterval(this.ticker);
     this.seatSub?.unsubscribe();
     if (this.onScroll && isPlatformBrowser(this.platformId)) window.removeEventListener('scroll', this.onScroll);
+    if (this.dropTimer) clearTimeout(this.dropTimer);
   }
 }

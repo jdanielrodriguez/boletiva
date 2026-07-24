@@ -3098,6 +3098,20 @@ app-root {
     transform: translateY(0);
   }
 }
+/* Reaparición arriba (scroll up): baja suave desde encima (no repentino). */
+.cart-top.cart-drop {
+  animation: cart-drop 0.4s ease;
+}
+@keyframes cart-drop {
+  from {
+    transform: translateY(-130%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
 /* Deja aire al final para que la barra acoplada nunca tape el último contenido. */
 .purchase {
   padding-bottom: 5.5rem;
