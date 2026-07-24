@@ -12,12 +12,14 @@ import {
 } from '@angular/core';
 import type Konva from 'konva';
 import type { SeatAvailabilityDto } from '../../core/api/types';
+import { ClickDelayService } from '../../core/ui/click-delay.service';
 
 // Paleta alineada a la marca (mismos hex que la leyenda en styles.scss).
 const COLORS = {
   available: '#35d07f', // = --pe-success
   selected: '#e14eca', // = --pe-accent (rosa de marca)
-  taken: '#3a3f52',
+  taken: '#3a3f52', // VENDIDO (gris)
+  reserved: '#f59e0b', // RESERVADO (ámbar) — vendido temporalmente por otro
   owned: '#3b82f6', // AZUL: asientos que el usuario YA compró
 };
 const PAD = 46; // margen (coords de mundo) al encuadrar un box
@@ -59,6 +61,9 @@ interface Box {
             <span>{{ disabledLabel() }}</span>
           </div>
         }
+        @if (tip(); as t) {
+          <div class="seat-tip" data-testid="seat-tip" [style.left.px]="t.x" [style.top.px]="t.y" aria-hidden="true">{{ t.text }}</div>
+        }
       </div>
     </div>
   `,
@@ -75,6 +80,8 @@ interface Box {
     // puntero (pointer-events:none) → un clic igual llega a los asientos (cambia zona).
     '.seat-map-veil { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; border-radius: 12px; background: rgba(10, 13, 19, 0.55); }',
     '.seat-map-veil span { padding: 0.5rem 1.1rem; border-radius: 999px; background: rgba(0,0,0,0.55); color: #fff; font-weight: 600; font-size: 0.85rem; letter-spacing: 0.02em; }',
+    // Tooltip del asiento (número + precio / estado). Sigue al cursor; no intercepta.
+    '.seat-tip { position: absolute; transform: translate(-50%, -140%); pointer-events: none; z-index: 5; white-space: nowrap; padding: 0.3rem 0.6rem; border-radius: 8px; background: #10141c; color: #fff; font-size: 0.78rem; font-weight: 600; box-shadow: 0 4px 14px rgba(0,0,0,0.35); }',
     '.seat-map-zoom { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.4rem; }',
     '.seat-zoom-lvl { min-width: 3.6rem; text-align: center; font-variant-numeric: tabular-nums; color: var(--pe-text-muted, #6b6b76); }',
     '.seat-stage { display: flex; justify-content: center; margin: 0.15rem auto 0.6rem; }',
@@ -94,14 +101,19 @@ export class SeatMapComponent {
   readonly disabledLabel = input<string | null>(null);
   /** Duración del tween cinematográfico de cámara (ms). Configurable por el admin. */
   readonly cameraMs = input(900);
+  /** Precio del comprador por localidad (id → "Q123.45") para el tooltip del asiento. */
+  readonly priceByLocality = input<Record<string, string>>({});
   readonly seatToggle = output<string>();
   /** Clic en una zona → id de su localidad (cambiar/enfocar). */
   readonly localityPick = output<string>();
 
   private readonly host = viewChild.required<ElementRef<HTMLDivElement>>('host');
+  private readonly clickDelay = inject(ClickDelayService);
 
   /** Zoom mostrado (% relativo a la vista completa = 100%). Se fija al terminar el tween. */
   protected readonly displayZoom = signal(100);
+  /** Tooltip del asiento bajo el cursor (número + precio, o estado). */
+  protected readonly tip = signal<{ text: string; x: number; y: number } | null>(null);
 
   private readonly MIN_REL = 0.4; // se puede alejar hasta 40% de la vista completa
   private readonly MAX_REL = 6; // y acercar hasta 600%
@@ -347,17 +359,21 @@ export class SeatMapComponent {
     for (const seat of this.seats()) {
       if (seat.x == null || seat.y == null) continue;
       const owned = !!(seat as { owned?: boolean }).owned;
-      const taken = seat.status !== 'available';
+      const reserved = seat.status === 'held'; // reservado por otro (temporal)
+      const sold = seat.status !== 'available' && !reserved; // vendido (definitivo)
+      const taken = reserved || sold;
       const chosen = sel.has(seat.id);
       // Bloqueada = mapa deshabilitado (zona general activa) o de OTRA localidad.
       const locked = allDisabled || (!!activeLoc && seat.localityId !== activeLoc);
       const color = owned
         ? COLORS.owned
-        : taken
+        : sold
           ? COLORS.taken
-          : chosen && !locked
-            ? COLORS.selected
-            : COLORS.available;
+          : reserved
+            ? COLORS.reserved
+            : chosen && !locked
+              ? COLORS.selected
+              : COLORS.available;
 
       const g = new K.Group({ x: seat.x as number, y: seat.y as number, opacity: locked && !owned ? 0.45 : 1 });
       // El ESCENARIO está ARRIBA → la sillita MIRA hacia arriba: respaldo ABAJO, asiento
@@ -373,13 +389,16 @@ export class SeatMapComponent {
       }
 
       // Clic: en OTRA zona (o mapa deshabilitado) → cambia de localidad; en la activa
-      // disponible → selecciona. (El velo no bloquea: pointer-events:none.)
+      // disponible → selecciona (+ velo breve de "procesando"). (El velo no bloquea.)
       g.on('click tap', () => {
         if (locked || (!activeLoc && this.focusLocalityId() !== seat.localityId)) {
           this.localityPick.emit(seat.localityId);
           return;
         }
-        if (!taken) this.seatToggle.emit(seat.id);
+        if (!taken) {
+          this.clickDelay.pulse(); // loader breve también al elegir asiento
+          this.seatToggle.emit(seat.id);
+        }
       });
       // Doble clic/tap: acerca la cámara (cinematográfico) hacia el punto → ver las
       // mesas/asientos de la zona. (Zoom out con la rueda/pinch/reset vuelve a todo.)
@@ -388,8 +407,20 @@ export class SeatMapComponent {
         if (p) this.zoomAtLocal(p.x, p.y, 2, true);
       });
       const clickable = locked || !taken;
-      g.on('mouseenter', () => this.setCursor(clickable ? 'pointer' : 'grab'));
-      g.on('mouseleave', () => this.setCursor('grab'));
+      const tipText = this.tipText(seat, sold, reserved, owned);
+      g.on('mouseenter', () => {
+        this.setCursor(clickable ? 'pointer' : 'grab');
+        const p = this.stage?.getPointerPosition();
+        if (p) this.tip.set({ text: tipText, x: p.x, y: p.y });
+      });
+      g.on('mousemove', () => {
+        const p = this.stage?.getPointerPosition();
+        if (p) this.tip.update((t) => (t ? { ...t, x: p.x, y: p.y } : t));
+      });
+      g.on('mouseleave', () => {
+        this.setCursor('grab');
+        this.tip.set(null);
+      });
       this.layer.add(g);
     }
     this.layer.draw();
@@ -409,6 +440,16 @@ export class SeatMapComponent {
       fill,
       listening: false,
     });
+  }
+
+  /** Texto del tooltip: disponibles → número + precio; ocupados → estado (Vendido/Reservado). */
+  private tipText(seat: SeatAvailabilityDto, sold: boolean, reserved: boolean, owned: boolean): string {
+    const label = `${seat.section ? seat.section + ' ' : ''}${seat.row ? 'Fila ' + seat.row + ' · ' : ''}${seat.label}`;
+    if (owned) return `${label} · Tuyo`;
+    if (sold) return `${label} · Vendido`;
+    if (reserved) return `${label} · Reservado`;
+    const price = this.priceByLocality()[seat.localityId];
+    return price ? `${label} · Q${price}` : label;
   }
 
   private setCursor(value: string): void {

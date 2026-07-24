@@ -2326,9 +2326,12 @@ app-root {
   display: flex;
   flex-wrap: nowrap; /* vista PILL: una sola línea con scroll horizontal */
   overflow-x: auto;
+  overflow-y: hidden;
   gap: 0.6rem;
   margin: 0.5rem 0 1.25rem;
-  padding-bottom: 0.5rem;
+  /* padding-top: deja aire para que el "lift" del hover (translateY -2px) no se corte. */
+  padding: 0.5rem 0.1rem 0.6rem;
+  cursor: grab;
   /* Scrollbar delgada de marca (no la del sistema). */
   scrollbar-width: thin;
   scrollbar-color: var(--pe-accent) transparent;
@@ -2436,6 +2439,9 @@ app-root {
 }
 .seat-legend .legend.own::before {
   background: #3b82f6;
+}
+.seat-legend .legend.res::before {
+  background: #f59e0b;
 }
 
 .loc-quantity {

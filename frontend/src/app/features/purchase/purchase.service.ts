@@ -86,6 +86,13 @@ export class PurchaseService {
     return m;
   });
 
+  /** Precio del comprador por localidad (id → "123.45") para el tooltip del asiento. */
+  readonly priceByLocality = computed<Record<string, string>>(() => {
+    const m: Record<string, string> = {};
+    for (const l of this.localities()) if (l.price) m[l.id] = l.price.total;
+    return m;
+  });
+
   /** ¿Hay al menos una localidad con asientos (mapa)? → muestra el mapa del recinto. */
   readonly hasSeatedMap = computed(() => this.allSeats().length > 0);
 

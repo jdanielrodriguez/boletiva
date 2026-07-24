@@ -36,16 +36,21 @@ export class ClickDelayService {
     return !this.session.hasAnyRole(['admin', 'promoter', 'advisor']);
   }
 
-  private onClick(e: Event): void {
-    if (!this.config.clickDelayEnabled()) return;
+  /** Muestra el velo el tiempo configurado (si aplica). Reusable desde el canvas de
+   *  asientos (clic Konva, no DOM) para que seleccionar un asiento también "cargue". */
+  pulse(): void {
+    if (!isPlatformBrowser(this.platformId) || !this.config.clickDelayEnabled()) return;
     const ms = this.config.clickDelayMs();
     if (ms <= 0 || !this.appliesToUser()) return;
-    const target = e.target as HTMLElement | null;
-    // Solo controles interactivos (botón/enlace/.btn/role=button); ignora texto/inputs.
-    if (!target?.closest('button, a[href], .btn, [role="button"]')) return;
-
     this.active.set(true);
     if (this.timer) clearTimeout(this.timer);
     this.timer = setTimeout(() => this.active.set(false), ms);
+  }
+
+  private onClick(e: Event): void {
+    const target = e.target as HTMLElement | null;
+    // Solo controles interactivos (botón/enlace/.btn/role=button); ignora texto/inputs.
+    if (!target?.closest('button, a[href], .btn, [role="button"]')) return;
+    this.pulse();
   }
 }

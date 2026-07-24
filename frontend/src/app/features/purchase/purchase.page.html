@@ -71,7 +71,7 @@
   } @else {
     <!-- Cuadro de total + Reservar: se aparta al hacer scroll hacia abajo (no tapa el
          mapa) y reaparece al subir. -->
-    <aside class="cart-summary cart-top" [class.is-hidden]="cartHidden()">
+    <aside class="cart-summary cart-top" [class.is-hidden]="cartHidden()" [style.bottom.px]="cartHidden() ? cartBottom() : null">
       <div>
         <p class="cart-count">{{ 'purchase.selectedCount' | translate: { n: store.totalCount() } }}</p>
         @if (store.availability()?.maxPerOrder) {
@@ -121,7 +121,7 @@
 
     <!-- Localidades (chips): elegir zona. Con mapa también se elige tocando el mapa;
          la zona activa se resalta y su precio se muestra. -->
-    <div class="loc-tabs" role="group" [attr.aria-label]="'purchase.localities' | translate">
+    <div class="loc-tabs" appDragScroll role="group" [attr.aria-label]="'purchase.localities' | translate">
       @for (loc of store.localities(); track loc.id) {
         <button
           type="button"
@@ -193,6 +193,7 @@
           [disabled]="store.activeIsGeneral()"
           [disabledLabel]="'purchase.mapNotApplyHere' | translate"
           [cameraMs]="cameraMs()"
+          [priceByLocality]="store.priceByLocality()"
           [stageLabel]="'purchase.stage' | translate"
           (seatToggle)="store.toggleSeat($event)"
           (localityPick)="store.setActiveLocality($event)"
@@ -217,6 +218,7 @@
           <span class="legend av">{{ 'purchase.legendAvailable' | translate }}</span>
           <span class="legend sel">{{ 'purchase.legendSelected' | translate }}</span>
           <span class="legend own">{{ 'purchase.legendOwned' | translate }}</span>
+          <span class="legend res">{{ 'purchase.legendReserved' | translate }}</span>
           <span class="legend tk">{{ 'purchase.legendTaken' | translate }}</span>
         </p>
       </section>

@@ -27,6 +27,7 @@ export const purchase = {
   legendAvailable: 'Available',
   legendSelected: 'Selected',
   legendOwned: 'Yours (purchased)',
+  legendReserved: 'Reserved',
   kindSeated: 'Numbered seat',
   kindGeneral: 'General admission',
   generalNoMapHint: 'This is a general-admission zone: pick the quantity above. The map is disabled.',

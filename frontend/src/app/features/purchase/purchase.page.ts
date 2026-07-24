@@ -24,6 +24,7 @@ import { LoadingComponent } from '../../shared/ui/loading.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { TourComponent, TourStep } from '../../shared/tour/tour.component';
+import { DragScrollDirective } from '../../shared/drag-scroll.directive';
 import { SeatMapComponent } from './seat-map.component';
 import { PurchaseService } from './purchase.service';
 
@@ -39,6 +40,7 @@ type Phase = 'select' | 'reserved' | 'expired';
   selector: 'app-purchase',
   imports: [
     SeatMapComponent,
+    DragScrollDirective,
     DecimalPipe,
     MoneyPipe,
     ShareBox,
@@ -113,6 +115,8 @@ export class PurchasePage implements OnDestroy {
    * reaparece al hacer scroll hacia arriba.
    */
   protected readonly cartHidden = signal(false);
+  /** Offset desde abajo de la barra acoplada: sube para no tapar el footer al final. */
+  protected readonly cartBottom = signal(0);
 
   private ticker: ReturnType<typeof setInterval> | null = null;
   private onScroll: (() => void) | null = null;
@@ -197,6 +201,13 @@ export class PurchasePage implements OnDestroy {
         if (y > lastY + 6 && y > 140) this.cartHidden.set(true);
         else if (y < lastY - 6) this.cartHidden.set(false);
         lastY = y;
+        // Al llegar al final, la barra acoplada sube para quedar JUSTO encima del footer
+        // (aprovecha el espacio entre el resumen y el footer, sin taparlo).
+        const footer = document.querySelector('.site-footer');
+        if (footer) {
+          const fTop = footer.getBoundingClientRect().top;
+          this.cartBottom.set(Math.max(0, window.innerHeight - fTop));
+        }
       };
       window.addEventListener('scroll', this.onScroll, { passive: true });
     });
