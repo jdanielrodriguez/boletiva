@@ -17,7 +17,7 @@ import { writeFileSync } from 'node:fs';
 // httpOnly del refresh (SameSite=Lax) viaje entre navegaciones. Ver launch args.
 const FE = process.env.E2E_FRONTEND_URL || 'http://localhost:4200';
 const MAIL = process.env.E2E_MAILHOG_URL || 'http://pasaeventos_mailhog:8025';
-const BUYER = { email: 'cliente@pasaeventos.com', password: 'Password123' };
+const BUYER = { email: 'cliente@boletiva.com', password: 'Password123' };
 const EVENT_SLUG = 'evento-demo-pasaeventos';
 
 let pass = 0;
@@ -48,6 +48,27 @@ async function waitSel(page, sel, timeout = 15000) {
 
 async function text(page, sel) {
   return page.$eval(sel, (el) => el.textContent?.trim() ?? '').catch(() => '');
+}
+
+/**
+ * Selecciona una localidad por su nombre (chip). Con el mapa único (B0) la compra
+ * aterriza en la vista LEJANA sin localidad activa: hay que elegir la zona primero.
+ */
+async function clickLocTab(page, name) {
+  await waitSel(page, '[data-testid="loc-tab"]');
+  const clicked = await page.$$eval(
+    '[data-testid="loc-tab"]',
+    (btns, n) => {
+      const b = btns.find((x) => (x.textContent || '').includes(n));
+      if (b) {
+        b.click();
+        return true;
+      }
+      return false;
+    },
+    name,
+  );
+  if (!clicked) throw new Error(`no se encontró la localidad "${name}"`);
 }
 
 async function clearMail() {
@@ -143,7 +164,7 @@ async function main() {
     await page.goto(`${FE}/eventos/${EVENT_SLUG}`, { waitUntil: 'networkidle0' });
     await waitSel(page, 'h1');
     const h1 = await text(page, 'h1');
-    assert(h1.toLowerCase().includes('evento'), `h1 inesperado: ${h1}`);
+    assert(h1.length > 0, `h1 vacío`); // el @type=Event de abajo confirma que es detalle de evento
     const ld = await page.$('#pe-jsonld');
     assert(ld !== null, 'falta JSON-LD');
     const type = await page.$eval('#pe-jsonld', (el) => JSON.parse(el.textContent)['@type']);
@@ -164,7 +185,8 @@ async function main() {
   console.log('\n▶ Reserva anónima compartible');
   let shareLink = '';
   await step('reserva SIN login y genera link para compartir', async () => {
-    await page.goto(`${FE}/eventos/${EVENT_SLUG}/comprar`, { waitUntil: 'networkidle0' });
+    await page.goto(`${FE}/eventos/${EVENT_SLUG}/comprar`, { waitUntil: 'domcontentloaded' });
+    await clickLocTab(page, 'General'); // mapa único: elegir la zona GA para ver el stepper
     await waitSel(page, '[data-testid="loc-quantity"]');
     await waitSel(page, '[data-testid="qty-plus"]');
     await page.click('[data-testid="qty-plus"]');
@@ -180,7 +202,7 @@ async function main() {
   });
 
   await step('abrir el link muestra la reserva y pide login al pagar', async () => {
-    await page.goto(shareLink, { waitUntil: 'networkidle0' });
+    await page.goto(shareLink, { waitUntil: 'domcontentloaded' });
     await waitSel(page, '[data-testid="pay-btn"]');
     assert(
       (await page.$('[data-testid="reservation-items"]')) !== null,
@@ -211,7 +233,18 @@ async function main() {
 
   console.log('\n▶ Compra completa (selección → reserva → checkout → pago SSE)');
   await step('selecciona General por cantidad y reserva', async () => {
-    await page.goto(`${FE}/eventos/${EVENT_SLUG}/comprar`, { waitUntil: 'networkidle0' });
+    // La reserva anónima del paso anterior queda PERSISTIDA (localStorage) → un nuevo
+    // /comprar la restauraría (vista "reservada", sin chips). Limpiamos SOLO las claves
+    // de reserva (NO toda la localStorage: ahí vive el token de sesión → borrarlo desloguea).
+    await page
+      .evaluate(() => {
+        Object.keys(localStorage)
+          .filter((k) => k.startsWith('pe.reservation'))
+          .forEach((k) => localStorage.removeItem(k));
+      })
+      .catch(() => {});
+    await page.goto(`${FE}/eventos/${EVENT_SLUG}/comprar`, { waitUntil: 'domcontentloaded' });
+    await clickLocTab(page, 'General'); // mapa único: elegir la zona GA para ver el stepper
     await waitSel(page, '[data-testid="loc-quantity"]');
     // Stepper +/− (reemplazó al <select> nativo): sube a 2, esperando el re-render
     // (zoneless) entre clics para no perder ninguna pulsación.
@@ -417,7 +450,7 @@ async function main() {
   const promoCtx = await browser.createBrowserContext();
   const promo = await promoCtx.newPage();
   await step('"Nuevo evento" abre la vista de edición en MODO NUEVO (form en blanco) y Guardar crea', async () => {
-    await doLogin(promo, 'promotor@pasaeventos.com', 'Password123');
+    await doLogin(promo, 'promotor@boletiva.com', 'Password123');
     await promo.goto(`${FE}/promotor`, { waitUntil: 'networkidle0' });
     await promo.waitForSelector('[data-testid="toggle-create"]', { timeout: 15000 });
     // El botón navega a /promotor/eventos/nuevo (misma página de edición, en blanco).
@@ -668,7 +701,7 @@ async function main() {
   const adminPg = await adminCtx.newPage();
   let inviteLink = '';
   await step('el admin invita a un promotor por correo y obtiene el enlace con token', async () => {
-    await doLogin(adminPg, 'admin@pasaeventos.com', 'Password123');
+    await doLogin(adminPg, 'admin@boletiva.com', 'Password123');
     await adminPg.goto(`${FE}/configuracion`, { waitUntil: 'networkidle0' });
     await adminPg.waitForSelector('[data-testid="tab-invitaciones"]', { timeout: 15000 });
     await adminPg.click('[data-testid="tab-invitaciones"]');

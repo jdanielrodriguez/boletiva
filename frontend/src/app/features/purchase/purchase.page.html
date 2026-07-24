@@ -69,8 +69,9 @@
       </div>
     </section>
   } @else {
-    <!-- Cuadro de total + Reservar: SIEMPRE arriba, junto a la selección -->
-    <aside class="cart-summary cart-top">
+    <!-- Cuadro de total + Reservar: se aparta al hacer scroll hacia abajo (no tapa el
+         mapa) y reaparece al subir. -->
+    <aside class="cart-summary cart-top" [class.is-hidden]="cartHidden()" [class.cart-drop]="cartDropping() && !cartHidden()" [style.bottom.px]="cartHidden() ? cartBottom() : null">
       <div>
         <p class="cart-count">{{ 'purchase.selectedCount' | translate: { n: store.totalCount() } }}</p>
         @if (store.availability()?.maxPerOrder) {
@@ -93,10 +94,23 @@
       <p class="warn" data-testid="purchase-expired">{{ 'purchase.expiredWarn' | translate }}</p>
     }
     @if (blocked()) {
-      <div class="warn reserve-blocked" data-testid="reserve-blocked" role="alert">
-        <p>{{ blocked() }}</p>
-        <p class="reserve-blocked-hint">{{ 'purchase.reserveLimitHint' | translate }}</p>
-        <button type="button" class="btn btn-outline" data-testid="reserve-login" (click)="loginToReserve()">
+      <div class="reserve-blocked" data-testid="reserve-blocked" role="alert">
+        <button type="button" class="reserve-blocked-close" data-testid="reserve-blocked-close" (click)="dismissBlocked()" [attr.aria-label]="'common.close' | translate">
+          <app-icon name="close" [size]="18" />
+        </button>
+        <div class="reserve-blocked-body">
+          <app-icon class="reserve-blocked-icon" name="alert" [size]="22" />
+          <div class="reserve-blocked-text">
+            <p class="reserve-blocked-msg">{{ blocked() }}</p>
+            @if (cooldownSeconds() > 0) {
+              <p class="reserve-blocked-timer" data-testid="reserve-blocked-timer" [attr.aria-label]="'purchase.reserveCooldownAria' | translate">
+                {{ 'purchase.reserveCooldownTimer' | translate: { mm: cooldownMm(), ss: (cooldownSs() | number: '2.0-0') } }}
+              </p>
+            }
+            <p class="reserve-blocked-hint">{{ 'purchase.reserveLimitHint' | translate }}</p>
+          </div>
+        </div>
+        <button type="button" class="btn reserve-blocked-login" data-testid="reserve-login" (click)="loginToReserve()">
           {{ 'purchase.reserveLimitLogin' | translate }}
         </button>
       </div>
@@ -105,15 +119,16 @@
       <p class="error" role="alert" data-testid="purchase-error">{{ error() }}</p>
     }
 
-    <!-- Botones de localidad: se elige UNA a la vez (la que venga del detalle o la 1ª) -->
-    <div class="loc-tabs" role="group" [attr.aria-label]="'purchase.localities' | translate">
+    <!-- Localidades (chips): elegir zona. Con mapa también se elige tocando el mapa;
+         la zona activa se resalta y su precio se muestra. -->
+    <div class="loc-tabs" appDragScroll role="group" [attr.aria-label]="'purchase.localities' | translate">
       @for (loc of store.localities(); track loc.id) {
         <button
           type="button"
           class="loc-tab"
           data-testid="loc-tab"
           [class.active]="loc.id === store.activeLocalityId()"
-          (click)="store.setActiveLocality(loc.id)"
+          (click)="pickFromPill(loc.id)"
         >
           <strong>{{ loc.name }}</strong>
           @if (loc.price) { <span class="loc-tab-price">{{ loc.price.total | money }}</span> }
@@ -121,21 +136,82 @@
       }
     </div>
 
-    @if (store.activeLocality(); as loc) {
-      <section class="loc-active">
-        <h2>{{ loc.name }} @if (loc.price) { · {{ loc.price.total | money }} {{ 'purchase.perTicket' | translate }} }</h2>
-
-        @if (store.activeIsSeated()) {
-          <!-- Aviso móvil: en pantallas chicas el mapa es denso; se puede desplazar y
-               tocar, o usar la lista de asientos de abajo (QA final, cliente móvil). -->
-          <p class="seat-mobile-hint muted small" data-testid="purchase-seat-hint">{{ 'purchase.seatMapMobileHint' | translate }}</p>
-          <app-seat-map
-            [seats]="store.activeSeats()"
-            [selected]="store.selectedSet()"
-            (seatToggle)="store.toggleSeat($event)"
-          />
-          <!-- a11y: el canvas Konva no es operable por teclado/lector. Lista paralela
-               (sr-only, se revela al enfocar) para elegir asientos sin mouse. -->
+    <!-- MAPA ÚNICO del recinto (B0): se ve TODO el mapa; al elegir una localidad la
+         cámara se acerca a esa zona y SOLO ahí se pueden elegir asientos (las demás se
+         atenúan). Tocar otra zona cambia la localidad activa. -->
+    @if (store.hasSeatedMap()) {
+      <section class="venue-map" data-testid="venue-map">
+        <!-- Cabecera de altura FIJA: contiene la info de zona / hint. Al enfocar aparece el
+             panel y al salir el hint, pero el alto no cambia → el mapa NO se recorre (antes
+             el zoom parecía "subir/bajar" porque este bloque crecía/encogía). -->
+        <div class="map-head">
+        <!-- Info de la zona activa (fusiona lo que antes estaba en la página de
+             localidades): nombre, tipo, disponibilidad y precio. -->
+        @if (store.activeLocality(); as loc) {
+          <div class="locality-info" data-testid="locality-info">
+            <div class="locality-info-main">
+              <strong class="locality-info-name">{{ loc.name }}</strong>
+              <span class="locality-info-meta">
+                {{ (store.activeIsSeated() ? 'purchase.kindSeated' : 'purchase.kindGeneral') | translate }}
+                · {{ 'purchase.availableCount' | translate: { n: loc.available } }}
+              </span>
+            </div>
+            @if (loc.price) {
+              <span class="locality-info-price">{{ loc.price.total | money }} <em>{{ 'purchase.perTicket' | translate }}</em></span>
+            }
+          </div>
+          @if (store.activeIsGeneral()) {
+            <!-- Zona GENERAL: la cantidad va ARRIBA del mapa, justo bajo el precio. -->
+            <div class="loc-quantity above-map" data-testid="loc-quantity">
+              <span class="loc-avail">{{ 'purchase.availableCount' | translate: { n: loc.available } }}</span>
+              @if (store.maxFor(loc) > 0) {
+                <div class="qty-stepper" role="group" [attr.aria-label]="'purchase.quantityFor' | translate: { name: loc.name }">
+                  <button type="button" class="qty-btn" data-testid="qty-minus" #qtyFocus
+                    [attr.aria-label]="'purchase.removeOne' | translate"
+                    [disabled]="store.quantityFor(loc.id) === 0" (click)="changeQuantity(loc, -1)">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M5 12h14" stroke-linecap="round" /></svg>
+                  </button>
+                  <span class="qty-value" data-testid="qty-value" aria-live="polite">{{ store.quantityFor(loc.id) }}</span>
+                  <button type="button" class="qty-btn" data-testid="qty-plus"
+                    [attr.aria-label]="'purchase.addOne' | translate"
+                    [disabled]="store.quantityFor(loc.id) >= store.maxFor(loc) || store.totalCount() >= store.effectiveMax()"
+                    (click)="changeQuantity(loc, 1)">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke-linecap="round" /></svg>
+                  </button>
+                </div>
+              } @else {
+                <span class="sold-out">{{ 'purchase.soldOut' | translate }}</span>
+              }
+            </div>
+          } @else {
+            <p class="venue-map-hint muted small">{{ 'purchase.pickSeatsIn' | translate: { name: loc.name } }}</p>
+          }
+        } @else {
+          <p class="venue-map-hint muted small" data-testid="venue-map-hint" aria-live="polite">{{ 'purchase.overviewHint' | translate }}</p>
+        }
+        </div>
+        <app-seat-map
+          [seats]="store.allSeats()"
+          [selected]="store.selectedSet()"
+          [focusLocalityId]="store.activeLocalityId()"
+          [selectableLocalityId]="store.activeSeatedLocalityId()"
+          [disabled]="store.activeIsGeneral()"
+          [disabledLabel]="'purchase.mapNotApplyHere' | translate"
+          [cameraMs]="cameraMs()"
+          [priceByLocality]="store.priceByLocality()"
+          [decorations]="store.decorations()"
+          [regions]="store.regions()"
+          [tableLocalityIds]="store.tableLocalityIds()"
+          [localityNames]="store.localityNames()"
+          [stageLabel]="'purchase.stage' | translate"
+          (seatToggle)="store.toggleSeat($event)"
+          (localityPick)="store.setActiveLocality($event)"
+          (exitFocus)="store.deselectLocality()"
+          (overviewReached)="scrollZoomUnderHeader()"
+        />
+        <!-- a11y: el canvas Konva no es operable por teclado/lector. Lista paralela
+             (sr-only) de la zona activa para elegir asientos sin mouse. -->
+        @if (store.activeSeatedLocalityId()) {
           <div class="sr-only" role="group" [attr.aria-label]="'purchase.seatPickerAria' | translate">
             @for (s of store.activeSeats(); track s.id) {
               @if (s.status === 'available' || store.selectedSet().has(s.id)) {
@@ -148,12 +224,23 @@
               }
             }
           </div>
-          <p class="seat-legend">
-            <span class="legend av">{{ 'purchase.legendAvailable' | translate }}</span>
-            <span class="legend sel">{{ 'purchase.legendSelected' | translate }}</span>
-            <span class="legend tk">{{ 'purchase.legendTaken' | translate }}</span>
-          </p>
-        } @else {
+        }
+        <p class="seat-legend">
+          <span class="legend av">{{ 'purchase.legendAvailable' | translate }}</span>
+          <span class="legend sel">{{ 'purchase.legendSelected' | translate }}</span>
+          <span class="legend own">{{ 'purchase.legendOwned' | translate }}</span>
+          <span class="legend res">{{ 'purchase.legendReserved' | translate }}</span>
+          <span class="legend tk">{{ 'purchase.legendTaken' | translate }}</span>
+        </p>
+      </section>
+    }
+
+    <!-- Evento SIN mapa (solo general): stepper aquí (no hay mapa que mostrar). Con
+         mapa, la cantidad ya se muestra ARRIBA del mapa (bajo el precio). -->
+    @if (!store.hasSeatedMap() && store.activeLocality(); as loc) {
+      @if (store.activeIsGeneral()) {
+        <section class="loc-active">
+          <h2>{{ loc.name }} @if (loc.price) { · {{ loc.price.total | money }} {{ 'purchase.perTicket' | translate }} }</h2>
           <div class="loc-quantity" data-testid="loc-quantity">
             <span class="loc-avail">{{ 'purchase.availableCount' | translate: { n: loc.available } }}</span>
             @if (store.maxFor(loc) > 0) {
@@ -184,8 +271,8 @@
               <span class="sold-out">{{ 'purchase.soldOut' | translate }}</span>
             }
           </div>
-        }
-      </section>
+        </section>
+      }
     }
 
     <!-- La lista de seleccionados va DEBAJO del mapa: así seleccionar un asiento no

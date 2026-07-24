@@ -1,11 +1,13 @@
 import { DecimalPipe, isPlatformBrowser } from '@angular/common';
-import { Component, OnDestroy, PLATFORM_ID, afterNextRender, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, PLATFORM_ID, afterNextRender, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Title } from '@angular/platform-browser';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { catchError, of, switchMap, tap } from 'rxjs';
 import { Subscription } from 'rxjs';
 import { EventsApi } from '../../core/api/events.api';
+import { ReservationsApi } from '../../core/api/reservations.api';
 import { SeatStreamService } from '../../core/api/seat-stream.service';
 import { apiErrorMessage } from '../../core/http/api-error';
 import { ToastService } from '../../core/ui/toast.service';
@@ -23,6 +25,7 @@ import { LoadingComponent } from '../../shared/ui/loading.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { TourComponent, TourStep } from '../../shared/tour/tour.component';
+import { DragScrollDirective } from '../../shared/drag-scroll.directive';
 import { SeatMapComponent } from './seat-map.component';
 import { PurchaseService } from './purchase.service';
 
@@ -38,6 +41,7 @@ type Phase = 'select' | 'reserved' | 'expired';
   selector: 'app-purchase',
   imports: [
     SeatMapComponent,
+    DragScrollDirective,
     DecimalPipe,
     MoneyPipe,
     ShareBox,
@@ -62,6 +66,7 @@ export class PurchasePage implements OnDestroy {
   ];
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly title = inject(Title);
   private readonly eventsApi = inject(EventsApi);
   private readonly session = inject(SessionStore);
   private readonly siteUrl = inject(SITE_URL);
@@ -69,6 +74,7 @@ export class PurchasePage implements OnDestroy {
   private readonly toasts = inject(ToastService);
   protected readonly store = inject(PurchaseService);
   private readonly recaptcha = inject(RecaptchaService);
+  private readonly reservationsApi = inject(ReservationsApi);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly seatStream = inject(SeatStreamService);
   private seatSub?: Subscription;
@@ -88,20 +94,44 @@ export class PurchasePage implements OnDestroy {
    * y ofrecemos iniciar sesión (con sesión NO hay límite → puede reservar de una).
    */
   protected readonly blocked = signal<string | null>(null);
+  /**
+   * Segundos restantes de cooldown (0 = sin cronómetro). Es AUTORITATIVO: se
+   * siembra desde el TTL de Redis (endpoint /reservations/cooldown), por lo que
+   * al recargar la página muestra el tiempo real, no uno reiniciado.
+   */
+  /** Duración del zoom cinematográfico de la cámara del mapa (ms). Configurable a futuro
+   *  desde la config del admin (via /public/config); por ahora un default agradable. */
+  protected readonly cameraMs = signal(900);
+  protected readonly cooldownSeconds = signal(0);
+  protected readonly cooldownMm = computed(() => Math.floor(this.cooldownSeconds() / 60));
+  protected readonly cooldownSs = computed(() => this.cooldownSeconds() % 60);
   /** Para qué se pidió el login: reintentar la reserva o continuar al pago. */
   private loginIntent: 'reserve' | 'pay' = 'pay';
   protected readonly eventName = signal('');
   protected readonly loaded = signal(false);
   /** Falló la carga de la disponibilidad/mapa → vista de error (C2). */
   protected readonly loadError = signal(false);
+  /**
+   * Barra de total/Reservar: se APARTA (sube fuera de vista) al hacer scroll hacia
+   * abajo — para no quedar encima del mapa mientras se exploran los asientos — y
+   * reaparece al hacer scroll hacia arriba.
+   */
+  protected readonly cartHidden = signal(false);
+  /** Offset desde abajo de la barra acoplada: sube para no tapar el footer al final. */
+  protected readonly cartBottom = signal(0);
+  /** Al REAPARECER arriba (scroll up), reproduce una animación de bajada suave. */
+  protected readonly cartDropping = signal(false);
+  private dropTimer: ReturnType<typeof setTimeout> | null = null;
 
   private ticker: ReturnType<typeof setInterval> | null = null;
+  private onScroll: (() => void) | null = null;
 
   private readonly data = toSignal(
     this.route.paramMap.pipe(
       switchMap((pm) => this.eventsApi.getBySlug(pm.get('slug') ?? '')),
       tap((ev) => {
         this.eventName.set(ev.name);
+        this.title.setTitle(`${ev.name} — Comprar · Boletiva`); // nombre del evento primero
         this.store.eventId.set(ev.id);
         // Disponibilidad en vivo (FU11): repinta el mapa cuando otros compran/liberan.
         if (isPlatformBrowser(this.platformId) && !this.seatSub) {
@@ -112,10 +142,14 @@ export class PurchasePage implements OnDestroy {
       tap((av) => {
         this.store.availability.set(av);
         if (!this.store.activeLocalityId() && av.localities.length > 0) {
-          // La localidad viene del botón del detalle (?loc=); si no, la primera.
+          // La localidad puede venir del botón del detalle (?loc=). Si NO viene:
+          // - con mapa (asientos numerados) → NO se auto-selecciona → vista LEJANA de
+          //   todo el recinto (el comprador elige su zona en el mapa o en los chips).
+          // - solo-general (sin mapa) → se activa la primera para mostrar el stepper.
           const wanted = this.route.snapshot.queryParamMap.get('loc');
-          const chosen = av.localities.find((l) => l.id === wanted) ?? av.localities[0];
-          this.store.setActiveLocality(chosen.id);
+          const chosen = wanted ? av.localities.find((l) => l.id === wanted) : undefined;
+          if (chosen) this.store.setActiveLocality(chosen.id);
+          else if (!this.store.hasSeatedMap()) this.store.setActiveLocality(av.localities[0].id);
         }
         this.loaded.set(true);
         this.tryRestore(); // reanuda una reserva viva tras un F5
@@ -142,12 +176,99 @@ export class PurchasePage implements OnDestroy {
   protected readonly ss = computed(() => this.secondsLeft() % 60);
 
   constructor() {
+    // Al activar una zona GENERAL, el mapa se deshabilita y el foco va al stepper de
+    // cantidad (que está ARRIBA del mapa) → el comprador ve dónde elegir la cantidad.
+    effect(() => {
+      if (this.store.activeIsGeneral() && isPlatformBrowser(this.platformId)) {
+        setTimeout(() => {
+          // preventScroll: enfocar el stepper NO debe desplazar la página (el navegador
+          // hace scroll al elemento por defecto → hacía "saltar" la vista del mapa al zoom).
+          (document.querySelector('[data-testid="qty-plus"]') as HTMLElement | null)?.focus({ preventScroll: true });
+        }, 0);
+      }
+    });
+    // (El desplazamiento al mapa se hace SOLO desde el clic en el pill — `pickFromPill` —
+    // usando el ancla `.map-top-anchor`. No hay scroll automático al enfocar por zoom/clic
+    // en el mapa: eso hacía "saltar" la vista y competía con el scroll del pill.)
     afterNextRender(() => {
       this.ticker = setInterval(() => this.tick(), 1000);
+      // Al cargar (o recargar) la página, si el visitante sigue en cooldown, el
+      // banner + cronómetro reaparecen con el tiempo REAL restante (TTL en Redis).
+      this.refreshCooldown();
+      // Barra de total: se aparta al bajar / reaparece al subir (no tapa el mapa).
+      let lastY = window.scrollY;
+      this.onScroll = () => {
+        const y = window.scrollY;
+        if (y > lastY + 6 && y > 140) this.cartHidden.set(true);
+        else if (y < lastY - 6) {
+          // Reaparece arriba → dispara la animación de bajada (suave), una vez.
+          if (this.cartHidden()) {
+            this.cartDropping.set(true);
+            if (this.dropTimer) clearTimeout(this.dropTimer);
+            this.dropTimer = setTimeout(() => this.cartDropping.set(false), 420);
+          }
+          this.cartHidden.set(false);
+        }
+        lastY = y;
+        // Al llegar al final, la barra acoplada sube para quedar JUSTO encima del footer
+        // (aprovecha el espacio entre el resumen y el footer, sin taparlo).
+        const footer = document.querySelector('.site-footer');
+        if (footer) {
+          const fTop = footer.getBoundingClientRect().top;
+          this.cartBottom.set(Math.max(0, window.innerHeight - fTop));
+        }
+      };
+      window.addEventListener('scroll', this.onScroll, { passive: true });
     });
   }
 
+  /**
+   * Consulta el estado de cooldown del visitante y, si aplica, muestra el banner
+   * con el cronómetro sembrado desde el tiempo autoritativo del backend.
+   */
+  private refreshCooldown(): void {
+    this.reservationsApi.cooldown().subscribe({
+      next: (s) => {
+        if (s.onCooldown && s.retryAfterSeconds > 0) {
+          this.cooldownSeconds.set(s.retryAfterSeconds);
+          this.blocked.set(this.translate.instant('purchase.reserveCooldown'));
+        }
+      },
+      error: () => undefined, // best-effort: no rompe la vista si falla
+    });
+  }
+
+  /** Cierra el banner de bloqueo (X). Reaparece si se intenta reservar de nuevo. */
+  protected dismissBlocked(): void {
+    this.blocked.set(null);
+  }
+
   /** Stepper +/− de cantidad para una localidad general (capado a [0, max]). */
+  /** Clic en un pill: activa la localidad y desplaza la página para dejar el MAPA hasta
+   *  arriba (solo la zona enfocada + el detalle fixed a la vista; sin pills/carrito encima). */
+  protected pickFromPill(id: string): void {
+    this.store.setActiveLocality(id);
+    this.scrollZoomUnderHeader();
+  }
+
+  /** Reubica el scroll para dejar el CONTROL DE ZOOM justo bajo el header. Se usa al elegir
+   *  un pill y cada vez que el mapa vuelve a la vista completa (reset / 100% / salir de zona). */
+  protected scrollZoomUnderHeader(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    // Acopla la barra de total ABAJO ya → el layout queda en su estado FINAL antes de medir
+    // (si no, al ocultarse durante el scroll el contenido subía ~90px y el zoom terminaba
+    // bajo el header). Medimos tras el reflow y desplazamos el CONTROL DE ZOOM bajo el header.
+    this.cartHidden.set(true);
+    setTimeout(() => {
+      const zoom = document.querySelector('.seat-map-zoom') as HTMLElement | null;
+      if (!zoom) return;
+      const header = document.querySelector('.site-header') as HTMLElement | null;
+      const off = (header?.getBoundingClientRect().height ?? 0) + 12;
+      const top = zoom.getBoundingClientRect().top + window.scrollY - off;
+      window.scrollTo({ top, behavior: 'smooth' });
+    }, 80);
+  }
+
   protected changeQuantity(loc: LocalityAvailabilityDto, delta: number): void {
     const current = this.store.quantityFor(loc.id);
     const n = Math.max(0, Math.min(this.store.maxFor(loc), current + delta));
@@ -190,6 +311,9 @@ export class PurchasePage implements OnDestroy {
         // Conservamos la selección para poder reintentar tras iniciar sesión.
         if (err?.status === 429) {
           this.blocked.set(err?.error?.message ?? this.translate.instant('purchase.reserveLimit'));
+          // Trae el tiempo restante REAL (TTL en Redis) para el cronómetro; si es
+          // por "reserva activa" (no cooldown) no hay cronómetro (retryAfter=0).
+          this.refreshCooldown();
         } else {
           // Mostrar la causa REAL del backend (p.ej. "Captcha inválido") y hacerla
           // VISIBLE con un toast de error, no solo el texto inline genérico.
@@ -278,6 +402,13 @@ export class PurchasePage implements OnDestroy {
   }
 
   private tick(): void {
+    // Cronómetro de cooldown (independiente de la fase): al llegar a 0, el banner
+    // desaparece porque ya se puede reservar de nuevo.
+    if (this.cooldownSeconds() > 0) {
+      const next = this.cooldownSeconds() - 1;
+      this.cooldownSeconds.set(next);
+      if (next === 0 && this.blocked()) this.blocked.set(null);
+    }
     if (this.phase() !== 'reserved') return;
     const left = this.remaining(this.store.reservation()?.expiresAt ?? null);
     this.secondsLeft.set(left);
@@ -290,5 +421,7 @@ export class PurchasePage implements OnDestroy {
   ngOnDestroy(): void {
     if (this.ticker) clearInterval(this.ticker);
     this.seatSub?.unsubscribe();
+    if (this.onScroll && isPlatformBrowser(this.platformId)) window.removeEventListener('scroll', this.onScroll);
+    if (this.dropTimer) clearTimeout(this.dropTimer);
   }
 }

@@ -42,15 +42,16 @@ describe('PurchasePage', () => {
   let el: HTMLElement;
   let reservations: jasmine.SpyObj<ReservationsApi>;
 
-  async function setup() {
+  async function setup(cooldown = { onCooldown: false, hasActive: false, retryAfterSeconds: 0 }) {
     const events = jasmine.createSpyObj<EventsApi>('EventsApi', ['getBySlug', 'availability']);
     events.getBySlug.and.returnValue(of(EVENT as unknown as PublicEventDetailDto));
     events.availability.and.returnValue(of(AVAIL as unknown as EventAvailabilityDto));
     localStorage.clear(); // sin reserva persistida → tryRestore() es no-op
-    reservations = jasmine.createSpyObj<ReservationsApi>('ReservationsApi', ['create', 'getByToken', 'checkout', 'cancel']);
+    reservations = jasmine.createSpyObj<ReservationsApi>('ReservationsApi', ['create', 'getByToken', 'checkout', 'cancel', 'cooldown']);
     reservations.create.and.returnValue(of(RESERVATION as unknown as ReservationResponseDto));
     reservations.getByToken.and.returnValue(of(RESERVATION as unknown as ReservationResponseDto));
     reservations.cancel.and.returnValue(of({ cancelled: true }));
+    reservations.cooldown.and.returnValue(of(cooldown));
 
     TestBed.configureTestingModule({
       providers: [
@@ -153,6 +154,20 @@ describe('PurchasePage', () => {
     (el.querySelector('[data-testid="reserve-login"]') as HTMLButtonElement).click();
     fixture.detectChanges();
     expect(el.querySelector('[data-testid="login-modal"]')).not.toBeNull();
+  });
+
+  it('cooldown activo al cargar: muestra el banner + cronómetro con el tiempo real y se cierra con la X', async () => {
+    // 125 s restantes (autoritativo del backend) → 02:05 en el cronómetro.
+    await setup({ onCooldown: true, hasActive: false, retryAfterSeconds: 125 });
+    const banner = el.querySelector('[data-testid="reserve-blocked"]');
+    expect(banner).not.toBeNull();
+    const timer = el.querySelector('[data-testid="reserve-blocked-timer"]');
+    expect(timer).not.toBeNull();
+    expect(timer?.textContent).toContain('2:05');
+    // La X cierra el banner.
+    (el.querySelector('[data-testid="reserve-blocked-close"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(el.querySelector('[data-testid="reserve-blocked"]')).toBeNull();
   });
 
   it('traduce la interfaz al inglés al cambiar de idioma', async () => {

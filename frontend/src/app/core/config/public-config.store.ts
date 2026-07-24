@@ -33,6 +33,8 @@ export class PublicConfigStore {
   private readonly _reportsMaintenance = signal(false); // reportes activos por defecto
   private readonly _tourEnabled = signal(true); // tour de onboarding activo por defecto
   private readonly _tourResetDays = signal(30); // reofrecer el tour tras N días
+  private readonly _clickDelayEnabled = signal(true); // indicador de carga al hacer clic (default ON)
+  private readonly _clickDelayMs = signal(200); // duración del indicador (default 0.2s)
   private readonly _theme = signal<ThemeConfig>(DEFAULT_THEME);
   private readonly _recaptchaSiteKey = signal('');
   private readonly _premium = signal<{ enabled: boolean; trialEnabled: boolean; trialDays: number }>({
@@ -57,6 +59,9 @@ export class PublicConfigStore {
   readonly tourEnabled = this._tourEnabled.asReadonly();
   /** Días para reofrecer un tour ya visto/rechazado (config admin). */
   readonly tourResetDays = this._tourResetDays.asReadonly();
+  /** UX: indicador de carga artificial al hacer clic (clientes/visitantes) + duración (ms). */
+  readonly clickDelayEnabled = this._clickDelayEnabled.asReadonly();
+  readonly clickDelayMs = this._clickDelayMs.asReadonly();
   /** Asignación de tema por franja + switch (rebranding Boletiva). */
   readonly theme = this._theme.asReadonly();
   /** Site key pública de reCAPTCHA v3 ('' = deshabilitado; RecaptchaService la lee). */
@@ -99,6 +104,8 @@ export class PublicConfigStore {
         this._reportsMaintenance.set(c.reportsMaintenance ?? false);
         this._tourEnabled.set(c.tourEnabled ?? true);
         this._tourResetDays.set(c.tourResetDays ?? 30);
+        this._clickDelayEnabled.set(c.clickDelayEnabled ?? true);
+        this._clickDelayMs.set(c.clickDelayMs ?? 200);
         if (c.theme) this._theme.set(c.theme);
         this._recaptchaSiteKey.set(c.recaptchaSiteKey ?? '');
         if (c.premium) this._premium.set(c.premium);

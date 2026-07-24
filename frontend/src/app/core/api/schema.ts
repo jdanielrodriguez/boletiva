@@ -1959,6 +1959,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reservations/cooldown": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Estado del cooldown anti-abuso del visitante (segundos restantes) */
+        get: operations["ReservationsController_cooldown_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reservations/{token}": {
         parameters: {
             query?: never;
@@ -5491,6 +5508,11 @@ export interface components {
              * @enum {string}
              */
             status: "available" | "held" | "sold" | "blocked";
+            /**
+             * @description true si el usuario logueado YA compró este asiento (se pinta en azul)
+             * @example false
+             */
+            owned: boolean;
         };
         EventAvailabilityDto: {
             seatMap?: components["schemas"]["SeatMapDto"] | null;
@@ -7669,6 +7691,14 @@ export interface components {
             total: string;
             items: components["schemas"]["ReservationItemDto"][];
         };
+        ReservationCooldownDto: {
+            /** @description true si el visitante está en cooldown tras cancelar una reserva */
+            onCooldown: boolean;
+            /** @description true si ya tiene una reserva anónima activa (por IP) */
+            hasActive: boolean;
+            /** @description Segundos restantes de cooldown (0 si no aplica). Autoritativo: úsalo para el cronómetro. */
+            retryAfterSeconds: number;
+        };
         CheckoutReservationDto: {
             /** @description NIT para facturación FEL; vacío = CF (consumidor final) */
             billingNit?: string;
@@ -8964,6 +8994,16 @@ export interface components {
              * @example 30
              */
             tourResetDays: number;
+            /**
+             * @description Muestra un breve indicador de carga al hacer clic (clientes/visitantes).
+             * @example true
+             */
+            clickDelayEnabled: boolean;
+            /**
+             * @description Duración (ms) del indicador de carga al hacer clic (si está activado).
+             * @example 200
+             */
+            clickDelayMs: number;
             /**
              * @description Integraciones externas configuradas y disponibles (gating de UI).
              * @example {
@@ -12319,6 +12359,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReservationResponseDto"];
+                };
+            };
+        };
+    };
+    ReservationsController_cooldown_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReservationCooldownDto"];
                 };
             };
         };

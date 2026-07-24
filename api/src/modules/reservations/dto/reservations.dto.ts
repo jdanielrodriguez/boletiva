@@ -167,3 +167,14 @@ export class ReservationResponseDto {
   @ApiProperty({ type: () => ReservationItemDto, isArray: true })
   items!: ReservationItemDto[];
 }
+
+export class ReservationCooldownDto {
+  @ApiProperty({ description: 'true si el visitante está en cooldown tras cancelar una reserva' })
+  onCooldown!: boolean;
+
+  @ApiProperty({ description: 'true si ya tiene una reserva anónima activa (por IP)' })
+  hasActive!: boolean;
+
+  @ApiProperty({ description: 'Segundos restantes de cooldown (0 si no aplica). Autoritativo: úsalo para el cronómetro.' })
+  retryAfterSeconds!: number;
+}

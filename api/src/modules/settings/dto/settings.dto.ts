@@ -44,6 +44,18 @@ export class PublicConfigDto {
   tourResetDays!: number;
 
   @ApiProperty({
+    description: 'Muestra un breve indicador de carga al hacer clic (clientes/visitantes).',
+    example: true,
+  })
+  clickDelayEnabled!: boolean;
+
+  @ApiProperty({
+    description: 'Duración (ms) del indicador de carga al hacer clic (si está activado).',
+    example: 200,
+  })
+  clickDelayMs!: number;
+
+  @ApiProperty({
     description: 'Integraciones externas configuradas y disponibles (gating de UI).',
     example: {
       recurrente: false,

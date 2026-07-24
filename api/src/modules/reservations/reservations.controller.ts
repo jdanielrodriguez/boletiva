@@ -31,6 +31,7 @@ import { ReservationContext, ReservationsService } from './reservations.service'
 import {
   CheckoutReservationDto,
   CreateReservationDto,
+  ReservationCooldownDto,
   ReservationResponseDto,
 } from './dto/reservations.dto';
 
@@ -83,6 +84,14 @@ export class ReservationsController {
     @Req() req: Request,
   ) {
     return this.reservations.create(eventId, dto, this.ctxFrom(req));
+  }
+
+  @Public()
+  @Get('reservations/cooldown')
+  @ApiOperation({ summary: 'Estado del cooldown anti-abuso del visitante (segundos restantes)' })
+  @ApiOkResponse({ type: ReservationCooldownDto })
+  cooldown(@Req() req: Request) {
+    return this.reservations.cooldownStatus(this.ctxFrom(req));
   }
 
   @Public()

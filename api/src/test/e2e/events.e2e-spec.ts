@@ -623,9 +623,56 @@ describe('Eventos: gestión (e2e)', () => {
       const seat2 = res.body.seats.find((s: { id: string }) => s.id === s2.id);
       expect(seat1.status).toBe('available');
       expect(seat1.x).toBe(10);
+      expect(seat1.owned).toBe(false); // anónimo → ningún asiento marcado como propio
       expect(seat2.status).toBe('held'); // remapeado por el hold ajeno
 
       await redis.getClient().del(`hold:${ev.id}:${s2.id}`);
+    });
+
+    it('availability marca owned=true en los asientos que el usuario logueado ya compró (azul)', async () => {
+      const ev = await mkPublished();
+      const seated = await prisma.locality.create({
+        data: { eventId: ev.id, name: 'Platea', slug: `platea-own-${stamp}`, kind: 'seated', capacity: 2, desiredNet: 100 },
+      });
+      const mineSeat = await prisma.seat.create({
+        data: { localityId: seated.id, label: `OWN-A1-${stamp}`, x: 10, y: 10, status: 'sold' },
+      });
+      const otherSeat = await prisma.seat.create({
+        data: { localityId: seated.id, label: `OWN-A2-${stamp}`, x: 20, y: 10, status: 'sold' },
+      });
+      const buyer = await prisma.user.findUniqueOrThrow({ where: { email: SEED.buyer } });
+      const order = await prisma.order.create({
+        data: {
+          buyerId: buyer.id, eventId: ev.id, status: 'paid',
+          net: '100.00', platformFee: '10.00', fixedFees: '0.00', taxableBase: '110.00',
+          iva: '13.20', gatewayFee: '6.48', total: CANON.total, paidAt: new Date(),
+        },
+      });
+      const item = await prisma.orderItem.create({
+        data: {
+          orderId: order.id, localityId: seated.id, seatId: mineSeat.id, label: mineSeat.label,
+          net: '100.00', total: CANON.total, quote: {}, quoteHash: `own-${stamp}`, active: true,
+        },
+      });
+      await prisma.ticket.create({
+        data: {
+          orderItemId: item.id, orderId: order.id, eventId: ev.id, localityId: seated.id, seatId: mineSeat.id,
+          ownerId: buyer.id, status: 'valid', serial: `OWN-${stamp}`, totpSecret: 'x', signature: 'x', signingKeyId: 'x',
+        },
+      });
+
+      // Anónimo: nada es "owned".
+      const anon = await http().get(`/api/v1/events/${ev.id}/availability`).expect(200);
+      expect(anon.body.seats.find((s: { id: string }) => s.id === mineSeat.id).owned).toBe(false);
+
+      // Con sesión del comprador: su asiento owned=true; el ajeno vendido owned=false.
+      const auth = await http().get(`/api/v1/events/${ev.id}/availability`).set(bearer(buyerToken)).expect(200);
+      expect(auth.body.seats.find((s: { id: string }) => s.id === mineSeat.id).owned).toBe(true);
+      expect(auth.body.seats.find((s: { id: string }) => s.id === otherSeat.id).owned).toBe(false);
+
+      // Limpieza: la orden referencia al evento (FK) → borrarla (cascada a ítems/boletos)
+      // para que el afterAll pueda eliminar el evento y sus asientos.
+      await prisma.order.delete({ where: { id: order.id } });
     });
 
     it('availability sin asientos disponibles: seats vacío y available 0 (heldSet corta en []).', async () => {
