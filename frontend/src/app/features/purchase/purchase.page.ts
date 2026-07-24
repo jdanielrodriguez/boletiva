@@ -187,23 +187,9 @@ export class PurchasePage implements OnDestroy {
         }, 0);
       }
     });
-    // Al enfocar una localidad NUMERADA desde el CHIP (cuando el mapa está fuera de vista),
-    // desplazamos la página hasta el mapa. Pero si el mapa YA está a la vista —enfoque por
-    // zoom (auto-foco a 250%) o por clic/doble-clic en el propio mapa— NO movemos la página:
-    // ese scroll reacomodaba la barra de total y hacía "saltar" la vista del mapa.
-    effect(() => {
-      const focused = this.store.activeSeatedLocalityId();
-      if (focused && isPlatformBrowser(this.platformId)) {
-        setTimeout(() => {
-          const el = document.querySelector('[data-testid="venue-map"]') as HTMLElement | null;
-          if (!el) return;
-          const r = el.getBoundingClientRect();
-          const vh = window.innerHeight;
-          const alreadyVisible = r.top < vh * 0.5 && r.bottom > vh * 0.35;
-          if (!alreadyVisible) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 60);
-      }
-    });
+    // (El desplazamiento al mapa se hace SOLO desde el clic en el pill — `pickFromPill` —
+    // usando el ancla `.map-top-anchor`. No hay scroll automático al enfocar por zoom/clic
+    // en el mapa: eso hacía "saltar" la vista y competía con el scroll del pill.)
     afterNextRender(() => {
       this.ticker = setInterval(() => this.tick(), 1000);
       // Al cargar (o recargar) la página, si el visitante sigue en cooldown, el
@@ -264,15 +250,10 @@ export class PurchasePage implements OnDestroy {
     this.store.setActiveLocality(id);
     if (!isPlatformBrowser(this.platformId)) return;
     setTimeout(() => {
-      const el = document.querySelector('[data-testid="venue-map"]') as HTMLElement | null;
-      if (!el) return;
-      // Deja el TOPE del mapa (donde va el control de zoom, encima del canvas) JUSTO debajo
-      // del header sticky → el zoom queda visible, no oculto. Cálculo manual (no scrollIntoView
-      // + scroll-margin, que aquí no dejaba el zoom a la vista).
-      const header = document.querySelector('.site-header') as HTMLElement | null;
-      const off = (header?.getBoundingClientRect().height ?? 0) + 12;
-      const top = el.getBoundingClientRect().top + window.scrollY - off;
-      window.scrollTo({ top, behavior: 'smooth' });
+      // Desplaza al ANCLA vacía que está justo arriba del control de zoom (tiene
+      // scroll-margin-top para dejar hueco al header sticky) → el zoom queda como primer
+      // elemento visible, no oculto tras el header ni pasado hasta el canvas.
+      document.querySelector('[data-testid="map-top-anchor"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 60);
   }
 

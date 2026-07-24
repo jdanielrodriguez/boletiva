@@ -141,6 +141,9 @@
          atenúan). Tocar otra zona cambia la localidad activa. -->
     @if (store.hasSeatedMap()) {
       <section class="venue-map" data-testid="venue-map">
+        <!-- Ancla vacía JUSTO arriba del control de zoom: al elegir un pill se desplaza aquí
+             (con scroll-margin para el header) → el zoom queda como primer elemento visible. -->
+        <div class="map-top-anchor" data-testid="map-top-anchor" aria-hidden="true"></div>
         <!-- Cabecera de altura FIJA: contiene la info de zona / hint. Al enfocar aparece el
              panel y al salir el hint, pero el alto no cambia → el mapa NO se recorre (antes
              el zoom parecía "subir/bajar" porque este bloque crecía/encogía). -->
